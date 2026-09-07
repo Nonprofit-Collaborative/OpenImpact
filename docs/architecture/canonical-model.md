@@ -595,9 +595,21 @@ and addresses (C-17).
 | `Automatic_Household_Soft_Credits__c` | boolean | true | Whether a gift from one household member automatically soft credits the household's other current members (R-SC3). |
 | `Installment_Generation_Horizon_Months__c` | integer | 12 | How far ahead installments are generated for an open-ended recurring commitment, so the schedule does not generate rows forever (R-CM2). |
 | `Installment_Overdue_Grace_Days__c` | integer | 5 | How many days after its due date an unpaid installment waits before it is marked Overdue (R-IN2). |
+| `Auto_Apply_Gifts_To_Installments__c` | boolean | true | Whether a gift that names a commitment but no installment is linked to that commitment's earliest unpaid installment automatically (R-IN3). |
+| `Installment_Top_Up_Last_Run__c` | datetime | empty | When the daily job that extends recurring schedules and marks installments overdue last completed, shown on the Hub; written by the job, read only to the admin (R-CM2, R-IN2). |
 | `Contact_Address_Change_Behavior__c` | picklist(Update household, Create personal address) | Update household | What happens when a person's address is edited: the household moves, or that person gets an address of their own (R-AD5). |
 | `Relationship_Auto_Reciprocal__c` | boolean | true | Whether the package creates and maintains the other side of every relationship (R-RL1). |
 | `Seasonal_Address_Last_Run__c` | datetime | empty | When the seasonal address swap job last completed, shown on the Hub; written by the v0.4 job (C-18, R-AD4). |
+
+The four commitment keys (`Installment_Generation_Horizon_Months__c`,
+`Installment_Overdue_Grace_Days__c`, `Auto_Apply_Gifts_To_Installments__c`, and
+`Installment_Top_Up_Last_Run__c`) and `Automatic_Household_Soft_Credits__c` are Giving
+keys and live on `Giving_Settings__c`, the Giving package's own protected hierarchy
+custom setting, not on `Nonprofit_Settings__c`: a dependent package cannot add fields to
+an object Core owns (ADR-0017). They are listed here because this section is the whole
+settings inventory, and the settings console reads every registered settings object
+through `Setting_Definition__mdt`, so an admin sees one console whichever object holds
+the value.
 
 ### Rules
 
@@ -1585,8 +1597,9 @@ deletes history.
 recurring commitment is never completed automatically; it ends when staff cancel it or
 when End Date passes.
 
-**R-CM5 Balance is calculated live.** Balance is Expected Total less Paid To Date, derived
-at read time rather than stored, because a difference of two numbers on the same record
+**R-CM5 Balance is calculated live.** Balance is Expected Total less Paid To Date for a
+pledge and empty for a recurring commitment, which has no expected total to subtract
+from. It is derived at read time rather than stored, because a difference of two numbers on the same record
 cannot be stale and needs no recalculation pass. The household-level pledge balance
 aggregates this value (Section 26). If the aggregation engine chosen in ADR-0011 cannot
 aggregate a calculated attribute, Balance becomes a stored attribute written by the
@@ -1622,8 +1635,11 @@ rewritten, because a gift already refers to them.
 Rollup target attributes on `Commitment__c`, including Paid To Date, are listed in
 Section 26.
 
-- **Settings keys:** `Installment_Generation_Horizon_Months__c` (Section 12).
-- **Service:** `CommitmentService`, `InstallmentGenerator`, `CommitmentDomain`.
+- **Settings keys** (on `Giving_Settings__c`, Section 12):
+  `Installment_Generation_Horizon_Months__c`, `Auto_Apply_Gifts_To_Installments__c`,
+  `Installment_Top_Up_Last_Run__c`.
+- **Service:** `CommitmentService`, `CommitmentSelector`, `CommitmentTriggerHandler`,
+  `GiftCommitmentHandler`, `InstallmentTopUpSchedulable`.
 
 ---
 
@@ -1667,7 +1683,10 @@ the one status only a person sets.
 
 **R-IN3 Payment linkage.** A gift pays an installment by referencing it. The gift also
 carries the commitment, so a payment that does not correspond to any scheduled
-installment still counts toward the commitment.
+installment still counts toward the commitment. A gift that names a commitment and no
+installment is linked to that commitment's earliest unpaid installment by the package
+when `Auto_Apply_Gifts_To_Installments__c` is true, which is the default, because staff
+entering a cheque against a pledge know the pledge and not the row number.
 
 **R-IN4 Sequence is stable.** Sequence is assigned at generation and does not change when
 an installment is skipped or paid late, so an installment can be named the same way in a
@@ -1688,8 +1707,8 @@ report a year later.
 Rollup target attributes on `Installment__c`, including Paid Amount, are listed in
 Section 26.
 
-- **Settings keys:** `Installment_Overdue_Grace_Days__c` (Section 12).
-- **Service:** `InstallmentService`, `InstallmentStatusBatch`.
+- **Settings keys** (on `Giving_Settings__c`, Section 12): `Installment_Overdue_Grace_Days__c`.
+- **Service:** `InstallmentSelector`, `InstallmentTriggerHandler`, `InstallmentSchedulable`.
 
 ---
 
@@ -2305,6 +2324,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.2 | 2026-09-07 | Core: Rollup Definition (Section 14) with the filter document format and the mode-resolved path notation; Import Template, Import Batch, and Import Row (Sections 15 to 17) with the Created By Import Batch tag on Household, Contact, Organization, and Gift. Giving: Gift, Gift Allocation, Fund, and Appeal (Sections 18 to 21), and the packaged default giving rollups (Section 26). Nonprofit Settings gains `Fiscal_Year_Start_Month__c`, `Default_Fund__c`, `Default_Appeal__c`, `Rollup_Mode_Default__c`, `Import_Chunk_Size__c`, and `Setup_Assistant_Steps_Complete__c`. Shipped defaults gain `Rollup_Definition_Default__mdt` and `Import_Template_Default__mdt`. Published for build, objects not yet created. |
 | v0.3 | 2026-09-07 | Giving: Commitment, Installment, Soft Credit, and Tribute (Sections 22 to 25) with their rollup targets. Core: Relationship, Affiliation, and Address (Sections 27 to 29), the Primary Affiliation reference on Contact, and the shipped defaults `Relationship_Type__mdt`. Nonprofit Settings gains `Automatic_Household_Soft_Credits__c`, `Installment_Generation_Horizon_Months__c`, `Installment_Overdue_Grace_Days__c`, `Contact_Address_Change_Behavior__c`, `Relationship_Auto_Reciprocal__c`, and `Seasonal_Address_Last_Run__c`. Published for build, objects not yet created. |
 | v0.3 | 2026-09-07 | Convention added: person references are a Contact and Account pair with exactly one set (Section 4), following the change of first customer to Nonprofit Cloud and Agentforce Nonprofit orgs where individuals are person Accounts. Import Row and Import Template carry the person-mode attributes this requires. |
+| v0.3 | 2026-09-07 | Commitments (G-07, G-11): Giving Settings gains `Auto_Apply_Gifts_To_Installments__c` and `Installment_Top_Up_Last_Run__c`, and Section 12 records that the Giving keys live on `Giving_Settings__c` rather than `Nonprofit_Settings__c` (ADR-0017). R-CM5 states that Balance is empty for a recurring commitment; R-IN3 states the automatic linking of a gift to the earliest unpaid installment. |
 | v0.3 | 2026-09-07 | Sections renumbered to keep the document in reading order: the former Section 14 "Deferred to later iterations" is now Section 30 and the former Section 15 "Change log" is now Section 31. Section 32 "Entity ownership by package" is new. |
 
 ---
