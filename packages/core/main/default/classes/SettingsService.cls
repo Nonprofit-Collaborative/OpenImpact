@@ -1,25 +1,35 @@
 /**
- * Reads and writes the org's Nonprofit Settings.
+ * Reads and writes the org's settings.
  *
- * Every write is validated against the object's own schema and against the shipped
- * Setting Definition rows, is audited as a Setting Change record, and clears the cached
- * copy so the next transaction sees the new value (canonical model Section 12, R-N3).
+ * Each package owns a protected hierarchy custom setting (ADR-0017): Core's is
+ * `Nonprofit_Settings__c` and a module ships its own, named on its Setting Definition rows.
+ * Every write is validated against that object's own schema and against the shipped rows, is
+ * audited as a Setting Change record, and clears the cached copy so the next transaction sees
+ * the new value (canonical model Section 12, R-N3).
  */
+@NamespaceAccessible
 public with sharing class SettingsService {
+    /** Core's own settings object, used when a caller or a row does not name one. */
+    @NamespaceAccessible
+    public static final String CORE_SETTINGS_OBJECT = 'Nonprofit_Settings__c';
+
     private static final String CACHE_PARTITION = 'local.NonprofitSettings';
     private static final String CACHE_KEY = 'orgDefaults';
+    private static final String SETUP_OWNER = 'setupownerid';
 
     private static Nonprofit_Settings__c cachedSettings;
-    private static Map<String, Schema.SObjectField> cachedFields;
+    private static Map<String, Map<String, Schema.SObjectField>> cachedFields = new Map<String, Map<String, Schema.SObjectField>>();
 
     /** Raised when a setting does not exist, is not editable here, or the value cannot be read. */
+    @NamespaceAccessible
     public class SettingsException extends Exception {
     }
 
     /**
-     * The org-level settings record, from the static cache, then the org cache, then the
+     * The org-level Core settings record, from the static cache, then the org cache, then the
      * platform. Never null: an org that has never saved gets an empty record.
      */
+    @NamespaceAccessible
     public static Nonprofit_Settings__c getSettings() {
         if (cachedSettings != null) {
             return cachedSettings;
@@ -34,50 +44,86 @@ public with sharing class SettingsService {
         return cachedSettings;
     }
 
-    /** True when this org's settings object actually has the given key. */
+    /** True when Core's settings object actually has the given key. */
+    @NamespaceAccessible
     public static Boolean hasKey(String key) {
-        return String.isNotBlank(key) && fieldsByLocalName().containsKey(key.trim().toLowerCase());
+        return hasKey(CORE_SETTINGS_OBJECT, key);
     }
 
-    /** The current value of one setting, or null. Throws when the key does not exist. */
+    /** True when the named settings object actually has the given key. */
+    @NamespaceAccessible
+    public static Boolean hasKey(String settingsObject, String key) {
+        if (String.isBlank(key)) {
+            return false;
+        }
+        Schema.SObjectType type = Schema.getGlobalDescribe().get(objectName(settingsObject));
+        return type != null && fieldsByLocalName(type).containsKey(key.trim().toLowerCase());
+    }
+
+    /** The current value of one Core setting, or null. Throws when the key does not exist. */
+    @NamespaceAccessible
     public static Object getValue(String key) {
-        Schema.SObjectField token = fieldFor(key);
-        return getSettings().get(token);
+        return getValue(CORE_SETTINGS_OBJECT, key);
+    }
+
+    /** The current value of one setting on the named settings object, or null. */
+    @NamespaceAccessible
+    public static Object getValue(String settingsObject, String key) {
+        Schema.SObjectType type = settingsType(settingsObject);
+        return orgDefault(type).get(fieldFor(type, key));
     }
 
     /**
-     * Saves the given values, keyed by the API name of the Nonprofit Settings field.
+     * Saves the given Core values, keyed by the API name of the Nonprofit Settings field.
      * Only keys that exist on the object and are listed in a Setting Definition row are
-     * accepted. Returns the refreshed settings.
+     * accepted. Returns the refreshed Core settings.
      */
+    @NamespaceAccessible
     public static Nonprofit_Settings__c saveValues(Map<String, Object> values) {
-        return applyValues(values, true);
+        applyValues(CORE_SETTINGS_OBJECT, values, true);
+        return getSettings();
+    }
+
+    /**
+     * Saves the given values on the named settings object. The object has to be a hierarchy
+     * custom setting named by at least one shipped Setting Definition row. Returns the saved
+     * org-level record.
+     */
+    @NamespaceAccessible
+    public static SObject saveValues(String settingsObject, Map<String, Object> values) {
+        return applyValues(settingsObject, values, true);
     }
 
     /**
      * Saves one value the package itself owns, such as the setup checklist progress,
      * which has no Setting Definition row because it is not an editable setting.
      */
+    @NamespaceAccessible
     public static Nonprofit_Settings__c saveSystemValue(String key, Object value) {
-        return applyValues(new Map<String, Object>{ key => value }, false);
+        applyValues(CORE_SETTINGS_OBJECT, new Map<String, Object>{ key => value }, false);
+        return getSettings();
     }
 
-    private static Nonprofit_Settings__c applyValues(
+    private static SObject applyValues(
+        String settingsObject,
         Map<String, Object> values,
         Boolean requireDefinition
     ) {
+        Schema.SObjectType type = settingsType(settingsObject);
+        SObject record = orgDefault(type);
         if (values == null || values.isEmpty()) {
-            return getSettings();
+            return record;
         }
-        Set<String> definedKeys = requireDefinition ? definedKeys() : null;
-        Nonprofit_Settings__c record = Nonprofit_Settings__c.getOrgDefaults();
+        String objectName = objectName(settingsObject);
+        Set<String> definedKeys = requireDefinition ? definedKeys(objectName) : null;
+        record = record.clone(true, true, true, true);
         if (record.Id == null) {
-            record.SetupOwnerId = UserInfo.getOrganizationId();
+            record.put(SETUP_OWNER, UserInfo.getOrganizationId());
         }
         List<Setting_Change__c> changes = new List<Setting_Change__c>();
         Datetime changedAt = System.now();
         for (String key : values.keySet()) {
-            Schema.SObjectField token = fieldFor(key);
+            Schema.SObjectField token = fieldFor(type, key);
             Schema.DescribeFieldResult field = token.getDescribe();
             String localName = field.getLocalName();
             if (requireDefinition && !definedKeys.contains(localName.toLowerCase())) {
@@ -91,7 +137,7 @@ public with sharing class SettingsService {
             record.put(token, newValue);
             changes.add(
                 new Setting_Change__c(
-                    Setting_Name__c = localName,
+                    Setting_Name__c = objectName + '.' + localName,
                     Old_Value__c = asText(oldValue),
                     New_Value__c = asText(newValue),
                     Changed_By__c = UserInfo.getUserId(),
@@ -100,16 +146,60 @@ public with sharing class SettingsService {
             );
         }
         if (changes.isEmpty()) {
-            return getSettings();
+            return record;
         }
-        if (record.Id == null) {
-            Database.insert(record, AccessLevel.USER_MODE);
-        } else {
-            Database.update(record, AccessLevel.USER_MODE);
-        }
+        Database.upsert(record, AccessLevel.USER_MODE);
         Database.insert(changes, AccessLevel.USER_MODE);
         clearCaches();
-        return getSettings();
+        return record;
+    }
+
+    /** The org-level record of the given settings object, never null. */
+    private static SObject orgDefault(Schema.SObjectType type) {
+        if (isCoreSettings(type)) {
+            return getSettings();
+        }
+        SObject record = SettingsRecordSelector.getOrgDefault(type);
+        return record == null ? type.newSObject() : record;
+    }
+
+    private static Boolean isCoreSettings(Schema.SObjectType type) {
+        return type == Nonprofit_Settings__c.SObjectType;
+    }
+
+    /**
+     * The settings object a caller named, checked: it has to exist, be a hierarchy custom
+     * setting, and either be Core's own or be named by a shipped Setting Definition row.
+     */
+    private static Schema.SObjectType settingsType(String settingsObject) {
+        String name = objectName(settingsObject);
+        if (
+            !CORE_SETTINGS_OBJECT.equalsIgnoreCase(name) &&
+            !registeredObjects().contains(name.toLowerCase())
+        ) {
+            throw new SettingsException(System.Label.Core_Settings_UnknownKeyError);
+        }
+        Schema.SObjectType type = Schema.getGlobalDescribe().get(name);
+        if (type == null) {
+            throw new SettingsException(System.Label.Core_Settings_UnknownKeyError);
+        }
+        Schema.DescribeSObjectResult describe = type.getDescribe(SObjectDescribeOptions.DEFERRED);
+        if (!describe.isCustomSetting() || !describe.fields.getMap().containsKey(SETUP_OWNER)) {
+            throw new SettingsException(System.Label.Core_Settings_UnknownKeyError);
+        }
+        return type;
+    }
+
+    private static String objectName(String settingsObject) {
+        return String.isBlank(settingsObject) ? CORE_SETTINGS_OBJECT : settingsObject.trim();
+    }
+
+    private static Set<String> registeredObjects() {
+        Set<String> names = new Set<String>();
+        for (Setting_Definition__mdt definition : SettingDefinitionSelector.getAll()) {
+            names.add(objectName(definition.Settings_Object__c).toLowerCase());
+        }
+        return names;
     }
 
     /** Forgets both the static and the org cache, so the next read comes from the platform. */
@@ -126,38 +216,40 @@ public with sharing class SettingsService {
         }
     }
 
-    private static Set<String> definedKeys() {
+    private static Set<String> definedKeys(String objectName) {
         Set<String> keys = new Set<String>();
         for (Setting_Definition__mdt definition : SettingDefinitionSelector.getAll()) {
-            if (String.isNotBlank(definition.Setting_Key__c)) {
+            Boolean sameObject = objectName(definition.Settings_Object__c)
+                .equalsIgnoreCase(objectName);
+            if (sameObject && String.isNotBlank(definition.Setting_Key__c)) {
                 keys.add(definition.Setting_Key__c.trim().toLowerCase());
             }
         }
         return keys;
     }
 
-    private static Schema.SObjectField fieldFor(String key) {
+    private static Schema.SObjectField fieldFor(Schema.SObjectType type, String key) {
         Schema.SObjectField token = String.isBlank(key)
             ? null
-            : fieldsByLocalName().get(key.trim().toLowerCase());
+            : fieldsByLocalName(type).get(key.trim().toLowerCase());
         if (token == null) {
             throw new SettingsException(System.Label.Core_Settings_UnknownKeyError);
         }
         return token;
     }
 
-    private static Map<String, Schema.SObjectField> fieldsByLocalName() {
-        if (cachedFields != null) {
-            return cachedFields;
+    private static Map<String, Schema.SObjectField> fieldsByLocalName(Schema.SObjectType type) {
+        Schema.DescribeSObjectResult describe = type.getDescribe(SObjectDescribeOptions.DEFERRED);
+        String name = describe.getName();
+        if (cachedFields.containsKey(name)) {
+            return cachedFields.get(name);
         }
-        cachedFields = new Map<String, Schema.SObjectField>();
-        Schema.DescribeSObjectResult describe = Nonprofit_Settings__c.SObjectType.getDescribe(
-            SObjectDescribeOptions.DEFERRED
-        );
+        Map<String, Schema.SObjectField> fields = new Map<String, Schema.SObjectField>();
         for (Schema.SObjectField token : describe.fields.getMap().values()) {
-            cachedFields.put(token.getDescribe().getLocalName().toLowerCase(), token);
+            fields.put(token.getDescribe().getLocalName().toLowerCase(), token);
         }
-        return cachedFields;
+        cachedFields.put(name, fields);
+        return fields;
     }
 
     private static Object coerce(Object raw, Schema.DescribeFieldResult field) {

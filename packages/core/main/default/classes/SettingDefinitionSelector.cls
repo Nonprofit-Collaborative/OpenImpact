@@ -19,6 +19,7 @@ public with sharing class SettingDefinitionSelector {
                 DeveloperName,
                 MasterLabel,
                 Setting_Key__c,
+                Settings_Object__c,
                 Section__c,
                 Module__c,
                 Data_Type__c,

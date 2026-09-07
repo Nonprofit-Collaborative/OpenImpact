@@ -56,7 +56,11 @@ private class SettingsServiceTest {
         );
         List<Setting_Change__c> changes = SettingChangeSelector.getRecent(10);
         Assert.areEqual(1, changes.size(), 'One changed setting writes exactly one audit record');
-        Assert.areEqual(TEXT_KEY, changes[0].Setting_Name__c, 'The audit record names the setting');
+        Assert.areEqual(
+            'Nonprofit_Settings__c.' + TEXT_KEY,
+            changes[0].Setting_Name__c,
+            'The audit record names the settings object and the setting, because each package owns one'
+        );
         Assert.areEqual('', changes[0].Old_Value__c, 'The setting had never been set');
         Assert.areEqual(
             'The {LastName} Family',
@@ -217,6 +221,49 @@ private class SettingsServiceTest {
         Assert.isTrue(
             SettingsService.hasKey(TEXT_KEY),
             'The org does have the household name pattern'
+        );
+    }
+
+    @IsTest
+    static void refusesASettingsObjectNoShippedRowNames() {
+        stubDefinitions();
+        Boolean refused = false;
+
+        Test.startTest();
+        try {
+            SettingsService.saveValues(
+                'Not_A_Settings_Object__c',
+                new Map<String, Object>{ TEXT_KEY => 'anything' }
+            );
+        } catch (SettingsService.SettingsException e) {
+            refused = true;
+        }
+        Test.stopTest();
+
+        Assert.isTrue(refused, 'Only a settings object a shipped row names can be written');
+    }
+
+    @IsTest
+    static void readsCoreSettingsByNameAsWellAsByDefault() {
+        stubDefinitions();
+        SettingsService.saveValues(new Map<String, Object>{ TEXT_KEY => 'The {LastName} Family' });
+
+        Test.startTest();
+        Object named = SettingsService.getValue('Nonprofit_Settings__c', TEXT_KEY);
+        Test.stopTest();
+
+        Assert.areEqual(
+            'The {LastName} Family',
+            named,
+            'Naming Core\'s own object reads the same value'
+        );
+        Assert.isTrue(
+            SettingsService.hasKey('Nonprofit_Settings__c', TEXT_KEY),
+            'Core owns the household name pattern'
+        );
+        Assert.isFalse(
+            SettingsService.hasKey('Nonprofit_Settings__c', 'Not_A_Setting__c'),
+            'Core does not own a setting that does not exist'
         );
     }
 

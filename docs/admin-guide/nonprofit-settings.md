@@ -82,6 +82,6 @@ changes.
 
 | What you see | Where it is stored |
 |---|---|
-| A setting's value | The org's Nonprofit Settings record, one field per setting |
+| A setting's value | The settings record of the module that owns it, one field per setting. Core's is Nonprofit Settings; a module such as Giving brings its own. |
 | A row in Recent changes | Setting Change: setting name, old value, new value, changed by, changed at |
 | The list of settings the console shows | Setting Definition, a package-shipped list that upgrades bring you |

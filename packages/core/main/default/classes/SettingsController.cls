@@ -2,6 +2,7 @@
  * The Nonprofit Settings console's Apex surface: what to render, what the values are,
  * whether this user may change them, what a search matches, and what changed recently.
  */
+@NamespaceAccessible
 public with sharing class SettingsController {
     private static final String EDIT_PERMISSION = 'Manage_Nonprofit_Settings';
     private static final String HELP_BASE = 'https://github.com/Nonprofit-Collaborative/OpenImpact/blob/main/docs/admin-guide/';
@@ -35,6 +36,8 @@ public with sharing class SettingsController {
         public String dataType;
         @AuraEnabled
         public String section;
+        @AuraEnabled
+        public String settingsObject;
         @AuraEnabled
         public String component;
         @AuraEnabled
@@ -95,7 +98,10 @@ public with sharing class SettingsController {
             throw asAuraException(System.Label.Core_Settings_PermissionRequiredError);
         }
         try {
-            SettingsService.saveValues(values);
+            Map<String, Map<String, Object>> byObject = groupByObject(values);
+            for (String settingsObject : byObject.keySet()) {
+                SettingsService.saveValues(settingsObject, byObject.get(settingsObject));
+            }
             return buildModel();
         } catch (SettingsService.SettingsException e) {
             ErrorLogger.log(e, ERROR_CONTEXT);
@@ -153,6 +159,37 @@ public with sharing class SettingsController {
         return changes;
     }
 
+    /**
+     * Splits what the page sent into one map per settings object, because each package owns
+     * its own settings object (ADR-0017). A key with no shipped row is left with Core, whose
+     * service refuses it by name.
+     */
+    private static Map<String, Map<String, Object>> groupByObject(Map<String, Object> values) {
+        Map<String, String> objectByKey = new Map<String, String>();
+        for (Setting_Definition__mdt definition : SettingDefinitionSelector.getAll()) {
+            if (String.isNotBlank(definition.Setting_Key__c)) {
+                objectByKey.put(
+                    definition.Setting_Key__c.trim().toLowerCase(),
+                    String.isBlank(definition.Settings_Object__c)
+                        ? SettingsService.CORE_SETTINGS_OBJECT
+                        : definition.Settings_Object__c.trim()
+                );
+            }
+        }
+        Map<String, Map<String, Object>> byObject = new Map<String, Map<String, Object>>();
+        for (String key : values.keySet()) {
+            String settingsObject = objectByKey.get(key == null ? '' : key.trim().toLowerCase());
+            if (settingsObject == null) {
+                settingsObject = SettingsService.CORE_SETTINGS_OBJECT;
+            }
+            if (!byObject.containsKey(settingsObject)) {
+                byObject.put(settingsObject, new Map<String, Object>());
+            }
+            byObject.get(settingsObject).put(key, values.get(key));
+        }
+        return byObject;
+    }
+
     private static Boolean matches(Setting_Definition__mdt definition, String needle) {
         String haystack = String.join(
                 new List<String>{
@@ -192,10 +229,14 @@ public with sharing class SettingsController {
 
     private static SettingModel toSetting(Setting_Definition__mdt definition) {
         Boolean isComponent = TYPE_COMPONENT.equalsIgnoreCase(definition.Data_Type__c);
-        if (!isComponent && !SettingsService.hasKey(definition.Setting_Key__c)) {
+        String settingsObject = String.isBlank(definition.Settings_Object__c)
+            ? SettingsService.CORE_SETTINGS_OBJECT
+            : definition.Settings_Object__c.trim();
+        if (!isComponent && !SettingsService.hasKey(settingsObject, definition.Setting_Key__c)) {
             return null;
         }
         SettingModel setting = new SettingModel();
+        setting.settingsObject = settingsObject;
         setting.key = isComponent ? definition.DeveloperName : definition.Setting_Key__c;
         setting.label = definition.MasterLabel;
         setting.description = definition.Description__c;
@@ -210,7 +251,7 @@ public with sharing class SettingsController {
             setting.checked = false;
             return setting;
         }
-        Object value = SettingsService.getValue(definition.Setting_Key__c);
+        Object value = SettingsService.getValue(settingsObject, definition.Setting_Key__c);
         setting.value = SettingsService.asText(value);
         setting.checked = TYPE_CHECKBOX.equalsIgnoreCase(definition.Data_Type__c) && value == true;
         return setting;
