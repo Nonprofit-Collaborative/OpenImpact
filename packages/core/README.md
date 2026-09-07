@@ -25,6 +25,27 @@ object references: those live only in the Connect module, behind dynamic Apex.
 - **Health Check**: org shape and license detection, missing permission assignments, rollup
   schedule staleness, orphaned records, coexistence conflicts.
 
+## Vendored code
+
+Core carries one third party dependency, as source rather than as a package: the
+[apex-rollup](https://github.com/jamessimone/apex-rollup) aggregation engine (MIT, James Simone),
+under `packages/core/vendor/apex-rollup/`. It is driven through an adapter Open Impact owns, and
+`Rollup_Definition__c` stays the only rollup configuration an administrator ever sees.
+
+- **What was taken, what was changed, and how to take a newer version:**
+  [`packages/core/vendor/apex-rollup/VENDOR.md`](vendor/apex-rollup/VENDOR.md). Read it before
+  touching anything under `vendor/`, and update it in the same pull request that changes the
+  vendored tree.
+- **Why it was vendored rather than written or depended on:**
+  [ADR-0015](../../docs/architecture/decisions/0015-vendor-apex-rollup-behind-adapter.md), with the
+  source level comparison of the three candidates in
+  [rollup-library-evaluation.md](../../docs/architecture/reference/rollup-library-evaluation.md).
+- The upstream MIT licence text travels with the code, in
+  [`packages/core/vendor/apex-rollup/LICENSE`](vendor/apex-rollup/LICENSE), and must stay there in
+  every build that ships it.
+- `packages/core/vendor/` is excluded from Prettier so that upstream diffs stay readable. Everything
+  else under `packages/core` is formatted normally.
+
 ## Iteration
 
 Core first ships in **v0.1** and is required by every later iteration; it is the only package

@@ -8,3 +8,10 @@ package-lock.json
 LICENSE
 # Prose is hand-formatted; Prettier formats source and configuration only.
 *.md
+
+# Vendored third party source: apex-rollup, see packages/core/vendor/apex-rollup/VENDOR.md.
+# Upstream formats with its own Prettier configuration. Running ours over the vendored tree
+# rewrites about 25,000 lines, which turns every future upstream diff into noise and makes
+# re-applying the local patches by hand impractical. Everything else under packages/core is
+# formatted normally.
+packages/core/vendor/
