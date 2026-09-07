@@ -22,10 +22,11 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0011](0011-evaluate-vendoring-a-rollup-library.md) | Evaluate vendoring a proven Apex rollup library before building one | Accepted |
 | [0012](0012-trunk-based-development.md) | Trunk-based development with squash merges and an always-releasable main | Accepted |
 | [0013](0013-platform-only-org-shape-verification.md) | How the Platform-only org shape is provisioned and verified | Accepted |
+| [0014](0014-cross-package-references-as-record-identifiers.md) | Core holds Giving record identifiers, not lookups | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
-(Section 12). ADR-0013 is a builder decision recorded under the platform-limitation rule
-in plan Section 9.3.
+(Section 12). ADR-0013 and ADR-0014 are builder decisions recorded under the
+platform-limitation rule in plan Section 9.3.
 
 ## Adding a new ADR
 

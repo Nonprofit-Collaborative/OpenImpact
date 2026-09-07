@@ -11,6 +11,7 @@ or Apex.
 | Path | Contents |
 |---|---|
 | `canonical-model.md` | The platform-neutral specification of every entity: attributes, types, relationships, business rules, and the Salesforce implementation each entity maps to. |
+| `../../scripts/ci/check-canonical-model.py` | The consistency gate for that file: no em dashes, no API name declared twice for one object, no API name used in prose that was never declared. |
 | `decisions/` | Architecture Decision Records (ADRs), one file per decision, numbered `NNNN-kebab-title.md`. |
 | `decisions/README.md` | The ADR index and the procedure for adding one. |
 
@@ -75,6 +76,15 @@ The reason is stated in plan Section 4.4: writing the model once in platform-neu
 terms keeps the far-future standalone option open at near-zero cost, and it is the best
 documentation we can give to contributors and to AI agents working on one module without
 reading the rest.
+
+The model is organized in parts, and each part says which iteration owns it: Part A and
+Part B are v0.1 (constituent entities and platform configuration), Part C is Core in v0.2
+(rollup definitions and the import framework), Part D is the Giving package (v0.2 for
+gifts, allocations, funds, and appeals; v0.3 for commitments, installments, soft credits,
+and tributes), and Part E is Core in v0.3 (relationships, affiliations, and addresses).
+Section 30 lists what is still deferred, Section 31 is the change log, and Section 32
+says which package owns each entity. Run `python3 scripts/ci/check-canonical-model.py`
+before committing a change to the file.
 
 ## House style for this folder
 
