@@ -88,9 +88,11 @@ is exempt from the check. Rules:
   marker appended still stops Core deploying on a Platform-only org, and no CI check will
   catch it before the org shape matrix does.
 
-As of v0.1 the exempted lines are the four constants in `OrgShapeDetector` (the NPSP
+As of v0.1 the marker appears on four constant declarations in `OrgShapeDetector` (the NPSP
 namespace prefix, the Person Account indicator field, the Industries gift object, and the
-standard Sales Cloud object), and nowhere else.
+standard Sales Cloud object) and nowhere else. Three of the four are printed as exemptions:
+the NPSP prefix is not a name the grep looks for, and carries the marker only so that the
+four detection constants read alike.
 
 ## What happens when `SF_DEVHUB_AUTH_URL` is missing
 

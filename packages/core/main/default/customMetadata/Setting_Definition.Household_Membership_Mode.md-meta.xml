@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata
+  xmlns="http://soap.sforce.com/2006/04/metadata"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+>
+  <label>Household membership</label>
+  <protected>false</protected>
+  <values>
+    <field>Setting_Key__c</field>
+    <value xsi:type="xsd:string">Household_Membership_Mode__c</value>
+  </values>
+  <values>
+    <field>Section__c</field>
+    <value xsi:type="xsd:string">Households</value>
+  </values>
+  <values>
+    <field>Module__c</field>
+    <value xsi:type="xsd:string">Core</value>
+  </values>
+  <values>
+    <field>Data_Type__c</field>
+    <value xsi:type="xsd:string">Picklist</value>
+  </values>
+  <values>
+    <field>Picklist_Values__c</field>
+    <value xsi:type="xsd:string">Contact:Contact mode;Junction:Junction mode</value>
+  </values>
+  <values>
+    <field>Component__c</field>
+    <value xsi:nil="true" />
+  </values>
+  <values>
+    <field>Description__c</field>
+    <value xsi:type="xsd:string">
+      How a person is joined to a household. Contact mode uses the person's account, which is simple
+      and works with most other apps. Junction mode uses a membership record, which is what Person
+      Accounts require and what lets one person belong to more than one household. If Person
+      Accounts
+      are on in your org, use junction mode: Health Check will tell you so.
+    </value>
+  </values>
+  <values>
+    <field>Help_Path__c</field>
+    <value xsi:type="xsd:string">admin-guide/coexistence-mode.md</value>
+  </values>
+  <values>
+    <field>Sort_Order__c</field>
+    <value xsi:type="xsd:double">5.0</value>
+  </values>
+</CustomMetadata>
