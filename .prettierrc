@@ -19,6 +19,13 @@
         "printWidth": 100,
         "xmlWhitespaceSensitivity": "ignore"
       }
+    },
+    {
+      "files": "*.labels-meta.xml",
+      "options": {
+        "xmlWhitespaceSensitivity": "strict",
+        "printWidth": 400
+      }
     }
   ]
 }
