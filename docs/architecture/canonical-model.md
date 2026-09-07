@@ -523,6 +523,7 @@ may add keys, and must add them here first.
 | `Informal_Greeting_Pattern__c` | text | {FirstName} | The pattern used to compute the informal greeting. |
 | `Include_Deceased_In_Name__c` | boolean | false | Whether a deceased member remains in the computed household name. |
 | `Automation_Paused_Until__c` | datetime | empty | While in the future, all packaged automation is paused; it resumes by itself at this time. |
+| `Setup_Steps_Completed__c` | text (255) | empty | The comma separated keys of the Setup Assistant steps the administrator has marked done, so the Hub checklist remembers progress across sessions. |
 
 ### Rules
 
@@ -570,6 +571,26 @@ something to restore to.
 | Default Enabled | boolean | Whether this pattern is the one selected on a fresh install. |
 | Pattern Type | picklist(Household Name, Formal Greeting, Informal Greeting) | Which of the three computed values this pattern produces. |
 | Pattern | text | The pattern string itself, using the tokens the naming service understands. |
+
+### Setting Definition
+
+`Setting_Definition__mdt`: the catalog of everything the Nonprofit Settings console shows,
+one row per setting or per section that a component renders, so that a feature adds its
+settings to the console by shipping rows rather than by editing the console.
+
+| Field | Type | Definition |
+|---|---|---|
+| DeveloperName | text | The stable identifier of this console row. |
+| Label | text | The setting's name as the admin sees it in the console. |
+| `Setting_Key__c` | text (80) | The API name of the Nonprofit Settings field this row edits; blank for rows that render a component instead of a single value. |
+| `Section__c` | text (80) | The left navigation group this row belongs to, for example Households, Automation, Access, Health. |
+| `Module__c` | text (40) | The package that ships this row, for example Core or Giving. |
+| `Data_Type__c` | picklist(Checkbox, Text, Number, Picklist, DateTime, Component) | How the console renders and validates this row. |
+| `Picklist_Values__c` | long text | The choices for a picklist row, as semicolon separated `value:label` pairs. |
+| `Component__c` | text (80) | The Lightning web component rendered when the data type is Component. |
+| `Description__c` | long text | The plain-language help shown under the control. |
+| `Help_Path__c` | text (255) | The admin guide path, relative to `docs/admin-guide/`, behind the row's Learn more link. |
+| `Sort_Order__c` | number | The order of this row inside its section. |
 
 ### Automation Registry
 
@@ -626,3 +647,4 @@ entity.
 | Version | Date | Change |
 |---|---|---|
 | v0.1 | 2026-09-06 | Initial model: Household, Household Member, Contact, Organization, plus the platform configuration entities Error Log, Automation Setting, Setting Change, Nonprofit Settings, and the shipped-defaults custom metadata Naming Pattern and Automation Registry. |
+| v0.1 | 2026-09-07 | C-03: added the shipped-defaults type Setting Definition (Section 13), which drives the Nonprofit Settings console, and the Nonprofit Settings key `Setup_Steps_Completed__c` (Section 12), which records Setup Assistant progress. |
