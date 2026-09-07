@@ -44,7 +44,7 @@ const OVERVIEW = {
     {
       developerName: 'Fundraising_Staff',
       label: 'Fundraising Staff',
-      description: 'For development and fundraising staff.',
+      description: 'For development\n      and fundraising staff.',
       isReady: true
     }
   ],
@@ -92,6 +92,8 @@ describe('c-access-manager', () => {
 
     const cards = element.shadowRoot.querySelectorAll('[data-id="role-card"]');
     expect(cards.length).toBe(2);
+    const descriptions = element.shadowRoot.querySelectorAll('[data-id="role-description"]');
+    expect(descriptions[1].textContent).toBe('For development and fundraising staff.');
     const headings = element.shadowRoot.querySelectorAll('[data-id="role-heading"]');
     expect(headings[0].textContent).toBe('Nonprofit Admin (1)');
     expect(headings[1].textContent).toBe('Fundraising Staff (0)');

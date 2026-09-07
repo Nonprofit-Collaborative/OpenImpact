@@ -143,7 +143,12 @@
                     >
                         <article class="slds-box slds-box_small" data-id="role-card">
                             <h2 class="slds-text-heading_small" data-id="role-heading">{role.heading}</h2>
-                            <p class="slds-text-body_small slds-var-m-bottom_x-small">{role.description}</p>
+                            <p
+                                class="slds-text-body_small slds-var-m-bottom_x-small"
+                                data-id="role-description"
+                            >
+                                {role.description}
+                            </p>
                             <h3 class="slds-assistive-text">{labels.usersInRole}</h3>
                             <template if:false={role.hasUsers}>
                                 <p class="slds-text-body_small" data-id="empty-role">{labels.noOneInRole}</p>

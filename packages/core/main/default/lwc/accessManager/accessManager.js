@@ -40,6 +40,18 @@ const SETUP_USERS_PAGE = '/lightning/setup/ManageUsers/home';
 const MINIMUM_SEARCH_LENGTH = 2;
 
 /**
+ * Squeezes any run of whitespace down to one space. A role description comes from the
+ * permission set group's own description element, where the source file may have wrapped
+ * it across lines, and the line breaks are not part of the sentence.
+ *
+ * @param {string} text the text to tidy
+ * @returns {string} the same words on one line
+ */
+function oneLine(text) {
+  return text ? text.replace(/\s+/g, ' ').trim() : '';
+}
+
+/**
  * Fills the numbered slots in a Custom Label, so that "{0} now has the {1} role."
  * becomes a sentence about a real person.
  *
@@ -139,7 +151,7 @@ export default class AccessManager extends LightningElement {
       return {
         developerName: role.developerName,
         label: role.label,
-        description: role.description,
+        description: oneLine(role.description),
         users,
         hasUsers: users.length > 0,
         count: users.length,
