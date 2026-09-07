@@ -2905,12 +2905,12 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     RollupControl__mdt control
   ) {
     Schema.SObjectType itemType = calcItems.getSObjectType();
-    if (
-      itemType != Schema.Account.SObjectType &&
-      itemType != Schema.Case.SObjectType &&
-      itemType != Schema.Contact.SObjectType &&
-      itemType != Schema.Lead.SObjectType
-    ) {
+    // Open Impact patch A, see packages/core/vendor/apex-rollup/VENDOR.md.
+    // Upstream listed the four standard objects the platform supports record merge on as static
+    // Schema references. Open Impact Core may not name two of them and has to compile on an org
+    // shape where they do not exist, so the same question is asked of the describe instead. This
+    // is also strictly more correct: any object the org reports as mergeable is handled.
+    if (itemType == null || itemType.getDescribe(Schema.SObjectDescribeOptions.DEFERRED).isMergeable() == false) {
       return;
     }
     String mergeFieldIndicator = 'MasterRecordId';
