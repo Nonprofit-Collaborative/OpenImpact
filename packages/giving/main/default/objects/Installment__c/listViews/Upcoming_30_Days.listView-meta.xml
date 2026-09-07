@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Upcoming_30_Days</fullName>
+  <columns>NAME</columns>
+  <columns>Commitment__c</columns>
+  <columns>Due_Date__c</columns>
+  <columns>Expected_Amount__c</columns>
+  <columns>Status__c</columns>
+  <filterScope>Everything</filterScope>
+  <filters>
+    <field>Due_Date__c</field>
+    <operation>equals</operation>
+    <value>NEXT_N_DAYS:30</value>
+  </filters>
+  <filters>
+    <field>Status__c</field>
+    <operation>equals</operation>
+    <value>Scheduled</value>
+  </filters>
+  <label>Upcoming 30 days</label>
+</ListView>

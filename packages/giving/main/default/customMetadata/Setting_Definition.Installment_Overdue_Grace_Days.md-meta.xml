@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata
+  xmlns="http://soap.sforce.com/2006/04/metadata"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+>
+  <label>Overdue grace days</label>
+  <protected>true</protected>
+  <values>
+    <field>Settings_Object__c</field>
+    <value xsi:type="xsd:string">Giving_Settings__c</value>
+  </values>
+  <values>
+    <field>Setting_Field__c</field>
+    <value xsi:type="xsd:string">Installment_Overdue_Grace_Days__c</value>
+  </values>
+  <values>
+    <field>Section__c</field>
+    <value xsi:type="xsd:string">Giving</value>
+  </values>
+  <values>
+    <field>Data_Type__c</field>
+    <value xsi:type="xsd:string">Number</value>
+  </values>
+  <values>
+    <field>Default_Value__c</field>
+    <value xsi:type="xsd:string">5</value>
+  </values>
+  <values>
+    <field>Description__c</field>
+    <value xsi:type="xsd:string">
+      How many days an unpaid payment waits after its due date before it is marked Overdue.
+    </value>
+  </values>
+  <values>
+    <field>Sort_Order__c</field>
+    <value xsi:type="xsd:double">20</value>
+  </values>
+</CustomMetadata>
