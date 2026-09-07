@@ -1,7 +1,7 @@
 @SuppressWarnings(
   'PMD.AvoidGlobalModifier,PMD.ExcessiveClassLength,PMD.ExcessiveParameterList,PMD.NcssTypeCount,PMD.PropertyNamingConventions,PMD.TooManyFields'
 )
-global without sharing virtual class Rollup implements RollupLogger.ToStringObject {
+public without sharing virtual class Rollup implements RollupLogger.ToStringObject {
   /**
    * Test override / bookkeeping section. Normally I would do this through dependency injection,
    * but this keeps things much simpler
@@ -276,11 +276,11 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     }
   }
 
-  global interface Evaluator {
+  public interface Evaluator {
     Boolean matches(Object calcItem);
   }
 
-  global enum InvocationPoint {
+  public enum InvocationPoint {
     FROM_APEX,
     FROM_INVOCABLE,
     FROM_SCHEDULED,
@@ -332,26 +332,26 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     return baseString.removeEnd('\n');
   }
 
-  global virtual String runCalc() {
+  public virtual String runCalc() {
     this.logger.log('no-op!', this.getTypeName(), System.LoggingLevel.INFO);
     return 'no-op';
   }
 
-  global virtual Rollup addLimit(Integer limitAmount, Schema.SObjectField calcItemRollupField) {
+  public virtual Rollup addLimit(Integer limitAmount, Schema.SObjectField calcItemRollupField) {
     for (Rollup roll : this.rollups) {
       this.addLimitToMetadata(roll.metadata, limitAmount, calcItemRollupField);
     }
     return this;
   }
 
-  global virtual Rollup addOrderBys(List<RollupOrderBy__mdt> orderBys, Schema.SObjectField calcItemRollupField) {
+  public virtual Rollup addOrderBys(List<RollupOrderBy__mdt> orderBys, Schema.SObjectField calcItemRollupField) {
     for (Rollup roll : this.rollups) {
       roll.metadata = this.addOrderBys(roll.metadata, orderBys, calcItemRollupField);
     }
     return this;
   }
 
-  global virtual Rollup modifyMetadata(Rollup__mdt template) {
+  public virtual Rollup modifyMetadata(Rollup__mdt template) {
     List<Rollup__mdt> metasToModify = new List<Rollup__mdt>{ this.metadata };
     for (Rollup roll : this.rollups) {
       metasToModify.add(roll.metadata);
@@ -471,7 +471,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
   }
 
   /**
-   * global facing RollupAsyncProcessor calculation section
+   * public facing RollupAsyncProcessor calculation section
    * - Trigger operations
    * - Batch (multiple RollupAsyncProcessor operations chained into one job)
    * - Invocable
@@ -494,7 +494,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
   }
 
   @AuraEnabled(cacheable=true)
-  global static Map<String, List<Rollup__mdt>> getRollupMetadataByCalcItem() {
+  public static Map<String, List<Rollup__mdt>> getRollupMetadataByCalcItem() {
     Map<String, List<Rollup__mdt>> calcItemToMetadata = new Map<String, List<Rollup__mdt>>();
     List<Rollup__mdt> localMetadata = getMetadataFromCache(Rollup__mdt.SObjectType);
     for (Rollup__mdt localMeta : localMetadata) {
@@ -515,17 +515,17 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
    * on this method, it instead delegates to the new one.
    */
   @AuraEnabled
-  global static String performBulkFullRecalc(List<Rollup__mdt> metadata, String invokePointName) {
+  public static String performBulkFullRecalc(List<Rollup__mdt> metadata, String invokePointName) {
     return performBulkFullRecalcInternal(JSON.serialize(metadata), invokePointName, new Set<String>());
   }
 
   @AuraEnabled
-  global static String performSerializedBulkFullRecalc(String serializedMetadata, String invokePointName) {
+  public static String performSerializedBulkFullRecalc(String serializedMetadata, String invokePointName) {
     return performBulkFullRecalcInternal(serializedMetadata, invokePointName, new Set<String>());
   }
 
   @AuraEnabled
-  global static String performBulkFullRecalcWithParentIds(String serializedMetadata, String invokePointName, List<String> parentIds) {
+  public static String performBulkFullRecalcWithParentIds(String serializedMetadata, String invokePointName, List<String> parentIds) {
     return performBulkFullRecalcInternal(serializedMetadata, invokePointName, new Set<String>(parentIds ?? new List<String>()));
   }
 
@@ -590,7 +590,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
   @SuppressWarnings('PMD.ApexCRUDViolation')
   @AuraEnabled
   // Code-analyzer-suppress(sfge)
-  global static String getBatchRollupStatus(String jobId) {
+  public static String getBatchRollupStatus(String jobId) {
     String jobStatus = [SELECT Status FROM AsyncApexJob WHERE Id = :jobId LIMIT 1]?.Status;
     if ([SELECT COUNT() FROM RollupState__c WHERE RelatedJobId__c = :jobId LIMIT 1] > 0) {
       jobStatus = 'Processing';
@@ -605,157 +605,157 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
    * child object format used in the "appendOrderByMetadata").
    */
   @AuraEnabled
-  global static String performSerializedFullRecalculation(String metadata) {
+  public static String performSerializedFullRecalculation(String metadata) {
     return performSerializedBulkFullRecalc('[' + metadata + ']', InvocationPoint.FROM_FULL_RECALC_LWC.name());
   }
 
   @AuraEnabled
-  global static String performFullRecalculation(Rollup__mdt meta) {
+  public static String performFullRecalculation(Rollup__mdt meta) {
     return performSerializedFullRecalculation(JSON.serialize(meta));
   }
 
-  global class FlowInput {
+  public class FlowInput {
     @InvocableVariable(label='Child Object Calc Field' description='The API Name of the field on each of the records passed in to rollup.' required=true)
-    global String rollupFieldOnCalcItem;
+    public String rollupFieldOnCalcItem;
     @InvocableVariable(
       label='Child Object Lookup Field'
       description='The API Name of the field on the record to rollup that matches a field on the object where the rollup will be stored'
       required=true
     )
-    global String lookupFieldOnCalcItem;
+    public String lookupFieldOnCalcItem;
 
     @InvocableVariable(label='Rollup Object API Name' description='The API Name of the SObject where the rollup value will be stored.' required=true)
-    global String rollupSObjectName;
+    public String rollupSObjectName;
 
     @InvocableVariable(
       label='Rollup Object Calc Field'
       description='The API Name of the field on the target object where the rollup value will be stored'
       required=true
     )
-    global String rollupFieldOnOpObject;
+    public String rollupFieldOnOpObject;
     @InvocableVariable(
       label='Rollup Object Lookup Field'
       description='The API Name of the field on the SObject matching the value found in "lookupFieldOnCalcItem" where the rollup will be stored'
       required=true
     )
-    global String lookupFieldOnOpObject;
+    public String lookupFieldOnOpObject;
 
     @InvocableVariable(label='Rollup Operation' description='SUM, COUNT, COUNT_DISTINCT, MAX, MIN, AVG, CONCAT, CONCAT_DISTINCT, FIRST, LAST' required=true)
-    global String rollupOperation;
+    public String rollupOperation;
     @InvocableVariable(label='Rollup Operation Context' description='INSERT, UPDATE, UPSERT, DELETE, or REFRESH' required=true)
-    global String rollupContext;
+    public String rollupContext;
 
     // optional fields shared with RollupFlowBulkProcessor.FlowInput
     @InvocableVariable(label='Defer processing' description='When set to true, the "Process Deferred Rollups" action must also be called' defaultValue='false')
-    global Boolean deferProcessing = false;
+    public Boolean deferProcessing = false;
     @InvocableVariable(
       label='Child Object Type When Rollup Started From Parent'
       description='If "Is Rollup Started From Parent" is true, you must include the API name for the child in this field'
     )
-    global String calcItemTypeWhenRollupStartedFromParent;
+    public String calcItemTypeWhenRollupStartedFromParent;
     // rest of optional fields
     @InvocableVariable(
       label='Child Object Changed Fields'
       description='Provide a comma-separated list of field API Names to consider prior to using records in the rollup'
     )
-    global String calcItemChangedFields;
+    public String calcItemChangedFields;
     @InvocableVariable(label='Concat Delimiter' description='Defaults to comma, except for multi-select picklist fields (which default to semi-colon)')
-    global String concatDelimiter;
+    public String concatDelimiter;
     @InvocableVariable(
       label='Concat Delimiter Split Should Apply On Child Object'
       description='The text values on the Child Object\'s field being rolled up can also be split if this field is enabled and set to {!$GlobalConstant.True}'
     )
-    global Boolean splitConcatDelimiterOnCalcItem;
+    public Boolean splitConcatDelimiterOnCalcItem;
     @InvocableVariable(
       label='Advanced Currency Field Mapping (Comma-separated)'
       description='For parent-level Date/Datetime fields, use the relationship name for the parent object and then the API name of the field - otherwise just use the API name of the field'
     )
-    global String currencyFieldMapping;
+    public String currencyFieldMapping;
     @InvocableVariable(
       label='Full Recalculation Default Number Value'
       description='If provided, used in place of the existing value on the rollup field for the parent object for number-based rollups'
     )
-    global Decimal fullRecalculationDefaultNumberValue;
+    public Decimal fullRecalculationDefaultNumberValue;
     @InvocableVariable(
       label='Full Recalculation Default String Value'
       description='If provided, used in place of the existing value on the rollup field for the parent object for String-based rollups'
     )
-    global String fullRecalculationDefaultStringValue;
+    public String fullRecalculationDefaultStringValue;
 
     @InvocableVariable(label='Grandparent Relationship Field Path' description='Used for grand(or greater)parent rollups')
-    global String grandparentRelationshipFieldPath;
+    public String grandparentRelationshipFieldPath;
     @InvocableVariable(label='Group By Fields (Comma-separated)' description='Transforms a rollup into a group by rollup based on the fields provided')
-    global String groupByFields;
+    public String groupByFields;
     @InvocableVariable(label='Group By Row End Delimiter' description='The text value to suffix grouped field rows with')
-    global String groupByRowEndDelimiter;
+    public String groupByRowEndDelimiter;
     @InvocableVariable(label='Group By Row Start Delimiter' description='The text value to prefix grouped field rows with')
-    global String groupByRowStartDelimiter;
+    public String groupByRowStartDelimiter;
     @InvocableVariable(
       label='One To Many Grandparent Fields (Comma separated list)'
       description='When using this field, provide a comma-separated list that contains the junction object name and the field name that provides the lookup to the next record in your "grandparent" rollup.'
     )
-    global String oneToManyGrandparentFields;
+    public String oneToManyGrandparentFields;
     @InvocableVariable(
       label='Is Distinct'
       defaultValue='false'
       description='If provided, children item values are de-duplicated prior to calculating rollup values'
     )
-    global Boolean isDistinct = false;
+    public Boolean isDistinct = false;
     @InvocableVariable(
       label='Is Full Record Set'
       defaultValue='false'
       description='If true, SUM and COUNT-based rollups retrieve other related children records prior to performing rollup'
     )
-    global Boolean isFullRecordSet = false;
+    public Boolean isFullRecordSet = false;
     @InvocableVariable(
       label='Is Rollup Started From Parent'
       defaultValue='false'
       description='If the provided records are the parent records, set this to true'
     )
-    global Boolean isRollupStartedFromParent = false;
+    public Boolean isRollupStartedFromParent = false;
     @InvocableVariable(
       label='Is Table Formatted'
       defaultValue='false'
       description='If rolling up to a group by text field and you want a table, set this to true'
     )
-    global Boolean isTableFormatted = false;
+    public Boolean isTableFormatted = false;
     @InvocableVariable(
       label='Order By (First/Last)'
       description='Comma-separated list of fields to order by using API name and sort order (e.g Amount DESC, Name ASC). If a sort order is not specified, defaults to ASC'
     )
-    global String orderByFirstLast;
+    public String orderByFirstLast;
     @InvocableVariable(
       label='Limit Amount'
       description='When provided, only N children are included, where N is the Limit Amount specified. Most commonly used in conjunction with Rollup Order By metadata and/or a WHERE clause to get the right results'
     )
-    global Decimal limitAmount;
+    public Decimal limitAmount;
 
     // these are listed with the optional properties because otherwise Flow builders always have to check for null after using a Get Records
     // element with filter conditions; the Flow engine otherwise isn't satisfied because Get Records returns null instead of an empty list
     // and null isn't a valid collection variable reference for a required field. Listed as transient to avoid blowing up the heap while logging
     @InvocableVariable(label='Records to rollup' description='Records to rollup to parent/related item(s)')
-    global transient List<SObject> recordsToRollup = new List<SObject>();
+    public transient List<SObject> recordsToRollup = new List<SObject>();
     @InvocableVariable(label='Prior records to rollup' description='The old version of the records for update/upsert')
-    global transient List<SObject> oldRecordsToRollup = new List<SObject>();
+    public transient List<SObject> oldRecordsToRollup = new List<SObject>();
     @InvocableVariable(
       label='Parent Record Id for Empty Children Collections'
       description='Runs rollup calculations even if no matching children when passed. Must also fill out Child Object Type when Rollup Started From Parent property is set to true'
     )
-    global Id parentRecordIdForEmptyChildrenCollections;
+    public Id parentRecordIdForEmptyChildrenCollections;
     @InvocableVariable(
       label='Should rollup to ultimate hierarchy parent'
       defaultValue='false'
       description='Used in conjunction with Ultimate Parent Field to drive hierarchical parent rollups'
     )
-    global Boolean rollupToUltimateParent = false;
+    public Boolean rollupToUltimateParent = false;
     @InvocableVariable(label='Sharing Mode' defaultValue='System' description='Defaults to System, set to User to run with sharing')
-    global String sharingMode;
+    public String sharingMode;
     @InvocableVariable(label='Should run sync?' defaultValue='false' description='Runs rollup calculations synchronously when set to true')
-    global Boolean shouldRunSync = false;
+    public Boolean shouldRunSync = false;
     @InvocableVariable(label='SOQL Where Clause To Exclude Calc Items' description='If provided, excludes records based on a valid SOQL where clause')
-    global String calcItemWhereClause;
+    public String calcItemWhereClause;
     @InvocableVariable(label='Ultimate Parent Field' description='The lookup field in hierarchy rollups')
-    global String ultimateParentLookup;
+    public String ultimateParentLookup;
 
     // internal state
     public Id rollupControlId;
@@ -767,12 +767,12 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     }
   }
 
-  global class FlowOutput {
+  public class FlowOutput {
     @InvocableVariable(label='Is Success' description='Was rollup enqueued successfully?')
-    global Boolean isSuccess;
+    public Boolean isSuccess;
     @InvocableVariable(label='Status Message' description='"SUCCESS" (or more info) when isSuccess is true, otherwise the encountered error message')
-    global String message;
-    global FlowOutput() {
+    public String message;
+    public FlowOutput() {
       this.isSuccess = true;
       this.Message = 'SUCCESS';
     }
@@ -800,7 +800,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     label='Perform rollup on records'
     description='Returns a single FlowOutput record with "SUCCESS" as the message if async rollup operation is enqueued successfully, and the encountered error otherwise'
   )
-  global static List<FlowOutput> performRollup(List<FlowInput> flowInputs) {
+  public static List<FlowOutput> performRollup(List<FlowInput> flowInputs) {
     List<FlowOutput> flowOutputs = new List<FlowOutput>();
     InvocationPoint fromInvocable = InvocationPoint.FROM_INVOCABLE;
 
@@ -932,7 +932,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     return flowOutputs;
   }
 
-  global static Id schedule(String jobName, String cronExp, String query, String rollupObjectName, Evaluator eval) {
+  public static Id schedule(String jobName, String cronExp, String query, String rollupObjectName, Evaluator eval) {
     Rollup rollToSchedule;
     query = query.toUpperCase();
     if (query.contains('\nFROM ') == false) {
@@ -967,19 +967,19 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     return System.schedule(jobName + ' for ' + rollToSchedule.getTypeName(), cronExp, scheduledRollup);
   }
 
-  global static void batch(Rollup rollup, Rollup secondRollup) {
+  public static void batch(Rollup rollup, Rollup secondRollup) {
     batch(new List<Rollup>{ rollup, secondRollup });
   }
 
-  global static void batch(Rollup rollup, Rollup secondRollup, Rollup thirdRollup) {
+  public static void batch(Rollup rollup, Rollup secondRollup, Rollup thirdRollup) {
     batch(new List<Rollup>{ rollup, secondRollup, thirdRollup });
   }
 
-  global static String batch(List<Rollup> rollups) {
+  public static String batch(List<Rollup> rollups) {
     return batch(rollups, InvocationPoint.FROM_APEX);
   }
 
-  global static Rollup averageFromApex(
+  public static Rollup averageFromApex(
     SObjectField averageFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -997,7 +997,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup averageFromApex(
+  public static Rollup averageFromApex(
     SObjectField averageFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1016,7 +1016,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup averageFromApex(
+  public static Rollup averageFromApex(
     SObjectField averageFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1037,7 +1037,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup countDistinctFromApex(
+  public static Rollup countDistinctFromApex(
     SObjectField countDistinctFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1055,7 +1055,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup countDistinctFromApex(
+  public static Rollup countDistinctFromApex(
     SObjectField countDistinctFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1074,7 +1074,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup countDistinctFromApex(
+  public static Rollup countDistinctFromApex(
     SObjectField countDistinctFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1095,7 +1095,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup concatDistinctFromApex(
+  public static Rollup concatDistinctFromApex(
     SObjectField concatFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1113,7 +1113,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup concatDistinctFromApex(
+  public static Rollup concatDistinctFromApex(
     SObjectField concatFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1132,7 +1132,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup concatDistinctFromApex(
+  public static Rollup concatDistinctFromApex(
     SObjectField concatFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1153,7 +1153,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup concatDistinctFromApex(
+  public static Rollup concatDistinctFromApex(
     SObjectField concatFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1176,7 +1176,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup concatFromApex(
+  public static Rollup concatFromApex(
     SObjectField concatFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1194,7 +1194,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup concatFromApex(
+  public static Rollup concatFromApex(
     SObjectField concatFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1213,7 +1213,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup concatFromApex(
+  public static Rollup concatFromApex(
     SObjectField concatFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1234,7 +1234,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup concatFromApex(
+  public static Rollup concatFromApex(
     SObjectField concatFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1257,7 +1257,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup countFromApex(
+  public static Rollup countFromApex(
     SObjectField countFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1267,7 +1267,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     return countFromApex(countFieldOnCalcItem, lookupFieldOnCalcItem, lookupFieldOnOperationObject, countFieldOnOperationObject, lookupSobjectType, null, null);
   }
 
-  global static Rollup countFromApex(
+  public static Rollup countFromApex(
     SObjectField countFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1286,7 +1286,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup countFromApex(
+  public static Rollup countFromApex(
     SObjectField countFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1307,7 +1307,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup firstFromApex(
+  public static Rollup firstFromApex(
     SObjectField firstFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1327,7 +1327,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup firstFromApex(
+  public static Rollup firstFromApex(
     SObjectField firstFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1348,7 +1348,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup firstFromApex(
+  public static Rollup firstFromApex(
     SObjectField firstFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1370,7 +1370,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup firstFromApex(
+  public static Rollup firstFromApex(
     SObjectField firstFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1393,7 +1393,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup lastFromApex(
+  public static Rollup lastFromApex(
     SObjectField lastFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1413,7 +1413,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup lastFromApex(
+  public static Rollup lastFromApex(
     SObjectField lastFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1434,7 +1434,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup lastFromApex(
+  public static Rollup lastFromApex(
     SObjectField lastFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1456,7 +1456,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup lastFromApex(
+  public static Rollup lastFromApex(
     SObjectField lastFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1479,7 +1479,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup maxFromApex(
+  public static Rollup maxFromApex(
     SObjectField maxFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1489,7 +1489,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     return maxFromApex(maxFieldOnCalcItem, lookupFieldOnCalcItem, lookupFieldOnOperationObject, maxFieldOnOperationObject, lookupSobjectType, null, null);
   }
 
-  global static Rollup maxFromApex(
+  public static Rollup maxFromApex(
     SObjectField maxFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1508,7 +1508,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup maxFromApex(
+  public static Rollup maxFromApex(
     SObjectField maxFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1529,7 +1529,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup minFromApex(
+  public static Rollup minFromApex(
     SObjectField minFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1539,7 +1539,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     return minFromApex(minFieldOnCalcItem, lookupFieldOnCalcItem, lookupFieldOnOperationObject, minFieldOnOperationObject, lookupSobjectType, null, null);
   }
 
-  global static Rollup minFromApex(
+  public static Rollup minFromApex(
     SObjectField minFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1558,7 +1558,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup minFromApex(
+  public static Rollup minFromApex(
     SObjectField minFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1579,7 +1579,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup sumFromApex(
+  public static Rollup sumFromApex(
     SObjectField sumFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1589,7 +1589,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     return sumFromApex(sumFieldOnCalcItem, lookupFieldOnCalcItem, lookupFieldOnOperationObject, sumFieldOnOpOject, lookupSobjectType, null, null);
   }
 
-  global static Rollup sumFromApex(
+  public static Rollup sumFromApex(
     SObjectField sumFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1608,7 +1608,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup sumFromApex(
+  public static Rollup sumFromApex(
     SObjectField sumFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1629,7 +1629,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     );
   }
 
-  global static Rollup mostFromApex(
+  public static Rollup mostFromApex(
     SObjectField mostFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1639,7 +1639,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     return mostFromApex(mostFieldOnCalcItem, lookupFieldOnCalcItem, lookupFieldOnOperationObject, mostFieldOnOperationObject, lookupSobjectType, null);
   }
 
-  global static Rollup mostFromApex(
+  public static Rollup mostFromApex(
     SObjectField mostFieldOnCalcItem,
     SObjectField lookupFieldOnCalcItem,
     SObjectField lookupFieldOnOperationObject,
@@ -1660,7 +1660,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
   }
 
   // Code-analyzer-suppress(sfge)
-  global static void runFromCDCTrigger() {
+  public static void runFromCDCTrigger() {
     isCDC = true;
     // CDC always uses Trigger.new
     List<SObject> cdcRecords = records ?? Trigger.new;
@@ -1725,7 +1725,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
   }
   // Code-analyzer-unsuppress(sfge)
 
-  global static void runFromTrigger() {
+  public static void runFromTrigger() {
     List<SObject> triggerRecords = getTriggerRecords();
     List<Rollup__mdt> matchingMetadata = getRollupMetadataBySObject(triggerRecords.getSObjectType());
     if (matchingMetadata.isEmpty() == false) {
@@ -1742,7 +1742,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
    * - TriggerOperation.AFTER_UNDELETE
    *
    */
-  global static void runFromApex(List<SObject> calcItems, System.TriggerOperation rollupContext) {
+  public static void runFromApex(List<SObject> calcItems, System.TriggerOperation rollupContext) {
     shouldRun = shouldRun ?? true;
     records = calcItems;
     apexContext = rollupContext;
@@ -1754,13 +1754,13 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     apexContext = null;
   }
 
-  global static void runFromApex(List<SObject> children, Map<Id, SObject> oldChildrenMap, System.TriggerOperation rollupContext) {
+  public static void runFromApex(List<SObject> children, Map<Id, SObject> oldChildrenMap, System.TriggerOperation rollupContext) {
     oldRecordsMap = oldChildrenMap;
     runFromApex(children, rollupContext);
     oldRecordsMap = null;
   }
 
-  global static Rollup runFromApex(List<Rollup__mdt> localMetas, Evaluator eval, List<SObject> calcItems, Map<Id, SObject> oldCalcItems) {
+  public static Rollup runFromApex(List<Rollup__mdt> localMetas, Evaluator eval, List<SObject> calcItems, Map<Id, SObject> oldCalcItems) {
     Rollup rollupConductor = RollupAsyncProcessor.getConductor(InvocationPoint.FROM_APEX, calcItems, oldCalcItems);
     if (shouldRunFromTrigger() == false || localMetas.isEmpty()) {
       rollupConductor.calcItems = new List<SObject>();
@@ -1834,7 +1834,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
    * <br>
    * Credit for this method (with some tweaking) goes to: https://github.com/tsalb
    */
-  global static Rollup__mdt appendOrderByMetadata(Rollup__mdt meta, List<RollupOrderBy__mdt> children) {
+  public static Rollup__mdt appendOrderByMetadata(Rollup__mdt meta, List<RollupOrderBy__mdt> children) {
     if (children?.isEmpty() != false) {
       return meta;
     }
@@ -1846,7 +1846,7 @@ global without sharing virtual class Rollup implements RollupLogger.ToStringObje
     return (Rollup__mdt) JSON.deserialize(serializedMeta, Rollup__mdt.class);
   }
 
-  /** end global-facing section, begin public/private static helpers */
+  /** end public-facing section, begin public/private static helpers */
 
   public static RollupControl__mdt getDefaultControl() {
     return CACHED_DEFAULT;

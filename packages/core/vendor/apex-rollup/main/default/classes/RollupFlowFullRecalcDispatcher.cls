@@ -1,23 +1,23 @@
 @SuppressWarnings('PMD.AvoidGlobalModifier')
-global without sharing class RollupFlowFullRecalcDispatcher {
-  global class FlowInput {
+public without sharing class RollupFlowFullRecalcDispatcher {
+  public class FlowInput {
     @InvocableVariable(
       label='Comma-separated list of API Names you want to run'
       description='The API names for the Rollup CMDT records you want to run'
       required=true
     )
-    global String rollupDeveloperNames;
+    public String rollupDeveloperNames;
 
     @InvocableVariable(
       label='Optional parent Id'
       description='Supports a comma-separated list of Ids for specific parent records to re-run all calculations for'
     )
-    global String optionalParentId;
+    public String optionalParentId;
     @InvocableVariable(
       label='Optional parent Id collection'
       description='Use either this or "Optional Parent Id" to provide specific parents to re-run all calculations for'
     )
-    global List<String> optionalParentIds;
+    public List<String> optionalParentIds;
   }
 
   public interface FlowFullRecalcPreprocessor {
@@ -30,7 +30,7 @@ global without sharing class RollupFlowFullRecalcDispatcher {
     label='Full Recalc Comma-Separated Rollup DeveloperNames'
     description='Perform a full recalculation for all matching rollups using the API names for their Rollup records'
   )
-  global static List<Rollup.FlowOutput> performFullRecalcRollups(List<FlowInput> inputs) {
+  public static List<Rollup.FlowOutput> performFullRecalcRollups(List<FlowInput> inputs) {
     return new RollupFlowFullRecalcDispatcher().process(inputs, new DeveloperNamePreprocessor());
   }
 

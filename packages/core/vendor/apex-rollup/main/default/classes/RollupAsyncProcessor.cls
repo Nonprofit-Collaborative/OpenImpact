@@ -1,5 +1,5 @@
 @SuppressWarnings('PMD.AvoidGlobalModifier,PMD.ExcessiveClassLength,PMD.ExcessiveParameterList,PMD.NcssTypeCount,PMD.TooManyFields')
-global virtual without sharing class RollupAsyncProcessor extends Rollup implements Database.Batchable<SObject>, Database.RaisesPlatformEvents, System.Comparable {
+public virtual without sharing class RollupAsyncProcessor extends Rollup implements Database.Batchable<SObject>, Database.RaisesPlatformEvents, System.Comparable {
   private final Evaluator eval;
   private final RollupOperation op;
   private final SObjectField lookupFieldOnCalcItem;
@@ -400,7 +400,7 @@ global virtual without sharing class RollupAsyncProcessor extends Rollup impleme
     }
   }
 
-  global without sharing virtual class QueueableProcessor extends RollupAsyncProcessor implements System.Queueable {
+  public without sharing virtual class QueueableProcessor extends RollupAsyncProcessor implements System.Queueable {
     protected QueueableProcessor(InvocationPoint rollupInvokePoint) {
       super(rollupInvokePoint);
     }
