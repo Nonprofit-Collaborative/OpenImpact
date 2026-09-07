@@ -72,6 +72,8 @@ Small and medium nonprofits: roughly $250K to $10M annual revenue, 2 to 50 staff
 
 Secondary: organizations up to $50M who are cost-sensitive, and larger organizations using one module (for example Volunteers) alongside other systems.
 
+**First customers (owner decision, 2026-09-07):** the initial target is organizations already on Salesforce Nonprofit Cloud / Agentforce Nonprofit (Person Accounts enabled, Industries objects present), not NPSP orgs. NPSP orgs are a later audience. Consequences: the Agentforce Nonprofit coexistence mode (Section 4.5) and junction membership (Section 4.6) are first-class from v0.1, the Person Accounts org shape is the primary CI shape, the Gift Transaction mirror (X-07) is sequenced before NPSP coexistence (X-05), and Agentforce Nonprofit import templates ship before NPSP templates. See Section 6.3.
+
 ### 2.2 Personas (use these names in user stories, tests, and docs)
 
 | Persona | Role | What they need | What they must never have to do |
@@ -501,6 +503,18 @@ Each iteration targets about three major and five minor features, plus engineeri
 
 ---
 
+
+### 6.3 Re-sequencing for the Agentforce Nonprofit first-customer focus (owner decision, 2026-09-07)
+
+Because the first customers are Nonprofit Cloud / Agentforce Nonprofit orgs (Section 2.1), the following items move; the tables in Section 5 and 6 keep their original rows and this subsection governs where they differ:
+
+- C-22 (junction membership hardening with Person Accounts) moves from v0.5 into v0.1 and v0.2: v0.1 ships junction mode as a working, tested path (Household_Member__c with Person Account members through dynamic field access, naming and greetings from Person Account name fields, sample data that loads as Person Accounts when they are enabled); v0.2 finishes hardening (merge, split, rollups through the junction).
+- The Person Accounts org shape is the primary CI shape; a true Nonprofit Cloud scratch org shape (Industries features) is added as soon as the feature name is verified (owner follow-up).
+- X-07 (Gift Transaction mirror) moves from v0.9 to v0.6; X-05 (NPSP coexistence: adopt household accounts) moves from v0.6 to v0.9. The NPSP org shape stays in CI but is not gating for v0.1 to v0.5 acceptance.
+- Import templates: Agentforce Nonprofit (Gift Transaction and related) ship with C-14 in v0.2; NPSP templates move to v0.5.
+- Every entity that references a person (Household Member, Gift donor, Soft Credit, Relationship, Affiliation, Address personal owner, Tribute honoree and recipient) carries both a Contact reference and an Account reference with the rule that exactly one is set, so Person Account people work everywhere without a compile-time dependency (Section 4.2 hard rules still apply: no Person Account field is referenced statically in Core).
+- **Dependency rule reaffirmed by the owner (2026-09-07):** focusing on Nonprofit Cloud / Agentforce Nonprofit customers does not create a dependency on them. All core functionality depends only on this product and on functionality included with the Salesforce platform: no additional cloud, Industries object, permission set license, or add-on product is ever required (Principle 4, D-09). Integrations with other solutions (Nonprofit Cloud objects, NPSP, payment processors, accounting) live in the Connect package or later adapters and are optional. Vendored open source code is included as source under the project license, never as a package dependency.
+
 ## 7. Engineering standards, quality, and definition of done
 
 ### 7.1 Naming conventions
@@ -631,6 +645,11 @@ Split by **module and layer**, never by "front end vs back end" across the same 
 A short markdown report in `docs/release-notes/v0.N.md` with: features completed against the plan, features deferred and why, ADRs added, test counts and coverage per package, org shapes passing, open risks, and the exact steps for Brandon to install and walk through the iteration in a fresh org. Brandon will review once per iteration; do not wait for him mid-iteration unless blocked by Section 9.1 item 2 or a decision in Section 11.4.
 
 ---
+
+
+### 9.6 Concurrent iterations (owner decision, 2026-09-07)
+
+Brandon directed the build session to run features from several iterations at once rather than waiting for each iteration's package version to be promoted (Section 6 sequencing rule relaxed because no Dev Hub or package versions exist yet and the owner is handling DevOps separately). Rules that still hold: the canonical model for an iteration's entities is published before its feature agents start; each feature is its own branch and pull request, reviewed against 7.4 and 9.4, and squash-merged to `main` when it passes; features from a later iteration may merge to `main` before the earlier iteration has been accepted, because `main` is unreleased. Each iteration is tagged (for example `v0.1.0-review`) when its features are complete so Brandon can QA that exact state in a fresh scratch org while `main` moves on; the iteration's release notes point at the tag. Package versions are still created only after the namespace and Dev Hub decisions.
 
 ## 10. v0.1 in detail (the first build)
 
