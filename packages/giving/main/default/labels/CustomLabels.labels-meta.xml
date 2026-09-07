@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Giving_QuickGiftEntry_Heading</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: page heading</shortDescription>
+        <value>Quick gift entry</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_DonorKindLabel</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: donor kind chooser</shortDescription>
+        <value>Who gave this gift</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_DonorKindPerson</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: donor kind, a person</shortDescription>
+        <value>Person</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_DonorKindOrganization</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: donor kind, an organization</shortDescription>
+        <value>Organization</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_PersonLabel</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: person donor picker</shortDescription>
+        <value>Donor</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_OrganizationLabel</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: organization donor picker</shortDescription>
+        <value>Organization</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_DonorPlaceholder</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: donor search placeholder</shortDescription>
+        <value>Search by name</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_AmountLabel</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: amount</shortDescription>
+        <value>Amount</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_DateLabel</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: gift date</shortDescription>
+        <value>Gift date</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_TypeLabel</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: how the gift arrived</shortDescription>
+        <value>How it arrived</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_TypePlaceholder</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: gift type placeholder</shortDescription>
+        <value>Choose one</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_AppealLabel</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: appeal</shortDescription>
+        <value>Appeal</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_FundLabel</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: fund</shortDescription>
+        <value>Fund</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_PaymentReferenceLabel</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: check or reference number</shortDescription>
+        <value>Check or reference number</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_SaveButton</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: save button</shortDescription>
+        <value>Save</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_SaveAndNewButton</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: save and start another button</shortDescription>
+        <value>Save and new</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_SavingMessage</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: saving in progress</shortDescription>
+        <value>Saving the gift</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_SuccessTitle</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: success toast title</shortDescription>
+        <value>Gift saved</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_SuccessMessage</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: success toast message, {0} is the gift name</shortDescription>
+        <value>Gift {0} saved</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_OpenGiftLink</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: link to the gift just saved</shortDescription>
+        <value>Open this gift</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_ErrorTitle</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: error region heading</shortDescription>
+        <value>The gift was not saved</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_ErrorDonorRequired</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: no donor chosen</shortDescription>
+        <value>Choose the person or organization who gave this gift.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_ErrorDonorBoth</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: two donors chosen</shortDescription>
+        <value>A gift has one donor: choose a person or an organization, not both.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_ErrorAmountRequired</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: amount missing or not positive</shortDescription>
+        <value>Enter an amount greater than zero. A refund is entered from the original gift, not here.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_ErrorDateRequired</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: gift date missing</shortDescription>
+        <value>Enter the date the gift arrived.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_ErrorTypeRequired</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: gift type missing</shortDescription>
+        <value>Choose how the gift arrived.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_ErrorTypeInvalid</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: gift type not one of the choices</shortDescription>
+        <value>Choose how the gift arrived from the list.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_ErrorFundUnavailable</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: chosen fund is gone</shortDescription>
+        <value>That fund is not available any more. Choose another fund.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_ErrorAppealUnavailable</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: chosen appeal is gone</shortDescription>
+        <value>That appeal is not available any more. Choose another appeal.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_ErrorNoInput</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: nothing was sent to save</shortDescription>
+        <value>No gift was sent to save. Enter the gift again.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_ErrorLoadDefaults</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: defaults could not be read</shortDescription>
+        <value>The form could not load its settings. Ask your administrator to check the default fund and default appeal in Nonprofit Settings.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_ErrorUnexpected</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: unexpected failure</shortDescription>
+        <value>The gift could not be saved. Your administrator can find the details in the Error Log.</value>
+    </labels>
+</CustomLabels>
