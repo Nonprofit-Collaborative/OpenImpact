@@ -10,6 +10,7 @@
  *
  * Nothing here throws (rule R-E2).
  */
+@NamespaceAccessible
 public with sharing class ErrorLogger {
     public static final String SEVERITY_INFO = 'Info';
     public static final String SEVERITY_WARNING = 'Warning';
@@ -30,10 +31,12 @@ public with sharing class ErrorLogger {
         SEVERITY_CRITICAL
     };
 
+    @NamespaceAccessible
     public static void log(Exception thrown, String context) {
         log(thrown, context, null);
     }
 
+    @NamespaceAccessible
     public static void log(Exception thrown, String context, Id recordId) {
         if (thrown == null) {
             return;
@@ -41,10 +44,12 @@ public with sharing class ErrorLogger {
         log(new List<Exception>{ thrown }, context, recordId);
     }
 
+    @NamespaceAccessible
     public static void log(List<Exception> thrown, String context) {
         log(thrown, context, null);
     }
 
+    @NamespaceAccessible
     public static void log(List<Exception> thrown, String context, Id recordId) {
         if (thrown == null || thrown.isEmpty()) {
             return;
@@ -74,10 +79,12 @@ public with sharing class ErrorLogger {
         ErrorLogWriter.write(entries);
     }
 
+    @NamespaceAccessible
     public static void logMessage(String message, String context, String severity) {
         logMessage(message, context, severity, null);
     }
 
+    @NamespaceAccessible
     public static void logMessage(String message, String context, String severity, Id recordId) {
         if (String.isBlank(message)) {
             return;
@@ -87,6 +94,7 @@ public with sharing class ErrorLogger {
         );
     }
 
+    @NamespaceAccessible
     public static void logMessages(List<String> messages, String context, String severity) {
         if (messages == null || messages.isEmpty()) {
             return;

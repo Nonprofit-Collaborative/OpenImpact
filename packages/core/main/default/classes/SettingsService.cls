@@ -8,8 +8,11 @@
  * picklist on a custom setting (ADR-0014). This class holds their allowed values, validates a
  * write, and treats an unrecognized stored value as the shipped default rather than failing.
  */
+@NamespaceAccessible
 public with sharing class SettingsService {
+    @NamespaceAccessible
     public static final String COEXISTENCE_MODE_DEFAULT = 'Standalone';
+    @NamespaceAccessible
     public static final String MEMBERSHIP_MODE_DEFAULT = 'Contact';
 
     private static final Set<String> COEXISTENCE_MODES = new Set<String>{
@@ -21,12 +24,14 @@ public with sharing class SettingsService {
 
     private static Nonprofit_Settings__c cachedSettings;
 
+    @NamespaceAccessible
     public class SettingsServiceException extends Exception {
     }
 
     /**
      * The org level settings, read once per transaction.
      */
+    @NamespaceAccessible
     public static Nonprofit_Settings__c getSettings() {
         if (cachedSettings == null) {
             cachedSettings = Nonprofit_Settings__c.getOrgDefaults();
@@ -38,22 +43,27 @@ public with sharing class SettingsService {
      * A fresh copy of the org level settings to write to. Never the cached instance, so that a
      * failed write cannot leave a half-changed value in this transaction's cache.
      */
+    @NamespaceAccessible
     public static Nonprofit_Settings__c getSettingsForUpdate() {
         return Nonprofit_Settings__c.getOrgDefaults();
     }
 
+    @NamespaceAccessible
     public static void clearCache() {
         cachedSettings = null;
     }
 
+    @NamespaceAccessible
     public static Set<String> coexistenceModes() {
         return COEXISTENCE_MODES.clone();
     }
 
+    @NamespaceAccessible
     public static Set<String> membershipModes() {
         return MEMBERSHIP_MODES.clone();
     }
 
+    @NamespaceAccessible
     public static String coexistenceMode() {
         return storedOrDefault(
             getSettings().Coexistence_Mode__c,
@@ -62,6 +72,7 @@ public with sharing class SettingsService {
         );
     }
 
+    @NamespaceAccessible
     public static String householdMembershipMode() {
         return storedOrDefault(
             getSettings().Household_Membership_Mode__c,
@@ -74,6 +85,7 @@ public with sharing class SettingsService {
      * Checks a value on its way in. Anything outside the allowed list is refused with a message
      * the console can show.
      */
+    @NamespaceAccessible
     public static String validated(String value, Set<String> allowed) {
         if (allowed == null || String.isBlank(value) || !allowed.contains(value)) {
             throw new SettingsServiceException(Label.Core_Settings_ModeValueInvalid);
@@ -84,6 +96,7 @@ public with sharing class SettingsService {
     /**
      * Writes one audit row. Callers write a row only when a value actually changed (rule R-S1).
      */
+    @NamespaceAccessible
     public static void logChange(String settingName, String oldValue, String newValue) {
         if (String.isBlank(settingName)) {
             return;

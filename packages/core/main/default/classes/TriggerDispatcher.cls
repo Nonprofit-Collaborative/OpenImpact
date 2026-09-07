@@ -1,11 +1,16 @@
 /**
  * The single entry point every packaged trigger uses.
  *
- * A trigger contains one line:
+ * A trigger contains one line, naming its object:
  *
  *     trigger ContactTrigger on Contact (before insert, after insert) {
- *         TriggerDispatcher.run(new ContactTriggerHandler());
+ *         TriggerDispatcher.run('Contact');
  *     }
+ *
+ * The dispatcher reads the shipped registry for that object, in execution order, and runs each
+ * handler it names (ADR-0017). A module ships its handler class and its registry record and
+ * never edits another feature's trigger. The `run(TriggerHandler)` overload stays for tests and
+ * for an object with exactly one handler.
  *
  * Before it invokes anything, the dispatcher asks three questions in order: is this handler
  * bypassed for this transaction, is all automation paused for the org, and is this automation
@@ -22,7 +27,12 @@
  *
  * Either way the original exception is already recorded, so nothing is swallowed.
  */
+@NamespaceAccessible
 public with sharing class TriggerDispatcher {
+    private static String resolvedNamespace;
+    private static Boolean namespaceResolved = false;
+
+    @NamespaceAccessible
     public class TriggerDispatcherException extends Exception {
     }
 
@@ -30,6 +40,7 @@ public with sharing class TriggerDispatcher {
      * The trigger context, passed explicitly so that a handler can be dispatched from a test or
      * from a bulk operation without a real trigger.
      */
+    @NamespaceAccessible
     public class Context {
         public System.TriggerOperation operation { get; private set; }
         public List<SObject> newRecords { get; private set; }
@@ -37,6 +48,7 @@ public with sharing class TriggerDispatcher {
         public List<SObject> oldRecords { get; private set; }
         public Map<Id, SObject> oldRecordsById { get; private set; }
 
+        @NamespaceAccessible
         public Context(
             System.TriggerOperation operation,
             List<SObject> newRecords,
@@ -51,6 +63,7 @@ public with sharing class TriggerDispatcher {
             this.oldRecordsById = oldRecordsById;
         }
 
+        @NamespaceAccessible
         public Boolean isBefore() {
             return operation == System.TriggerOperation.BEFORE_INSERT ||
                 operation == System.TriggerOperation.BEFORE_UPDATE ||
@@ -58,27 +71,66 @@ public with sharing class TriggerDispatcher {
         }
     }
 
+    /**
+     * The line a packaged trigger contains: run every automation the registry lists for this
+     * object, in execution order.
+     */
+    @NamespaceAccessible
+    public static void run(String objectApiName) {
+        if (!Trigger.isExecuting) {
+            return;
+        }
+        run(objectApiName, currentContext());
+    }
+
+    @NamespaceAccessible
+    public static void run(String objectApiName, Context context) {
+        if (String.isBlank(objectApiName) || context == null) {
+            return;
+        }
+        for (
+            Automation_Registry__mdt entry : AutomationRegistrySelector.selectForObject(
+                objectApiName
+            )
+        ) {
+            TriggerHandler handler = instantiate(entry, objectApiName);
+            if (handler != null) {
+                run(handler, context, entry.DeveloperName);
+            }
+        }
+    }
+
+    @NamespaceAccessible
     public static void run(TriggerHandler handler) {
         if (!Trigger.isExecuting) {
             return;
         }
-        run(
-            handler,
-            new Context(
-                Trigger.operationType,
-                Trigger.new,
-                Trigger.newMap,
-                Trigger.old,
-                Trigger.oldMap
-            )
+        run(handler, currentContext());
+    }
+
+    @NamespaceAccessible
+    public static void run(TriggerHandler handler, Context context) {
+        if (handler == null) {
+            return;
+        }
+        run(handler, context, handler.getName());
+    }
+
+    private static Context currentContext() {
+        return new Context(
+            Trigger.operationType,
+            Trigger.new,
+            Trigger.newMap,
+            Trigger.old,
+            Trigger.oldMap
         );
     }
 
-    public static void run(TriggerHandler handler, Context context) {
+    private static void run(TriggerHandler handler, Context context, String registeredName) {
         if (handler == null || context == null || context.operation == null) {
             return;
         }
-        String automationName = handler.getName();
+        String automationName = String.isBlank(registeredName) ? handler.getName() : registeredName;
         if (AutomationControl.isBypassed(automationName)) {
             return;
         }
@@ -147,6 +199,67 @@ public with sharing class TriggerDispatcher {
             return;
         }
         throw new TriggerDispatcherException(Label.Core_Automation_UnexpectedError, caught);
+    }
+
+    /**
+     * Builds the handler a registry record names. A handler that cannot be built is skipped with
+     * a warning in the Error Log rather than failing the save: one broken automation must not
+     * stop a person entering data.
+     */
+    private static TriggerHandler instantiate(
+        Automation_Registry__mdt entry,
+        String objectApiName
+    ) {
+        String className = entry.Handler_Class__c;
+        if (String.isBlank(className)) {
+            skip(className, objectApiName);
+            return null;
+        }
+        Type handlerType = Type.forName(packageNamespace(), className);
+        if (handlerType == null) {
+            handlerType = Type.forName(className);
+        }
+        if (handlerType == null) {
+            skip(className, objectApiName);
+            return null;
+        }
+        Object handler;
+        try {
+            handler = handlerType.newInstance();
+        } catch (Exception cannotBuild) {
+            skip(className, objectApiName);
+            return null;
+        }
+        if (!(handler instanceof TriggerHandler)) {
+            skip(className, objectApiName);
+            return null;
+        }
+        return (TriggerHandler) handler;
+    }
+
+    private static void skip(String className, String objectApiName) {
+        ErrorLogger.logMessage(
+            String.format(
+                Label.Core_Automation_HandlerUnavailable,
+                new List<String>{ className == null ? '' : className }
+            ),
+            'Trigger dispatch: ' + objectApiName,
+            ErrorLogger.SEVERITY_WARNING
+        );
+    }
+
+    /**
+     * The namespace this package is running under, so that a handler in another package under
+     * the same namespace can be found by name. Empty while the namespace is deferred.
+     */
+    private static String packageNamespace() {
+        if (namespaceResolved) {
+            return resolvedNamespace;
+        }
+        String qualifiedName = String.valueOf(new TriggerDispatcher()).substringBefore(':');
+        resolvedNamespace = qualifiedName.contains('.') ? qualifiedName.substringBefore('.') : null;
+        namespaceResolved = true;
+        return resolvedNamespace;
     }
 
     private static Id firstRecordId(Context context) {

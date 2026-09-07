@@ -222,7 +222,10 @@ private class TriggerDispatcherTest {
 
     @IsTest
     static void nothingHappensWithoutAHandlerOrAContext() {
-        TriggerDispatcher.run(null, contextFor(System.TriggerOperation.BEFORE_INSERT));
+        TriggerDispatcher.run(
+            (TriggerHandler) null,
+            contextFor(System.TriggerOperation.BEFORE_INSERT)
+        );
         TriggerDispatcher.run(new RecordingHandler(), null);
         TriggerDispatcher.run(
             new RecordingHandler(),
@@ -235,6 +238,101 @@ private class TriggerDispatcherTest {
             0,
             [SELECT COUNT() FROM Error_Log__c WHERE Context__c = :HANDLER_NAME],
             'Nothing ran, so nothing failed.'
+        );
+    }
+
+    @IsTest
+    static void theRegistryDecidesWhichHandlersRunForAnObject() {
+        TestRegisteredHandler.reset();
+        Automation_Registry__mdt registered = TestDataFactory.registryEntry(
+            'Registered_Test',
+            true
+        );
+        registered.Handler_Class__c = 'TestRegisteredHandler';
+        registered.Object_Name__c = 'Error_Log__c';
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>{
+            registered
+        };
+
+        Test.startTest();
+        TriggerDispatcher.run('Error_Log__c', contextFor(System.TriggerOperation.AFTER_INSERT));
+        Test.stopTest();
+
+        Assert.areEqual(1, TestRegisteredHandler.runCount, 'The registered handler ran.');
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Error_Log__c WHERE Severity__c = 'Warning'],
+            'And nothing was skipped.'
+        );
+    }
+
+    @IsTest
+    static void aRegisteredAutomationRespectsItsOwnSwitch() {
+        TestRegisteredHandler.reset();
+        TestDataFactory.insertAutomationSettings(
+            new Map<String, Boolean>{ 'Registered_Test' => false }
+        );
+        Automation_Registry__mdt registered = TestDataFactory.registryEntry(
+            'Registered_Test',
+            true
+        );
+        registered.Handler_Class__c = 'TestRegisteredHandler';
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>{
+            registered
+        };
+
+        Test.startTest();
+        TriggerDispatcher.run('Error_Log__c', contextFor(System.TriggerOperation.AFTER_INSERT));
+        Test.stopTest();
+
+        Assert.areEqual(
+            0,
+            TestRegisteredHandler.runCount,
+            'The switch is keyed by the name in the registry, not by the class name.'
+        );
+    }
+
+    @IsTest
+    static void aHandlerThatCannotBeStartedIsSkippedWithAWarning() {
+        Automation_Registry__mdt missing = TestDataFactory.registryEntry('Missing_Test', true);
+        missing.Handler_Class__c = 'NoSuchHandlerClass';
+        Automation_Registry__mdt notAHandler = TestDataFactory.registryEntry('Wrong_Test', true);
+        notAHandler.Handler_Class__c = 'ErrorLogger';
+        notAHandler.Execution_Order__c = 30;
+        Automation_Registry__mdt noClass = TestDataFactory.registryEntry('Blank_Test', true);
+        noClass.Handler_Class__c = null;
+        noClass.Execution_Order__c = 40;
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>{
+            missing,
+            notAHandler,
+            noClass
+        };
+
+        Test.startTest();
+        TriggerDispatcher.run('Error_Log__c', contextFor(System.TriggerOperation.AFTER_INSERT));
+        Test.stopTest();
+
+        Assert.areEqual(
+            3,
+            [SELECT COUNT() FROM Error_Log__c WHERE Severity__c = 'Warning'],
+            'Each automation that could not be started is recorded as a warning.'
+        );
+    }
+
+    @IsTest
+    static void anObjectWithNoRegisteredAutomationDoesNothing() {
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>();
+
+        TriggerDispatcher.run('Error_Log__c', contextFor(System.TriggerOperation.AFTER_INSERT));
+        TriggerDispatcher.run('   ', contextFor(System.TriggerOperation.AFTER_INSERT));
+        TriggerDispatcher.run('Error_Log__c', (TriggerDispatcher.Context) null);
+        // Called outside a trigger, the one argument entry point does nothing at all.
+        TriggerDispatcher.run('Error_Log__c');
+
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Error_Log__c WHERE Severity__c = 'Warning'],
+            'Nothing ran, so nothing was skipped.'
         );
     }
 

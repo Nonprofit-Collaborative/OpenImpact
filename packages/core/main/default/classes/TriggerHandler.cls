@@ -9,17 +9,21 @@
  * true the first time a phase is claimed and false afterwards, so a handler that causes its own
  * object to be updated again does its work once.
  */
+@NamespaceAccessible
 public virtual with sharing class TriggerHandler {
     private static final Set<String> CLAIMED_PHASES = new Set<String>();
 
+    @NamespaceAccessible
     public virtual void beforeInsert(List<SObject> newRecords) {
         return;
     }
 
+    @NamespaceAccessible
     public virtual void afterInsert(List<SObject> newRecords, Map<Id, SObject> newRecordsById) {
         return;
     }
 
+    @NamespaceAccessible
     public virtual void beforeUpdate(
         List<SObject> newRecords,
         Map<Id, SObject> newRecordsById,
@@ -29,6 +33,7 @@ public virtual with sharing class TriggerHandler {
         return;
     }
 
+    @NamespaceAccessible
     public virtual void afterUpdate(
         List<SObject> newRecords,
         Map<Id, SObject> newRecordsById,
@@ -38,14 +43,17 @@ public virtual with sharing class TriggerHandler {
         return;
     }
 
+    @NamespaceAccessible
     public virtual void beforeDelete(List<SObject> oldRecords, Map<Id, SObject> oldRecordsById) {
         return;
     }
 
+    @NamespaceAccessible
     public virtual void afterDelete(List<SObject> oldRecords, Map<Id, SObject> oldRecordsById) {
         return;
     }
 
+    @NamespaceAccessible
     public virtual void afterUndelete(List<SObject> newRecords, Map<Id, SObject> newRecordsById) {
         return;
     }
@@ -54,6 +62,7 @@ public virtual with sharing class TriggerHandler {
      * The stable name of this automation, matching its Automation Setting row and its entry in
      * the shipped registry. A handler may override it; by default it is the class name.
      */
+    @NamespaceAccessible
     public virtual String getName() {
         return String.valueOf(this).substringBefore(':');
     }
@@ -61,6 +70,7 @@ public virtual with sharing class TriggerHandler {
     /**
      * Claims a phase for this transaction. Returns true the first time, false every time after.
      */
+    @NamespaceAccessible
     public Boolean claimRunFor(String phase) {
         String key = phaseKey(phase);
         if (CLAIMED_PHASES.contains(key)) {
@@ -70,10 +80,12 @@ public virtual with sharing class TriggerHandler {
         return true;
     }
 
+    @NamespaceAccessible
     public Boolean hasRunFor(String phase) {
         return CLAIMED_PHASES.contains(phaseKey(phase));
     }
 
+    @NamespaceAccessible
     public void releaseRunFor(String phase) {
         CLAIMED_PHASES.remove(phaseKey(phase));
     }
@@ -82,6 +94,7 @@ public virtual with sharing class TriggerHandler {
      * Clears every claim. Used by tests and by bulk operations that deliberately re-run a
      * handler in the same transaction.
      */
+    @NamespaceAccessible
     public static void clearRunClaims() {
         CLAIMED_PHASES.clear();
     }

@@ -39,17 +39,33 @@ trigger ContactTrigger on Contact(
     after delete,
     after undelete
 ) {
-    TriggerDispatcher.run(new ContactTriggerHandler());
+    TriggerDispatcher.run('Contact');
 }
 ```
 
-`ContactTriggerHandler` extends `TriggerHandler` and overrides only the contexts it needs. The
-dispatcher works out which one it is in, then checks three things before it invokes anything: a
-per transaction bypass (`AutomationControl.bypass(name)`), the org wide pause
+That is the whole trigger. The dispatcher reads `Automation_Registry__mdt` for that object, in
+`Execution_Order__c` order, builds each `Handler_Class__c` with `Type.forName` (qualified with the
+running package's namespace, falling back to the bare name when there is none), and runs each one
+(ADR-0017). A module ships its handler class and its registry record and never edits another
+feature's trigger or handler. A handler that cannot be built is skipped with a warning in the
+Error Log: one broken automation does not stop a person saving a record.
+
+`TriggerDispatcher.run(new ContactTriggerHandler())` remains, for tests and for an object with
+exactly one handler.
+
+A handler extends `TriggerHandler` and overrides only the contexts it needs. The dispatcher works
+out which context it is in, then checks three things before it invokes anything: a per transaction
+bypass (`AutomationControl.bypass(name)`), the org wide pause
 (`Nonprofit_Settings__c.Automation_Paused_Until__c`), and the automation's own switch (a row on
-`Automation_Setting__c`). Anything a handler throws is written to the Error Log first, then
-reported to the person saving the record: `addError` with a plain language message in a before
-context, a rethrow in an after context.
+`Automation_Setting__c`, keyed by the registry's developer name). Anything a handler throws is
+written to the Error Log first, then reported to the person saving the record: `addError` with a
+plain language message in a before context, a rethrow in an after context.
+
+A handler another package ships must be `public`, annotated `@NamespaceAccessible`, and have a
+no-argument constructor, so that `Type.forName` can build it. Core's own shared classes
+(`TriggerDispatcher`, `TriggerHandler`, `AutomationControl`, `ErrorLogger`, `SettingsService`,
+`TestDataFactory`) are `public` and `@NamespaceAccessible` for the same reason, and never `global`
+(ADR-0017): `global` is a permanent API commitment, and this is internal plumbing.
 
 An automation with no `Automation_Setting__c` row still runs, so a newly shipped automation works
 the moment it is installed. `AutomationControl.ensureDefaults()` materializes the missing rows

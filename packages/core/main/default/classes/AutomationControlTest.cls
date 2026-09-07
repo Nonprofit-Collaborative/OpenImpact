@@ -190,7 +190,7 @@ private class AutomationControlTest {
     @IsTest
     static void shippedAutomationsAreMaterializedOnceAndNeverOverwritten() {
         TestDataFactory.insertAutomationSettings(new Map<String, Boolean>{ NAMING => false });
-        AutomationControl.registryOverride = new List<Automation_Registry__mdt>{
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>{
             TestDataFactory.registryEntry(NAMING, true),
             TestDataFactory.registryEntry(HOUSEHOLDS, true)
         };
@@ -223,7 +223,7 @@ private class AutomationControlTest {
 
     @IsTest
     static void materializingAnEmptyRegistryDoesNothing() {
-        AutomationControl.registryOverride = new List<Automation_Registry__mdt>();
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>();
 
         Assert.areEqual(0, AutomationControl.ensureDefaults(), 'v0.1 ships no registry records.');
         Assert.areEqual(0, [SELECT COUNT() FROM Automation_Setting__c], 'So there is nothing.');
@@ -231,7 +231,7 @@ private class AutomationControlTest {
 
     @IsTest
     static void materializingIgnoresARegistryEntryWithNoName() {
-        AutomationControl.registryOverride = new List<Automation_Registry__mdt>{
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>{
             new Automation_Registry__mdt(Description__c = 'No developer name.')
         };
 

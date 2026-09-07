@@ -12,6 +12,7 @@
  * works from the moment it is installed, and `ensureDefaults` materializes its row without ever
  * touching a row the administrator already has (Decision D-06, rule R-A2).
  */
+@NamespaceAccessible
 public with sharing class AutomationControl {
     public static final String PAUSE_SETTING_NAME = 'Automation Paused Until';
 
@@ -20,18 +21,18 @@ public with sharing class AutomationControl {
 
     private static Map<String, Boolean> enabledByName;
 
-    @TestVisible
-    private static List<Automation_Registry__mdt> registryOverride;
-
+    @NamespaceAccessible
     public class AutomationControlException extends Exception {
     }
 
+    @NamespaceAccessible
     public static Set<Integer> allowedPauseHours() {
         return ALLOWED_PAUSE_HOURS.clone();
     }
 
     // ------------------------------------------------------------------ per automation switch
 
+    @NamespaceAccessible
     public static Boolean isEnabled(String automationName) {
         if (String.isBlank(automationName)) {
             return false;
@@ -47,6 +48,7 @@ public with sharing class AutomationControl {
      * Switches one automation on or off and records the change. Saving the value it already has
      * writes nothing (rule R-S1).
      */
+    @NamespaceAccessible
     public static void setEnabled(String automationName, Boolean enabled) {
         if (String.isBlank(automationName)) {
             throw new AutomationControlException(Label.Core_Automation_NameRequired);
@@ -73,12 +75,14 @@ public with sharing class AutomationControl {
         );
     }
 
+    @NamespaceAccessible
     public static void clearCache() {
         enabledByName = null;
     }
 
     // -------------------------------------------------------------------------- global pause
 
+    @NamespaceAccessible
     public static Boolean isPaused() {
         return pausedUntil() != null;
     }
@@ -86,6 +90,7 @@ public with sharing class AutomationControl {
     /**
      * When the current pause ends, or null when automation is running.
      */
+    @NamespaceAccessible
     public static Datetime pausedUntil() {
         Nonprofit_Settings__c settings = SettingsService.getSettings();
         if (settings == null || settings.Automation_Paused_Until__c == null) {
@@ -96,6 +101,7 @@ public with sharing class AutomationControl {
             : null;
     }
 
+    @NamespaceAccessible
     public static Datetime pauseAll(Integer hours) {
         if (hours == null || !ALLOWED_PAUSE_HOURS.contains(hours)) {
             throw new AutomationControlException(Label.Core_Automation_PauseHoursInvalid);
@@ -103,6 +109,7 @@ public with sharing class AutomationControl {
         return writePausedUntil(System.now().addHours(hours));
     }
 
+    @NamespaceAccessible
     public static void resumeAll() {
         writePausedUntil(null);
     }
@@ -127,22 +134,26 @@ public with sharing class AutomationControl {
 
     // -------------------------------------------------------------------- per transaction bypass
 
+    @NamespaceAccessible
     public static void bypass(String automationName) {
         if (String.isNotBlank(automationName)) {
             BYPASSED_NAMES.add(automationName.toLowerCase());
         }
     }
 
+    @NamespaceAccessible
     public static void clearBypass(String automationName) {
         if (String.isNotBlank(automationName)) {
             BYPASSED_NAMES.remove(automationName.toLowerCase());
         }
     }
 
+    @NamespaceAccessible
     public static void clearAllBypasses() {
         BYPASSED_NAMES.clear();
     }
 
+    @NamespaceAccessible
     public static Boolean isBypassed(String automationName) {
         return String.isNotBlank(automationName) &&
             BYPASSED_NAMES.contains(automationName.toLowerCase());
@@ -155,6 +166,7 @@ public with sharing class AutomationControl {
      * and leaves every existing row exactly as the administrator left it. Safe to call on every
      * install, every upgrade, and twice in a row. Returns how many rows it created.
      */
+    @NamespaceAccessible
     public static Integer ensureDefaults() {
         List<Automation_Registry__mdt> registry = shippedRegistry();
         if (registry.isEmpty()) {
@@ -199,7 +211,7 @@ public with sharing class AutomationControl {
     }
 
     private static List<Automation_Registry__mdt> shippedRegistry() {
-        return registryOverride == null ? AutomationRegistrySelector.selectAll() : registryOverride;
+        return AutomationRegistrySelector.selectAll();
     }
 
     private static void loadEnabledCache() {

@@ -6,11 +6,7 @@
     <language>en_US</language>
     <protected>false</protected>
     <shortDescription>Automation unexpected error</shortDescription>
-    <value>
-      Something went wrong while Open Impact was updating this record, so the record was not
-      saved. The details are in the Error Log. Try again, and if it keeps happening, send the newest
-      Error Log entry to whoever supports your Salesforce.
-    </value>
+    <value>Something went wrong while Open Impact was updating this record, so the record was not saved. The details are in the Error Log. Try again, and if it keeps happening, send the newest Error Log entry to whoever supports your Salesforce.</value>
   </labels>
   <labels>
     <fullName>Core_Automation_PauseHoursInvalid</fullName>
@@ -34,9 +30,7 @@
     <language>en_US</language>
     <protected>false</protected>
     <shortDescription>Automation not found</shortDescription>
-    <value>
-      That automation is not in this org's list. Refresh the Automation page and try again.
-    </value>
+    <value>That automation is not in this org's list. Refresh the Automation page and try again.</value>
   </labels>
   <labels>
     <fullName>Core_ErrorLog_UnexpectedFailure</fullName>
@@ -44,10 +38,7 @@
     <language>en_US</language>
     <protected>false</protected>
     <shortDescription>Error log default message</shortDescription>
-    <value>
-      Open Impact hit a problem it did not expect. The technical detail on this entry is what a
-      support contact needs to work out why.
-    </value>
+    <value>Open Impact hit a problem it did not expect. The technical detail on this entry is what a support contact needs to work out why.</value>
   </labels>
   <labels>
     <fullName>Core_Settings_ModeValueInvalid</fullName>
@@ -55,9 +46,14 @@
     <language>en_US</language>
     <protected>false</protected>
     <shortDescription>Settings mode value not allowed</shortDescription>
-    <value>
-      That is not one of the choices for this setting. Pick a value from the list on the settings
-      page.
-    </value>
+    <value>That is not one of the choices for this setting. Pick a value from the list on the settings page.</value>
+  </labels>
+  <labels>
+    <fullName>Core_Automation_HandlerUnavailable</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation handler unavailable</shortDescription>
+    <value>Open Impact could not start one of its automations ({0}), so it was skipped. Everything else ran as usual. Send this entry to whoever supports your Salesforce.</value>
   </labels>
 </CustomLabels>

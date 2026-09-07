@@ -1,15 +1,18 @@
 /**
  * Shared test data for Core and for every module package (plan Section 7.3).
  *
- * Global so that a module package's tests can call it. Test only: it is never on a code path a
- * subscriber runs.
+ * Public and namespace accessible, never global (ADR-0017), so a module package's tests can call
+ * it without it becoming part of the subscriber-facing API. Test only: it is never on a code path
+ * a subscriber runs.
  */
 @IsTest
-global class TestDataFactory {
+@NamespaceAccessible
+public class TestDataFactory {
     /**
      * The org level Nonprofit Settings, with the shipped v0.1 defaults, saved and cached.
      */
-    global static Nonprofit_Settings__c defaultSettings() {
+    @NamespaceAccessible
+    public static Nonprofit_Settings__c defaultSettings() {
         Nonprofit_Settings__c settings = Nonprofit_Settings__c.getOrgDefaults();
         settings.Coexistence_Mode__c = SettingsService.COEXISTENCE_MODE_DEFAULT;
         settings.Household_Membership_Mode__c = SettingsService.MEMBERSHIP_MODE_DEFAULT;
@@ -27,7 +30,8 @@ global class TestDataFactory {
     /**
      * Saves the org level settings and clears the transaction cache so the next read sees them.
      */
-    global static void saveSettings(Nonprofit_Settings__c settings) {
+    @NamespaceAccessible
+    public static void saveSettings(Nonprofit_Settings__c settings) {
         if (settings.Id == null) {
             insert settings;
         } else {
@@ -41,14 +45,16 @@ global class TestDataFactory {
      * Puts automation into a paused state that ends the given number of hours from now. A
      * negative number produces a pause that has already expired.
      */
-    global static Nonprofit_Settings__c pausedSettings(Integer hoursFromNow) {
+    @NamespaceAccessible
+    public static Nonprofit_Settings__c pausedSettings(Integer hoursFromNow) {
         Nonprofit_Settings__c settings = defaultSettings();
         settings.Automation_Paused_Until__c = System.now().addHours(hoursFromNow);
         saveSettings(settings);
         return settings;
     }
 
-    global static Automation_Setting__c automationSetting(String automationName, Boolean enabled) {
+    @NamespaceAccessible
+    public static Automation_Setting__c automationSetting(String automationName, Boolean enabled) {
         return new Automation_Setting__c(
             Name = automationName,
             Automation_Name__c = automationName,
@@ -61,7 +67,8 @@ global class TestDataFactory {
         );
     }
 
-    global static List<Automation_Setting__c> insertAutomationSettings(
+    @NamespaceAccessible
+    public static List<Automation_Setting__c> insertAutomationSettings(
         Map<String, Boolean> enabledByName
     ) {
         List<Automation_Setting__c> settings = new List<Automation_Setting__c>();
@@ -75,9 +82,10 @@ global class TestDataFactory {
 
     /**
      * A shipped registry entry, built in memory. Custom metadata cannot be inserted by a test,
-     * so tests hand these to `AutomationControl.registryOverride`.
+     * so tests hand these to `AutomationRegistrySelector.registryOverride`.
      */
-    global static Automation_Registry__mdt registryEntry(String developerName, Boolean enabled) {
+    @NamespaceAccessible
+    public static Automation_Registry__mdt registryEntry(String developerName, Boolean enabled) {
         return new Automation_Registry__mdt(
             DeveloperName = developerName,
             MasterLabel = developerName.replace('_', ' '),
@@ -92,7 +100,8 @@ global class TestDataFactory {
     /**
      * Error Log records that already exist, so a selector or a tile has something to read.
      */
-    global static List<Error_Log__c> insertErrorLogs(Integer howMany, String status) {
+    @NamespaceAccessible
+    public static List<Error_Log__c> insertErrorLogs(Integer howMany, String status) {
         List<Error_Log__c> logs = new List<Error_Log__c>();
         for (Integer i = 0; i < howMany; i++) {
             logs.add(
