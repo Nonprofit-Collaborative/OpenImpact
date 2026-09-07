@@ -8,3 +8,6 @@ package-lock.json
 LICENSE
 # Prose is hand-formatted; Prettier formats source and configuration only.
 *.md
+
+# LWC HTML templates are compiled by the LWC compiler, not formatted by Prettier.
+packages/**/lwc/**/*.html

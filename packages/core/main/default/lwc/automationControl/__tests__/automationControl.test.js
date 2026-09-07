@@ -1,0 +1,186 @@
+import { createElement } from 'lwc';
+import AutomationControl from 'c/automationControl';
+import getPage from '@salesforce/apex/AutomationControlController.getPage';
+import pauseAll from '@salesforce/apex/AutomationControlController.pauseAll';
+import resumeAll from '@salesforce/apex/AutomationControlController.resumeAll';
+import setEnabled from '@salesforce/apex/AutomationControlController.setEnabled';
+
+jest.mock(
+  '@salesforce/apex/AutomationControlController.getPage',
+  () => {
+    const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
+    return { default: createApexTestWireAdapter(jest.fn()) };
+  },
+  { virtual: true }
+);
+
+jest.mock('@salesforce/apex/AutomationControlController.pauseAll', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+
+jest.mock(
+  '@salesforce/apex/AutomationControlController.resumeAll',
+  () => ({ default: jest.fn() }),
+  { virtual: true }
+);
+
+jest.mock(
+  '@salesforce/apex/AutomationControlController.setEnabled',
+  () => ({ default: jest.fn() }),
+  { virtual: true }
+);
+
+jest.mock('@salesforce/customPermission/Manage_Nonprofit_Settings', () => ({ default: true }), {
+  virtual: true
+});
+
+jest.mock(
+  '@salesforce/label/c.Core_AutomationControl_PausedBanner',
+  () => ({ default: 'Automation is paused until' }),
+  { virtual: true }
+);
+
+const RUNNING_PAGE = {
+  paused: false,
+  pausedUntil: null,
+  canManage: true,
+  pauseHourOptions: [1, 2, 4, 8, 24],
+  automations: [
+    {
+      recordId: '001000000000000AAA',
+      automationName: 'Household_Naming',
+      label: 'Household naming',
+      description: 'Keeps household names and greetings up to date.',
+      objectName: 'Contact',
+      enabled: true
+    }
+  ]
+};
+
+const PAUSED_PAGE = {
+  ...RUNNING_PAGE,
+  paused: true,
+  pausedUntil: '2026-09-07T15:40:00.000Z'
+};
+
+function createComponent() {
+  const element = createElement('c-automation-control', { is: AutomationControl });
+  document.body.appendChild(element);
+  return element;
+}
+
+function flush() {
+  return Promise.resolve().then(() => Promise.resolve());
+}
+
+describe('c-automation-control', () => {
+  afterEach(() => {
+    while (document.body.firstChild) {
+      document.body.removeChild(document.body.firstChild);
+    }
+    jest.clearAllMocks();
+  });
+
+  it('lists every automation Maria can switch', async () => {
+    const element = createComponent();
+    getPage.emit(RUNNING_PAGE);
+    await flush();
+
+    const toggles = element.shadowRoot.querySelectorAll('.automation-toggle');
+    expect(toggles.length).toBe(1);
+    expect(toggles[0].checked).toBe(true);
+    expect(toggles[0].disabled).toBe(false);
+    expect(element.shadowRoot.querySelector('[data-id="paused-banner"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="empty-state"]')).toBeNull();
+  });
+
+  it('shows the banner while automation is paused', async () => {
+    const element = createComponent();
+    getPage.emit(PAUSED_PAGE);
+    await flush();
+
+    const banner = element.shadowRoot.querySelector('[data-id="paused-banner"]');
+    expect(banner).not.toBeNull();
+    expect(banner.textContent).toContain('Automation is paused until');
+  });
+
+  it('offers the five pause lengths and pauses for the one chosen', async () => {
+    pauseAll.mockResolvedValue(PAUSED_PAGE);
+    const element = createComponent();
+    getPage.emit(RUNNING_PAGE);
+    await flush();
+
+    const hours = element.shadowRoot.querySelector('[data-id="pause-hours"]');
+    expect(hours.options.map((option) => option.value)).toEqual(['1', '2', '4', '8', '24']);
+
+    hours.dispatchEvent(new CustomEvent('change', { detail: { value: '4' } }));
+    element.shadowRoot.querySelector('[data-id="pause-button"]').click();
+    await flush();
+
+    expect(pauseAll).toHaveBeenCalledWith({ hours: 4 });
+    expect(element.shadowRoot.querySelector('[data-id="paused-banner"]')).not.toBeNull();
+  });
+
+  it('resumes automation', async () => {
+    resumeAll.mockResolvedValue(RUNNING_PAGE);
+    const element = createComponent();
+    getPage.emit(PAUSED_PAGE);
+    await flush();
+
+    element.shadowRoot.querySelector('[data-id="resume-button"]').click();
+    await flush();
+
+    expect(resumeAll).toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('[data-id="paused-banner"]')).toBeNull();
+  });
+
+  it('switches one automation off', async () => {
+    setEnabled.mockResolvedValue({
+      ...RUNNING_PAGE,
+      automations: [{ ...RUNNING_PAGE.automations[0], enabled: false }]
+    });
+    const element = createComponent();
+    getPage.emit(RUNNING_PAGE);
+    await flush();
+
+    const toggle = element.shadowRoot.querySelector('.automation-toggle');
+    toggle.checked = false;
+    toggle.dispatchEvent(new CustomEvent('change'));
+    await flush();
+
+    expect(setEnabled).toHaveBeenCalledWith({
+      automationName: 'Household_Naming',
+      enabled: false
+    });
+  });
+
+  it('shows the message the server sends when something is refused', async () => {
+    pauseAll.mockRejectedValue({ body: { message: 'Choose how long to pause automation.' } });
+    const element = createComponent();
+    getPage.emit(RUNNING_PAGE);
+    await flush();
+
+    element.shadowRoot.querySelector('[data-id="pause-button"]').click();
+    await flush();
+
+    const error = element.shadowRoot.querySelector('[data-id="error-message"]');
+    expect(error.textContent).toBe('Choose how long to pause automation.');
+  });
+
+  it('says so when the page has nothing to list', async () => {
+    const element = createComponent();
+    getPage.emit({ ...RUNNING_PAGE, automations: [] });
+    await flush();
+
+    expect(element.shadowRoot.querySelector('[data-id="empty-state"]')).not.toBeNull();
+  });
+
+  it('reports a failure to load the page', async () => {
+    const element = createComponent();
+    getPage.error({ message: 'You do not have access to this page.' });
+    await flush();
+
+    const error = element.shadowRoot.querySelector('[data-id="error-message"]');
+    expect(error.textContent).toBe('You do not have access to this page.');
+  });
+});
