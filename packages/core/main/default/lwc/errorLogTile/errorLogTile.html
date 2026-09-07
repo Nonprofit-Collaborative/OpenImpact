@@ -6,8 +6,16 @@
 
         <div class="slds-var-p-horizontal_medium slds-var-p-bottom_medium">
             <template if:true={hasError}>
-                <div class="slds-box slds-box_x-small slds-theme_error slds-var-m-bottom_small">
-                    <p data-id="error-message">{errorMessage}</p>
+                <div
+                    class="slds-box slds-box_x-small slds-theme_error slds-var-m-bottom_small"
+                    role="alert"
+                >
+                    <lightning-icon
+                        icon-name="utility:error"
+                        size="x-small"
+                        alternative-text={labels.title}
+                    ></lightning-icon>
+                    <span data-id="error-message">{errorMessage}</span>
                 </div>
             </template>
 
@@ -37,7 +45,14 @@
                             ></lightning-formatted-date-time>
                         </p>
                         <lightning-button
-                            class="acknowledge-button"
+                            class="open-entry-button"
+                            data-entry={entry.recordId}
+                            label={labels.openEntry}
+                            variant="base"
+                            onclick={handleOpenEntry}
+                        ></lightning-button>
+                        <lightning-button
+                            class="acknowledge-button slds-var-m-left_x-small"
                             data-entry={entry.recordId}
                             label={labels.acknowledge}
                             variant="neutral"

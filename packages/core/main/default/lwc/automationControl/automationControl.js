@@ -1,4 +1,5 @@
 import { LightningElement, wire } from 'lwc';
+import { refreshApex } from '@salesforce/apex';
 import canManageSettings from '@salesforce/customPermission/Manage_Nonprofit_Settings';
 import getPage from '@salesforce/apex/AutomationControlController.getPage';
 import pauseAll from '@salesforce/apex/AutomationControlController.pauseAll';
@@ -19,6 +20,8 @@ import TWO_HOURS from '@salesforce/label/c.Core_AutomationControl_TwoHours';
 import FOUR_HOURS from '@salesforce/label/c.Core_AutomationControl_FourHours';
 import EIGHT_HOURS from '@salesforce/label/c.Core_AutomationControl_EightHours';
 import TWENTY_FOUR_HOURS from '@salesforce/label/c.Core_AutomationControl_TwentyFourHours';
+import ERROR_PREFIX from '@salesforce/label/c.Core_AutomationControl_ErrorPrefix';
+import PAUSED_PREFIX from '@salesforce/label/c.Core_AutomationControl_PausedPrefix';
 import UNEXPECTED_ERROR from '@salesforce/label/c.Core_Automation_UnexpectedError';
 
 const HOUR_OPTIONS = [
@@ -41,21 +44,27 @@ export default class AutomationControl extends LightningElement {
     pausedBanner: PAUSED_BANNER,
     readOnly: READ_ONLY,
     empty: EMPTY,
-    runsOn: RUNS_ON
+    runsOn: RUNS_ON,
+    errorPrefix: ERROR_PREFIX,
+    pausedPrefix: PAUSED_PREFIX
   };
 
   page;
   errorMessage;
   selectedHours = DEFAULT_HOURS;
   busy = false;
+  wiredPageResult;
 
   @wire(getPage)
-  wiredPage({ data, error }) {
-    if (data) {
-      this.page = data;
+  wiredPage(result) {
+    // The whole result is kept so that an action can refresh the cached wire rather than leaving
+    // the page showing what the server said before the action.
+    this.wiredPageResult = result;
+    if (result.data) {
+      this.page = result.data;
       this.errorMessage = undefined;
-    } else if (error) {
-      this.errorMessage = this.messageFrom(error);
+    } else if (result.error) {
+      this.errorMessage = this.messageFrom(result.error);
     }
   }
 
@@ -126,10 +135,21 @@ export default class AutomationControl extends LightningElement {
       })
       .catch((error) => {
         this.errorMessage = this.messageFrom(error);
+        // A refused switch must not leave a toggle showing a change the server did not make, so
+        // the list is rebuilt from what the server last said.
+        this.page = this.page ? { ...this.page } : this.page;
       })
       .finally(() => {
         this.busy = false;
+        this.refreshPage();
       });
+  }
+
+  refreshPage() {
+    if (this.wiredPageResult) {
+      return refreshApex(this.wiredPageResult);
+    }
+    return Promise.resolve();
   }
 
   messageFrom(error) {

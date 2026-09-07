@@ -1,5 +1,6 @@
 import { LightningElement, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
+import { refreshApex } from '@salesforce/apex';
 import getTile from '@salesforce/apex/ErrorLogController.getTile';
 import acknowledge from '@salesforce/apex/ErrorLogController.acknowledge';
 
@@ -8,6 +9,7 @@ import NEW_COUNT from '@salesforce/label/c.Core_ErrorLogTile_NewCount';
 import EMPTY from '@salesforce/label/c.Core_ErrorLogTile_Empty';
 import ACKNOWLEDGE from '@salesforce/label/c.Core_ErrorLogTile_Acknowledge';
 import VIEW_ALL from '@salesforce/label/c.Core_ErrorLogTile_ViewAll';
+import OPEN_ENTRY from '@salesforce/label/c.Core_ErrorLogTile_OpenEntry';
 import READ_ONLY from '@salesforce/label/c.Core_ErrorLogTile_ReadOnly';
 import ACTION_FAILED from '@salesforce/label/c.Core_ErrorLog_ActionFailed';
 
@@ -20,20 +22,23 @@ export default class ErrorLogTile extends NavigationMixin(LightningElement) {
     empty: EMPTY,
     acknowledge: ACKNOWLEDGE,
     viewAll: VIEW_ALL,
+    openEntry: OPEN_ENTRY,
     readOnly: READ_ONLY
   };
 
   tile;
   errorMessage;
   busy = false;
+  wiredTileResult;
 
   @wire(getTile, { rowCount: ROW_COUNT })
-  wiredTile({ data, error }) {
-    if (data) {
-      this.tile = data;
+  wiredTile(result) {
+    this.wiredTileResult = result;
+    if (result.data) {
+      this.tile = result.data;
       this.errorMessage = undefined;
-    } else if (error) {
-      this.errorMessage = this.messageFrom(error);
+    } else if (result.error) {
+      this.errorMessage = this.messageFrom(result.error);
     }
   }
 
@@ -86,7 +91,21 @@ export default class ErrorLogTile extends NavigationMixin(LightningElement) {
       })
       .finally(() => {
         this.busy = false;
+        if (this.wiredTileResult) {
+          refreshApex(this.wiredTileResult);
+        }
       });
+  }
+
+  handleOpenEntry(event) {
+    this[NavigationMixin.Navigate]({
+      type: 'standard__recordPage',
+      attributes: {
+        recordId: event.target.dataset.entry,
+        objectApiName: 'Error_Log__c',
+        actionName: 'view'
+      }
+    });
   }
 
   handleViewAll() {

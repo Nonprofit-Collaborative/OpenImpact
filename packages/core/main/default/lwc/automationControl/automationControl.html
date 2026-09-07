@@ -10,14 +10,31 @@
             </template>
 
             <template if:true={hasError}>
-                <div class="slds-box slds-box_x-small slds-theme_error slds-var-m-bottom_small">
-                    <p data-id="error-message">{errorMessage}</p>
+                <div
+                    class="slds-box slds-box_x-small slds-theme_error slds-var-m-bottom_small"
+                    role="alert"
+                >
+                    <lightning-icon
+                        icon-name="utility:error"
+                        size="x-small"
+                        alternative-text={labels.errorPrefix}
+                    ></lightning-icon>
+                    <span data-id="error-message">{errorMessage}</span>
                 </div>
             </template>
 
             <template if:true={isPaused}>
-                <div class="slds-box slds-box_x-small slds-theme_warning slds-var-m-bottom_small">
+                <div
+                    class="slds-box slds-box_x-small slds-theme_warning slds-var-m-bottom_small"
+                    role="status"
+                    aria-live="polite"
+                >
                     <p data-id="paused-banner">
+                        <lightning-icon
+                            icon-name="utility:pause"
+                            size="x-small"
+                            alternative-text={labels.pausedPrefix}
+                        ></lightning-icon>
                         {labels.pausedBanner}
                         <lightning-formatted-date-time
                             value={pausedUntil}

@@ -1,61 +1,39 @@
 /**
  * The Automation page as two people see it: Maria, who has the Manage Nonprofit Settings
- * permission through the Nonprofit Admin role, and David, who does not.
+ * permission through the Nonprofit Admin role, and David, who has the Nonprofit Staff role and
+ * does not.
+ *
+ * Both are built on a minimal profile with only a packaged permission set, so these tests prove
+ * what the package grants rather than what a system administrator profile already allows.
  */
 @IsTest
 private class AutomationControlControllerTest {
     private static final String NAMING = 'Household_Naming';
 
-    private static User buildUser(String lastName) {
-        return new User(
-            Alias = lastName.left(8),
-            Email = lastName + '@openimpact.example.invalid',
-            EmailEncodingKey = 'UTF-8',
-            LastName = lastName,
-            LanguageLocaleKey = 'en_US',
-            LocaleSidKey = 'en_US',
-            ProfileId = UserInfo.getProfileId(),
-            TimeZoneSidKey = 'GMT',
-            Username = lastName + System.now().getTime() + '@openimpact.example.invalid'
-        );
+    private static User nonprofitAdmin() {
+        return TestDataFactory.createUser('Maria', new List<String>{ 'Nonprofit_Admin' });
     }
 
-    /**
-     * Creates both people. User and permission set assignment are setup objects, so they are
-     * inserted in their own context to keep the platform's mixed DML rule happy.
-     */
-    private static Map<String, User> createPeople() {
-        User maria = buildUser('Maria');
-        User david = buildUser('David');
-        System.runAs(new User(Id = UserInfo.getUserId())) {
-            insert new List<User>{ maria, david };
-            List<PermissionSet> admin = [
-                SELECT Id
-                FROM PermissionSet
-                WHERE Name = 'Nonprofit_Admin'
-                LIMIT 1
-            ];
-            if (!admin.isEmpty()) {
-                insert new PermissionSetAssignment(
-                    AssigneeId = maria.Id,
-                    PermissionSetId = admin[0].Id
-                );
-            }
-        }
-        return new Map<String, User>{ 'maria' => maria, 'david' => david };
+    private static User staffOnly() {
+        return TestDataFactory.createUser('David', new List<String>{ 'Nonprofit_Staff' });
     }
 
     @IsTest
     static void thePageListsEveryAutomationAndThePauseState() {
         TestDataFactory.insertAutomationSettings(new Map<String, Boolean>{ NAMING => true });
         TestDataFactory.pausedSettings(2);
+        User maria = nonprofitAdmin();
 
         Test.startTest();
-        AutomationControlController.AutomationPageView page = AutomationControlController.getPage();
+        AutomationControlController.AutomationPageView page;
+        System.runAs(maria) {
+            page = AutomationControlController.getPage();
+        }
         Test.stopTest();
 
         Assert.isTrue(page.paused, 'The page knows automation is paused.');
         Assert.isNotNull(page.pausedUntil, 'And when it ends.');
+        Assert.isTrue(page.canManage, 'Maria may change it.');
         Assert.areEqual(
             new List<Integer>{ 1, 2, 4, 8, 24 },
             page.pauseHourOptions,
@@ -71,7 +49,7 @@ private class AutomationControlControllerTest {
     static void mariaPausesResumesAndSwitchesOneAutomationOff() {
         TestDataFactory.insertAutomationSettings(new Map<String, Boolean>{ NAMING => true });
         TestDataFactory.defaultSettings();
-        User maria = createPeople().get('maria');
+        User maria = nonprofitAdmin();
 
         Test.startTest();
         System.runAs(maria) {
@@ -102,12 +80,18 @@ private class AutomationControlControllerTest {
     @IsTest
     static void davidSeesThePageButCannotChangeIt() {
         TestDataFactory.insertAutomationSettings(new Map<String, Boolean>{ NAMING => true });
-        User david = createPeople().get('david');
+        User david = staffOnly();
 
         Test.startTest();
         System.runAs(david) {
             AutomationControlController.AutomationPageView page = AutomationControlController.getPage();
             Assert.isFalse(page.canManage, 'David may read the page but not change it.');
+            Assert.areEqual(
+                1,
+                page.automations.size(),
+                'And the read only page really loads: the Staff set grants read on the list.'
+            );
+            Assert.isTrue(page.automations[0].enabled, 'With the switch positions on it.');
 
             for (String action : new List<String>{ 'pause', 'resume', 'switch' }) {
                 try {
@@ -136,7 +120,7 @@ private class AutomationControlControllerTest {
     @IsTest
     static void aPauseLengthThatIsNotOfferedIsRefused() {
         TestDataFactory.defaultSettings();
-        User maria = createPeople().get('maria');
+        User maria = nonprofitAdmin();
 
         Test.startTest();
         System.runAs(maria) {

@@ -129,6 +129,28 @@ describe('c-error-log-tile', () => {
     );
   });
 
+  it('opens the entry itself', async () => {
+    const element = createComponent();
+    getTile.emit(TILE);
+    await flush();
+
+    const openButtons = element.shadowRoot.querySelectorAll('.open-entry-button');
+    expect(openButtons.length).toBe(2);
+    expect(openButtons[0].dataset.entry).toBe(ENTRY.recordId);
+    // The navigation stub records nothing, so this asserts the click is wired and safe.
+    openButtons[0].click();
+    await flush();
+    expect(element.shadowRoot.querySelector('[data-id="new-count"]').label).toBe('3 new');
+  });
+
+  it('announces an error rather than showing it in color alone', async () => {
+    const element = createComponent();
+    getTile.error({ message: 'You do not have access to the Error Log.' });
+    await flush();
+
+    expect(element.shadowRoot.querySelector('[role="alert"]')).not.toBeNull();
+  });
+
   it('opens the Error Log list', async () => {
     const element = createComponent();
     getTile.emit(TILE);

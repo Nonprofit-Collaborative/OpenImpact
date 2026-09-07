@@ -240,4 +240,28 @@
     <shortDescription>Error log tile read only notice</shortDescription>
     <value>You can read these entries but not change them.</value>
   </labels>
+  <labels>
+    <fullName>Core_ErrorLogTile_OpenEntry</fullName>
+    <categories>Core, Error Log</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Open an error log entry</shortDescription>
+    <value>Open this entry</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_ErrorPrefix</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation page error icon</shortDescription>
+    <value>Something went wrong</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_PausedPrefix</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation paused icon</shortDescription>
+    <value>Paused</value>
+  </labels>
 </CustomLabels>
