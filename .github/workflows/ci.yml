@@ -67,6 +67,17 @@ jobs:
       - name: Install Code Analyzer plugin
         run: echo y | sf plugins install code-analyzer
 
+      - name: Cache apex-ls (offline Apex checker)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+            .tools/apex-ls
+          key: apex-ls-${{ hashFiles('scripts/ci/check-apex-offline.sh') }}
+
+      - name: Offline Apex compile check
+        run: bash scripts/ci/check-apex-offline.sh
+
       - name: Run Salesforce Code Analyzer
         run: |
           sf code-analyzer run \

@@ -12,7 +12,8 @@
     "test:unit:coverage": "sfdx-lwc-jest --coverage",
     "check:namespace": "bash scripts/ci/check-namespace.sh",
     "check:standard-objects": "bash scripts/ci/check-standard-objects.sh",
-    "precommit": "lint-staged"
+    "precommit": "lint-staged",
+    "check:apex": "bash scripts/ci/check-apex-offline.sh"
   },
   "devDependencies": {
     "@lwc/eslint-plugin-lwc": "3.5.0",

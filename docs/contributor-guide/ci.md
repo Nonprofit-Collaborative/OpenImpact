@@ -55,6 +55,42 @@ in-flight runs for that shape instead of piling up scratch orgs.
 Checks that every commit being merged (or every pushed commit, on a push to `main`) has
 a `Signed-off-by:` trailer. See "Signing off commits" below.
 
+## Offline Apex checking
+
+`scripts/ci/check-apex-offline.sh` gives feature agents compile-level feedback on Apex
+without needing a scratch org or Dev Hub. It is not yet wired into `.github/workflows/ci.yml`.
+
+It runs `CheckForIssues` from `apex-ls` (the nawforce/apex-dev-tools Apex language
+server, `io.github.apex-dev-tools:apex-ls` on Maven Central) against the whole
+`packages/` tree, using the repo's root `sfdx-project.json`. On first run it resolves the
+jar and its dependencies from Maven Central via Maven and caches them under `.tools/`
+(gitignored); later runs reuse the cache and need no network access. Requires Java 21+
+and, for the first run only, Maven, both already present in the standard dev and CI
+environment.
+
+Run it from anywhere in the repo:
+
+```
+scripts/ci/check-apex-offline.sh
+```
+
+It exits non-zero if any errors are found, and prints each error with file, line, and
+column. What it catches:
+
+- Syntax errors.
+- Type errors (incompatible assignment, incompatible return type, wrong argument types,
+  and similar).
+- References to unknown classes, methods, and variables.
+
+What it does not catch:
+
+- Unknown fields in SOQL queries (for example `[SELECT Missing__c FROM Thing__c]` where
+  `Missing__c` does not exist passes with no error). Field-level SOQL validation still
+  needs an org, for example through `sf code-analyzer` at deploy time or an actual
+  deploy to a scratch org.
+- Anything that is only enforced at runtime (CRUD/FLS, governor limits, trigger order of
+  execution, and so on).
+
 ## What happens when `SF_DEVHUB_AUTH_URL` is missing
 
 The `org-tests` job checks for the secret first. If it is empty, every org-dependent
