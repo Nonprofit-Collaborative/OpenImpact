@@ -27,6 +27,29 @@ public with sharing class UserAccessSelector {
     }
 
     /**
+     * The ids of users holding any of the named packaged permission sets directly, rather
+     * than through one of the role groups. Assigning the permission set on its own is not
+     * how the Access page does it, but it does give a person the app, so Health Check counts
+     * it as access rather than reporting the person as locked out.
+     */
+    public static Set<Id> getPermissionSetAssigneeIds(Set<String> permissionSetNames) {
+        Set<Id> assignees = new Set<Id>();
+        if (permissionSetNames == null || permissionSetNames.isEmpty()) {
+            return assignees;
+        }
+
+        for (PermissionSetAssignment assignment : [
+            SELECT AssigneeId
+            FROM PermissionSetAssignment
+            WHERE PermissionSet.Name IN :permissionSetNames AND PermissionSetGroupId = NULL
+            WITH USER_MODE
+        ]) {
+            assignees.add(assignment.AssigneeId);
+        }
+        return assignees;
+    }
+
+    /**
      * How many active people hold any of the named packaged permission set groups.
      */
     public static Integer countActiveAssignees(Set<String> groupDeveloperNames) {
@@ -39,6 +62,25 @@ public with sharing class UserAccessSelector {
             FROM PermissionSetAssignment
             WHERE
                 PermissionSetGroup.DeveloperName IN :groupDeveloperNames
+                AND Assignee.IsActive = TRUE
+            WITH USER_MODE
+        ];
+    }
+
+    /**
+     * How many active people hold any of the named packaged permission sets directly.
+     */
+    public static Integer countActiveDirectAssignees(Set<String> permissionSetNames) {
+        if (permissionSetNames == null || permissionSetNames.isEmpty()) {
+            return 0;
+        }
+
+        return [
+            SELECT COUNT()
+            FROM PermissionSetAssignment
+            WHERE
+                PermissionSet.Name IN :permissionSetNames
+                AND PermissionSetGroupId = NULL
                 AND Assignee.IsActive = TRUE
             WITH USER_MODE
         ];

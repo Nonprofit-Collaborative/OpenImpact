@@ -34,11 +34,25 @@ public with sharing class HealthCheckService {
     public static final String SECTION_AUTOMATION = 'Automation';
 
     /**
-     * The developer names of the packaged permission set groups that mean "this person uses
-     * Open Impact". See packages/core/integration/c-07-c-11.permissions.md.
+     * The developer names of the packaged permission set groups (the roles the Access page
+     * assigns) that mean "this person uses Open Impact", and the permission set that means
+     * "this person administers it". See packages/core/integration/c-07-c-11.permissions.md.
      */
-    public static final String GROUP_ADMIN = 'Nonprofit_Admin';
+    public static final String GROUP_ADMIN = 'Nonprofit_Admin_Group';
+    public static final String PERMISSION_SET_ADMIN = 'Nonprofit_Admin';
     public static final Set<String> NONPROFIT_GROUPS = new Set<String>{
+        'Nonprofit_Admin_Group',
+        'Fundraising_Staff',
+        'Program_Staff',
+        'Volunteer_Coordinator',
+        'Read_Only'
+    };
+
+    /**
+     * The packaged permission sets themselves. An administrator who assigned one of these
+     * directly, rather than through a role, has still given that person the app.
+     */
+    public static final Set<String> NONPROFIT_PERMISSION_SETS = new Set<String>{
         'Nonprofit_Admin',
         'Nonprofit_Staff',
         'Nonprofit_Read_Only'
@@ -375,7 +389,9 @@ public with sharing class HealthCheckService {
     }
 
     private static Finding noAdminFinding() {
-        Integer admins = UserAccessSelector.countActiveAssignees(new Set<String>{ GROUP_ADMIN });
+        Integer admins =
+            UserAccessSelector.countActiveAssignees(new Set<String>{ GROUP_ADMIN }) +
+            UserAccessSelector.countActiveDirectAssignees(new Set<String>{ PERMISSION_SET_ADMIN });
         if (admins > 0) {
             return null;
         }
@@ -392,6 +408,7 @@ public with sharing class HealthCheckService {
 
     private static Finding usersWithoutAccessFinding() {
         Set<Id> assigned = UserAccessSelector.getAssignedUserIds(NONPROFIT_GROUPS);
+        assigned.addAll(UserAccessSelector.getPermissionSetAssigneeIds(NONPROFIT_PERMISSION_SETS));
         Integer without = UserAccessSelector.countActiveStandardUsersExcluding(assigned);
         if (without <= 0) {
             return null;

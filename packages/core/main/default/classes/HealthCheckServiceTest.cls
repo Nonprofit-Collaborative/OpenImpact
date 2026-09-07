@@ -224,6 +224,42 @@ private class HealthCheckServiceTest {
     }
 
     @IsTest
+    static void anAdministratorAssignedDirectlyStillCounts() {
+        List<PermissionSet> packaged = [
+            SELECT Id
+            FROM PermissionSet
+            WHERE Name = :HealthCheckService.PERMISSION_SET_ADMIN
+            LIMIT 1
+        ];
+        if (packaged.isEmpty()) {
+            return;
+        }
+
+        User maria = new User(
+            Alias = 'maria',
+            Email = 'maria@example.invalid',
+            EmailEncodingKey = 'UTF-8',
+            FirstName = 'Maria',
+            LastName = 'Operations',
+            LanguageLocaleKey = 'en_US',
+            LocaleSidKey = 'en_US',
+            ProfileId = UserInfo.getProfileId(),
+            TimeZoneSidKey = 'America/New_York',
+            Username = 'maria.direct.' + System.now().getTime() + '@example.invalid'
+        );
+        insert maria;
+        insert new PermissionSetAssignment(AssigneeId = maria.Id, PermissionSetId = packaged[0].Id);
+
+        OrgShapeDetector.overrideShape = shape(false, false, false, false);
+
+        System.assertEquals(
+            null,
+            find(HealthCheckService.run(), 'no_nonprofit_admin'),
+            'Someone given the admin permission set by hand is still an administrator.'
+        );
+    }
+
+    @IsTest
     static void usersWithNoRoleAreCounted() {
         OrgShapeDetector.overrideShape = shape(false, false, false, false);
 
