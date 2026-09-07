@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Report xmlns="http://soap.sforce.com/2006/04/metadata">
+  <columns>
+    <aggregateTypes>Sum</aggregateTypes>
+    <field>Gift__c.Amount__c</field>
+  </columns>
+  <description>Households by what they have given this year, largest first.</description>
+  <filter>
+    <criteriaItems>
+      <column>Gift__c.Status__c</column>
+      <operator>equals</operator>
+      <value>Received</value>
+    </criteriaItems>
+    <criteriaItems>
+      <column>Gift__c.Gift_Date__c</column>
+      <operator>equals</operator>
+      <value>THIS_YEAR</value>
+    </criteriaItems>
+  </filter>
+  <format>Summary</format>
+  <groupingsDown>
+    <field>Gift__c.Household__c</field>
+    <sortByName>s!Gift__c.Amount__c</sortByName>
+    <sortOrder>Desc</sortOrder>
+    <sortType>Aggregate</sortType>
+  </groupingsDown>
+  <name>Top Donors This Year</name>
+  <reportType>Gifts</reportType>
+  <scope>organization</scope>
+  <showDetails>false</showDetails>
+</Report>
