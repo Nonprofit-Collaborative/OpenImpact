@@ -3,5 +3,5 @@
     <description>Generic parameters associated with Rollup plugins</description>
     <label>Rollup Plugin Parameter</label>
     <pluralLabel>Rollup Plugin Parameters</pluralLabel>
-    <visibility>Public</visibility>
+    <visibility>Protected</visibility>
 </CustomObject>

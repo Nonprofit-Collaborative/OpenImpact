@@ -64,7 +64,7 @@ directory and the class names do not collide.
 | `extra-tests/` | Upstream's unpackaged test scaffolding, including custom objects and standard object field extensions used only in a scratch org. Not packageable and not needed. |
 | `rollup/core/profiles/Admin.profile-meta.xml` | An org shape, not package content. Profiles are not shipped by Open Impact. |
 | `rollup/core/layouts/` | Page layouts for the upstream custom metadata types. The administrator never opens those records, so the layouts are dead weight in the package. Custom metadata types deploy without them. |
-| `rollup/core/flexipages/Rollup_State.flexipage-meta.xml` | Upstream admin UI for `RollupState__c`. Same reason as the layouts. |
+| `rollup/core/flexipages/Rollup_State.flexipage-meta.xml` | Upstream admin UI for `RollupState__c`. Same reason as the layouts. Excluding the file is not enough on its own: `RollupState__c.object-meta.xml` names it in two `actionOverrides`, and those have to be stripped on every import. See patch F. |
 | `rollup/core/invocableactionextensions/` | Flow action extensions that surface the upstream invocable actions to Flow Builder. Open Impact drives the engine from Apex through `RollupAdapter`; no upstream invocable action is offered to administrators. |
 | `rollup/core/dw/jsonToRollupState.dwl` | Removed by patch D below; the JSON serialization fallback replaces it. |
 | Repository root files (`README.md`, `media/`, `package.json`, `sfdx-project.json`, CI workflows) | Upstream project scaffolding and documentation images. Not package content. |
@@ -82,9 +82,15 @@ than adding a package directory entry.
 
 ## Local patches
 
-Five patches are applied on top of the vendored commit. Four are the patches ADR-0015 names. The
-fifth (patch E) is a port the ADR did not anticipate: the ADR counted the forbidden standard object
+Six patches are applied on top of the vendored commit, and the mapping to ADR-0015 is not one to
+one. Patch A carries out ADR patches (a) and (b) together. Patch B is ADR patch (c). Patch C is not
+ADR patch (d): (d) is an adapter default and is deferred to `RollupAdapter` in C-14, where the
+correction below to what those two settings actually do applies to it. Patch D implements an ADR
+consequence, which said to settle DataWeave in the first packaging build; it is settled now instead.
+Patch E is a port the ADR did not anticipate: the ADR counted the forbidden standard object
 references in upstream's non-test source and missed the far larger count in upstream's tests.
+Patch F strips the metadata references that point at deliberately excluded files and closes the
+packaged visibility of the upstream configuration.
 
 Every patch is a separate commit on `feature/c-13-vendor-apex-rollup`, so `git log` on any vendored
 file shows exactly what Open Impact changed.
@@ -276,6 +282,67 @@ is the whole rule. Run `bash scripts/ci/check-apex-offline.sh` (it catches kinds
 read every string literal in the changed hunks by hand, because nothing catches kind 3. Finish with
 `npm run check:standard-objects`.
 
+### Patch F: dangling metadata references stripped, upstream configuration made protected
+
+**Files:** `main/default/objects/RollupState__c/RollupState__c.object-meta.xml`,
+`main/default/objects/Rollup__mdt/Rollup__mdt.object-meta.xml`,
+`main/default/objects/RollupControl__mdt/RollupControl__mdt.object-meta.xml`,
+`main/default/objects/RollupGrouping__mdt/RollupGrouping__mdt.object-meta.xml`,
+`main/default/objects/RollupOrderBy__mdt/RollupOrderBy__mdt.object-meta.xml`,
+`main/default/objects/RollupPlugin__mdt/RollupPlugin__mdt.object-meta.xml`,
+`main/default/objects/RollupPluginParameter__mdt/RollupPluginParameter__mdt.object-meta.xml`,
+all four files in `main/default/customMetadata/`
+
+**What changed, part one: the dangling FlexiPage reference.** `RollupState__c.object-meta.xml`
+carried two `View` `actionOverrides` of `<type>Flexipage</type>` naming `Rollup_State`, the
+FlexiPage that is deliberately not vendored. The Metadata API resolves that name at deploy time, so
+`sf project deploy start -d packages/core` and `sf package version create` would both have rejected
+the object with a missing FlexiPage error. Both blocks were deleted. The three `Tab` overrides and
+the final `View` override, all of `<type>Default</type>`, reference nothing and were kept.
+
+The rest of the vendored tree was grepped for references to anything on the exclusion list. Result:
+no other reference to a flexipage, a layout, a profile metadata file or an invocable action
+extension exists. What the grep does turn up, and what each is:
+
+- `RollupState__c.object-meta.xml` `<compactLayoutAssignment>SYSTEM</compactLayoutAssignment>` and
+  `<searchLayouts />`: platform defaults, not references to an excluded layout file. Inert.
+- `Profile` in `RollupDateLiteralTests` and `RollupDatetimeTimezoneTests`: SOQL against the standard
+  Profile object when building a test user, not the excluded `Admin.profile-meta.xml`.
+- DataWeave in comments in `RollupState.cls` and `RollupStateTests.cls`: prose only after patch D.
+  No `.dwl` resource and no `DataWeaveScriptResource` call site remains. The comment at
+  `RollupStateTests.cls:259` describes an upstream heap limit that no longer applies; it is left as
+  upstream wrote it to keep the next diff small.
+
+**What changed, part two: protected visibility.** Every vendored custom metadata type is now
+`<visibility>Protected</visibility>` (it was `Public`), and every vendored custom metadata record is
+now `<protected>true</protected>` (it was `false`).
+
+**Why.** ADR-0015 says the administrator never sees `Rollup__mdt` or any upstream UI, and CLAUDE.md
+says every admin setting lives in the in-app Nonprofit Settings console. Left public, a subscriber
+admin would find Rollup Control "Org Defaults" and the six upstream types in Setup and could edit
+them, which is a second rollup configuration surface behind the console's back. Protected types and
+records are visible and writable only to Apex in the same package, which is exactly the access the
+vendored engine and `RollupAdapter` need.
+
+**This cannot be relaxed after the first package version.** Protecting a custom metadata type or
+record is a one-way decision at packaging time: once subscribers hold a version, a protected type
+cannot be made public, so this has to be right before the first 2GP build, not after it. The reverse
+direction is the one that is impossible; deciding protected now keeps the option of never needing to
+decide again.
+
+**Still public, and why.** `RollupState__c` and `RollupCalcItem__c` are ordinary custom objects,
+which have no protected visibility; `visibility` on them is inert either way. `RollupSettings__c` is
+a hierarchy custom setting and does support `Protected` visibility, but it is left `Public` on this
+branch because nothing yet reads it in package and the same one-way rule applies: it is called out
+here so the first packaging build decides it deliberately rather than by omission.
+
+**Re-applying on the next pull.** Upstream will reintroduce both halves. After the unmodified
+import, delete the two Flexipage `actionOverrides` from `RollupState__c.object-meta.xml` again, set
+every `*__mdt` object's `<visibility>` back to `Protected`, and set `<protected>true</protected>` on
+every file in `customMetadata/`. None of the five checks below catches the FlexiPage reference:
+`sf project deploy start -d packages/core` or `sf package version create` is the only thing that
+does, and one of them must be run before the import is called finished.
+
 ### Tooling adjustments (not upstream behavior)
 
 - `packages/core/vendor/` is listed in `.prettierignore`. Upstream formats with its own Prettier
@@ -284,7 +351,7 @@ read every string literal in the changed hunks by hand, because nothing catches 
 
 ## Counts, and what the checks say
 
-Measured on `packages/core/vendor/apex-rollup/` after all five patches.
+Measured on `packages/core/vendor/apex-rollup/` after all six patches.
 
 | | |
 | --- | --- |
@@ -334,15 +401,21 @@ a security advisory names it. To take a new version:
 3. Copy the new `rollup/core` and `rollup/tests` over `main/default/`, keeping the exclusion list
    above. Commit that as an unmodified import, exactly as this branch did, so the patches read as
    diffs.
-4. Re-apply patches A through E in order, one commit each. The "Re-applying on the next pull"
+4. Re-apply patches A through F in order, one commit each. The "Re-applying on the next pull"
    paragraph in each section says what to look for. Where upstream has made a patch unnecessary,
-   drop it and say so here.
+   drop it and say so here. Patch F is the one that is easy to forget and expensive to miss: strip
+   the two Flexipage `actionOverrides` from `RollupState__c.object-meta.xml`, and restore
+   `Protected` visibility on the six custom metadata types and `<protected>true</protected>` on the
+   four custom metadata records.
 5. Run, and require all of them to pass:
    - `npm run check:namespace`
    - `npm run check:standard-objects`
    - `bash scripts/ci/check-apex-offline.sh`
    - `sf code-analyzer run --workspace packages/core --rule-selector Recommended --severity-threshold 2`
    - the full Core Apex test suite on the Platform-only scratch org shape
+   - `sf project deploy start -d packages/core` (or `sf package version create`) against a scratch
+     org. None of the checks above reads object metadata references, so this is the only one that
+     catches a dangling FlexiPage, layout or profile reference reintroduced by the import.
 6. Update the commit hash, the tag, the dates, the counts and the patch list in this file in the
    same pull request. A pull that does not update this file is not finished.
 

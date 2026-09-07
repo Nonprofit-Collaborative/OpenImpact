@@ -4,5 +4,5 @@
   >For FIRST/LAST/CONCAT/CONCAT_DISTINCT/MOST (and more, see the documentation) rollups, allows the user to stipulate sort ordering and fields to sort by when determining the winning record</description>
     <label>Rollup Order By</label>
     <pluralLabel>Rollup Order Bys</pluralLabel>
-    <visibility>Public</visibility>
+    <visibility>Protected</visibility>
 </CustomObject>

@@ -5,7 +5,7 @@
   xmlns:xsd="http://www.w3.org/2001/XMLSchema"
 >
     <label>Rollup Pre And Post Updater</label>
-    <protected>false</protected>
+    <protected>true</protected>
     <values>
         <field>RollupControl__c</field>
         <value xsi:type="xsd:string">Org_Defaults</value>

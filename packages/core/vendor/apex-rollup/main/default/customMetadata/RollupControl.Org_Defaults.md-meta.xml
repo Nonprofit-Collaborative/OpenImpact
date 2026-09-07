@@ -5,7 +5,7 @@
   xmlns:xsd="http://www.w3.org/2001/XMLSchema"
 >
     <label>Org Defaults</label>
-    <protected>false</protected>
+    <protected>true</protected>
     <values>
         <field>BatchChunkSize__c</field>
         <value xsi:type="xsd:double">500.0</value>
