@@ -26,3 +26,6 @@ apexcov.json
 
 # Misc
 /tmp
+
+# Claude Code agent worktrees
+.claude/worktrees/
