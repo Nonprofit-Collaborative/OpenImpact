@@ -39,7 +39,13 @@ public without sharing virtual class RollupState implements System.Queueable, Sy
   @TestVisible
   private static Integer maxRelatedKeysLength = 255;
   @TestVisible
-  private static SerializationStrategy serializationStrategy = new DataweaveSerializationStrategy();
+  // Open Impact patch D, see packages/core/vendor/apex-rollup/VENDOR.md. Upstream defaulted chained
+  // job state to a DataWeave script resource, with a JSON strategy behind
+  // RollupControl__mdt.ShouldUseJSONSerializationStrategy__c as the fallback. Open Impact ships the
+  // JSON strategy as the only strategy: packaging a .dwl resource in a managed package is unproven,
+  // and ADR-0015 says to settle that in the first packaging build rather than defer it. The
+  // DataweaveSerializationStrategy inner class and the dw/ resource were deleted with this change.
+  private static SerializationStrategy serializationStrategy = new JSONSerializationStrategy();
 
   @SuppressWarnings('PMD.PropertyNamingConventions')
   private static final Map<String, RollupState> KEY_TO_STATE {
@@ -489,16 +495,6 @@ public without sharing virtual class RollupState implements System.Queueable, Sy
     }
 
     protected abstract List<Object> deserialize(String input);
-  }
-
-  public class DataweaveSerializationStrategy extends SerializationStrategy {
-    public override System.Type getType() {
-      return DataweaveSerializationStrategy.class;
-    }
-
-    protected override List<Object> deserialize(String input) {
-      return (List<Object>) new DataWeaveScriptResource.jsonToRollupState().execute(new Map<String, Object>{ 'records' => input }).getValue();
-    }
   }
 
   public class JSONSerializationStrategy extends SerializationStrategy {
