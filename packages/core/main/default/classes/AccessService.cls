@@ -216,17 +216,11 @@ public with sharing class AccessService {
             alreadyAssigned.add(assignment.AssigneeId);
         }
 
-        List<PermissionSetAssignment> toInsert = new List<PermissionSetAssignment>();
-        for (Id userId : targets) {
-            if (!alreadyAssigned.contains(userId)) {
-                toInsert.add(
-                    new PermissionSetAssignment(
-                        AssigneeId = userId,
-                        PermissionSetGroupId = groupRecord.Id
-                    )
-                );
-            }
-        }
+        List<PermissionSetAssignment> toInsert = buildAssignments(
+            targets,
+            alreadyAssigned,
+            groupRecord.Id
+        );
         if (toInsert.isEmpty()) {
             return;
         }
@@ -235,6 +229,74 @@ public with sharing class AccessService {
         } catch (Exception e) {
             throw logAndWrap(e, 'AccessService.assignRole', Label.Core_Access_ErrorUnexpected);
         }
+    }
+
+    /**
+     * Builds the assignment rows one DML statement will insert, skipping the people who
+     * already hold the role. Kept separate from the DML so that the collection handling
+     * can be proven at any size without spending a user license per record.
+     *
+     * @param userIds the people to give the role to
+     * @param alreadyAssigned the people who already hold it
+     * @param groupId the permission set group behind the role
+     * @return the rows to insert, one per person who does not yet hold the role
+     */
+    @TestVisible
+    private static List<PermissionSetAssignment> buildAssignments(
+        Set<Id> userIds,
+        Set<Id> alreadyAssigned,
+        Id groupId
+    ) {
+        List<PermissionSetAssignment> rows = new List<PermissionSetAssignment>();
+        for (Id userId : userIds) {
+            if (alreadyAssigned == null || !alreadyAssigned.contains(userId)) {
+                rows.add(
+                    new PermissionSetAssignment(AssigneeId = userId, PermissionSetGroupId = groupId)
+                );
+            }
+        }
+        return rows;
+    }
+
+    /**
+     * Gives one person one role during a package install or upgrade.
+     *
+     * Documented exception to the user mode rule (plan Section 7.2). A post-install script
+     * runs as a platform user: no session, no profile of its own, nothing for user mode to
+     * enforce against, so the query and the insert run in system mode. The scope is
+     * deliberately one row: the installing person, one packaged role, only when they do
+     * not already hold it. Nothing here reads user input, and CorePostInstall is the only
+     * caller.
+     *
+     * @param userId the person who installed or upgraded the package
+     * @param roleDeveloperName the DeveloperName of one of the five packaged roles
+     */
+    public static void assignRoleDuringInstall(Id userId, String roleDeveloperName) {
+        if (userId == null || !new Set<String>(ROLE_DEVELOPER_NAMES).contains(roleDeveloperName)) {
+            throw new AccessException(Label.Core_Access_ErrorRoleNotFound);
+        }
+        PermissionSetGroup groupRecord = groupSelector.selectByDeveloperNameInSystemMode(
+            roleDeveloperName
+        );
+        if (groupRecord == null) {
+            throw new AccessException(Label.Core_Access_ErrorRoleNotFound);
+        }
+        if (!READY_STATUS.equalsIgnoreCase(groupRecord.Status)) {
+            throw new AccessException(Label.Core_Access_ErrorGroupNotReady);
+        }
+        if (assignmentSelector.countAssignmentInSystemMode(groupRecord.Id, userId) > 0) {
+            return;
+        }
+        Database.insert(
+            new List<PermissionSetAssignment>{
+                new PermissionSetAssignment(
+                    AssigneeId = userId,
+                    PermissionSetGroupId = groupRecord.Id
+                )
+            },
+            true,
+            AccessLevel.SYSTEM_MODE
+        );
     }
 
     /**
@@ -266,8 +328,16 @@ public with sharing class AccessService {
             return;
         }
         if (ADMIN_ROLE.equals(groupRecord.DeveloperName)) {
+            // Only the people who can still sign in count: removing a deactivated admin
+            // must not be refused just because their assignment row is still there.
+            Integer activeLosses = 0;
+            for (PermissionSetAssignment assignment : toDelete) {
+                if (assignment.Assignee.IsActive == true) {
+                    activeLosses++;
+                }
+            }
             Integer remaining =
-                assignmentSelector.countActiveAssignees(groupRecord.Id) - toDelete.size();
+                assignmentSelector.countActiveAssignees(groupRecord.Id) - activeLosses;
             if (remaining < 1) {
                 throw new AccessException(Label.Core_Access_ErrorLastAdmin);
             }

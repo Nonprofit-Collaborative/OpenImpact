@@ -56,13 +56,16 @@ public with sharing class AccessController {
             result.roles = AccessService.getRoles();
             result.assignments = AccessService.getAssignments();
         } catch (AccessService.AccessException e) {
+            // Never leave the page blank without saying why. A person who may not change
+            // roles can also be a person whose org does not let them read the roles at
+            // all, and an empty page with no explanation is the worst of both.
             result.roles = new List<AccessService.Role>();
             result.assignments = new List<AccessService.RoleAssignments>();
-            if (result.canManage) {
-                result.success = false;
-                result.errorCode = ERROR_FAILED;
-                result.message = e.getMessage();
-            }
+            result.success = false;
+            result.errorCode = ERROR_FAILED;
+            result.message = result.canManage
+                ? e.getMessage()
+                : Label.Core_Access_ErrorRolesNotVisible;
         }
         return result;
     }

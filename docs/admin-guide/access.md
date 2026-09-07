@@ -27,6 +27,10 @@ The five roles are:
 There is nothing to turn on. Access is part of Open Impact Core and appears in Nonprofit
 Settings as soon as the package is installed.
 
+The person who installs Open Impact is given the Nonprofit Admin role automatically, at
+install and again at every upgrade, so there is always at least one person who can use this
+page. If that person was you, you can start straight away.
+
 Two things control who can use the page:
 
 1. You need the Manage Nonprofit Settings permission, which comes with the Nonprofit Admin
@@ -50,7 +54,8 @@ Here is how she gives him access, checks it, and takes it away again.
 5. Choose the role **Fundraising Staff** and click **Give access**. A confirmation asks you
    to confirm the person and the role. Click **Give access** again.
 6. A message says "David Okafor now has the Fundraising Staff role." David's name appears
-   on the Fundraising Staff card, and the count on the card goes up by one.
+   on the Fundraising Staff card, and the number in brackets beside the role name goes up
+   by one.
 7. David can now sign in and see gifts, households, and contacts. He does not see Nonprofit
    Settings, because that belongs to the Nonprofit Admin role.
 8. To take the role away, find David's name on the Fundraising Staff card and click

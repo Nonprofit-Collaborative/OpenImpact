@@ -25,6 +25,30 @@ public with sharing class PermissionSetGroupSelector {
     }
 
     /**
+     * Returns a single permission set group by DeveloperName, in system mode.
+     *
+     * Used only by the post-install script, which runs as a platform user with no session
+     * and no permission set of its own, so user mode has nothing to enforce against. Every
+     * other caller uses the user mode methods above.
+     *
+     * @param developerName the DeveloperName to look for
+     * @return the group, or null when the org does not have it
+     */
+    public PermissionSetGroup selectByDeveloperNameInSystemMode(String developerName) {
+        if (String.isBlank(developerName)) {
+            return null;
+        }
+        List<PermissionSetGroup> groups = [
+            SELECT Id, DeveloperName, MasterLabel, Description, Status
+            FROM PermissionSetGroup
+            WHERE DeveloperName = :developerName
+            WITH SYSTEM_MODE
+            LIMIT 1
+        ];
+        return groups.isEmpty() ? null : groups[0];
+    }
+
+    /**
      * Returns a single permission set group by DeveloperName.
      *
      * @param developerName the DeveloperName to look for

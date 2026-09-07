@@ -92,6 +92,9 @@ describe('c-access-manager', () => {
 
     const cards = element.shadowRoot.querySelectorAll('[data-id="role-card"]');
     expect(cards.length).toBe(2);
+    const headings = element.shadowRoot.querySelectorAll('[data-id="role-heading"]');
+    expect(headings[0].textContent).toBe('Nonprofit Admin (1)');
+    expect(headings[1].textContent).toBe('Fundraising Staff (0)');
     const members = element.shadowRoot.querySelectorAll('[data-id="role-member"]');
     expect(members.length).toBe(1);
     expect(members[0].textContent).toContain('Maria Alvarez');
@@ -110,11 +113,36 @@ describe('c-access-manager', () => {
 
   it('shows an error when the page cannot be loaded', async () => {
     const element = createComponent();
-    getAccessOverview.emit({ ...OVERVIEW, success: false, message: 'Something went wrong.' });
+    getAccessOverview.emit({
+      ...OVERVIEW,
+      success: false,
+      message: 'Something went wrong.',
+      roles: [],
+      assignments: []
+    });
     await flush();
 
     const error = element.shadowRoot.querySelector('[data-id="load-error"]');
     expect(error).not.toBeNull();
+    expect(element.shadowRoot.querySelectorAll('[data-id="role-card"]').length).toBe(0);
+  });
+
+  it('explains a blank page to a person who may not read the roles', async () => {
+    const element = createComponent();
+    getAccessOverview.emit({
+      ...OVERVIEW,
+      canManage: false,
+      success: false,
+      message: 'You can see this page but you cannot see who holds each role.',
+      roles: [],
+      assignments: []
+    });
+    await flush();
+
+    expect(element.shadowRoot.querySelector('[data-id="read-only-notice"]')).not.toBeNull();
+    const error = element.shadowRoot.querySelector('[data-id="load-error"]');
+    expect(error).not.toBeNull();
+    expect(element.shadowRoot.querySelectorAll('[data-id="role-card"]').length).toBe(0);
   });
 
   it('searches for a person after typing and gives them a role', async () => {

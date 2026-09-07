@@ -139,6 +139,19 @@
     </value>
   </labels>
   <labels>
+    <fullName>Core_Access_ErrorRolesNotVisible</fullName>
+    <categories>Access</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>
+      Access page: shown when the person is not allowed to read the roles at all
+    </shortDescription>
+    <value>
+      You can see this page but you cannot see who holds each role. Ask someone with the Nonprofit
+      Admin role to tell you, or to give you that role.
+    </value>
+  </labels>
+  <labels>
     <fullName>Core_Access_ErrorUnexpected</fullName>
     <categories>Access</categories>
     <language>en_US</language>
@@ -267,14 +280,6 @@
     <protected>true</protected>
     <shortDescription>Access page: placeholder text of the person search box</shortDescription>
     <value>Type a name or an email address</value>
-  </labels>
-  <labels>
-    <fullName>Core_Access_SelectedPersonLabel</fullName>
-    <categories>Access</categories>
-    <language>en_US</language>
-    <protected>true</protected>
-    <shortDescription>Access page: label above the person who has been chosen</shortDescription>
-    <value>Person</value>
   </labels>
   <labels>
     <fullName>Core_Access_SelfRemovalWarning</fullName>

@@ -14,7 +14,7 @@ private class AccessControllerTest {
      * @return the inserted user
      */
     private static User insertUser(String firstName, String lastName) {
-        Profile standardProfile = [SELECT Id FROM Profile WHERE UserType = 'Standard' LIMIT 1];
+        Profile standardProfile = leastPrivilegedStandardProfile();
         String suffix = String.valueOf(Math.abs(Crypto.getRandomLong()));
         User person = new User(
             FirstName = firstName,
@@ -70,7 +70,13 @@ private class AccessControllerTest {
             result.canManage,
             'David has no Manage Nonprofit Settings permission, so the page opens read only for him.'
         );
-        Assert.isTrue(result.success, 'Opening the page read only is not an error.');
+        // Read only means read, not blank. Either David can see the roles, or the page
+        // tells him why he cannot. What it must never do is come back empty and silent.
+        Assert.isTrue(
+            result.success || String.isNotBlank(result.message),
+            'A read only page must either show the roles or say why it cannot.'
+        );
+        Assert.isNotNull(result.roles, 'The page always gets a list, even an empty one.');
     }
 
     @IsTest
@@ -91,8 +97,10 @@ private class AccessControllerTest {
         );
         Assert.isNotNull(result.roles, 'The page needs the list of roles.');
         Assert.isNotNull(result.assignments, 'The page needs to know who holds each role.');
+        // The result was built inside System.runAs(maria), so it carries Maria's id, not
+        // the id of the user running the test.
         Assert.areEqual(
-            UserInfo.getUserId(),
+            maria.Id,
             result.currentUserId,
             'The page needs to know who is looking at it.'
         );
@@ -251,5 +259,33 @@ private class AccessControllerTest {
             result.users.size(),
             'An empty search box should not list the whole org.'
         );
+    }
+
+    /**
+     * Finds a profile that grants no more than an ordinary staff member needs, so that a
+     * test user built from it genuinely lacks the permissions the Access page checks.
+     * Standard User is named first because "any profile whose UserType is Standard" also
+     * matches System Administrator, which would silently disarm the denied-user tests.
+     *
+     * @return the profile every test user in this class is built from
+     */
+    private static Profile leastPrivilegedStandardProfile() {
+        List<Profile> named = [SELECT Id, Name FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        if (!named.isEmpty()) {
+            return named[0];
+        }
+        List<Profile> fallback = [
+            SELECT Id, Name
+            FROM Profile
+            WHERE UserType = 'Standard' AND Name != 'System Administrator'
+            ORDER BY Name
+            LIMIT 1
+        ];
+        Assert.isFalse(
+            fallback.isEmpty(),
+            'This org has no standard profile other than System Administrator, so the tests ' +
+            'cannot build a user who lacks the Access page permissions.'
+        );
+        return fallback[0];
     }
 }

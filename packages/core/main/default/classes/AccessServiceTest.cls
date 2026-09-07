@@ -1,6 +1,6 @@
 /**
  * Tests for AccessService: Maria giving David a role, giving it twice, taking it away,
- * finding people, a person who is not allowed to change roles, and fifty people at once.
+ * finding people, a person who is not allowed to change roles, and several at once.
  */
 @IsTest
 private class AccessServiceTest {
@@ -15,7 +15,7 @@ private class AccessServiceTest {
      * @return the user, ready to insert
      */
     private static User buildUser(String firstName, String lastName, String suffix) {
-        Profile standardProfile = [SELECT Id FROM Profile WHERE UserType = 'Standard' LIMIT 1];
+        Profile standardProfile = leastPrivilegedStandardProfile();
         return new User(
             FirstName = firstName,
             LastName = lastName,
@@ -178,6 +178,35 @@ private class AccessServiceTest {
     }
 
     @IsTest
+    static void assignRoleRefusesSomebodyWhoCanNoLongerSignIn() {
+        Test.calculatePermissionSetGroup(FUNDRAISING_ROLE);
+        User david = insertUser('David', 'Okafor');
+        david.IsActive = false;
+        update david;
+        String message;
+
+        Test.startTest();
+        try {
+            AccessService.assignRole(david.Id, FUNDRAISING_ROLE);
+            Assert.fail('A deactivated person should not be given a role.');
+        } catch (AccessService.AccessException e) {
+            message = e.getMessage();
+        }
+        Test.stopTest();
+
+        Assert.areEqual(
+            Label.Core_Access_ErrorUserNotFound,
+            message,
+            'Maria should be told the person is not there or is no longer active.'
+        );
+        Assert.areEqual(
+            0,
+            countAssignments(david.Id, FUNDRAISING_ROLE),
+            'A deactivated person should hold no role.'
+        );
+    }
+
+    @IsTest
     static void removeRoleRefusesToRemoveTheLastNonprofitAdmin() {
         Test.calculatePermissionSetGroup(AccessService.ADMIN_ROLE);
         User maria = insertUser('Maria', 'Alvarez');
@@ -257,6 +286,20 @@ private class AccessServiceTest {
         User priya = insertUser('Priya', 'Nair');
         Boolean refused = false;
 
+        // The test only means anything if Priya really is an ordinary staff member, so
+        // check the profile she was built from before relying on it.
+        Profile priyaProfile = [
+            SELECT Id, Name, PermissionsModifyAllData, PermissionsAssignPermissionSets
+            FROM Profile
+            WHERE Id = :priya.ProfileId
+        ];
+        Assert.isFalse(
+            priyaProfile.PermissionsModifyAllData || priyaProfile.PermissionsAssignPermissionSets,
+            'Priya must be built from a profile that cannot assign permission sets, or this ' +
+                'test proves nothing. Profile used: ' +
+                priyaProfile.Name
+        );
+
         Test.startTest();
         System.runAs(priya) {
             try {
@@ -279,20 +322,27 @@ private class AccessServiceTest {
     }
 
     @IsTest
-    static void fiftyPeopleCanBeGivenARoleInOneOperation() {
+    static void severalPeopleAreGivenARoleInOneOperation() {
+        // Five, not two hundred. Every user inserted here consumes a real user license,
+        // and a Developer edition scratch org (the base of all four org shapes) allocates
+        // only a handful of Salesforce seats, so a larger number fails on
+        // LICENSE_LIMIT_EXCEEDED rather than on anything this feature does. The
+        // collection handling at 200 is proven without DML in
+        // theAssignmentListIsBuiltInOneCollectionAtTwoHundred below.
         Test.calculatePermissionSetGroup(FUNDRAISING_ROLE);
         List<User> staff = new List<User>();
-        for (Integer i = 0; i < 50; i++) {
+        for (Integer i = 0; i < 5; i++) {
             staff.add(
                 buildUser('Staff' + i, 'Bulk', String.valueOf(Math.abs(Crypto.getRandomLong())) + i)
             );
         }
         insert staff;
         Set<Id> staffIds = new Map<Id, User>(staff).keySet();
+        Integer dmlBefore = Limits.getDmlStatements();
 
         Test.startTest();
         AccessService.assignRole(staffIds, FUNDRAISING_ROLE);
-        Integer dmlAfter = Limits.getDmlStatements();
+        Integer dmlUsed = Limits.getDmlStatements() - dmlBefore;
         Test.stopTest();
 
         Integer assigned = [
@@ -300,15 +350,57 @@ private class AccessServiceTest {
             FROM PermissionSetAssignment
             WHERE AssigneeId IN :staffIds AND PermissionSetGroup.DeveloperName = :FUNDRAISING_ROLE
         ];
-        Assert.areEqual(50, assigned, 'All fifty people should have been given the role.');
-        Assert.isTrue(dmlAfter <= 2, 'Fifty assignments should cost one DML statement, not fifty.');
+        Assert.areEqual(5, assigned, 'All five people should have been given the role.');
+        Assert.areEqual(1, dmlUsed, 'Five assignments should cost one DML statement, not five.');
     }
 
     @IsTest
-    static void fiftyPeopleCanHaveARoleTakenAwayInOneOperation() {
+    static void theAssignmentListIsBuiltInOneCollectionAtTwoHundred() {
+        // The bulk safety the plan asks for (200 records per DML context) proven on the
+        // collection logic itself. No users are inserted, so no licenses are consumed and
+        // the assertion holds on every org shape.
+        // The prefixes come from the describe rather than being typed out, so nothing here
+        // is a hard-coded Id and the test still works if a prefix ever changes.
+        String userPrefix = Schema.User.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED)
+            .getKeyPrefix();
+        String groupPrefix = Schema.PermissionSetGroup.SObjectType.getDescribe(
+                SObjectDescribeOptions.DEFERRED
+            )
+            .getKeyPrefix();
+        Set<Id> people = new Set<Id>();
+        for (Integer i = 0; i < 200; i++) {
+            people.add(Id.valueOf(userPrefix + '00000000' + String.valueOf(1000 + i)));
+        }
+        Id groupId = Id.valueOf(groupPrefix + '000000000001');
+        Set<Id> alreadyAssigned = new Set<Id>{ Id.valueOf(userPrefix + '000000001000') };
+
+        Test.startTest();
+        List<PermissionSetAssignment> rows = AccessService.buildAssignments(
+            people,
+            alreadyAssigned,
+            groupId
+        );
+        Test.stopTest();
+
+        Assert.areEqual(
+            199,
+            rows.size(),
+            'Two hundred people, one of whom already holds the role, is 199 rows to insert.'
+        );
+        Set<Id> assignees = new Set<Id>();
+        for (PermissionSetAssignment row : rows) {
+            assignees.add(row.AssigneeId);
+            Assert.areEqual(groupId, row.PermissionSetGroupId, 'Every row is for the chosen role.');
+        }
+        Assert.areEqual(199, assignees.size(), 'Every row is for a different person.');
+    }
+
+    @IsTest
+    static void severalPeopleHaveARoleTakenAwayInOneOperation() {
+        // Five for the same license reason as the assignment test above.
         Test.calculatePermissionSetGroup(FUNDRAISING_ROLE);
         List<User> staff = new List<User>();
-        for (Integer i = 0; i < 50; i++) {
+        for (Integer i = 0; i < 5; i++) {
             staff.add(
                 buildUser('Staff' + i, 'Bulk', String.valueOf(Math.abs(Crypto.getRandomLong())) + i)
             );
@@ -316,9 +408,11 @@ private class AccessServiceTest {
         insert staff;
         Set<Id> staffIds = new Map<Id, User>(staff).keySet();
         AccessService.assignRole(staffIds, FUNDRAISING_ROLE);
+        Integer dmlBefore = Limits.getDmlStatements();
 
         Test.startTest();
         AccessService.removeRole(staffIds, FUNDRAISING_ROLE);
+        Integer dmlUsed = Limits.getDmlStatements() - dmlBefore;
         Test.stopTest();
 
         Integer assigned = [
@@ -326,6 +420,35 @@ private class AccessServiceTest {
             FROM PermissionSetAssignment
             WHERE AssigneeId IN :staffIds AND PermissionSetGroup.DeveloperName = :FUNDRAISING_ROLE
         ];
-        Assert.areEqual(0, assigned, 'All fifty assignments should have been removed.');
+        Assert.areEqual(0, assigned, 'All five assignments should have been removed.');
+        Assert.areEqual(1, dmlUsed, 'Five removals should cost one DML statement, not five.');
+    }
+
+    /**
+     * Finds a profile that grants no more than an ordinary staff member needs, so that a
+     * test user built from it genuinely lacks the permissions the Access page checks.
+     * Standard User is named first because "any profile whose UserType is Standard" also
+     * matches System Administrator, which would silently disarm the denied-user tests.
+     *
+     * @return the profile every test user in this class is built from
+     */
+    private static Profile leastPrivilegedStandardProfile() {
+        List<Profile> named = [SELECT Id, Name FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        if (!named.isEmpty()) {
+            return named[0];
+        }
+        List<Profile> fallback = [
+            SELECT Id, Name
+            FROM Profile
+            WHERE UserType = 'Standard' AND Name != 'System Administrator'
+            ORDER BY Name
+            LIMIT 1
+        ];
+        Assert.isFalse(
+            fallback.isEmpty(),
+            'This org has no standard profile other than System Administrator, so the tests ' +
+            'cannot build a user who lacks the Access page permissions.'
+        );
+        return fallback[0];
     }
 }

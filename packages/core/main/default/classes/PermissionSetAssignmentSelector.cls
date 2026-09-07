@@ -43,10 +43,31 @@ public with sharing class PermissionSetAssignmentSelector {
             return new List<PermissionSetAssignment>();
         }
         return [
-            SELECT Id, AssigneeId, Assignee.Name, PermissionSetGroupId
+            SELECT Id, AssigneeId, Assignee.Name, Assignee.IsActive, PermissionSetGroupId
             FROM PermissionSetAssignment
             WHERE PermissionSetGroupId IN :groupIds AND AssigneeId IN :userIds
             WITH USER_MODE
+        ];
+    }
+
+    /**
+     * Counts how many rows already link one person to one permission set group, in system
+     * mode. Used only by the post-install script, which runs as a platform user with no
+     * session and no permission set of its own.
+     *
+     * @param groupId the permission set group
+     * @param userId the person
+     * @return 1 when the person already holds the role, 0 when they do not
+     */
+    public Integer countAssignmentInSystemMode(Id groupId, Id userId) {
+        if (groupId == null || userId == null) {
+            return 0;
+        }
+        return [
+            SELECT COUNT()
+            FROM PermissionSetAssignment
+            WHERE PermissionSetGroupId = :groupId AND AssigneeId = :userId
+            WITH SYSTEM_MODE
         ];
     }
 

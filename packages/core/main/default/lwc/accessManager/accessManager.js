@@ -30,7 +30,6 @@ import ROLE_PICKER_PLACEHOLDER from '@salesforce/label/c.Core_Access_RolePickerP
 import SEARCH_LABEL from '@salesforce/label/c.Core_Access_SearchLabel';
 import SEARCH_NO_RESULTS from '@salesforce/label/c.Core_Access_SearchNoResults';
 import SEARCH_PLACEHOLDER from '@salesforce/label/c.Core_Access_SearchPlaceholder';
-import SELECTED_PERSON_LABEL from '@salesforce/label/c.Core_Access_SelectedPersonLabel';
 import SELF_REMOVAL_WARNING from '@salesforce/label/c.Core_Access_SelfRemovalWarning';
 import TOAST_ERROR_TITLE from '@salesforce/label/c.Core_Access_ToastErrorTitle';
 import TOAST_SUCCESS_TITLE from '@salesforce/label/c.Core_Access_ToastSuccessTitle';
@@ -50,7 +49,7 @@ const MINIMUM_SEARCH_LENGTH = 2;
  */
 function format(template, values) {
   return values.reduce(
-    (text, value, index) => text.replace(new RegExp(`\\{${index}\\}`, 'g'), value),
+    (text, value, index) => text.replace(new RegExp(`\\{${index}\\}`, 'g'), () => String(value)),
     template
   );
 }
@@ -74,7 +73,6 @@ export default class AccessManager extends LightningElement {
     searchLabel: SEARCH_LABEL,
     searchNoResults: SEARCH_NO_RESULTS,
     searchPlaceholder: SEARCH_PLACEHOLDER,
-    selectedPersonLabel: SELECTED_PERSON_LABEL,
     selfRemovalWarning: SELF_REMOVAL_WARNING,
     usersInRole: USERS_IN_ROLE
   };
@@ -144,7 +142,8 @@ export default class AccessManager extends LightningElement {
         description: role.description,
         users,
         hasUsers: users.length > 0,
-        count: users.length
+        count: users.length,
+        heading: `${role.label} (${users.length})`
       };
     });
   }

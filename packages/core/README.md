@@ -25,6 +25,28 @@ object references: those live only in the Connect module, behind dynamic Apex.
 - **Health Check**: org shape and license detection, missing permission assignments, rollup
   schedule staleness, orphaned records, coexistence conflicts.
 
+## Post-install script
+
+`CorePostInstall` implements `InstallHandler`. It runs after the package is installed and
+after every upgrade, and it gives the installing user the `Nonprofit_Admin_Group`
+permission set group, so that at least one person in the org holds the Manage Nonprofit
+Settings custom permission and can open Nonprofit Settings. Without it, a fresh install
+leaves the console read only for everybody, including the System Administrator who
+installed it, because a custom permission is not implied by Modify All Data. It is safe to
+run twice: a person who already holds the role is left alone, and any failure is written to
+the Error Log rather than failing the install.
+
+Once package versions exist, `sfdx-project.json` names it for the Core package directory:
+
+```json
+"postInstallScript": "CorePostInstall"
+```
+
+That line is not in `sfdx-project.json` yet, because no package version has been created
+(the namespace is deferred, plan Section 4.3). Whoever creates the first Core package
+version adds it then. Until then the same effect is achieved by the scratch org script,
+which assigns the permission sets after deploying.
+
 ## Iteration
 
 Core first ships in **v0.1** and is required by every later iteration; it is the only package
