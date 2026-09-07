@@ -297,12 +297,84 @@
     <value>That setting does not exist in this org, so nothing was saved. Refresh the page and try again.</value>
   </labels>
   <labels>
+    <fullName>Core_SetupAssistant_AccessErrorMessage</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: error when giving a colleague a role does not work</shortDescription>
+    <value>That role could not be given out just now, so nothing changed. Try again, and if it keeps happening look at the Error Log.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_AccessGrantedMessage</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: confirmation after a colleague is given a role</shortDescription>
+    <value>Access given. Add another person, or continue.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_AddressLabel</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: the organization address field on the identity step</shortDescription>
+    <value>Address, as you want it printed</value>
+  </labels>
+  <labels>
     <fullName>Core_SetupAssistant_AllDoneMessage</fullName>
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>Setup assistant: message shown when every step is done</shortDescription>
     <value>Every setup step is done. You can re-open any step at any time.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_AppealLabel</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: the default appeal picker on the giving defaults step</shortDescription>
+    <value>Default appeal</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_BackButton</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: button that goes back one step</shortDescription>
+    <value>Back</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_CompleteHeading</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: heading of the final screen</shortDescription>
+    <value>You are ready</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_CompleteTileHeading</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: heading of the Hub tile shown once setup is finished</shortDescription>
+    <value>Setup complete</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ConfirmButton</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: button that puts the chosen coexistence mode in force</shortDescription>
+    <value>Confirm and continue</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_CreateUserLink</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: link to the Setup page where a Salesforce user is created</shortDescription>
+    <value>Create a user in Setup</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_DoneBadge</fullName>
@@ -313,12 +385,116 @@
     <value>Done</value>
   </labels>
   <labels>
+    <fullName>Core_SetupAssistant_EinLabel</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: the tax identification number field on the identity step</shortDescription>
+    <value>Tax identification number</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ElapsedLabel</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: label in front of how long setup took, in minutes</shortDescription>
+    <value>Setup took, in minutes</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_FinishButton</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: button that finishes the last step</shortDescription>
+    <value>Finish</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_FundLabel</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: the default fund picker on the giving defaults step</shortDescription>
+    <value>Default fund</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_GiveAccessButton</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: button that gives the chosen person the chosen role</shortDescription>
+    <value>Give access</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_GivingMissingNotice</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: notice shown on the giving defaults step when the Giving module is absent</shortDescription>
+    <value>Install the Giving module to choose defaults. This step waits for you until then.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_GivingRequiredError</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: error when defaults are saved without the Giving module present</shortDescription>
+    <value>The Giving module is not in this org yet, so there is no fund or appeal to point at. Nothing was saved.</value>
+  </labels>
+  <labels>
     <fullName>Core_SetupAssistant_Heading</fullName>
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>Setup assistant: the checklist heading</shortDescription>
     <value>Setup checklist</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ImportButton</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: button that opens the Import tab</shortDescription>
+    <value>Import a spreadsheet</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ImportMissingNotice</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: notice shown when the Import framework is not in this org yet</shortDescription>
+    <value>Importing a spreadsheet arrives with the Import tab. Load the sample data for now, or skip this step.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_LegalNameLabel</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: the legal name field on the identity step</shortDescription>
+    <value>Legal name, as on your tax filings</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_LoadErrorMessage</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: error when the assistant cannot be loaded</shortDescription>
+    <value>The setup assistant could not be loaded just now. Refresh the page, and if it keeps happening look at the Error Log.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_LoadSampleButton</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: button that opens the sample data panel</shortDescription>
+    <value>Load the sample data</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_LogoLabel</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: the logo upload on the identity step</shortDescription>
+    <value>Logo</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_MarkDoneButton</fullName>
@@ -337,6 +513,86 @@
     <value>Mark not done</value>
   </labels>
   <labels>
+    <fullName>Core_SetupAssistant_ModeAgentforce</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: the name of the Agentforce Nonprofit coexistence mode</shortDescription>
+    <value>Agentforce Nonprofit coexistence</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ModeLabel</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: the label of the coexistence mode chooser</shortDescription>
+    <value>How Open Impact fits this org</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ModeNpsp</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: the name of the NPSP coexistence mode</shortDescription>
+    <value>NPSP coexistence</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ModeStandalone</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: the name of the standalone coexistence mode</shortDescription>
+    <value>Standalone</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ModuleAbsent</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: status of a module that is not in this org</shortDescription>
+    <value>Not installed</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ModuleLearnMore</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: link from a module to what it does</shortDescription>
+    <value>What this module does</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ModuleManagerNotice</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: notice that one click module control arrives later</shortDescription>
+    <value>Turning a module on and off with one click arrives with the Module Manager in version 0.7. Until then this list tells you what is here, and the links tell you what each module does.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ModulePresent</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: status of a module that is in this org</shortDescription>
+    <value>Present</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_NextButton</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: button that goes on to the next step</shortDescription>
+    <value>Next</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_NothingToSaveError</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: error when a panel is saved with nothing filled in</shortDescription>
+    <value>There was nothing to save. Fill something in first.</value>
+  </labels>
+  <labels>
     <fullName>Core_SetupAssistant_OpenButton</fullName>
     <categories>Core</categories>
     <language>en_US</language>
@@ -351,6 +607,134 @@
     <protected>true</protected>
     <shortDescription>Setup assistant: the accessible label of the progress count</shortDescription>
     <value>Setup progress</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ReadOnlyNotice</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: notice for a person who may read the assistant but not change anything</shortDescription>
+    <value>You can read the setup steps but not change them. Ask whoever installed Open Impact to add you to the Nonprofit Admin role on the Access page.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_RecommendedLabel</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: label in front of the recommended coexistence mode</shortDescription>
+    <value>Recommended for your org</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ReopenButton</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: button that opens the finished assistant again</shortDescription>
+    <value>Reopen setup</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_RoleLabel</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: the role chooser on the access step</shortDescription>
+    <value>Role</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_RuleAction</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: how a step that has no setting behind it finishes</shortDescription>
+    <value>This step finishes when you finish it here.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_RuleSetting</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: how a step backed by a setting finishes</shortDescription>
+    <value>This step finishes by itself once the setting it fills in has a value.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_SaveButton</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: button that saves a panel</shortDescription>
+    <value>Save</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_SaveErrorMessage</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: error when a panel cannot be saved</shortDescription>
+    <value>That could not be saved just now, so nothing changed. Try again, and if it keeps happening look at the Error Log.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ShapeFresh</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: what detection found in an org with nothing else installed</shortDescription>
+    <value>This looks like a fresh org, with neither NPSP nor Person Accounts. Open Impact can run on its own.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ShapeNpsp</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: what detection found in an org with NPSP installed</shortDescription>
+    <value>NPSP is installed in this org. Open Impact can adopt the household accounts you already have rather than building new ones.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ShapePersonAccounts</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: what detection found in a Nonprofit Cloud org</shortDescription>
+    <value>Your org uses Person Accounts, as Nonprofit Cloud orgs do. Household membership is tracked with one record per person, so a person can be in more than one household and everything you already have keeps working.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_SignatureLabel</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: the signature image upload on the identity step</shortDescription>
+    <value>Signature image</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_SignerNameLabel</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: the receipt signer name field on the identity step</shortDescription>
+    <value>Who signs your receipts</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_SignerTitleLabel</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: the receipt signer title field on the identity step</shortDescription>
+    <value>Their job title</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_SkipButton</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: button that moves past a step without finishing it</shortDescription>
+    <value>Skip for now</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_SkippedBadge</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: badge on a step that was skipped</shortDescription>
+    <value>Skipped</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_Step1Description</fullName>
@@ -481,6 +865,14 @@
     <value>Check that everything works</value>
   </labels>
   <labels>
+    <fullName>Core_SetupAssistant_StepCounterLabel</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: the accessible label of the step counter</shortDescription>
+    <value>Step</value>
+  </labels>
+  <labels>
     <fullName>Core_SetupAssistant_ToDoBadge</fullName>
     <categories>Core</categories>
     <language>en_US</language>
@@ -489,11 +881,43 @@
     <value>To do</value>
   </labels>
   <labels>
+    <fullName>Core_SetupAssistant_UnknownModeError</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: error when a coexistence mode sent from the page is not one of the three</shortDescription>
+    <value>That is not a way Open Impact can fit an org, so nothing changed. Refresh the page and try again.</value>
+  </labels>
+  <labels>
     <fullName>Core_SetupAssistant_UnknownStepError</fullName>
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>Setup assistant: error when a step key sent from the page is not one of the shipped steps</shortDescription>
     <value>That setup step is not one Open Impact knows about, so nothing was recorded. Refresh the page and try again.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_UploadHelp</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: what happens to an uploaded logo or signature file</shortDescription>
+    <value>Uploaded files belong to the person who uploads them and stay attached to that person's user record, because Salesforce attaches every uploaded file to a record. Upload from an account that will stay active.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_UserLabel</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: the person chooser on the access step</shortDescription>
+    <value>Person</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_VerifyGivingMissing</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: notice on the last step when the Giving module is absent</shortDescription>
+    <value>The first gift check is waiting for the Giving module. Everything else is set up and ready.</value>
   </labels>
 </CustomLabels>

@@ -106,6 +106,109 @@ private class SetupAssistantServiceTest {
         Assert.isTrue(refused, 'A step key the package does not ship is refused');
     }
 
+    @IsTest
+    static void remembersASkippedStepWithoutCountingItDone() {
+        SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
+
+        Test.startTest();
+        List<SetupAssistantService.Step> steps = SetupAssistantService.markSkipped('funddefaults');
+        Test.stopTest();
+
+        SetupAssistantService.Step step = stepByKey(steps, 'funddefaults');
+        Assert.isTrue(step.skipped, 'The step Maria skipped is out of the way');
+        Assert.isFalse(step.completed, 'Skipping a step is not the same as finishing it');
+    }
+
+    @IsTest
+    static void timesHowLongSetupTakes() {
+        SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
+        Assert.isNull(
+            SetupAssistantService.elapsedMinutes(),
+            'Nothing has been done yet, so there is nothing to time'
+        );
+
+        Test.startTest();
+        SetupAssistantService.markComplete('modules');
+        Test.stopTest();
+
+        Assert.isNotNull(
+            SetupAssistantService.getStartedAt(),
+            'The clock starts at the first change'
+        );
+        Assert.areEqual(
+            0,
+            SetupAssistantService.elapsedMinutes(),
+            'A test finishes setup in under a minute'
+        );
+    }
+
+    @IsTest
+    static void putsEveryStepBackOnTheList() {
+        SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
+        SetupAssistantService.markComplete('modules');
+        SetupAssistantService.markSkipped('funddefaults');
+
+        Test.startTest();
+        List<SetupAssistantService.Step> steps = SetupAssistantService.reset();
+        Test.stopTest();
+
+        Assert.areEqual(
+            0,
+            SetupAssistantService.countCompleted(steps),
+            'Running setup again starts from the first step'
+        );
+        Assert.isFalse(stepByKey(steps, 'funddefaults').skipped, 'A skip is forgotten too');
+        Assert.isNull(SetupAssistantService.getStartedAt(), 'So is when setup started');
+    }
+
+    @IsTest
+    static void readsThePersonAccountsShapeAsTheNonprofitCloudCase() {
+        OrgShapeDetector.OrgShape shape = new OrgShapeDetector.OrgShape();
+        shape.hasIndustriesNonprofit = true;
+        SetupAssistantService.stubbedShape = shape;
+
+        Test.startTest();
+        String detected = SetupAssistantService.detectedShape();
+        String recommended = SetupAssistantService.recommendedMode();
+        Test.stopTest();
+
+        Assert.areEqual(
+            SetupAssistantService.SHAPE_PERSON_ACCOUNTS,
+            detected,
+            'A Nonprofit Cloud org is recognised by its shape, not by asking Maria'
+        );
+        Assert.areEqual(
+            SetupAssistantService.MODE_AGENTFORCE,
+            recommended,
+            'And it is recommended the coexistence mode built for it'
+        );
+    }
+
+    @IsTest
+    static void waitsForTheGivingModuleOnStepThree() {
+        SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
+
+        Test.startTest();
+        List<SetupAssistantService.Step> steps = SetupAssistantService.getSteps();
+        Test.stopTest();
+
+        Assert.areEqual(
+            ModuleDetectionService.isGivingPresent(),
+            stepByKey(steps, 'funddefaults').isAvailable,
+            'Step three is available exactly when the Giving module is'
+        );
+        Assert.areEqual(
+            SetupAssistantService.RULE_SETTING,
+            stepByKey(steps, 'naming').completionRule,
+            'A step backed by a setting says so, so the page can explain how it finishes'
+        );
+        Assert.areEqual(
+            SetupAssistantService.RULE_ACTION,
+            stepByKey(steps, 'modules').completionRule,
+            'A step with no setting behind it finishes when Maria finishes it'
+        );
+    }
+
     private static SetupAssistantService.Step stepByKey(
         List<SetupAssistantService.Step> steps,
         String key
