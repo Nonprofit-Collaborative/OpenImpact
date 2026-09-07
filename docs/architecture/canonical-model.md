@@ -393,6 +393,7 @@ the app rather than in debug logs (plan Sections 2.3 and 4.8).
 | User | reference(User) | no | The user whose action produced the error, where there was one. |
 | Context | text | yes | The feature or source that produced the error, in plain language, for example "Household naming". |
 | Record Reference | text | no | The identifier of the record involved, so the admin can open it. |
+| Object Name | text | no | The kind of record involved, in the platform's name for it, so an admin can group errors by what they affect. |
 | Message | long text | yes | A human-readable explanation of what went wrong and what to do about it. |
 | Technical Detail | long text | no | Exception type, stack trace, and query or DML detail, for a developer or a support request. |
 | Severity | picklist(Info, Warning, Error, Critical) | yes | How badly the failure affects the org's data or operations. |
@@ -409,12 +410,15 @@ goes to the admin (feature C-23, v0.6).
 
 ### Salesforce implementation
 
-- **Object:** `Error_Log__c`, surfaced as an admin-only tab in the Nonprofit Hub app.
+- **Object:** `Error_Log__c`, surfaced as an admin-only tab in the Nonprofit Hub app. The
+  record name is the auto number `ERR-{000000}`.
 - **Fields:** `Timestamp__c` (DateTime), `User__c` (Lookup to User), `Context__c` (Text),
-  `Record_Reference__c` (Text), `Message__c` (Long Text Area), `Technical_Detail__c`
-  (Long Text Area), `Severity__c` (Picklist: Info, Warning, Error, Critical),
-  `Status__c` (Picklist: New, Acknowledged, Resolved, Ignored).
-- **Service:** `ErrorLogger`.
+  `Record_Reference__c` (Text), `Object_Name__c` (Text), `Message__c` (Long Text Area),
+  `Technical_Detail__c` (Long Text Area), `Severity__c` (Picklist: Info, Warning, Error,
+  Critical), `Status__c` (Picklist: New, Acknowledged, Resolved, Ignored).
+- **Service:** `ErrorLogger`, with `ErrorLogWriter` (the only class allowed to write the
+  object, in system mode, so that a failure is recorded even for a user without create
+  access) and `ErrorLogSelector`.
 
 ---
 
@@ -434,6 +438,10 @@ calling anyone.
 | Automation Name | text | yes | The stable identifier of the automation, matching its entry in the shipped registry. |
 | Description | long text | yes | What this automation does, in the language a nonprofit administrator uses. |
 | Enabled | boolean | yes (defaults true) | Whether the automation runs; unchecking it bypasses the handler. |
+| Handler Class | text | no | The packaged code the dispatcher runs for this automation, copied from the shipped registry. |
+| Object Name | text | no | The kind of record this automation runs on, copied from the shipped registry. |
+| Execution Order | integer | no | The order in which this automation runs relative to others on the same kind of record. |
+| Package Default | boolean | yes (defaults false) | Whether this record was materialized from the shipped registry rather than created by hand, so that "Restore defaults" knows what it owns. |
 
 ### Related org-level control
 
@@ -455,8 +463,11 @@ logging.
 
 ### Salesforce implementation
 
-- **Object:** `Automation_Setting__c` with `Automation_Name__c` (Text, external id),
-  `Description__c` (Long Text Area), `Enabled__c` (Checkbox).
+- **Object:** `Automation_Setting__c` with `Automation_Name__c` (Text, external id,
+  unique), `Description__c` (Long Text Area), `Enabled__c` (Checkbox),
+  `Handler_Class__c` (Text), `Object_Name__c` (Text), `Execution_Order__c` (Number),
+  `Is_Package_Default__c` (Checkbox). The record name holds the automation's label as the
+  admin reads it.
 - **Shipped defaults:** `Automation_Registry__mdt` (Section 13).
 - **Org-level pause:** `Nonprofit_Settings__c.Automation_Paused_Until__c`.
 - **Service:** `AutomationControl`, `TriggerDispatcher`.
@@ -492,7 +503,8 @@ nothing.
 ### Salesforce implementation
 
 - **Object:** `Setting_Change__c` with `Setting_Name__c`, `Old_Value__c`, `New_Value__c`
-  (Long Text Area), `Changed_By__c` (Lookup to User), `Changed_At__c` (DateTime).
+  (Long Text Area), `Changed_By__c` (Lookup to User), `Changed_At__c` (DateTime). The
+  record name is the auto number `SC-{000000}`.
 - **Service:** `SettingsService`.
 
 ---
@@ -542,6 +554,11 @@ definition.
 ### Salesforce implementation
 
 - **Custom setting:** `Nonprofit_Settings__c`, hierarchy, protected.
+- **Picklist keys are stored as text.** Custom settings do not support picklist fields on
+  the platform, so `Coexistence_Mode__c` and `Household_Membership_Mode__c` are Text
+  fields holding one of the values listed above, validated by `SettingsService` rather
+  than by the field. The console renders them as a choice list, so Maria never types a
+  value. Recorded as ADR-0014.
 - **Service:** `SettingsService`, with the console LWCs `settingsConsole`,
   `settingsSearch`, `householdNamingSettings`.
 - **Permission:** editing requires the `Manage_Nonprofit_Settings` custom permission;
@@ -580,11 +597,17 @@ Automation Setting records (Section 10) on install and on upgrade.
 |---|---|---|
 | DeveloperName | text | The stable identifier of the automation, matched to Automation Setting. |
 | Label | text | The automation's name as the admin sees it. |
-| Description | long text | What the automation does, in nonprofit language. |
-| Default Enabled | boolean | Whether the automation is on when it is first materialized. |
-| Handler Class | text | The Apex handler the trigger dispatcher invokes. |
-| Object | text | The object whose trigger this automation runs on. |
-| Order | integer | The order in which handlers run for that object. |
+| Description__c | long text | What the automation does, in nonprofit language. |
+| Enabled_By_Default__c | boolean | Whether the automation is on when it is first materialized. |
+| Handler_Class__c | text | The Apex handler the trigger dispatcher invokes. |
+| Object_Name__c | text | The object whose trigger this automation runs on. |
+| Execution_Order__c | integer | The order in which handlers run for that object. |
+
+The custom field API names are given here because two of the plain names in the original
+draft ("Object" and "Order") are platform reserved words, and because the materialized
+`Automation_Setting__c` fields carry the same names (Section 10). v0.1 ships the type with
+no records: the first records arrive with feature C-01, which ships the first two trigger
+handlers.
 
 ### Rule
 
@@ -626,3 +649,4 @@ entity.
 | Version | Date | Change |
 |---|---|---|
 | v0.1 | 2026-09-06 | Initial model: Household, Household Member, Contact, Organization, plus the platform configuration entities Error Log, Automation Setting, Setting Change, Nonprofit Settings, and the shipped-defaults custom metadata Naming Pattern and Automation Registry. |
+| v0.1 | 2026-09-07 | C-04 and C-05 build. Error Log gains Object Name. Automation Setting gains Handler Class, Object Name, Execution Order, and Package Default, all copied from the shipped registry when a record is materialized. Automation Registry field API names fixed ("Object" and "Order" are reserved words). Error Log and Setting Change record names recorded as auto numbers. Nonprofit Settings picklist keys recorded as text, per ADR-0014. |
