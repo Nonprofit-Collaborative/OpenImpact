@@ -1,6 +1,266 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
   <labels>
+    <fullName>Core_HouseholdMembersPanel_AddMember</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Add member button</shortDescription>
+    <value>Add member</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMembersPanel_AddMemberJunction</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>How to add a member in the flexible membership mode</shortDescription>
+    <value>
+      To add someone to this household, use the Household Members list further down this page.
+    </value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMembersPanel_AddSuccess</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>A person was added to the household</shortDescription>
+    <value>Added. The household name and greetings have been brought up to date.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMembersPanel_Cancel</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Cancel button</shortDescription>
+    <value>Cancel</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMembersPanel_Deceased</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Badge for a person who has died</shortDescription>
+    <value>Deceased</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMembersPanel_Empty</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>The household has no members yet</shortDescription>
+    <value>Nobody belongs to this household yet.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMembersPanel_MoveHelp</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>How to move a person to another household</shortDescription>
+    <value>Choose the household to move this person to.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMembersPanel_MoveMember</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Move a person button</shortDescription>
+    <value>Move to another household</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMembersPanel_MoveSuccess</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>A person was moved</shortDescription>
+    <value>Moved. Both households have been brought up to date.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMembersPanel_NotAHousehold</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>The record is not a household</shortDescription>
+    <value>
+      This panel is for households. This record is an organization, so it has no members to show.
+    </value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMembersPanel_Primary</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Badge for the primary member</shortDescription>
+    <value>Primary</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMembersPanel_Save</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Save button</shortDescription>
+    <value>Save</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMembersPanel_Title</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Members panel heading</shortDescription>
+    <value>Members</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_Cancel</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Cancel button</shortDescription>
+    <value>Cancel</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_ColumnFormal</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Preview column heading</shortDescription>
+    <value>Formal greeting</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_ColumnInformal</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Preview column heading</shortDescription>
+    <value>Informal greeting</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_ColumnMembers</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Preview column heading</shortDescription>
+    <value>People</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_ColumnName</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Preview column heading</shortDescription>
+    <value>Household name</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_Confirm</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Confirm button</shortDescription>
+    <value>Yes, recompute</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_FormalLabel</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Formal greeting pattern field</shortDescription>
+    <value>Formal greeting pattern</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_InformalLabel</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Informal greeting pattern field</shortDescription>
+    <value>Informal greeting pattern</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_NameLabel</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Household name pattern field</shortDescription>
+    <value>Household name pattern</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_PreviewHeading</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Heading above the preview table</shortDescription>
+    <value>How five sample households would read</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_ReadOnly</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Shown to a user who cannot change settings</shortDescription>
+    <value>
+      You can see these settings but not change them. Changing them needs the Manage Nonprofit
+      Settings permission.
+    </value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_Recompute</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Recompute button</shortDescription>
+    <value>Recompute all households</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_RecomputeConfirm</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Confirmation before recomputing every household</shortDescription>
+    <value>
+      This rewrites the name and both greetings on every household except the ones marked as a
+      custom name. It runs in the background. Do you want to continue?
+    </value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_RecomputeStarted</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>The recompute has started</shortDescription>
+    <value>Recompute started. Households are being brought up to date in the background.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_Save</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Save button</shortDescription>
+    <value>Save</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_Saved</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>The patterns were saved</shortDescription>
+    <value>Saved. New households use these patterns straight away.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_Title</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Naming settings heading</shortDescription>
+    <value>Household names and greetings</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdNamingSettings_TokenHelp</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>How to write a pattern</shortDescription>
+    <value>
+      Use {FirstName}, {LastName} and {Salutation} where you want a person's details to appear.
+    </value>
+  </labels>
+  <labels>
     <fullName>Core_HouseholdNaming_SampleHouseholds</fullName>
     <categories>Households</categories>
     <language>en_US</language>

@@ -90,6 +90,17 @@ public with sharing class HouseholdController {
         }
     }
 
+    /**
+     * How this org says people belong to a household, so that a screen can offer the
+     * actions that make sense here and no other code has to know the answer.
+     */
+    @AuraEnabled(cacheable=true)
+    public static String getMembershipMode() {
+        return HouseholdService.isJunctionMode()
+            ? HouseholdService.MODE_JUNCTION
+            : HouseholdService.SOURCE_CONTACT;
+    }
+
     @AuraEnabled(cacheable=true)
     public static List<MemberView> getMembers(Id householdId) {
         try {
@@ -149,6 +160,14 @@ public with sharing class HouseholdController {
         return full.trim();
     }
 
+    /**
+     * Line breaks that a formatter may have put inside the sample label are not part of
+     * anybody's name, so they are squeezed back to single spaces before the value is used.
+     */
+    private static String squeeze(String value) {
+        return value == null ? '' : value.replaceAll('\\s+', ' ').trim();
+    }
+
     private static String describe(List<HouseholdService.Person> members) {
         List<String> names = new List<String>();
         for (HouseholdService.Person person : members) {
@@ -173,12 +192,12 @@ public with sharing class HouseholdController {
                     continue;
                 }
                 HouseholdService.Person person = new HouseholdService.Person();
-                person.salutation = parts[0].trim();
-                person.firstName = parts[1].trim();
-                person.lastName = parts[2].trim();
-                person.preferredName = parts[3].trim();
-                person.role = parts[4].trim();
-                person.isDeceased = 'Y'.equalsIgnoreCase(parts[5].trim());
+                person.salutation = squeeze(parts[0]);
+                person.firstName = squeeze(parts[1]);
+                person.lastName = squeeze(parts[2]);
+                person.preferredName = squeeze(parts[3]);
+                person.role = squeeze(parts[4]);
+                person.isDeceased = 'Y'.equalsIgnoreCase(squeeze(parts[5]));
                 members.add(person);
             }
             if (!members.isEmpty()) {
