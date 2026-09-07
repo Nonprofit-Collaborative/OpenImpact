@@ -219,7 +219,8 @@ history of who was in a household when.
 | Attribute | Type | Required | Definition |
 |---|---|---|---|
 | Contact | reference(Contact) | conditional | The person, when the person is represented as a Contact. |
-| Account | reference(Household) | conditional | The household, and in Person Account orgs also the person's own Person Account. |
+| Account | reference(Household) | conditional | The person, where the person is represented as an account rather than as a Contact. |
+| Household | reference(Household) | yes | The household the person belongs to. |
 | Role | picklist(Head, Spouse or Partner, Child, Other) | no | The person's role in this household, used for greeting order and reporting. |
 | Is Primary | boolean | yes (defaults false) | Marks the member who receives correspondence when only one person can be named. |
 | Start Date | date | no | The date the person joined the household. |
@@ -254,8 +255,12 @@ code never branches on membership mode.
 
 - **Object:** `Household_Member__c` (junction).
 - **Fields:** `Contact__c` (Lookup to Contact), `Account__c` (Lookup to Account),
-  `Role__c` (Picklist: Head, Spouse or Partner, Child, Other), `Is_Primary__c`
-  (Checkbox), `Start_Date__c` (Date), `End_Date__c` (Date).
+  `Household__c` (Lookup to Account), `Role__c` (Picklist: Head, Spouse or Partner, Child,
+  Other), `Is_Primary__c` (Checkbox), `Start_Date__c` (Date), `End_Date__c` (Date).
+- `Household__c` is the household side of the junction and `Contact__c` or `Account__c` is
+  the person side. A lookup rather than a master-detail relationship is used so that a
+  household can be deleted without cascading away membership history, and so that the same
+  object shape works in both membership modes.
 
 ---
 
@@ -626,3 +631,4 @@ entity.
 | Version | Date | Change |
 |---|---|---|
 | v0.1 | 2026-09-06 | Initial model: Household, Household Member, Contact, Organization, plus the platform configuration entities Error Log, Automation Setting, Setting Change, Nonprofit Settings, and the shipped-defaults custom metadata Naming Pattern and Automation Registry. |
+| v0.1 | 2026-09-07 | C-01 and C-02 build. Added `Household__c` (Lookup to Account) to Household Member: the original field list named the household side and the person side with the same attribute, so junction mode had no way to say which household a membership belonged to. `Account__c` is now defined as the person side only, matching R-M4. Recorded the naming service's token forms: `{FirstName}`, `{LastName}`, and `{Salutation}`, with the `{!Token}` spelling accepted as an alias so patterns copied from formula fields keep working. |
