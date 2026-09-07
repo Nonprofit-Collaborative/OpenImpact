@@ -1,7 +1,5 @@
 import { LightningElement } from 'lwc';
 import getHomeModel from '@salesforce/apex/HubController.getHomeModel';
-import markStepDone from '@salesforce/apex/HubController.markStepDone';
-import markStepNotDone from '@salesforce/apex/HubController.markStepNotDone';
 import WELCOME_HEADING from '@salesforce/label/c.Core_HubHome_WelcomeHeading';
 import WELCOME_MESSAGE from '@salesforce/label/c.Core_HubHome_WelcomeMessage';
 import CHECKLIST_HEADING from '@salesforce/label/c.Core_HubHome_ChecklistHeading';
@@ -13,6 +11,8 @@ import QUICK_LINK_SETTINGS from '@salesforce/label/c.Core_HubHome_QuickLinkSetti
 import QUICK_LINK_HOUSEHOLDS from '@salesforce/label/c.Core_HubHome_QuickLinkHouseholds';
 import QUICK_LINK_ORGANIZATIONS from '@salesforce/label/c.Core_HubHome_QuickLinkOrganizations';
 import LOAD_ERROR from '@salesforce/label/c.Core_HubHome_LoadErrorMessage';
+import SETUP_COMPLETE_HEADING from '@salesforce/label/c.Core_SetupAssistant_CompleteTileHeading';
+import REOPEN_SETUP from '@salesforce/label/c.Core_SetupAssistant_ReopenButton';
 
 export default class HubHome extends LightningElement {
   labels = {
@@ -23,7 +23,9 @@ export default class HubHome extends LightningElement {
     errorTileHeading: ERROR_TILE_HEADING,
     errorTileLink: ERROR_TILE_LINK,
     quickLinksHeading: QUICK_LINKS_HEADING,
-    loadError: LOAD_ERROR
+    loadError: LOAD_ERROR,
+    setupCompleteHeading: SETUP_COMPLETE_HEADING,
+    reopenSetup: REOPEN_SETUP
   };
 
   quickLinks = [
@@ -38,13 +40,13 @@ export default class HubHome extends LightningElement {
 
   errorLogUrl = '/lightning/o/Error_Log__c/list';
 
-  steps = [];
   stepsCompleted = 0;
   stepsTotal = 0;
   automationPaused = false;
   newErrorCount = 0;
   canEdit = false;
   errorMessage;
+  setupReopened = false;
 
   connectedCallback() {
     this.load();
@@ -52,6 +54,19 @@ export default class HubHome extends LightningElement {
 
   get hasErrors() {
     return this.newErrorCount > 0;
+  }
+
+  /** The assistant is the home page until it is finished, and one click away after that. */
+  get showAssistant() {
+    return this.setupReopened || !this.setupComplete;
+  }
+
+  get setupComplete() {
+    return this.stepsTotal > 0 && this.stepsCompleted === this.stepsTotal;
+  }
+
+  get setupProgressText() {
+    return `${this.stepsCompleted} of ${this.stepsTotal}`;
   }
 
   async load() {
@@ -67,7 +82,6 @@ export default class HubHome extends LightningElement {
     if (!model) {
       return;
     }
-    this.steps = model.steps || [];
     this.stepsCompleted = model.stepsCompleted || 0;
     this.stepsTotal = model.stepsTotal || 0;
     this.automationPaused = Boolean(model.automationPaused);
@@ -75,21 +89,16 @@ export default class HubHome extends LightningElement {
     this.canEdit = Boolean(model.canEdit);
   }
 
-  handleStepDone(event) {
-    this.updateStep(markStepDone, event.detail.key);
-  }
-
-  handleStepNotDone(event) {
-    this.updateStep(markStepNotDone, event.detail.key);
-  }
-
-  async updateStep(action, stepKey) {
-    try {
-      this.applyModel(await action({ stepKey }));
-      this.errorMessage = undefined;
-    } catch (error) {
-      this.errorMessage =
-        error && error.body && error.body.message ? error.body.message : this.labels.loadError;
+  /** The assistant reports its own progress, so the page collapses without reloading. */
+  handleSetupChanged(event) {
+    this.stepsCompleted = event.detail.stepsCompleted || 0;
+    this.stepsTotal = event.detail.stepsTotal || 0;
+    if (!event.detail.isComplete) {
+      this.setupReopened = false;
     }
+  }
+
+  handleReopenSetup() {
+    this.setupReopened = true;
   }
 }

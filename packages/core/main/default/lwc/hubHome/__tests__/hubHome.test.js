@@ -1,16 +1,8 @@
 import { createElement } from 'lwc';
 import HubHome from 'c/hubHome';
 import getHomeModel from '@salesforce/apex/HubController.getHomeModel';
-import markStepDone from '@salesforce/apex/HubController.markStepDone';
-import markStepNotDone from '@salesforce/apex/HubController.markStepNotDone';
 
 jest.mock('@salesforce/apex/HubController.getHomeModel', () => ({ default: jest.fn() }), {
-  virtual: true
-});
-jest.mock('@salesforce/apex/HubController.markStepDone', () => ({ default: jest.fn() }), {
-  virtual: true
-});
-jest.mock('@salesforce/apex/HubController.markStepNotDone', () => ({ default: jest.fn() }), {
   virtual: true
 });
 
@@ -61,8 +53,6 @@ function settle() {
 describe('c-hub-home', () => {
   beforeEach(() => {
     getHomeModel.mockResolvedValue(model());
-    markStepDone.mockResolvedValue(model({ stepsCompleted: 2 }));
-    markStepNotDone.mockResolvedValue(model({ stepsCompleted: 0 }));
   });
 
   afterEach(() => {
@@ -72,17 +62,15 @@ describe('c-hub-home', () => {
     }
   });
 
-  it('welcomes Maria and hands the checklist to the setup assistant', async () => {
+  it('welcomes Maria and gives the setup assistant the whole page', async () => {
     const element = build();
     await settle();
 
     expect(element.shadowRoot.querySelector('h1').textContent).toContain(
       'Core_HubHome_WelcomeHeading'
     );
-    const assistant = element.shadowRoot.querySelector('c-setup-assistant');
-    expect(assistant.steps).toHaveLength(2);
-    expect(assistant.total).toBe(2);
-    expect(assistant.canEdit).toBe(true);
+    expect(element.shadowRoot.querySelector('c-setup-assistant')).not.toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="reopen-setup"]')).toBeNull();
   });
 
   it('counts errors to review and links to the Error Log', async () => {
@@ -104,42 +92,35 @@ describe('c-hub-home', () => {
     expect(banner.textContent).toContain('Core_HubHome_AutomationPausedBanner');
   });
 
-  it('records a step Maria marks done', async () => {
+  it('collapses to a tile once every step is done, and reopens on request', async () => {
+    getHomeModel.mockResolvedValue(model({ stepsCompleted: 2, stepsTotal: 2 }));
     const element = build();
     await settle();
 
-    const assistant = element.shadowRoot.querySelector('c-setup-assistant');
-    assistant.dispatchEvent(new CustomEvent('stepdone', { detail: { key: 'modules' } }));
-    await settle();
-
-    expect(markStepDone).toHaveBeenCalledWith({ stepKey: 'modules' });
-    expect(element.shadowRoot.querySelector('c-setup-assistant').completed).toBe(2);
-  });
-
-  it('puts a step back on the list', async () => {
-    const element = build();
-    await settle();
-
-    const assistant = element.shadowRoot.querySelector('c-setup-assistant');
-    assistant.dispatchEvent(new CustomEvent('stepnotdone', { detail: { key: 'coexistence' } }));
-    await settle();
-
-    expect(markStepNotDone).toHaveBeenCalledWith({ stepKey: 'coexistence' });
-    expect(element.shadowRoot.querySelector('c-setup-assistant').completed).toBe(0);
-  });
-
-  it('shows the message from the server when a step cannot be recorded', async () => {
-    markStepDone.mockRejectedValue({ body: { message: 'You need the permission.' } });
-    const element = build();
-    await settle();
-
-    element.shadowRoot
-      .querySelector('c-setup-assistant')
-      .dispatchEvent(new CustomEvent('stepdone', { detail: { key: 'modules' } }));
-    await settle();
-
-    expect(element.shadowRoot.querySelector('p[role="alert"]').textContent).toContain(
-      'You need the permission.'
+    expect(element.shadowRoot.querySelector('c-setup-assistant')).toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="setup-progress"]').textContent).toContain(
+      '2 of 2'
     );
+
+    element.shadowRoot.querySelector('[data-id="reopen-setup"]').click();
+    await settle();
+
+    expect(element.shadowRoot.querySelector('c-setup-assistant')).not.toBeNull();
+  });
+
+  it('follows the assistant progress without reloading the page', async () => {
+    getHomeModel.mockResolvedValue(model({ stepsCompleted: 1, stepsTotal: 2 }));
+    const element = build();
+    await settle();
+
+    element.shadowRoot.querySelector('c-setup-assistant').dispatchEvent(
+      new CustomEvent('setupchanged', {
+        detail: { stepsCompleted: 2, stepsTotal: 2, isComplete: true }
+      })
+    );
+    await settle();
+
+    expect(element.shadowRoot.querySelector('c-setup-assistant')).toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="reopen-setup"]')).not.toBeNull();
   });
 });
