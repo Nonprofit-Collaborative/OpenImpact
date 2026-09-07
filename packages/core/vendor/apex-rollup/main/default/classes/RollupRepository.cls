@@ -1,3 +1,29 @@
+/**
+ * Open Impact patch C, documented sharing exception. See
+ * packages/core/vendor/apex-rollup/VENDOR.md and docs/product-plan.md Section 4.13.
+ *
+ * Plan Section 4.13 requires every Apex class to run "with sharing" unless a documented reason
+ * exists. This class is one of the exceptions, and this block is that documentation. Nothing about
+ * its behavior was changed: it stays "without sharing" and it keeps its system-mode DML.
+ *
+ * The reason: a rollup total is a property of an entire set of child records, not of the records
+ * one user happens to be able to see. Computing it under the running user's sharing would produce
+ * a total that is silently wrong for anyone who cannot see every child, and that wrong total would
+ * then be written to a field every other user reads. A partial total is worse than no total,
+ * because nothing on the page says it is partial.
+ *
+ * Why this is safe: no user-supplied string reaches these writes. The object and field names come
+ * from Rollup_Definition__c rows that an administrator created and that the Open Impact console
+ * validated; the values are aggregates this engine computed from records it queried. There is no
+ * path from a user-entered value to a dynamic SOQL string or to a field name here.
+ *
+ * What remains available: RollupControl__mdt.ShouldRunAs__c and Rollup__mdt.SharingMode__c let a
+ * specific rollup run in user mode instead, and RollupAdapter sets both. This class is the floor,
+ * not the only option.
+ *
+ * Every remaining system-mode write in the vendored tree is in scope for the v0.10 security
+ * review.
+ */
 public without sharing class RollupRepository implements RollupLogger.ToStringObject {
   public static final Integer SENTINEL_COUNT_VALUE = -1;
 
