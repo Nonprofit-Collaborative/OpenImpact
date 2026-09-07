@@ -11,10 +11,10 @@ private class RollupCalculatorTests {
   /** FIRST / LAST operations */
   @IsTest
   static void shouldReturnNullWhenNoCalcItemsFirst() {
-    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate');
-    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, Opportunity.Amount, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
+    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate__c');
+    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
 
-    calc.performRollup(new List<Opportunity>(), new Map<Id, SObject>());
+    calc.performRollup(new List<RollupCalcItem__c>(), new Map<Id, SObject>());
 
     System.assertEquals(null, calc.getReturnValue());
   }
@@ -22,26 +22,26 @@ private class RollupCalculatorTests {
   @IsTest
   static void fullRecalcDefaultUsedInsteadOfNullWhenSupplied() {
     Integer defaultVal = 0;
-    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(FullRecalculationDefaultNumberValue__c = defaultVal), 'CloseDate');
-    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, Opportunity.Amount, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
+    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(FullRecalculationDefaultNumberValue__c = defaultVal), 'CloseDate__c');
+    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
 
-    calc.performRollup(new List<Opportunity>(), new Map<Id, SObject>());
+    calc.performRollup(new List<RollupCalcItem__c>(), new Map<Id, SObject>());
 
     System.assertEquals(defaultVal, calc.getReturnValue());
   }
 
   @IsTest
   static void shouldReturnFirstValueBasedOnMetadataField() {
-    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate');
-    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, Opportunity.Amount, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
+    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate__c');
+    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
 
     // the important part is that the middle item is the one used, to prove that sorting occurred
     // this will be true for all the first/last tests in this class
     calc.performRollup(
-      new List<Opportunity>{
-        new Opportunity(Id = '0066g00003VDGbF001', Amount = 1, CloseDate = System.today().addDays(2)),
-        new Opportunity(Id = '0066g00003VDGbF002', Amount = 2, CloseDate = System.today()),
-        new Opportunity(Id = '0066g00003VDGbF003', Amount = 15, CloseDate = System.today().addDays(1))
+      new List<RollupCalcItem__c>{
+        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1, CloseDate__c = System.today().addDays(2)),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2, CloseDate__c = System.today()),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15, CloseDate__c = System.today().addDays(1))
       },
       new Map<Id, SObject>()
     );
@@ -51,14 +51,14 @@ private class RollupCalculatorTests {
 
   @IsTest
   static void shouldReturnLastValueBasedOnMetadataField() {
-    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate');
-    RollupCalculator calc = getCalculator(0, RollupOperation.LAST, Opportunity.Amount, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
+    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate__c');
+    RollupCalculator calc = getCalculator(0, RollupOperation.LAST, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
 
     calc.performRollup(
-      new List<Opportunity>{
-        new Opportunity(Id = '0066g00003VDGbF001', Amount = 1, CloseDate = System.today().addDays(-15)),
-        new Opportunity(Id = '0066g00003VDGbF002', Amount = 2, CloseDate = System.today()),
-        new Opportunity(Id = '0066g00003VDGbF003', Amount = 15, CloseDate = System.today().addDays(-2))
+      new List<RollupCalcItem__c>{
+        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1, CloseDate__c = System.today().addDays(-15)),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2, CloseDate__c = System.today()),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15, CloseDate__c = System.today().addDays(-2))
       },
       new Map<Id, SObject>()
     );
@@ -68,15 +68,15 @@ private class RollupCalculatorTests {
 
   @IsTest
   static void shouldReturnFirstValueIfOtherOrderByValueIsNull() {
-    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate');
+    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate__c');
     metadata.RollupOrderBys__r[0].NullSortOrder__c = RollupMetaPicklists.NullSortOrder.NullsLast;
-    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, Opportunity.Amount, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
+    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
 
     calc.performRollup(
-      new List<Opportunity>{
-        new Opportunity(Id = '0066g00003VDGbF001', Amount = 1),
-        new Opportunity(Id = '0066g00003VDGbF002', Amount = 2, CloseDate = System.today()),
-        new Opportunity(Id = '0066g00003VDGbF003', Amount = 15, CloseDate = System.today().addDays(2))
+      new List<RollupCalcItem__c>{
+        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2, CloseDate__c = System.today()),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15, CloseDate__c = System.today().addDays(2))
       },
       new Map<Id, SObject>()
     );
@@ -86,15 +86,15 @@ private class RollupCalculatorTests {
 
   @IsTest
   static void shouldReturnMiddleValueForFirst() {
-    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate');
-    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, Opportunity.Amount, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
+    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate__c');
+    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
 
     Date today = System.today();
     calc.performRollup(
-      new List<Opportunity>{
-        new Opportunity(Id = '0066g00003VDGbF001', Amount = 1, CloseDate = today.addDays(1)),
-        new Opportunity(Id = '0066g00003VDGbF002', Amount = 2, CloseDate = today),
-        new Opportunity(Id = '0066g00003VDGbF003', Amount = 15, CloseDate = today.addDays(1))
+      new List<RollupCalcItem__c>{
+        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1, CloseDate__c = today.addDays(1)),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2, CloseDate__c = today),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15, CloseDate__c = today.addDays(1))
       },
       new Map<Id, SObject>()
     );
@@ -104,15 +104,15 @@ private class RollupCalculatorTests {
 
   @IsTest
   static void shouldReturnFirstValueWhenMiddleAndLastAreNull() {
-    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate');
+    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate__c');
     metadata.RollupOrderBys__r[0].NullSortOrder__c = RollupMetaPicklists.NullSortOrder.NullsLast;
-    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, Opportunity.Amount, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
+    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
 
     calc.performRollup(
-      new List<Opportunity>{
-        new Opportunity(Id = '0066g00003VDGbF001', Amount = 1, CloseDate = System.today()),
-        new Opportunity(Id = '0066g00003VDGbF002', Amount = 2),
-        new Opportunity(Id = '0066g00003VDGbF003', Amount = 15)
+      new List<RollupCalcItem__c>{
+        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1, CloseDate__c = System.today()),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15)
       },
       new Map<Id, SObject>()
     );
@@ -122,15 +122,15 @@ private class RollupCalculatorTests {
 
   @IsTest
   static void shouldReturnLastValueIfOtherOrderByValueIsNull() {
-    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate');
+    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate__c');
     metadata.RollupOrderBys__r[0].NullSortOrder__c = RollupMetaPicklists.NullSortOrder.NullsLast;
-    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, Opportunity.Amount, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
+    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
 
     calc.performRollup(
-      new List<Opportunity>{
-        new Opportunity(Id = '0066g00003VDGbF001', Amount = 1),
-        new Opportunity(Id = '0066g00003VDGbF002', Amount = 2, CloseDate = System.today()),
-        new Opportunity(Id = '0066g00003VDGbF003', Amount = 15)
+      new List<RollupCalcItem__c>{
+        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2, CloseDate__c = System.today()),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15)
       },
       new Map<Id, SObject>()
     );
@@ -140,30 +140,30 @@ private class RollupCalculatorTests {
 
   @IsTest
   static void shouldNotSortAtAllIfOrderByValuesAreNull() {
-    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate');
-    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, Opportunity.Amount, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
+    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate__c');
+    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
 
-    List<Opportunity> opps = new List<Opportunity>{
-      new Opportunity(Id = '0066g00003VDGbF001', Amount = 1),
-      new Opportunity(Id = '0066g00003VDGbF002', Amount = 2),
-      new Opportunity(Id = '0066g00003VDGbF003', Amount = 15)
+    List<RollupCalcItem__c> opps = new List<RollupCalcItem__c>{
+      new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1),
+      new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2),
+      new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15)
     };
 
     calc.performRollup(opps, new Map<Id, SObject>());
 
-    System.assertEquals(opps[0].Amount, (Decimal) calc.getReturnValue());
+    System.assertEquals(opps[0].Amount__c, (Decimal) calc.getReturnValue());
   }
 
   @IsTest
   static void shouldReturnFirstString() {
     Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'Name');
-    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, Opportunity.Amount, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
+    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
 
     calc.performRollup(
-      new List<Opportunity>{
-        new Opportunity(Id = '0066g00003VDGbF001', Amount = 1, Name = 'b'),
-        new Opportunity(Id = '0066g00003VDGbF002', Amount = 2, Name = 'a'),
-        new Opportunity(Id = '0066g00003VDGbF003', Amount = 15, Name = 'c')
+      new List<RollupCalcItem__c>{
+        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1, Name = 'b'),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2, Name = 'a'),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15, Name = 'c')
       },
       new Map<Id, SObject>()
     );
@@ -174,13 +174,13 @@ private class RollupCalculatorTests {
   @IsTest
   static void shouldReturnLastString() {
     Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'Name');
-    RollupCalculator calc = getCalculator(0, RollupOperation.LAST, Opportunity.Amount, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
+    RollupCalculator calc = getCalculator(0, RollupOperation.LAST, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
 
     calc.performRollup(
-      new List<Opportunity>{
-        new Opportunity(Id = '0066g00003VDGbF001', Amount = 1, Name = 'b'),
-        new Opportunity(Id = '0066g00003VDGbF002', Amount = 2, Name = 'c'),
-        new Opportunity(Id = '0066g00003VDGbF003', Amount = 15, Name = 'a')
+      new List<RollupCalcItem__c>{
+        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1, Name = 'b'),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2, Name = 'c'),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15, Name = 'a')
       },
       new Map<Id, SObject>()
     );
@@ -190,14 +190,14 @@ private class RollupCalculatorTests {
 
   @IsTest
   static void shouldReturnFirstNumber() {
-    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'Amount');
-    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, Opportunity.Amount, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
+    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'Amount__c');
+    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
 
     calc.performRollup(
-      new List<Opportunity>{
-        new Opportunity(Id = '0066g00003VDGbF001', Amount = 2),
-        new Opportunity(Id = '0066g00003VDGbF002', Amount = 1),
-        new Opportunity(Id = '0066g00003VDGbF003', Amount = 15)
+      new List<RollupCalcItem__c>{
+        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 1),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15)
       },
       new Map<Id, SObject>()
     );
@@ -207,14 +207,14 @@ private class RollupCalculatorTests {
 
   @IsTest
   static void shouldReturnLastNumber() {
-    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'Amount');
-    RollupCalculator calc = getCalculator(0, RollupOperation.LAST, Opportunity.Amount, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
+    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'Amount__c');
+    RollupCalculator calc = getCalculator(0, RollupOperation.LAST, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
 
     calc.performRollup(
-      new List<Opportunity>{
-        new Opportunity(Id = '0066g00003VDGbF001', Amount = 2),
-        new Opportunity(Id = '0066g00003VDGbF002', Amount = 16),
-        new Opportunity(Id = '0066g00003VDGbF003', Amount = 1)
+      new List<RollupCalcItem__c>{
+        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 16),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 1)
       },
       new Map<Id, SObject>()
     );
@@ -225,13 +225,13 @@ private class RollupCalculatorTests {
   @IsTest
   static void regressionShouldRollupFirstLastWithQueriedOrderBy() {
     Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'Name');
-    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, Opportunity.Amount, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
+    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
 
     calc.performRollup(
-      new List<Opportunity>{
-        new Opportunity(Id = '0066g00003VDGbF001', Amount = 2, Name = 'b'),
-        new Opportunity(Id = '0066g00003VDGbF002', Amount = 16, Name = 'a'),
-        new Opportunity(Id = '0066g00003VDGbF003', Amount = 1, Name = 'c')
+      new List<RollupCalcItem__c>{
+        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Name = 'b'),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 16, Name = 'a'),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 1, Name = 'c')
       },
       new Map<Id, SObject>()
     );
@@ -243,17 +243,17 @@ private class RollupCalculatorTests {
   static void shouldIncludeStateForFirstLast() {
     String lookupKey = '0011g00003VDGbF002';
     Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'Name');
-    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, Opportunity.Amount, Account.AnnualRevenue, metadata, lookupKey, Account.Id);
+    RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metadata, lookupKey, Account.Id);
     RollupState outerState = new RollupState();
     RollupState.SObjectInfo info = (RollupState.SObjectInfo) outerState.getState(lookupKey, metadata, RollupState.SObjectInfo.class);
-    info.setItem(new Opportunity(Name = 'a', Amount = 3));
+    info.setItem(new RollupCalcItem__c(Name = 'a', Amount__c = 3));
     calc.setState(outerState);
 
     calc.performRollup(
-      new List<Opportunity>{
-        new Opportunity(Id = '0066g00003VDGbF001', Amount = 2, Name = 'c'),
-        new Opportunity(Id = '0066g00003VDGbF002', Amount = 16, Name = 'b'),
-        new Opportunity(Id = '0066g00003VDGbF003', Amount = 1, Name = 'c')
+      new List<RollupCalcItem__c>{
+        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Name = 'c'),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 16, Name = 'b'),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 1, Name = 'c')
       },
       new Map<Id, SObject>()
     );
@@ -267,17 +267,17 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       priorValue,
       RollupOperation.SUM,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(FullRecalculationDefaultNumberValue__c = 0),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
     calc.setFullRecalc(true);
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
 
-    Opportunity oppOne = new Opportunity(Amount = 0);
-    Opportunity oppTwo = new Opportunity(Amount = 0);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Amount__c = 0);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Amount__c = 0);
 
     calc.performRollup(new List<SObject>{ oppOne, oppTwo }, new Map<Id, SObject>());
 
@@ -288,36 +288,36 @@ private class RollupCalculatorTests {
 
   @IsTest
   static void shouldReturnNulltWhenNoCalcItemsAverage() {
-    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate');
+    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(), 'CloseDate__c');
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.Average,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       metadata,
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
-    calc.performRollup(new List<Opportunity>(), new Map<Id, SObject>());
+    calc.performRollup(new List<RollupCalcItem__c>(), new Map<Id, SObject>());
 
     System.assertEquals(null, calc.getReturnValue());
   }
 
   @IsTest
   static void shouldReturnFullRecalcDefaultWhenNoCalcItemsAverage() {
-    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(FullRecalculationDefaultNumberValue__c = 5), 'CloseDate');
+    Rollup__mdt metadata = configureOrderByMetadata(new Rollup__mdt(FullRecalculationDefaultNumberValue__c = 5), 'CloseDate__c');
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.Average,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       metadata,
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
-    calc.performRollup(new List<Opportunity>(), new Map<Id, SObject>());
+    calc.performRollup(new List<RollupCalcItem__c>(), new Map<Id, SObject>());
 
     System.assertEquals(metadata.FullRecalculationDefaultNumberValue__c, calc.getReturnValue());
   }
@@ -328,19 +328,19 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.AVERAGE,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       metadata,
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
     calc.performRollup(
-      new List<Opportunity>{
-        new Opportunity(Id = '0066g00003VDGbF001', Amount = 2),
-        new Opportunity(Id = '0066g00003VDGbF002'),
-        new Opportunity(Id = '0066g00003VDGbF003'),
-        new Opportunity(Id = '0066g00003VDGbF004', Amount = 2)
+      new List<RollupCalcItem__c>{
+        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF002'),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF003'),
+        new RollupCalcItem__c(Id = '0066g00003VDGbF004', Amount__c = 2)
       },
       new Map<Id, SObject>()
     );
@@ -376,14 +376,14 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.UPDATE_COUNT,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Amount = 2, AccountId = '0016g00003VDGbF001');
-    calc.performRollup(new List<Opportunity>{ opp }, new Map<Id, SObject>{ opp.Id => new Opportunity(AccountId = '0016g00003VDGbF002') });
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>{ opp.Id => new RollupCalcItem__c(Account__c = '0016g00003VDGbF002') });
 
     System.assertEquals(1, (Decimal) calc.getReturnValue(), 'If record is reparented, it should count towards count for new record!');
   }
@@ -393,16 +393,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.COUNT,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Amount = 2, AccountId = '0016g00003VDGbF001');
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount != ' + opp.Amount, Opportunity.SObjectType));
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c != ' + opp.Amount__c, RollupCalcItem__c.SObjectType));
 
-    calc.performRollup(new List<Opportunity>{ opp }, new Map<Id, SObject>());
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
 
     System.assertEquals(null, calc.getReturnValue());
   }
@@ -412,11 +412,11 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.COUNT,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
     calc.performRollup(new List<SObject>(), new Map<Id, SObject>());
@@ -429,16 +429,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.COUNT_DISTINCT,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Amount = 2, AccountId = '0016g00003VDGbF001');
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount != ' + opp.Amount, Opportunity.SObjectType));
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c != ' + opp.Amount__c, RollupCalcItem__c.SObjectType));
 
-    calc.performRollup(new List<Opportunity>{ opp }, new Map<Id, SObject>());
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
 
     System.assertEquals(0, calc.getReturnValue());
   }
@@ -448,16 +448,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.COUNT_DISTINCT,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(FullRecalculationDefaultNumberValue__c = 15),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Amount = 2, AccountId = '0016g00003VDGbF001');
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount != ' + opp.Amount, Opportunity.SObjectType));
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c != ' + opp.Amount__c, RollupCalcItem__c.SObjectType));
 
-    calc.performRollup(new List<Opportunity>{ opp }, new Map<Id, SObject>());
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
 
     System.assertEquals(15, calc.getReturnValue());
   }
@@ -467,21 +467,21 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.COUNT_DISTINCT,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Amount = 2);
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2);
 
-    calc.performRollup(new List<Opportunity>{ opp }, new Map<Id, SObject>());
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
 
     System.assertEquals(1, calc.getReturnValue());
 
     calc.setDefaultValues('0011g00003VDGbF001', 5); // for COUNT_DISTINCT the prior value isn't used since we assume each one is a full recalc
-    calc.performRollup(new List<Opportunity>{ opp, new Opportunity(Amount = 3) }, new Map<Id, SObject>());
+    calc.performRollup(new List<RollupCalcItem__c>{ opp, new RollupCalcItem__c(Amount__c = 3) }, new Map<Id, SObject>());
 
     System.assertEquals(2, calc.getReturnValue());
   }
@@ -489,19 +489,19 @@ private class RollupCalculatorTests {
   @IsTest
   static void shouldNotCountNullsForCountDistinctDelete() {
     Account acc = [SELECT Id FROM Account WITH SYSTEM_MODE];
-    insert as system new Opportunity(CloseDate = System.today(), StageName = 'Hi', AccountId = acc.Id, Name = 'null amount');
+    insert as system new RollupCalcItem__c(CloseDate__c = System.today(), StageName__c = 'Hi', Account__c = acc.Id, Name = 'null amount');
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.DELETE_COUNT_DISTINCT,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       acc.Id,
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Amount = 2, AccountId = acc.Id);
-    calc.performRollup(new List<Opportunity>{ opp }, new Map<Id, SObject>());
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = acc.Id);
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
 
     System.assertEquals(null, calc.getReturnValue(), 'Null amount should be excluded');
   }
@@ -531,25 +531,25 @@ private class RollupCalculatorTests {
   @IsTest
   static void shouldProperlyRemoveCountDistinctOnUpdateIfOldItemMatchesAndNewOneDoesNot() {
     Account acc = [SELECT Id FROM Account WITH SYSTEM_MODE];
-    Opportunity opp = new Opportunity(AccountId = acc.Id, CloseDate = System.today(), StageName = 'Hi', Name = 'Count Distinct', Amount = 5);
+    RollupCalcItem__c opp = new RollupCalcItem__c(Account__c = acc.Id, CloseDate__c = System.today(), StageName__c = 'Hi', Name = 'Count Distinct', Amount__c = 5);
     insert as system opp;
 
-    Opportunity newerOpp = opp.clone(true, true);
-    newerOpp.Amount = 0;
+    RollupCalcItem__c newerOpp = opp.clone(true, true);
+    newerOpp.Amount__c = 0;
 
     RollupCalculator calc = getCalculator(
       1,
       RollupOperation.UPDATE_COUNT_DISTINCT,
-      Opportunity.Id,
+      RollupCalcItem__c.Id,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       acc.Id,
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
-    Map<Id, Opportunity> oldOppMap = new Map<Id, Opportunity>{ opp.Id => opp };
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
+    Map<Id, RollupCalcItem__c> oldOppMap = new Map<Id, RollupCalcItem__c>{ opp.Id => opp };
 
-    calc.performRollup(new List<Opportunity>{ newerOpp }, oldOppMap);
+    calc.performRollup(new List<RollupCalcItem__c>{ newerOpp }, oldOppMap);
 
     System.assertEquals(0, calc.getReturnValue());
   }
@@ -559,18 +559,18 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.UPDATE_COUNT,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Amount = 2, AccountId = '0016g00003VDGbF001');
-    Opportunity oldOpp = opp.clone(true, true);
-    oldOpp.Amount = 1;
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount != ' + oldOpp.Amount, Opportunity.SObjectType));
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c oldOpp = opp.clone(true, true);
+    oldOpp.Amount__c = 1;
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c != ' + oldOpp.Amount__c, RollupCalcItem__c.SObjectType));
 
-    calc.performRollup(new List<Opportunity>{ opp }, new Map<Id, SObject>{ oldOpp.Id => oldOpp });
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>{ oldOpp.Id => oldOpp });
     System.assertEquals(1, calc.getReturnValue(), 'Count should be returned if item was previously excluded but now isn\t!');
   }
 
@@ -579,18 +579,18 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.UPDATE_COUNT,
-      Opportunity.Name,
+      RollupCalcItem__c.Name,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Name = 'Something else', AccountId = '0011g00003VDGbF002');
-    Opportunity oldOpp = opp.clone(true, true);
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = 'Something else', Account__c = '0011g00003VDGbF002');
+    RollupCalcItem__c oldOpp = opp.clone(true, true);
     oldOpp.Name = ''; // string default
 
-    calc.performRollup(new List<Opportunity>{ opp }, new Map<Id, SObject>{ oldOpp.Id => oldOpp });
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>{ oldOpp.Id => oldOpp });
     System.assertEquals(1, calc.getReturnValue(), 'Count should be recorded properly if old value was default and new value exists');
   }
 
@@ -599,23 +599,23 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       1,
       RollupOperation.UPDATE_COUNT,
-      Opportunity.Name,
+      RollupCalcItem__c.Name,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
     // use two calc items to ensure full recalc AND for loop in calculator are hit
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Name = 'Something else', AccountId = '0011g00003VDGbF002');
-    Opportunity two = new Opportunity(Id = '0066g00003VDGbF002', Name = 'matching', AccountId = '0011g00003VDGbF002');
-    Opportunity oldOpp = opp.clone(true, true);
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = 'Something else', Account__c = '0011g00003VDGbF002');
+    RollupCalcItem__c two = new RollupCalcItem__c(Id = '0066g00003VDGbF002', Name = 'matching', Account__c = '0011g00003VDGbF002');
+    RollupCalcItem__c oldOpp = opp.clone(true, true);
     oldOpp.Name = 'matching';
-    Opportunity secondOldOpp = two.clone(true, true);
+    RollupCalcItem__c secondOldOpp = two.clone(true, true);
     secondOldOpp.Name = '';
-    calc.setEvaluator(RollupEvaluator.getWhereEval('Name = \'' + oldOpp.Name + '\'', Opportunity.SObjectType));
+    calc.setEvaluator(RollupEvaluator.getWhereEval('Name = \'' + oldOpp.Name + '\'', RollupCalcItem__c.SObjectType));
 
-    calc.performRollup(new List<Opportunity>{ opp, two }, new Map<Id, SObject>{ oldOpp.Id => oldOpp, two.Id => secondOldOpp });
+    calc.performRollup(new List<RollupCalcItem__c>{ opp, two }, new Map<Id, SObject>{ oldOpp.Id => oldOpp, two.Id => secondOldOpp });
 
     System.assertEquals(1, calc.getReturnValue(), 'Count should properly decrement when old item matches and new one does not');
   }
@@ -643,15 +643,15 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       1,
       RollupOperation.UPDATE_COUNT,
-      Opportunity.CloseDate,
+      RollupCalcItem__c.CloseDate__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
-    Opportunity opp = new Opportunity(CloseDate = System.today(), Id = RollupTestUtils.createId(Opportunity.SObjectType));
-    calc.performRollup(new List<SObject>{ opp }, new Map<Id, SObject>{ opp.Id => new Opportunity(CloseDate = opp.CloseDate.addDays(-1)) });
+    RollupCalcItem__c opp = new RollupCalcItem__c(CloseDate__c = System.today(), Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType));
+    calc.performRollup(new List<SObject>{ opp }, new Map<Id, SObject>{ opp.Id => new RollupCalcItem__c(CloseDate__c = opp.CloseDate__c.addDays(-1)) });
 
     System.assertEquals(1, calc.getReturnValue());
   }
@@ -663,16 +663,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.MOST,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Amount = 2, AccountId = '0016g00003VDGbF001');
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount != ' + opp.Amount, Opportunity.SObjectType));
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c != ' + opp.Amount__c, RollupCalcItem__c.SObjectType));
 
-    calc.performRollup(new List<Opportunity>{ opp }, new Map<Id, SObject>());
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
 
     System.assertEquals(null, calc.getReturnValue());
   }
@@ -682,16 +682,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.MOST,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(FullRecalculationDefaultNumberValue__c = 5),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Amount = 2, AccountId = '0016g00003VDGbF001');
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount != ' + opp.Amount, Opportunity.SObjectType));
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c != ' + opp.Amount__c, RollupCalcItem__c.SObjectType));
 
-    calc.performRollup(new List<Opportunity>{ opp }, new Map<Id, SObject>());
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
 
     System.assertEquals(5, calc.getReturnValue());
   }
@@ -701,22 +701,22 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       null,
       RollupOperation.MOST,
-      Opportunity.CloseDate,
+      RollupCalcItem__c.CloseDate__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
-    Opportunity opp = new Opportunity(CloseDate = System.today(), Id = RollupTestUtils.createId(Opportunity.SObjectType));
+    RollupCalcItem__c opp = new RollupCalcItem__c(CloseDate__c = System.today(), Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType));
     calc.performRollup(new List<SObject>{ opp }, new Map<Id, SObject>());
 
-    System.assertEquals(opp.CloseDate, calc.getReturnValue());
+    System.assertEquals(opp.CloseDate__c, calc.getReturnValue());
 
-    opp.CloseDate = opp.CloseDate.addDays(-1);
+    opp.CloseDate__c = opp.CloseDate__c.addDays(-1);
     calc.performRollup(new List<SObject>{ opp }, new Map<Id, SObject>());
 
-    System.assertEquals(opp.CloseDate, calc.getReturnValue());
+    System.assertEquals(opp.CloseDate__c, calc.getReturnValue());
   }
 
   @IsTest
@@ -756,16 +756,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.SUM,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Amount = 2, AccountId = '0016g00003VDGbF001');
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount != ' + opp.Amount, Opportunity.SObjectType));
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c != ' + opp.Amount__c, RollupCalcItem__c.SObjectType));
 
-    calc.performRollup(new List<Opportunity>{ opp }, new Map<Id, SObject>());
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
 
     System.assertEquals(null, calc.getReturnValue());
   }
@@ -777,17 +777,17 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       parentStartingValue,
       RollupOperation.SUM,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(IsDistinct__c = true),
       stubParentId,
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
     calc.performRollup(
-      new List<Opportunity>{
-        new Opportunity(Id = RollupTestUtils.createId(Schema.Opportunity.SObjectType), Amount = 2, AccountId = stubParentId),
-        new Opportunity(Id = RollupTestUtils.createId(Schema.Opportunity.SObjectType), Amount = 2, AccountId = stubParentId)
+      new List<RollupCalcItem__c>{
+        new RollupCalcItem__c(Id = RollupTestUtils.createId(Schema.RollupCalcItem__c.SObjectType), Amount__c = 2, Account__c = stubParentId),
+        new RollupCalcItem__c(Id = RollupTestUtils.createId(Schema.RollupCalcItem__c.SObjectType), Amount__c = 2, Account__c = stubParentId)
       },
       new Map<Id, SObject>()
     );
@@ -800,66 +800,66 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.UPDATE_SUM,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Amount = 2, AccountId = '0016g00003VDGbF001');
-    Opportunity oldOpp = opp.clone(true, true);
-    oldOpp.Amount = 1;
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount != ' + oldOpp.Amount, Opportunity.SObjectType));
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c oldOpp = opp.clone(true, true);
+    oldOpp.Amount__c = 1;
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c != ' + oldOpp.Amount__c, RollupCalcItem__c.SObjectType));
 
-    calc.performRollup(new List<Opportunity>{ opp }, new Map<Id, SObject>{ oldOpp.Id => oldOpp });
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>{ oldOpp.Id => oldOpp });
     System.assertEquals(2, calc.getReturnValue(), 'Sum should be returned if item was previously excluded but now isn\t!');
   }
 
   @IsTest
   static void shouldProperlyRemoveSumOnUpdateIfOldItemMatchesAndNewOneDoesNot() {
     Account acc = [SELECT Id FROM Account WITH SYSTEM_MODE];
-    Opportunity opp = new Opportunity(AccountId = acc.Id, CloseDate = System.today(), StageName = 'Hi', Name = 'Count Distinct', Amount = 5);
+    RollupCalcItem__c opp = new RollupCalcItem__c(Account__c = acc.Id, CloseDate__c = System.today(), StageName__c = 'Hi', Name = 'Count Distinct', Amount__c = 5);
     insert as system opp;
 
-    Opportunity newerOpp = opp.clone(true, true);
-    newerOpp.Amount = 0;
+    RollupCalcItem__c newerOpp = opp.clone(true, true);
+    newerOpp.Amount__c = 0;
 
     RollupCalculator calc = getCalculator(
       5,
       RollupOperation.UPDATE_SUM,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       acc.Id,
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
-    Map<Id, Opportunity> oldOppMap = new Map<Id, Opportunity>{ opp.Id => opp };
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
+    Map<Id, RollupCalcItem__c> oldOppMap = new Map<Id, RollupCalcItem__c>{ opp.Id => opp };
 
-    calc.performRollup(new List<Opportunity>{ newerOpp }, oldOppMap);
+    calc.performRollup(new List<RollupCalcItem__c>{ newerOpp }, oldOppMap);
 
     System.assertEquals(null, calc.getReturnValue());
   }
 
   @IsTest
   static void sumForFullRecalcIgnoresDiffForUpdates() {
-    Opportunity opp = new Opportunity(Id = RollupTestUtils.createId(Opportunity.SObjectType), Amount = 5);
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType), Amount__c = 5);
 
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.UPDATE_SUM,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       '',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
     calc.setFullRecalc(true);
-    Map<Id, Opportunity> oldOppMap = new Map<Id, Opportunity>{ opp.Id => new Opportunity(Amount = 2) };
+    Map<Id, RollupCalcItem__c> oldOppMap = new Map<Id, RollupCalcItem__c>{ opp.Id => new RollupCalcItem__c(Amount__c = 2) };
 
-    calc.performRollup(new List<Opportunity>{ opp }, oldOppMap);
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, oldOppMap);
 
-    System.assertEquals(opp.Amount, calc.getReturnValue());
+    System.assertEquals(opp.Amount__c, calc.getReturnValue());
   }
 
   @IsTest
@@ -879,22 +879,22 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       1.5625,
       RollupOperation.UPDATE_SUM,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       '',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
     Account parent = new Account();
     parent.put(RollupCurrencyInfo.CURRENCY_ISO_CODE_FIELD_NAME, mockUsdInfo.IsoCode);
     calc.setMultiCurrencyInfo(parent);
-    Opportunity opp = new Opportunity(Id = RollupTestUtils.createId(Opportunity.SObjectType), Amount = 0);
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType), Amount__c = 0);
     opp.put(RollupCurrencyInfo.CURRENCY_ISO_CODE_FIELD_NAME, mockEurInfo.IsoCode);
-    Opportunity oldOpp = opp.clone(true);
-    oldOpp.Amount = 1;
-    Map<Id, Opportunity> oldOppMap = new Map<Id, Opportunity>{ opp.Id => oldOpp };
+    RollupCalcItem__c oldOpp = opp.clone(true);
+    oldOpp.Amount__c = 1;
+    Map<Id, RollupCalcItem__c> oldOppMap = new Map<Id, RollupCalcItem__c>{ opp.Id => oldOpp };
 
-    calc.performRollup(new List<Opportunity>{ opp }, oldOppMap);
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, oldOppMap);
 
     System.assertEquals(null, calc.getReturnValue());
   }
@@ -904,19 +904,19 @@ private class RollupCalculatorTests {
     Rollup__mdt metaKey = new Rollup__mdt();
     String accountKey = '0011g00003VDGbF002';
     Integer value = 1;
-    RollupCalculator calc = getCalculator(null, RollupOperation.SUM, Opportunity.Amount, Account.AnnualRevenue, metaKey, accountKey, Opportunity.AccountId);
+    RollupCalculator calc = getCalculator(null, RollupOperation.SUM, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metaKey, accountKey, RollupCalcItem__c.Account__c);
     RollupState outerState = new RollupState();
     RollupState.GenericInfo info = (RollupState.GenericInfo) outerState.getState(accountKey, metaKey, RollupState.GenericInfo.class);
     info.value = value;
     calc.setState(outerState);
 
-    Opportunity one = new Opportunity(Id = '0066g00003VDGbF001', Amount = 5, AccountId = accountKey);
-    Opportunity two = new Opportunity(Id = '0066g00003VDGbF002', Amount = 5, AccountId = accountKey);
+    RollupCalcItem__c one = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 5, Account__c = accountKey);
+    RollupCalcItem__c two = new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 5, Account__c = accountKey);
 
-    calc.performRollup(new List<Opportunity>{ one, two }, new Map<Id, SObject>());
+    calc.performRollup(new List<RollupCalcItem__c>{ one, two }, new Map<Id, SObject>());
 
-    System.assertEquals(one.Amount + two.Amount + value, calc.getReturnValue());
-    System.assertEquals(one.Amount + two.Amount + value, info.value);
+    System.assertEquals(one.Amount__c + two.Amount__c + value, calc.getReturnValue());
+    System.assertEquals(one.Amount__c + two.Amount__c + value, info.value);
   }
 
   @IsTest
@@ -924,19 +924,19 @@ private class RollupCalculatorTests {
     Rollup__mdt metaKey = new Rollup__mdt();
     String accountKey = '0011g00003VDGbF002';
     Integer value = 1;
-    RollupCalculator calc = getCalculator(null, RollupOperation.SUM, Opportunity.Amount, Account.AnnualRevenue, metaKey, accountKey, Opportunity.AccountId);
+    RollupCalculator calc = getCalculator(null, RollupOperation.SUM, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metaKey, accountKey, RollupCalcItem__c.Account__c);
     RollupState outerState = new RollupState();
     RollupState.GenericInfo info = (RollupState.GenericInfo) outerState.getState(accountKey, metaKey, RollupState.GenericInfo.class);
     info.value = value;
 
     calc.setState(outerState);
     calc.setFullRecalc(true);
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount = 0', Opportunity.SObjectType));
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c = 0', RollupCalcItem__c.SObjectType));
 
-    Opportunity one = new Opportunity(Id = '0066g00003VDGbF001', Amount = 5, AccountId = accountKey);
-    Opportunity two = new Opportunity(Id = '0066g00003VDGbF002', Amount = 5, AccountId = accountKey);
+    RollupCalcItem__c one = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 5, Account__c = accountKey);
+    RollupCalcItem__c two = new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 5, Account__c = accountKey);
 
-    calc.performRollup(new List<Opportunity>{ one, two }, new Map<Id, SObject>());
+    calc.performRollup(new List<RollupCalcItem__c>{ one, two }, new Map<Id, SObject>());
 
     System.assertEquals(value, calc.getReturnValue());
     System.assertEquals(value, info.value);
@@ -950,17 +950,17 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       distinct,
       RollupOperation.CONCAT,
-      Opportunity.Name,
+      RollupCalcItem__c.Name,
       Account.Name,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Name = distinct, AccountId = '0016g00003VDGbF001');
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Name != ' + opp.Name, Opportunity.SObjectType));
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = distinct, Account__c = '0016g00003VDGbF001');
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Name != ' + opp.Name, RollupCalcItem__c.SObjectType));
 
-    calc.performRollup(new List<Opportunity>{ opp }, new Map<Id, SObject>());
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
 
     System.assertEquals(null, calc.getReturnValue());
   }
@@ -973,17 +973,17 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       parentStartingValue,
       RollupOperation.CONCAT,
-      Opportunity.Name,
+      RollupCalcItem__c.Name,
       Account.Name,
       new Rollup__mdt(IsDistinct__c = true),
       stubParentId,
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
     calc.performRollup(
-      new List<Opportunity>{
-        new Opportunity(Id = RollupTestUtils.createId(Schema.Opportunity.SObjectType), Name = distinct, AccountId = stubParentId),
-        new Opportunity(Id = RollupTestUtils.createId(Schema.Opportunity.SObjectType), Name = distinct, AccountId = stubParentId)
+      new List<RollupCalcItem__c>{
+        new RollupCalcItem__c(Id = RollupTestUtils.createId(Schema.RollupCalcItem__c.SObjectType), Name = distinct, Account__c = stubParentId),
+        new RollupCalcItem__c(Id = RollupTestUtils.createId(Schema.RollupCalcItem__c.SObjectType), Name = distinct, Account__c = stubParentId)
       },
       new Map<Id, SObject>()
     );
@@ -993,21 +993,21 @@ private class RollupCalculatorTests {
 
   @IsTest
   static void shouldProperlyRemoveConcatOnUpdateIfOldItemMatchesAndNewOneDoesNot() {
-    Opportunity opp = new Opportunity(AccountId = '0011g00003VDGbF002', Id = '0066g00003VDGbF001', Name = 'CDC', Amount = 0);
+    RollupCalcItem__c opp = new RollupCalcItem__c(Account__c = '0011g00003VDGbF002', Id = '0066g00003VDGbF001', Name = 'CDC', Amount__c = 0);
 
     RollupCalculator calc = getCalculator(
       'GISS, CDC',
       RollupOperation.UPDATE_CONCAT,
-      Opportunity.Name,
+      RollupCalcItem__c.Name,
       Account.Name,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
-    Map<Id, Opportunity> oldOppMap = new Map<Id, Opportunity>{ opp.Id => new Opportunity(Amount = 5, Name = 'CDC') };
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
+    Map<Id, RollupCalcItem__c> oldOppMap = new Map<Id, RollupCalcItem__c>{ opp.Id => new RollupCalcItem__c(Amount__c = 5, Name = 'CDC') };
 
-    calc.performRollup(new List<Opportunity>{ opp }, oldOppMap);
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, oldOppMap);
 
     System.assertEquals('GISS', calc.getReturnValue());
   }
@@ -1018,15 +1018,15 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       distinct,
       RollupOperation.CONCAT_DISTINCT,
-      Opportunity.Name,
+      RollupCalcItem__c.Name,
       Account.Name,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Name = distinct, AccountId = '0016g00003VDGbF001');
-    Opportunity nonDistinctOpp = new Opportunity(Id = '0066g00003VDGbF002', Name = 'non' + distinct, AccountId = '0016g00003VDGbF001');
-    calc.performRollup(new List<Opportunity>{ opp, nonDistinctOpp }, new Map<Id, SObject>());
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = distinct, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c nonDistinctOpp = new RollupCalcItem__c(Id = '0066g00003VDGbF002', Name = 'non' + distinct, Account__c = '0016g00003VDGbF001');
+    calc.performRollup(new List<RollupCalcItem__c>{ opp, nonDistinctOpp }, new Map<Id, SObject>());
 
     System.assertEquals(
       distinct + ', ' + nonDistinctOpp.Name,
@@ -1043,16 +1043,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       firstVal + ', ' + secondVal,
       RollupOperation.UPDATE_CONCAT_DISTINCT,
-      Opportunity.Name,
+      RollupCalcItem__c.Name,
       Account.Name,
       new Rollup__mdt(),
       accountId,
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Name = secondVal, AccountId = accountId);
-    Opportunity oldOpp = new Opportunity(Id = '0066g00003VDGbF001', Name = firstVal, AccountId = accountId);
-    calc.performRollup(new List<Opportunity>{ opp }, new Map<Id, SObject>{ oldOpp.Id => oldOpp });
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = secondVal, Account__c = accountId);
+    RollupCalcItem__c oldOpp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = firstVal, Account__c = accountId);
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>{ oldOpp.Id => oldOpp });
 
     System.assertEquals(secondVal, calc.getReturnValue(), 'Old value should be removed');
   }
@@ -1063,15 +1063,15 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       distinct,
       RollupOperation.CONCAT_DISTINCT,
-      Opportunity.Name,
+      RollupCalcItem__c.Name,
       Account.Name,
       new Rollup__mdt(ConcatDelimiter__c = ' -- '),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Name = distinct, AccountId = '0016g00003VDGbF001');
-    Opportunity nonDistinctOpp = new Opportunity(Id = '0066g00003VDGbF001', Name = 'non' + distinct, AccountId = '0016g00003VDGbF001');
-    calc.performRollup(new List<Opportunity>{ opp, nonDistinctOpp }, new Map<Id, SObject>());
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = distinct, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c nonDistinctOpp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = 'non' + distinct, Account__c = '0016g00003VDGbF001');
+    calc.performRollup(new List<RollupCalcItem__c>{ opp, nonDistinctOpp }, new Map<Id, SObject>());
 
     System.assertEquals(distinct + ' -- ' + nonDistinctOpp.Name, calc.getReturnValue(), 'distinct values should be concatenated with custom delimiter!');
   }
@@ -1082,15 +1082,15 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       distinct,
       RollupOperation.CONCAT_DISTINCT,
-      Opportunity.Name,
+      RollupCalcItem__c.Name,
       Account.Name,
       new Rollup__mdt(ConcatDelimiter__c = '\\n'),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Name = distinct, AccountId = '0016g00003VDGbF001');
-    Opportunity nonDistinctOpp = new Opportunity(Id = '0066g00003VDGbF001', Name = 'non' + distinct, AccountId = '0016g00003VDGbF001');
-    calc.performRollup(new List<Opportunity>{ opp, nonDistinctOpp }, new Map<Id, SObject>());
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = distinct, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c nonDistinctOpp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = 'non' + distinct, Account__c = '0016g00003VDGbF001');
+    calc.performRollup(new List<RollupCalcItem__c>{ opp, nonDistinctOpp }, new Map<Id, SObject>());
 
     System.assertEquals(distinct + '\n' + nonDistinctOpp.Name, String.valueOf(calc.getReturnValue()).trim());
   }
@@ -1100,15 +1100,15 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       '',
       RollupOperation.CONCAT_DISTINCT,
-      Opportunity.Name,
+      RollupCalcItem__c.Name,
       Account.Name,
       new Rollup__mdt(SplitConcatDelimiterOnCalcItem__c = true),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Name = '2017, 2018, 2019', AccountId = '0016g00003VDGbF001');
-    Opportunity secondOpp = new Opportunity(Id = '0066g00003VDGbF001', Name = '2019, 2020, 2021', AccountId = '0016g00003VDGbF001');
-    calc.performRollup(new List<Opportunity>{ opp, secondOpp }, new Map<Id, SObject>());
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = '2017, 2018, 2019', Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c secondOpp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = '2019, 2020, 2021', Account__c = '0016g00003VDGbF001');
+    calc.performRollup(new List<RollupCalcItem__c>{ opp, secondOpp }, new Map<Id, SObject>());
 
     System.assertEquals('2017, 2018, 2019, 2020, 2021', calc.getReturnValue());
   }
@@ -1118,15 +1118,15 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       '2019, 2020, 2021',
       RollupOperation.DELETE_CONCAT_DISTINCT,
-      Opportunity.Name,
+      RollupCalcItem__c.Name,
       Account.Name,
       new Rollup__mdt(SplitConcatDelimiterOnCalcItem__c = true),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Name = '2019, 2020, 2021', AccountId = '0016g00003VDGbF001');
-    Opportunity secondOpp = new Opportunity(Id = '0066g00003VDGbF001', Name = '2019, 2020, 2021', AccountId = '0016g00003VDGbF001');
-    calc.performRollup(new List<Opportunity>{ opp, secondOpp }, new Map<Id, SObject>());
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = '2019, 2020, 2021', Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c secondOpp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = '2019, 2020, 2021', Account__c = '0016g00003VDGbF001');
+    calc.performRollup(new List<RollupCalcItem__c>{ opp, secondOpp }, new Map<Id, SObject>());
 
     System.assertEquals('', calc.getReturnValue());
   }
@@ -1136,21 +1136,21 @@ private class RollupCalculatorTests {
     Account acc = [SELECT Id FROM Account WITH SYSTEM_MODE];
     String toRemove = 'CDC';
     String extantString = 'GISS';
-    insert as system new Opportunity(Name = extantString, CloseDate = System.today(), StageName = 'A', AccountId = acc.Id);
+    insert as system new RollupCalcItem__c(Name = extantString, CloseDate__c = System.today(), StageName__c = 'A', Account__c = acc.Id);
     RollupCalculator calc = getCalculator(
       toRemove + ', ' + extantString,
       RollupOperation.UPDATE_CONCAT_DISTINCT,
-      Opportunity.Name,
+      RollupCalcItem__c.Name,
       Account.Name,
       new Rollup__mdt(),
       acc.Id,
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
-    Opportunity opp = new Opportunity(Amount = 0, Id = '0066g00003VDGbF001', Name = 'CDC', AccountId = acc.Id);
-    Map<Id, Opportunity> oldOppMap = new Map<Id, Opportunity>{ opp.Id => new Opportunity(Amount = 5, Name = 'CDC') };
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
+    RollupCalcItem__c opp = new RollupCalcItem__c(Amount__c = 0, Id = '0066g00003VDGbF001', Name = 'CDC', Account__c = acc.Id);
+    Map<Id, RollupCalcItem__c> oldOppMap = new Map<Id, RollupCalcItem__c>{ opp.Id => new RollupCalcItem__c(Amount__c = 5, Name = 'CDC') };
 
-    calc.performRollup(new List<Opportunity>{ opp }, oldOppMap);
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, oldOppMap);
 
     System.assertEquals('GISS', calc.getReturnValue());
   }
@@ -1159,22 +1159,22 @@ private class RollupCalculatorTests {
   static void shouldNotRemoveValuesOnConcatDistinctDeleteIfItemDoesNotMatch() {
     Account acc = [SELECT Id FROM Account WITH SYSTEM_MODE];
 
-    insert as system new Opportunity(AccountId = acc.Id, StageName = 'hi', CloseDate = System.today(), Name = 'Delete');
+    insert as system new RollupCalcItem__c(Account__c = acc.Id, StageName__c = 'hi', CloseDate__c = System.today(), Name = 'Delete');
 
     RollupCalculator calc = getCalculator(
       'CDC, Delete',
       RollupOperation.DELETE_CONCAT_DISTINCT,
-      Opportunity.Name,
+      RollupCalcItem__c.Name,
       Account.Name,
       new Rollup__mdt(),
       acc.Id,
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
 
-    Opportunity opp = new Opportunity(Amount = 0, Id = '0066g00003VDGbF001', Name = 'CDC', AccountId = acc.Id);
+    RollupCalcItem__c opp = new RollupCalcItem__c(Amount__c = 0, Id = '0066g00003VDGbF001', Name = 'CDC', Account__c = acc.Id);
 
-    calc.performRollup(new List<Opportunity>{ opp }, new Map<Id, Opportunity>());
+    calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, RollupCalcItem__c>());
 
     System.assertEquals('Delete', calc.getReturnValue());
   }
@@ -1184,16 +1184,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       '',
       RollupOperation.UPDATE_CONCAT_DISTINCT,
-      Opportunity.Name,
+      RollupCalcItem__c.Name,
       Account.Name,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
-    Opportunity opp = new Opportunity(Id = '0066g00003VDGbF001', Name = null, AccountId = '0016g00003VDGbF001');
-    Opportunity nonDistinctOpp = new Opportunity(Id = '0066g00003VDGbF001', Name = 'non', AccountId = '0016g00003VDGbF001');
-    calc.performRollup(new List<Opportunity>{ opp, nonDistinctOpp }, new Map<Id, SObject>{ opp.Id => opp });
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = null, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c nonDistinctOpp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = 'non', Account__c = '0016g00003VDGbF001');
+    calc.performRollup(new List<RollupCalcItem__c>{ opp, nonDistinctOpp }, new Map<Id, SObject>{ opp.Id => opp });
 
     System.assertEquals(nonDistinctOpp.Name, (String) calc.getReturnValue(), 'should not blow up on null!');
   }
@@ -1205,7 +1205,7 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       '',
       RollupOperation.CONCAT,
-      Opportunity.Name,
+      RollupCalcItem__c.Name,
       QuickText.Channel,
       new Rollup__mdt(),
       RollupTestUtils.createId(QuickText.SObjectType),
@@ -1213,11 +1213,11 @@ private class RollupCalculatorTests {
     );
 
     calc.performRollup(
-      new List<Opportunity>{
-        new Opportunity(Name = 'Hello'),
-        new Opportunity(Name = 'World, I know'),
-        new Opportunity(Name = 'And'),
-        new Opportunity(Name = 'SSK')
+      new List<RollupCalcItem__c>{
+        new RollupCalcItem__c(Name = 'Hello'),
+        new RollupCalcItem__c(Name = 'World, I know'),
+        new RollupCalcItem__c(Name = 'And'),
+        new RollupCalcItem__c(Name = 'SSK')
       },
       new Map<Id, SObject>()
     );
@@ -1230,19 +1230,19 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       'Hello;World',
       RollupOperation.UPDATE_CONCAT,
-      Opportunity.StageName,
+      RollupCalcItem__c.StageName__c,
       QuickText.Channel,
       new Rollup__mdt(),
       RollupTestUtils.createId(QuickText.SObjectType),
-      Opportunity.Name
+      RollupCalcItem__c.Name
     );
 
-    String firstStubId = RollupTestUtils.createId(Opportunity.SObjectType);
-    String secondStubId = RollupTestUtils.createId(Opportunity.SObjectType);
+    String firstStubId = RollupTestUtils.createId(RollupCalcItem__c.SObjectType);
+    String secondStubId = RollupTestUtils.createId(RollupCalcItem__c.SObjectType);
 
     calc.performRollup(
-      new List<Opportunity>{ new Opportunity(StageName = 'Hello', Id = firstStubId), new Opportunity(Id = secondStubId) },
-      new Map<Id, SObject>{ firstStubId => new Opportunity(StageName = 'Hello'), secondStubId => new Opportunity(StageName = 'World') }
+      new List<RollupCalcItem__c>{ new RollupCalcItem__c(StageName__c = 'Hello', Id = firstStubId), new RollupCalcItem__c(Id = secondStubId) },
+      new Map<Id, SObject>{ firstStubId => new RollupCalcItem__c(StageName__c = 'Hello'), secondStubId => new RollupCalcItem__c(StageName__c = 'World') }
     );
 
     System.assertEquals('Hello', calc.getReturnValue(), 'Multi-select should properly remove values on update');
@@ -1255,9 +1255,9 @@ private class RollupCalculatorTests {
       '',
       RollupOperation.MIN,
       QuickText.Channel,
-      Opportunity.Name,
+      RollupCalcItem__c.Name,
       metadata,
-      RollupTestUtils.createId(Opportunity.SObjectType),
+      RollupTestUtils.createId(RollupCalcItem__c.SObjectType),
       QuickText.Name
     );
 
@@ -1295,7 +1295,7 @@ private class RollupCalculatorTests {
       QuickText.Channel,
       QuickText.Channel,
       new Rollup__mdt(),
-      RollupTestUtils.createId(Opportunity.SObjectType),
+      RollupTestUtils.createId(RollupCalcItem__c.SObjectType),
       QuickText.Name
     );
 
@@ -1328,7 +1328,7 @@ private class RollupCalculatorTests {
       QuickText.Channel,
       QuickText.Channel,
       new Rollup__mdt(),
-      RollupTestUtils.createId(Opportunity.SObjectType),
+      RollupTestUtils.createId(RollupCalcItem__c.SObjectType),
       QuickText.Name
     );
 
@@ -1363,7 +1363,7 @@ private class RollupCalculatorTests {
       QuickText.Channel,
       QuickText.Channel,
       new Rollup__mdt(),
-      RollupTestUtils.createId(Opportunity.SObjectType),
+      RollupTestUtils.createId(RollupCalcItem__c.SObjectType),
       QuickText.Name
     );
 
@@ -1474,9 +1474,9 @@ private class RollupCalculatorTests {
       2,
       RollupOperation.MIN,
       Task.CallDurationInSeconds,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       metadata,
-      RollupTestUtils.createId(Opportunity.SObjectType),
+      RollupTestUtils.createId(RollupCalcItem__c.SObjectType),
       Task.WhatId
     );
 
@@ -1493,9 +1493,9 @@ private class RollupCalculatorTests {
       today,
       RollupOperation.UPDATE_MIN,
       Task.ActivityDate, // not a "MIN"-able field in SOQL; crucial for this test
-      Opportunity.CloseDate,
+      RollupCalcItem__c.CloseDate__c,
       metadata,
-      RollupTestUtils.createId(Opportunity.SObjectType),
+      RollupTestUtils.createId(RollupCalcItem__c.SObjectType),
       Task.WhatId
     );
 
@@ -1514,11 +1514,11 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       firstPossibleDate,
       RollupOperation.MIN,
-      Opportunity.CloseDate, // not a "MIN"-able field in SOQL; crucial for this test
-      Opportunity.CloseDate,
+      RollupCalcItem__c.CloseDate__c, // not a "MIN"-able field in SOQL; crucial for this test
+      RollupCalcItem__c.CloseDate__c,
       new Rollup__mdt(),
-      RollupTestUtils.createId(Opportunity.SObjectType),
-      Opportunity.Name
+      RollupTestUtils.createId(RollupCalcItem__c.SObjectType),
+      RollupCalcItem__c.Name
     );
 
     calc.performRollup(new List<SObject>(), new Map<Id, SObject>());
@@ -1577,9 +1577,9 @@ private class RollupCalculatorTests {
       today,
       RollupOperation.UPDATE_MAX,
       Task.ActivityDate, // not a "MAX"-able field in SOQL; crucial for this test
-      Opportunity.CloseDate,
+      RollupCalcItem__c.CloseDate__c,
       metadata,
-      RollupTestUtils.createId(Opportunity.SObjectType),
+      RollupTestUtils.createId(RollupCalcItem__c.SObjectType),
       Task.WhatId
     );
 
@@ -1595,27 +1595,27 @@ private class RollupCalculatorTests {
   @IsTest
   static void shouldProperlyUpdateMinOnUpdateIfOldItemMatchesAndNewOneDoesNot() {
     Account acc = [SELECT Id FROM Account WITH SYSTEM_MODE];
-    Opportunity opp = new Opportunity(AccountId = acc.Id, CloseDate = System.today(), StageName = 'Hi', Name = 'Count Distinct', Amount = 5);
-    Opportunity newMin = opp.clone();
-    newMin.Amount = 3;
-    insert as system new List<Opportunity>{ opp, newMin };
+    RollupCalcItem__c opp = new RollupCalcItem__c(Account__c = acc.Id, CloseDate__c = System.today(), StageName__c = 'Hi', Name = 'Count Distinct', Amount__c = 5);
+    RollupCalcItem__c newMin = opp.clone();
+    newMin.Amount__c = 3;
+    insert as system new List<RollupCalcItem__c>{ opp, newMin };
 
-    Opportunity newerOpp = opp.clone(true, true);
-    newerOpp.Amount = 0;
+    RollupCalcItem__c newerOpp = opp.clone(true, true);
+    newerOpp.Amount__c = 0;
 
     RollupCalculator calc = getCalculator(
       5,
       RollupOperation.UPDATE_MIN,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       acc.Id,
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
-    Map<Id, Opportunity> oldOppMap = new Map<Id, Opportunity>{ opp.Id => opp };
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
+    Map<Id, RollupCalcItem__c> oldOppMap = new Map<Id, RollupCalcItem__c>{ opp.Id => opp };
 
-    calc.performRollup(new List<Opportunity>{ newerOpp }, oldOppMap);
+    calc.performRollup(new List<RollupCalcItem__c>{ newerOpp }, oldOppMap);
 
     System.assertEquals(3, calc.getReturnValue());
   }
@@ -1623,27 +1623,27 @@ private class RollupCalculatorTests {
   @IsTest
   static void shouldProperlyUpdateMaxOnUpdateIfOldItemMatchesAndNewOneDoesNot() {
     Account acc = [SELECT Id FROM Account WITH SYSTEM_MODE];
-    Opportunity opp = new Opportunity(AccountId = acc.Id, CloseDate = System.today(), StageName = 'Hi', Name = 'Count Distinct', Amount = 5);
-    Opportunity newMax = opp.clone();
-    newMax.Amount = 7;
-    insert as system new List<Opportunity>{ opp, newMax };
+    RollupCalcItem__c opp = new RollupCalcItem__c(Account__c = acc.Id, CloseDate__c = System.today(), StageName__c = 'Hi', Name = 'Count Distinct', Amount__c = 5);
+    RollupCalcItem__c newMax = opp.clone();
+    newMax.Amount__c = 7;
+    insert as system new List<RollupCalcItem__c>{ opp, newMax };
 
-    Opportunity newerOpp = opp.clone(true, true);
-    newerOpp.Amount = 0;
+    RollupCalcItem__c newerOpp = opp.clone(true, true);
+    newerOpp.Amount__c = 0;
 
     RollupCalculator calc = getCalculator(
       5,
       RollupOperation.UPDATE_MAX,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       acc.Id,
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
-    Map<Id, Opportunity> oldOppMap = new Map<Id, Opportunity>{ opp.Id => opp };
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
+    Map<Id, RollupCalcItem__c> oldOppMap = new Map<Id, RollupCalcItem__c>{ opp.Id => opp };
 
-    calc.performRollup(new List<Opportunity>{ newerOpp }, oldOppMap);
+    calc.performRollup(new List<RollupCalcItem__c>{ newerOpp }, oldOppMap);
 
     System.assertEquals(7, calc.getReturnValue());
   }
@@ -1653,13 +1653,13 @@ private class RollupCalculatorTests {
   @IsTest
   static void shouldNotThrowExceptionWhenFilteringOnUnfilterableFields() {
     Account acc = [SELECT Id FROM Account WITH SYSTEM_MODE];
-    Case cas = new Case(AccountId = acc.Id, Description = 'Something', Subject = 'Hello');
+    RollupCalcItem__c cas = new RollupCalcItem__c(Account__c = acc.Id, Description__c = 'Something', Name = 'Hello');
     insert as system cas;
 
-    Rollup__mdt meta = new Rollup__mdt(CalcItem__c = 'Case', LookupObject__c = 'Account', CalcItemWhereClause__c = 'Description != \'Something\'');
-    RollupCalculator calc = getCalculator('', RollupOperation.CONCAT_DISTINCT, Case.Description, Account.Description, meta, acc.Id, Account.Id);
-    calc.setEvaluator(RollupEvaluator.getWhereEval(meta.CalcItemWhereClause__c, Case.SObjectType));
-    calc.performRollup(new List<Case>{ cas }, new Map<Id, Case>());
+    Rollup__mdt meta = new Rollup__mdt(CalcItem__c = 'RollupCalcItem__c', LookupObject__c = 'Account', CalcItemWhereClause__c = 'Description__c != \'Something\'');
+    RollupCalculator calc = getCalculator('', RollupOperation.CONCAT_DISTINCT, RollupCalcItem__c.Description__c, Account.Description, meta, acc.Id, Account.Id);
+    calc.setEvaluator(RollupEvaluator.getWhereEval(meta.CalcItemWhereClause__c, RollupCalcItem__c.SObjectType));
+    calc.performRollup(new List<RollupCalcItem__c>{ cas }, new Map<Id, RollupCalcItem__c>());
 
     System.assertEquals(null, calc.getReturnValue());
   }
@@ -1669,11 +1669,11 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       System.today().addDays(-10),
       RollupOperation.MAX,
-      Opportunity.CloseDate,
+      RollupCalcItem__c.CloseDate__c,
       Contact.BirthDate,
       new Rollup__mdt(),
       RollupTestUtils.createId(Contact.SObjectType),
-      Opportunity.Name
+      RollupCalcItem__c.Name
     );
 
     Object newDefaultValue = System.today();
@@ -1685,11 +1685,11 @@ private class RollupCalculatorTests {
     calc = getCalculator(
       newDefaultValue,
       RollupOperation.MAX,
-      Opportunity.CloseDate,
+      RollupCalcItem__c.CloseDate__c,
       Event.ActivityDatetime,
       new Rollup__mdt(),
       RollupTestUtils.createId(Contact.SObjectType),
-      Opportunity.Name
+      RollupCalcItem__c.Name
     );
 
     System.assertEquals(newDefaultValue, calc.getReturnValue());
@@ -1698,11 +1698,11 @@ private class RollupCalculatorTests {
     calc = getCalculator(
       newDefaultValue,
       RollupOperation.MAX,
-      Opportunity.CloseDate,
+      RollupCalcItem__c.CloseDate__c,
       ContactPointAddress.BestTimeToContactStartTime,
       new Rollup__mdt(),
       RollupTestUtils.createId(Contact.SObjectType),
-      Opportunity.Name
+      RollupCalcItem__c.Name
     );
     calc.setDefaultValues(RollupTestUtils.createId(Contact.SObjectType), newDefaultValue);
 
@@ -1716,14 +1716,14 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.MAX,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
-    Opportunity badAmountOpp = new Opportunity(Amount = RollupFieldInitializer.Current.maximumLongValue);
+    RollupCalcItem__c badAmountOpp = new RollupCalcItem__c(Amount__c = RollupFieldInitializer.Current.maximumLongValue);
     calc.performRollup(new List<SObject>{ badAmountOpp }, new Map<Id, SObject>());
 
     Account accountWithBadRevenue = new Account();
@@ -1741,14 +1741,14 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.DELETE_COUNT_DISTINCT,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
-    Opportunity badAmountOpp = new Opportunity(Amount = 0);
+    RollupCalcItem__c badAmountOpp = new RollupCalcItem__c(Amount__c = 0);
     calc.performRollup(new List<SObject>{ badAmountOpp }, new Map<Id, SObject>());
 
     Account accountWithBadRevenue = new Account();
@@ -1766,14 +1766,14 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0.00,
       RollupOperation.COUNT,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
-    Opportunity badAmountOpp = new Opportunity(Amount = 0);
+    RollupCalcItem__c badAmountOpp = new RollupCalcItem__c(Amount__c = 0);
     calc.performRollup(new List<SObject>{ badAmountOpp }, new Map<Id, SObject>());
 
     Account accountWithBadRevenue = new Account();
@@ -1791,15 +1791,15 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.UPDATE_COUNT,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
-    Opportunity badAmountOpp = new Opportunity(Id = RollupTestUtils.createId(Opportunity.SObjectType));
-    calc.performRollup(new List<SObject>{ badAmountOpp }, new Map<Id, SObject>{ badAmountOpp.Id => new Opportunity(Amount = 15) });
+    RollupCalcItem__c badAmountOpp = new RollupCalcItem__c(Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType));
+    calc.performRollup(new List<SObject>{ badAmountOpp }, new Map<Id, SObject>{ badAmountOpp.Id => new RollupCalcItem__c(Amount__c = 15) });
 
     Account accountWithBadRevenue = new Account();
     accountWithBadRevenue.put(Account.AnnualRevenue, calc.getReturnValue());
@@ -1817,22 +1817,22 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       oldMax,
       RollupOperation.UPDATE_MAX,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
     // need the old amount to be equal to the max; new amount to be less than max
     // then have a second item which is less than the old max but greater than the new amount on the first item
-    Opportunity oldMaxOpp = new Opportunity(Amount = -1, Id = RollupTestUtils.createId(Opportunity.SObjectType));
-    Opportunity newMaxOpp = new Opportunity(Amount = null, Id = RollupTestUtils.createId(Opportunity.SObjectType));
+    RollupCalcItem__c oldMaxOpp = new RollupCalcItem__c(Amount__c = -1, Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType));
+    RollupCalcItem__c newMaxOpp = new RollupCalcItem__c(Amount__c = null, Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType));
     calc.performRollup(
       new List<SObject>{ oldMaxOpp, newMaxOpp },
       new Map<Id, SObject>{
-        oldMaxOpp.Id => new Opportunity(Id = oldMaxOpp.Id, Amount = oldMax),
-        newMaxOpp.Id => new Opportunity(Id = newMaxOpp.Id, Amount = 0)
+        oldMaxOpp.Id => new RollupCalcItem__c(Id = oldMaxOpp.Id, Amount__c = oldMax),
+        newMaxOpp.Id => new RollupCalcItem__c(Id = newMaxOpp.Id, Amount__c = 0)
       }
     );
 
@@ -1851,15 +1851,15 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.MAX,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
-    Opportunity oppOne = new Opportunity(Amount = 1);
-    Opportunity oppTwo = new Opportunity(Amount = 2);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Amount__c = 1);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Amount__c = 2);
 
     calc.performRollup(new List<SObject>{ oppOne, oppTwo }, new Map<Id, SObject>());
     Account accountWithBadRevenue = new Account();
@@ -1879,16 +1879,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.ALL,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(FullRecalculationDefaultNumberValue__c = 5),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 1', Opportunity.SObjectType));
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 1', RollupCalcItem__c.SObjectType));
 
-    Opportunity oppOne = new Opportunity(Amount = 1);
-    Opportunity oppTwo = new Opportunity(Amount = 1);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Amount__c = 1);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Amount__c = 1);
 
     calc.performRollup(new List<SObject>{ oppOne, oppTwo }, new Map<Id, SObject>());
 
@@ -1900,16 +1900,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.ALL,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
 
-    Opportunity oppOne = new Opportunity(Amount = 1);
-    Opportunity oppTwo = new Opportunity(Amount = 1);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Amount__c = 1);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Amount__c = 1);
 
     calc.performRollup(new List<SObject>{ oppOne, oppTwo }, new Map<Id, SObject>());
 
@@ -1921,16 +1921,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.ALL,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       User.IsActive,
       new Rollup__mdt(),
       RollupTestUtils.createId(User.SObjectType),
-      Opportunity.OwnerId
+      RollupCalcItem__c.OwnerId
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
 
-    Opportunity oppOne = new Opportunity(Amount = 1);
-    Opportunity oppTwo = new Opportunity(Amount = 1);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Amount__c = 1);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Amount__c = 1);
 
     calc.performRollup(new List<SObject>{ oppOne, oppTwo }, new Map<Id, SObject>());
 
@@ -1942,16 +1942,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.ALL,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.Description,
       new Rollup__mdt(),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
 
-    Opportunity oppOne = new Opportunity(Amount = 1);
-    Opportunity oppTwo = new Opportunity(Amount = 1);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Amount__c = 1);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Amount__c = 1);
 
     calc.performRollup(new List<SObject>{ oppOne, oppTwo }, new Map<Id, SObject>());
 
@@ -1963,16 +1963,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.ALL,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
 
-    Opportunity oppOne = new Opportunity(Amount = 1);
-    Opportunity oppTwo = new Opportunity(Amount = 0);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Amount__c = 1);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Amount__c = 0);
 
     calc.performRollup(new List<SObject>{ oppOne, oppTwo }, new Map<Id, SObject>());
 
@@ -1984,16 +1984,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.ALL,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       User.IsActive,
       new Rollup__mdt(),
       RollupTestUtils.createId(User.SObjectType),
-      Opportunity.OwnerId
+      RollupCalcItem__c.OwnerId
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
 
-    Opportunity oppOne = new Opportunity(Amount = 1);
-    Opportunity oppTwo = new Opportunity(Amount = 0);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Amount__c = 1);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Amount__c = 0);
 
     calc.performRollup(new List<SObject>{ oppOne, oppTwo }, new Map<Id, SObject>());
 
@@ -2005,16 +2005,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.ALL,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.Description,
       new Rollup__mdt(),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
 
-    Opportunity oppOne = new Opportunity(Amount = 1);
-    Opportunity oppTwo = new Opportunity(Amount = 0);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Amount__c = 1);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Amount__c = 0);
 
     calc.performRollup(new List<SObject>{ oppOne, oppTwo }, new Map<Id, SObject>());
 
@@ -2028,16 +2028,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.SOME,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
 
-    Opportunity oppOne = new Opportunity(Amount = 1);
-    Opportunity oppTwo = new Opportunity(Amount = 0);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Amount__c = 1);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Amount__c = 0);
 
     calc.performRollup(new List<SObject>{ oppOne, oppTwo }, new Map<Id, SObject>());
 
@@ -2049,16 +2049,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.SOME,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
 
-    Opportunity oppOne = new Opportunity(Amount = 0);
-    Opportunity oppTwo = new Opportunity(Amount = 0);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Amount__c = 0);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Amount__c = 0);
 
     calc.performRollup(new List<SObject>{ oppOne, oppTwo }, new Map<Id, SObject>());
 
@@ -2070,20 +2070,20 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       1,
       RollupOperation.SOME,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
 
-    Opportunity oppOne = new Opportunity(Id = RollupTestUtils.createId(Opportunity.SObjectTYpe), Amount = 0);
-    Opportunity oldOppOne = oppOne.clone(true);
-    oldOppOne.Amount = 1;
-    Opportunity oppTwo = new Opportunity(Id = RollupTestUtils.createId(Opportunity.SObjectTYpe), Amount = 0);
-    Opportunity oldOppTwo = oppTwo.clone(true);
-    oldOppTwo.Amount = 1;
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectTYpe), Amount__c = 0);
+    RollupCalcItem__c oldOppOne = oppOne.clone(true);
+    oldOppOne.Amount__c = 1;
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectTYpe), Amount__c = 0);
+    RollupCalcItem__c oldOppTwo = oppTwo.clone(true);
+    oldOppTwo.Amount__c = 1;
 
     calc.performRollup(new List<SObject>{ oppOne, oppTwo }, new Map<Id, SObject>{ oppOne.Id => oldOppOne, oppTwo.Id => oldOppTwo });
 
@@ -2097,16 +2097,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.NONE,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
 
-    Opportunity oppOne = new Opportunity(Amount = 0);
-    Opportunity oppTwo = new Opportunity(Amount = 0);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Amount__c = 0);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Amount__c = 0);
 
     calc.performRollup(new List<SObject>{ oppOne, oppTwo }, new Map<Id, SObject>());
 
@@ -2118,16 +2118,16 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.NONE,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       RollupTestUtils.createId(Account.SObjectType),
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
-    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount > 0', Opportunity.SObjectType));
+    calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
 
-    Opportunity oppOne = new Opportunity(Amount = 1);
-    Opportunity oppTwo = new Opportunity(Amount = 0);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Amount__c = 1);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Amount__c = 0);
 
     calc.performRollup(new List<SObject>{ oppOne, oppTwo }, new Map<Id, SObject>());
 
@@ -2157,20 +2157,20 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       null,
       RollupOperation.MIN,
-      Opportunity.Description,
-      Opportunity.CloseDate,
-      new Rollup__mdt(CalcItem__c = String.valueOf(Opportunity.SObjectType)),
-      RollupTestUtils.createId(Opportunity.SObjectType),
-      Opportunity.Id
+      RollupCalcItem__c.Description__c,
+      RollupCalcItem__c.CloseDate__c,
+      new Rollup__mdt(CalcItem__c = String.valueOf(RollupCalcItem__c.SObjectType)),
+      RollupTestUtils.createId(RollupCalcItem__c.SObjectType),
+      RollupCalcItem__c.Id
     );
 
-    Opportunity oppOne = new Opportunity(Description = '2020-01-01');
-    Opportunity oppTwo = new Opportunity(Description = '2020-01-02');
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Description__c = '2020-01-01');
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Description__c = '2020-01-02');
 
     calc.performRollup(new List<SObject>{ oppOne, oppTwo }, new Map<Id, SObject>());
 
     Assert.isInstanceOfType(calc.getReturnValue(), Date.class, 'Should have been properly converted');
-    System.assertEquals(Date.valueOf(oppOne.Description), calc.getReturnValue());
+    System.assertEquals(Date.valueOf(oppOne.Description__c), calc.getReturnValue());
   }
 
   @IsTest
@@ -2180,11 +2180,11 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       null,
       RollupOperation.SUM,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.Description,
       new Rollup__mdt(
-        CalcItem__c = String.valueOf(Opportunity.SObjectType),
-        GroupByFields__c = 'StageName, Name',
+        CalcItem__c = String.valueOf(RollupCalcItem__c.SObjectType),
+        GroupByFields__c = 'StageName__c, Name',
         GroupByRowEndDelimiter__c = rowEndDelimiter,
         GroupByRowStartDelimiter__c = rowStartDelimiter
       ),
@@ -2194,13 +2194,13 @@ private class RollupCalculatorTests {
 
     calc.performRollup(
       new List<SObject>{
-        new Opportunity(StageName = 'Two', Name = 'Deux', Amount = 50),
-        new Opportunity(StageName = 'Z', Name = 'A', Amount = 50),
-        new Opportunity(StageName = 'Two', Name = 'Deux', Amount = 50),
-        new Opportunity(Amount = 50),
-        new Opportunity(StageName = 'Z', Amount = 50),
-        new Opportunity(StageName = 'One', Amount = 50),
-        new Opportunity(StageName = 'One', Amount = 50)
+        new RollupCalcItem__c(StageName__c = 'Two', Name = 'Deux', Amount__c = 50),
+        new RollupCalcItem__c(StageName__c = 'Z', Name = 'A', Amount__c = 50),
+        new RollupCalcItem__c(StageName__c = 'Two', Name = 'Deux', Amount__c = 50),
+        new RollupCalcItem__c(Amount__c = 50),
+        new RollupCalcItem__c(StageName__c = 'Z', Amount__c = 50),
+        new RollupCalcItem__c(StageName__c = 'One', Amount__c = 50),
+        new RollupCalcItem__c(StageName__c = 'One', Amount__c = 50)
       },
       new Map<Id, SObject>()
     );
@@ -2228,19 +2228,19 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       null,
       RollupOperation.SUM,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.Description,
-      new Rollup__mdt(CalcItem__c = String.valueOf(Opportunity.SObjectType), GroupByFields__c = 'StageName, Name', ConcatDelimiter__c = '; '),
+      new Rollup__mdt(CalcItem__c = String.valueOf(RollupCalcItem__c.SObjectType), GroupByFields__c = 'StageName__c, Name', ConcatDelimiter__c = '; '),
       RollupTestUtils.createId(Account.SObjectType),
       Account.Id
     );
 
     calc.performRollup(
       new List<SObject>{
-        new Opportunity(StageName = 'Two', Name = 'Deux', Amount = 50),
-        new Opportunity(StageName = 'Two', Name = 'Deux', Amount = 50),
-        new Opportunity(StageName = 'One', Amount = 50),
-        new Opportunity(StageName = 'One', Amount = 50)
+        new RollupCalcItem__c(StageName__c = 'Two', Name = 'Deux', Amount__c = 50),
+        new RollupCalcItem__c(StageName__c = 'Two', Name = 'Deux', Amount__c = 50),
+        new RollupCalcItem__c(StageName__c = 'One', Amount__c = 50),
+        new RollupCalcItem__c(StageName__c = 'One', Amount__c = 50)
       },
       new Map<Id, SObject>()
     );
@@ -2259,12 +2259,12 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       null,
       RollupOperation.SUM,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.Description,
       new Rollup__mdt(
-        CalcItem__c = String.valueOf(Opportunity.SObjectType),
-        CurrencyFieldMapping__c = 'CloseDate',
-        GroupByFields__c = 'StageName, CurrencyIsoCode'
+        CalcItem__c = String.valueOf(RollupCalcItem__c.SObjectType),
+        CurrencyFieldMapping__c = 'CloseDate__c',
+        GroupByFields__c = 'StageName__c, CurrencyIsoCode'
       ),
       fakeAccount.Id,
       Account.Id
@@ -2272,10 +2272,10 @@ private class RollupCalculatorTests {
     calc.setMultiCurrencyInfo(fakeAccount);
 
     List<SObject> opportunities = new List<SObject>{
-      new Opportunity(StageName = 'One', Amount = 50),
-      new Opportunity(StageName = 'One', Amount = 50),
-      new Opportunity(StageName = 'One', Amount = 50),
-      new Opportunity(StageName = 'One', Amount = 50)
+      new RollupCalcItem__c(StageName__c = 'One', Amount__c = 50),
+      new RollupCalcItem__c(StageName__c = 'One', Amount__c = 50),
+      new RollupCalcItem__c(StageName__c = 'One', Amount__c = 50),
+      new RollupCalcItem__c(StageName__c = 'One', Amount__c = 50)
     };
     for (Integer index = 0; index < opportunities.size(); index++) {
       opportunities[index].put(RollupCurrencyInfo.CURRENCY_ISO_CODE_FIELD_NAME, Math.mod(index, 2) == 0 ? 'EUR' : 'JPY');
@@ -2291,19 +2291,19 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       null,
       RollupOperation.SUM,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.Description,
-      new Rollup__mdt(CalcItem__c = String.valueOf(Opportunity.SObjectType), GroupByFields__c = 'StageName, Name', IsTableFormatted__c = true),
+      new Rollup__mdt(CalcItem__c = String.valueOf(RollupCalcItem__c.SObjectType), GroupByFields__c = 'StageName__c, Name', IsTableFormatted__c = true),
       RollupTestUtils.createId(Account.SObjectType),
       Account.Id
     );
 
     calc.performRollup(
       new List<SObject>{
-        new Opportunity(StageName = 'Two', Name = 'Deux', Amount = 50),
-        new Opportunity(StageName = 'Two', Name = 'Deux', Amount = 50),
-        new Opportunity(StageName = 'One', Amount = 50),
-        new Opportunity(StageName = 'One', Amount = 50)
+        new RollupCalcItem__c(StageName__c = 'Two', Name = 'Deux', Amount__c = 50),
+        new RollupCalcItem__c(StageName__c = 'Two', Name = 'Deux', Amount__c = 50),
+        new RollupCalcItem__c(StageName__c = 'One', Amount__c = 50),
+        new RollupCalcItem__c(StageName__c = 'One', Amount__c = 50)
       },
       new Map<Id, SObject>()
     );
@@ -2325,7 +2325,7 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       state.numerator / state.denominator,
       RollupOperation.AVERAGE,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.Description,
       meta,
       lookupKey,
@@ -2335,11 +2335,11 @@ private class RollupCalculatorTests {
 
     calc.performRollup(
       new List<SObject>{
-        new Opportunity(Amount = 15),
-        new Opportunity(Amount = 15),
-        new Opportunity(Amount = 15),
-        new Opportunity(Amount = 15),
-        new Opportunity(Amount = 15)
+        new RollupCalcItem__c(Amount__c = 15),
+        new RollupCalcItem__c(Amount__c = 15),
+        new RollupCalcItem__c(Amount__c = 15),
+        new RollupCalcItem__c(Amount__c = 15),
+        new RollupCalcItem__c(Amount__c = 15)
       },
       new Map<Id, SObject>()
     );
@@ -2352,11 +2352,11 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(
       0,
       RollupOperation.SUM,
-      Opportunity.Amount,
+      RollupCalcItem__c.Amount__c,
       Account.AnnualRevenue,
       new Rollup__mdt(),
       '0011g00003VDGbF002',
-      Opportunity.AccountId
+      RollupCalcItem__c.Account__c
     );
 
     RollupCalculator.ValueRollupCalculator outerCalc = new RollupCalculator.ValueRollupCalculator(calc, new List<Object>{ 2, 3 });

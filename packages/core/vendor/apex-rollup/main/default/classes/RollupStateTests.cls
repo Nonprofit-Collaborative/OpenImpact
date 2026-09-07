@@ -468,7 +468,7 @@ private class RollupStateTests {
     Id stubJobId = RollupTestUtils.createId(AsyncApexJob.SObjectType);
     String stubTaskId = RollupTestUtils.createId(Task.SObjectType);
     String stubEventId = RollupTestUtils.createId(Event.SObjectType);
-    String stubOppId = RollupTestUtils.createId(Opportunity.SObjectType);
+    String stubOppId = RollupTestUtils.createId(RollupCalcItem__c.SObjectType);
     String stubContactPointAddressId = RollupTestUtils.createId(ContactPointAddress.SObjectType);
     RollupState.SObjectInfo contactPointInfo = (RollupState.SObjectInfo) state.getState(
       stubContactPointAddressId,
@@ -491,7 +491,7 @@ private class RollupStateTests {
     eventInfo.setItem(ev);
     Task task = new Task(ActivityDate = System.today());
     sObjectInfo.setItem(task);
-    Opportunity opp = new Opportunity(CloseDate = System.today());
+    RollupCalcItem__c opp = new RollupCalcItem__c(CloseDate__c = System.today());
     RollupState.SObjectInfo oppInfo = (RollupState.SObjectInfo) state.getState(
       stubOppId,
       new Rollup__mdt(RollupOperation__c = 'FIRST'),
@@ -511,7 +511,7 @@ private class RollupStateTests {
     sObjectInfo = (RollupState.SObjectInfo) state.getState(stubTaskId, new Rollup__mdt(RollupOperation__c = 'FIRST'), RollupState.SObjectInfo.class);
     Assert.areEqual(task.ActivityDate, sObjectInfo.item.get('ActivityDate'));
     oppInfo = (RollupState.SObjectInfo) state.getState(stubOppId, new Rollup__mdt(RollupOperation__c = 'FIRST'), RollupState.SObjectInfo.class);
-    Assert.areEqual(opp.CloseDate, oppInfo.item.get('CloseDate'));
+    Assert.areEqual(opp.CloseDate__c, oppInfo.item.get('CloseDate__c'));
     eventInfo = (RollupState.SObjectInfo) state.getState(stubEventId, new Rollup__mdt(RollupOperation__c = 'FIRST'), RollupState.SObjectInfo.class);
     Assert.areEqual(ev.ActivityDatetime, eventInfo.item.get('ActivityDatetime'));
   }

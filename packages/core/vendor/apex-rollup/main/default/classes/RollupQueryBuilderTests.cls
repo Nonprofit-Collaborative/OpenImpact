@@ -28,27 +28,27 @@ private class RollupQueryBuilderTests {
   @IsTest
   static void shouldProperlyQueryIfMultipleCasedVersionsOfSameFieldPassedIn() {
     String queryString = RollupQueryBuilder.Current.getQuery(
-      Opportunity.SObjectType,
-      new List<String>{ 'Id', 'ID', 'id', 'iD', 'AccountId', 'AccountID', 'accountId', 'accountID' },
-      'AccountId',
+      RollupCalcItem__c.SObjectType,
+      new List<String>{ 'Id', 'ID', 'id', 'iD', 'Account__c', 'ACCOUNT__C', 'account__c', 'Account__C' },
+      'Account__c',
       '='
     );
 
     List<SObject> records = Database.query(queryString);
 
     System.assertEquals(true, queryString.contains('Id'));
-    System.assertEquals(true, queryString.contains('AccountId'));
-    System.assertEquals(Opportunity.SObjectType, records.getSObjectType());
+    System.assertEquals(true, queryString.contains('Account__c'));
+    System.assertEquals(RollupCalcItem__c.SObjectType, records.getSObjectType());
   }
 
   @IsTest
   static void shouldNotBlowUpIfPassedInFieldsAreNullOrBlank() {
-    String queryString = RollupQueryBuilder.Current.getQuery(Opportunity.SObjectType, new List<String>{ '', null, ' ', 'Id' }, 'AccountId', '=');
+    String queryString = RollupQueryBuilder.Current.getQuery(RollupCalcItem__c.SObjectType, new List<String>{ '', null, ' ', 'Id' }, 'Account__c', '=');
 
     List<SObject> records = Database.query(queryString);
 
     System.assertEquals(true, queryString.contains('Id'));
-    System.assertEquals(Opportunity.SObjectType, records.getSObjectType());
+    System.assertEquals(RollupCalcItem__c.SObjectType, records.getSObjectType());
   }
 
   @IsTest
@@ -97,13 +97,13 @@ private class RollupQueryBuilderTests {
   @IsTest
   static void shouldWrapTopLevelOrClauses() {
     String queryString = RollupQueryBuilder.Current.getQuery(
-      Opportunity.SObjectType,
-      new List<String>{ 'Amount' },
-      Opportunity.AccountId.toString(),
+      RollupCalcItem__c.SObjectType,
+      new List<String>{ 'Amount__c' },
+      RollupCalcItem__c.Account__c.toString(),
       '=',
-      'Amount > 0 OR CloseDate = YESTERDAY'
+      'Amount__c > 0 OR CloseDate__c = YESTERDAY'
     );
-    System.assert(queryString.contains('(Amount > 0 OR CloseDate = YESTERDAY)'), 'top-level OR clause should be wrapped');
+    System.assert(queryString.contains('(Amount__c > 0 OR CloseDate__c = YESTERDAY)'), 'top-level OR clause should be wrapped');
   }
 
   @IsTest
@@ -143,7 +143,7 @@ private class RollupQueryBuilderTests {
 
   @IsTest
   static void correctlyFormatsAggregateQuery() {
-    String countQuery = RollupQueryBuilder.Current.getQuery(Opportunity.SObjectType, new List<String>{ 'count()' }, 'Id', '=');
+    String countQuery = RollupQueryBuilder.Current.getQuery(RollupCalcItem__c.SObjectType, new List<String>{ 'count()' }, 'Id', '=');
 
     Integer countAmount = Database.countQuery(countQuery);
 
@@ -164,13 +164,13 @@ private class RollupQueryBuilderTests {
 
   @IsTest
   static void properlyFormatsOrWithAndClause() {
-    String whereClause = '(StageName = \'one\' AND CloseDate = TODAY) OR (StageName = \'four\' AND CloseDate = TODAY)';
+    String whereClause = '(StageName__c = \'one\' AND CloseDate__c = TODAY) OR (StageName__c = \'four\' AND CloseDate__c = TODAY)';
 
-    String actualQuery = RollupQueryBuilder.Current.getQuery(Opportunity.SObjectType, new List<String>{ 'COUNT()' }, 'Id', '!=', whereClause);
+    String actualQuery = RollupQueryBuilder.Current.getQuery(RollupCalcItem__c.SObjectType, new List<String>{ 'COUNT()' }, 'Id', '!=', whereClause);
 
     System.assertEquals(0, Database.countQuery(actualQuery), 'Validation that query is syntactically valid');
     System.assertEquals(
-      'SELECT count()\nFROM Opportunity\nWHERE Id != :objIds\nAND ((StageName = \'one\' AND CloseDate = TODAY) OR (StageName = \'four\' AND CloseDate = TODAY))',
+      'SELECT count()\nFROM RollupCalcItem__c\nWHERE Id != :objIds\nAND ((StageName__c = \'one\' AND CloseDate__c = TODAY) OR (StageName__c = \'four\' AND CloseDate__c = TODAY))',
       actualQuery
     );
   }

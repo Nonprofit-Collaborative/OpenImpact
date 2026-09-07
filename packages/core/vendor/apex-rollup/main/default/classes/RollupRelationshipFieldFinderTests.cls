@@ -547,31 +547,31 @@ private class RollupRelationshipFieldFinderTests {
     Account secondAccount = new Account(Name = 'Second Parent', OwnerId = acc.OwnerId);
     insert as system secondAccount;
 
-    Opportunity opp = new Opportunity(Name = 'Does match', AccountId = acc.Id, CloseDate = System.today(), StageName = 'One');
-    Opportunity secondOpp = new Opportunity(Name = 'Does match', AccountId = secondAccount.Id, CloseDate = System.today(), StageName = 'Two');
-    insert as system new List<Opportunity>{ opp, secondOpp };
+    RollupCalcItem__c opp = new RollupCalcItem__c(Name = 'Does match', Account__c = acc.Id, CloseDate__c = System.today(), StageName__c = 'One');
+    RollupCalcItem__c secondOpp = new RollupCalcItem__c(Name = 'Does match', Account__c = secondAccount.Id, CloseDate__c = System.today(), StageName__c = 'Two');
+    insert as system new List<RollupCalcItem__c>{ opp, secondOpp };
 
     RollupRelationshipFieldFinder finder = new RollupRelationshipFieldFinder(
       control,
       new Rollup__mdt(
-        CalcItem__c = 'Opportunity',
+        CalcItem__c = 'RollupCalcItem__c',
         RollupFieldOnCalcItem__c = 'Id',
-        LookupFieldOnCalcItem__c = 'AccountId',
+        LookupFieldOnCalcItem__c = 'Account__c',
         LookupObject__c = 'User',
         LookupFieldOnLookupObject__c = 'Id',
         RollupFieldOnLookupObject__c = 'PasswordResetAttempt',
         RollupOperation__c = 'COUNT_DISTINCT',
-        GrandparentRelationshipFieldPath__c = 'Account.Owner.PasswordResetAttempt',
+        GrandparentRelationshipFieldPath__c = 'Account__r.Owner.PasswordResetAttempt',
         CalcItemWhereClause__c = 'Name = \'' + opp.Name + '\'',
         IsFullRecordSet__c = true
       ),
       new Set<String>{ 'Name' },
       uniqueFieldNames,
       User.SObjectType,
-      new Map<Id, SObject>{ opp.Id => new Opportunity(AccountId = acc.Id, Name = 'Does not match', Id = opp.Id) }
+      new Map<Id, SObject>{ opp.Id => new RollupCalcItem__c(Account__c = acc.Id, Name = 'Does not match', Id = opp.Id) }
     );
 
-    RollupRelationshipFieldFinder.Traversal traversal = finder.getParents(new List<Opportunity>{ opp });
+    RollupRelationshipFieldFinder.Traversal traversal = finder.getParents(new List<RollupCalcItem__c>{ opp });
     System.assertEquals(true, traversal.getIsFinished());
     Map<String, Rollup.CalcItemBag> lookupToCalcItems = traversal.getParentLookupToRecords();
     System.assertEquals(2, lookupToCalcItems.get(acc.OwnerId).getAll().size(), lookupToCalcItems);
