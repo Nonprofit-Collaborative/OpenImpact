@@ -22,10 +22,18 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0011](0011-evaluate-vendoring-a-rollup-library.md) | Evaluate vendoring a proven Apex rollup library before building one | Accepted |
 | [0012](0012-trunk-based-development.md) | Trunk-based development with squash merges and an always-releasable main | Accepted |
 | [0013](0013-platform-only-org-shape-verification.md) | How the Platform-only org shape is provisioned and verified | Accepted |
+| [0014](0014-cross-package-references-as-record-identifiers.md) | Core holds Giving record identifiers, not lookups | Accepted |
+| [0015](0015-vendor-apex-rollup-behind-adapter.md) | Vendor apex-rollup as the aggregation core, behind an OpenImpact adapter | Accepted |
+| [0016](0016-receipt-pdf-rendering.md) | Receipt PDFs are rendered by the Visualforce PDF rendering service, called from Apex | Proposed |
+| [0017](0017-cross-package-mechanisms.md) | Cross-package mechanisms under one namespace: NamespaceAccessible, per-package settings objects, registry-driven trigger dispatch | Accepted |
+
+| [0020](0020-module-settings-pages-reached-by-navigation.md) | Module settings pages reached by navigation, Core pages by literal import | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
-(Section 12). ADR-0013 is a builder decision recorded under the platform-limitation rule
-in plan Section 9.3.
+(Section 12). ADR-0013 and ADR-0014 are builder decisions recorded under the
+platform-limitation rule in plan Section 9.3. ADR-0015 records the ADR-0011 evaluation outcome.
+ADR-0016 is proposed for the owner's decision at v0.4 (plan Section 11.2 item 6). ADR-0020 is a
+builder decision under the same platform-limitation rule.
 
 ## Adding a new ADR
 

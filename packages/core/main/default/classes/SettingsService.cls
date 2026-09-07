@@ -9,15 +9,24 @@
  */
 @NamespaceAccessible
 public with sharing class SettingsService {
-    /** Core's own settings object, used when a caller or a row does not name one. */
+    /**
+     * Core's own settings object, used when a caller or a row does not name one. Read from
+     * describe rather than written as a literal, so it stays correct once a namespace is
+     * registered.
+     */
     @NamespaceAccessible
-    public static final String CORE_SETTINGS_OBJECT = 'Nonprofit_Settings__c';
+    public static final String CORE_SETTINGS_OBJECT = Nonprofit_Settings__c.SObjectType.getDescribe(
+            SObjectDescribeOptions.DEFERRED
+        )
+        .getLocalName();
 
     private static final String CACHE_PARTITION = 'local.NonprofitSettings';
     private static final String CACHE_KEY = 'orgDefaults';
     private static final String SETUP_OWNER = 'setupownerid';
+    private static final String PICKLIST = 'Picklist';
 
     private static Nonprofit_Settings__c cachedSettings;
+    private static Map<String, SObject> cachedOrgDefaults = new Map<String, SObject>();
     private static Map<String, Map<String, Schema.SObjectField>> cachedFields = new Map<String, Map<String, Schema.SObjectField>>();
 
     /** Raised when a setting does not exist, is not editable here, or the value cannot be read. */
@@ -114,8 +123,8 @@ public with sharing class SettingsService {
         if (values == null || values.isEmpty()) {
             return record;
         }
-        String objectName = objectName(settingsObject);
-        Set<String> definedKeys = requireDefinition ? definedKeys(objectName) : null;
+        String objectName = localName(type);
+        Map<String, Setting_Definition__mdt> rows = definitionsByKey(objectName);
         record = record.clone(true, true, true, true);
         if (record.Id == null) {
             record.put(SETUP_OWNER, UserInfo.getOrganizationId());
@@ -126,20 +135,24 @@ public with sharing class SettingsService {
             Schema.SObjectField token = fieldFor(type, key);
             Schema.DescribeFieldResult field = token.getDescribe();
             String localName = field.getLocalName();
-            if (requireDefinition && !definedKeys.contains(localName.toLowerCase())) {
+            Setting_Definition__mdt definition = rows.get(localName.toLowerCase());
+            if (requireDefinition && definition == null) {
                 throw new SettingsException(System.Label.Core_Settings_UnknownKeyError);
             }
             Object oldValue = record.get(token);
             Object newValue = coerce(values.get(key), field);
-            if (asText(oldValue) == asText(newValue)) {
+            checkAllowedValue(definition, newValue);
+            String oldText = asText(oldValue);
+            String newText = asText(newValue);
+            if (oldText.equals(newText)) {
                 continue;
             }
             record.put(token, newValue);
             changes.add(
                 new Setting_Change__c(
                     Setting_Name__c = objectName + '.' + localName,
-                    Old_Value__c = asText(oldValue),
-                    New_Value__c = asText(newValue),
+                    Old_Value__c = oldText,
+                    New_Value__c = newText,
                     Changed_By__c = UserInfo.getUserId(),
                     Changed_At__c = changedAt
                 )
@@ -148,19 +161,59 @@ public with sharing class SettingsService {
         if (changes.isEmpty()) {
             return record;
         }
-        Database.upsert(record, AccessLevel.USER_MODE);
+        SettingsWriter.saveOrgDefault(record);
         Database.insert(changes, AccessLevel.USER_MODE);
         clearCaches();
         return record;
     }
 
-    /** The org-level record of the given settings object, never null. */
+    /**
+     * A picklist row may only be set to one of the choices it ships, so a direct call to the
+     * controller cannot store a value the console would never offer.
+     */
+    private static void checkAllowedValue(Setting_Definition__mdt definition, Object newValue) {
+        if (
+            definition == null ||
+            !PICKLIST.equalsIgnoreCase(definition.Data_Type__c) ||
+            String.isBlank(definition.Picklist_Values__c) ||
+            newValue == null
+        ) {
+            return;
+        }
+        String candidate = String.valueOf(newValue);
+        for (String pair : definition.Picklist_Values__c.split(';')) {
+            String allowed = pair.trim();
+            Integer separator = allowed.indexOf(':');
+            if (separator >= 0) {
+                allowed = allowed.substring(0, separator).trim();
+            }
+            if (allowed.equals(candidate)) {
+                return;
+            }
+        }
+        throw new SettingsException(System.Label.Core_Settings_InvalidValueError);
+    }
+
+    /**
+     * The org-level record of the given settings object, never null, read once per transaction
+     * per object so a console holding many modules' settings does not query per row.
+     */
     private static SObject orgDefault(Schema.SObjectType type) {
         if (isCoreSettings(type)) {
             return getSettings();
         }
+        String name = localName(type);
+        if (cachedOrgDefaults.containsKey(name)) {
+            return cachedOrgDefaults.get(name);
+        }
         SObject record = SettingsRecordSelector.getOrgDefault(type);
-        return record == null ? type.newSObject() : record;
+        SObject resolved = record == null ? type.newSObject() : record;
+        cachedOrgDefaults.put(name, resolved);
+        return resolved;
+    }
+
+    private static String localName(Schema.SObjectType type) {
+        return type.getDescribe(SObjectDescribeOptions.DEFERRED).getLocalName();
     }
 
     private static Boolean isCoreSettings(Schema.SObjectType type) {
@@ -179,7 +232,7 @@ public with sharing class SettingsService {
         ) {
             throw new SettingsException(System.Label.Core_Settings_UnknownKeyError);
         }
-        Schema.SObjectType type = Schema.getGlobalDescribe().get(name);
+        Schema.SObjectType type = typeByName(name);
         if (type == null) {
             throw new SettingsException(System.Label.Core_Settings_UnknownKeyError);
         }
@@ -194,6 +247,31 @@ public with sharing class SettingsService {
         return String.isBlank(settingsObject) ? CORE_SETTINGS_OBJECT : settingsObject.trim();
     }
 
+    /**
+     * The object with this API name, whether or not a namespace is in front of it. Metadata rows
+     * name objects without a prefix, and a packaged org's describe keys carry one, so an exact
+     * match is tried first and then a match on the part after the namespace.
+     */
+    @NamespaceAccessible
+    public static Schema.SObjectType typeByName(String apiName) {
+        if (String.isBlank(apiName)) {
+            return null;
+        }
+        Map<String, Schema.SObjectType> globals = Schema.getGlobalDescribe();
+        String name = apiName.trim();
+        Schema.SObjectType type = globals.get(name);
+        if (type != null) {
+            return type;
+        }
+        String suffix = '__' + name.toLowerCase();
+        for (String key : globals.keySet()) {
+            if (key.toLowerCase().endsWith(suffix)) {
+                return globals.get(key);
+            }
+        }
+        return null;
+    }
+
     private static Set<String> registeredObjects() {
         Set<String> names = new Set<String>();
         for (Setting_Definition__mdt definition : SettingDefinitionSelector.getAll()) {
@@ -202,9 +280,14 @@ public with sharing class SettingsService {
         return names;
     }
 
-    /** Forgets both the static and the org cache, so the next read comes from the platform. */
+    /**
+     * Forgets the cached settings, so the next read comes from the platform. Every writer of a
+     * settings object, in any package, calls this after it writes.
+     */
+    @NamespaceAccessible
     public static void clearCaches() {
         cachedSettings = null;
+        cachedOrgDefaults.clear();
         Cache.OrgPartition partition = partition();
         if (partition == null) {
             return;
@@ -216,16 +299,17 @@ public with sharing class SettingsService {
         }
     }
 
-    private static Set<String> definedKeys(String objectName) {
-        Set<String> keys = new Set<String>();
+    /** The shipped rows for one settings object, by the key each one edits. */
+    private static Map<String, Setting_Definition__mdt> definitionsByKey(String objectName) {
+        Map<String, Setting_Definition__mdt> rows = new Map<String, Setting_Definition__mdt>();
         for (Setting_Definition__mdt definition : SettingDefinitionSelector.getAll()) {
             Boolean sameObject = objectName(definition.Settings_Object__c)
                 .equalsIgnoreCase(objectName);
             if (sameObject && String.isNotBlank(definition.Setting_Key__c)) {
-                keys.add(definition.Setting_Key__c.trim().toLowerCase());
+                rows.put(definition.Setting_Key__c.trim().toLowerCase(), definition);
             }
         }
-        return keys;
+        return rows;
     }
 
     private static Schema.SObjectField fieldFor(Schema.SObjectType type, String key) {

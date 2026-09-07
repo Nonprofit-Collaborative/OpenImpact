@@ -34,7 +34,7 @@ Maria has just installed Open Impact and has the sample data loaded.
    opens with the heading **Welcome to Open Impact**.
 2. Read the **Setup checklist**. There are eight steps, each with one sentence saying what
    it is for. Steps you have already finished show a **Done** badge, and the rest show
-   **To do**. The checklist tells you how many are done, for example "3 of 8 steps done".
+   **To do**. The checklist tells you how many are done, for example "3 of 8".
 3. Find the first step, **Confirm how Open Impact fits your existing org**, and click
    **Open**. The Nonprofit Settings page opens at the section that step belongs to. If your
    org uses Person Accounts, as Nonprofit Cloud orgs do, the step says so plainly and

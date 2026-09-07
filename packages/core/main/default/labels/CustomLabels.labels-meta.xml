@@ -5,10 +5,8 @@
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Hub home: banner shown while all packaged automation is paused</shortDescription>
-    <value
-    >Open Impact automation is paused. Households and greetings are not being updated until it resumes.</value>
+    <shortDescription>Hub home: banner shown while all packaged automation is paused</shortDescription>
+    <value>Open Impact automation is paused. Households and greetings are not being updated until it resumes.</value>
   </labels>
   <labels>
     <fullName>Core_HubHome_ChecklistHeading</fullName>
@@ -39,8 +37,7 @@
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Hub home: message shown when part of the home page could not load</shortDescription>
+    <shortDescription>Hub home: message shown when part of the home page could not load</shortDescription>
     <value>The home page could not load everything. The error is recorded in the Error Log.</value>
   </labels>
   <labels>
@@ -89,8 +86,7 @@
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>Hub home: the sentence under the page heading</shortDescription>
-    <value
-    >Start with the setup checklist below. You can leave and come back: your progress is saved.</value>
+    <value>Start with the setup checklist below. You can leave and come back: your progress is saved.</value>
   </labels>
   <labels>
     <fullName>Core_SettingsSearch_InputLabel</fullName>
@@ -129,8 +125,7 @@
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Settings console: recent changes column for when the change was saved</shortDescription>
+    <shortDescription>Settings console: recent changes column for when the change was saved</shortDescription>
     <value>Changed at</value>
   </labels>
   <labels>
@@ -138,8 +133,7 @@
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Settings console: recent changes column for who made the change</shortDescription>
+    <shortDescription>Settings console: recent changes column for who made the change</shortDescription>
     <value>Changed by</value>
   </labels>
   <labels>
@@ -147,8 +141,7 @@
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Settings console: recent changes column for the value after the change</shortDescription>
+    <shortDescription>Settings console: recent changes column for the value after the change</shortDescription>
     <value>New value</value>
   </labels>
   <labels>
@@ -156,8 +149,7 @@
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Settings console: recent changes column for the value before the change</shortDescription>
+    <shortDescription>Settings console: recent changes column for the value before the change</shortDescription>
     <value>Old value</value>
   </labels>
   <labels>
@@ -181,8 +173,7 @@
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Settings console: message shown when a section has no settings yet</shortDescription>
+    <shortDescription>Settings console: message shown when a section has no settings yet</shortDescription>
     <value>This section has no settings yet.</value>
   </labels>
   <labels>
@@ -190,18 +181,15 @@
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Settings console: error when a value cannot be read in the format the setting expects</shortDescription>
-    <value
-    >One of the values is not in the format this setting expects, so nothing was saved. Check the value and save again.</value>
+    <shortDescription>Settings console: error when a value cannot be read in the format the setting expects</shortDescription>
+    <value>One of the values is not in the format this setting expects, so nothing was saved. Check the value and save again.</value>
   </labels>
   <labels>
     <fullName>Core_Settings_LearnMoreLink</fullName>
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Settings console: link from a setting to its admin guide page</shortDescription>
+    <shortDescription>Settings console: link from a setting to its admin guide page</shortDescription>
     <value>Learn more</value>
   </labels>
   <labels>
@@ -209,8 +197,7 @@
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Settings console: message shown when the page could not load</shortDescription>
+    <shortDescription>Settings console: message shown when the page could not load</shortDescription>
     <value>The settings page could not load. The error is recorded in the Error Log.</value>
   </labels>
   <labels>
@@ -218,28 +205,23 @@
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Settings console: error when a user without the permission tries to save</shortDescription>
-    <value
-    >You need the Manage Nonprofit Settings permission to change settings. Ask your administrator to add it.</value>
+    <shortDescription>Settings console: error when a user without the permission tries to save</shortDescription>
+    <value>You need the Manage Nonprofit Settings permission to change settings. Ask your administrator to add it.</value>
   </labels>
   <labels>
     <fullName>Core_Settings_ReadOnlyNotice</fullName>
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Settings console: notice shown to a user who may read but not change settings</shortDescription>
-    <value
-    >You can read these settings but not change them. Ask your administrator for the Manage Nonprofit Settings permission.</value>
+    <shortDescription>Settings console: notice shown to a user who may read but not change settings</shortDescription>
+    <value>You can read these settings but not change them. Ask your administrator for the Manage Nonprofit Settings permission.</value>
   </labels>
   <labels>
     <fullName>Core_Settings_RecentChangesEmpty</fullName>
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Settings console: message shown when no setting has been changed yet</shortDescription>
+    <shortDescription>Settings console: message shown when no setting has been changed yet</shortDescription>
     <value>No settings have been changed yet. Every change you make is listed here.</value>
   </labels>
   <labels>
@@ -263,18 +245,15 @@
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Settings console: message shown when a save did not go through</shortDescription>
-    <value
-    >Your settings were not saved. Read the message below, fix the value, and save again.</value>
+    <shortDescription>Settings console: message shown when a save did not go through</shortDescription>
+    <value>Your settings were not saved. Read the message below, fix the value, and save again.</value>
   </labels>
   <labels>
     <fullName>Core_Settings_SavedMessage</fullName>
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Settings console: confirmation shown after a successful save</shortDescription>
+    <shortDescription>Settings console: confirmation shown after a successful save</shortDescription>
     <value>Your settings are saved.</value>
   </labels>
   <labels>
@@ -298,10 +277,8 @@
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Settings console: error when a setting sent from the page does not exist in this org</shortDescription>
-    <value
-    >That setting does not exist in this org, so nothing was saved. Refresh the page and try again.</value>
+    <shortDescription>Settings console: error when a setting sent from the page does not exist in this org</shortDescription>
+    <value>That setting does not exist in this org, so nothing was saved. Refresh the page and try again.</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_AllDoneMessage</fullName>
@@ -340,8 +317,7 @@
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Setup assistant: button that puts a finished step back on the list</shortDescription>
+    <shortDescription>Setup assistant: button that puts a finished step back on the list</shortDescription>
     <value>Mark not done</value>
   </labels>
   <labels>
@@ -366,8 +342,7 @@
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>Setup assistant: what step one is for</shortDescription>
-    <value
-    >If your org uses Person Accounts, as Nonprofit Cloud orgs do, household membership uses the junction model so that what you already have keeps working. Confirm that here, or choose a different fit.</value>
+    <value>If your org uses Person Accounts, as Nonprofit Cloud orgs do, household membership uses the junction model so that what you already have keeps working. Confirm that here, or choose a different fit.</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_Step1Label</fullName>
@@ -383,8 +358,7 @@
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>Setup assistant: what step two is for</shortDescription>
-    <value
-    >Choose how households are named and greeted, and preview five real households before you commit.</value>
+    <value>Choose how households are named and greeted, and preview five real households before you commit.</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_Step2Label</fullName>
@@ -400,8 +374,7 @@
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>Setup assistant: what step three is for</shortDescription>
-    <value
-    >Pick where a gift goes when nobody says otherwise. This step waits until the Giving module is installed.</value>
+    <value>Pick where a gift goes when nobody says otherwise. This step waits until the Giving module is installed.</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_Step3Label</fullName>
@@ -417,8 +390,7 @@
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>Setup assistant: what step four is for</shortDescription>
-    <value
-    >Pick a person and a role, and Open Impact gives them the right access. People who have never signed in have to be created in Salesforce Setup first.</value>
+    <value>Pick a person and a role, and Open Impact gives them the right access. People who have never signed in have to be created in Salesforce Setup first.</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_Step4Label</fullName>
@@ -434,8 +406,7 @@
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>Setup assistant: what step five is for</shortDescription>
-    <value
-    >Record the name, tax identification number, address, logo, and signature that appear on your receipts and letters.</value>
+    <value>Record the name, tax identification number, address, logo, and signature that appear on your receipts and letters.</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_Step5Label</fullName>
@@ -451,8 +422,7 @@
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>Setup assistant: what step six is for</shortDescription>
-    <value
-    >Turn on only what you use. A module that is off leaves nothing behind in your org.</value>
+    <value>Turn on only what you use. A module that is off leaves nothing behind in your org.</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_Step6Label</fullName>
@@ -468,8 +438,7 @@
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>Setup assistant: what step seven is for</shortDescription>
-    <value
-    >Import your first spreadsheet, or load the sample data to practice on before your real records arrive.</value>
+    <value>Import your first spreadsheet, or load the sample data to practice on before your real records arrive.</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_Step7Label</fullName>
@@ -485,8 +454,7 @@
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>Setup assistant: what step eight is for</shortDescription>
-    <value
-    >Follow the short walkthrough that adds a person, a household, and a first gift, so you know the setup is right.</value>
+    <value>Follow the short walkthrough that adds a person, a household, and a first gift, so you know the setup is right.</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_Step8Label</fullName>
@@ -509,9 +477,7 @@
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription
-    >Setup assistant: error when a step key sent from the page is not one of the shipped steps</shortDescription>
-    <value
-    >That setup step is not one Open Impact knows about, so nothing was recorded. Refresh the page and try again.</value>
+    <shortDescription>Setup assistant: error when a step key sent from the page is not one of the shipped steps</shortDescription>
+    <value>That setup step is not one Open Impact knows about, so nothing was recorded. Refresh the page and try again.</value>
   </labels>
 </CustomLabels>

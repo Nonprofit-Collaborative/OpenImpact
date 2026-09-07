@@ -3,6 +3,11 @@
  */
 @IsTest
 private class SetupAssistantServiceTest {
+    @TestSetup
+    static void grantPermission() {
+        SettingsTestPermissions.grantTo('C03_Setup_Assistant_Test', UserInfo.getUserId());
+    }
+
     @IsTest
     static void shipsEightStepsInOrder() {
         Test.startTest();

@@ -9,6 +9,19 @@ private class SettingsServiceTest {
     private static final String DATETIME_KEY = 'Automation_Paused_Until__c';
     private static final String PROGRESS_KEY = 'Setup_Steps_Completed__c';
 
+    @TestSetup
+    static void grantPermission() {
+        SettingsTestPermissions.grantTo('C03_Settings_Service_Test', UserInfo.getUserId());
+    }
+
+    @IsTest
+    static void theCustomPermissionThisFeatureNeedsIsInstalled() {
+        Assert.isTrue(
+            SettingsTestPermissions.customPermissionExists(),
+            'C-04 ships Manage Nonprofit Settings and merges before C-03: without it nobody can save'
+        );
+    }
+
     private static void stubDefinitions() {
         SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>{
             new Setting_Definition__mdt(
@@ -119,6 +132,65 @@ private class SettingsServiceTest {
             SettingsService.getValue(DATETIME_KEY),
             'A date and time sent as text is read as one'
         );
+    }
+
+    @IsTest
+    static void recordsAChangeThatIsOnlyACapitalLetter() {
+        stubDefinitions();
+        SettingsService.saveValues(
+            new Map<String, Object>{ TEXT_KEY => 'The {LastName} household' }
+        );
+
+        Test.startTest();
+        SettingsService.saveValues(
+            new Map<String, Object>{ TEXT_KEY => 'The {LastName} Household' }
+        );
+        Test.stopTest();
+
+        Assert.areEqual(
+            'The {LastName} Household',
+            SettingsService.getValue(TEXT_KEY),
+            'Capitalising a word is a real edit and has to stick'
+        );
+        Assert.areEqual(
+            2,
+            SettingChangeSelector.getRecent(10).size(),
+            'A change of case is recorded like any other change'
+        );
+    }
+
+    @IsTest
+    static void refusesAPicklistValueTheConsoleWouldNeverOffer() {
+        SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>{
+            new Setting_Definition__mdt(
+                DeveloperName = 'Coexistence_Mode_Choice',
+                MasterLabel = 'How Open Impact fits your org',
+                Setting_Key__c = 'Coexistence_Mode__c',
+                Section__c = SettingSections.GENERAL,
+                Module__c = 'Core',
+                Data_Type__c = 'Picklist',
+                Picklist_Values__c = 'Standalone:On its own;AgentforceNonprofit:Alongside Nonprofit Cloud',
+                Sort_Order__c = 1
+            )
+        };
+        Boolean refused = false;
+
+        Test.startTest();
+        try {
+            SettingsService.saveValues(
+                new Map<String, Object>{ 'Coexistence_Mode__c' => 'SomethingElse' }
+            );
+        } catch (SettingsService.SettingsException e) {
+            refused = true;
+            Assert.areEqual(
+                System.Label.Core_Settings_InvalidValueError,
+                e.getMessage(),
+                'The message says the value is not one this setting takes'
+            );
+        }
+        Test.stopTest();
+
+        Assert.isTrue(refused, 'A choice that is not on the list is refused, whoever calls');
     }
 
     @IsTest

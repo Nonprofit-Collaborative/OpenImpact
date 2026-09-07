@@ -6,6 +6,11 @@
 private class HubControllerTest {
     private static final String EDIT_PERMISSION = 'Manage_Nonprofit_Settings';
 
+    @TestSetup
+    static void grantPermission() {
+        SettingsTestPermissions.grantTo('C03_Hub_Home_Test', UserInfo.getUserId());
+    }
+
     private static User buildDavid() {
         Profile standard = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
         return new User(
@@ -37,22 +42,21 @@ private class HubControllerTest {
 
     @IsTest
     static void marksAStepDoneAndBackAgain() {
-        Boolean canEdit = FeatureManagement.checkPermission(EDIT_PERMISSION);
+        Assert.isTrue(
+            FeatureManagement.checkPermission(EDIT_PERMISSION),
+            'The permission set built in setup carries Manage Nonprofit Settings'
+        );
 
         Test.startTest();
-        try {
-            HubController.HomeModel done = HubController.markStepDone('modules');
-            Assert.isTrue(canEdit, 'Only a user with the permission gets this far');
-            HubController.HomeModel undone = HubController.markStepNotDone('modules');
-            Assert.areEqual(
-                done.stepsCompleted - 1,
-                undone.stepsCompleted,
-                'Putting a step back on the list is one fewer done'
-            );
-        } catch (AuraHandledException e) {
-            Assert.isFalse(canEdit, 'A user with the permission must be able to mark a step done');
-        }
+        HubController.HomeModel done = HubController.markStepDone('modules');
+        HubController.HomeModel undone = HubController.markStepNotDone('modules');
         Test.stopTest();
+
+        Assert.areEqual(
+            done.stepsCompleted - 1,
+            undone.stepsCompleted,
+            'Putting a step back on the list is one fewer done'
+        );
     }
 
     @IsTest

@@ -8,13 +8,27 @@ private class SettingsControllerTest {
     private static final String CHECKBOX_KEY = 'Auto_Create_Households__c';
     private static final String EDIT_PERMISSION = 'Manage_Nonprofit_Settings';
 
+    @TestSetup
+    static void makeData() {
+        PermissionSet permissionSet = SettingsTestPermissions.build('C03_Settings_Console_Test');
+        User maria = SettingsTestPermissions.buildStandardUser('Maria', 'Alvarez', 'mariac');
+        insert maria;
+        insert new List<PermissionSetAssignment>{
+            new PermissionSetAssignment(
+                AssigneeId = UserInfo.getUserId(),
+                PermissionSetId = permissionSet.Id
+            ),
+            new PermissionSetAssignment(AssigneeId = maria.Id, PermissionSetId = permissionSet.Id)
+        };
+    }
+
     private static void stubDefinitions() {
         SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>{
             new Setting_Definition__mdt(
                 DeveloperName = 'Household_Name_Pattern',
                 MasterLabel = 'Household name pattern',
                 Setting_Key__c = TEXT_KEY,
-                Section__c = 'Households',
+                Section__c = SettingSections.HOUSEHOLDS,
                 Module__c = 'Core',
                 Data_Type__c = 'Text',
                 Description__c = 'How a household name and the greetings on your letters are built.',
@@ -25,7 +39,7 @@ private class SettingsControllerTest {
                 DeveloperName = 'Auto_Create_Households',
                 MasterLabel = 'Create households automatically',
                 Setting_Key__c = CHECKBOX_KEY,
-                Section__c = 'Households',
+                Section__c = SettingSections.HOUSEHOLDS,
                 Module__c = 'Core',
                 Data_Type__c = 'Checkbox',
                 Description__c = 'Whether adding a person with no household creates one.',
@@ -35,7 +49,7 @@ private class SettingsControllerTest {
                 DeveloperName = 'Coexistence_Mode_Choice',
                 MasterLabel = 'How Open Impact fits your org',
                 Setting_Key__c = 'Coexistence_Mode__c',
-                Section__c = 'General',
+                Section__c = SettingSections.GENERAL,
                 Module__c = 'Core',
                 Data_Type__c = 'Picklist',
                 Picklist_Values__c = 'Standalone:On its own;AgentforceNonprofit:Alongside Nonprofit Cloud',
@@ -44,7 +58,7 @@ private class SettingsControllerTest {
             new Setting_Definition__mdt(
                 DeveloperName = 'Automation_Panel',
                 MasterLabel = 'Automations',
-                Section__c = 'Automation',
+                Section__c = SettingSections.AUTOMATION,
                 Module__c = 'Core',
                 Data_Type__c = 'Component',
                 Component__c = 'automationControl',
@@ -54,7 +68,7 @@ private class SettingsControllerTest {
                 DeveloperName = 'Not_Installed_Yet',
                 MasterLabel = 'Default fund',
                 Setting_Key__c = 'Default_Fund__c',
-                Section__c = 'Giving',
+                Section__c = SettingSections.GIVING,
                 Module__c = 'Giving',
                 Data_Type__c = 'Text',
                 Sort_Order__c = 1
@@ -96,26 +110,28 @@ private class SettingsControllerTest {
             byName.put(section.name, section);
         }
         Assert.isTrue(
-            byName.containsKey('Households'),
+            byName.containsKey(SettingSections.HOUSEHOLDS),
             'The household settings have their own section'
         );
         Assert.areEqual(
             2,
-            byName.get('Households').settings.size(),
+            byName.get(SettingSections.HOUSEHOLDS).settings.size(),
             'Both household settings are in it'
         );
         Assert.isTrue(
-            byName.get('Households').settings[0].helpUrl.endsWith('household-naming.md'),
+            byName.get(SettingSections.HOUSEHOLDS)
+                .settings[0]
+                .helpUrl.endsWith('household-naming.md'),
             'Learn more points at the admin guide page for that setting'
         );
         Assert.areEqual(
             2,
-            byName.get('General').settings[0].options.size(),
+            byName.get(SettingSections.GENERAL).settings[0].options.size(),
             'A picklist setting arrives with its choices, labelled'
         );
         Assert.areEqual(
             'automationControl',
-            byName.get('Automation').settings[0].component,
+            byName.get(SettingSections.AUTOMATION).settings[0].component,
             'A section another feature renders arrives as a component to load'
         );
     }
@@ -136,7 +152,7 @@ private class SettingsControllerTest {
             'Searching the description finds the naming setting'
         );
         Assert.areEqual(
-            'Households',
+            SettingSections.HOUSEHOLDS,
             byDescription[0].section,
             'The result says which section to open'
         );
@@ -145,25 +161,51 @@ private class SettingsControllerTest {
     }
 
     @IsTest
-    static void savesWhenTheUserMayAndRefusesWhenTheyMayNot() {
+    static void savesWhatMariaChanged() {
         stubDefinitions();
-        Boolean canEdit = FeatureManagement.checkPermission(EDIT_PERMISSION);
+        Assert.isTrue(
+            FeatureManagement.checkPermission(EDIT_PERMISSION),
+            'The permission set built in setup carries Manage Nonprofit Settings'
+        );
 
         Test.startTest();
-        try {
-            SettingsController.saveSettings(
+        SettingsController.ConsoleModel model = SettingsController.saveSettings(
+            new Map<String, Object>{ TEXT_KEY => 'The {LastName} Family' }
+        );
+        Test.stopTest();
+
+        Assert.isTrue(model.canEdit, 'The page comes back knowing Maria may keep editing');
+        Assert.areEqual(
+            'The {LastName} Family',
+            SettingsService.getValue(TEXT_KEY),
+            'The value Maria typed is the one in force'
+        );
+        Assert.areEqual(
+            1,
+            SettingsController.getRecentChanges(10).size(),
+            'Her change is on the recent changes list'
+        );
+    }
+
+    @IsTest
+    static void letsAStandardUserWithThePermissionSave() {
+        User maria = [SELECT Id FROM User WHERE LastName = 'Alvarez' AND IsActive = TRUE LIMIT 1];
+        Boolean saved = false;
+
+        Test.startTest();
+        System.runAs(maria) {
+            stubDefinitions();
+            SettingsController.ConsoleModel model = SettingsController.saveSettings(
                 new Map<String, Object>{ TEXT_KEY => 'The {LastName} Family' }
             );
-            Assert.isTrue(canEdit, 'Only a user with the permission gets this far');
-            Assert.areEqual(
-                'The {LastName} Family',
-                SettingsService.getValue(TEXT_KEY),
-                'The value Maria typed is the one in force'
-            );
-        } catch (AuraHandledException e) {
-            Assert.isFalse(canEdit, 'A user with the permission must be able to save');
+            saved = model.canEdit;
         }
         Test.stopTest();
+
+        Assert.isTrue(
+            saved,
+            'Maria is on the Standard User profile and holds only the permission, and she saves'
+        );
     }
 
     @IsTest

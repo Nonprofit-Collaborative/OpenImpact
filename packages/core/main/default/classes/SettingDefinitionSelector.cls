@@ -10,11 +10,17 @@ public with sharing class SettingDefinitionSelector {
     @TestVisible
     private static List<Setting_Definition__mdt> stubbedRows;
 
+    /** Read once per transaction: the console, the service and the search all ask for the list. */
+    private static List<Setting_Definition__mdt> cachedRows;
+
     public static List<Setting_Definition__mdt> getAll() {
         if (stubbedRows != null) {
             return stubbedRows;
         }
-        return [
+        if (cachedRows != null) {
+            return cachedRows;
+        }
+        cachedRows = [
             SELECT
                 DeveloperName,
                 MasterLabel,
@@ -25,6 +31,7 @@ public with sharing class SettingDefinitionSelector {
                 Data_Type__c,
                 Picklist_Values__c,
                 Component__c,
+                Navigation_Target__c,
                 Description__c,
                 Help_Path__c,
                 Sort_Order__c
@@ -32,5 +39,6 @@ public with sharing class SettingDefinitionSelector {
             WITH USER_MODE
             ORDER BY Section__c, Sort_Order__c, MasterLabel
         ];
+        return cachedRows;
     }
 }

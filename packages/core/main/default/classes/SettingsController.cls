@@ -41,6 +41,8 @@ public with sharing class SettingsController {
         @AuraEnabled
         public String component;
         @AuraEnabled
+        public String navigationTarget;
+        @AuraEnabled
         public String helpUrl;
         @AuraEnabled
         public String value;
@@ -67,6 +69,8 @@ public with sharing class SettingsController {
     }
 
     public class ChangeModel {
+        @AuraEnabled
+        public Id id;
         @AuraEnabled
         public String settingName;
         @AuraEnabled
@@ -145,6 +149,7 @@ public with sharing class SettingsController {
         try {
             for (Setting_Change__c record : SettingChangeSelector.getRecent(limitCount)) {
                 ChangeModel change = new ChangeModel();
+                change.id = record.Id;
                 change.settingName = record.Setting_Name__c;
                 change.oldValue = record.Old_Value__c;
                 change.newValue = record.New_Value__c;
@@ -191,17 +196,20 @@ public with sharing class SettingsController {
     }
 
     private static Boolean matches(Setting_Definition__mdt definition, String needle) {
-        String haystack = String.join(
-                new List<String>{
-                    definition.MasterLabel,
-                    definition.Description__c,
-                    definition.Section__c,
-                    definition.Setting_Key__c
-                },
-                ' '
-            )
-            .toLowerCase();
-        return haystack.contains(needle);
+        List<String> parts = new List<String>();
+        for (
+            String part : new List<String>{
+                definition.MasterLabel,
+                definition.Description__c,
+                definition.Section__c,
+                definition.Setting_Key__c
+            }
+        ) {
+            if (String.isNotBlank(part)) {
+                parts.add(part);
+            }
+        }
+        return String.join(parts, ' ').toLowerCase().contains(needle);
     }
 
     private static ConsoleModel buildModel() {
@@ -210,7 +218,15 @@ public with sharing class SettingsController {
         model.sections = new List<SectionModel>();
         Map<String, SectionModel> sectionsByName = new Map<String, SectionModel>();
         for (Setting_Definition__mdt definition : SettingDefinitionSelector.getAll()) {
-            SettingModel setting = toSetting(definition);
+            SettingModel setting;
+            try {
+                setting = toSetting(definition);
+            } catch (Exception e) {
+                // A module's settings object this user cannot read costs the console that row,
+                // not the page (plan Section 9.4, degrade gracefully when a module is off).
+                ErrorLogger.log(e, ERROR_CONTEXT);
+                continue;
+            }
             if (setting == null) {
                 continue;
             }
@@ -243,6 +259,7 @@ public with sharing class SettingsController {
         setting.dataType = definition.Data_Type__c;
         setting.section = String.isBlank(definition.Section__c) ? '' : definition.Section__c;
         setting.component = definition.Component__c;
+        setting.navigationTarget = definition.Navigation_Target__c;
         setting.helpUrl = String.isBlank(definition.Help_Path__c)
             ? null
             : HELP_BASE + definition.Help_Path__c;

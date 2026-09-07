@@ -23,8 +23,15 @@
     {
       "files": "*.labels-meta.xml",
       "options": {
-        "printWidth": 100,
-        "xmlWhitespaceSensitivity": "strict"
+        "xmlWhitespaceSensitivity": "strict",
+        "printWidth": 400
+      }
+    },
+    {
+      "files": "*.md-meta.xml",
+      "options": {
+        "xmlWhitespaceSensitivity": "strict",
+        "printWidth": 400
       }
     }
   ]

@@ -133,7 +133,7 @@ public with sharing class SetupAssistantService {
                 System.Label.Core_SetupAssistant_Step1Label,
                 System.Label.Core_SetupAssistant_Step1Description,
                 TARGET_SETTINGS,
-                'General',
+                SettingSections.GENERAL,
                 null,
                 'Coexistence_Mode__c'
             )
@@ -145,7 +145,7 @@ public with sharing class SetupAssistantService {
                 System.Label.Core_SetupAssistant_Step2Label,
                 System.Label.Core_SetupAssistant_Step2Description,
                 TARGET_SETTINGS,
-                'Households',
+                SettingSections.HOUSEHOLDS,
                 null,
                 'Household_Name_Pattern__c'
             )
@@ -157,7 +157,7 @@ public with sharing class SetupAssistantService {
                 System.Label.Core_SetupAssistant_Step3Label,
                 System.Label.Core_SetupAssistant_Step3Description,
                 TARGET_SETTINGS,
-                'Giving',
+                SettingSections.GIVING,
                 null,
                 null
             )
@@ -169,7 +169,7 @@ public with sharing class SetupAssistantService {
                 System.Label.Core_SetupAssistant_Step4Label,
                 System.Label.Core_SetupAssistant_Step4Description,
                 TARGET_SETTINGS,
-                'Access',
+                SettingSections.ACCESS,
                 '/lightning/setup/ManageUsers/home',
                 null
             )
@@ -181,7 +181,7 @@ public with sharing class SetupAssistantService {
                 System.Label.Core_SetupAssistant_Step5Label,
                 System.Label.Core_SetupAssistant_Step5Description,
                 TARGET_SETTINGS,
-                'General',
+                SettingSections.ORGANIZATION,
                 null,
                 null
             )
@@ -193,7 +193,7 @@ public with sharing class SetupAssistantService {
                 System.Label.Core_SetupAssistant_Step6Label,
                 System.Label.Core_SetupAssistant_Step6Description,
                 TARGET_SETTINGS,
-                'Modules',
+                SettingSections.GENERAL,
                 null,
                 null
             )
@@ -205,7 +205,7 @@ public with sharing class SetupAssistantService {
                 System.Label.Core_SetupAssistant_Step7Label,
                 System.Label.Core_SetupAssistant_Step7Description,
                 TARGET_SETTINGS,
-                'General',
+                SettingSections.IMPORTING,
                 null,
                 null
             )
@@ -217,7 +217,7 @@ public with sharing class SetupAssistantService {
                 System.Label.Core_SetupAssistant_Step8Label,
                 System.Label.Core_SetupAssistant_Step8Description,
                 TARGET_SETTINGS,
-                'Health',
+                SettingSections.HEALTH,
                 null,
                 null
             )

@@ -10,6 +10,7 @@ public with sharing class SettingChangeSelector {
             : Math.min(limitCount, MAXIMUM_LIMIT);
         return [
             SELECT
+                Id,
                 Setting_Name__c,
                 Old_Value__c,
                 New_Value__c,
