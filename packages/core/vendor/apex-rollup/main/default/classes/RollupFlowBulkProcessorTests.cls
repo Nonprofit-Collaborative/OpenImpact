@@ -191,16 +191,16 @@ private class RollupFlowBulkProcessorTests {
 
     Rollup.defaultControl = new RollupControl__mdt(IsRollupLoggingEnabled__c = true);
     RollupFlowBulkProcessor.FlowInput input = new RollupFlowBulkProcessor.FlowInput();
-    input.recordsToRollup = new List<SObject>{ new Opportunity(Amount = 5, AccountId = acc.Id) };
+    input.recordsToRollup = new List<SObject>{ new RollupCalcItem__c(Amount__c = 5, Account__c = acc.Id) };
     input.rollupContext = 'INSERT';
 
     Rollup.rollupMetadata = new List<Rollup__mdt>{
       new Rollup__mdt(
         RollupOperation__c = 'SUM',
-        CalcItem__c = 'Opportunity',
+        CalcItem__c = 'RollupCalcItem__c',
         LookupObject__c = 'Account',
-        RollupFieldOnCalcItem__c = 'Amount',
-        LookupFieldOnCalcItem__c = 'AccountId',
+        RollupFieldOnCalcItem__c = 'Amount__c',
+        LookupFieldOnCalcItem__c = 'Account__c',
         LookupFieldOnLookupObject__c = 'Id',
         RollupFieldOnLookupObject__c = 'AnnualRevenue'
       )
@@ -223,7 +223,7 @@ private class RollupFlowBulkProcessorTests {
     Rollup.defaultControl = new RollupControl__mdt(IsRollupLoggingEnabled__c = true);
 
     RollupFlowBulkProcessor.FlowInput input = new RollupFlowBulkProcessor.FlowInput();
-    input.recordsToRollup = new List<SObject>{ new Opportunity(Amount = 5, AccountId = acc.Id) };
+    input.recordsToRollup = new List<SObject>{ new RollupCalcItem__c(Amount__c = 5, Account__c = acc.Id) };
     input.rollupContext = 'INSERT';
     input.shouldRunSync = true;
     input.deferProcessing = false;
@@ -231,10 +231,10 @@ private class RollupFlowBulkProcessorTests {
     Rollup.rollupMetadata = new List<Rollup__mdt>{
       new Rollup__mdt(
         RollupOperation__c = 'SUM',
-        CalcItem__c = 'Opportunity',
+        CalcItem__c = 'RollupCalcItem__c',
         LookupObject__c = 'Account',
-        RollupFieldOnCalcItem__c = 'Amount',
-        LookupFieldOnCalcItem__c = 'AccountId',
+        RollupFieldOnCalcItem__c = 'Amount__c',
+        LookupFieldOnCalcItem__c = 'Account__c',
         LookupFieldOnLookupObject__c = 'Id',
         RollupFieldOnLookupObject__c = 'AnnualRevenue'
       )
@@ -253,7 +253,7 @@ private class RollupFlowBulkProcessorTests {
     Rollup.defaultControl = new RollupControl__mdt(IsRollupLoggingEnabled__c = true, OnlyRunInFlowContexts__c = 'UPDATE, UPSERT, REFRESH');
 
     RollupFlowBulkProcessor.FlowInput input = new RollupFlowBulkProcessor.FlowInput();
-    input.recordsToRollup = new List<SObject>{ new Opportunity(Amount = 5, AccountId = acc.Id) };
+    input.recordsToRollup = new List<SObject>{ new RollupCalcItem__c(Amount__c = 5, Account__c = acc.Id) };
     input.rollupContext = 'INSERT';
     input.shouldRunSync = true;
     input.deferProcessing = false;
@@ -261,10 +261,10 @@ private class RollupFlowBulkProcessorTests {
     Rollup.rollupMetadata = new List<Rollup__mdt>{
       new Rollup__mdt(
         RollupOperation__c = 'SUM',
-        CalcItem__c = 'Opportunity',
+        CalcItem__c = 'RollupCalcItem__c',
         LookupObject__c = 'Account',
-        RollupFieldOnCalcItem__c = 'Amount',
-        LookupFieldOnCalcItem__c = 'AccountId',
+        RollupFieldOnCalcItem__c = 'Amount__c',
+        LookupFieldOnCalcItem__c = 'Account__c',
         LookupFieldOnLookupObject__c = 'Id',
         RollupFieldOnLookupObject__c = 'AnnualRevenue'
       )
@@ -284,9 +284,9 @@ private class RollupFlowBulkProcessorTests {
     update as system acc;
 
     RollupFlowBulkProcessor.FlowInput input = new RollupFlowBulkProcessor.FlowInput();
-    Opportunity opp = new Opportunity(Amount = acc.AnnualRevenue.intValue(), AccountId = null, Id = RollupTestUtils.createId(Opportunity.SObjectType));
-    Opportunity oldOpp = opp.clone(true, true, true);
-    oldOpp.AccountId = acc.Id;
+    RollupCalcItem__c opp = new RollupCalcItem__c(Amount__c = acc.AnnualRevenue.intValue(), Account__c = null, Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType));
+    RollupCalcItem__c oldOpp = opp.clone(true, true, true);
+    oldOpp.Account__c = acc.Id;
 
     input.recordsToRollup = new List<SObject>{ opp };
     input.oldRecordsToRollup = new List<SObject>{ oldOpp };
@@ -297,10 +297,10 @@ private class RollupFlowBulkProcessorTests {
     Rollup.rollupMetadata = new List<Rollup__mdt>{
       new Rollup__mdt(
         RollupOperation__c = 'SUM',
-        CalcItem__c = 'Opportunity',
+        CalcItem__c = 'RollupCalcItem__c',
         LookupObject__c = 'Account',
-        RollupFieldOnCalcItem__c = 'Amount',
-        LookupFieldOnCalcItem__c = 'AccountId',
+        RollupFieldOnCalcItem__c = 'Amount__c',
+        LookupFieldOnCalcItem__c = 'Account__c',
         LookupFieldOnLookupObject__c = 'Id',
         RollupFieldOnLookupObject__c = 'AnnualRevenue'
       )
@@ -321,20 +321,20 @@ private class RollupFlowBulkProcessorTests {
 
     RollupFlowBulkProcessor.FlowInput input = new RollupFlowBulkProcessor.FlowInput();
     input.recordsToRollup = new List<SObject>{
-      new Opportunity(Amount = 7, CloseDate = System.today(), AccountId = acc.Id, Id = RollupTestUtils.createId(Opportunity.SObjectType)),
-      new Opportunity(Amount = 3, AccountId = acc.Id, Id = RollupTestUtils.createId(Opportunity.SObjectType)),
-      new Opportunity(Amount = 4, CloseDate = System.today().addDays(-1), AccountId = acc.Id, Id = RollupTestUtils.createId(Opportunity.SObjectType))
+      new RollupCalcItem__c(Amount__c = 7, CloseDate__c = System.today(), Account__c = acc.Id, Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType)),
+      new RollupCalcItem__c(Amount__c = 3, Account__c = acc.Id, Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType)),
+      new RollupCalcItem__c(Amount__c = 4, CloseDate__c = System.today().addDays(-1), Account__c = acc.Id, Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType))
     };
     input.rollupContext = 'INSERT';
-    input.orderByFirstLast = 'CloseDate ascending nulls last';
+    input.orderByFirstLast = 'CloseDate__c ascending nulls last';
 
     Rollup.rollupMetadata = new List<Rollup__mdt>{
       new Rollup__mdt(
         RollupOperation__c = 'FIRST',
-        CalcItem__c = 'Opportunity',
+        CalcItem__c = 'RollupCalcItem__c',
         LookupObject__c = 'Account',
-        RollupFieldOnCalcItem__c = 'Amount',
-        LookupFieldOnCalcItem__c = 'AccountId',
+        RollupFieldOnCalcItem__c = 'Amount__c',
+        LookupFieldOnCalcItem__c = 'Account__c',
         LookupFieldOnLookupObject__c = 'Id',
         RollupFieldOnLookupObject__c = 'AnnualRevenue'
       )
@@ -352,16 +352,16 @@ private class RollupFlowBulkProcessorTests {
   @IsTest
   static void shouldNotReportSuccessForInnerFailure() {
     RollupFlowBulkProcessor.FlowInput input = new RollupFlowBulkProcessor.FlowInput();
-    input.recordsToRollup = new List<SObject>{ new Opportunity(Amount = 5) };
+    input.recordsToRollup = new List<SObject>{ new RollupCalcItem__c(Amount__c = 5) };
     input.rollupContext = 'INSERT';
 
     Rollup.rollupMetadata = new List<Rollup__mdt>{
       new Rollup__mdt(
         RollupOperation__c = 'SUM',
-        CalcItem__c = 'Opportunity',
+        CalcItem__c = 'RollupCalcItem__c',
         LookupObject__c = 'Account',
         RollupFieldOnCalcItem__c = 'Kaffufle', // this obviously doesn't exist
-        LookupFieldOnCalcItem__c = 'AccountId',
+        LookupFieldOnCalcItem__c = 'Account__c',
         LookupFieldOnLookupObject__c = 'Id',
         RollupFieldOnLookupObject__c = 'AnnualRevenue'
       )
@@ -374,14 +374,14 @@ private class RollupFlowBulkProcessorTests {
       ex = e;
     }
 
-    System.assertEquals(true, ex.getMessage().contains('Invalid field Kaffufle for Opportunity'), ex.getMessage() + '\n' + ex.getStackTraceString());
+    System.assertEquals(true, ex.getMessage().contains('Invalid field Kaffufle for RollupCalcItem__c'), ex.getMessage() + '\n' + ex.getStackTraceString());
   }
 
   @IsTest
   static void shouldMapBulkFlowInputToRegularOne() {
     Rollup.rollupMetadata = new List<Rollup__mdt>{
       new Rollup__mdt(
-        CalcItem__c = 'Opportunity',
+        CalcItem__c = 'RollupCalcItem__c',
         LookupFieldOnLookupObject__c = 'Id',
         LookupObject__c = 'User',
         RollupOperation__c = 'CONCAT',
@@ -390,19 +390,19 @@ private class RollupFlowBulkProcessorTests {
     };
     Rollup.onlyUseMockMetadata = true;
     RollupFlowBulkProcessor.FlowInput input = new RollupFlowBulkProcessor.FlowInput();
-    input.recordsToRollup = new List<SObject>{ new Opportunity(Amount = 5, Id = RollupTestUtils.createId(Opportunity.SObjectType)) };
+    input.recordsToRollup = new List<SObject>{ new RollupCalcItem__c(Amount__c = 5, Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType)) };
     input.rollupContext = 'INSERT';
-    input.calcItemChangedFields = 'Amount';
-    input.calcItemTypeWhenRollupStartedFromParent = 'Opportunity';
-    input.calcItemWhereClause = 'Amount = 5';
+    input.calcItemChangedFields = 'Amount__c';
+    input.calcItemTypeWhenRollupStartedFromParent = 'RollupCalcItem__c';
+    input.calcItemWhereClause = 'Amount__c = 5';
     input.concatDelimiter = ';';
     input.deferProcessing = true;
     input.fullRecalculationDefaultNumberValue = 0;
-    input.grandparentRelationshipFieldPath = 'Account.Owner.Name';
+    input.grandparentRelationshipFieldPath = 'Account__r.Owner.Name';
     input.isFullRecordSet = true;
     input.isRollupStartedFromParent = true;
     input.rollupToUltimateParent = true;
-    input.ultimateParentLookup = 'AccountId';
+    input.ultimateParentLookup = 'Account__c';
 
     List<Rollup.FlowOutput> outputs = RollupFlowBulkProcessor.addRollup(new List<RollupFlowBulkProcessor.FlowInput>{ input });
 
@@ -415,18 +415,18 @@ private class RollupFlowBulkProcessorTests {
     Rollup.rollupMetadata = new List<Rollup__mdt>{
       new Rollup__mdt(
         RollupOperation__c = 'CONCAT',
-        CalcItem__c = 'Opportunity',
+        CalcItem__c = 'RollupCalcItem__c',
         LookupObject__c = 'User',
         RollupFieldOnCalcItem__c = 'Name',
-        LookupFieldOnCalcItem__c = 'AccountId',
+        LookupFieldOnCalcItem__c = 'Account__c',
         LookupFieldOnLookupObject__c = 'Id',
         RollupFieldOnLookupObject__c = 'AboutMe',
-        GrandparentRelationshipFieldPath__c = 'Account.Owner.AboutMe'
+        GrandparentRelationshipFieldPath__c = 'Account__r.Owner.AboutMe'
       )
     };
     Account acc = [SELECT Id, OwnerId FROM Account WITH SYSTEM_MODE];
     RollupFlowBulkProcessor.FlowInput input = new RollupFlowBulkProcessor.FlowInput();
-    input.recordsToRollup = new List<SObject>{ new Opportunity(Name = 'Hi', AccountId = acc.Id, Id = RollupTestUtils.createId(Opportunity.SObjectType)) };
+    input.recordsToRollup = new List<SObject>{ new RollupCalcItem__c(Name = 'Hi', Account__c = acc.Id, Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType)) };
     input.rollupContext = 'INSERT';
     input.deferProcessing = false;
 
@@ -441,16 +441,16 @@ private class RollupFlowBulkProcessorTests {
   @IsTest
   static void shouldNotThrowValidationErrorForHierarchyRollups() {
     RollupFlowBulkProcessor.FlowInput input = new RollupFlowBulkProcessor.FlowInput();
-    input.recordsToRollup = new List<SObject>{ new Opportunity(Amount = 5) };
+    input.recordsToRollup = new List<SObject>{ new RollupCalcItem__c(Amount__c = 5) };
     input.rollupContext = 'REFRESH';
 
     Rollup.rollupMetadata = new List<Rollup__mdt>{
       new Rollup__mdt(
         RollupOperation__c = 'SUM',
-        CalcItem__c = 'Opportunity',
+        CalcItem__c = 'RollupCalcItem__c',
         LookupObject__c = 'Account',
-        RollupFieldOnCalcItem__c = 'Amount',
-        LookupFieldOnCalcItem__c = 'AccountId',
+        RollupFieldOnCalcItem__c = 'Amount__c',
+        LookupFieldOnCalcItem__c = 'Account__c',
         LookupFieldOnLookupObject__c = 'Id',
         RollupFieldOnLookupObject__c = 'AnnualRevenue',
         UltimateParentLookup__c = 'ParentId',
@@ -470,8 +470,8 @@ private class RollupFlowBulkProcessorTests {
 
     RollupFlowBulkProcessor.FlowInput input = new RollupFlowBulkProcessor.FlowInput();
     input.recordsToRollup = new List<SObject>{
-      new Opportunity(Amount = 5, Id = RollupTestUtils.createId(Opportunity.SObjectType), AccountId = acc.Id),
-      new Opportunity(Amount = 5, Id = RollupTestUtils.createId(Opportunity.SObjectType), AccountId = acc.Id)
+      new RollupCalcItem__c(Amount__c = 5, Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType), Account__c = acc.Id),
+      new RollupCalcItem__c(Amount__c = 5, Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType), Account__c = acc.Id)
     };
     input.rollupContext = 'UPSERT';
     input.oldRecordsToRollup = new List<SObject>{ null, null };
@@ -480,19 +480,19 @@ private class RollupFlowBulkProcessorTests {
     Rollup.rollupMetadata = new List<Rollup__mdt>{
       new Rollup__mdt(
         RollupOperation__c = 'SUM',
-        CalcItem__c = 'Opportunity',
+        CalcItem__c = 'RollupCalcItem__c',
         LookupObject__c = 'Account',
-        RollupFieldOnCalcItem__c = 'Amount',
-        LookupFieldOnCalcItem__c = 'AccountId',
+        RollupFieldOnCalcItem__c = 'Amount__c',
+        LookupFieldOnCalcItem__c = 'Account__c',
         LookupFieldOnLookupObject__c = 'Id',
         RollupFieldOnLookupObject__c = 'AnnualRevenue'
       ),
       new Rollup__mdt(
         RollupOperation__c = 'COUNT',
-        CalcItem__c = 'Opportunity',
+        CalcItem__c = 'RollupCalcItem__c',
         LookupObject__c = 'Account',
         RollupFieldOnCalcItem__c = 'Id',
-        LookupFieldOnCalcItem__c = 'AccountId',
+        LookupFieldOnCalcItem__c = 'Account__c',
         LookupFieldOnLookupObject__c = 'Id',
         RollupFieldOnLookupObject__c = 'NumberOfEmployees'
       )
@@ -515,8 +515,8 @@ private class RollupFlowBulkProcessorTests {
     Rollup.onlyUseMockMetadata = true;
     List<Account> accs = [SELECT Id, AnnualRevenue FROM Account WITH SYSTEM_MODE];
     insert as system new List<SObject>{
-      new Opportunity(Amount = 5, AccountId = accs[0].Id, StageName = 'A', CloseDate = System.today(), Name = 'Amount 1'),
-      new Opportunity(Amount = 5, AccountId = accs[0].Id, StageName = 'A', CloseDate = System.today(), Name = 'Amount 2')
+      new RollupCalcItem__c(Amount__c = 5, Account__c = accs[0].Id, StageName__c = 'A', CloseDate__c = System.today(), Name = 'Amount 1'),
+      new RollupCalcItem__c(Amount__c = 5, Account__c = accs[0].Id, StageName__c = 'A', CloseDate__c = System.today(), Name = 'Amount 2')
     };
 
     RollupFlowBulkProcessor.FlowInput input = new RollupFlowBulkProcessor.FlowInput();
@@ -528,14 +528,14 @@ private class RollupFlowBulkProcessorTests {
     Rollup.rollupMetadata = new List<Rollup__mdt>{
       new Rollup__mdt(
         RollupOperation__c = 'SUM',
-        CalcItem__c = 'Opportunity',
+        CalcItem__c = 'RollupCalcItem__c',
         LookupObject__c = 'Account',
-        RollupFieldOnCalcItem__c = 'Amount',
-        LookupFieldOnCalcItem__c = 'AccountId',
+        RollupFieldOnCalcItem__c = 'Amount__c',
+        LookupFieldOnCalcItem__c = 'Account__c',
         LookupFieldOnLookupObject__c = 'Id',
         RollupFieldOnLookupObject__c = 'AnnualRevenue',
         IsRollupStartedFromParent__c = true,
-        CalcItemWhereClause__c = 'Amount > 0' // validate where clause only runs for children
+        CalcItemWhereClause__c = 'Amount__c > 0' // validate where clause only runs for children
       )
     };
 
@@ -558,8 +558,8 @@ private class RollupFlowBulkProcessorTests {
     Rollup.onlyUseMockMetadata = true;
     List<Account> accs = [SELECT Id, AnnualRevenue FROM Account WITH SYSTEM_MODE];
     insert as system new List<SObject>{
-      new Opportunity(Amount = 5, AccountId = accs[0].Id, StageName = 'A', CloseDate = System.today().addDays(5), Name = 'Amount 1'),
-      new Opportunity(Amount = 10, AccountId = accs[0].Id, StageName = 'A', CloseDate = System.today(), Name = 'Amount 2')
+      new RollupCalcItem__c(Amount__c = 5, Account__c = accs[0].Id, StageName__c = 'A', CloseDate__c = System.today().addDays(5), Name = 'Amount 1'),
+      new RollupCalcItem__c(Amount__c = 10, Account__c = accs[0].Id, StageName__c = 'A', CloseDate__c = System.today(), Name = 'Amount 2')
     };
 
     RollupFlowBulkProcessor.FlowInput input = new RollupFlowBulkProcessor.FlowInput();
@@ -572,15 +572,15 @@ private class RollupFlowBulkProcessorTests {
       Rollup.appendOrderByMetadata(
         new Rollup__mdt(
           RollupOperation__c = 'FIRST',
-          CalcItem__c = 'Opportunity',
+          CalcItem__c = 'RollupCalcItem__c',
           LookupObject__c = 'Account',
-          RollupFieldOnCalcItem__c = 'Amount',
-          LookupFieldOnCalcItem__c = 'AccountId',
+          RollupFieldOnCalcItem__c = 'Amount__c',
+          LookupFieldOnCalcItem__c = 'Account__c',
           LookupFieldOnLookupObject__c = 'Id',
           RollupFieldOnLookupObject__c = 'AnnualRevenue',
           IsRollupStartedFromParent__c = true
         ),
-        new List<RollupOrderBy__mdt>{ new RollupOrderBy__mdt(FieldName__c = 'CloseDate', Ranking__c = 0) }
+        new List<RollupOrderBy__mdt>{ new RollupOrderBy__mdt(FieldName__c = 'CloseDate__c', Ranking__c = 0) }
       )
     };
 
@@ -703,7 +703,7 @@ private class RollupFlowBulkProcessorTests {
     Account acc = [SELECT Id FROM Account WITH SYSTEM_MODE];
     Account secondAccount = new Account(Name = 'Second');
     insert as system secondAccount;
-    Opportunity opp = new Opportunity(AccountId = acc.Id, Amount = 1, CloseDate = System.today(), Name = 'Test Opportunity', StageName = 'a');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Account__c = acc.Id, Amount__c = 1, CloseDate__c = System.today(), Name = 'Test RollupCalcItem__c', StageName__c = 'a');
     insert as system opp;
     insert as system new List<Task>{ new Task(WhatId = opp.Id, Subject = 'Test Task') };
 
@@ -723,9 +723,9 @@ private class RollupFlowBulkProcessorTests {
         CalcItem__c = 'Task',
         RollupFieldOnCalcItem__c = 'Id',
         LookupFieldOnCalcItem__c = 'WhatId',
-        LookupObject__c = 'Opportunity',
+        LookupObject__c = 'RollupCalcItem__c',
         LookupFieldOnLookupObject__c = 'Id',
-        RollupFieldOnLookupObject__c = 'Amount',
+        RollupFieldOnLookupObject__c = 'Amount__c',
         RollupOperation__c = 'COUNT',
         IsRollupStartedFromParent__c = true
       )

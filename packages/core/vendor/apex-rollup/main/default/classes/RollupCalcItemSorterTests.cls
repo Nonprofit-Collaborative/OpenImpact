@@ -1,26 +1,33 @@
+/**
+ * Open Impact patch E, see packages/core/vendor/apex-rollup/VENDOR.md.
+ * Every sort call in this class goes through a List<SObject> reference rather than the typed list.
+ * RollupCalcItemSorter is a System.Comparator<SObject>; the platform compiler accepts it against a
+ * typed SObject list, the offline apex-ls checker does not model that covariance. The list object
+ * is the same one either way, so the sort is in place and the assertions are unchanged.
+ */
 @IsTest
 private class RollupCalcItemSorterTests {
   @IsTest
   static void shouldOrderByTwoFields() {
     RollupCalcItemSorter sorter = new RollupCalcItemSorter(
       new List<RollupOrderBy__mdt>{
-        new RollupOrderBy__mdt(Ranking__c = 0, FieldName__c = 'Amount'),
-        new RollupOrderBy__mdt(Ranking__c = 1, FieldName__c = 'CloseDate')
+        new RollupOrderBy__mdt(Ranking__c = 0, FieldName__c = 'Amount__c'),
+        new RollupOrderBy__mdt(Ranking__c = 1, FieldName__c = 'CloseDate__c')
       }
     );
 
     Date severalDaysAgo = System.today().addDays(-2);
-    Opportunity expectedFirstItem = new Opportunity(Amount = null, CloseDate = severalDaysAgo);
-    Opportunity expectedSecondItem = new Opportunity(Amount = 1, CloseDate = severalDaysAgo);
-    List<Opportunity> oppsToSort = new List<Opportunity>{
-      new Opportunity(Amount = 1, CloseDate = System.today()),
+    RollupCalcItem__c expectedFirstItem = new RollupCalcItem__c(Amount__c = null, CloseDate__c = severalDaysAgo);
+    RollupCalcItem__c expectedSecondItem = new RollupCalcItem__c(Amount__c = 1, CloseDate__c = severalDaysAgo);
+    List<RollupCalcItem__c> oppsToSort = new List<RollupCalcItem__c>{
+      new RollupCalcItem__c(Amount__c = 1, CloseDate__c = System.today()),
       // this record should essentially be thrown out of sorting since it "loses" on the first ordering,
       // which is on Amount
-      new Opportunity(Amount = 3, CloseDate = severalDaysAgo.addDays(-1)),
+      new RollupCalcItem__c(Amount__c = 3, CloseDate__c = severalDaysAgo.addDays(-1)),
       expectedSecondItem,
       expectedFirstItem
     };
-    oppsToSort.sort(sorter);
+    ((List<SObject>) oppsToSort).sort(sorter);
 
     System.assertEquals(expectedFirstItem, oppsToSort[0]);
     System.assertEquals(expectedSecondItem, oppsToSort[1]);
@@ -30,19 +37,19 @@ private class RollupCalcItemSorterTests {
   static void shouldOrderByMultipleFields() {
     RollupCalcItemSorter sorter = new RollupCalcItemSorter(
       new List<RollupOrderBy__mdt>{
-        new RollupOrderBy__mdt(Ranking__c = 0, FieldName__c = 'Amount'),
-        new RollupOrderBy__mdt(Ranking__c = 1, FieldName__c = 'CloseDate'),
+        new RollupOrderBy__mdt(Ranking__c = 0, FieldName__c = 'Amount__c'),
+        new RollupOrderBy__mdt(Ranking__c = 1, FieldName__c = 'CloseDate__c'),
         new RollupOrderBy__mdt(Ranking__c = 2, FieldName__c = 'Name')
       }
     );
 
     Date today = System.today().addDays(-2);
-    Opportunity expectedFirstItem = new Opportunity(Amount = 1, CloseDate = today, Name = 'b');
-    Opportunity expectedThirdItem = new Opportunity(Amount = 2, CloseDate = today, Name = 'a');
-    Opportunity expectedSecondItem = new Opportunity(Amount = 1, CloseDate = today, Name = 'c');
-    Opportunity expectedFourthItem = new Opportunity(Amount = 2, CloseDate = today.addDays(1), Name = 'a');
-    List<Opportunity> oppsToSort = new List<Opportunity>{ expectedSecondItem, expectedFourthItem, expectedThirdItem, expectedFirstItem };
-    oppsToSort.sort(sorter);
+    RollupCalcItem__c expectedFirstItem = new RollupCalcItem__c(Amount__c = 1, CloseDate__c = today, Name = 'b');
+    RollupCalcItem__c expectedThirdItem = new RollupCalcItem__c(Amount__c = 2, CloseDate__c = today, Name = 'a');
+    RollupCalcItem__c expectedSecondItem = new RollupCalcItem__c(Amount__c = 1, CloseDate__c = today, Name = 'c');
+    RollupCalcItem__c expectedFourthItem = new RollupCalcItem__c(Amount__c = 2, CloseDate__c = today.addDays(1), Name = 'a');
+    List<RollupCalcItem__c> oppsToSort = new List<RollupCalcItem__c>{ expectedSecondItem, expectedFourthItem, expectedThirdItem, expectedFirstItem };
+    ((List<SObject>) oppsToSort).sort(sorter);
 
     System.assertEquals(expectedFirstItem, oppsToSort[0]);
     System.assertEquals(expectedSecondItem, oppsToSort[1]);
@@ -54,20 +61,20 @@ private class RollupCalcItemSorterTests {
   static void shouldOrderNullsLast() {
     RollupCalcItemSorter sorter = new RollupCalcItemSorter(
       new List<RollupOrderBy__mdt>{
-        new RollupOrderBy__mdt(Ranking__c = 0, FieldName__c = 'Amount', NullSortOrder__c = RollupMetaPicklists.NullSortOrder.NullsLast),
-        new RollupOrderBy__mdt(Ranking__c = 1, FieldName__c = 'CloseDate')
+        new RollupOrderBy__mdt(Ranking__c = 0, FieldName__c = 'Amount__c', NullSortOrder__c = RollupMetaPicklists.NullSortOrder.NullsLast),
+        new RollupOrderBy__mdt(Ranking__c = 1, FieldName__c = 'CloseDate__c')
       }
     );
 
     Date severalDaysAgo = System.today().addDays(-2);
-    Opportunity expectedFirstItem = new Opportunity(Amount = 1, CloseDate = System.today());
-    Opportunity expectedSecondItem = new Opportunity(Amount = 3, CloseDate = severalDaysAgo.addDays(-1));
-    List<Opportunity> oppsToSort = new List<Opportunity>{
-      new Opportunity(Amount = 3, CloseDate = severalDaysAgo.addDays(-1)),
+    RollupCalcItem__c expectedFirstItem = new RollupCalcItem__c(Amount__c = 1, CloseDate__c = System.today());
+    RollupCalcItem__c expectedSecondItem = new RollupCalcItem__c(Amount__c = 3, CloseDate__c = severalDaysAgo.addDays(-1));
+    List<RollupCalcItem__c> oppsToSort = new List<RollupCalcItem__c>{
+      new RollupCalcItem__c(Amount__c = 3, CloseDate__c = severalDaysAgo.addDays(-1)),
       expectedSecondItem,
       expectedFirstItem
     };
-    oppsToSort.sort(sorter);
+    ((List<SObject>) oppsToSort).sort(sorter);
 
     System.assertEquals(expectedFirstItem, oppsToSort[0]);
     System.assertEquals(expectedSecondItem, oppsToSort[1]);
@@ -77,19 +84,19 @@ private class RollupCalcItemSorterTests {
   static void shouldOrderDescWhenStipulated() {
     RollupCalcItemSorter sorter = new RollupCalcItemSorter(
       new List<RollupOrderBy__mdt>{
-        new RollupOrderBy__mdt(Ranking__c = 0, FieldName__c = 'Amount', SortOrder__c = RollupMetaPicklists.SortOrder.Descending),
-        new RollupOrderBy__mdt(Ranking__c = 1, FieldName__c = 'CloseDate')
+        new RollupOrderBy__mdt(Ranking__c = 0, FieldName__c = 'Amount__c', SortOrder__c = RollupMetaPicklists.SortOrder.Descending),
+        new RollupOrderBy__mdt(Ranking__c = 1, FieldName__c = 'CloseDate__c')
       }
     );
 
     Date today = System.today();
     // validates null sort order plays nice with this
-    Opportunity expectedFirstItem = new Opportunity(Amount = null, CloseDate = today);
-    Opportunity expectedSecondItem = new Opportunity(Amount = 5, CloseDate = today);
-    Opportunity expectedThirdItem = new Opportunity(Amount = 1, CloseDate = today);
+    RollupCalcItem__c expectedFirstItem = new RollupCalcItem__c(Amount__c = null, CloseDate__c = today);
+    RollupCalcItem__c expectedSecondItem = new RollupCalcItem__c(Amount__c = 5, CloseDate__c = today);
+    RollupCalcItem__c expectedThirdItem = new RollupCalcItem__c(Amount__c = 1, CloseDate__c = today);
 
-    List<Opportunity> oppsToSort = new List<Opportunity>{ expectedThirdItem, expectedFirstItem, expectedSecondItem };
-    oppsToSort.sort(sorter);
+    List<RollupCalcItem__c> oppsToSort = new List<RollupCalcItem__c>{ expectedThirdItem, expectedFirstItem, expectedSecondItem };
+    ((List<SObject>) oppsToSort).sort(sorter);
 
     System.assertEquals(expectedFirstItem, oppsToSort[0]);
     System.assertEquals(expectedSecondItem, oppsToSort[1]);
@@ -107,7 +114,7 @@ private class RollupCalcItemSorterTests {
       Schema.PicklistEntry entry = picklistEntries[reverseIndex];
       accs.add(new Account(Name = entry.getValue(), Industry = entry.getValue()));
     }
-    accs.sort(sorter);
+    ((List<SObject>) accs).sort(sorter);
 
     for (Integer index = 0; index < accs.size(); index++) {
       System.assertEquals(picklistEntries[index].getValue(), accs[index].Industry, 'Account at index: ' + index + ' should have matched');
@@ -119,18 +126,18 @@ private class RollupCalcItemSorterTests {
     Account acc = new Account(Name = 'Parent');
     insert as system acc;
 
-    Opportunity opp = new Opportunity(Account = acc, Amount = 1);
-    Opportunity second = new Opportunity(Account = acc, Amount = 2);
+    RollupCalcItem__c opp = new RollupCalcItem__c(Account__r = acc, Amount__c = 1);
+    RollupCalcItem__c second = new RollupCalcItem__c(Account__r = acc, Amount__c = 2);
 
     RollupCalcItemSorter sorter = new RollupCalcItemSorter(
       new List<RollupOrderBy__mdt>{
-        new RollupOrderBy__mdt(Ranking__c = 0, FieldName__c = 'Account.Name'),
-        new RollupOrderBy__mdt(Ranking__c = 0, FieldName__c = 'Amount')
+        new RollupOrderBy__mdt(Ranking__c = 0, FieldName__c = 'Account__r.Name'),
+        new RollupOrderBy__mdt(Ranking__c = 0, FieldName__c = 'Amount__c')
       }
     );
 
-    List<Opportunity> opps = new List<Opportunity>{ second, opp };
-    opps.sort(sorter);
+    List<RollupCalcItem__c> opps = new List<RollupCalcItem__c>{ second, opp };
+    ((List<SObject>) opps).sort(sorter);
 
     System.assertEquals(opp, opps[0]);
     System.assertEquals(second, opps[1]);
@@ -139,37 +146,37 @@ private class RollupCalcItemSorterTests {
   @IsTest
   static void shouldNotFailOnBlankFieldNames() {
     RollupCalcItemSorter sorter = new RollupCalcItemSorter(
-      new List<RollupOrderBy__mdt>{ new RollupOrderBy__mdt(Ranking__c = 0, FieldName__c = 'Amount'), new RollupOrderBy__mdt(Ranking__c = 1, FieldName__c = '') }
+      new List<RollupOrderBy__mdt>{ new RollupOrderBy__mdt(Ranking__c = 0, FieldName__c = 'Amount__c'), new RollupOrderBy__mdt(Ranking__c = 1, FieldName__c = '') }
     );
 
-    Opportunity expectedFirstItem = new Opportunity(Amount = null);
-    Opportunity expectedSecondItem = new Opportunity(Amount = 1);
-    List<Opportunity> oppsToSort = new List<Opportunity>{ new Opportunity(Amount = 1), new Opportunity(Amount = 3), expectedSecondItem, expectedFirstItem };
-    oppsToSort.sort(sorter);
+    RollupCalcItem__c expectedFirstItem = new RollupCalcItem__c(Amount__c = null);
+    RollupCalcItem__c expectedSecondItem = new RollupCalcItem__c(Amount__c = 1);
+    List<RollupCalcItem__c> oppsToSort = new List<RollupCalcItem__c>{ new RollupCalcItem__c(Amount__c = 1), new RollupCalcItem__c(Amount__c = 3), expectedSecondItem, expectedFirstItem };
+    ((List<SObject>) oppsToSort).sort(sorter);
 
     System.assert(true, 'Should make it here');
   }
 
   @IsTest
   static void sortsFieldNames() {
-    List<Opportunity> itemsToSort = new List<Opportunity>{
-      new Opportunity(StageName = 'Two'),
-      new Opportunity(StageName = 'Uno Reverse Card'),
-      new Opportunity(StageName = 'Two'),
-      new Opportunity(),
-      new Opportunity(StageName = 'Z'),
-      new Opportunity(StageName = 'One'),
-      new Opportunity(StageName = 'One')
+    List<RollupCalcItem__c> itemsToSort = new List<RollupCalcItem__c>{
+      new RollupCalcItem__c(StageName__c = 'Two'),
+      new RollupCalcItem__c(StageName__c = 'Uno Reverse Card'),
+      new RollupCalcItem__c(StageName__c = 'Two'),
+      new RollupCalcItem__c(),
+      new RollupCalcItem__c(StageName__c = 'Z'),
+      new RollupCalcItem__c(StageName__c = 'One'),
+      new RollupCalcItem__c(StageName__c = 'One')
     };
 
-    itemsToSort.sort(new RollupCalcItemSorter(new List<String>{ Opportunity.Name.toString(), Opportunity.StageName.toString() }));
+    ((List<SObject>) itemsToSort).sort(new RollupCalcItemSorter(new List<String>{ RollupCalcItem__c.Name.toString(), RollupCalcItem__c.StageName__c.toString() }));
 
-    System.assertEquals(null, itemsToSort.get(0).StageName);
-    System.assertEquals('One', itemsToSort.get(1).StageName);
-    System.assertEquals('One', itemsToSort.get(2).StageName);
-    System.assertEquals('Two', itemsToSort.get(3).StageName);
-    System.assertEquals('Two', itemsToSort.get(4).StageName);
-    System.assertEquals('Uno Reverse Card', itemsToSort.get(5).StageName);
-    System.assertEquals('Z', itemsToSort.get(6).StageName);
+    System.assertEquals(null, itemsToSort.get(0).StageName__c);
+    System.assertEquals('One', itemsToSort.get(1).StageName__c);
+    System.assertEquals('One', itemsToSort.get(2).StageName__c);
+    System.assertEquals('Two', itemsToSort.get(3).StageName__c);
+    System.assertEquals('Two', itemsToSort.get(4).StageName__c);
+    System.assertEquals('Uno Reverse Card', itemsToSort.get(5).StageName__c);
+    System.assertEquals('Z', itemsToSort.get(6).StageName__c);
   }
 }

@@ -7,11 +7,11 @@ public class RollupSObjectUpdaterTests {
   static void shouldAllowDatetimeToBeSavedAsDate() {
     Datetime now = System.now();
 
-    Opportunity opp = new Opportunity();
+    RollupCalcItem__c opp = new RollupCalcItem__c();
 
-    new RollupSObjectUpdater().updateField(Opportunity.CloseDate, opp, now);
+    new RollupSObjectUpdater().updateField(RollupCalcItem__c.CloseDate__c, opp, now);
 
-    System.assertEquals(now.dateGmt(), opp.CloseDate);
+    System.assertEquals(now.dateGmt(), opp.CloseDate__c);
   }
 
   @IsTest
@@ -49,7 +49,7 @@ public class RollupSObjectUpdaterTests {
     SObjectException ex;
 
     try {
-      new RollupSObjectUpdater().updateField(Opportunity.CloseDate, new Opportunity(), 1);
+      new RollupSObjectUpdater().updateField(RollupCalcItem__c.CloseDate__c, new RollupCalcItem__c(), 1);
     } catch (SObjectException e) {
       ex = e;
     }
@@ -90,11 +90,11 @@ public class RollupSObjectUpdaterTests {
   @IsTest
   static void stringifiesNonTextFieldsProperly() {
     Blob blobValue = EncodingUtil.base64Decode('10101010');
-    Opportunity opp = new Opportunity();
+    RollupCalcItem__c opp = new RollupCalcItem__c();
 
-    new RollupSObjectUpdater().updateField(Opportunity.Description, opp, blobValue);
+    new RollupSObjectUpdater().updateField(RollupCalcItem__c.Description__c, opp, blobValue);
 
-    System.assertEquals(String.valueOf(blobValue), opp.Description);
+    System.assertEquals(String.valueOf(blobValue), opp.Description__c);
   }
 
   @IsTest

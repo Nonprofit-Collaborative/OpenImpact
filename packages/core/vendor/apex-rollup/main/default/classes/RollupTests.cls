@@ -14,7 +14,7 @@ private class RollupTests {
     // in the event that rollups are running in the org, we want to avoid triggering any operations while performing setup DML
     Account acc = new Account(Name = 'RollupTests');
     insert as system acc;
-    Contract con = new Contract(Name = 'Datetime tests', AccountId = acc.Id);
+    RollupCalcItem__c con = new RollupCalcItem__c(Name = 'Datetime tests', Account__c = acc.Id);
     ContactPointAddress cpa = new ContactPointAddress(PreferenceRank = 500, Name = 'RollupTestsCpa');
     insert as system new List<SObject>{ con, cpa };
     upsert as system new RollupSettings__c(IsEnabled__c = true);
@@ -565,30 +565,30 @@ private class RollupTests {
     acc.AnnualRevenue = originalValue;
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ acc };
 
-    Opportunity opp = new Opportunity(AccountId = acc.Id, Amount = 100, Name = 'Will Not Match', CloseDate = System.today().addDays(2), StageName = 'A');
-    insert as system new List<Opportunity>{
-      new Opportunity(AccountId = acc.Id, Amount = 1, Name = 'First Match', CloseDate = System.today().addDays(-2), StageName = 'A'),
-      new Opportunity(AccountId = acc.Id, Amount = 2, Name = 'Second Match', CloseDate = System.today().addDays(-2), StageName = 'A'),
+    RollupCalcItem__c opp = new RollupCalcItem__c(Account__c = acc.Id, Amount__c = 100, Name = 'Will Not Match', CloseDate__c = System.today().addDays(2), StageName__c = 'A');
+    insert as system new List<RollupCalcItem__c>{
+      new RollupCalcItem__c(Account__c = acc.Id, Amount__c = 1, Name = 'First Match', CloseDate__c = System.today().addDays(-2), StageName__c = 'A'),
+      new RollupCalcItem__c(Account__c = acc.Id, Amount__c = 2, Name = 'Second Match', CloseDate__c = System.today().addDays(-2), StageName__c = 'A'),
       opp
     };
 
-    RollupTestUtils.DMLMock mock = RollupTestUtils.loadMock(new List<Opportunity>{ opp });
+    RollupTestUtils.DMLMock mock = RollupTestUtils.loadMock(new List<RollupCalcItem__c>{ opp });
     Rollup.onlyUseMockMetadata = true;
     Rollup.rollupMetadata = new List<Rollup__mdt>{
       new Rollup__mdt(
-        RollupFieldOnCalcItem__c = 'Amount',
+        RollupFieldOnCalcItem__c = 'Amount__c',
         LookupObject__c = 'Account',
-        LookupFieldOnCalcItem__c = 'AccountId',
+        LookupFieldOnCalcItem__c = 'Account__c',
         LookupFieldOnLookupObject__c = 'Id',
         RollupFieldOnLookupObject__c = 'AnnualRevenue',
         RollupOperation__c = 'COUNT',
-        CalcItem__c = 'Opportunity',
+        CalcItem__c = 'RollupCalcItem__c',
         IsFullRecordSet__c = true,
-        CalcItemWhereClause__c = 'CloseDate <= TODAY'
+        CalcItemWhereClause__c = 'CloseDate__c <= TODAY'
       )
     };
-    Opportunity oldOpp = opp.clone(true);
-    oldOpp.CloseDate = System.today().addDays(-2);
+    RollupCalcItem__c oldOpp = opp.clone(true);
+    oldOpp.CloseDate__c = System.today().addDays(-2);
     Rollup.oldRecordsMap = new Map<Id, SObject>{ opp.Id => oldOpp };
     Rollup.apexContext = TriggerOperation.AFTER_UPDATE;
 
@@ -1572,7 +1572,7 @@ private class RollupTests {
 
   @IsTest
   static void shouldMaxOnPicklistStringsOnInsert() {
-    List<PicklistEntry> picklistVals = Opportunity.StageName.getDescribe().getPicklistValues();
+    List<PicklistEntry> picklistVals = RollupCalcItem__c.StageName__c.getDescribe().getPicklistValues();
 
     if (picklistVals.size() < 2) {
       return; // sorry
@@ -1580,9 +1580,9 @@ private class RollupTests {
 
     Account acc = [SELECT Id FROM Account WITH SYSTEM_MODE];
 
-    List<Opportunity> opportunities = new List<Opportunity>{
-      new Opportunity(Name = 'Max Picklist on insert one', StageName = picklistVals[0].getValue(), AccountId = acc.Id, CloseDate = Date.today()),
-      new Opportunity(Name = 'Max Picklist on insert two', StageName = picklistVals[1].getValue(), AccountId = acc.Id, CloseDate = Date.today())
+    List<RollupCalcItem__c> opportunities = new List<RollupCalcItem__c>{
+      new RollupCalcItem__c(Name = 'Max Picklist on insert one', StageName__c = picklistVals[0].getValue(), Account__c = acc.Id, CloseDate__c = Date.today()),
+      new RollupCalcItem__c(Name = 'Max Picklist on insert two', StageName__c = picklistVals[1].getValue(), Account__c = acc.Id, CloseDate__c = Date.today())
     };
     insert as system opportunities; // not the best, either, but we need to be able to use SOQL below
 
@@ -1590,13 +1590,13 @@ private class RollupTests {
     Rollup.apexContext = TriggerOperation.AFTER_INSERT;
 
     Test.startTest();
-    Rollup.maxFromApex(Opportunity.StageName, Opportunity.AccountId, Account.Id, Account.AccountNumber, Account.SObjectType).runCalc();
+    Rollup.maxFromApex(RollupCalcItem__c.StageName__c, RollupCalcItem__c.Account__c, Account.Id, Account.AccountNumber, Account.SObjectType).runCalc();
     Test.stopTest();
 
     AggregateResult res = [
-      SELECT Max(StageName) maxStage
-      FROM Opportunity
-      WHERE Id = :new Map<Id, Opportunity>(opportunities).keySet()
+      SELECT Max(StageName__c) maxStage
+      FROM RollupCalcItem__c
+      WHERE Id = :new Map<Id, RollupCalcItem__c>(opportunities).keySet()
       WITH SYSTEM_MODE
     ][0];
     String maxStage = (String) res.get('maxStage');
@@ -1608,7 +1608,7 @@ private class RollupTests {
 
   @IsTest
   static void shouldMinPicklistStringsOnInsert() {
-    List<PicklistEntry> picklistVals = Opportunity.StageName.getDescribe().getPicklistValues();
+    List<PicklistEntry> picklistVals = RollupCalcItem__c.StageName__c.getDescribe().getPicklistValues();
 
     if (picklistVals.size() < 2) {
       return; // sorry
@@ -1616,9 +1616,9 @@ private class RollupTests {
 
     Account acc = [SELECT Id FROM Account WITH SYSTEM_MODE];
 
-    List<Opportunity> opportunities = new List<Opportunity>{
-      new Opportunity(Name = 'Min Picklist on insert one', StageName = picklistVals[0].getValue(), AccountId = acc.Id, CloseDate = Date.today()),
-      new Opportunity(Name = 'Min Picklist on insert two', StageName = picklistVals[1].getValue(), AccountId = acc.Id, CloseDate = Date.today())
+    List<RollupCalcItem__c> opportunities = new List<RollupCalcItem__c>{
+      new RollupCalcItem__c(Name = 'Min Picklist on insert one', StageName__c = picklistVals[0].getValue(), Account__c = acc.Id, CloseDate__c = Date.today()),
+      new RollupCalcItem__c(Name = 'Min Picklist on insert two', StageName__c = picklistVals[1].getValue(), Account__c = acc.Id, CloseDate__c = Date.today())
     };
     insert as system opportunities;
 
@@ -1626,13 +1626,13 @@ private class RollupTests {
     Rollup.apexContext = TriggerOperation.AFTER_INSERT;
 
     Test.startTest();
-    Rollup.minFromApex(Opportunity.StageName, Opportunity.AccountId, Account.Id, Account.AccountNumber, Account.SObjectType).runCalc();
+    Rollup.minFromApex(RollupCalcItem__c.StageName__c, RollupCalcItem__c.Account__c, Account.Id, Account.AccountNumber, Account.SObjectType).runCalc();
     Test.stopTest();
 
     AggregateResult res = [
-      SELECT MIN(StageName) minStage
-      FROM Opportunity
-      WHERE Id = :new Map<Id, Opportunity>(opportunities).keySet()
+      SELECT MIN(StageName__c) minStage
+      FROM RollupCalcItem__c
+      WHERE Id = :new Map<Id, RollupCalcItem__c>(opportunities).keySet()
       WITH SYSTEM_MODE
     ][0];
     String minStage = (String) res.get('minStage');
@@ -1936,7 +1936,7 @@ private class RollupTests {
 
   @IsTest
   static void shouldMinDateOnInsertWhereParentDateIsNull() {
-    Campaign camp = new Campaign(Id = RollupTestUtils.createId(Campaign.SObjectType));
+    RollupCalcItem__c camp = new RollupCalcItem__c(Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType));
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ camp };
 
     Task taskOne = new Task(Subject = 'Test One', ActivityDate = System.today().addDays(-50));
@@ -1946,11 +1946,11 @@ private class RollupTests {
     Rollup.apexContext = TriggerOperation.AFTER_INSERT;
 
     Test.startTest();
-    Rollup.minFromApex(Task.ActivityDate, Task.WhatId, Campaign.Id, Campaign.EndDate, Campaign.SObjectType).runCalc();
+    Rollup.minFromApex(Task.ActivityDate, Task.WhatId, RollupCalcItem__c.Id, RollupCalcItem__c.CloseDate__c, RollupCalcItem__c.SObjectType).runCalc();
     Test.stopTest();
 
     System.assertEquals(1, mock.Records.size(), 'Records should have been populated MIN DATE AFTER_INSERT');
-    System.assertEquals(taskOne.ActivityDate, camp.EndDate);
+    System.assertEquals(taskOne.ActivityDate, camp.CloseDate__c);
   }
 
   @IsTest
@@ -1978,7 +1978,7 @@ private class RollupTests {
 
   @IsTest
   static void shouldMaxDatetimeOnInsert() {
-    Contract con = new Contract(Id = RollupTestUtils.createId(Contract.SObjectType));
+    RollupCalcItem__c con = new RollupCalcItem__c(Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType));
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ con };
 
     Event eventOne = new Event(ActivityDateTime = System.now().addDays(-50));
@@ -1988,16 +1988,16 @@ private class RollupTests {
     Rollup.apexContext = TriggerOperation.AFTER_INSERT;
 
     Test.startTest();
-    Rollup.maxFromApex(Event.ActivityDateTime, Event.WhatId, Contract.Id, Contract.ActivatedDate, Contract.SObjectType).runCalc();
+    Rollup.maxFromApex(Event.ActivityDateTime, Event.WhatId, RollupCalcItem__c.Id, RollupCalcItem__c.ActivatedDate__c, RollupCalcItem__c.SObjectType).runCalc();
     Test.stopTest();
 
     System.assertEquals(1, mock.Records.size(), 'Records should have been populated MAX DATETIME AFTER_INSERT');
-    System.assertEquals(eventTwo.ActivityDateTime, con.ActivatedDate);
+    System.assertEquals(eventTwo.ActivityDateTime, con.ActivatedDate__c);
   }
 
   @IsTest
   static void shouldMinDatetimeOnInsert() {
-    Contract con = new Contract(Id = RollupTestUtils.createId(Contract.SObjectType));
+    RollupCalcItem__c con = new RollupCalcItem__c(Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType));
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ con };
 
     Event eventOne = new Event(ActivityDateTime = System.now().addDays(-50));
@@ -2007,66 +2007,66 @@ private class RollupTests {
     Rollup.apexContext = TriggerOperation.AFTER_INSERT;
 
     Test.startTest();
-    Rollup.minFromApex(Event.ActivityDateTime, Event.WhatId, Contract.Id, Contract.ActivatedDate, Contract.SObjectType).runCalc();
+    Rollup.minFromApex(Event.ActivityDateTime, Event.WhatId, RollupCalcItem__c.Id, RollupCalcItem__c.ActivatedDate__c, RollupCalcItem__c.SObjectType).runCalc();
     Test.stopTest();
 
     System.assertEquals(1, mock.Records.size(), 'Records should have been populated MIN DATETIME AFTER_INSERT');
-    System.assertEquals(eventOne.ActivityDateTime, con.ActivatedDate);
+    System.assertEquals(eventOne.ActivityDateTime, con.ActivatedDate__c);
   }
 
   @IsTest
   static void shouldMinDatetimeOnUpdate() {
-    Contract con = new Contract(Id = RollupTestUtils.createId(Contract.SObjectType), ActivatedDate = System.now());
+    RollupCalcItem__c con = new RollupCalcItem__c(Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType), ActivatedDate__c = System.now());
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ con };
 
     // now the "new" version of eventOne is no longer the min
-    Event eventOne = new Event(ActivityDateTime = con.ActivatedDate.addDays(50), Id = RollupTestUtils.createId(Event.SObjectType));
-    Event eventTwo = new Event(ActivityDateTime = con.ActivatedDate.addDays(-25), Id = RollupTestUtils.createId(Event.SObjectType));
+    Event eventOne = new Event(ActivityDateTime = con.ActivatedDate__c.addDays(50), Id = RollupTestUtils.createId(Event.SObjectType));
+    Event eventTwo = new Event(ActivityDateTime = con.ActivatedDate__c.addDays(-25), Id = RollupTestUtils.createId(Event.SObjectType));
 
     RollupTestUtils.DMLMock mock = RollupTestUtils.getWhatIdMock(new List<Event>{ eventOne, eventTwo }, con.Id);
     Rollup.apexContext = TriggerOperation.AFTER_UPDATE;
     // the point here is that the old record equaled the existing min
-    Rollup.oldRecordsMap = new Map<Id, Event>{ eventOne.Id => new Event(Id = eventOne.Id, WhatId = con.Id, ActivityDateTime = con.ActivatedDate) };
+    Rollup.oldRecordsMap = new Map<Id, Event>{ eventOne.Id => new Event(Id = eventOne.Id, WhatId = con.Id, ActivityDateTime = con.ActivatedDate__c) };
 
     Test.startTest();
-    Rollup.minFromApex(Event.ActivityDateTime, Event.WhatId, Contract.Id, Contract.ActivatedDate, Contract.SObjectType).runCalc();
+    Rollup.minFromApex(Event.ActivityDateTime, Event.WhatId, RollupCalcItem__c.Id, RollupCalcItem__c.ActivatedDate__c, RollupCalcItem__c.SObjectType).runCalc();
     Test.stopTest();
 
     System.assertEquals(1, mock.Records.size(), 'Records should have been populated MIN DATETIME AFTER_UPDATE');
-    System.assertEquals(eventTwo.ActivityDateTime, con.ActivatedDate);
+    System.assertEquals(eventTwo.ActivityDateTime, con.ActivatedDate__c);
   }
 
   @IsTest
   static void shouldMaxDatetimeOnUpdate() {
-    Contract con = new Contract(Id = RollupTestUtils.createId(Contract.SObjectType), ActivatedDate = System.now());
+    RollupCalcItem__c con = new RollupCalcItem__c(Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType), ActivatedDate__c = System.now());
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ con };
 
     // now the "new" version of eventOne is no longer the max
-    Event eventOne = new Event(ActivityDateTime = con.ActivatedDate.addDays(-25), Id = RollupTestUtils.createId(Event.SObjectType));
-    Event eventTwo = new Event(ActivityDateTime = con.ActivatedDate.addDays(50), Id = RollupTestUtils.createId(Event.SObjectType));
+    Event eventOne = new Event(ActivityDateTime = con.ActivatedDate__c.addDays(-25), Id = RollupTestUtils.createId(Event.SObjectType));
+    Event eventTwo = new Event(ActivityDateTime = con.ActivatedDate__c.addDays(50), Id = RollupTestUtils.createId(Event.SObjectType));
 
     RollupTestUtils.DMLMock mock = RollupTestUtils.getWhatIdMock(new List<Event>{ eventOne, eventTwo }, con.Id);
     Rollup.apexContext = TriggerOperation.AFTER_UPDATE;
     // the point here is that the old record equaled the existing max
-    Rollup.oldRecordsMap = new Map<Id, Event>{ eventOne.Id => new Event(Id = eventOne.Id, WhatId = con.Id, ActivityDateTime = con.ActivatedDate) };
+    Rollup.oldRecordsMap = new Map<Id, Event>{ eventOne.Id => new Event(Id = eventOne.Id, WhatId = con.Id, ActivityDateTime = con.ActivatedDate__c) };
 
     Test.startTest();
-    Rollup.maxFromApex(Event.ActivityDateTime, Event.WhatId, Contract.Id, Contract.ActivatedDate, Contract.SObjectType).runCalc();
+    Rollup.maxFromApex(Event.ActivityDateTime, Event.WhatId, RollupCalcItem__c.Id, RollupCalcItem__c.ActivatedDate__c, RollupCalcItem__c.SObjectType).runCalc();
     Test.stopTest();
 
     System.assertEquals(1, mock.Records.size(), 'Records should have been populated MAX DATETIME AFTER_UPDATE');
-    System.assertEquals(eventTwo.ActivityDateTime, con.ActivatedDate);
+    System.assertEquals(eventTwo.ActivityDateTime, con.ActivatedDate__c);
   }
 
   @IsTest
   static void shouldMaxDatetimeOnDelete() {
-    Contract con = [SELECT Id FROM Contract WITH SYSTEM_MODE];
+    RollupCalcItem__c con = [SELECT Id FROM RollupCalcItem__c WITH SYSTEM_MODE];
     // it's important that this test and the one below it don't have time instances with more than second granularity, since Apex can't retrieve those values
-    con.ActivatedDate = Datetime.newInstance(System.today(), Time.newInstance(0, 0, 0, 0));
+    con.ActivatedDate__c = Datetime.newInstance(System.today(), Time.newInstance(0, 0, 0, 0));
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ con };
 
-    Event eventOne = new Event(ActivityDateTime = con.ActivatedDate, WhatId = con.Id, Id = RollupTestUtils.createId(Event.SObjectType));
-    Event eventTwo = new Event(ActivityDateTime = con.ActivatedDate.addDays(50), WhatId = con.Id, DurationInMinutes = 50);
+    Event eventOne = new Event(ActivityDateTime = con.ActivatedDate__c, WhatId = con.Id, Id = RollupTestUtils.createId(Event.SObjectType));
+    Event eventTwo = new Event(ActivityDateTime = con.ActivatedDate__c.addDays(50), WhatId = con.Id, DurationInMinutes = 50);
     insert as system eventTwo;
 
     RollupTestUtils.DMLMock mock = RollupTestUtils.loadMock(new List<Event>{ eventOne });
@@ -2074,22 +2074,22 @@ private class RollupTests {
     Rollup.oldRecordsMap = new Map<Id, Event>(new List<Event>{ eventOne });
 
     Test.startTest();
-    Rollup.maxFromApex(Event.ActivityDateTime, Event.WhatId, Contract.Id, Contract.ActivatedDate, Contract.SObjectType).runCalc();
+    Rollup.maxFromApex(Event.ActivityDateTime, Event.WhatId, RollupCalcItem__c.Id, RollupCalcItem__c.ActivatedDate__c, RollupCalcItem__c.SObjectType).runCalc();
     Test.stopTest();
 
     System.assertEquals(1, mock.Records.size(), 'Records should have been populated MAX DATETIME BEFORE_DELETE');
-    System.assertEquals(eventTwo.ActivityDateTime, con.ActivatedDate);
+    System.assertEquals(eventTwo.ActivityDateTime, con.ActivatedDate__c);
   }
 
   @IsTest
   static void shouldMinDatetimeOnDelete() {
-    Contract con = [SELECT Id FROM Contract WITH SYSTEM_MODE];
+    RollupCalcItem__c con = [SELECT Id FROM RollupCalcItem__c WITH SYSTEM_MODE];
     // it's important that this test and the one above it don't have time instances with more than second granularity, since Apex can't retrieve those values
-    con.ActivatedDate = Datetime.newInstance(System.today(), Time.newInstance(0, 0, 0, 0));
+    con.ActivatedDate__c = Datetime.newInstance(System.today(), Time.newInstance(0, 0, 0, 0));
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ con };
 
-    Event eventOne = new Event(ActivityDateTime = con.ActivatedDate);
-    Event eventTwo = new Event(ActivityDateTime = con.ActivatedDate.addDays(-50), DurationInMinutes = 50, WhatId = con.Id);
+    Event eventOne = new Event(ActivityDateTime = con.ActivatedDate__c);
+    Event eventTwo = new Event(ActivityDateTime = con.ActivatedDate__c.addDays(-50), DurationInMinutes = 50, WhatId = con.Id);
     insert as system eventTwo;
 
     RollupTestUtils.DMLMock mock = RollupTestUtils.getWhatIdMock(new List<Event>{ eventOne }, con.Id);
@@ -2097,11 +2097,11 @@ private class RollupTests {
     Rollup.oldRecordsMap = new Map<Id, Event>(new List<Event>{ eventOne });
 
     Test.startTest();
-    Rollup.minFromApex(Event.ActivityDateTime, Event.WhatId, Contract.Id, Contract.ActivatedDate, Contract.SObjectType).runCalc();
+    Rollup.minFromApex(Event.ActivityDateTime, Event.WhatId, RollupCalcItem__c.Id, RollupCalcItem__c.ActivatedDate__c, RollupCalcItem__c.SObjectType).runCalc();
     Test.stopTest();
 
     System.assertEquals(1, mock.Records.size(), 'Records should have been populated MIN DATETIME BEFORE_DELETE');
-    System.assertEquals(eventTwo.ActivityDateTime, con.ActivatedDate);
+    System.assertEquals(eventTwo.ActivityDateTime, con.ActivatedDate__c);
   }
 
   @IsTest
@@ -3168,7 +3168,7 @@ private class RollupTests {
     acc.AnnualRevenue = 2; // should match count of contacts, below, to begin with
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ acc };
 
-    Opportunity opp = new Opportunity(CloseDate = System.today(), Amount = 3, AccountId = acc.Id, StageName = '1', Name = 'Winning Record');
+    RollupCalcItem__c opp = new RollupCalcItem__c(CloseDate__c = System.today(), Amount__c = 3, Account__c = acc.Id, StageName__c = '1', Name = 'Winning Record');
     insert as system opp;
     insert as system new List<SObject>{ new Contact(LastName = '1', AccountId = acc.Id), new Contact(LastName = '2', AccountId = acc.Id) };
     Rollup.onlyUseMockMetadata = true;
@@ -3176,7 +3176,7 @@ private class RollupTests {
     Rollup.rollupMetadata = new List<Rollup__mdt>{
       new Rollup__mdt(
         CalcItem__c = 'Contact',
-        LookupFieldOnCalcItem__c = 'AccountId',
+        LookupFieldOnCalcItem__c = 'Account__c',
         RollupFieldOnCalcItem__c = 'Id',
         LookupObject__c = 'Account',
         LookupFieldOnLookupObject__c = 'Id',
@@ -3185,9 +3185,9 @@ private class RollupTests {
         RollupGrouping__r = parentGrouping
       ),
       new Rollup__mdt(
-        CalcItem__c = 'Opportunity',
-        LookupFieldOnCalcItem__c = 'AccountId',
-        RollupFieldOnCalcItem__c = 'Amount',
+        CalcItem__c = 'RollupCalcItem__c',
+        LookupFieldOnCalcItem__c = 'Account__c',
+        RollupFieldOnCalcItem__c = 'Amount__c',
         LookupObject__c = 'Account',
         LookupFieldOnLookupObject__c = 'Id',
         RollupFieldOnLookupObject__c = 'AnnualRevenue',
@@ -3199,13 +3199,13 @@ private class RollupTests {
     Test.startTest();
     Rollup.apexContext = TriggerOperation.AFTER_UPDATE;
     Rollup.shouldRun = true;
-    Rollup.records = new List<Opportunity>{ opp };
-    Rollup.oldRecordsMap = new Map<Id, Opportunity>{ opp.Id => new Opportunity(Id = opp.Id, Amount = 1, AccountId = acc.Id) };
+    Rollup.records = new List<RollupCalcItem__c>{ opp };
+    Rollup.oldRecordsMap = new Map<Id, RollupCalcItem__c>{ opp.Id => new RollupCalcItem__c(Id = opp.Id, Amount__c = 1, Account__c = acc.Id) };
     Rollup.runFromTrigger();
     Test.stopTest();
 
     acc = [SELECT AnnualRevenue FROM Account WHERE Id = :acc.Id WITH SYSTEM_MODE];
-    Assert.areEqual(opp.Amount, acc.AnnualRevenue);
+    Assert.areEqual(opp.Amount__c, acc.AnnualRevenue);
   }
 
   @IsTest

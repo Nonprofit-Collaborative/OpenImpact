@@ -28,7 +28,7 @@ private class RollupDatetimeTimezoneTests {
 
       Datetime result = (Datetime) calc.getReturnValue();
 
-      // The GMT components must match the original — timezone must not shift them
+      // The GMT components must match the original: timezone must not shift them
       System.assertEquals(knownDt.yearGmt(), result.yearGmt(), 'yearGmt mismatch');
       System.assertEquals(knownDt.monthGmt(), result.monthGmt(), 'monthGmt mismatch');
       System.assertEquals(knownDt.dayGmt(), result.dayGmt(), 'dayGmt mismatch');
@@ -56,7 +56,7 @@ private class RollupDatetimeTimezoneTests {
         metadata,
         Event.WhatId
       );
-      // Pass the date string as the "prior value" — setDefaultValues routes through getDecimalOrDefault
+      // Pass the date string as the "prior value": setDefaultValues routes through getDecimalOrDefault
       calc.setDefaultValues(RollupTestUtils.createId(Account.SObjectType), dateString);
 
       // Feed a later Datetime so the MIN stays on our date-string value

@@ -2,8 +2,8 @@
 private class RollupEvaluatorTests {
   @IsTest
   static void shouldReturnEqualsCorrectlyForEqualsCriteria() {
-    Opportunity nameEquals = new Opportunity(Name = 'RollupZ');
-    Opportunity doesNotEqualName = new Opportunity(Name = 'RollupZZ');
+    RollupCalcItem__c nameEquals = new RollupCalcItem__c(Name = 'RollupZ');
+    RollupCalcItem__c doesNotEqualName = new RollupCalcItem__c(Name = 'RollupZZ');
     String whereClause = 'Name = \'RollupZ\'';
 
     Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, nameEquals.getSObjectType());
@@ -14,8 +14,8 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldFilterCalcItemsBasedOnWhereClauseCmdtFieldNotEquals() {
-    Opportunity nameEquals = new Opportunity(Name = 'RollupZ');
-    Opportunity doesNotEqualName = new Opportunity(Name = 'RollupZZ');
+    RollupCalcItem__c nameEquals = new RollupCalcItem__c(Name = 'RollupZ');
+    RollupCalcItem__c doesNotEqualName = new RollupCalcItem__c(Name = 'RollupZZ');
     String whereClause = 'Name != \'RollupZZ\'';
 
     Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, nameEquals.getSObjectType());
@@ -26,8 +26,8 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldFilterCalcItemsBasedOnWhereClauseCmdtFieldNotEqualsAlternate() {
-    Opportunity nameEquals = new Opportunity(Name = 'RollupZ');
-    Opportunity doesNotEqualName = new Opportunity(Name = 'RollupZZ');
+    RollupCalcItem__c nameEquals = new RollupCalcItem__c(Name = 'RollupZ');
+    RollupCalcItem__c doesNotEqualName = new RollupCalcItem__c(Name = 'RollupZZ');
     String whereClause = 'Name <> \'RollupZZ\'';
 
     Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, nameEquals.getSObjectType());
@@ -38,8 +38,8 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldFilterCalcItemsBasedOnWhereClauseCmdtFieldEqualsMultiple() {
-    Opportunity rollupZ = new Opportunity(Name = 'RollupZ');
-    Opportunity rollupZZ = new Opportunity(Name = 'RollupZZ');
+    RollupCalcItem__c rollupZ = new RollupCalcItem__c(Name = 'RollupZ');
+    RollupCalcItem__c rollupZZ = new RollupCalcItem__c(Name = 'RollupZZ');
     String whereClause = 'Name IN (\'RollupZZ\', \'RollupZ\')';
 
     Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, rollupZ.getSObjectType());
@@ -50,8 +50,8 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldFilterCalcItemsBasedOnWhereClauseCmdtFieldNotEqualsMultiple() {
-    Opportunity rollupZ = new Opportunity(Name = 'RollupZ');
-    Opportunity rollupZZ = new Opportunity(Name = 'RollupZZ');
+    RollupCalcItem__c rollupZ = new RollupCalcItem__c(Name = 'RollupZ');
+    RollupCalcItem__c rollupZZ = new RollupCalcItem__c(Name = 'RollupZZ');
     String whereClause = 'Name NOT IN (\'RollupZZ\', \'RollupZ\')';
 
     Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, rollupZ.getSObjectType());
@@ -62,14 +62,14 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldFilterCalcItemsForNotEqualsNumbers() {
-    Opportunity notZero = new Opportunity(Amount = 10);
-    Opportunity zero = new Opportunity(Amount = 0);
-    String whereClause = 'Amount != 0';
+    RollupCalcItem__c notZero = new RollupCalcItem__c(Amount__c = 10);
+    RollupCalcItem__c zero = new RollupCalcItem__c(Amount__c = 0);
+    String whereClause = 'Amount__c != 0';
 
     Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, zero.getSObjectType());
 
-    System.assertEquals(true, eval.matches(notZero), String.valueOf(notZero.Amount) + ' should not = 0');
-    System.assertNotEquals(true, eval.matches(zero), '0 should  be excluded since opp amount = ' + zero.Amount);
+    System.assertEquals(true, eval.matches(notZero), String.valueOf(notZero.Amount__c) + ' should not = 0');
+    System.assertNotEquals(true, eval.matches(zero), '0 should  be excluded since opp amount = ' + zero.Amount__c);
   }
 
   @IsTest
@@ -97,8 +97,8 @@ private class RollupEvaluatorTests {
   @IsTest
   static void shouldFilterCalcItemsBasedOnWhereClauseCmdtFieldForParentFields() {
     Account acc = new Account(Name = 'RollupEvaluatorTests');
-    Opportunity oppOne = new Opportunity(Name = acc.Name, Account = acc);
-    Opportunity oppTwo = new Opportunity(Name = 'RollupZ', Account = new Account(Name = 'Some other name'));
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Name = acc.Name, Account__r = acc);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Name = 'RollupZ', Account__r = new Account(Name = 'Some other name'));
     String whereClause = 'Account.Name != ' + acc.Name;
 
     Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, oppOne.getSObjectType());
@@ -110,11 +110,11 @@ private class RollupEvaluatorTests {
   @IsTest
   static void shouldFilterCalcItemsBasedOnWhereClauseForLists() {
     List<String> accIds = new List<String>{ '0016g0000000000001', '0016g0000000000002' };
-    String whereClause = 'AccountId IN ' + JSON.serialize(accIds).replace('[', '(').replace(']', ')').replaceAll('"', '\'');
+    String whereClause = 'Account__c IN ' + JSON.serialize(accIds).replace('[', '(').replace(']', ')').replaceAll('"', '\'');
 
-    Opportunity oppOne = new Opportunity(AccountId = accIds[0]);
-    Opportunity oppTwo = new Opportunity(accountId = accIds[1]);
-    Opportunity shouldNotMatch = new Opportunity(AccountId = '0016g0000000000003');
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Account__c = accIds[0]);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Account__c = accIds[1]);
+    RollupCalcItem__c shouldNotMatch = new RollupCalcItem__c(Account__c = '0016g0000000000003');
 
     Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, oppOne.getSObjectType());
     System.assertEquals(true, eval.matches(oppOne), 'first account Id is in list');
@@ -125,9 +125,9 @@ private class RollupEvaluatorTests {
   @IsTest
   static void shouldFilterCalcItemsBasedOnWhereClauseCmdtFieldForOrStatements() {
     Account acc = new Account(Name = 'RollupEvaluatorTests');
-    Opportunity oppOne = new Opportunity(Name = acc.Name, Account = acc);
-    Opportunity oppTwo = new Opportunity(Name = 'RollupZ', Account = acc);
-    Opportunity oppThree = new Opportunity(Name = 'RollupZZ');
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Name = acc.Name, Account__r = acc);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Name = 'RollupZ', Account__r = acc);
+    RollupCalcItem__c oppThree = new RollupCalcItem__c(Name = 'RollupZZ');
     String whereClause = 'Account.Name != \'' + acc.Name + '\' OR Name = \'' + oppTwo.Name + '\'';
 
     Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, oppOne.getSObjectType());
@@ -140,8 +140,8 @@ private class RollupEvaluatorTests {
   @IsTest
   static void shouldFilterCalcItemsBasedOnWhereClauseCmdtFieldForLikeStatements() {
     Account acc = new Account(Name = 'RollupEvaluatorTest');
-    Opportunity oppOne = new Opportunity(Name = 'RollupZZ', Account = acc);
-    Opportunity oppTwo = new Opportunity(Name = 'RollupZ', Account = acc);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Name = 'RollupZZ', Account__r = acc);
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Name = 'RollupZ', Account__r = acc);
 
     String whereClause = 'Account.Name LIKE \'%Rollup%\'';
 
@@ -154,34 +154,34 @@ private class RollupEvaluatorTests {
   @IsTest
   static void shouldFilterCalcItemsBasedOnWhereClauseCmdtFieldForNotLikeStatements() {
     Account acc = new Account(Name = 'RollupEvaluatorTest');
-    Opportunity target = new Opportunity(Name = 'RollupZZ', Account = acc);
+    RollupCalcItem__c target = new RollupCalcItem__c(Name = 'RollupZZ', Account__r = acc);
 
     String whereClause = 'NOT Account.Name LIKE \'%Rollup%\'';
 
     Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, target.getSObjectType());
 
     System.assertEquals(false, eval.matches(target));
-    target.Account.Name = 'Rollup';
+    target.Account__r.Name = 'Rollup';
     System.assertEquals(false, eval.matches(target));
-    target.Account.Name = 'rollUP';
+    target.Account__r.Name = 'rollUP';
     System.assertEquals(false, eval.matches(target));
-    target.Account.Name = 'match';
+    target.Account__r.Name = 'match';
     System.assertEquals(true, eval.matches(target));
   }
 
   @IsTest
   static void shouldProperlyDetectWildcardsForLike() {
-    Opportunity target = new Opportunity(Name = 'Something new');
+    RollupCalcItem__c target = new RollupCalcItem__c(Name = 'Something new');
 
-    Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator('Name LIKE \'thi%\'', Opportunity.SObjectType);
+    Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator('Name LIKE \'thi%\'', RollupCalcItem__c.SObjectType);
 
     System.assertEquals(false, eval.matches(target));
-    System.assertEquals(true, eval.matches(new Opportunity(Name = 'thing')));
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Name = 'thing')));
 
-    eval = new RollupEvaluator.WhereFieldEvaluator('Name LIKE \'%thi%\'', Opportunity.SObjectType);
+    eval = new RollupEvaluator.WhereFieldEvaluator('Name LIKE \'%thi%\'', RollupCalcItem__c.SObjectType);
     System.assertEquals(true, eval.matches(target));
 
-    eval = new RollupEvaluator.WhereFieldEvaluator('Name LIKE \'%t%i%\'', Opportunity.SObjectType);
+    eval = new RollupEvaluator.WhereFieldEvaluator('Name LIKE \'%t%i%\'', RollupCalcItem__c.SObjectType);
     System.assertEquals(true, eval.matches(target));
     target.Name = 'Created From: Parent Initiated Rollup';
     System.assertEquals(true, eval.matches(target));
@@ -202,8 +202,8 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldFilterCalcItemsThatContainAndOrStringsThatAreNotFilterConditions() {
-    Opportunity oppOne = new Opportunity(Name = 'A or B');
-    Opportunity oppTwo = new Opportunity(Name = 'A and B');
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Name = 'A or B');
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Name = 'A and B');
 
     String whereClause = 'Name = \'A or B\''; // gasp
 
@@ -215,7 +215,7 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldWorkForStringsWithSymbolsInThem() {
-    Opportunity oppOne = new Opportunity(Name = '!()eeeek$$$-@');
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Name = '!()eeeek$$$-@');
 
     String whereClause = 'Name = \'!()eeeek$$$-@\'';
 
@@ -226,7 +226,7 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldWorkForParanthesisAtEndOfString() {
-    Opportunity nameWithParanthesis = new Opportunity(Name = 'Realized Gain/(Loss)');
+    RollupCalcItem__c nameWithParanthesis = new RollupCalcItem__c(Name = 'Realized Gain/(Loss)');
 
     String whereClause = 'Name = \'Realized Gain/(Loss)\'';
 
@@ -237,11 +237,11 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldWorkForGreaterThanNumbers() {
-    Opportunity oppOne = new Opportunity();
-    Opportunity oppTwo = new Opportunity(Amount = 5);
-    Opportunity oppThree = new Opportunity(Amount = 3.01);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c();
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Amount__c = 5);
+    RollupCalcItem__c oppThree = new RollupCalcItem__c(Amount__c = 3.01);
 
-    String whereClause = 'Amount > 4';
+    String whereClause = 'Amount__c > 4';
 
     Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, oppOne.getSObjectType());
 
@@ -249,23 +249,23 @@ private class RollupEvaluatorTests {
     System.assertEquals(true, eval.matches(oppTwo), 'Should match since amount is greater than');
     System.assertNotEquals(true, eval.matches(oppThree), 'Should not match since amount is not greater than');
 
-    eval = new RollupEvaluator.WhereFieldEvaluator('Amount >= 4.00', oppOne.getSObjectType());
+    eval = new RollupEvaluator.WhereFieldEvaluator('Amount__c >= 4.00', oppOne.getSObjectType());
 
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 4.00)), 'Should match since amount equals!');
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 5.00)), 'Should match since amount greater than!');
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 4.00)), 'Should match since amount equals!');
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 5.00)), 'Should match since amount greater than!');
   }
 
   @IsTest
   static void shouldWorkForGreaterThanDates() {
-    Opportunity oppOne = new Opportunity(CloseDate = System.today());
-    Opportunity oppTwo = new Opportunity(CloseDate = System.today().addDays(-2));
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(CloseDate__c = System.today());
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(CloseDate__c = System.today().addDays(-2));
 
-    String whereClause = 'CloseDate > ' + getSoqlCompliantDatetime(Datetime.newInstance(oppTwo.CloseDate, Time.newInstance(0, 0, 0, 0)));
+    String whereClause = 'CloseDate__c > ' + getSoqlCompliantDatetime(Datetime.newInstance(oppTwo.CloseDate__c, Time.newInstance(0, 0, 0, 0)));
 
     Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, oppOne.getSObjectType());
 
     System.assertEquals(true, eval.matches(oppOne));
-    System.assertEquals(false, eval.matches(oppTwo), 'Second close date should not match since it is not greater: ' + oppTwo.CloseDate);
+    System.assertEquals(false, eval.matches(oppTwo), 'Second close date should not match since it is not greater: ' + oppTwo.CloseDate__c);
   }
 
   @IsTest
@@ -295,10 +295,10 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldWorkForGreaterThanOrEqualDates() {
-    Opportunity oppOne = new Opportunity(CloseDate = System.today());
-    Opportunity oppTwo = new Opportunity(CloseDate = System.today().addDays(-2));
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(CloseDate__c = System.today());
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(CloseDate__c = System.today().addDays(-2));
 
-    String whereClause = 'CloseDate >= ' + getSoqlCompliantDatetime(Datetime.newInstance(oppTwo.CloseDate, Time.newInstance(0, 0, 0, 0)));
+    String whereClause = 'CloseDate__c >= ' + getSoqlCompliantDatetime(Datetime.newInstance(oppTwo.CloseDate__c, Time.newInstance(0, 0, 0, 0)));
 
     Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, oppOne.getSObjectType());
 
@@ -333,8 +333,8 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldWorkForGreaterThanStrings() {
-    Opportunity oppOne = new Opportunity(Name = 'A');
-    Opportunity oppTwo = new Opportunity(Name = 'B');
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Name = 'A');
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Name = 'B');
 
     String whereClause = 'Name > ' + oppOne.Name;
 
@@ -346,8 +346,8 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldWorkForGreaterThanOrEqualStrings() {
-    Opportunity oppOne = new Opportunity(Name = 'A');
-    Opportunity oppTwo = new Opportunity(Name = 'B');
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Name = 'A');
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Name = 'B');
 
     String whereClause = 'Name >= ' + oppOne.Name;
 
@@ -359,10 +359,10 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldWorkForLessThanDates() {
-    Opportunity oppOne = new Opportunity(CloseDate = System.today());
-    Opportunity oppTwo = new Opportunity(CloseDate = System.today().addDays(-2));
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(CloseDate__c = System.today());
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(CloseDate__c = System.today().addDays(-2));
 
-    String whereClause = 'CloseDate < ' + getSoqlCompliantDatetime(Datetime.newInstance(oppTwo.CloseDate, Time.newInstance(0, 0, 0, 0)));
+    String whereClause = 'CloseDate__c < ' + getSoqlCompliantDatetime(Datetime.newInstance(oppTwo.CloseDate__c, Time.newInstance(0, 0, 0, 0)));
 
     Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, oppOne.getSObjectType());
 
@@ -397,10 +397,10 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldWorkForLessThanOrEqualDates() {
-    Opportunity oppOne = new Opportunity(CloseDate = System.today());
-    Opportunity oppTwo = new Opportunity(CloseDate = System.today().addDays(-2));
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(CloseDate__c = System.today());
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(CloseDate__c = System.today().addDays(-2));
 
-    String whereClause = 'CloseDate <= ' + getSoqlCompliantDatetime(Datetime.newInstance(oppTwo.CloseDate, Time.newInstance(0, 0, 0, 0)));
+    String whereClause = 'CloseDate__c <= ' + getSoqlCompliantDatetime(Datetime.newInstance(oppTwo.CloseDate__c, Time.newInstance(0, 0, 0, 0)));
 
     Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, oppOne.getSObjectType());
 
@@ -435,8 +435,8 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldWorkForLessThanStrings() {
-    Opportunity oppOne = new Opportunity(Name = 'A');
-    Opportunity oppTwo = new Opportunity(Name = 'B');
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Name = 'A');
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Name = 'B');
 
     String whereClause = 'Name < ' + oppTwo.Name;
 
@@ -448,8 +448,8 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldWorkForLessThanOrEqualStrings() {
-    Opportunity oppOne = new Opportunity(Name = 'A');
-    Opportunity oppTwo = new Opportunity(Name = 'A');
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Name = 'A');
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Name = 'A');
 
     String whereClause = 'Name <= ' + oppTwo.Name;
 
@@ -461,11 +461,11 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldWorkForLessThanConditions() {
-    Opportunity oppOne = new Opportunity();
-    Opportunity oppTwo = new Opportunity(Amount = 5);
-    Opportunity oppThree = new Opportunity(Amount = 3.01);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c();
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Amount__c = 5);
+    RollupCalcItem__c oppThree = new RollupCalcItem__c(Amount__c = 3.01);
 
-    String whereClause = 'Amount < 4';
+    String whereClause = 'Amount__c < 4';
 
     Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, oppOne.getSObjectType());
 
@@ -473,10 +473,10 @@ private class RollupEvaluatorTests {
     System.assertNotEquals(true, eval.matches(oppTwo), 'Should not match since amount is greater than criteria');
     System.assertEquals(true, eval.matches(oppThree), 'Should match since amount is less than');
 
-    eval = new RollupEvaluator.WhereFieldEvaluator('Amount <= 4.00', oppOne.getSObjectType());
+    eval = new RollupEvaluator.WhereFieldEvaluator('Amount__c <= 4.00', oppOne.getSObjectType());
 
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 4.00)), 'Should match since amount equals!');
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 3.00)), 'Should match since amount less than!');
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 4.00)), 'Should match since amount equals!');
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 3.00)), 'Should match since amount less than!');
   }
 
   @IsTest
@@ -516,20 +516,20 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldReturnForMultipleOrConditionalsWithQueryKeywordsInString() {
-    Opportunity oppOne = new Opportunity(ForecastCategoryName = 'Omitted');
-    Opportunity oppTwo = new Opportunity(ForecastCategoryName = 'Pipeline'); // pipeline has "in" within it; this is a query keyword that should not get replaced
-    Opportunity oppThree = new Opportunity(ForecastCategoryName = 'Best Case');
-    Opportunity oppFour = new Opportunity(ForecastCategoryName = 'Commit');
-    Opportunity oppFive = new Opportunity(Amount = 5, ForecastCategoryName = 'Closed');
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(Category__c = 'Omitted');
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Category__c = 'Pipeline'); // pipeline has "in" within it; this is a query keyword that should not get replaced
+    RollupCalcItem__c oppThree = new RollupCalcItem__c(Category__c = 'Best Guess');
+    RollupCalcItem__c oppFour = new RollupCalcItem__c(Category__c = 'Commit');
+    RollupCalcItem__c oppFive = new RollupCalcItem__c(Amount__c = 5, Category__c = 'Closed');
 
-    String whereClause = 'ForecastCategoryName = \'Omitted\' OR ForecastCategoryName = \'Best Case\' OR ForecastCategoryName = \'Pipeline\' OR Amount = 5';
+    String whereClause = 'Category__c = \'Omitted\' OR Category__c = \'Best Guess\' OR Category__c = \'Pipeline\' OR Amount__c = 5';
 
-    Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, Opportunity.SObjectType);
+    Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, RollupCalcItem__c.SObjectType);
 
-    System.assertEquals(true, eval.matches(oppOne), 'ForecastCategoryName for opp one should match');
-    System.assertEquals(true, eval.matches(oppTwo), 'ForecastCategoryName for opp two should match');
-    System.assertEquals(true, eval.matches(oppThree), 'ForecastCategoryName for opp three should match');
-    System.assertEquals(false, eval.matches(oppFour), 'ForecastCategoryName for opp four should not match');
+    System.assertEquals(true, eval.matches(oppOne), 'Category__c for opp one should match');
+    System.assertEquals(true, eval.matches(oppTwo), 'Category__c for opp two should match');
+    System.assertEquals(true, eval.matches(oppThree), 'Category__c for opp three should match');
+    System.assertEquals(false, eval.matches(oppFour), 'Category__c for opp four should not match');
     System.assertEquals(true, eval.matches(oppFive), 'Amount for opp five should match');
   }
 
@@ -537,10 +537,10 @@ private class RollupEvaluatorTests {
   static void shouldReturnCorrectlyWhenQueryKeywordsWithSpacesArePartOfString() {
     // even worse than the above - imagine a Name field "This in That" returning false
     // because we've mistakenly transformed it into "This = that" 🤦‍♂️
-    Opportunity nameShouldMatch = new Opportunity(Name = 'This in That');
+    RollupCalcItem__c nameShouldMatch = new RollupCalcItem__c(Name = 'This in That');
     String whereClause = 'Name = \'This in That\'';
 
-    Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, Opportunity.SObjectType);
+    Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, RollupCalcItem__c.SObjectType);
     System.assertEquals(true, eval.matches(nameShouldMatch), 'Name should match');
   }
 
@@ -581,23 +581,23 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldReturnDualEvaluatorWhenCalcItemChangedFieldsAndWhereClauseFilledOut() {
-    Opportunity opp = new Opportunity(Id = '0066g000000000000X', Amount = 50, StageName = 'Updated Name');
-    Opportunity oldOpp = opp.clone(true, true);
-    oldOpp.StageName = 'Old Name';
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g000000000000X', Amount__c = 50, StageName__c = 'Updated Name');
+    RollupCalcItem__c oldOpp = opp.clone(true, true);
+    oldOpp.StageName__c = 'Old Name';
 
-    Opportunity secondOpp = new Opportunity(Id = '0066g000000000000Z', StageName = 'Same', Amount = 25);
+    RollupCalcItem__c secondOpp = new RollupCalcItem__c(Id = '0066g000000000000Z', StageName__c = 'Same', Amount__c = 25);
 
     Rollup__mdt rollupMetadata = new Rollup__mdt(
-      ChangedFieldsOnCalcItem__c = 'StageName',
-      CalcItemWhereClause__c = 'Amount > 20',
+      ChangedFieldsOnCalcItem__c = 'StageName__c',
+      CalcItemWhereClause__c = 'Amount__c > 20',
       RollupOperation__c = RollupOperation.SUM.name()
     );
 
     Rollup.Evaluator eval = RollupEvaluator.getEvaluator(
       null,
       rollupMetadata,
-      new Map<Id, SObject>{ oldOpp.Id => oldOpp, secondOpp.Id => new Opportunity(Id = secondOpp.Id, StageName = secondOpp.StageName, Amount = 15) },
-      Opportunity.SObjectType
+      new Map<Id, SObject>{ oldOpp.Id => oldOpp, secondOpp.Id => new RollupCalcItem__c(Id = secondOpp.Id, StageName__c = secondOpp.StageName__c, Amount__c = 15) },
+      RollupCalcItem__c.SObjectType
     );
     System.assertEquals(true, eval.matches(opp), 'Should match since StageName has changed and amount > 20');
     System.assertNotEquals(true, eval.matches(secondOpp), 'Should not match, stage name unchanged even though amount > 20');
@@ -605,53 +605,53 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldReturnDualEvaluatorWhenCalcItemReparented() {
-    Opportunity opp = new Opportunity(Id = '0066g000000000000X', AccountId = '0016g000000000000X', Amount = 50);
-    Opportunity oldOpp = opp.clone(true, true);
-    oldOpp.AccountId = '0013g000000000000Z';
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g000000000000X', Account__c = '0016g000000000000X', Amount__c = 50);
+    RollupCalcItem__c oldOpp = opp.clone(true, true);
+    oldOpp.Account__c = '0013g000000000000Z';
 
     Rollup__mdt rollupMetadata = new Rollup__mdt(
-      LookupFieldOnCalcItem__c = 'AccountId',
-      CalcItemWhereClause__c = 'Amount > 20',
+      LookupFieldOnCalcItem__c = 'Account__c',
+      CalcItemWhereClause__c = 'Amount__c > 20',
       RollupOperation__c = RollupOperation.SUM.name()
     );
 
-    Rollup.Evaluator eval = RollupEvaluator.getEvaluator(null, rollupMetadata, new Map<Id, SObject>{ oldOpp.Id => oldOpp }, Opportunity.SObjectType);
+    Rollup.Evaluator eval = RollupEvaluator.getEvaluator(null, rollupMetadata, new Map<Id, SObject>{ oldOpp.Id => oldOpp }, RollupCalcItem__c.SObjectType);
     System.assertEquals(true, eval.matches(opp), 'Should match since StageName has changed and amount > 20');
   }
 
   @IsTest
   static void shouldReturnDualEvaluatorWhenEvalIsPassedInAndReparenting() {
-    Opportunity opp = new Opportunity(Id = '0066g000000000000X', AccountId = '0016g000000000000X', Amount = 50);
-    Opportunity oldOpp = opp.clone(true, true);
-    oldOpp.AccountId = '0013g000000000000Z';
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g000000000000X', Account__c = '0016g000000000000X', Amount__c = 50);
+    RollupCalcItem__c oldOpp = opp.clone(true, true);
+    oldOpp.Account__c = '0013g000000000000Z';
 
-    Rollup__mdt rollupMetadata = new Rollup__mdt(LookupFieldOnCalcItem__c = 'AccountId', RollupOperation__c = RollupOperation.SUM.name());
+    Rollup__mdt rollupMetadata = new Rollup__mdt(LookupFieldOnCalcItem__c = 'Account__c', RollupOperation__c = RollupOperation.SUM.name());
 
     Rollup.Evaluator eval = RollupEvaluator.getEvaluator(
       new RollupEvaluator.AlwaysTrueEvaluator(),
       rollupMetadata,
       new Map<Id, SObject>{ oldOpp.Id => oldOpp },
-      Opportunity.SObjectType
+      RollupCalcItem__c.SObjectType
     );
     System.assertEquals(true, eval.matches(opp), 'Should match since always true eval passed in and reparented');
   }
 
   @IsTest
   static void shouldReturnChangedFieldEval() {
-    Opportunity opp = new Opportunity(Id = '0066g000000000000X', Amount = 50);
-    Opportunity oldOpp = opp.clone(true, true);
-    oldOpp.Amount = 25;
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g000000000000X', Amount__c = 50);
+    RollupCalcItem__c oldOpp = opp.clone(true, true);
+    oldOpp.Amount__c = 25;
 
-    Opportunity secondOpp = new Opportunity(Id = '0066g000000000000Z', Amount = 15);
+    RollupCalcItem__c secondOpp = new RollupCalcItem__c(Id = '0066g000000000000Z', Amount__c = 15);
 
-    Rollup__mdt rollupMetadata = new Rollup__mdt(ChangedFieldsOnCalcItem__c = 'Amount', RollupOperation__c = RollupOperation.SUM.name());
+    Rollup__mdt rollupMetadata = new Rollup__mdt(ChangedFieldsOnCalcItem__c = 'Amount__c', RollupOperation__c = RollupOperation.SUM.name());
 
     Rollup.Evaluator eval = RollupEvaluator.getEvaluator(
       new RollupEvaluator.AlwaysTrueEvaluator(),
       rollupMetadata,
       // second opp can't be passed by reference since we do a referential equality check in the changed field eval
-      new Map<Id, SObject>{ oldOpp.Id => oldOpp, secondOpp.Id => new Opportunity(Id = secondOpp.Id, Amount = secondOpp.Amount, Name = 'Something else') },
-      Opportunity.SObjectType
+      new Map<Id, SObject>{ oldOpp.Id => oldOpp, secondOpp.Id => new RollupCalcItem__c(Id = secondOpp.Id, Amount__c = secondOpp.Amount__c, Name = 'Something else') },
+      RollupCalcItem__c.SObjectType
     );
 
     System.assertEquals(true, eval.matches(opp), 'Should match since amount changed');
@@ -660,19 +660,19 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldReturnDualEvaluatorWhenEvalIsPassedAndCalcItemWhereClause() {
-    Opportunity opp = new Opportunity(Id = '0066g000000000000X', Amount = 50);
-    Opportunity oldOpp = opp.clone(true, true);
-    oldOpp.StageName = 'Old Name';
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g000000000000X', Amount__c = 50);
+    RollupCalcItem__c oldOpp = opp.clone(true, true);
+    oldOpp.StageName__c = 'Old Name';
 
-    Opportunity secondOpp = new Opportunity(Id = '0066g000000000000Z', Amount = 15);
+    RollupCalcItem__c secondOpp = new RollupCalcItem__c(Id = '0066g000000000000Z', Amount__c = 15);
 
-    Rollup__mdt rollupMetadata = new Rollup__mdt(CalcItemWhereClause__c = 'Amount > 20', RollupOperation__c = RollupOperation.SUM.name());
+    Rollup__mdt rollupMetadata = new Rollup__mdt(CalcItemWhereClause__c = 'Amount__c > 20', RollupOperation__c = RollupOperation.SUM.name());
 
     Rollup.Evaluator eval = RollupEvaluator.getEvaluator(
       new RollupEvaluator.AlwaysTrueEvaluator(),
       rollupMetadata,
       new Map<Id, SObject>{ oldOpp.Id => oldOpp, secondOpp.Id => secondOpp },
-      Opportunity.SObjectType
+      RollupCalcItem__c.SObjectType
     );
 
     System.assertEquals(true, eval.matches(opp), 'Should match since amount is > 20');
@@ -681,15 +681,15 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldReturnDoubleDualEvalWhenEvalIsPassedAndCalcItemWhereClauseAndChangedFields() {
-    Opportunity opp = new Opportunity(Id = '0066g000000000000X', Amount = 50, StageName = 'Updated Name');
-    Opportunity oldOpp = opp.clone(true, true);
-    oldOpp.StageName = 'Old Name';
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g000000000000X', Amount__c = 50, StageName__c = 'Updated Name');
+    RollupCalcItem__c oldOpp = opp.clone(true, true);
+    oldOpp.StageName__c = 'Old Name';
 
-    Opportunity secondOpp = new Opportunity(Id = '0066g000000000000Z', StageName = 'Same', Amount = 25);
+    RollupCalcItem__c secondOpp = new RollupCalcItem__c(Id = '0066g000000000000Z', StageName__c = 'Same', Amount__c = 25);
 
     Rollup__mdt rollupMetadata = new Rollup__mdt(
-      ChangedFieldsOnCalcItem__c = 'StageName',
-      CalcItemWhereClause__c = 'Amount > 20',
+      ChangedFieldsOnCalcItem__c = 'StageName__c',
+      CalcItemWhereClause__c = 'Amount__c > 20',
       RollupOperation__c = RollupOperation.SUM.name()
     );
 
@@ -698,9 +698,9 @@ private class RollupEvaluatorTests {
       rollupMetadata,
       new Map<Id, SObject>{
         oldOpp.Id => oldOpp,
-        secondOpp.Id => new Opportunity(Id = secondOpp.Id, StageName = secondOpp.StageName, Amount = secondOpp.Amount, Name = 'Something else')
+        secondOpp.Id => new RollupCalcItem__c(Id = secondOpp.Id, StageName__c = secondOpp.StageName__c, Amount__c = secondOpp.Amount__c, Name = 'Something else')
       },
-      Opportunity.SObjectType
+      RollupCalcItem__c.SObjectType
     );
 
     System.assertEquals(true, eval.matches(opp), 'Should match since StageName has changed and amount > 20');
@@ -710,7 +710,7 @@ private class RollupEvaluatorTests {
   @IsTest
   static void shouldNotReturnRelationshipFieldsIfTheyAreNotDirectlyRelated() {
     String queryString = 'User.Id IN (\'0056g000002GeR0AAA\')';
-    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(queryString, Opportunity.SObjectType);
+    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(queryString, RollupCalcItem__c.SObjectType);
 
     System.assertEquals(new List<String>(), eval.getQueryFields());
   }
@@ -734,7 +734,7 @@ private class RollupEvaluatorTests {
   static void shouldThrowExceptionForImproperlyEnteredWhereClause() {
     Exception ex;
     try {
-      RollupEvaluator eval = new RollupEvaluator.WhereFieldEvaluator('= 1', Opportunity.SObjectType);
+      RollupEvaluator eval = new RollupEvaluator.WhereFieldEvaluator('= 1', RollupCalcItem__c.SObjectType);
       eval.matches(null);
       Assert.fail('Exception should be thrown above');
     } catch (Exception e) {
@@ -750,13 +750,13 @@ private class RollupEvaluatorTests {
       null,
       new Rollup__mdt(
         RollupOperation__c = RollupOperation.UPDATE_CONCAT_DISTINCT.name(),
-        RollupFieldOnCalcItem__c = 'Amount',
-        LookupFieldOnCalcItem__c = 'AccountId'
+        RollupFieldOnCalcItem__c = 'Amount__c',
+        LookupFieldOnCalcItem__c = 'Account__c'
       ),
       new Map<Id, SObject>(),
-      Opportunity.SObjectType
+      RollupCalcItem__c.SObjectType
     );
-    Opportunity opp = new Opportunity(Id = '0066g000000000000X', Amount = 50, AccountId = '0016g000000000000X');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g000000000000X', Amount__c = 50, Account__c = '0016g000000000000X');
 
     System.assertEquals(true, eval.matches(opp), 'Should return true when not recursive!');
     System.assertEquals(true, eval.matches(opp), 'Should return true when not recursive twice!');
@@ -768,11 +768,11 @@ private class RollupEvaluatorTests {
       null,
       new Rollup__mdt(
         RollupOperation__c = RollupOperation.UPDATE_CONCAT_DISTINCT.name(),
-        RollupFieldOnCalcItem__c = 'Amount',
-        LookupFieldOnCalcItem__c = 'AccountId'
+        RollupFieldOnCalcItem__c = 'Amount__c',
+        LookupFieldOnCalcItem__c = 'Account__c'
       ),
       new Map<Id, SObject>(),
-      Opportunity.SObjectType
+      RollupCalcItem__c.SObjectType
     );
 
     System.assertEquals(false, eval.matches(opp), 'Should not return true when recursive');
@@ -784,14 +784,14 @@ private class RollupEvaluatorTests {
       null,
       new Rollup__mdt(
         RollupOperation__c = RollupOperation.UPDATE_CONCAT_DISTINCT.name(),
-        RollupFieldOnCalcItem__c = 'Amount',
-        LookupFieldOnCalcItem__c = 'AccountId',
+        RollupFieldOnCalcItem__c = 'Amount__c',
+        LookupFieldOnCalcItem__c = 'Account__c',
         GrandparentRelationshipFieldPath__c = 'Some.Field.Path'
       ),
       new Map<Id, SObject>(),
-      Opportunity.SObjectType
+      RollupCalcItem__c.SObjectType
     );
-    Opportunity opp = new Opportunity(Id = '0066g000000000000X', Amount = 50, AccountId = '0016g000000000000X');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g000000000000X', Amount__c = 50, Account__c = '0016g000000000000X');
 
     System.assertEquals(true, eval.matches(opp), 'Should return true when not recursive!');
 
@@ -799,11 +799,11 @@ private class RollupEvaluatorTests {
       null,
       new Rollup__mdt(
         RollupOperation__c = RollupOperation.UPDATE_CONCAT_DISTINCT.name(),
-        RollupFieldOnCalcItem__c = 'Amount',
-        LookupFieldOnCalcItem__c = 'AccountId'
+        RollupFieldOnCalcItem__c = 'Amount__c',
+        LookupFieldOnCalcItem__c = 'Account__c'
       ),
       new Map<Id, SObject>(),
-      Opportunity.SObjectType
+      RollupCalcItem__c.SObjectType
     );
 
     System.assertEquals(true, eval.matches(opp), 'Should return true when recursive and grandparent field path filled out');
@@ -815,14 +815,14 @@ private class RollupEvaluatorTests {
       null,
       new Rollup__mdt(
         RollupOperation__c = RollupOperation.UPDATE_CONCAT_DISTINCT.name(),
-        RollupFieldOnCalcItem__c = 'Amount',
-        LookupFieldOnCalcItem__c = 'AccountId',
+        RollupFieldOnCalcItem__c = 'Amount__c',
+        LookupFieldOnCalcItem__c = 'Account__c',
         RollupToUltimateParent__c = true
       ),
       new Map<Id, SObject>(),
-      Opportunity.SObjectType
+      RollupCalcItem__c.SObjectType
     );
-    Opportunity opp = new Opportunity(Id = '0066g000000000000X', Amount = 50, AccountId = '0016g000000000000X');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g000000000000X', Amount__c = 50, Account__c = '0016g000000000000X');
 
     System.assertEquals(true, eval.matches(opp), 'Should return true when not recursive!');
 
@@ -830,11 +830,11 @@ private class RollupEvaluatorTests {
       null,
       new Rollup__mdt(
         RollupOperation__c = RollupOperation.UPDATE_CONCAT_DISTINCT.name(),
-        RollupFieldOnCalcItem__c = 'Amount',
-        LookupFieldOnCalcItem__c = 'AccountId'
+        RollupFieldOnCalcItem__c = 'Amount__c',
+        LookupFieldOnCalcItem__c = 'Account__c'
       ),
       new Map<Id, SObject>(),
-      Opportunity.SObjectType
+      RollupCalcItem__c.SObjectType
     );
 
     System.assertEquals(true, eval.matches(opp), 'Should return true when recursive and ultimate parent field true');
@@ -842,51 +842,51 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldWorkWithTripleEvaluator() {
-    Opportunity opp = new Opportunity(Id = '0066g000000000000X', Amount = 50, StageName = 'Updated Name', AccountId = '0016g000000000000X');
-    Opportunity oldOpp = opp.clone(true, true);
-    oldOpp.StageName = 'Old Name';
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g000000000000X', Amount__c = 50, StageName__c = 'Updated Name', Account__c = '0016g000000000000X');
+    RollupCalcItem__c oldOpp = opp.clone(true, true);
+    oldOpp.StageName__c = 'Old Name';
 
     Rollup__mdt rollupMetadata = new Rollup__mdt(
       RollupOperation__c = RollupOperation.UPDATE_CONCAT_DISTINCT.name(),
-      ChangedFieldsOnCalcItem__c = 'StageName',
-      CalcItemWhereClause__c = 'Amount > 20',
-      RollupFieldOnCalcItem__c = 'Amount',
-      LookupFieldOnCalcItem__c = 'AccountId'
+      ChangedFieldsOnCalcItem__c = 'StageName__c',
+      CalcItemWhereClause__c = 'Amount__c > 20',
+      RollupFieldOnCalcItem__c = 'Amount__c',
+      LookupFieldOnCalcItem__c = 'Account__c'
     );
 
     Rollup.Evaluator eval = RollupEvaluator.getEvaluator(
       new RollupEvaluator.AlwaysTrueEvaluator(),
       rollupMetadata,
       new Map<Id, SObject>{ oldOpp.Id => oldOpp },
-      Opportunity.SObjectType
+      RollupCalcItem__c.SObjectType
     );
 
     System.assertEquals(true, eval.matches(opp), 'Should return true when not recursive!');
 
     RollupEvaluator.stubRequestId = 'somethingElse';
-    eval = RollupEvaluator.getEvaluator(null, rollupMetadata, new Map<Id, SObject>{ oldOpp.Id => oldOpp }, Opportunity.SObjectType);
+    eval = RollupEvaluator.getEvaluator(null, rollupMetadata, new Map<Id, SObject>{ oldOpp.Id => oldOpp }, RollupCalcItem__c.SObjectType);
 
     System.assertEquals(false, eval.matches(opp), 'Should not return true when recursive and all other conditions true');
   }
 
   @IsTest
   static void shouldWorkWithChangedFieldsAndRecursionDetection() {
-    Opportunity opp = new Opportunity(Id = '0066g000000000000X', Amount = 50, StageName = 'Updated Name', AccountId = '0016g000000000000X');
-    Opportunity oldOpp = opp.clone(true, true);
-    oldOpp.StageName = 'Old Name';
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g000000000000X', Amount__c = 50, StageName__c = 'Updated Name', Account__c = '0016g000000000000X');
+    RollupCalcItem__c oldOpp = opp.clone(true, true);
+    oldOpp.StageName__c = 'Old Name';
 
     Rollup__mdt rollupMetadata = new Rollup__mdt(
       RollupOperation__c = RollupOperation.UPDATE_CONCAT_DISTINCT.name(),
-      ChangedFieldsOnCalcItem__c = 'StageName',
-      RollupFieldOnCalcItem__c = 'Amount',
-      LookupFieldOnCalcItem__c = 'AccountId'
+      ChangedFieldsOnCalcItem__c = 'StageName__c',
+      RollupFieldOnCalcItem__c = 'Amount__c',
+      LookupFieldOnCalcItem__c = 'Account__c'
     );
 
     Rollup.Evaluator eval = RollupEvaluator.getEvaluator(
       new RollupEvaluator.AlwaysTrueEvaluator(),
       rollupMetadata,
       new Map<Id, SObject>{ oldOpp.Id => oldOpp },
-      Opportunity.SObjectType
+      RollupCalcItem__c.SObjectType
     );
 
     System.assertEquals(true, eval.matches(opp), 'Should return true when not recursive!');
@@ -896,7 +896,7 @@ private class RollupEvaluatorTests {
       new RollupEvaluator.AlwaysTrueEvaluator(),
       rollupMetadata,
       new Map<Id, SObject>{ oldOpp.Id => oldOpp },
-      Opportunity.SObjectType
+      RollupCalcItem__c.SObjectType
     );
 
     System.assertEquals(false, eval.matches(opp), 'Should not return true when recursive and all other conditions true');
@@ -904,27 +904,27 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldWorkWithCalcItemWhereClauseAndRecursionDetection() {
-    Opportunity opp = new Opportunity(Id = '0066g000000000000X', Amount = 50, AccountId = '0016g000000000000X');
-    Opportunity nonMatchingOpp = new Opportunity(Id = '0066g000000000000Y', Amount = 15, AccountId = '0016g000000000000X');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g000000000000X', Amount__c = 50, Account__c = '0016g000000000000X');
+    RollupCalcItem__c nonMatchingOpp = new RollupCalcItem__c(Id = '0066g000000000000Y', Amount__c = 15, Account__c = '0016g000000000000X');
 
     Rollup__mdt rollupMetadata = new Rollup__mdt(
       RollupOperation__c = RollupOperation.UPDATE_CONCAT_DISTINCT.name(),
-      CalcItemWhereClause__c = 'Amount > 20',
-      RollupFieldOnCalcItem__c = 'Amount',
-      LookupFieldOnCalcItem__c = 'AccountId'
+      CalcItemWhereClause__c = 'Amount__c > 20',
+      RollupFieldOnCalcItem__c = 'Amount__c',
+      LookupFieldOnCalcItem__c = 'Account__c'
     );
 
     Rollup.Evaluator eval = RollupEvaluator.getEvaluator(
       new RollupEvaluator.AlwaysTrueEvaluator(),
       rollupMetadata,
       new Map<Id, SObject>(),
-      Opportunity.SObjectType
+      RollupCalcItem__c.SObjectType
     );
 
     System.assertEquals(true, eval.matches(opp), 'Should return true when not recursive!');
 
     RollupEvaluator.stubRequestId = 'somethingElse';
-    eval = RollupEvaluator.getEvaluator(new RollupEvaluator.AlwaysTrueEvaluator(), rollupMetadata, new Map<Id, SObject>(), Opportunity.SObjectType);
+    eval = RollupEvaluator.getEvaluator(new RollupEvaluator.AlwaysTrueEvaluator(), rollupMetadata, new Map<Id, SObject>(), RollupCalcItem__c.SObjectType);
 
     System.assertEquals(false, eval.matches(opp), 'Should not return true when recursive and all other conditions true');
     System.assertEquals(false, eval.matches(nonMatchingOpp), 'Should not match to begin with based on child object where clause');
@@ -932,13 +932,13 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldWorkForNotEqualNull() {
-    Opportunity opp = new Opportunity(AccountId = '0016g000000000000X');
-    String whereClause = 'AccountId != null';
+    RollupCalcItem__c opp = new RollupCalcItem__c(Account__c = '0016g000000000000X');
+    String whereClause = 'Account__c != null';
 
-    Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, Opportunity.SObjectType);
+    Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, RollupCalcItem__c.SObjectType);
 
     System.assertEquals(true, eval.matches(opp), 'Opp should match since it has account Id');
-    System.assertNotEquals(true, eval.matches(new Opportunity()), 'Opp should not match since AccountId is null');
+    System.assertNotEquals(true, eval.matches(new RollupCalcItem__c()), 'Opp should not match since AccountId is null');
   }
 
   @IsTest
@@ -955,43 +955,43 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldDetectNestedNotOrConditions() {
-    String whereClause = 'Amount = 1 OR (NOT (Amount = 0 OR Amount = 5))';
+    String whereClause = 'Amount__c = 1 OR (NOT (Amount__c = 0 OR Amount__c = 5))';
 
-    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, Opportunity.SObjectType);
+    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, RollupCalcItem__c.SObjectType);
 
-    System.assertEquals(false, eval.matches(new Opportunity(Amount = 0)));
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 1)));
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 2)));
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 3)));
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 4)));
-    System.assertEquals(false, eval.matches(new Opportunity(Amount = 5)));
+    System.assertEquals(false, eval.matches(new RollupCalcItem__c(Amount__c = 0)));
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 1)));
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 2)));
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 3)));
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 4)));
+    System.assertEquals(false, eval.matches(new RollupCalcItem__c(Amount__c = 5)));
   }
 
   @IsTest
   static void shouldDetectNestedNotAndConditions() {
-    String whereClause = 'Amount >= 1 AND (NOT(Amount = 0 OR Amount = 5))';
+    String whereClause = 'Amount__c >= 1 AND (NOT(Amount__c = 0 OR Amount__c = 5))';
 
-    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, Opportunity.SObjectType);
+    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, RollupCalcItem__c.SObjectType);
 
-    System.assertEquals(false, eval.matches(new Opportunity(Amount = 0)));
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 1)));
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 2)));
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 3)));
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 4)));
-    System.assertEquals(false, eval.matches(new Opportunity(Amount = 5)));
+    System.assertEquals(false, eval.matches(new RollupCalcItem__c(Amount__c = 0)));
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 1)));
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 2)));
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 3)));
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 4)));
+    System.assertEquals(false, eval.matches(new RollupCalcItem__c(Amount__c = 5)));
   }
 
   @IsTest
   static void shouldDetectNotInProperly() {
-    String whereClause = 'Amount NOT IN (1, 3)';
+    String whereClause = 'Amount__c NOT IN (1, 3)';
 
-    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, Opportunity.SObjectType);
+    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, RollupCalcItem__c.SObjectType);
 
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 0)));
-    System.assertEquals(false, eval.matches(new Opportunity(Amount = 1)));
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 2)));
-    System.assertEquals(false, eval.matches(new Opportunity(Amount = 3)));
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 4)));
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 0)));
+    System.assertEquals(false, eval.matches(new RollupCalcItem__c(Amount__c = 1)));
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 2)));
+    System.assertEquals(false, eval.matches(new RollupCalcItem__c(Amount__c = 3)));
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 4)));
   }
 
   @IsTest
@@ -1018,23 +1018,23 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldWorkWithoutDecimalZeroesForNumbers() {
-    String whereClause = 'Amount = 50000';
+    String whereClause = 'Amount__c = 50000';
 
-    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, Opportunity.SObjectType);
+    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, RollupCalcItem__c.SObjectType);
 
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 50000)));
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 50000.00)), 'Should work with or without decimal places');
-    System.assertEquals(false, eval.matches(new Opportunity(Amount = 50000.01)));
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 50000)));
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 50000.00)), 'Should work with or without decimal places');
+    System.assertEquals(false, eval.matches(new RollupCalcItem__c(Amount__c = 50000.01)));
 
-    eval = new RollupEvaluator.WhereFieldEvaluator('Amount = 50.1', Opportunity.SObjectType);
-    System.assertEquals(true, eval.matches(new Opportunity(Amount = 50.10)), 'Should detect trailing zero correctly');
+    eval = new RollupEvaluator.WhereFieldEvaluator('Amount__c = 50.1', RollupCalcItem__c.SObjectType);
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(Amount__c = 50.10)), 'Should detect trailing zero correctly');
   }
 
   @IsTest
   static void shouldProperlySupportNonPolymorphicOwnerClauses() {
-    String whereClause = 'Account.Owner.Id != null';
-    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, Opportunity.SObjectType);
-    System.assertEquals('Account.Owner.Id', eval.getQueryFields()[0]);
+    String whereClause = 'Account__r.Owner.Id != null';
+    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, RollupCalcItem__c.SObjectType);
+    System.assertEquals('Account__r.Owner.Id', eval.getQueryFields()[0]);
   }
 
   @IsTest
@@ -1046,29 +1046,29 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void shouldProperlyReturnMultipleParentLevelFields() {
-    String whereClause = 'Account.Name != null AND Account.Owner.Id != null';
-    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, Opportunity.SObjectType);
+    String whereClause = 'Account__r.Name != null AND Account__r.Owner.Id != null';
+    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, RollupCalcItem__c.SObjectType);
     List<String> queryFields = eval.getQueryFields();
     System.assertEquals(2, queryFields.size(), 'Both fields should have been returned: ' + queryFields);
-    System.assertEquals('Account.Name', queryFields[0]);
-    System.assertEquals('Account.Owner.Id', queryFields[1]);
+    System.assertEquals('Account__r.Name', queryFields[0]);
+    System.assertEquals('Account__r.Owner.Id', queryFields[1]);
   }
 
   @IsTest
   static void returnsLowercaseParentLevelFields() {
-    String whereClause = 'opportunity.account.name = \'some account\'';
-    List<String> queryFields = new RollupEvaluator.WhereFieldEvaluator(whereClause, OpportunityLineItem.SObjectType).getQueryFields();
+    String whereClause = 'parent__r.account__r.name = \'some account\'';
+    List<String> queryFields = new RollupEvaluator.WhereFieldEvaluator(whereClause, RollupCalcItem__c.SObjectType).getQueryFields();
     System.assertEquals(1, queryFields.size(), queryFields);
-    System.assertEquals('opportunity.account.name', queryFields[0]);
+    System.assertEquals('parent__r.account__r.name', queryFields[0]);
   }
 
   @IsTest
   static void supportsNonPolymorphicTypeFields() {
-    String whereClause = 'Campaign.Type <> \'Something Else\'';
-    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, Opportunity.SObjectType);
+    String whereClause = 'Account__r.Type <> \'Something Else\'';
+    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, RollupCalcItem__c.SObjectType);
     List<String> queryFields = eval.getQueryFields();
     System.assertEquals(1, queryFields.size(), queryFields);
-    System.assertEquals('Campaign.Type', queryFields[0]);
+    System.assertEquals('Account__r.Type', queryFields[0]);
   }
 
   @IsTest
@@ -1083,17 +1083,17 @@ private class RollupEvaluatorTests {
   @IsTest
   static void gracefullyHandlesFieldNotExistingForDateLiteral() {
     String whereClause = 'SomeFieldThatDoesNotExist = THIS_YEAR';
-    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, Opportunity.SObjectType);
+    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, RollupCalcItem__c.SObjectType);
 
-    System.assertEquals(false, eval.matches(new Opportunity()));
+    System.assertEquals(false, eval.matches(new RollupCalcItem__c()));
   }
 
   @IsTest
   static void shouldProperlyEvaluateDateLiteral() {
-    String whereClause = 'CloseDate = THIS_YEAR';
-    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, Opportunity.SObjectType);
-    System.assertEquals(true, eval.matches(new Opportunity(CloseDate = System.today())));
-    System.assertEquals(false, eval.matches(new Opportunity(CloseDate = System.today().addYears(-1))));
+    String whereClause = 'CloseDate__c = THIS_YEAR';
+    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, RollupCalcItem__c.SObjectType);
+    System.assertEquals(true, eval.matches(new RollupCalcItem__c(CloseDate__c = System.today())));
+    System.assertEquals(false, eval.matches(new RollupCalcItem__c(CloseDate__c = System.today().addYears(-1))));
   }
 
   @IsTest
@@ -1131,16 +1131,16 @@ private class RollupEvaluatorTests {
   static void worksWithNYearsAgo() {
     Id accountId = RollupTestUtils.createId(Account.SObjectType);
     String whereClause =
-      'AccountId = \'' +
+      'Account__c = \'' +
       accountId +
-      '\' AND CloseDate <= LAST_YEAR AND CloseDate > N_YEARS_AGO:3 AND StageName != \'Closed Lost\' AND StageName != \'Closed/No Event Fees Only\'';
-    Opportunity matchingOpp = new Opportunity(AccountId = accountId, CloseDate = System.today().addYears(-1));
-    Opportunity stageClosedLostNonMatch = new Opportunity(AccountId = accountId, CloseDate = System.today().addYears(-2), StageName = 'Closed Lost');
-    Opportunity stageClosedNonMatch = new Opportunity(AccountId = accountId, CloseDate = System.today().addYears(-2), StageName = 'Closed/No Event Fees Only');
-    Opportunity idNonMatch = new Opportunity(CloseDate = System.today().addYears(-2));
-    Opportunity closeDateNonMatch = new Opportunity(CloseDate = System.today(), AccountId = accountId);
+      '\' AND CloseDate__c <= LAST_YEAR AND CloseDate__c > N_YEARS_AGO:3 AND StageName__c != \'Closed Lost\' AND StageName__c != \'Closed/No Event Fees Only\'';
+    RollupCalcItem__c matchingOpp = new RollupCalcItem__c(Account__c = accountId, CloseDate__c = System.today().addYears(-1));
+    RollupCalcItem__c stageClosedLostNonMatch = new RollupCalcItem__c(Account__c = accountId, CloseDate__c = System.today().addYears(-2), StageName__c = 'Closed Lost');
+    RollupCalcItem__c stageClosedNonMatch = new RollupCalcItem__c(Account__c = accountId, CloseDate__c = System.today().addYears(-2), StageName__c = 'Closed/No Event Fees Only');
+    RollupCalcItem__c idNonMatch = new RollupCalcItem__c(CloseDate__c = System.today().addYears(-2));
+    RollupCalcItem__c closeDateNonMatch = new RollupCalcItem__c(CloseDate__c = System.today(), Account__c = accountId);
 
-    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, Opportunity.SObjectType);
+    RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, RollupCalcItem__c.SObjectType);
 
     System.assertEquals(true, eval.matches(matchingOpp));
     System.assertEquals(false, eval.matches(stageClosedLostNonMatch));
@@ -1151,8 +1151,8 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void stringsAreComparedCaseInsensitive() {
-    String whereClause = 'StageName = \'closed lost\'';
-    Opportunity opp = new Opportunity(StageName = 'Closed Lost');
+    String whereClause = 'StageName__c = \'closed lost\'';
+    RollupCalcItem__c opp = new RollupCalcItem__c(StageName__c = 'Closed Lost');
 
     RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, opp.getSObjectType());
 
@@ -1161,18 +1161,18 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void pascalCaseForFieldNamesIsNotRequired() {
-    String poorlyCasedFieldName = Opportunity.IsClosed.toString().toLowerCase();
+    String poorlyCasedFieldName = RollupCalcItem__c.IsClosed__c.toString().toLowerCase();
 
-    Opportunity isClosedFalse = (Opportunity) JSON.deserialize('{ "IsClosed": false }', Opportunity.class);
-    OpportunityLineItem target = new OpportunityLineItem(Opportunity = isClosedFalse);
-    System.assertEquals(false, target.Opportunity.IsClosed);
+    RollupCalcItem__c isClosedFalse = (RollupCalcItem__c) JSON.deserialize('{ "IsClosed__c": false }', RollupCalcItem__c.class);
+    RollupCalcItem__c target = new RollupCalcItem__c(Parent__r = isClosedFalse);
+    System.assertEquals(false, target.Parent__r.IsClosed__c);
     RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(
-      'Opportunity.' + poorlyCasedFieldName + ' = false',
+      'Parent__r.' + poorlyCasedFieldName + ' = false',
       target.getSObjectType()
     );
 
     System.assertEquals(true, eval.matches(target));
-    System.assertEquals(false, eval.matches(new OpportunityLineItem()), 'Should properly evaluate for null relationship');
+    System.assertEquals(false, eval.matches(new RollupCalcItem__c()), 'Should properly evaluate for null relationship');
   }
 
   @IsTest
@@ -1193,39 +1193,39 @@ private class RollupEvaluatorTests {
 
   @IsTest
   static void nestedConditionalsWorkWithSomeMatchingInnerClauses() {
-    String whereClause = '(StageName = \'one\' AND LeadSource IN (\'Web\', \'Phone\') ) OR (LeadSource in (\'Web\', \'Phone\') AND StageName = \'two\')';
+    String whereClause = '(StageName__c = \'one\' AND Source__c IN (\'Web\', \'Phone\') ) OR (Source__c in (\'Web\', \'Phone\') AND StageName__c = \'two\')';
 
-    Opportunity target = new Opportunity(StageName = 'one', LeadSource = 'Web');
-    Opportunity secondMatch = new Opportunity(StageName = 'two', LeadSource = 'Phone');
+    RollupCalcItem__c target = new RollupCalcItem__c(StageName__c = 'one', Source__c = 'Web');
+    RollupCalcItem__c secondMatch = new RollupCalcItem__c(StageName__c = 'two', Source__c = 'Phone');
     RollupEvaluator.WhereFieldEvaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, target.getSObjectType());
 
-    validateQuery(Opportunity.SObjectType, whereClause);
+    validateQuery(RollupCalcItem__c.SObjectType, whereClause);
     System.assertEquals(true, eval.matches(target));
     System.assertEquals(true, eval.matches(secondMatch));
-    System.assertEquals(false, eval.matches(new Opportunity(StageName = 'three', LeadSource = 'Web')));
+    System.assertEquals(false, eval.matches(new RollupCalcItem__c(StageName__c = 'three', Source__c = 'Web')));
   }
 
   @IsTest
   static void nestedConditionalsWorkWithMoreThanOneLevel() {
-    Opportunity oppOne = new Opportunity(StageName = 'Not A Match');
-    Opportunity oppTwo = new Opportunity(Amount = 5, StageName = 'Hi');
-    Opportunity oppThree = new Opportunity(Amount = 3.01, StageName = 'Hello there');
-    Opportunity oppFour = new Opportunity(StageName = 'Hi', Amount = 0);
-    Opportunity oppFive = new Opportunity(Id = '0066g000000000000T', Amount = 3.99999);
+    RollupCalcItem__c oppOne = new RollupCalcItem__c(StageName__c = 'Not A Match');
+    RollupCalcItem__c oppTwo = new RollupCalcItem__c(Amount__c = 5, StageName__c = 'Hi');
+    RollupCalcItem__c oppThree = new RollupCalcItem__c(Amount__c = 3.01, StageName__c = 'Hello there');
+    RollupCalcItem__c oppFour = new RollupCalcItem__c(StageName__c = 'Hi', Amount__c = 0);
+    RollupCalcItem__c oppFive = new RollupCalcItem__c(Id = '0066g000000000000T', Amount__c = 3.99999);
 
     String whereClause =
-      'Amount < 4 AND (StageName LIKE \'%Hello%\' OR StageName = \'Hi\' OR (Id IN (\'' +
+      'Amount__c < 4 AND (StageName__c LIKE \'%Hello%\' OR StageName__c = \'Hi\' OR (Id IN (\'' +
       oppFive.Id +
       '\',' +
       '\'0066g000000000000Z\'' +
       ')' +
-      ' AND Amount = ' +
-      oppFive.Amount +
+      ' AND Amount__c = ' +
+      oppFive.Amount__c +
       '))';
 
-    Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, Opportunity.SObjectType);
+    Rollup.Evaluator eval = new RollupEvaluator.WhereFieldEvaluator(whereClause, RollupCalcItem__c.SObjectType);
 
-    validateQuery(Opportunity.SObjectType, whereClause);
+    validateQuery(RollupCalcItem__c.SObjectType, whereClause);
     System.assertNotEquals(true, eval.matches(oppOne), 'Name does not match!');
     System.assertNotEquals(true, eval.matches(oppTwo), 'Amount does not match');
     System.assertEquals(true, eval.matches(oppThree), 'Amount matches and name roughly matches!');

@@ -175,10 +175,10 @@ private class RollupParentResetProcessorTests {
     Account acc = new Account(AnnualRevenue = originalValue, Name = 'Should Not Reset');
     insert as system acc;
 
-    Opportunity opp = new Opportunity(AccountId = acc.Id, Amount = 100, Name = 'Will Not Match', CloseDate = System.today().addDays(2), StageName = 'A');
-    insert as system new List<Opportunity>{
-      new Opportunity(AccountId = acc.Id, Amount = originalValue - 1, Name = 'First Match', CloseDate = System.today().addDays(-2), StageName = 'A'),
-      new Opportunity(AccountId = acc.Id, Amount = originalValue - 2, Name = 'Second Match', CloseDate = System.today().addDays(-2), StageName = 'A'),
+    RollupCalcItem__c opp = new RollupCalcItem__c(Account__c = acc.Id, Amount__c = 100, Name = 'Will Not Match', CloseDate__c = System.today().addDays(2), StageName__c = 'A');
+    insert as system new List<RollupCalcItem__c>{
+      new RollupCalcItem__c(Account__c = acc.Id, Amount__c = originalValue - 1, Name = 'First Match', CloseDate__c = System.today().addDays(-2), StageName__c = 'A'),
+      new RollupCalcItem__c(Account__c = acc.Id, Amount__c = originalValue - 2, Name = 'Second Match', CloseDate__c = System.today().addDays(-2), StageName__c = 'A'),
       opp
     };
 
@@ -186,15 +186,15 @@ private class RollupParentResetProcessorTests {
     Rollup.performBulkFullRecalc(
       new List<Rollup__mdt>{
         new Rollup__mdt(
-          RollupFieldOnCalcItem__c = 'Amount',
+          RollupFieldOnCalcItem__c = 'Amount__c',
           LookupObject__c = 'Account',
-          LookupFieldOnCalcItem__c = 'AccountId',
+          LookupFieldOnCalcItem__c = 'Account__c',
           LookupFieldOnLookupObject__c = 'Id',
           RollupFieldOnLookupObject__c = 'AnnualRevenue',
           RollupOperation__c = 'SUM',
-          CalcItem__c = 'Opportunity',
+          CalcItem__c = 'RollupCalcItem__c',
           IsFullRecordSet__c = true,
-          CalcItemWhereClause__c = 'CloseDate <= TODAY'
+          CalcItemWhereClause__c = 'CloseDate__c <= TODAY'
         )
       },
       Rollup.InvocationPoint.FROM_FULL_RECALC_LWC.name()

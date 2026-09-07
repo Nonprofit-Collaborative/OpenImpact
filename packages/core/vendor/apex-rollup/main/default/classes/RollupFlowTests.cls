@@ -794,7 +794,7 @@ private class RollupFlowTests {
   @IsTest
   static void shouldOverrideDateUsingNumberBasedDefaultForFlow() {
     Datetime nowish = System.now();
-    Contract con = new Contract(Id = RollupTestUtils.createId(Contract.SObjectType), ActivatedDate = nowish.addSeconds(5));
+    RollupCalcItem__c con = new RollupCalcItem__c(Id = RollupTestUtils.createId(RollupCalcItem__c.SObjectType), ActivatedDate__c = nowish.addSeconds(5));
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ con };
 
     // it only matters that the amount below is LESS than the above value, and that "nowish" is assigned to the fullRecalculationDefaultNumberValue flow input value
@@ -808,8 +808,8 @@ private class RollupFlowTests {
     flowInput.lookupFieldOnOpObject = 'Id';
     flowInput.rollupContext = 'INSERT';
     flowInput.rollupFieldOnCalcItem = 'ActivityDateTime';
-    flowInput.rollupFieldOnOpObject = 'ActivatedDate';
-    flowInput.rollupSObjectName = 'Contract';
+    flowInput.rollupFieldOnOpObject = 'ActivatedDate__c';
+    flowInput.rollupSObjectName = 'RollupCalcItem__c';
     flowInput.rollupOperation = 'MAX';
     flowInput.fullRecalculationDefaultNumberValue = nowish.getTime();
     flowInput.isFullRecordSet = true;
@@ -823,7 +823,7 @@ private class RollupFlowTests {
     System.assertEquals(true, flowOutputs[0].isSuccess);
 
     System.assertEquals(1, mock.Records.size(), 'MAX AFTER_INSERT from flow with override date did not update accounts');
-    System.assertEquals(nowish, con.ActivatedDate, 'MAX AFTER_INSERT from flow should match override date');
+    System.assertEquals(nowish, con.ActivatedDate__c, 'MAX AFTER_INSERT from flow should match override date');
   }
 
   @IsTest

@@ -306,7 +306,12 @@ public without sharing virtual class Rollup implements RollupLogger.ToStringObje
   protected Rollup() {
   }
 
-  protected Rollup(InvocationPoint invokePoint) {
+  // Open Impact patch E: widened from protected to public within the package. Apex allows an inner
+  // class of a subclass to call a protected superclass constructor (RollupAsyncProcessor line 395
+  // does exactly that upstream); the offline apex-ls checker does not model that access, and this
+  // is the smallest change that keeps the check green. Public here is package-visible only, since
+  // patch B removed every global declaration.
+  public Rollup(InvocationPoint invokePoint) {
     this.invokePoint = invokePoint;
     this.rollupControl = CACHED_DEFAULT;
     this.calcItemReplacer = CALC_ITEM_REPLACER;

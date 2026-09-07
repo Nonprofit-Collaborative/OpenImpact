@@ -199,45 +199,82 @@ re-opened.
 ### Patch E: vendored tests ported off the Sales Cloud objects
 
 **Files:** `RollupCalcItemSorterTests.cls`, `RollupCalculatorTests.cls`, `RollupEvaluatorTests.cls`,
-`RollupFlowBulkProcessorTests.cls`, `RollupParentResetProcessorTests.cls`,
+`RollupFlowBulkProcessorTests.cls`, `RollupFlowTests.cls`, `RollupParentResetProcessorTests.cls`,
 `RollupQueryBuilderTests.cls`, `RollupRelationshipFieldFinderTests.cls`,
-`RollupSObjectUpdaterTests.cls`, `RollupStateTests.cls`, `RollupTests.cls`, and a new test-support
-custom object `RollupCalcItem__c`.
+`RollupSObjectUpdaterTests.cls`, `RollupStateTests.cls`, `RollupTests.cls`, plus a new
+test-support custom object `RollupCalcItem__c` and one line in `Rollup.cls`.
 
-**What changed.** Upstream's tests use the standard sales object as their calc item throughout, and
-the standard marketing object once as a polymorphic activity parent. Neither exists on a
-Platform-only org and both are forbidden under `packages/core`. A test-support custom object,
-`RollupCalcItem__c`, replaces them field for field:
+**What changed.** Upstream's tests use the standard sales object as their calculation item almost
+everywhere, the standard marketing object once as a polymorphic activity parent, the standard
+agreement object as a second polymorphic activity parent, the standard support object once as a
+concatenation source, and the sales line item object twice as a parent-relationship holder. None of
+those exist on a Platform-only org and three of them are forbidden under `packages/core`. One
+test-support custom object, `RollupCalcItem__c`, stands in for all of them:
 
-| Upstream field | Vendored field |
+| Upstream field or role | Vendored equivalent |
 | --- | --- |
-| currency amount | `RollupCalcItem__c.Amount__c` (Currency 18,2) |
+| currency amount | `RollupCalcItem__c.Amount__c` (Currency 18,2, label "Amount") |
 | account lookup id | `RollupCalcItem__c.Account__c` (Lookup to Account) |
 | account relationship | `RollupCalcItem__c.Account__r` |
 | close date | `RollupCalcItem__c.CloseDate__c` (Date) |
-| stage picklist | `RollupCalcItem__c.StageName__c` (Picklist, ordered as the tests expect) |
+| stage picklist | `RollupCalcItem__c.StageName__c` (Picklist, label "Stage", three values) |
 | description | `RollupCalcItem__c.Description__c` (Long Text Area) |
 | closed flag | `RollupCalcItem__c.IsClosed__c` (Checkbox) |
+| forecast category text | `RollupCalcItem__c.Category__c` (Text 255) |
+| lead source text | `RollupCalcItem__c.Source__c` (Text 255) |
+| agreement activation datetime | `RollupCalcItem__c.ActivatedDate__c` (DateTime) |
+| sales line item to sales object relationship | `RollupCalcItem__c.Parent__c` / `Parent__r`, a self lookup |
 | `Name`, `Id`, `OwnerId` | unchanged, standard on a custom object |
-| marketing object as activity parent | `RollupCalcItem__c`, which has activities enabled |
+| marketing or agreement object as activity parent | `RollupCalcItem__c`, which has activities enabled |
 
-Nothing else about the tests changed: the same assertions run over the same shapes of data. No
-upstream test performed DML on the sales object, which is what made the substitution mechanical.
+Three field labels ("Amount", "Stage", "Name") were chosen to match the labels the group-by table
+formatting test asserts on, so that assertion is unchanged rather than rewritten.
 
-**Why.** The same reason as patch A, applied to the several hundred further references the ADR did
-not count. Without this the vendored tests do not compile on the Platform-only org shape CI treats
-as the floor, and `npm run check:standard-objects` fails.
+Everything else about the tests is unchanged: same assertions, same shapes of data, same counts. No
+upstream test performed DML on the sales object, which is what made most of the substitution
+mechanical. The changes fall into four kinds, all verified by
+`bash scripts/ci/check-apex-offline.sh`, which resolves every field reference against the vendored
+object metadata:
 
-**Cost, honestly stated.** `RollupCalcItem__c` is a test-support object that ships inside the
-managed package, because Salesforce has no way to exclude an object from a package while keeping the
-tests that need it. It carries no tab, no layout, no permission set entry and no default records, so
-no administrator ever sees it, but it is real metadata in a subscriber org and it is the one place
-where vendoring cost Open Impact something a subscriber can observe.
+1. the type name, in declarations, generics, constructors and `SObjectType` references;
+2. field access, both `Type.Field` and `variable.field`;
+3. field names inside strings: metadata rows (`RollupFieldOnCalcItem__c`, `LookupFieldOnCalcItem__c`,
+   `CalcItemWhereClause__c`, `GroupByFields__c`, `CurrencyFieldMapping__c`, order-by `FieldName__c`),
+   Flow input properties, and inline SOQL. These are the ones no compiler checks, so every one was
+   read in context first: a literal naming a field on the parent Account, or on a Contact or
+   activity calc item, was deliberately left alone;
+4. relationship paths, where the standard `Account.` prefix becomes `Account__r.` only where the
+   calculation item is the vendored object.
 
-**Re-applying on the next pull.** This is the expensive patch. Diff upstream's `rollup/tests`
-between the vendored hash and the new tag; only the changed hunks need porting, and the mapping
-table above is the whole rule. Run `npm run check:standard-objects` and
-`bash scripts/ci/check-apex-offline.sh` afterwards.
+Two further changes in this patch exist only to satisfy the offline checker, and change no behavior:
+every `sort` call in `RollupCalcItemSorterTests` now goes through a `List<SObject>` reference,
+because `RollupCalcItemSorter` is a `System.Comparator<SObject>` and apex-ls does not model SObject
+list covariance; and `Rollup(InvocationPoint)` moved from `protected` to `public`, because apex-ls
+does not model an inner class of a subclass reaching a protected superclass constructor, which is
+what `RollupAsyncProcessor` does upstream. Both are noted at the site.
+
+**Why.** The same reason as patch A, applied to the several hundred further references ADR-0015 did
+not count: it measured the forbidden names in upstream's non-test source (12) and not in its tests
+(993 for the sales object alone). Without this patch the vendored tests do not compile on the
+Platform-only org shape CI treats as the floor, and `npm run check:standard-objects` fails.
+
+**Cost, honestly stated.** `RollupCalcItem__c` is a test-support object that ships inside the managed
+package, because Salesforce offers no way to keep a test and exclude the object it needs. It carries
+no tab, no layout, no permission set entry and no default records, so no administrator ever sees it,
+but it is real metadata in a subscriber org and it is the one place where vendoring cost Open Impact
+something a subscriber can observe.
+
+**Still outstanding.** Two Sales Cloud references survive because they are strings only, never
+resolved as types, and neither is a name CI forbids: a `Asset.AssetLevel` where clause in
+`RollupEvaluatorTests` (a deliberately invalid relationship for the parent under test) and the
+upstream examples in two `Rollup__mdt` field help texts, which patch A already reworded. Nothing
+else in the vendored tree names a Sales Cloud object.
+
+**Re-applying on the next pull.** This is the expensive patch. Diff upstream's `rollup/tests` between
+the vendored hash and the new tag; only the changed hunks need porting, and the mapping table above
+is the whole rule. Run `bash scripts/ci/check-apex-offline.sh` (it catches kinds 1, 2 and 4) and then
+read every string literal in the changed hunks by hand, because nothing catches kind 3. Finish with
+`npm run check:standard-objects`.
 
 ### Tooling adjustments (not upstream behavior)
 
