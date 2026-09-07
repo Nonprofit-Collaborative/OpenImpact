@@ -88,3 +88,4 @@ Each feature adds its row here when its page is written.
 
 | Feature | Page | Package | Iteration |
 |---|---|---|---|
+| C-17 | [Addresses](addresses.md) | Core | v0.3 |
