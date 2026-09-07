@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Memorials</fullName>
+  <columns>NAME</columns>
+  <columns>Gift__c</columns>
+  <columns>Honoree_Name__c</columns>
+  <columns>Notification_Recipient_Contact__c</columns>
+  <columns>Notification_Sent__c</columns>
+  <filterScope>Everything</filterScope>
+  <filters>
+    <field>Type__c</field>
+    <operation>equals</operation>
+    <value>In memory of</value>
+  </filters>
+  <label>Memorials</label>
+</ListView>

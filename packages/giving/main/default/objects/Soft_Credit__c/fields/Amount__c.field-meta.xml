@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Amount__c</fullName>
+  <description>
+    The amount credited, which defaults to the gift's amount. Soft credits on one gift may total
+    more than the gift, because two people can each be recognized for the whole of it (R-SC4).
+  </description>
+  <externalId>false</externalId>
+  <inlineHelpText>How much this person is recognized for. Usually the whole gift.</inlineHelpText>
+  <label>Amount</label>
+  <precision>18</precision>
+  <required>false</required>
+  <scale>2</scale>
+  <trackTrending>false</trackTrending>
+  <type>Currency</type>
+</CustomField>

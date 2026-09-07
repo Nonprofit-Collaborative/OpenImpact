@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Account__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>
+    The account credited: an organization, a household, or a person stored as an account.
+    Exactly one of Contact and Account is set (R-SC1).
+  </description>
+  <externalId>false</externalId>
+  <inlineHelpText>The organization, household, or person being recognized.</inlineHelpText>
+  <label>Account</label>
+  <referenceTo>Account</referenceTo>
+  <relationshipLabel>Soft Credits</relationshipLabel>
+  <relationshipName>Soft_Credits</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

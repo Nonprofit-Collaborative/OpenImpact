@@ -143,3 +143,18 @@ auto-tracked.
 3. `RollupDateWindowTest.fiscalYearWindowsResolveAgainstOrgFiscalSettings`: this year, last year and two years
    ago against a non-January fiscal year start, asserting each gift lands in exactly one window and a
    boundary-dated gift lands in the later one.
+
+## Amendment (2026-09-07, after vendoring)
+
+- The vendored tree lives at `packages/core/vendor/apex-rollup/`, one segment shorter than the
+  path written above.
+- The evaluation counted 12 forbidden standard-object references in engine source and missed
+  993 in the upstream tests. A fifth patch (E) ported those tests onto one test-support custom
+  object, `RollupCalcItem__c`, which therefore ships inside the Core package with no tab,
+  layout, permission or records. This is the one subscriber-visible cost of vendoring; it is
+  recorded in VENDOR.md and revisited if a later upstream release makes its tests object-neutral.
+- Merge eligibility is now describe-driven (`isMergeable()`), dated multicurrency is opt-in
+  through the upstream hook, and the DataWeave serialization strategy was removed in favor of
+  the JSON strategy. Future pulls must preserve these three behaviors (VENDOR.md lists them).
+- The vendored tests have not yet run in an org; the first Platform-only scratch org run of the
+  Core suite is the acceptance test for patch E.

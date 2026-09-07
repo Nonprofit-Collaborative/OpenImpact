@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Notification_Recipient_Account__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>The person to be told about the gift, where people are stored as accounts.</description>
+  <externalId>false</externalId>
+  <inlineHelpText>Who should hear that this gift was made, where people are stored as accounts.</inlineHelpText>
+  <label>Notification Recipient Account</label>
+  <referenceTo>Account</referenceTo>
+  <relationshipLabel>Tributes (Notification Recipient)</relationshipLabel>
+  <relationshipName>Tributes_Notification_Recipient</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

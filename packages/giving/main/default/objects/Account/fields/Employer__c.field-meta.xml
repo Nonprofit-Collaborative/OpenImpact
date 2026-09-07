@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Employer__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>
+    The organization this person works for, used to recognize the employer when a matching gift
+    arrives. Open Impact checks a matching gift link against it where it is set, and links
+    without complaint where it is blank (R-G11).
+  </description>
+  <externalId>false</externalId>
+  <inlineHelpText>Where this person works, if their employer matches gifts.</inlineHelpText>
+  <label>Employer</label>
+  <referenceTo>Account</referenceTo>
+  <relationshipLabel>Employees (Account)</relationshipLabel>
+  <relationshipName>Employees_Account</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

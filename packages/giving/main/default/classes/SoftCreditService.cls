@@ -1,0 +1,259 @@
+/**
+ * Soft credits: the recognition a person or an organization gets for a gift they did not give
+ * (feature G-08, canonical model Section 24).
+ *
+ * The one piece of automation here is the household credit. When a gift arrives from a person,
+ * every other current member of that person's household is recognized for the whole of it. Full
+ * amount, not a share: recognition is not divided, because both people are being recognized for
+ * the same gift, which is the convention nonprofits and NPSP have always used. The admin guide
+ * says so in the same words, because it surprises people who expect the numbers to add up.
+ *
+ * Three properties matter more than anything else here:
+ *
+ *   - **Idempotent.** Recomputing a gift's automatic credits twice leaves the same records. The
+ *     method works out what should exist, compares it with what does, and inserts, updates, or
+ *     deletes the difference.
+ *   - **Manual credits are untouchable.** Only records with Is Automatic true are ever read for
+ *     comparison, changed, or removed. A credit David entered is his (R-SC6).
+ *   - **Negative gifts produce negative credits.** A refund is a gift with a negative amount, so
+ *     its automatic credits are negative too and recognition totals correct themselves the same
+ *     way giving totals do (R-SC5).
+ */
+public with sharing class SoftCreditService {
+    public static final String ROLE_HOUSEHOLD_MEMBER = 'Household Member';
+    public static final String ROLE_MATCHED_DONOR = 'Matched Donor';
+    public static final String STATUS_REFUNDED = 'Refunded';
+    public static final String STATUS_WRITTEN_OFF = 'Written off';
+
+    private static final String SETTINGS_OBJECT = 'Giving_Settings__c';
+    private static final String SETTING_AUTOMATIC_HOUSEHOLD_CREDITS = 'Automatic_Household_Soft_Credits__c';
+    private static final Integer PERCENT_SCALE = 2;
+
+    /**
+     * Whether this org wants household members credited automatically. Default on, and a missing
+     * or unreadable setting is treated as on, because that is what the package ships with.
+     */
+    public static Boolean automaticHouseholdCreditsEnabled() {
+        Object stored = SettingsService.getValue(
+            SETTINGS_OBJECT,
+            SETTING_AUTOMATIC_HOUSEHOLD_CREDITS
+        );
+        if (stored == null) {
+            return true;
+        }
+        if (stored instanceof Boolean) {
+            return (Boolean) stored;
+        }
+        return Boolean.valueOf(String.valueOf(stored));
+    }
+
+    /**
+     * Brings the automatic household member credits for these gifts into line with the gifts as
+     * they now stand. Safe to call on insert, on update, and twice in a row.
+     *
+     * A gift that is refunded or written off, or whose donor is not a person in a household, ends
+     * up with no automatic household credits, which is how removal happens: nothing is special
+     * cased.
+     */
+    public static void createHouseholdMemberCredits(List<Gift__c> gifts) {
+        if (gifts == null || gifts.isEmpty() || !automaticHouseholdCreditsEnabled()) {
+            return;
+        }
+        Map<Id, Gift__c> giftById = new Map<Id, Gift__c>();
+        for (Gift__c gift : gifts) {
+            if (gift != null && gift.Id != null) {
+                giftById.put(gift.Id, gift);
+            }
+        }
+        if (giftById.isEmpty()) {
+            return;
+        }
+
+        Map<Id, Id> donorPersonByGift = new Map<Id, Id>();
+        Set<Id> personIds = new Set<Id>();
+        for (Gift__c gift : giftById.values()) {
+            if (isRecognizable(gift)) {
+                Id donorPersonId = donorPersonOf(gift);
+                if (donorPersonId != null) {
+                    donorPersonByGift.put(gift.Id, donorPersonId);
+                    personIds.add(donorPersonId);
+                }
+            }
+        }
+
+        Map<Id, Set<Id>> membersByHousehold = new Map<Id, Set<Id>>();
+        Map<Id, Id> householdByPerson = new Map<Id, Id>();
+        if (!personIds.isEmpty()) {
+            householdByPerson = HouseholdService.getHouseholdIdsFor(personIds);
+            Set<Id> householdIds = new Set<Id>();
+            for (Id householdId : householdByPerson.values()) {
+                if (householdId != null) {
+                    householdIds.add(householdId);
+                }
+            }
+            if (!householdIds.isEmpty()) {
+                membersByHousehold = HouseholdService.getMemberPersonIds(householdIds);
+            }
+        }
+
+        Map<String, Soft_Credit__c> wanted = new Map<String, Soft_Credit__c>();
+        for (Id giftId : donorPersonByGift.keySet()) {
+            Id donorPersonId = donorPersonByGift.get(giftId);
+            Id householdId = householdByPerson.get(donorPersonId);
+            if (householdId == null) {
+                continue;
+            }
+            Set<Id> memberIds = membersByHousehold.get(householdId);
+            if (memberIds == null) {
+                continue;
+            }
+            Gift__c gift = giftById.get(giftId);
+            for (Id memberId : memberIds) {
+                if (memberId == null || memberId == donorPersonId) {
+                    continue;
+                }
+                wanted.put(
+                    key(giftId, memberId),
+                    build(giftId, memberId, ROLE_HOUSEHOLD_MEMBER, gift.Amount__c, gift.Amount__c)
+                );
+            }
+        }
+
+        reconcile(
+            wanted,
+            SoftCreditSelector.selectAutomaticForGifts(giftById.keySet(), ROLE_HOUSEHOLD_MEMBER)
+        );
+    }
+
+    /**
+     * Removes every credit Open Impact created for these gifts. Called before a gift is deleted so
+     * that the rollups see the removal, and by the matching gift service when a link is undone.
+     */
+    public static void removeAutomaticCredits(Set<Id> giftIds) {
+        if (giftIds == null || giftIds.isEmpty()) {
+            return;
+        }
+        List<Soft_Credit__c> existing = SoftCreditSelector.selectAutomaticForGifts(giftIds);
+        if (!existing.isEmpty()) {
+            Database.delete(existing, true, AccessLevel.USER_MODE);
+        }
+    }
+
+    /**
+     * The recognition one person gets on one gift, as a record ready to insert. Used by the
+     * matching gift service, which credits an employee on their employer's gift.
+     */
+    public static Soft_Credit__c buildAutomaticCredit(
+        Id giftId,
+        Id personId,
+        String role,
+        Decimal amount,
+        Decimal giftAmount
+    ) {
+        return build(giftId, personId, role, amount, giftAmount);
+    }
+
+    /**
+     * A credited amount as a share of the gift. A gift of nothing has no share, which is not an
+     * error: an in-kind gift recorded at zero still recognizes the household.
+     */
+    public static Decimal percentOf(Decimal amount, Decimal giftAmount) {
+        if (amount == null || giftAmount == null || giftAmount == 0) {
+            return null;
+        }
+        return (amount / giftAmount * 100).setScale(PERCENT_SCALE, System.RoundingMode.HALF_UP);
+    }
+
+    /**
+     * The amount a share of a gift comes to.
+     */
+    public static Decimal amountOf(Decimal percent, Decimal giftAmount) {
+        if (percent == null || giftAmount == null) {
+            return null;
+        }
+        return (giftAmount * percent / 100).setScale(2, System.RoundingMode.HALF_UP);
+    }
+
+    private static void reconcile(
+        Map<String, Soft_Credit__c> wanted,
+        List<Soft_Credit__c> existing
+    ) {
+        List<Soft_Credit__c> toUpdate = new List<Soft_Credit__c>();
+        List<Soft_Credit__c> toDelete = new List<Soft_Credit__c>();
+        Set<String> seen = new Set<String>();
+
+        for (Soft_Credit__c credit : existing) {
+            Id creditedPersonId = credit.Contact__c != null ? credit.Contact__c : credit.Account__c;
+            String creditKey = key(credit.Gift__c, creditedPersonId);
+            Soft_Credit__c target = wanted.get(creditKey);
+            if (target == null || seen.contains(creditKey)) {
+                // No longer wanted, or a duplicate of one already kept (R-SC7).
+                toDelete.add(credit);
+                continue;
+            }
+            seen.add(creditKey);
+            if (credit.Amount__c != target.Amount__c || credit.Percent__c != target.Percent__c) {
+                credit.Amount__c = target.Amount__c;
+                credit.Percent__c = target.Percent__c;
+                toUpdate.add(credit);
+            }
+        }
+
+        List<Soft_Credit__c> toInsert = new List<Soft_Credit__c>();
+        for (String creditKey : wanted.keySet()) {
+            if (!seen.contains(creditKey)) {
+                toInsert.add(wanted.get(creditKey));
+            }
+        }
+
+        if (!toDelete.isEmpty()) {
+            Database.delete(toDelete, true, AccessLevel.USER_MODE);
+        }
+        if (!toUpdate.isEmpty()) {
+            Database.update(toUpdate, true, AccessLevel.USER_MODE);
+        }
+        if (!toInsert.isEmpty()) {
+            Database.insert(toInsert, true, AccessLevel.USER_MODE);
+        }
+    }
+
+    private static Soft_Credit__c build(
+        Id giftId,
+        Id personId,
+        String role,
+        Decimal amount,
+        Decimal giftAmount
+    ) {
+        Soft_Credit__c credit = new Soft_Credit__c(
+            Gift__c = giftId,
+            Role__c = role,
+            Amount__c = amount,
+            Percent__c = percentOf(amount, giftAmount),
+            Is_Automatic__c = true
+        );
+        if (personId != null && personId.getSObjectType() == Contact.SObjectType) {
+            credit.Contact__c = personId;
+        } else {
+            credit.Account__c = personId;
+        }
+        return credit;
+    }
+
+    /**
+     * A gift earns recognition unless it has been refunded or written off. The negative gift that
+     * records the refund earns recognition of its own, negative, which is the point (R-SC5).
+     */
+    private static Boolean isRecognizable(Gift__c gift) {
+        return gift != null &&
+            gift.Status__c != STATUS_REFUNDED &&
+            gift.Status__c != STATUS_WRITTEN_OFF;
+    }
+
+    private static Id donorPersonOf(Gift__c gift) {
+        return gift.Donor_Contact__c != null ? gift.Donor_Contact__c : gift.Donor_Account__c;
+    }
+
+    private static String key(Id giftId, Id personId) {
+        return String.valueOf(giftId) + ':' + String.valueOf(personId);
+    }
+}

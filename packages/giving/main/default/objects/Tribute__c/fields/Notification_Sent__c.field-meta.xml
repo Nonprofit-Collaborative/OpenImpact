@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Notification_Sent__c</fullName>
+  <defaultValue>false</defaultValue>
+  <description>Whether the notification has gone out. Not cleared by automation once set (R-TR4).</description>
+  <externalId>false</externalId>
+  <inlineHelpText>Tick this when the letter has been posted or the email sent.</inlineHelpText>
+  <label>Notification Sent</label>
+  <trackTrending>false</trackTrending>
+  <type>Checkbox</type>
+</CustomField>

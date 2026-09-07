@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Role__c</fullName>
+  <description>Why this person or organization is recognized for the gift.</description>
+  <inlineHelpText>Why they are recognized. Choose Other to use your own wording.</inlineHelpText>
+  <label>Role</label>
+  <required>true</required>
+  <trackTrending>false</trackTrending>
+  <type>Picklist</type>
+  <valueSet>
+    <restricted>true</restricted>
+    <valueSetDefinition>
+      <sorted>false</sorted>
+      <value>
+        <fullName>Household Member</fullName>
+        <default>true</default>
+        <label>Household Member</label>
+      </value>
+      <value>
+        <fullName>Matched Donor</fullName>
+        <default>false</default>
+        <label>Matched Donor</label>
+      </value>
+      <value>
+        <fullName>Solicitor</fullName>
+        <default>false</default>
+        <label>Solicitor</label>
+      </value>
+      <value>
+        <fullName>Honoree</fullName>
+        <default>false</default>
+        <label>Honoree</label>
+      </value>
+      <value>
+        <fullName>Influencer</fullName>
+        <default>false</default>
+        <label>Influencer</label>
+      </value>
+      <value>
+        <fullName>Other</fullName>
+        <default>false</default>
+        <label>Other</label>
+      </value>
+    </valueSetDefinition>
+  </valueSet>
+</CustomField>
