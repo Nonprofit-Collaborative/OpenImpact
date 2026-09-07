@@ -24,6 +24,9 @@ apexcov.json
 # OS
 .DS_Store
 
+# Local tool caches
+.tools/
+
 # Misc
 /tmp
 
