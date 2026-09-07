@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Parent_Appeal__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    The larger effort this appeal is part of, for example a gala within a capital campaign.
+  </inlineHelpText>
+  <label>Parent Appeal</label>
+  <referenceTo>Appeal__c</referenceTo>
+  <relationshipLabel>Child Appeals</relationshipLabel>
+  <relationshipName>Child_Appeals</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

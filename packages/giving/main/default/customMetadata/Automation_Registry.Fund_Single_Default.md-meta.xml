@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <label>Fund: one default fund</label>
+    <protected>true</protected>
+    <values>
+        <field>Object_Name__c</field>
+        <value xsi:type="xsd:string">Fund__c</value>
+    </values>
+    <values>
+        <field>Handler_Class__c</field>
+        <value xsi:type="xsd:string">FundTriggerHandler</value>
+    </values>
+    <values>
+        <field>Execution_Order__c</field>
+        <value xsi:type="xsd:double">10</value>
+    </values>
+    <values>
+        <field>Enabled_By_Default__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>Description__c</field>
+        <value xsi:type="xsd:string">Clears the default flag on the previous default fund when a new one is marked.</value>
+    </values>
+</CustomMetadata>

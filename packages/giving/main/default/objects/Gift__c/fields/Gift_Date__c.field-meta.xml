@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Gift_Date__c</fullName>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    The date the gift was received, which is the date that appears on the receipt. Left blank, it
+    becomes today.
+  </inlineHelpText>
+  <label>Gift Date</label>
+  <required>true</required>
+  <trackTrending>false</trackTrending>
+  <type>Date</type>
+</CustomField>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+  <compactLayoutAssignment>Appeal_Compact</compactLayoutAssignment>
+  <deploymentStatus>Deployed</deploymentStatus>
+  <description>
+    A fundraising effort: a year-end mailing, a gala, a spring appeal, a giving day.
+  </description>
+  <enableActivities>true</enableActivities>
+  <enableBulkApi>true</enableBulkApi>
+  <enableFeeds>false</enableFeeds>
+  <enableHistory>false</enableHistory>
+  <enableReports>true</enableReports>
+  <enableSearch>true</enableSearch>
+  <enableSharing>true</enableSharing>
+  <enableStreamingApi>true</enableStreamingApi>
+  <label>Appeal</label>
+  <nameField>
+    <label>Appeal Name</label>
+    <trackHistory>false</trackHistory>
+    <type>Text</type>
+  </nameField>
+  <pluralLabel>Appeals</pluralLabel>
+  <sharingModel>ReadWrite</sharingModel>
+  <visibility>Public</visibility>
+</CustomObject>

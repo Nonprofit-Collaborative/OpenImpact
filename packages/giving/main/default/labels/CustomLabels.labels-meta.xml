@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Giving_Appeal_ParentCycle</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Appeal parent would create a loop</shortDescription>
+        <value>That parent appeal would create a loop, because this appeal is already above it. Choose a different parent appeal, or leave Parent Appeal empty.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Fund_OneDefaultAtATime</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Two funds marked default in one save</shortDescription>
+        <value>Only one fund can be the default. Save one default fund at a time, and Open Impact will clear the flag on the previous one.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Gift_AllocationsMustTotal</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Allocations do not total the gift</shortDescription>
+        <value>The allocations of this gift total {0}, but the gift is {1}. The difference is {2}.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Gift_AlreadyReversed</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Nothing left of the gift to reverse</shortDescription>
+        <value>This gift is already {0}, so there is nothing left to refund or write off.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Gift_AmountChangeSplit</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Amount changed on a split gift</shortDescription>
+        <value>This gift is split across more than one fund, so its amount cannot be changed here. Adjust the allocations first, then change the amount.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Gift_CannotReverseNegative</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Refund attempted on a negative gift</shortDescription>
+        <value>This gift already records money going back, so it cannot itself be refunded or written off. Open the original gift instead.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Gift_DefaultFundMissing</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>No default fund is set</shortDescription>
+        <value>No default fund is set. Open Nonprofit Settings, choose Giving, and pick the fund that undesignated gifts should go to.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Gift_OriginalNotFound</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Gift not found</shortDescription>
+        <value>That gift could not be found, so nothing was changed. It may have been deleted, or you may not have access to it.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Gift_ReceiptLocked</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Gift locked by its receipt</shortDescription>
+        <value>This gift has a receipt number, so its amount, date and donor cannot change. Void the receipt and reissue it, or record a refund.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Gift_RefundAmountRequired</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Refund amount missing or not positive</shortDescription>
+        <value>Enter how much is going back to the donor. A refund amount is always more than zero: Open Impact records it as a negative gift for you.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Gift_RefundExceedsRemaining</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Refund larger than what is left</shortDescription>
+        <value>This refund is larger than the amount left on the gift. Check the gift's refunds: part of it may have gone back already.</value>
+    </labels>
+</CustomLabels>
