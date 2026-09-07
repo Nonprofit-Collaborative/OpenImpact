@@ -25,6 +25,39 @@ object references: those live only in the Connect module, behind dynamic Apex.
 - **Health Check**: org shape and license detection, missing permission assignments, rollup
   schedule staleness, orphaned records, coexistence conflicts.
 
+## Trigger framework
+
+One trigger per object, one line in it, and every automation switchable from the app.
+
+```apex
+trigger ContactTrigger on Contact(
+    before insert,
+    after insert,
+    before update,
+    after update,
+    before delete,
+    after delete,
+    after undelete
+) {
+    TriggerDispatcher.run(new ContactTriggerHandler());
+}
+```
+
+`ContactTriggerHandler` extends `TriggerHandler` and overrides only the contexts it needs. The
+dispatcher works out which one it is in, then checks three things before it invokes anything: a
+per transaction bypass (`AutomationControl.bypass(name)`), the org wide pause
+(`Nonprofit_Settings__c.Automation_Paused_Until__c`), and the automation's own switch (a row on
+`Automation_Setting__c`). Anything a handler throws is written to the Error Log first, then
+reported to the person saving the record: `addError` with a plain language message in a before
+context, a rethrow in an after context.
+
+An automation with no `Automation_Setting__c` row still runs, so a newly shipped automation works
+the moment it is installed. `AutomationControl.ensureDefaults()` materializes the missing rows
+from `Automation_Registry__mdt` and never touches a row the administrator already has.
+
+**v0.1 ships the framework with no triggers and an empty registry.** Feature C-01 adds the first
+two handlers, their triggers, and their `Automation_Registry__mdt` records in one change.
+
 ## Iteration
 
 Core first ships in **v0.1** and is required by every later iteration; it is the only package

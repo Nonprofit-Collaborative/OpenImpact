@@ -1,0 +1,225 @@
+/**
+ * What Maria reads when something fails, and the promise that logging never makes things worse.
+ */
+@IsTest
+private class ErrorLoggerTest {
+    private class SampleException extends Exception {
+    }
+
+    private static Exception thrownException() {
+        try {
+            throw new SampleException('The pattern refers to a field this record does not have.');
+        } catch (Exception caught) {
+            return caught;
+        }
+    }
+
+    @IsTest
+    static void anExceptionBecomesSomethingMariaCanRead() {
+        Test.startTest();
+        ErrorLogger.log(thrownException(), 'Household naming');
+        Test.stopTest();
+
+        List<Error_Log__c> logged = [
+            SELECT
+                Context__c,
+                Message__c,
+                Technical_Detail__c,
+                Severity__c,
+                Status__c,
+                Timestamp__c,
+                User__c,
+                Record_Reference__c,
+                Object_Name__c
+            FROM Error_Log__c
+        ];
+        Assert.areEqual(1, logged.size(), 'One failure, one entry.');
+        Error_Log__c entry = logged[0];
+        Assert.areEqual('Household naming', entry.Context__c, 'Named in words, not in code.');
+        Assert.isTrue(
+            entry.Message__c.contains('The pattern refers to a field'),
+            'The message says what went wrong.'
+        );
+        Assert.isTrue(
+            entry.Message__c.contains(Label.Core_ErrorLog_UnexpectedFailure),
+            'And starts from the plain language explanation.'
+        );
+        Assert.isTrue(
+            entry.Technical_Detail__c.contains('SampleException'),
+            'The technical detail names the exception type.'
+        );
+        Assert.areEqual(
+            ErrorLogger.SEVERITY_ERROR,
+            entry.Severity__c,
+            'Severity defaults to Error.'
+        );
+        Assert.areEqual(ErrorLogger.STATUS_NEW, entry.Status__c, 'And status to New.');
+        Assert.areEqual(UserInfo.getUserId(), entry.User__c, 'The person working is recorded.');
+        Assert.isNotNull(entry.Timestamp__c, 'So is the time.');
+        Assert.isNull(entry.Record_Reference__c, 'No record was named for this one.');
+        Assert.isNull(entry.Object_Name__c, 'So there is nothing to group it by.');
+    }
+
+    @IsTest
+    static void anExceptionAboutARecordPointsAtThatRecord() {
+        Error_Log__c existing = TestDataFactory.insertErrorLogs(1, ErrorLogger.STATUS_RESOLVED)[0];
+
+        Test.startTest();
+        ErrorLogger.log(thrownException(), 'Household naming', existing.Id);
+        Test.stopTest();
+
+        List<Error_Log__c> logged = [
+            SELECT Record_Reference__c, Object_Name__c
+            FROM Error_Log__c
+            WHERE Context__c = 'Household naming'
+        ];
+        Assert.areEqual(1, logged.size(), 'One entry for the failure.');
+        Assert.areEqual(
+            String.valueOf(existing.Id),
+            logged[0].Record_Reference__c,
+            'Maria can open the record from the entry.'
+        );
+        Assert.areEqual(
+            'Error_Log__c',
+            logged[0].Object_Name__c,
+            'And can group entries by what they affect.'
+        );
+    }
+
+    @IsTest
+    static void twoHundredFailuresCostOneStatement() {
+        List<String> messages = new List<String>();
+        for (Integer i = 0; i < 200; i++) {
+            messages.add('Row ' + i + ' could not be saved because its household is missing.');
+        }
+
+        Test.startTest();
+        Integer statementsBefore = Limits.getDmlStatements();
+        ErrorLogger.logMessages(messages, 'Spreadsheet import', ErrorLogger.SEVERITY_WARNING);
+        Integer statementsAfter = Limits.getDmlStatements();
+        Test.stopTest();
+
+        Assert.areEqual(1, statementsAfter - statementsBefore, 'Logging is done in one statement.');
+        Assert.areEqual(
+            200,
+            [SELECT COUNT() FROM Error_Log__c WHERE Severity__c = 'Warning'],
+            'Every row that failed is recorded.'
+        );
+    }
+
+    @IsTest
+    static void aListOfExceptionsIsLoggedTogether() {
+        List<Exception> failures = new List<Exception>{
+            thrownException(),
+            null,
+            thrownException()
+        };
+
+        Test.startTest();
+        Integer statementsBefore = Limits.getDmlStatements();
+        ErrorLogger.log(failures, 'Spreadsheet import');
+        Integer statementsAfter = Limits.getDmlStatements();
+        Test.stopTest();
+
+        Assert.areEqual(1, statementsAfter - statementsBefore, 'Still one statement.');
+        Assert.areEqual(2, [SELECT COUNT() FROM Error_Log__c], 'The empty entry is skipped.');
+    }
+
+    @IsTest
+    static void aSeverityThatIsNotOfferedBecomesError() {
+        Test.startTest();
+        ErrorLogger.logMessage('The fund on this gift no longer exists.', null, 'Catastrophic');
+        ErrorLogger.logMessage(
+            'Nothing to worry about.',
+            'Health check',
+            ErrorLogger.SEVERITY_INFO
+        );
+        Test.stopTest();
+
+        Assert.areEqual(
+            1,
+            [
+                SELECT COUNT()
+                FROM Error_Log__c
+                WHERE Severity__c = 'Error' AND Context__c = 'Open Impact'
+            ],
+            'An unrecognized severity is recorded as an error, under a default context.'
+        );
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Error_Log__c WHERE Severity__c = 'Info'],
+            'An offered severity is kept.'
+        );
+    }
+
+    @IsTest
+    static void loggingNothingRecordsNothingAndThrowsNothing() {
+        Test.startTest();
+        ErrorLogger.log((Exception) null, 'Household naming');
+        ErrorLogger.log((List<Exception>) null, 'Household naming');
+        ErrorLogger.log(new List<Exception>(), 'Household naming');
+        ErrorLogger.logMessage('   ', 'Household naming', ErrorLogger.SEVERITY_ERROR);
+        ErrorLogger.logMessages(null, 'Household naming', ErrorLogger.SEVERITY_ERROR);
+        ErrorLogger.logMessages(new List<String>{ '  ' }, 'Import', ErrorLogger.SEVERITY_ERROR);
+        Test.stopTest();
+
+        Assert.areEqual(0, [SELECT COUNT() FROM Error_Log__c], 'There was nothing to record.');
+    }
+
+    @IsTest
+    static void aVeryLongMessageIsTrimmedRatherThanLost() {
+        String enormous = 'x'.repeat(40000);
+
+        Test.startTest();
+        ErrorLogger.logMessage(enormous, enormous, ErrorLogger.SEVERITY_CRITICAL);
+        Test.stopTest();
+
+        List<Error_Log__c> logged = [SELECT Message__c, Context__c FROM Error_Log__c];
+        Assert.areEqual(1, logged.size(), 'The entry was still written.');
+        Assert.areEqual(32000, logged[0].Message__c.length(), 'The message is trimmed to fit.');
+        Assert.areEqual(255, logged[0].Context__c.length(), 'So is the context.');
+    }
+
+    @IsTest
+    static void theTileCountsNewErrorsAndShowsTheMostRecent() {
+        TestDataFactory.insertErrorLogs(7, ErrorLogger.STATUS_NEW);
+        TestDataFactory.insertErrorLogs(2, ErrorLogger.STATUS_RESOLVED);
+
+        Test.startTest();
+        Integer newCount = ErrorLogSelector.countNew();
+        List<Error_Log__c> recent = ErrorLogSelector.selectRecent(5);
+        List<Error_Log__c> defaulted = ErrorLogSelector.selectRecent(null);
+        List<Error_Log__c> capped = ErrorLogSelector.selectRecent(-3);
+        Test.stopTest();
+
+        Assert.areEqual(7, newCount, 'Only the new ones are counted.');
+        Assert.areEqual(5, recent.size(), 'The tile shows five.');
+        Assert.areEqual(5, defaulted.size(), 'Asking for none also shows five.');
+        Assert.areEqual(5, capped.size(), 'So does asking for a nonsense number.');
+        Assert.isTrue(
+            recent[0].Timestamp__c >= recent[4].Timestamp__c,
+            'The most recent is first.'
+        );
+    }
+
+    @IsTest
+    static void anEntryCanBeReadBackById() {
+        List<Error_Log__c> existing = TestDataFactory.insertErrorLogs(2, ErrorLogger.STATUS_NEW);
+
+        List<Error_Log__c> found = ErrorLogSelector.selectByIds(
+            new Set<Id>{ existing[0].Id, existing[1].Id }
+        );
+
+        Assert.areEqual(2, found.size(), 'Both entries come back.');
+        Assert.areEqual(
+            0,
+            ErrorLogSelector.selectByIds(new Set<Id>()).size(),
+            'Asking for nothing queries nothing.'
+        );
+        Assert.areEqual(
+            0,
+            ErrorLogSelector.selectByIds(null).size(),
+            'Asking for null queries nothing.'
+        );
+    }
+}
