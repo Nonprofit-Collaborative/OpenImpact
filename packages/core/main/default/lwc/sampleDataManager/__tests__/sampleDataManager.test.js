@@ -46,7 +46,6 @@ const CANCEL_BUTTON_INDEX = 0;
 const CONFIRM_BUTTON_INDEX = 1;
 
 function flushPromises() {
-  // eslint-disable-next-line @lwc/lwc/no-async-operation
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
@@ -54,7 +53,6 @@ function flushPromises() {
 // microtasks directly instead of using flushPromises.
 async function flushMicrotasks() {
   for (let i = 0; i < 6; i += 1) {
-    // eslint-disable-next-line no-await-in-loop
     await Promise.resolve();
   }
 }

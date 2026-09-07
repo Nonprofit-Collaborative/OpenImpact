@@ -125,7 +125,6 @@ export default class SampleDataManager extends LightningElement {
     if (this.pollTimer) {
       return;
     }
-    // eslint-disable-next-line @lwc/lwc/no-async-operation
     this.pollTimer = setInterval(() => {
       this.refreshStatus();
     }, POLL_INTERVAL_MS);
