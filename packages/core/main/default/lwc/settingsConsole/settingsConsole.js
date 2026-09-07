@@ -1,4 +1,5 @@
-import { LightningElement } from 'lwc';
+import { LightningElement, wire } from 'lwc';
+import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 import getConsoleModel from '@salesforce/apex/SettingsController.getConsoleModel';
 import saveSettings from '@salesforce/apex/SettingsController.saveSettings';
 import getRecentChanges from '@salesforce/apex/SettingsController.getRecentChanges';
@@ -19,10 +20,36 @@ import COLUMN_OLD from '@salesforce/label/c.Core_Settings_ColumnOldValue';
 import COLUMN_NEW from '@salesforce/label/c.Core_Settings_ColumnNewValue';
 import COLUMN_BY from '@salesforce/label/c.Core_Settings_ColumnChangedBy';
 import COLUMN_AT from '@salesforce/label/c.Core_Settings_ColumnChangedAt';
+import NOT_INSTALLED from '@salesforce/label/c.Core_Settings_ComponentNotInstalled';
+import OPEN_SECTION from '@salesforce/label/c.Core_Settings_OpenSectionButton';
 
 const RECENT_LIMIT = 10;
 
-export default class SettingsConsole extends LightningElement {
+/**
+ * The panels Core itself ships, each behind a literal import (ADR-0020). A dynamic specifier
+ * is rejected by the platform, and Core cannot name a component from a package that depends on
+ * it, so a module reaches its own settings page by navigation instead.
+ */
+function importCoreComponent(name) {
+  switch (name) {
+    case 'householdNamingSettings':
+      return import('c/householdNamingSettings');
+    case 'automationControl':
+      return import('c/automationControl');
+    case 'errorLogTile':
+      return import('c/errorLogTile');
+    case 'accessManager':
+      return import('c/accessManager');
+    case 'healthCheckPanel':
+      return import('c/healthCheckPanel');
+    case 'sampleDataManager':
+      return import('c/sampleDataManager');
+    default:
+      return null;
+  }
+}
+
+export default class SettingsConsole extends NavigationMixin(LightningElement) {
   labels = {
     title: TITLE,
     sectionsHeading: SECTIONS_HEADING,
@@ -35,7 +62,9 @@ export default class SettingsConsole extends LightningElement {
     learnMore: LEARN_MORE,
     emptySection: EMPTY_SECTION,
     recentHeading: RECENT_HEADING,
-    recentEmpty: RECENT_EMPTY
+    recentEmpty: RECENT_EMPTY,
+    notInstalled: NOT_INSTALLED,
+    openSection: OPEN_SECTION
   };
 
   columns = [
@@ -43,7 +72,18 @@ export default class SettingsConsole extends LightningElement {
     { label: COLUMN_OLD, fieldName: 'oldValue', type: 'text' },
     { label: COLUMN_NEW, fieldName: 'newValue', type: 'text' },
     { label: COLUMN_BY, fieldName: 'changedBy', type: 'text' },
-    { label: COLUMN_AT, fieldName: 'changedAt', type: 'date' }
+    {
+      label: COLUMN_AT,
+      fieldName: 'changedAt',
+      type: 'date',
+      typeAttributes: {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }
+    }
   ];
 
   sections = [];
@@ -55,6 +95,17 @@ export default class SettingsConsole extends LightningElement {
   messageIsError = false;
   loading = true;
   componentTypes = {};
+  requestedSection;
+
+  @wire(CurrentPageReference)
+  handlePageReference(pageReference) {
+    // The Setup Assistant links here with the section its step belongs to.
+    const requested = pageReference && pageReference.state && pageReference.state.c__section;
+    if (requested) {
+      this.requestedSection = requested;
+      this.selectRequestedSection();
+    }
+  }
 
   connectedCallback() {
     this.load();
@@ -120,6 +171,11 @@ export default class SettingsConsole extends LightningElement {
       hasHelp: Boolean(setting.helpUrl),
       disabled: !this.canEdit,
       ctor: this.componentTypes[setting.component],
+      navigatesAway: setting.dataType === 'Component' && !setting.component,
+      missing:
+        setting.dataType === 'Component' &&
+        Boolean(setting.component) &&
+        !this.componentTypes[setting.component],
       checked: isCheckbox ? (hasPending ? pendingValue === true : setting.checked) : false,
       value: hasPending ? pendingValue : setting.value
     };
@@ -150,31 +206,60 @@ export default class SettingsConsole extends LightningElement {
   applyModel(model) {
     this.sections = (model && model.sections) || [];
     this.canEdit = Boolean(model && model.canEdit);
-    if (!this.selectedSection && this.sections.length > 0) {
+    if (!this.selectRequestedSection() && !this.selectedSection && this.sections.length > 0) {
       this.selectedSection = this.sections[0].name;
     }
-    this.loadDynamicComponents();
+    this.loadCoreComponents();
   }
 
-  loadDynamicComponents() {
+  /** Opens the section a link asked for, when the model has one by that name. */
+  selectRequestedSection() {
+    if (!this.requestedSection) {
+      return false;
+    }
+    const wanted = this.requestedSection.toLowerCase();
+    const match = this.sections.find((section) => section.name.toLowerCase() === wanted);
+    if (!match) {
+      return false;
+    }
+    this.selectedSection = match.name;
+    return true;
+  }
+
+  loadCoreComponents() {
     this.sections.forEach((section) => {
       section.settings.forEach((setting) => {
         if (setting.component && !this.componentTypes[setting.component]) {
-          this.importComponent(setting.component);
+          this.loadCoreComponent(setting.component);
         }
       });
     });
   }
 
-  async importComponent(name) {
+  async loadCoreComponent(name) {
+    const pending = importCoreComponent(name);
+    if (!pending) {
+      return;
+    }
     try {
-      const module = await import(`c/${name}`);
+      const module = await pending;
       this.componentTypes = { ...this.componentTypes, [name]: module.default };
     } catch {
-      // A section whose component is not in this build is left out rather than
-      // breaking the page. The feature that owns it ships it.
+      // The module that ships this panel is not installed, so the row says so.
       this.componentTypes = { ...this.componentTypes };
     }
+  }
+
+  /** Opens a module's own settings page, which lives on its own tab (ADR-0020). */
+  handleOpenSection(event) {
+    const target = event.currentTarget.dataset.target;
+    if (!target) {
+      return;
+    }
+    this[NavigationMixin.Navigate]({
+      type: 'standard__navItemPage',
+      attributes: { apiName: target }
+    });
   }
 
   handleSectionSelect(event) {

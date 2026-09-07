@@ -114,6 +114,18 @@
                                 <template lwc:if={row.ctor}>
                                     <lwc:component lwc:is={row.ctor}></lwc:component>
                                 </template>
+                                <template lwc:elseif={row.navigatesAway}>
+                                    <lightning-button
+                                        label={labels.openSection}
+                                        data-target={row.navigationTarget}
+                                        onclick={handleOpenSection}
+                                    ></lightning-button>
+                                </template>
+                                <template lwc:elseif={row.missing}>
+                                    <p class="slds-text-color_weak" role="status">
+                                        {labels.notInstalled}
+                                    </p>
+                                </template>
                             </template>
 
                             <template lwc:if={row.description}>
@@ -161,7 +173,7 @@
                 </h2>
                 <template lwc:if={hasChangesToShow}>
                     <lightning-datatable
-                        key-field="changedAt"
+                        key-field="id"
                         data={changes}
                         columns={columns}
                         hide-checkbox-column

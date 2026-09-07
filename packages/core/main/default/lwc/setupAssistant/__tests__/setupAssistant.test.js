@@ -55,7 +55,7 @@ describe('c-setup-assistant', () => {
     const element = build(true);
     const links = element.shadowRoot.querySelectorAll('a');
 
-    expect(links[0].href).toContain('/lightning/n/Nonprofit_Settings?section=General');
+    expect(links[0].href).toContain('/lightning/n/Nonprofit_Settings?c__section=General');
     expect(links[1].href).toContain('/lightning/setup/ManageUsers/home');
   });
 

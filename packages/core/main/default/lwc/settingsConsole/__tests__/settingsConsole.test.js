@@ -3,6 +3,7 @@ import SettingsConsole from 'c/settingsConsole';
 import getConsoleModel from '@salesforce/apex/SettingsController.getConsoleModel';
 import saveSettings from '@salesforce/apex/SettingsController.saveSettings';
 import getRecentChanges from '@salesforce/apex/SettingsController.getRecentChanges';
+import * as navigation from 'lightning/navigation';
 
 jest.mock('@salesforce/apex/SettingsController.getConsoleModel', () => ({ default: jest.fn() }), {
   virtual: true
@@ -16,6 +17,12 @@ jest.mock('@salesforce/apex/SettingsController.getRecentChanges', () => ({ defau
 jest.mock('@salesforce/apex/SettingsController.search', () => ({ default: jest.fn() }), {
   virtual: true
 });
+
+// Reached through the module namespace rather than by name: a wire adapter may only be named
+// in a @wire decorator, and a test drives it through the stub's emit.
+function openSection(name) {
+  navigation.CurrentPageReference.emit({ state: { c__section: name } });
+}
 
 function model(canEdit) {
   return {
@@ -69,6 +76,44 @@ function model(canEdit) {
             ]
           }
         ]
+      },
+      {
+        name: 'Giving',
+        settings: [
+          {
+            key: 'Giving_Settings_Page',
+            label: 'Gift entry and receipts',
+            description: 'The Giving module keeps its settings on its own page.',
+            dataType: 'Component',
+            section: 'Giving',
+            settingsObject: 'Giving_Settings__c',
+            component: null,
+            navigationTarget: 'Giving_Settings',
+            helpUrl: null,
+            value: null,
+            checked: false,
+            options: []
+          }
+        ]
+      },
+      {
+        name: 'Health',
+        settings: [
+          {
+            key: 'Health_Check_Panel',
+            label: 'Health check',
+            description: 'What Open Impact found in your org.',
+            dataType: 'Component',
+            section: 'Health',
+            settingsObject: 'Nonprofit_Settings__c',
+            component: 'notAComponentInThisBuild',
+            navigationTarget: null,
+            helpUrl: null,
+            value: null,
+            checked: false,
+            options: []
+          }
+        ]
       }
     ]
   };
@@ -104,7 +149,7 @@ describe('c-settings-console', () => {
     await settle();
 
     const navItems = element.shadowRoot.querySelectorAll('lightning-vertical-navigation-item');
-    expect(navItems).toHaveLength(2);
+    expect(navItems).toHaveLength(4);
 
     const inputs = element.shadowRoot.querySelectorAll('lightning-input');
     expect(inputs).toHaveLength(2);
@@ -180,6 +225,35 @@ describe('c-settings-console', () => {
     const combobox = element.shadowRoot.querySelector('lightning-combobox');
     expect(combobox).not.toBeNull();
     expect(combobox.value).toBe('Standalone');
+  });
+
+  it('opens the section a setup step asked for', async () => {
+    const element = build();
+    openSection('General');
+    await settle();
+
+    const combobox = element.shadowRoot.querySelector('lightning-combobox');
+    expect(combobox).not.toBeNull();
+    expect(combobox.value).toBe('Standalone');
+  });
+
+  it('offers a module its own page instead of trying to render it', async () => {
+    const element = build();
+    openSection('Giving');
+    await settle();
+
+    const button = element.shadowRoot.querySelector('lightning-button[data-target]');
+    expect(button).not.toBeNull();
+    expect(button.dataset.target).toBe('Giving_Settings');
+  });
+
+  it('says so plainly when the module that brings a panel is not installed', async () => {
+    const element = build();
+    openSection('Health');
+    await settle();
+
+    const notice = element.shadowRoot.querySelector('p[role="status"]');
+    expect(notice.textContent).toContain('Core_Settings_ComponentNotInstalled');
   });
 
   it('says the page could not load rather than showing nothing', async () => {

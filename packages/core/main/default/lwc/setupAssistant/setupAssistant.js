@@ -51,7 +51,7 @@ export default class SetupAssistant extends LightningElement {
     if (step.setupPath && step.targetType === 'Setup') {
       return step.setupPath;
     }
-    return `${SETTINGS_PAGE}?section=${encodeURIComponent(step.target || '')}`;
+    return `${SETTINGS_PAGE}?c__section=${encodeURIComponent(step.target || '')}`;
   }
 
   handleToggle(event) {
