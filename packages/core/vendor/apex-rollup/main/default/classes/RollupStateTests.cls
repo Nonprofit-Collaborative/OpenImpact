@@ -62,7 +62,8 @@ private class RollupStateTests {
       RollupState.GenericInfo.class
     ));
     Assert.areEqual(info.value, updatedInfo.value);
-    Assert.areEqual(RollupState.DataweaveSerializationStrategy.class, RollupState.serializationStrategy.getType());
+    // Open Impact patch D: the DataWeave strategy is gone, so the default strategy is the JSON one.
+    Assert.areEqual(RollupState.JSONSerializationStrategy.class, RollupState.serializationStrategy.getType());
   }
 
   @IsTest
@@ -83,9 +84,10 @@ private class RollupStateTests {
     sObjectInfo = (RollupState.SObjectInfo) state.getState(stubAccountId, metaKey, RollupState.SObjectInfo.class);
 
     Datetime actualMessageDate = (Datetime) sObjectInfo.item.get('MessageDate');
-    // we have to manually add the UTC offset here - this would normally be appended by DataWeave, but in tests it seems impossible to actually fudge the situation
-    // which sometimes occurs, which is a UTC Datetime string being passed without the ending "Z". In those cases, the DataWeave script itself will attempt to self-recover
-    // by appending the Z
+    // Upstream note, kept for the record: this assertion compares only the date portion because a
+    // UTC Datetime string can arrive without its trailing "Z". Under Open Impact patch D the JSON
+    // strategy is the only strategy, so the DataWeave self-recovery upstream described no longer
+    // applies, and the date-only comparison is what makes the assertion strategy independent.
     Assert.areEqual(nonUtcDatetimeParsed.substring(0, 10), actualMessageDate.formatGmt('YYYY-MM-dd'));
   }
 
