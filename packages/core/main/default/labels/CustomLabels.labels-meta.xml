@@ -14,9 +14,7 @@
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>How to add a member in the flexible membership mode</shortDescription>
-    <value>
-      To add someone to this household, use the Household Members list further down this page.
-    </value>
+    <value>To add someone to this household, use the Household Members list further down this page.</value>
   </labels>
   <labels>
     <fullName>Core_HouseholdMembersPanel_AddSuccess</fullName>
@@ -80,9 +78,7 @@
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>The record is not a household</shortDescription>
-    <value>
-      This panel is for households. This record is an organization, so it has no members to show.
-    </value>
+    <value>This panel is for households. This record is an organization, so it has no members to show.</value>
   </labels>
   <labels>
     <fullName>Core_HouseholdMembersPanel_Primary</fullName>
@@ -107,6 +103,302 @@
     <protected>true</protected>
     <shortDescription>Members panel heading</shortDescription>
     <value>Members</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_Cancel</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Cancel button</shortDescription>
+    <value>Cancel</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_ColumnField</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Comparison column heading for the field name</shortDescription>
+    <value>Field</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_ColumnOther</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Comparison column heading for the household being merged away</shortDescription>
+    <value>The other household</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_ColumnThis</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Comparison column heading for the surviving household</shortDescription>
+    <value>This household</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_ConfirmBody</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>What the person is warned about before a merge runs</shortDescription>
+    <value>{0} will be combined into {1}. Everyone in it, and all of its giving history, letters, files, and notes, will move across. A merge cannot be undone. Check both households before you continue.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_ConfirmButton</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Button that runs the merge from the confirmation</shortDescription>
+    <value>Merge households</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_ConfirmHeading</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Heading of the merge confirmation</shortDescription>
+    <value>This cannot be undone</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_ErrorContext</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Error log context for a merge or a split</shortDescription>
+    <value>Household merge and split</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_ErrorMissingInput</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Neither household was named</shortDescription>
+    <value>Choose two households to merge.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_ErrorNoEditAccess</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>The person cannot edit one of the two households</shortDescription>
+    <value>You need edit access to both households to merge them.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_ErrorNotFound</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>One of the two households no longer exists</shortDescription>
+    <value>One of these households could not be found. Refresh the page and try again.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_ErrorNotHousehold</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>One of the two records is not a household</shortDescription>
+    <value>Both records must be households. Choose a household, not an organization.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_ErrorSameRecord</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>The same household was chosen twice</shortDescription>
+    <value>Choose a different household. A household cannot be merged into itself.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_ErrorSplitNoMembers</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Nobody was ticked for the split</shortDescription>
+    <value>Choose at least one person to move.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_ErrorSplitNotMembers</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>The people ticked are not in this household</shortDescription>
+    <value>Those people are not in this household. Refresh the page and try again.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_KeepSurvivor</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Radio choice keeping the surviving household's value</shortDescription>
+    <value>Keep this one</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_KeepVictim</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Radio choice keeping the other household's value</shortDescription>
+    <value>Keep the other one</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_MemberFromOther</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Badge on a member who is in the other household</shortDescription>
+    <value>From the other household</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_MemberFromThis</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Badge on a member who is in this household</shortDescription>
+    <value>From this household</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_MembersHeading</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Heading above the combined member list</shortDescription>
+    <value>Members after the merge</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_MergeButton</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Button that opens the merge confirmation</shortDescription>
+    <value>Merge</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_NoResults</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>The search found no households</shortDescription>
+    <value>No households match what you typed.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_NotAHousehold</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Shown when the record is not a household</shortDescription>
+    <value>Merging and splitting are for households. This record is an organization.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_ReadOnly</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Shown when the person cannot edit this household</shortDescription>
+    <value>You can see this household but not change it, so merging and splitting are switched off. Ask whoever manages access for edit access to both households.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_SearchLabel</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Label of the household search box</shortDescription>
+    <value>Find the other household</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_SearchPlaceholder</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Placeholder in the household search box</shortDescription>
+    <value>Type part of a household name</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_SelectOther</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Prompt to pick a household before comparing</shortDescription>
+    <value>Pick a household to see the two side by side.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_SplitButton</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Button that opens the split confirmation</shortDescription>
+    <value>Split</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_SplitConfirmBody</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>What the person is told before a split runs</shortDescription>
+    <value>The people you ticked will move out of this household. Both household names and member counts are recalculated for you.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_SplitExistingHousehold</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Split destination choice: a household that already exists</shortDescription>
+    <value>An existing household</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_SplitHeading</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Heading of the split member list</shortDescription>
+    <value>Choose who moves out</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_SplitNewHousehold</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Split destination choice: a household to be created</shortDescription>
+    <value>A new household</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_SplitSuccess</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>A split finished</shortDescription>
+    <value>Moved. Both household names and member counts are up to date.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_Success</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>A merge finished</shortDescription>
+    <value>Merged. The surviving household now holds everyone from both.</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_TabMerge</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Merge tab</shortDescription>
+    <value>Merge</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_TabSplit</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Split tab</shortDescription>
+    <value>Split</value>
+  </labels>
+  <labels>
+    <fullName>Core_HouseholdMerge_Title</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Title of the merge and split card</shortDescription>
+    <value>Merge or split households</value>
   </labels>
   <labels>
     <fullName>Core_HouseholdNamingSettings_Cancel</fullName>
@@ -194,10 +486,7 @@
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>Shown to a user who cannot change settings</shortDescription>
-    <value>
-      You can see these settings but not change them. Changing them needs the Manage Nonprofit
-      Settings permission.
-    </value>
+    <value>You can see these settings but not change them. Changing them needs the Manage Nonprofit Settings permission.</value>
   </labels>
   <labels>
     <fullName>Core_HouseholdNamingSettings_Recompute</fullName>
@@ -213,10 +502,7 @@
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>Confirmation before recomputing every household</shortDescription>
-    <value>
-      This rewrites the name and both greetings on every household except the ones marked as a
-      custom name. It runs in the background. Do you want to continue?
-    </value>
+    <value>This rewrites the name and both greetings on every household except the ones marked as a custom name. It runs in the background. Do you want to continue?</value>
   </labels>
   <labels>
     <fullName>Core_HouseholdNamingSettings_RecomputeStarted</fullName>
@@ -256,9 +542,7 @@
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>How to write a pattern</shortDescription>
-    <value>
-      Use {FirstName}, {LastName} and {Salutation} where you want a person's details to appear.
-    </value>
+    <value>Use {FirstName}, {LastName} and {Salutation} where you want a person's details to appear.</value>
   </labels>
   <labels>
     <fullName>Core_HouseholdNaming_SampleHouseholds</fullName>
@@ -266,13 +550,7 @@
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>Sample households used by the naming preview</shortDescription>
-    <value>
-      Mr.,John,Smith,,Head,N;Mrs.,Jane,Smith,,Spouse or
-      Partner,N|Ms.,Maria,Garcia,,Head,N|Ms.,Maria,Garcia,,Head,N;Mr.,Wei,Lee,,Spouse or
-      Partner,N|Dr.,David,Okonkwo,Dave,Head,N;Ms.,Amara,Okonkwo,,Spouse or
-      Partner,N;,Chidi,Okonkwo,,Child,N|Mrs.,Priya,Rivera,,Head,N;Mr.,Tom,Rivera,,Spouse or
-      Partner,Y
-    </value>
+    <value>Mr.,John,Smith,,Head,N;Mrs.,Jane,Smith,,Spouse or Partner,N|Ms.,Maria,Garcia,,Head,N|Ms.,Maria,Garcia,,Head,N;Mr.,Wei,Lee,,Spouse or Partner,N|Dr.,David,Okonkwo,Dave,Head,N;Ms.,Amara,Okonkwo,,Spouse or Partner,N;,Chidi,Okonkwo,,Child,N|Mrs.,Priya,Rivera,,Head,N;Mr.,Tom,Rivera,,Spouse or Partner,Y</value>
   </labels>
   <labels>
     <fullName>Core_Households_Conjunction</fullName>
@@ -330,10 +608,7 @@
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>The Household record type is missing or not visible</shortDescription>
-    <value>
-      The Household record type is missing or hidden from you, so no household could be created. Ask
-      your administrator to check your access to household records.
-    </value>
+    <value>The Household record type is missing or hidden from you, so no household could be created. Ask your administrator to check your access to household records.</value>
   </labels>
   <labels>
     <fullName>Core_Households_LatePrefix</fullName>
