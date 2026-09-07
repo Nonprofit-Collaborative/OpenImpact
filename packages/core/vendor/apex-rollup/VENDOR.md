@@ -96,17 +96,21 @@ file shows exactly what Open Impact changed.
 `main/default/objects/Rollup__mdt/fields/LimitAmount__c.field-meta.xml`
 
 **What changed.** `Rollup.cls` decided whether a merge could have happened by comparing the calc
-item's `SObjectType` against the four standard objects that support record merge, named statically
-as `Schema` references. That is now a describe-driven check: `Rollup.MERGEABLE_SOBJECT_NAMES` holds
-the same four API names as strings, and each is resolved through the global describe at runtime, so
-an object that does not exist in the org is simply absent from the set. That is the behavior a
-Platform-only org needs, and an adapter can add to the set.
+item's `SObjectType` against the four standard objects the platform supports record merge on, named
+statically as `Schema` references. It now asks the describe the same question directly:
+`itemType.getDescribe(Schema.SObjectDescribeOptions.DEFERRED).isMergeable()`. No object name appears
+in the code at all, the check works on an org where two of those four objects do not exist, and it
+is strictly more correct than upstream's list, because any object the org reports as mergeable is
+now handled.
 
-`RollupCurrencyInfo.cls` held two string literals naming Sales Cloud objects in its dated
-multicurrency date-field map. The map is now built from a new vendored custom metadata field,
-`RollupControl__mdt.DatedMultiCurrencyFieldMapping__c`, which is empty by default. Dated
-multicurrency is a Sales Cloud feature; Core ships no default row for it, and the Connect module can
-supply one.
+`RollupCurrencyInfo.cls` seeded its dated multicurrency date-field map with four Sales Cloud object
+names as string literals. The map now starts empty and is populated at runtime through
+`RollupCurrencyInfo.overrideDatedMultiCurrency(String objectName, List<String> fieldNames)`, which
+is upstream's own public per-object configuration hook and needed no change. Dated multicurrency is
+a Sales Cloud feature that Core does not ship; a module that depends on those objects registers them
+through the hook. With an empty map `loadProperMinMaxDates` returns before `getCurrencyDate` is
+reached, so multicurrency conversion falls back to the undated rate, which is what an org with no
+dated conversion rates gets in any case. No new custom metadata field was added.
 
 Two `Rollup__mdt` field descriptions used Sales Cloud examples in their help text. They now use
 generic parent and child wording.
@@ -117,8 +121,9 @@ because Core must deploy and pass its tests on a Platform-only org where those o
 that org shape.
 
 **Re-applying on the next pull.** Look for the `Schema` merge check in the upstream `Rollup.cls` and
-for the two string literals in the dated multicurrency map in `RollupCurrencyInfo.cls`. If upstream
-has made either configurable in the meantime, take theirs and drop ours. Otherwise re-apply.
+for the seeded string literals in the dated multicurrency map in `RollupCurrencyInfo.cls`. If
+upstream has made either configurable in the meantime, take theirs and drop ours. Otherwise
+re-apply. Both patches are a handful of lines each.
 `npm run check:standard-objects` is the acceptance test.
 
 ### Patch B: `global` narrowed to `public`

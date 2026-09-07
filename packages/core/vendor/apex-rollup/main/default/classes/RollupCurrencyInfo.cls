@@ -67,18 +67,17 @@ public without sharing virtual class RollupCurrencyInfo implements RollupLogger.
     set;
   }
 
-  // Can't be Schema.SObjectType => Schema.SObjectField because not all orgs have OppLineItems/Splits
-  // technically there's a hierarchy for OpportunityLineItem that goes Opportunity.CloseDate > ServiceDate > (ProductDate || ScheduleDate)
-  // but because this can be configured on a per-rollup basis, it's fine to leave Opportunity.CloseDate as the default since it can be overridden
+  // Open Impact patch A, see packages/core/vendor/apex-rollup/VENDOR.md.
+  // Upstream seeded this map with four Sales Cloud object names as string literals, mapping each to
+  // the date field that dated multicurrency conversion should read. Core may not name those objects
+  // and does not ship dated multicurrency support, so the map starts empty and is populated at
+  // runtime through overrideDatedMultiCurrency below, which upstream already offers as its
+  // per-object configuration hook. A module that does depend on those objects registers them there.
+  // An empty map means loadProperMinMaxDates returns before getCurrencyDate is ever reached, so
+  // conversion falls back to the undated rate, which is what an org without dated rates gets anyway.
   private static Map<String, List<String>> DATED_MULTICURRENCY_SUPPORTED_OBJECTS {
     get {
-      DATED_MULTICURRENCY_SUPPORTED_OBJECTS = DATED_MULTICURRENCY_SUPPORTED_OBJECTS ??
-        new Map<String, List<String>>{
-          'Opportunity' => new List<String>{ 'CloseDate' },
-          'OpportunityLineItem' => new List<String>{ 'ServiceDate' },
-          'OpportunityLineItemSchedule' => new List<String>{ 'ScheduleDate' },
-          'OpportunitySplit' => new List<String>{ 'Opportunity', 'CloseDate' }
-        };
+      DATED_MULTICURRENCY_SUPPORTED_OBJECTS = DATED_MULTICURRENCY_SUPPORTED_OBJECTS ?? new Map<String, List<String>>();
       return DATED_MULTICURRENCY_SUPPORTED_OBJECTS;
     }
     set;
