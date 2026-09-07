@@ -180,6 +180,15 @@ household, rollups recalculate, names and greetings recompute unless Custom Name
 and a contact can be split out to a new or existing household. Both are front-end
 actions on the record page, not Setup operations.
 
+Two households only: an organization is never a merge target, and the two records must
+be different. A merge moves membership first, in whichever membership mode is active,
+then applies the field values a person chose, then uses the platform's own account merge
+so that activities, files, notes, and every lookup from another entity follow the record
+that goes away. A merge is not reversible and is audited by the platform's own record
+history rather than by a log this model defines. Membership changes made by a merge or a
+split settle through one hook (member count and naming in v0.1, giving rollups from v0.2)
+so that no caller has to know what settling involves.
+
 **R-H14 Recompute action.** Changing a naming pattern in the settings console shows a
 preview against five sample households and offers a "Recompute all households" batch
 with progress and a completion notice. Recomputation never touches households with
