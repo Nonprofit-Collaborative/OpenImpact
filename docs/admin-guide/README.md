@@ -88,3 +88,5 @@ Each feature adds its row here when its page is written.
 
 | Feature | Page | Package | Iteration |
 |---|---|---|---|
+| G-03 Quick gift entry | [quick-gift-entry.md](quick-gift-entry.md) | Giving | v0.2 |
+| G-06 Giving dashboard | [giving-dashboard.md](giving-dashboard.md) | Giving | v0.2 |
