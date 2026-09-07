@@ -36,8 +36,10 @@ Maria has just installed Open Impact and has the sample data loaded.
    it is for. Steps you have already finished show a **Done** badge, and the rest show
    **To do**. The checklist tells you how many are done, for example "3 of 8 steps done".
 3. Find the first step, **Confirm how Open Impact fits your existing org**, and click
-   **Open**. The Nonprofit Settings page opens at the section that step belongs to. Come
-   back to the Hub with your browser's back button.
+   **Open**. The Nonprofit Settings page opens at the section that step belongs to. If your
+   org uses Person Accounts, as Nonprofit Cloud orgs do, the step says so plainly and
+   household membership uses the junction model, so what you already have keeps working.
+   Come back to the Hub with your browser's back button.
 4. Back on the home page, click **Mark done** on a step you have finished. The badge
    changes to **Done** and the count at the top goes up. Nothing else happens: marking a
    step is a note to yourself, not a switch.
