@@ -60,6 +60,21 @@ Maria does this from the sample data.
 That is the whole lifecycle: created for you, named for you, counted for you, and tidied
 up for you.
 
+## If your org stores people as accounts
+
+Some orgs, including most Nonprofit Cloud and Agentforce Nonprofit orgs, store each person
+as an account rather than as a contact. Households work there too, with two differences:
+
+1. Choose the flexible way of belonging to a household. It is the only mode that can hold a
+   person who is stored as an account, and Open Impact selects it for you when it notices
+   your org is shaped that way.
+2. Turn on "create households for people stored as accounts" if you want a household made
+   for each new person. It ships off, because many of these orgs already group people
+   another way and would not want a second household appearing.
+
+Everything else reads the same: the same member counts, the same names and greetings, and
+the same Members panel. A household is still its own record, never a person.
+
 ## Common mistakes
 
 **"I added a person and no household appeared."**

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<RecordType xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Household_Contact</fullName>
+  <active>true</active>
+  <compactLayoutAssignment>Household_Contact_Compact</compactLayoutAssignment>
+  <description>
+    A person the nonprofit knows. The package ships this one record type so that an org can add its
+    own without colliding with ours.
+  </description>
+  <label>Household Contact</label>
+  <picklistValues>
+    <picklist>Household_Role__c</picklist>
+    <values>
+      <fullName>Head</fullName>
+      <default>false</default>
+    </values>
+    <values>
+      <fullName>Spouse%20or%20Partner</fullName>
+      <default>false</default>
+    </values>
+    <values>
+      <fullName>Child</fullName>
+      <default>false</default>
+    </values>
+    <values>
+      <fullName>Other</fullName>
+      <default>false</default>
+    </values>
+  </picklistValues>
+</RecordType>

@@ -87,6 +87,14 @@ Maria does steps 1 to 5. David does step 6.
    that household: adding a member, a recompute, and a pattern change all leave his wording
    alone.
 
+## If your org stores people as accounts
+
+Names and greetings are written the same way when a person is stored as an account rather
+than as a contact, and a household can hold both kinds of person at once. The details that
+feed the wording (preferred name, title, whether the person has died, and the two exclusion
+boxes) sit on the person's own record wherever that record lives, so put them where you
+enter the person.
+
 ## Common mistakes
 
 **"I changed the pattern and nothing changed."**

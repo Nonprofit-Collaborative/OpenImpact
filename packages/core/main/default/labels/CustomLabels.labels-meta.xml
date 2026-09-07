@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+  <labels>
+    <fullName>Core_HouseholdNaming_SampleHouseholds</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Sample households used by the naming preview</shortDescription>
+    <value>
+      Mr.,John,Smith,,Head,N;Mrs.,Jane,Smith,,Spouse or
+      Partner,N|Ms.,Maria,Garcia,,Head,N|Ms.,Maria,Garcia,,Head,N;Mr.,Wei,Lee,,Spouse or
+      Partner,N|Dr.,David,Okonkwo,Dave,Head,N;Ms.,Amara,Okonkwo,,Spouse or
+      Partner,N;,Chidi,Okonkwo,,Child,N|Mrs.,Priya,Rivera,,Head,N;Mr.,Tom,Rivera,,Spouse or
+      Partner,Y
+    </value>
+  </labels>
+  <labels>
+    <fullName>Core_Households_Conjunction</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>
+      Word joining the last two names in a household name or greeting
+    </shortDescription>
+    <value>and</value>
+  </labels>
+  <labels>
+    <fullName>Core_Households_ErrorContextMembership</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Error log context for household membership work</shortDescription>
+    <value>Household membership</value>
+  </labels>
+  <labels>
+    <fullName>Core_Households_ErrorContextNaming</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Error log context for household naming work</shortDescription>
+    <value>Household names and greetings</value>
+  </labels>
+  <labels>
+    <fullName>Core_Households_ErrorMoveMissingInput</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Move a person: nothing was chosen</shortDescription>
+    <value>Choose both a person and a household before moving someone. Nothing was changed.</value>
+  </labels>
+  <labels>
+    <fullName>Core_Households_ErrorMoveNotFound</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Move a person: record not found</shortDescription>
+    <value>That person or that household could not be found. Refresh the page and try again.</value>
+  </labels>
+  <labels>
+    <fullName>Core_Households_ErrorNotAHousehold</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Move a person: the target is not a household</shortDescription>
+    <value>The record you chose is not a household. Choose a household and try again.</value>
+  </labels>
+  <labels>
+    <fullName>Core_Households_ErrorRecordTypeMissing</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>The Household record type is missing or not visible</shortDescription>
+    <value>
+      The Household record type is missing or hidden from you, so no household could be created. Ask
+      your administrator to check your access to household records.
+    </value>
+  </labels>
+  <labels>
+    <fullName>Core_Households_LatePrefix</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Prefix for a person who has died in a formal greeting</shortDescription>
+    <value>the late</value>
+  </labels>
+  <labels>
+    <fullName>Core_Households_ListSeparator</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Separator between names when three or more are listed</shortDescription>
+    <value>,</value>
+  </labels>
+  <labels>
+    <fullName>Core_Households_NamePlaceholder</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Name given to a household that has no members yet</shortDescription>
+    <value>New Household</value>
+  </labels>
+  <labels>
+    <fullName>Core_Households_NameSuffix</fullName>
+    <categories>Households</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Word ending a household name when the surnames differ</shortDescription>
+    <value>Household</value>
+  </labels>
+</CustomLabels>

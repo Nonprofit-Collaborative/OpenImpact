@@ -201,6 +201,14 @@ Custom Name set.
 | Member Count | `Member_Count__c` | Number |
 | Anniversary | `Anniversary__c` | Date |
 
+- **Person attributes on Account.** The five person attributes listed under Contact
+  (Section 7) are present on Account as well, with the same API names and the same
+  definitions: `Deceased__c`, `Household_Role__c`, `Exclude_From_Household_Name__c`,
+  `Exclude_From_Greetings__c`, `Preferred_Name__c`. They belong to the person, not to the
+  household, and they exist on both objects so that an org that stores people as accounts
+  carries them on the person's own record. They are not shown on Household or Organization
+  layouts.
+
 - **Service:** `HouseholdService` (membership abstraction), `HouseholdNamingService`
   (R-H4 to R-H9), `HouseholdSelector` (all SOQL).
 
@@ -331,6 +339,10 @@ no feature code branches on it.
 | Exclude From Household Name | `Exclude_From_Household_Name__c` | Checkbox |
 | Exclude From Greetings | `Exclude_From_Greetings__c` | Checkbox |
 | Preferred Name | `Preferred_Name__c` | Text |
+
+These five are person attributes, present on both Contact and Account with the same API
+names so that Person Accounts carry them (Section 5). `HouseholdService.Person` is the
+shape naming and greetings read, so no naming code knows which object a person came from.
 
 ---
 
@@ -632,3 +644,4 @@ entity.
 |---|---|---|
 | v0.1 | 2026-09-06 | Initial model: Household, Household Member, Contact, Organization, plus the platform configuration entities Error Log, Automation Setting, Setting Change, Nonprofit Settings, and the shipped-defaults custom metadata Naming Pattern and Automation Registry. |
 | v0.1 | 2026-09-07 | C-01 and C-02 build. Added `Household__c` (Lookup to Account) to Household Member: the original field list named the household side and the person side with the same attribute, so junction mode had no way to say which household a membership belonged to. `Account__c` is now defined as the person side only, matching R-M4. Recorded the naming service's token forms: `{FirstName}`, `{LastName}`, and `{Salutation}`, with the `{!Token}` spelling accepted as an alias so patterns copied from formula fields keep working. |
+| v0.1 | 2026-09-07 | Junction membership made a first-class v0.1 path for orgs that store people as accounts (product owner priority change). The five Contact person attributes (`Deceased__c`, `Household_Role__c`, `Exclude_From_Household_Name__c`, `Exclude_From_Greetings__c`, `Preferred_Name__c`) are now present on Account with the same API names and definitions, because a person stored as an account carries them on that record. Naming and greetings read a person through the `HouseholdService.Person` shape rather than through Contact, so one set of rules serves both. |
