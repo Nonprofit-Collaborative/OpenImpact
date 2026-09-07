@@ -88,3 +88,6 @@ Each feature adds its row here when its page is written.
 
 | Feature | Page | Package | Iteration |
 |---|---|---|---|
+| Soft credits (G-08) | [soft-credits.md](soft-credits.md) | Giving | v0.3 |
+| Tributes (G-09) | [tributes.md](tributes.md) | Giving | v0.3 |
+| Matching gifts (G-10) | [matching-gifts.md](matching-gifts.md) | Giving | v0.3 |
