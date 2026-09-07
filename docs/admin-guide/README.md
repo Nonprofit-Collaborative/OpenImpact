@@ -90,3 +90,4 @@ Each feature adds its row here when its page is written.
 |---|---|---|---|
 | C-01 Household model | [households.md](households.md) | Core | v0.1 |
 | C-02 Household names and greetings | [household-naming.md](household-naming.md) | Core | v0.1 |
+| C-09 Household merge and split | [household-merge-split.md](household-merge-split.md) | Core | v0.1 |
