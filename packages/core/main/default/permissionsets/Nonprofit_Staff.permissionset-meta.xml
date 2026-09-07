@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>
+    David, Priya, and everyone else doing the day job. Reads the Error Log so that a problem can be
+    described accurately, and changes nothing about how Open Impact is configured.
+  </description>
+  <hasActivationRequired>false</hasActivationRequired>
+  <label>Nonprofit Staff</label>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Error_Log__c.Context__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Error_Log__c.Message__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Error_Log__c.Object_Name__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Error_Log__c.Record_Reference__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Error_Log__c.Severity__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Error_Log__c.Status__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Error_Log__c.Technical_Detail__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Error_Log__c.Timestamp__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Error_Log__c.User__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <objectPermissions>
+    <allowCreate>false</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>false</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Error_Log__c</object>
+    <viewAllRecords>true</viewAllRecords>
+  </objectPermissions>
+  <tabSettings>
+    <tab>Error_Log__c</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+</PermissionSet>

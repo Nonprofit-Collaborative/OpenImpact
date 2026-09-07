@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Automation_Paused_Until__c</fullName>
+  <description>
+    While in the future, all packaged automation is paused; it resumes by itself at this time.
+  </description>
+  <inlineHelpText>Automation is paused until this time, then turns itself back on.</inlineHelpText>
+  <label>Automation Paused Until</label>
+  <required>false</required>
+  <type>DateTime</type>
+</CustomField>

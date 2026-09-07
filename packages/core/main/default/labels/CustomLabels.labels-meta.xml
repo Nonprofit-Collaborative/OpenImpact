@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+  <labels>
+    <fullName>Core_Automation_UnexpectedError</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation unexpected error</shortDescription>
+    <value>
+      Something went wrong while Open Impact was updating this record, so the record was not
+      saved. The details are in the Error Log. Try again, and if it keeps happening, send the newest
+      Error Log entry to whoever supports your Salesforce.
+    </value>
+  </labels>
+  <labels>
+    <fullName>Core_Automation_PauseHoursInvalid</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Pause length not allowed</shortDescription>
+    <value>Choose how long to pause automation: 1, 2, 4, 8, or 24 hours.</value>
+  </labels>
+  <labels>
+    <fullName>Core_Automation_NameRequired</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation name required</shortDescription>
+    <value>Pick an automation before switching it on or off.</value>
+  </labels>
+  <labels>
+    <fullName>Core_Automation_NotFound</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation not found</shortDescription>
+    <value>
+      That automation is not in this org's list. Refresh the Automation page and try again.
+    </value>
+  </labels>
+  <labels>
+    <fullName>Core_ErrorLog_UnexpectedFailure</fullName>
+    <categories>Core, Error Log</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Error log default message</shortDescription>
+    <value>
+      Open Impact hit a problem it did not expect. The technical detail on this entry is what a
+      support contact needs to work out why.
+    </value>
+  </labels>
+  <labels>
+    <fullName>Core_Settings_ModeValueInvalid</fullName>
+    <categories>Core, Settings</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Settings mode value not allowed</shortDescription>
+    <value>
+      That is not one of the choices for this setting. Pick a value from the list on the settings
+      page.
+    </value>
+  </labels>
+</CustomLabels>
