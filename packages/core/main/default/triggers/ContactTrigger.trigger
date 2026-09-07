@@ -6,5 +6,5 @@ trigger ContactTrigger on Contact(
     after delete,
     after undelete
 ) {
-    TriggerDispatcher.run(new ContactTriggerHandler());
+    TriggerDispatcher.run('Contact');
 }

@@ -291,4 +291,153 @@ private class HouseholdServiceTest {
             'The count was put right'
         );
     }
+
+    @IsTest
+    static void theHouseholdOfAPersonIsAnsweredInContactMode() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        insert maria;
+        Id household = [SELECT AccountId FROM Contact WHERE Id = :maria.Id].AccountId;
+        Contact atWork = HouseholdTestDataFactory.newContact('Mr.', 'Tom', 'Rivera');
+        Account organization = new Account(Name = 'Riverside Community Trust');
+        insert organization;
+        atWork.AccountId = organization.Id;
+        insert atWork;
+
+        Test.startTest();
+        Map<Id, Id> households = HouseholdService.getHouseholdIdsFor(
+            new Set<Id>{ maria.Id, atWork.Id }
+        );
+        Test.stopTest();
+
+        Assert.areEqual(household, households.get(maria.Id), 'Maria belongs to her household');
+        Assert.areEqual(
+            null,
+            households.get(atWork.Id),
+            'A person attached to an organization has no household'
+        );
+    }
+
+    @IsTest
+    static void theHouseholdOfAPersonIsAnsweredInJunctionMode() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        List<Account> households = new List<Account>{
+            HouseholdTestDataFactory.newHousehold('The Smith Family'),
+            HouseholdTestDataFactory.newHousehold('The Garcia Family')
+        };
+        insert households;
+        Contact john = HouseholdTestDataFactory.newContact('Mr.', 'John', 'Smith');
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        insert new List<Contact>{ john, maria };
+        insert new List<Household_Member__c>{
+            new Household_Member__c(
+                Household__c = households[0].Id,
+                Contact__c = john.Id,
+                Is_Primary__c = true,
+                Start_Date__c = Date.today()
+            ),
+            new Household_Member__c(
+                Household__c = households[1].Id,
+                Contact__c = john.Id,
+                Start_Date__c = Date.today()
+            ),
+            new Household_Member__c(
+                Household__c = households[1].Id,
+                Contact__c = maria.Id,
+                Start_Date__c = Date.today()
+            )
+        };
+
+        Test.startTest();
+        Map<Id, Id> answered = HouseholdService.getHouseholdIdsFor(
+            new Set<Id>{ john.Id, maria.Id }
+        );
+        Test.stopTest();
+
+        Assert.areEqual(
+            households[0].Id,
+            answered.get(john.Id),
+            'John belongs to two households, so the one he is primary in is the answer'
+        );
+        Assert.areEqual(
+            households[1].Id,
+            answered.get(maria.Id),
+            'Maria belongs to one household, so that is the answer'
+        );
+    }
+
+    @IsTest
+    static void askingTwiceAsksTheDatabaseOnce() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        insert maria;
+
+        Test.startTest();
+        HouseholdService.getHouseholdIdsFor(new Set<Id>{ maria.Id });
+        Integer afterFirst = Limits.getQueries();
+        HouseholdService.getHouseholdIdsFor(new Set<Id>{ maria.Id });
+        Integer afterSecond = Limits.getQueries();
+        Test.stopTest();
+
+        Assert.areEqual(afterFirst, afterSecond, 'The second question was answered from memory');
+    }
+
+    @IsTest
+    static void theMembersOfAHouseholdAreAnsweredInContactMode() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Account household = HouseholdTestDataFactory.newHousehold('The Smith Family');
+        insert household;
+        Contact john = new Contact(
+            Salutation = 'Mr.',
+            FirstName = 'John',
+            LastName = 'Smith',
+            AccountId = household.Id
+        );
+        insert john;
+
+        Test.startTest();
+        Map<Id, Set<Id>> members = HouseholdService.getMemberPersonIds(new Set<Id>{ household.Id });
+        Test.stopTest();
+
+        Assert.areEqual(1, members.get(household.Id).size(), 'One person belongs to the household');
+        Assert.isTrue(members.get(household.Id).contains(john.Id), 'That person is John');
+    }
+
+    @IsTest
+    static void theMembersOfAHouseholdAreAnsweredInJunctionMode() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        Account household = HouseholdTestDataFactory.newHousehold('The Smith Family');
+        insert household;
+        Contact john = HouseholdTestDataFactory.newContact('Mr.', 'John', 'Smith');
+        insert john;
+        insert new Household_Member__c(
+            Household__c = household.Id,
+            Contact__c = john.Id,
+            Start_Date__c = Date.today()
+        );
+
+        Test.startTest();
+        Map<Id, Set<Id>> members = HouseholdService.getMemberPersonIds(new Set<Id>{ household.Id });
+        Test.stopTest();
+
+        Assert.isTrue(
+            members.get(household.Id).contains(john.Id),
+            'The junction row is the member'
+        );
+    }
+
+    @IsTest
+    static void askingAboutNobodyAnswersNothing() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Assert.areEqual(
+            0,
+            HouseholdService.getHouseholdIdsFor(new Set<Id>()).size(),
+            'No people asked about, nothing answered'
+        );
+        Assert.areEqual(
+            0,
+            HouseholdService.getMemberPersonIds(null).size(),
+            'No households asked about, nothing answered'
+        );
+    }
 }

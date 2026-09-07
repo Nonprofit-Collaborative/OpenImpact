@@ -1,7 +1,9 @@
 /**
  * Every query the household feature makes. No other household class contains SOQL.
  */
+@NamespaceAccessible
 public with sharing class HouseholdSelector {
+    @NamespaceAccessible
     public static List<Contact> getContactsByHouseholdIds(Set<Id> householdIds) {
         if (householdIds == null || householdIds.isEmpty()) {
             return new List<Contact>();
@@ -27,6 +29,7 @@ public with sharing class HouseholdSelector {
         ];
     }
 
+    @NamespaceAccessible
     public static List<Contact> getContactsByIds(Set<Id> contactIds) {
         if (contactIds == null || contactIds.isEmpty()) {
             return new List<Contact>();
@@ -52,6 +55,25 @@ public with sharing class HouseholdSelector {
         ];
     }
 
+    /**
+     * People with the record type of the account they belong to, so that a caller can tell
+     * a household from an organization without a second query.
+     */
+    @NamespaceAccessible
+    public static List<Contact> getContactsWithHouseholds(Set<Id> contactIds) {
+        if (contactIds == null || contactIds.isEmpty()) {
+            return new List<Contact>();
+        }
+        return [
+            SELECT Id, AccountId, Account.RecordTypeId
+            FROM Contact
+            WHERE Id IN :contactIds
+            WITH USER_MODE
+            LIMIT 10000
+        ];
+    }
+
+    @NamespaceAccessible
     public static List<Account> getHouseholdsByIds(Set<Id> householdIds) {
         if (householdIds == null || householdIds.isEmpty()) {
             return new List<Account>();
@@ -73,6 +95,7 @@ public with sharing class HouseholdSelector {
         ];
     }
 
+    @NamespaceAccessible
     public static List<Household_Member__c> getMemberships(Set<Id> householdIds) {
         if (householdIds == null || householdIds.isEmpty()) {
             return new List<Household_Member__c>();
@@ -96,6 +119,7 @@ public with sharing class HouseholdSelector {
         ];
     }
 
+    @NamespaceAccessible
     public static List<Household_Member__c> getMembershipsForPeople(Set<Id> personIds) {
         if (personIds == null || personIds.isEmpty()) {
             return new List<Household_Member__c>();
@@ -127,6 +151,7 @@ public with sharing class HouseholdSelector {
      * Every household the naming batch may rewrite. Households whose wording a person has
      * taken over are left out of the query rather than filtered later. R-H8.
      */
+    @NamespaceAccessible
     public static Database.QueryLocator getHouseholdsForRecomputeLocator() {
         Id recordTypeId = HouseholdService.householdRecordTypeId();
         return Database.getQueryLocator(

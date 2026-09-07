@@ -21,11 +21,11 @@
     <value xsi:type="xsd:string">AccountTriggerHandler</value>
   </values>
   <values>
-    <field>Object__c</field>
+    <field>Object_Name__c</field>
     <value xsi:type="xsd:string">Account</value>
   </values>
   <values>
-    <field>Order__c</field>
+    <field>Execution_Order__c</field>
     <value xsi:type="xsd:double">10</value>
   </values>
 </CustomMetadata>

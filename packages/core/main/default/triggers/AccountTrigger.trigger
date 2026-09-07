@@ -6,5 +6,5 @@ trigger AccountTrigger on Account(
     after delete,
     after undelete
 ) {
-    TriggerDispatcher.run(new AccountTriggerHandler());
+    TriggerDispatcher.run('Account');
 }

@@ -8,11 +8,17 @@
  *
  * Canonical model Section 5 (R-H1 to R-H12) and Section 6 (R-M1 to R-M5).
  */
+@NamespaceAccessible
 public with sharing class HouseholdService {
+    @NamespaceAccessible
     public static final String MODE_JUNCTION = 'Junction';
+    @NamespaceAccessible
     public static final String SOURCE_CONTACT = 'Contact';
+    @NamespaceAccessible
     public static final String SOURCE_ACCOUNT = 'Account';
+    @NamespaceAccessible
     public static final String RECORD_TYPE_HOUSEHOLD = 'Household';
+    @NamespaceAccessible
     public static final String ROLE_HEAD = 'Head';
 
     /**
@@ -25,26 +31,47 @@ public with sharing class HouseholdService {
     private static Boolean creatingPersonHouseholds = false;
 
     /**
+     * Answers already worked out in this transaction, so that a caller asking about the
+     * same people twice does not query twice. Cleared whenever membership changes here.
+     */
+    private static final Map<Id, Id> HOUSEHOLD_ID_BY_PERSON = new Map<Id, Id>();
+
+    /**
      * One member of a household, whichever object the person is stored on.
      */
+    @NamespaceAccessible
     public class Person implements Comparable {
+        @NamespaceAccessible
         public Id id;
+        @NamespaceAccessible
         public String firstName;
+        @NamespaceAccessible
         public String lastName;
+        @NamespaceAccessible
         public String preferredName;
+        @NamespaceAccessible
         public String salutation;
+        @NamespaceAccessible
         public String role;
+        @NamespaceAccessible
         public String sourceObject;
+        @NamespaceAccessible
         public Boolean isDeceased = false;
+        @NamespaceAccessible
         public Boolean isPrimary = false;
+        @NamespaceAccessible
         public Boolean excludeFromName = false;
+        @NamespaceAccessible
         public Boolean excludeFromGreetings = false;
+        @NamespaceAccessible
         public Datetime createdDate;
 
+        @NamespaceAccessible
         public Person() {
             this.sourceObject = SOURCE_CONTACT;
         }
 
+        @NamespaceAccessible
         public Person(Contact source) {
             this.id = source.Id;
             this.firstName = source.FirstName;
@@ -59,6 +86,7 @@ public with sharing class HouseholdService {
             this.sourceObject = SOURCE_CONTACT;
         }
 
+        @NamespaceAccessible
         public Person copy() {
             Person result = new Person();
             result.id = this.id;
@@ -81,6 +109,7 @@ public with sharing class HouseholdService {
          * role. Within a role the primary member leads, then the earliest created member,
          * then first name, so that a household's name never changes without a reason.
          */
+        @NamespaceAccessible
         public Integer compareTo(Object other) {
             Person that = (Person) other;
             Integer result = rank(this.role) - rank(that.role);
@@ -138,6 +167,7 @@ public with sharing class HouseholdService {
      * True when this org stores people as accounts. The detection itself lives in
      * OrgShapeDetector so that only one class knows how the org is shaped.
      */
+    @NamespaceAccessible
     public static Boolean isPersonAccountOrg() {
         if (personAccountOverride != null) {
             return personAccountOverride;
@@ -146,18 +176,21 @@ public with sharing class HouseholdService {
         return shape != null && shape.hasPersonAccounts == true;
     }
 
+    @NamespaceAccessible
     public static Boolean isJunctionMode() {
         Nonprofit_Settings__c settings = SettingsService.getSettings();
         return settings != null &&
             MODE_JUNCTION.equalsIgnoreCase(settings.Household_Membership_Mode__c);
     }
 
+    @NamespaceAccessible
     public static Id householdRecordTypeId() {
         Schema.RecordTypeInfo info = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName()
             .get(RECORD_TYPE_HOUSEHOLD);
         return info == null ? null : info.getRecordTypeId();
     }
 
+    @NamespaceAccessible
     public static List<Person> toPersons(List<Contact> contacts) {
         List<Person> result = new List<Person>();
         if (contacts == null) {
@@ -173,6 +206,7 @@ public with sharing class HouseholdService {
      * The current members of each household, keyed by household id. Every requested id is
      * present in the map, with an empty list where the household has no members.
      */
+    @NamespaceAccessible
     public static Map<Id, List<Person>> getMembers(Set<Id> householdIds) {
         Map<Id, List<Person>> result = new Map<Id, List<Person>>();
         if (householdIds == null || householdIds.isEmpty()) {
@@ -233,10 +267,138 @@ public with sharing class HouseholdService {
     }
 
     /**
+     * The household each of these people belongs to, for callers in other packages that
+     * hold a person id and need the household to credit or to roll up to (ADR-0017).
+     *
+     * The set may mix people stored as contacts and people stored as accounts. Every id
+     * asked about is in the answer: a person with no household, or one whose account is
+     * not a household, is answered with null, so that "asked and there is none" is never
+     * confused with "not asked".
+     */
+    @NamespaceAccessible
+    public static Map<Id, Id> getHouseholdIdsFor(Set<Id> personIds) {
+        Map<Id, Id> result = new Map<Id, Id>();
+        if (personIds == null || personIds.isEmpty()) {
+            return result;
+        }
+        Set<Id> unresolved = new Set<Id>();
+        for (Id personId : personIds) {
+            if (personId == null) {
+                continue;
+            }
+            if (HOUSEHOLD_ID_BY_PERSON.containsKey(personId)) {
+                result.put(personId, HOUSEHOLD_ID_BY_PERSON.get(personId));
+            } else {
+                unresolved.add(personId);
+                result.put(personId, null);
+            }
+        }
+        if (unresolved.isEmpty()) {
+            return result;
+        }
+        if (isJunctionMode()) {
+            resolveThroughJunction(unresolved, result);
+        } else {
+            resolveThroughContacts(unresolved, result);
+        }
+        for (Id personId : unresolved) {
+            HOUSEHOLD_ID_BY_PERSON.put(personId, result.get(personId));
+        }
+        return result;
+    }
+
+    /**
+     * The people who currently belong to each household given, by household id. The
+     * counterpart of getHouseholdIdsFor, for callers rolling values up to a household.
+     */
+    @NamespaceAccessible
+    public static Map<Id, Set<Id>> getMemberPersonIds(Set<Id> householdIds) {
+        Map<Id, Set<Id>> result = new Map<Id, Set<Id>>();
+        if (householdIds == null || householdIds.isEmpty()) {
+            return result;
+        }
+        Map<Id, List<Person>> membersByHousehold = getMembers(householdIds);
+        for (Id householdId : householdIds) {
+            Set<Id> personIds = new Set<Id>();
+            List<Person> members = membersByHousehold.get(householdId);
+            if (members != null) {
+                for (Person person : members) {
+                    if (person.id != null) {
+                        personIds.add(person.id);
+                    }
+                }
+            }
+            result.put(householdId, personIds);
+        }
+        return result;
+    }
+
+    private static void resolveThroughContacts(Set<Id> personIds, Map<Id, Id> result) {
+        Set<Id> contactIds = idsOfType(personIds, Contact.SObjectType);
+        if (contactIds.isEmpty()) {
+            return;
+        }
+        Id recordTypeId = householdRecordTypeId();
+        for (Contact record : HouseholdSelector.getContactsWithHouseholds(contactIds)) {
+            Boolean isHousehold =
+                record.AccountId != null &&
+                recordTypeId != null &&
+                record.Account.RecordTypeId == recordTypeId;
+            result.put(record.Id, isHousehold ? record.AccountId : null);
+        }
+    }
+
+    /**
+     * A person in more than one household is answered with the household they are marked
+     * primary in. Where they are in exactly one, that one is the answer.
+     */
+    private static void resolveThroughJunction(Set<Id> personIds, Map<Id, Id> result) {
+        Map<Id, List<Household_Member__c>> byPerson = new Map<Id, List<Household_Member__c>>();
+        for (
+            Household_Member__c membership : HouseholdSelector.getMembershipsForPeople(personIds)
+        ) {
+            Id personId = membership.Contact__c != null
+                ? membership.Contact__c
+                : membership.Account__c;
+            if (personId == null || !personIds.contains(personId)) {
+                continue;
+            }
+            if (!byPerson.containsKey(personId)) {
+                byPerson.put(personId, new List<Household_Member__c>());
+            }
+            byPerson.get(personId).add(membership);
+        }
+        for (Id personId : byPerson.keySet()) {
+            List<Household_Member__c> memberships = byPerson.get(personId);
+            if (memberships.size() == 1) {
+                result.put(personId, memberships[0].Household__c);
+                continue;
+            }
+            for (Household_Member__c membership : memberships) {
+                if (membership.Is_Primary__c == true) {
+                    result.put(personId, membership.Household__c);
+                    break;
+                }
+            }
+        }
+    }
+
+    private static Set<Id> idsOfType(Set<Id> ids, Schema.SObjectType wanted) {
+        Set<Id> result = new Set<Id>();
+        for (Id value : ids) {
+            if (value.getSObjectType() == wanted) {
+                result.add(value);
+            }
+        }
+        return result;
+    }
+
+    /**
      * Gives every contact that arrives without a household one of its own, named from the
      * org's pattern. Runs before insert, so the new household id is simply assigned to the
      * contact and no second pass over contacts is needed. R-H1.
      */
+    @NamespaceAccessible
     public static void ensureHouseholds(List<Contact> contacts) {
         if (contacts == null || contacts.isEmpty()) {
             return;
@@ -270,6 +432,7 @@ public with sharing class HouseholdService {
         // User mode: creating a contact is a user action, so the household is created with
         // the saving user's own access rather than with more.
         List<Database.SaveResult> results = Database.insert(households, AccessLevel.USER_MODE);
+        HOUSEHOLD_ID_BY_PERSON.clear();
         for (Integer i = 0; i < results.size(); i++) {
             if (results[i].isSuccess()) {
                 waiting[i].AccountId = results[i].getId();
@@ -282,6 +445,7 @@ public with sharing class HouseholdService {
      * an account. R-H2. Called only when the org has person records, membership is in
      * junction mode, and the setting is on.
      */
+    @NamespaceAccessible
     public static void createHouseholdsForPersonAccounts(List<SObject> personRecords) {
         if (personRecords == null || personRecords.isEmpty() || creatingPersonHouseholds) {
             return;
@@ -323,6 +487,7 @@ public with sharing class HouseholdService {
             }
             if (!memberships.isEmpty()) {
                 Database.insert(memberships, AccessLevel.USER_MODE);
+                HOUSEHOLD_ID_BY_PERSON.clear();
             }
         } finally {
             creatingPersonHouseholds = false;
@@ -359,6 +524,7 @@ public with sharing class HouseholdService {
      * names, greetings, and the empty household tidied away when the org asks for that.
      * R-H12.
      */
+    @NamespaceAccessible
     public static void moveContact(Id contactId, Id targetHouseholdId) {
         if (contactId == null || targetHouseholdId == null) {
             throw new HouseholdException(Label.Core_Households_ErrorMoveMissingInput);
@@ -384,6 +550,7 @@ public with sharing class HouseholdService {
             person.AccountId = targetHouseholdId;
             Database.update(new List<Contact>{ person }, AccessLevel.USER_MODE);
         }
+        HOUSEHOLD_ID_BY_PERSON.clear();
         recalculateMemberCounts(affected);
         HouseholdNamingService.applyNaming(affected);
         deleteEmptyHouseholds(affected);
@@ -419,6 +586,7 @@ public with sharing class HouseholdService {
     /**
      * Recounts current members on each household given. R-H11.
      */
+    @NamespaceAccessible
     public static void recalculateMemberCounts(Set<Id> householdIds) {
         if (householdIds == null || householdIds.isEmpty()) {
             return;
@@ -441,6 +609,7 @@ public with sharing class HouseholdService {
      * Deletes households that have been left with no members, when the org asks for that.
      * R-H12.
      */
+    @NamespaceAccessible
     public static void deleteEmptyHouseholds(Set<Id> householdIds) {
         if (householdIds == null || householdIds.isEmpty()) {
             return;

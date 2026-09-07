@@ -9,6 +9,7 @@
  * {Salutation}. The {!Token} spelling is accepted as an alias so that a pattern copied
  * from a formula keeps working.
  */
+@NamespaceAccessible
 public with sharing class HouseholdNamingService {
     private static final String TOKEN_FIRST_NAME = '{FirstName}';
     private static final String TOKEN_LAST_NAME = '{LastName}';
@@ -21,10 +22,12 @@ public with sharing class HouseholdNamingService {
 
     // ------------------------------------------------------------------ names
 
+    @NamespaceAccessible
     public static String computeName(List<HouseholdService.Person> members, String pattern) {
         return computeName(members, pattern, includeDeceasedInName());
     }
 
+    @NamespaceAccessible
     public static String computeName(
         List<HouseholdService.Person> members,
         String pattern,
@@ -66,6 +69,7 @@ public with sharing class HouseholdNamingService {
 
     // ------------------------------------------------------------------ greetings
 
+    @NamespaceAccessible
     public static String computeInformalGreeting(
         List<HouseholdService.Person> members,
         String pattern
@@ -81,6 +85,7 @@ public with sharing class HouseholdNamingService {
         return parts.isEmpty() ? null : joinNames(parts);
     }
 
+    @NamespaceAccessible
     public static String computeFormalGreeting(
         List<HouseholdService.Person> members,
         String pattern
@@ -88,6 +93,7 @@ public with sharing class HouseholdNamingService {
         return computeFormalGreeting(members, pattern, includeDeceasedInName());
     }
 
+    @NamespaceAccessible
     public static String computeFormalGreeting(
         List<HouseholdService.Person> members,
         String pattern,
@@ -162,6 +168,7 @@ public with sharing class HouseholdNamingService {
      * every household whose wording a person has taken over. Returns how many households
      * were changed. R-H8 and R-H14.
      */
+    @NamespaceAccessible
     public static Integer applyNaming(Set<Id> householdIds) {
         if (applying || householdIds == null || householdIds.isEmpty()) {
             return 0;
