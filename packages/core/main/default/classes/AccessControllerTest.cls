@@ -270,6 +270,8 @@ private class AccessControllerTest {
      * @return the profile every test user in this class is built from
      */
     private static Profile leastPrivilegedStandardProfile() {
+        // Profile.Name is the translated label, so this first lookup misses in an org that
+        // is not in English. That is what the fallback below is for.
         List<Profile> named = [SELECT Id, Name FROM Profile WHERE Name = 'Standard User' LIMIT 1];
         if (!named.isEmpty()) {
             return named[0];

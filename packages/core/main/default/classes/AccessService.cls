@@ -13,6 +13,9 @@ public with sharing class AccessService {
     /** The DeveloperName of the group that grants Nonprofit Settings. */
     public static final String ADMIN_ROLE = 'Nonprofit_Admin_Group';
 
+    /** The permission set inside that group, assignable before the group is calculated. */
+    public static final String ADMIN_PERMISSION_SET = 'Nonprofit_Admin';
+
     /** The five packaged roles, in the order the page shows them. */
     public static final List<String> ROLE_DEVELOPER_NAMES = new List<String>{
         ADMIN_ROLE,
@@ -28,6 +31,7 @@ public with sharing class AccessService {
     private static PermissionSetGroupSelector groupSelector = new PermissionSetGroupSelector();
     private static PermissionSetAssignmentSelector assignmentSelector = new PermissionSetAssignmentSelector();
     private static UserSelector userSelector = new UserSelector();
+    private static PermissionSetSelector permissionSetSelector = new PermissionSetSelector();
 
     /** Thrown for every failure the Access page can meet, with a message fit to display. */
     public class AccessException extends Exception {
@@ -259,33 +263,84 @@ public with sharing class AccessService {
     }
 
     /**
-     * Gives one person one role during a package install or upgrade.
+     * Gives one person one packaged permission set during a package install or upgrade.
      *
-     * Documented exception to the user mode rule (plan Section 7.2). A post-install script
+     * This is the guaranteed half of the bootstrap. A permission set, unlike a permission
+     * set group, has no calculation status, so it can be assigned the moment the install
+     * finishes and the installing person can open Nonprofit Settings straight away.
+     *
+     * Documented exception to the user mode rule (plan Section 7.2), and the same one that
+     * applies to every method here whose name ends in DuringInstall. A post-install script
      * runs as a platform user: no session, no profile of its own, nothing for user mode to
      * enforce against, so the query and the insert run in system mode. The scope is
-     * deliberately one row: the installing person, one packaged role, only when they do
-     * not already hold it. Nothing here reads user input, and CorePostInstall is the only
-     * caller.
+     * deliberately one row: the installing person, one packaged permission set, only when
+     * they do not already hold it. Nothing here reads user input.
+     *
+     * These methods are public rather than private only because CorePostInstall and
+     * CorePostInstallRetryQueueable are separate classes. They carry no annotation, so
+     * ADR-0017 keeps them inside this package, and nothing outside those two callers
+     * should use them.
+     *
+     * @param userId the person who installed or upgraded the package
+     * @param permissionSetName the API name of a packaged permission set
+     * @return true when the person now holds it, false when the org does not have it
+     */
+    public static Boolean assignPermissionSetDuringInstall(Id userId, String permissionSetName) {
+        if (userId == null || String.isBlank(permissionSetName)) {
+            return false;
+        }
+        PermissionSet permissionSetRecord = permissionSetSelector.selectByNameInSystemMode(
+            permissionSetName
+        );
+        if (permissionSetRecord == null) {
+            return false;
+        }
+        if (
+            assignmentSelector.countPermissionSetAssignmentInSystemMode(
+                permissionSetRecord.Id,
+                userId
+            ) > 0
+        ) {
+            return true;
+        }
+        Database.insert(
+            new List<PermissionSetAssignment>{
+                new PermissionSetAssignment(
+                    AssigneeId = userId,
+                    PermissionSetId = permissionSetRecord.Id
+                )
+            },
+            true,
+            AccessLevel.SYSTEM_MODE
+        );
+        return true;
+    }
+
+    /**
+     * Tries to give one person one role during a package install or upgrade.
+     *
+     * A permission set group cannot be assigned while the platform is still calculating
+     * it, which is the usual state in the minutes after an install. That is not a failure,
+     * it is a "not yet", so this reports it by returning false rather than by throwing:
+     * the caller waits and asks again. See assignPermissionSetDuringInstall above for the
+     * system mode justification, which applies here too.
      *
      * @param userId the person who installed or upgraded the package
      * @param roleDeveloperName the DeveloperName of one of the five packaged roles
+     * @return true when the person now holds the role, false when the role is not ready
      */
-    public static void assignRoleDuringInstall(Id userId, String roleDeveloperName) {
+    public static Boolean tryAssignRoleDuringInstall(Id userId, String roleDeveloperName) {
         if (userId == null || !new Set<String>(ROLE_DEVELOPER_NAMES).contains(roleDeveloperName)) {
-            throw new AccessException(Label.Core_Access_ErrorRoleNotFound);
+            return false;
         }
         PermissionSetGroup groupRecord = groupSelector.selectByDeveloperNameInSystemMode(
             roleDeveloperName
         );
-        if (groupRecord == null) {
-            throw new AccessException(Label.Core_Access_ErrorRoleNotFound);
-        }
-        if (!READY_STATUS.equalsIgnoreCase(groupRecord.Status)) {
-            throw new AccessException(Label.Core_Access_ErrorGroupNotReady);
+        if (groupRecord == null || !READY_STATUS.equalsIgnoreCase(groupRecord.Status)) {
+            return false;
         }
         if (assignmentSelector.countAssignmentInSystemMode(groupRecord.Id, userId) > 0) {
-            return;
+            return true;
         }
         Database.insert(
             new List<PermissionSetAssignment>{
@@ -297,6 +352,7 @@ public with sharing class AccessService {
             true,
             AccessLevel.SYSTEM_MODE
         );
+        return true;
     }
 
     /**

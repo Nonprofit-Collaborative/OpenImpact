@@ -338,11 +338,12 @@ private class AccessServiceTest {
         }
         insert staff;
         Set<Id> staffIds = new Map<Id, User>(staff).keySet();
-        Integer dmlBefore = Limits.getDmlStatements();
 
+        // Test.startTest resets the governor counters, so the count read inside the window
+        // is already the count this call alone spent.
         Test.startTest();
         AccessService.assignRole(staffIds, FUNDRAISING_ROLE);
-        Integer dmlUsed = Limits.getDmlStatements() - dmlBefore;
+        Integer dmlUsed = Limits.getDmlStatements();
         Test.stopTest();
 
         Integer assigned = [
@@ -408,11 +409,12 @@ private class AccessServiceTest {
         insert staff;
         Set<Id> staffIds = new Map<Id, User>(staff).keySet();
         AccessService.assignRole(staffIds, FUNDRAISING_ROLE);
-        Integer dmlBefore = Limits.getDmlStatements();
 
+        // Test.startTest resets the governor counters, so the count read inside the window
+        // is already the count this call alone spent.
         Test.startTest();
         AccessService.removeRole(staffIds, FUNDRAISING_ROLE);
-        Integer dmlUsed = Limits.getDmlStatements() - dmlBefore;
+        Integer dmlUsed = Limits.getDmlStatements();
         Test.stopTest();
 
         Integer assigned = [
@@ -433,6 +435,8 @@ private class AccessServiceTest {
      * @return the profile every test user in this class is built from
      */
     private static Profile leastPrivilegedStandardProfile() {
+        // Profile.Name is the translated label, so this first lookup misses in an org that
+        // is not in English. That is what the fallback below is for.
         List<Profile> named = [SELECT Id, Name FROM Profile WHERE Name = 'Standard User' LIMIT 1];
         if (!named.isEmpty()) {
             return named[0];

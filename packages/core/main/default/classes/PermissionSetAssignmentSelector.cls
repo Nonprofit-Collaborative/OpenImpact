@@ -72,6 +72,26 @@ public with sharing class PermissionSetAssignmentSelector {
     }
 
     /**
+     * Counts how many rows already link one person to one permission set, in system mode.
+     * Used only by the post-install script.
+     *
+     * @param permissionSetId the permission set
+     * @param userId the person
+     * @return 1 when the person already holds it, 0 when they do not
+     */
+    public Integer countPermissionSetAssignmentInSystemMode(Id permissionSetId, Id userId) {
+        if (permissionSetId == null || userId == null) {
+            return 0;
+        }
+        return [
+            SELECT COUNT()
+            FROM PermissionSetAssignment
+            WHERE PermissionSetId = :permissionSetId AND AssigneeId = :userId
+            WITH SYSTEM_MODE
+        ];
+    }
+
+    /**
      * Counts the active users assigned to one permission set group.
      * Used to stop the last Nonprofit Admin removing themselves.
      *

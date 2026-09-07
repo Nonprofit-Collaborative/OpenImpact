@@ -28,13 +28,28 @@ object references: those live only in the Connect module, behind dynamic Apex.
 ## Post-install script
 
 `CorePostInstall` implements `InstallHandler`. It runs after the package is installed and
-after every upgrade, and it gives the installing user the `Nonprofit_Admin_Group`
-permission set group, so that at least one person in the org holds the Manage Nonprofit
-Settings custom permission and can open Nonprofit Settings. Without it, a fresh install
-leaves the console read only for everybody, including the System Administrator who
-installed it, because a custom permission is not implied by Modify All Data. It is safe to
-run twice: a person who already holds the role is left alone, and any failure is written to
-the Error Log rather than failing the install.
+after every upgrade, and it makes sure the installing user can open Nonprofit Settings.
+Without it, a fresh install leaves the console read only for everybody, including the
+System Administrator who installed it, because a custom permission is not implied by Modify
+All Data.
+
+It does that in two steps, because the platform makes the obvious one unreliable:
+
+1. **Assign the `Nonprofit_Admin` permission set.** A permission set has no calculation
+   status, so this works the moment the install finishes. This is the step that matters:
+   after it, the installer can use the app.
+2. **Assign the `Nonprofit_Admin_Group` permission set group**, which is the role the
+   Access page shows. Salesforce recalculates packaged groups in the background after an
+   install and refuses to assign one while that is running, which is the usual state in the
+   first minutes, so this is attempted and, if the group is not ready,
+   `CorePostInstallRetryQueueable` waits and looks again up to five times, one chained job
+   at a time. If it runs out of attempts it writes a warning to the Error Log naming the
+   one manual step left, and stops.
+
+Both steps are safe to run twice: a person who already holds a permission set or a role is
+left alone, so an upgrade is a no-op for an org that is already set up. Nothing throws: an
+install must never fail because of a bootstrap step, so every failure goes to the Error Log
+instead.
 
 Once package versions exist, `sfdx-project.json` names it for the Core package directory:
 
