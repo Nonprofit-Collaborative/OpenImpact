@@ -88,3 +88,5 @@ Each feature adds its row here when its page is written.
 
 | Feature | Page | Package | Iteration |
 |---|---|---|---|
+| C-07 | [Coexistence mode](coexistence-mode.md) | Core | v0.1 |
+| C-11 | [Health Check](health-check.md) | Core | v0.1 |
