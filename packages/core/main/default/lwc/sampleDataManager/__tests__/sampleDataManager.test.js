@@ -1,0 +1,239 @@
+import { createElement } from 'lwc';
+import SampleDataManager from 'c/sampleDataManager';
+import getStatus from '@salesforce/apex/SampleDataController.getStatus';
+import loadSampleData from '@salesforce/apex/SampleDataController.loadSampleData';
+import removeSampleData from '@salesforce/apex/SampleDataController.removeSampleData';
+import canManageSampleData from '@salesforce/apex/SampleDataController.canManageSampleData';
+
+jest.mock('@salesforce/apex/SampleDataController.getStatus', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock('@salesforce/apex/SampleDataController.loadSampleData', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock(
+  '@salesforce/apex/SampleDataController.removeSampleData',
+  () => ({ default: jest.fn() }),
+  { virtual: true }
+);
+jest.mock(
+  '@salesforce/apex/SampleDataController.canManageSampleData',
+  () => ({ default: jest.fn() }),
+  { virtual: true }
+);
+
+const NOT_LOADED_STATUS = {
+  householdCount: 0,
+  contactCount: 0,
+  organizationCount: 0,
+  loaded: false,
+  loading: false
+};
+
+const LOADED_STATUS = {
+  householdCount: 200,
+  contactCount: 449,
+  organizationCount: 25,
+  loaded: true,
+  loading: false
+};
+
+// Outside the confirmation panel there are exactly two buttons, Load then Remove;
+// inside it there are exactly two, Cancel then Confirm (see sampleDataManager.html).
+const LOAD_BUTTON_INDEX = 0;
+const REMOVE_BUTTON_INDEX = 1;
+const CANCEL_BUTTON_INDEX = 0;
+const CONFIRM_BUTTON_INDEX = 1;
+
+function flushPromises() {
+  // eslint-disable-next-line @lwc/lwc/no-async-operation
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+// For tests under jest.useFakeTimers(): a real setTimeout never fires, so drain
+// microtasks directly instead of using flushPromises.
+async function flushMicrotasks() {
+  for (let i = 0; i < 6; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    await Promise.resolve();
+  }
+}
+
+function createManager() {
+  const element = createElement('c-sample-data-manager', { is: SampleDataManager });
+  document.body.appendChild(element);
+  return element;
+}
+
+function buttons(element) {
+  return element.shadowRoot.querySelectorAll('lightning-button');
+}
+
+describe('c-sample-data-manager', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.useRealTimers();
+    while (document.body.firstChild) {
+      document.body.removeChild(document.body.firstChild);
+    }
+  });
+
+  it('shows the read-only message when the user cannot manage sample data', async () => {
+    canManageSampleData.mockResolvedValue(false);
+    getStatus.mockResolvedValue(NOT_LOADED_STATUS);
+
+    const element = createManager();
+    await flushPromises();
+
+    const readOnly = element.shadowRoot.querySelector('.slds-text-color_weak');
+    expect(readOnly).not.toBeNull();
+    expect(buttons(element).length).toBe(0);
+  });
+
+  it('shows Load enabled and Remove disabled when nothing is loaded', async () => {
+    canManageSampleData.mockResolvedValue(true);
+    getStatus.mockResolvedValue(NOT_LOADED_STATUS);
+
+    const element = createManager();
+    await flushPromises();
+
+    const actionButtons = buttons(element);
+    expect(actionButtons.length).toBe(2);
+    expect(actionButtons[LOAD_BUTTON_INDEX].disabled).toBe(false);
+    expect(actionButtons[REMOVE_BUTTON_INDEX].disabled).toBe(true);
+  });
+
+  it('shows Remove enabled once sample data is loaded', async () => {
+    canManageSampleData.mockResolvedValue(true);
+    getStatus.mockResolvedValue(LOADED_STATUS);
+
+    const element = createManager();
+    await flushPromises();
+
+    const actionButtons = buttons(element);
+    expect(actionButtons[LOAD_BUTTON_INDEX].disabled).toBe(true);
+    expect(actionButtons[REMOVE_BUTTON_INDEX].disabled).toBe(false);
+  });
+
+  it('shows the counts once loaded', async () => {
+    canManageSampleData.mockResolvedValue(true);
+    getStatus.mockResolvedValue(LOADED_STATUS);
+
+    const element = createManager();
+    await flushPromises();
+
+    const headings = element.shadowRoot.querySelectorAll('.slds-text-heading_medium');
+    const values = Array.from(headings).map((el) => el.textContent);
+    expect(values).toEqual(['200', '449', '25']);
+  });
+
+  it('asks for confirmation before loading, then calls the Apex load method', async () => {
+    canManageSampleData.mockResolvedValue(true);
+    getStatus.mockResolvedValue(NOT_LOADED_STATUS);
+    loadSampleData.mockResolvedValue();
+
+    const element = createManager();
+    await flushPromises();
+
+    buttons(element)[LOAD_BUTTON_INDEX].click();
+    await flushPromises();
+
+    expect(loadSampleData).not.toHaveBeenCalled();
+    const confirmButtons = buttons(element);
+    expect(confirmButtons.length).toBe(2);
+
+    confirmButtons[CONFIRM_BUTTON_INDEX].click();
+    await flushPromises();
+
+    expect(loadSampleData).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancelling the confirmation does not call Apex', async () => {
+    canManageSampleData.mockResolvedValue(true);
+    getStatus.mockResolvedValue(NOT_LOADED_STATUS);
+
+    const element = createManager();
+    await flushPromises();
+
+    buttons(element)[LOAD_BUTTON_INDEX].click();
+    await flushPromises();
+
+    buttons(element)[CANCEL_BUTTON_INDEX].click();
+    await flushPromises();
+
+    expect(loadSampleData).not.toHaveBeenCalled();
+    expect(buttons(element).length).toBe(2);
+  });
+
+  it('polls status every 3 seconds while a load is running', async () => {
+    jest.useFakeTimers();
+    canManageSampleData.mockResolvedValue(true);
+    getStatus.mockResolvedValue({
+      householdCount: 50,
+      contactCount: 100,
+      organizationCount: 10,
+      loaded: false,
+      loading: true
+    });
+
+    createManager();
+    await flushMicrotasks();
+    expect(getStatus).toHaveBeenCalledTimes(1);
+
+    jest.advanceTimersByTime(3000);
+    await flushMicrotasks();
+    expect(getStatus).toHaveBeenCalledTimes(2);
+
+    jest.advanceTimersByTime(3000);
+    await flushMicrotasks();
+    expect(getStatus).toHaveBeenCalledTimes(3);
+  });
+
+  it('stops polling once status reports the load is no longer running', async () => {
+    jest.useFakeTimers();
+    canManageSampleData.mockResolvedValue(true);
+    getStatus
+      .mockResolvedValueOnce({
+        householdCount: 50,
+        contactCount: 100,
+        organizationCount: 10,
+        loaded: false,
+        loading: true
+      })
+      .mockResolvedValue(LOADED_STATUS);
+
+    createManager();
+    await flushMicrotasks();
+    expect(getStatus).toHaveBeenCalledTimes(1);
+
+    jest.advanceTimersByTime(3000);
+    await flushMicrotasks();
+    expect(getStatus).toHaveBeenCalledTimes(2);
+
+    jest.advanceTimersByTime(3000);
+    await flushMicrotasks();
+    // No further polling once loading is false.
+    expect(getStatus).toHaveBeenCalledTimes(2);
+  });
+
+  it('removes sample data after confirmation', async () => {
+    canManageSampleData.mockResolvedValue(true);
+    getStatus.mockResolvedValue(LOADED_STATUS);
+    removeSampleData.mockResolvedValue({
+      householdCount: 200,
+      contactCount: 449,
+      organizationCount: 25
+    });
+
+    const element = createManager();
+    await flushPromises();
+
+    buttons(element)[REMOVE_BUTTON_INDEX].click();
+    await flushPromises();
+
+    buttons(element)[CONFIRM_BUTTON_INDEX].click();
+    await flushPromises();
+
+    expect(removeSampleData).toHaveBeenCalledTimes(1);
+  });
+});

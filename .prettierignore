@@ -12,3 +12,8 @@ LICENSE
 # Generated data, kept minified by scripts/data/generate-sample-data.py to control file
 # size (see data/sample/README.md); not hand-authored source.
 packages/core/main/default/staticresources/SampleData.json
+
+# LWC templates: Prettier's html parser quotes {expr} attribute bindings
+# (title="{labels.x}"), which the LWC compiler rejects as ambiguous
+# (LWC1034). Hand-format these instead.
+**/lwc/**/*.html
