@@ -88,3 +88,7 @@ Each feature adds its row here when its page is written.
 
 | Feature | Page | Package | Iteration |
 |---|---|---|---|
+| Gifts | [gifts.md](gifts.md) | Giving | v0.2 |
+| Funds | [funds.md](funds.md) | Giving | v0.2 |
+| Appeals | [appeals.md](appeals.md) | Giving | v0.2 |
+| Refunds and write-offs | [refunds.md](refunds.md) | Giving | v0.2 |

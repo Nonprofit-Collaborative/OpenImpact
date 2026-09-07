@@ -590,11 +590,15 @@ which the eight-step checklist fits with room to spare.
 Added by the v0.3 features: commitments (G-07), soft credits (G-08), relationships (C-15),
 and addresses (C-17).
 
+Three keys published here in v0.3 are no longer Core keys. ADR-0017 gives each package its
+own settings object, so `Automatic_Household_Soft_Credits__c`,
+`Installment_Generation_Horizon_Months__c` and `Installment_Overdue_Grace_Days__c` live on
+the Giving package's own `Giving_Settings__c` and are specified in Section 21A. Core keeps
+`Default_Fund__c` and `Default_Appeal__c`, because the Setup Assistant writes them and Core
+must be able to read them with no Giving package installed.
+
 | Key | Type | Default | Definition |
 |---|---|---|---|
-| `Automatic_Household_Soft_Credits__c` | boolean | true | Whether a gift from one household member automatically soft credits the household's other current members (R-SC3). |
-| `Installment_Generation_Horizon_Months__c` | integer | 12 | How far ahead installments are generated for an open-ended recurring commitment, so the schedule does not generate rows forever (R-CM2). |
-| `Installment_Overdue_Grace_Days__c` | integer | 5 | How many days after its due date an unpaid installment waits before it is marked Overdue (R-IN2). |
 | `Contact_Address_Change_Behavior__c` | picklist(Update household, Create personal address) | Update household | What happens when a person's address is edited: the household moves, or that person gets an address of their own (R-AD5). |
 | `Relationship_Auto_Reciprocal__c` | boolean | true | Whether the package creates and maintains the other side of every relationship (R-RL1). |
 | `Seasonal_Address_Last_Run__c` | datetime | empty | When the seasonal address swap job last completed, shown on the Hub; written by the v0.4 job (C-18, R-AD4). |
@@ -1197,7 +1201,8 @@ batch record, so a large import does not sit in storage forever.
 # Part D: Giving entities
 
 These entities are built by the Giving package. Sections 18 to 21 are v0.2 (features
-G-01 to G-06); Sections 22 to 25 are v0.3 (features G-07 to G-11). Section 26 lists the
+G-01 to G-06); Sections 22 to 25 are v0.3 (features G-07 to G-11). Section 21A is the
+Giving package's own settings object, which ADR-0017 introduced. Section 26 lists the
 rollup definitions the Giving package ships and the target attributes they write.
 
 Giving depends on Core, so Giving may hold references to Core objects and Core may not
@@ -1236,6 +1241,7 @@ refund is another gift rather than an edit (ADR-0010).
 | External Id | text | no | The identifier this gift carries in the system it came from, unique, used to make imports and the inbound API idempotent. |
 | Payment Reference | text | no | The processor's transaction reference, check number, or deposit reference, for reconciliation against the bank. |
 | Original Gift | reference(Gift) | conditional | The gift this one refunds or writes off; required when Amount is negative (R-G3). |
+| Refund Reason | text | no | Why the money went back or the gift was written off, typed by the person recording it and carried on the negative gift (R-G3). |
 | In-kind Description | long text | no | What was given, when the gift is goods or services rather than money (v0.4, G-18). |
 | Fair Market Value | decimal | no | The value placed on an in-kind gift, which is what the receipt language must refer to (v0.4, G-18). |
 | Created By Import Batch | reference(Import Batch) | no | The import that created this gift, so it can be found and, from v0.5, undone. |
@@ -1270,7 +1276,11 @@ household totals correct after a merge, split, or reparent (R-H12, R-H13).
 Amount and Original Gift set, never an edit and never a deletion (ADR-0010). The package
 sets the original gift's Status to Refunded or Written off when the linked negative gift
 is saved. The negative gift's own Status is Received, because it is a transaction that
-happened, and it carries the same type and date semantics as any other gift.
+happened, and it carries the same type and date semantics as any other gift. The reason the
+money went back is typed once, on the negative gift, in Refund Reason: the original gift is
+not edited to hold it, because editing the original is the thing this rule exists to
+prevent. A partial refund leaves the original at Received, because part of it is still a
+gift the organization holds.
 
 **R-G4 Amount immutability.** Once a Receipt Number is present, Amount, Gift Date, and
 the donor references do not change. A correction voids the receipt and reissues
@@ -1326,6 +1336,7 @@ Campaign. The mirrors live in Connect (ADR-0004).
 | External Id | `External_Id__c` | Text, External Id, unique |
 | Payment Reference | `Payment_Reference__c` | Text |
 | Original Gift | `Original_Gift__c` | Lookup to `Gift__c` |
+| Refund Reason | `Refund_Reason__c` | Text |
 | In-kind Description | `In_Kind_Description__c` | Long Text Area (v0.4) |
 | Fair Market Value | `Fair_Market_Value__c` | Currency (v0.4) |
 | Created By Import Batch | `Created_By_Import_Batch__c` | Lookup to `Import_Batch__c` |
@@ -1524,6 +1535,52 @@ Connect (plan Section 4.12).
 Rollup target attributes on `Appeal__c` are listed in Section 26.
 
 - **Service:** `AppealService`.
+
+---
+
+## 21A. Giving Settings
+
+### Definition
+
+The Giving module's own org-wide toggles and values. ADR-0017 gives every module package
+its own protected hierarchy custom setting, because a dependent package cannot add fields
+to the Core settings object and Core must not carry fields for modules that are not
+installed (Principle 3).
+
+Core keeps the settings that Core itself reads, including `Default_Fund__c` and
+`Default_Appeal__c`, which the Setup Assistant writes as record identifiers (R-F4,
+ADR-0014). Everything that only the Giving package reads lives here.
+
+### v0.3 keys
+
+Moved here from Section 12 by ADR-0017, with their definitions unchanged.
+
+| Key | Type | Default | Definition |
+|---|---|---|---|
+| `Automatic_Household_Soft_Credits__c` | boolean | true | Whether a gift from one household member automatically soft credits the household's other current members (R-SC3). |
+| `Installment_Generation_Horizon_Months__c` | integer | 12 | How far ahead installments are generated for an open-ended recurring commitment, so the schedule does not generate rows forever (R-CM2). |
+| `Installment_Overdue_Grace_Days__c` | integer | 5 | How many days after its due date an unpaid installment waits before it is marked Overdue (R-IN2). |
+
+### Rules
+
+**R-GS1 Same contract as Core settings.** Protected, hierarchical, written synchronously
+from the settings console and never from Setup, audited as a Setting Change, and extended
+only by adding a row to the table above in the pull request that adds the field (R-N1 to
+R-N5 apply unchanged).
+
+**R-GS2 One console, several settings objects.** The Giving keys appear in the same
+Nonprofit Settings console as the Core keys, in the Giving section. The console reaches
+them because each shipped `Setting_Definition__mdt` row names its settings object, so an
+administrator never learns that there is more than one place the values are stored.
+
+**R-GS3 Absent module, absent setting.** An org without the Giving package has none of
+these keys, which is what makes a module that is off leave nothing behind.
+
+### Salesforce implementation
+
+- **Custom setting:** `Giving_Settings__c`, hierarchy, protected.
+- **Service:** Core `SettingsService`, reading and writing this object through the
+  `Settings_Object__c` field on `Setting_Definition__mdt` (ADR-0017).
 
 ---
 
@@ -2305,6 +2362,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.2 | 2026-09-07 | Core: Rollup Definition (Section 14) with the filter document format and the mode-resolved path notation; Import Template, Import Batch, and Import Row (Sections 15 to 17) with the Created By Import Batch tag on Household, Contact, Organization, and Gift. Giving: Gift, Gift Allocation, Fund, and Appeal (Sections 18 to 21), and the packaged default giving rollups (Section 26). Nonprofit Settings gains `Fiscal_Year_Start_Month__c`, `Default_Fund__c`, `Default_Appeal__c`, `Rollup_Mode_Default__c`, `Import_Chunk_Size__c`, and `Setup_Assistant_Steps_Complete__c`. Shipped defaults gain `Rollup_Definition_Default__mdt` and `Import_Template_Default__mdt`. Published for build, objects not yet created. |
 | v0.3 | 2026-09-07 | Giving: Commitment, Installment, Soft Credit, and Tribute (Sections 22 to 25) with their rollup targets. Core: Relationship, Affiliation, and Address (Sections 27 to 29), the Primary Affiliation reference on Contact, and the shipped defaults `Relationship_Type__mdt`. Nonprofit Settings gains `Automatic_Household_Soft_Credits__c`, `Installment_Generation_Horizon_Months__c`, `Installment_Overdue_Grace_Days__c`, `Contact_Address_Change_Behavior__c`, `Relationship_Auto_Reciprocal__c`, and `Seasonal_Address_Last_Run__c`. Published for build, objects not yet created. |
 | v0.3 | 2026-09-07 | Convention added: person references are a Contact and Account pair with exactly one set (Section 4), following the change of first customer to Nonprofit Cloud and Agentforce Nonprofit orgs where individuals are person Accounts. Import Row and Import Template carry the person-mode attributes this requires. |
+| v0.3 | 2026-09-07 | Giving: Gift gains `Refund_Reason__c`, so the reason a refund or a write-off was recorded is held on the negative gift rather than by editing the original (R-G3, G-04). Giving Settings added as Section 21A: `Giving_Settings__c` holds the three v0.3 Giving keys that ADR-0017 moved out of `Nonprofit_Settings__c`, and Section 12 records the move. |
 | v0.3 | 2026-09-07 | Sections renumbered to keep the document in reading order: the former Section 14 "Deferred to later iterations" is now Section 30 and the former Section 15 "Change log" is now Section 31. Section 32 "Entity ownership by package" is new. |
 
 ---
@@ -2337,6 +2395,7 @@ included; standard objects the packages extend are named by the entity that gove
 | Gift Allocation | Giving | v0.2 | 19 |
 | Fund | Giving | v0.2 | 20 |
 | Appeal | Giving | v0.2 | 21 |
+| Giving Settings | Giving | v0.2, keys from v0.3 | 21A |
 | Giving rollup target attributes on Account and Contact | Giving | v0.2 | 26 |
 | Commitment | Giving | v0.3 | 22 |
 | Installment | Giving | v0.3 | 23 |
