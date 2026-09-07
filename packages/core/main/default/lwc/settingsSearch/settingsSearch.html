@@ -1,0 +1,38 @@
+<template>
+    <div class="slds-form-element">
+        <lightning-input
+            type="search"
+            label={labels.inputLabel}
+            placeholder={labels.placeholder}
+            onchange={handleInput}
+        ></lightning-input>
+    </div>
+
+    <template lwc:if={hasResults}>
+        <h3 class="slds-text-title_caps slds-p-top_small" id="settings-search-results">
+            {labels.resultsHeading}
+        </h3>
+        <ul class="slds-has-dividers_bottom-space" aria-labelledby="settings-search-results">
+            <template for:each={results} for:item="hit">
+                <li key={hit.rowId} class="slds-item">
+                    <button
+                        type="button"
+                        class="slds-button slds-button_reset slds-text-link"
+                        data-section={hit.section}
+                        data-key={hit.key}
+                        onclick={handleSelect}
+                    >
+                        {hit.label}
+                        <span class="slds-text-body_small slds-text-color_weak"
+                            >({hit.section})</span
+                        >
+                    </button>
+                </li>
+            </template>
+        </ul>
+    </template>
+
+    <template lwc:if={showNoResults}>
+        <p class="slds-p-top_small slds-text-color_weak" role="status">{labels.noResults}</p>
+    </template>
+</template>
