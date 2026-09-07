@@ -1,13 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
   <fullName>Household_Membership_Mode__c</fullName>
-  <defaultValue>
-    &quot; Contact &quot;
-  </defaultValue>
-  <description>
-    Whether household membership uses the contact reference or the membership junction: Contact or
-    Junction. Text rather than a picklist per ADR-0014.
-  </description>
+  <defaultValue>&quot;Contact&quot;</defaultValue>
+  <description>Whether household membership uses the contact reference or the membership junction: Contact or Junction. Text rather than a picklist per ADR-0019.</description>
   <inlineHelpText>How people are linked to their household.</inlineHelpText>
   <label>Household Membership Mode</label>
   <length>40</length>

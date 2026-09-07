@@ -169,6 +169,7 @@ private class TriggerDispatcherTest {
         handler.shouldFail = true;
         Boolean reported = false;
 
+        Test.startTest();
         try {
             TriggerDispatcher.run(handler, contextFor(System.TriggerOperation.AFTER_UPDATE));
         } catch (TriggerDispatcher.TriggerDispatcherException expected) {
@@ -179,6 +180,8 @@ private class TriggerDispatcherTest {
                 'David must see the friendly message, not a stack trace.'
             );
         }
+
+        Test.stopTest();
 
         Assert.isTrue(reported, 'A failure after the save must be reported to the user.');
         List<Error_Log__c> logged = [
@@ -203,6 +206,7 @@ private class TriggerDispatcherTest {
         // Outside a real trigger there is nothing to call addError on, so the dispatcher reports
         // the same friendly message by throwing. Inside a before trigger it addErrors instead,
         // which only a deployed org can exercise.
+        Test.startTest();
         try {
             TriggerDispatcher.run(handler, contextFor(System.TriggerOperation.BEFORE_INSERT));
         } catch (TriggerDispatcher.TriggerDispatcherException expected) {
@@ -212,6 +216,7 @@ private class TriggerDispatcherTest {
                 'Maria must see the friendly message.'
             );
         }
+        Test.stopTest();
 
         Assert.areEqual(
             1,
@@ -337,19 +342,85 @@ private class TriggerDispatcherTest {
     }
 
     @IsTest
-    static void theRecursionGuardClaimsAPhaseOnce() {
+    static void theRecursionGuardClaimsEachRecordOnce() {
         RecordingHandler handler = new RecordingHandler();
+        List<Error_Log__c> records = TestDataFactory.insertErrorLogs(3, ErrorLogger.STATUS_NEW);
+        Set<Id> first = new Set<Id>{ records[0].Id, records[1].Id };
+        Set<Id> overlapping = new Set<Id>{ records[1].Id, records[2].Id };
 
-        Assert.isTrue(handler.claimRunFor('afterUpdate'), 'The first claim succeeds.');
-        Assert.isFalse(handler.claimRunFor('afterUpdate'), 'The second claim does not.');
-        Assert.isTrue(handler.hasRunFor('afterUpdate'), 'The phase is marked as run.');
+        Assert.areEqual(
+            first,
+            handler.claimRunFor('afterUpdate', first),
+            'The first claim hands back everything.'
+        );
+        Assert.areEqual(
+            new Set<Id>{ records[2].Id },
+            handler.claimRunFor('afterUpdate', overlapping),
+            'A second claim hands back only what this handler has not seen.'
+        );
+        Assert.isTrue(handler.hasRunFor('afterUpdate', records[0].Id), 'That record is claimed.');
+        Assert.isTrue(
+            handler.claimRunFor('afterUpdate', new Set<Id>()).isEmpty(),
+            'Claiming nothing claims nothing.'
+        );
+        Assert.isTrue(
+            handler.claimRunFor('afterUpdate', null).isEmpty(),
+            'And neither does claiming null.'
+        );
+        Assert.isFalse(
+            handler.hasRunFor('beforeUpdate', records[0].Id),
+            'A claim is per phase, so another phase is untouched.'
+        );
 
         handler.releaseRunFor('afterUpdate');
-        Assert.isFalse(handler.hasRunFor('afterUpdate'), 'Releasing clears the claim.');
+        Assert.isFalse(handler.hasRunFor('afterUpdate', records[0].Id), 'Releasing clears it.');
 
-        handler.claimRunFor('afterUpdate');
+        handler.claimRunFor('afterUpdate', first);
         TriggerHandler.clearRunClaims();
-        Assert.isFalse(handler.hasRunFor('afterUpdate'), 'Clearing all claims clears this one.');
+        Assert.isFalse(handler.hasRunFor('afterUpdate', records[0].Id), 'So does clearing all.');
+    }
+
+    @IsTest
+    static void aFourHundredRecordLoadIsHandledInFull() {
+        TestRegisteredHandler.reset();
+        Automation_Registry__mdt registered = TestDataFactory.registryEntry('Bulk_Test', true);
+        registered.Handler_Class__c = 'TestRegisteredHandler';
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>{
+            registered
+        };
+        // One DML of 400 records fires the trigger twice, in one transaction, with statics kept.
+        List<Error_Log__c> loaded = TestDataFactory.insertErrorLogs(400, ErrorLogger.STATUS_NEW);
+        Map<Id, SObject> firstChunk = new Map<Id, SObject>();
+        Map<Id, SObject> secondChunk = new Map<Id, SObject>();
+        for (Integer i = 0; i < loaded.size(); i++) {
+            if (i < 200) {
+                firstChunk.put(loaded[i].Id, loaded[i]);
+            } else {
+                secondChunk.put(loaded[i].Id, loaded[i]);
+            }
+        }
+
+        Test.startTest();
+        for (Map<Id, SObject> chunk : new List<Map<Id, SObject>>{ firstChunk, secondChunk }) {
+            TriggerDispatcher.run(
+                'Error_Log__c',
+                new TriggerDispatcher.Context(
+                    System.TriggerOperation.AFTER_INSERT,
+                    chunk.values(),
+                    chunk,
+                    null,
+                    null
+                )
+            );
+        }
+        Test.stopTest();
+
+        Assert.areEqual(2, TestRegisteredHandler.runCount, 'The handler ran once per chunk.');
+        Assert.areEqual(
+            400,
+            TestRegisteredHandler.handledIds.size(),
+            'Every record was handled: the guard is per record, not per phase.'
+        );
     }
 
     @IsTest
@@ -363,6 +434,15 @@ private class TriggerDispatcherTest {
             'TriggerHandler',
             new TriggerHandler().getName(),
             'By default a handler is named after its class.'
+        );
+        Assert.isFalse(
+            new TestRegisteredHandler().getName().contains('.'),
+            'The name never carries a namespace: every consumer keys on the bare name.'
+        );
+        Assert.areEqual(
+            'TestRegisteredHandler',
+            new TestRegisteredHandler().getName(),
+            'Which is the class name, whatever namespace the package runs under.'
         );
     }
 

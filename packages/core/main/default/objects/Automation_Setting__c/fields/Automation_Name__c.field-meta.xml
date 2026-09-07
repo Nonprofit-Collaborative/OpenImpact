@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
   <fullName>Automation_Name__c</fullName>
-  <description>
-    The stable identifier of the automation, matching its entry in the shipped registry.
-  </description>
+  <description>The stable identifier of the automation, matching its entry in the shipped registry.</description>
   <externalId>true</externalId>
   <inlineHelpText>The internal name of this automation. Do not change it.</inlineHelpText>
   <label>Automation Name</label>

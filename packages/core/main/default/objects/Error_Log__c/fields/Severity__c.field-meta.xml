@@ -7,30 +7,10 @@
   <required>false</required>
   <trackTrending>false</trackTrending>
   <type>Picklist</type>
-  <valueSet>
-    <restricted>true</restricted>
-    <valueSetDefinition>
-      <sorted>false</sorted>
-      <value>
-        <fullName>Info</fullName>
-        <default>false</default>
-        <label>Info</label>
-      </value>
-      <value>
-        <fullName>Warning</fullName>
-        <default>false</default>
-        <label>Warning</label>
-      </value>
-      <value>
-        <fullName>Error</fullName>
-        <default>true</default>
-        <label>Error</label>
-      </value>
-      <value>
-        <fullName>Critical</fullName>
-        <default>false</default>
-        <label>Critical</label>
-      </value>
+  <valueSet><restricted>true</restricted> <valueSetDefinition> <sorted>false</sorted> <value> <fullName>Info</fullName> <default>false</default> <label>Info</label></value>
+      <value><fullName>Warning</fullName> <default>false</default> <label>Warning</label></value>
+      <value><fullName>Error</fullName> <default>true</default> <label>Error</label></value>
+      <value><fullName>Critical</fullName> <default>false</default> <label>Critical</label></value>
     </valueSetDefinition>
   </valueSet>
 </CustomField>

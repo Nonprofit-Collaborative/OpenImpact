@@ -7,30 +7,10 @@
   <required>false</required>
   <trackTrending>false</trackTrending>
   <type>Picklist</type>
-  <valueSet>
-    <restricted>true</restricted>
-    <valueSetDefinition>
-      <sorted>false</sorted>
-      <value>
-        <fullName>New</fullName>
-        <default>true</default>
-        <label>New</label>
-      </value>
-      <value>
-        <fullName>Acknowledged</fullName>
-        <default>false</default>
-        <label>Acknowledged</label>
-      </value>
-      <value>
-        <fullName>Resolved</fullName>
-        <default>false</default>
-        <label>Resolved</label>
-      </value>
-      <value>
-        <fullName>Ignored</fullName>
-        <default>false</default>
-        <label>Ignored</label>
-      </value>
+  <valueSet><restricted>true</restricted> <valueSetDefinition> <sorted>false</sorted> <value> <fullName>New</fullName> <default>true</default> <label>New</label></value>
+      <value><fullName>Acknowledged</fullName> <default>false</default> <label>Acknowledged</label></value>
+      <value><fullName>Resolved</fullName> <default>false</default> <label>Resolved</label></value>
+      <value><fullName>Ignored</fullName> <default>false</default> <label>Ignored</label></value>
     </valueSetDefinition>
   </valueSet>
 </CustomField>

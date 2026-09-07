@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
   <fullName>Formal_Greeting_Pattern__c</fullName>
-  <defaultValue>
-    &quot; {Salutation} {FirstName} {LastName} &quot;
-  </defaultValue>
+  <defaultValue>&quot;{Salutation} {FirstName} {LastName}&quot;</defaultValue>
   <description>The pattern used to compute the formal greeting.</description>
   <inlineHelpText>How formal greetings are written.</inlineHelpText>
   <label>Formal Greeting Pattern</label>

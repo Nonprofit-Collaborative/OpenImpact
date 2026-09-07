@@ -26,6 +26,13 @@
         "xmlWhitespaceSensitivity": "strict",
         "printWidth": 400
       }
+    },
+    {
+      "files": "*.field-meta.xml",
+      "options": {
+        "xmlWhitespaceSensitivity": "strict",
+        "printWidth": 400
+      }
     }
   ]
 }

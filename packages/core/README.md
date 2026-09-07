@@ -17,7 +17,8 @@ object references: those live only in the Connect module, behind dynamic Apex.
   Metadata Types for package-shipped defaults.
 - **Trigger framework**: one trigger per object, bypassable handlers, a pause-all switch.
 - **Error Log** (`Error_Log__c`): every caught exception with context, user, record, and a
-  plain-language message.
+  plain-language message, published as a platform event so the entry survives the rollback it
+  documents.
 - **Rollup engine**: `Rollup_Definition__c` and the governor-limit-safe engine used by every
   module for household, contact, organization, fund, appeal, and commitment rollups.
 - **Import framework**: `Import_Template__c`, `Import_Batch__c`, `Import_Row__c`, and the
@@ -60,6 +61,18 @@ bypass (`AutomationControl.bypass(name)`), the org wide pause
 `Automation_Setting__c`, keyed by the registry's developer name). Anything a handler throws is
 written to the Error Log first, then reported to the person saving the record: `addError` with a
 plain language message in a before context, a rethrow in an after context.
+
+A handler guards itself against recursion with `claimRunFor(phase, recordIds)`, which hands back
+the records this handler has not already processed in this transaction. The guard is per record on
+purpose: one DML of 400 records fires the trigger twice with statics preserved, so a guard that
+claimed the whole phase would process 200 records and silently skip the rest.
+
+Whatever a handler throws reaches the Error Log through an `Error_Log_Event__e` platform event
+published immediately, not through an insert. Almost every failure worth recording ends in a
+rollback, and an insert in that transaction would be rolled back with it: the entry that says what
+went wrong would disappear exactly when it is needed. `ErrorLogWriter` publishes,
+`ErrorLogEventTrigger` and `ErrorLogEventHandler` write the row, and a direct system mode insert
+remains only as the fallback for when publishing itself fails.
 
 A handler another package ships must be `public`, annotated `@NamespaceAccessible`, and have a
 no-argument constructor, so that `Type.forName` can build it. Core's own shared classes

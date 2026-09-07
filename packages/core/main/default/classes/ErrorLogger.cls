@@ -134,11 +134,13 @@ public with sharing class ErrorLogger {
         return entry;
     }
 
+    /**
+     * What Maria reads. Deliberately the label and nothing else: an exception's own message is
+     * written for a developer ("Attempt to de-reference a null object") and belongs in the
+     * technical detail, which is the field the admin guide tells her to forward.
+     */
     private static String friendlyMessage(Exception thrown) {
-        String reported = thrown.getMessage();
-        return String.isBlank(reported)
-            ? Label.Core_ErrorLog_UnexpectedFailure
-            : Label.Core_ErrorLog_UnexpectedFailure + ' ' + reported;
+        return Label.Core_ErrorLog_UnexpectedFailure;
     }
 
     private static String technicalDetail(Exception thrown) {

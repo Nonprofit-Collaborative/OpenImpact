@@ -5,6 +5,36 @@
   <label>Nonprofit Read Only</label>
   <fieldPermissions>
     <editable>false</editable>
+    <field>Automation_Setting__c.Description__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Automation_Setting__c.Enabled__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Automation_Setting__c.Execution_Order__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Automation_Setting__c.Handler_Class__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Automation_Setting__c.Is_Package_Default__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Automation_Setting__c.Object_Name__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
     <field>Error_Log__c.Context__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -48,6 +78,15 @@
     <field>Error_Log__c.User__c</field>
     <readable>true</readable>
   </fieldPermissions>
+  <objectPermissions>
+    <allowCreate>false</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>false</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Automation_Setting__c</object>
+    <viewAllRecords>true</viewAllRecords>
+  </objectPermissions>
   <objectPermissions>
     <allowCreate>false</allowCreate>
     <allowDelete>false</allowDelete>

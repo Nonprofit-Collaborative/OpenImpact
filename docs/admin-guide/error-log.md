@@ -10,6 +10,12 @@ of entries that say what went wrong, which record it happened on, and what to do
 You can work through the list, mark the ones you have looked at, and mark the ones you
 have fixed, so the list stays short and honest.
 
+## What you will see in v0.1
+
+This page describes the finished feature. The Nonprofit Hub app and its home page, where
+the tile lives, are built by feature C-03. Until then the Error Log tab is the way in, and
+the tile can be placed on any Lightning page. Everything else on this page works today.
+
 ## How to turn it on
 
 The Error Log is on as soon as Open Impact is installed. Nothing is recorded unless

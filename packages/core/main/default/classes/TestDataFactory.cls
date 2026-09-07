@@ -98,6 +98,59 @@ public class TestDataFactory {
     }
 
     /**
+     * A user on a minimal profile whose only Open Impact access comes from the packaged
+     * permission sets named here, so that a test proves what those sets actually grant rather
+     * than what a system administrator profile already allows.
+     *
+     * The user and the assignments are setup objects, so they are written in their own context to
+     * keep the platform's mixed DML rule happy.
+     */
+    @NamespaceAccessible
+    public static User createUser(String lastName, List<String> permissionSetNames) {
+        String unique = lastName + System.now().getTime() + Crypto.getRandomInteger();
+        User person = new User(
+            Alias = lastName.left(8),
+            Email = lastName + '@openimpact.example.invalid',
+            EmailEncodingKey = 'UTF-8',
+            LastName = lastName,
+            LanguageLocaleKey = 'en_US',
+            LocaleSidKey = 'en_US',
+            ProfileId = minimalProfileId(),
+            TimeZoneSidKey = 'GMT',
+            Username = unique + '@openimpact.example.invalid'
+        );
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert person;
+            List<PermissionSetAssignment> assignments = new List<PermissionSetAssignment>();
+            for (PermissionSet packaged : [
+                SELECT Id
+                FROM PermissionSet
+                WHERE Name IN :permissionSetNames
+            ]) {
+                assignments.add(
+                    new PermissionSetAssignment(
+                        AssigneeId = person.Id,
+                        PermissionSetId = packaged.Id
+                    )
+                );
+            }
+            if (!assignments.isEmpty()) {
+                insert assignments;
+            }
+        }
+        return person;
+    }
+
+    /**
+     * The least privileged profile that can be assigned. Standard User on every org shape we
+     * support; the running user's profile is the fallback if an org has renamed it.
+     */
+    private static Id minimalProfileId() {
+        List<Profile> minimal = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        return minimal.isEmpty() ? UserInfo.getProfileId() : minimal[0].Id;
+    }
+
+    /**
      * Error Log records that already exist, so a selector or a tile has something to read.
      */
     @NamespaceAccessible

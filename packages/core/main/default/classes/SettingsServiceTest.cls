@@ -59,7 +59,7 @@ private class SettingsServiceTest {
         Assert.areEqual(
             SettingsService.COEXISTENCE_MODE_DEFAULT,
             SettingsService.coexistenceMode(),
-            'A value outside the list reads as the shipped default (ADR-0014).'
+            'A value outside the list reads as the shipped default (ADR-0019).'
         );
         Assert.areEqual(
             SettingsService.MEMBERSHIP_MODE_DEFAULT,
@@ -94,6 +94,47 @@ private class SettingsServiceTest {
         } catch (SettingsService.SettingsServiceException expected) {
             Assert.isNotNull(expected.getMessage(), 'With a message.');
         }
+    }
+
+    @IsTest
+    static void theShippedDefaultsAreExactlyWhatTheFieldsSay() {
+        Nonprofit_Settings__c fresh = Nonprofit_Settings__c.getOrgDefaults();
+
+        // A text field default value is a formula, so any padding inside the quotes is part of
+        // the shipped value. Padded defaults would silently fall back to the code default and
+        // would put spaces into every household name C-02 computes.
+        for (
+            String value : new List<String>{
+                fresh.Coexistence_Mode__c,
+                fresh.Household_Membership_Mode__c,
+                fresh.Household_Name_Pattern__c,
+                fresh.Formal_Greeting_Pattern__c,
+                fresh.Informal_Greeting_Pattern__c
+            }
+        ) {
+            Assert.isTrue(
+                value == null || value == value.trim(),
+                'A shipped default must carry no padding: "' + value + '"'
+            );
+        }
+        Assert.isTrue(
+            fresh.Coexistence_Mode__c == null ||
+                fresh.Coexistence_Mode__c == SettingsService.COEXISTENCE_MODE_DEFAULT,
+            'The shipped coexistence mode is one the service recognizes.'
+        );
+        Assert.isTrue(
+            fresh.Household_Membership_Mode__c == null ||
+                fresh.Household_Membership_Mode__c == SettingsService.MEMBERSHIP_MODE_DEFAULT,
+            'So is the shipped membership mode.'
+        );
+        Assert.isTrue(
+            SettingsService.coexistenceModes().contains(SettingsService.COEXISTENCE_MODE_DEFAULT),
+            'And the code default is itself one of the offered values.'
+        );
+        Assert.isTrue(
+            SettingsService.membershipModes().contains(SettingsService.MEMBERSHIP_MODE_DEFAULT),
+            'For both keys.'
+        );
     }
 
     @IsTest

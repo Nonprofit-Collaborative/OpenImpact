@@ -5,7 +5,7 @@
  * console's write path, platform cache invalidation, and the rest of the keys.
  *
  * The two mode keys are text rather than picklists, because the platform does not allow a
- * picklist on a custom setting (ADR-0014). This class holds their allowed values, validates a
+ * picklist on a custom setting (ADR-0019). This class holds their allowed values, validates a
  * write, and treats an unrecognized stored value as the shipped default rather than failing.
  */
 @NamespaceAccessible

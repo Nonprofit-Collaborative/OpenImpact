@@ -407,6 +407,12 @@ message an administrator can act on. A silent catch is a review failure.
 than masking the original error.
 **R-E3** The Hub shows a tile of unresolved errors, and an optional daily digest email
 goes to the admin (feature C-23, v0.6).
+**R-E4 The entry outlives the transaction it documents.** Most failures worth recording
+end in a rollback: the save is refused and everything written in that transaction is
+undone, an Error Log row included. So an entry is not written directly. It is published as
+an **Error Log Event**, which the platform delivers whether or not the transaction commits,
+and a subscriber writes the row. A direct write remains only as the fallback for when
+publishing itself fails.
 
 ### Salesforce implementation
 
@@ -416,9 +422,15 @@ goes to the admin (feature C-23, v0.6).
   `Record_Reference__c` (Text), `Object_Name__c` (Text), `Message__c` (Long Text Area),
   `Technical_Detail__c` (Long Text Area), `Severity__c` (Picklist: Info, Warning, Error,
   Critical), `Status__c` (Picklist: New, Acknowledged, Resolved, Ignored).
-- **Service:** `ErrorLogger`, with `ErrorLogWriter` (the only class allowed to write the
-  object, in system mode, so that a failure is recorded even for a user without create
-  access) and `ErrorLogSelector`.
+- **Event:** `Error_Log_Event__e`, a platform event with publish behavior Publish
+  Immediately, carrying the same values so that they survive a rollback (rule R-E4):
+  `Message__c`, `Technical_Detail__c` (Long Text Area), `Context__c`,
+  `Record_Reference__c`, `Object_Name__c`, `Severity__c`, `User_Id__c` (Text). The event
+  has no Status: every entry is written as New.
+- **Service:** `ErrorLogger`, with `ErrorLogWriter` (publishes the event, and is the only
+  class allowed to write the object directly, in system mode, so that a failure is recorded
+  even for a user without create access), `ErrorLogEventHandler` (the subscriber that
+  writes the rows) and `ErrorLogSelector`.
 
 ---
 
@@ -558,7 +570,7 @@ definition.
   the platform, so `Coexistence_Mode__c` and `Household_Membership_Mode__c` are Text
   fields holding one of the values listed above, validated by `SettingsService` rather
   than by the field. The console renders them as a choice list, so Maria never types a
-  value. Recorded as ADR-0014.
+  value. Recorded as ADR-0019.
 - **Service:** `SettingsService`, with the console LWCs `settingsConsole`,
   `settingsSearch`, `householdNamingSettings`.
 - **Permission:** editing requires the `Manage_Nonprofit_Settings` custom permission;
@@ -649,4 +661,5 @@ entity.
 | Version | Date | Change |
 |---|---|---|
 | v0.1 | 2026-09-06 | Initial model: Household, Household Member, Contact, Organization, plus the platform configuration entities Error Log, Automation Setting, Setting Change, Nonprofit Settings, and the shipped-defaults custom metadata Naming Pattern and Automation Registry. |
-| v0.1 | 2026-09-07 | C-04 and C-05 build. Error Log gains Object Name. Automation Setting gains Handler Class, Object Name, Execution Order, and Package Default, all copied from the shipped registry when a record is materialized. Automation Registry field API names fixed ("Object" and "Order" are reserved words). Error Log and Setting Change record names recorded as auto numbers. Nonprofit Settings picklist keys recorded as text, per ADR-0014. |
+| v0.1 | 2026-09-07 | C-05 review fix: Error Log entries are published as `Error_Log_Event__e` (Publish Immediately) and written by a subscriber, so an entry survives the rollback it documents (new rule R-E4). |
+| v0.1 | 2026-09-07 | C-04 and C-05 build. Error Log gains Object Name. Automation Setting gains Handler Class, Object Name, Execution Order, and Package Default, all copied from the shipped registry when a record is materialized. Automation Registry field API names fixed ("Object" and "Order" are reserved words). Error Log and Setting Change record names recorded as auto numbers. Nonprofit Settings picklist keys recorded as text, per ADR-0019. |

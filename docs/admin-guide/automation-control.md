@@ -11,6 +11,19 @@ It also gives you one big switch: pause everything for a couple of hours while y
 spreadsheet, then let it turn itself back on. You never have to call anyone to get
 unstuck.
 
+## What you will see in v0.1
+
+This page describes the finished feature. Two parts of it arrive with the next pieces of
+v0.1, and until they do the walkthrough below cannot be completed end to end:
+
+- The Nonprofit Hub app, its home page, and the Nonprofit Settings console are built by
+  feature C-03. Until then there is no page to put automation control on.
+- The list of automations is empty, because the first automations (creating households,
+  naming them) arrive with feature C-01. Until then the page says so rather than listing
+  anything, and the pause button works on nothing.
+
+The pause itself, the switches, the banner and the audit trail are all built and tested.
+
 ## How to turn it on
 
 Automation control is on as soon as Open Impact is installed. There is nothing to enable
@@ -37,8 +50,8 @@ the records in first and the automatic housekeeping to happen afterwards, so not
 1. Open the **Nonprofit Hub** app and click **Nonprofit Settings**.
 2. In the left navigation, click **Automation**. You see a list of every piece of
    automation Open Impact ships, each with a plain-language description and a switch.
-3. At the top of the page, click **Pause all automation**. Choose **2 hours** from the
-   list and click **Pause**. The page now shows a yellow bar: "Automation is paused until
+3. At the top of the page, choose **2 hours** in the **How long** list, then click
+   **Pause all automation**. The page now shows a yellow bar: "Automation is paused until
    3:40 PM." Every switch in the list is still where you left it: pausing does not change
    anything you have chosen.
 4. Click **Home**. The same banner appears at the top of the Hub, so anyone else working
@@ -50,6 +63,8 @@ the records in first and the automatic housekeeping to happen afterwards, so not
    back on at the two hour mark.
 7. Now switch off a single automation instead. Find **Household naming** in the list and
    click its switch to **Off**. Only that one stops running. Everything else carries on.
+   (In v0.1 the list is empty until feature C-01 adds the first automations, so there is
+   nothing to switch yet.)
 8. Switch it back **On**. Every change you make here is recorded with your name, the time,
    and what the value was before, so you can always see who changed what.
 

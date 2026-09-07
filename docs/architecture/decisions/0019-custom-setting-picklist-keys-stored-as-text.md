@@ -1,4 +1,4 @@
-# ADR-0014: Nonprofit Settings picklist keys are stored as text
+# ADR-0019: Nonprofit Settings picklist keys are stored as text
 
 **Status:** Accepted
 **Date:** 2026-09-07

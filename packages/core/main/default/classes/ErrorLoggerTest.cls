@@ -36,17 +36,18 @@ private class ErrorLoggerTest {
         Assert.areEqual(1, logged.size(), 'One failure, one entry.');
         Error_Log__c entry = logged[0];
         Assert.areEqual('Household naming', entry.Context__c, 'Named in words, not in code.');
-        Assert.isTrue(
-            entry.Message__c.contains('The pattern refers to a field'),
-            'The message says what went wrong.'
-        );
-        Assert.isTrue(
-            entry.Message__c.contains(Label.Core_ErrorLog_UnexpectedFailure),
-            'And starts from the plain language explanation.'
+        Assert.areEqual(
+            Label.Core_ErrorLog_UnexpectedFailure,
+            entry.Message__c,
+            'What Maria reads is the plain language explanation, with no developer text in it.'
         );
         Assert.isTrue(
             entry.Technical_Detail__c.contains('SampleException'),
             'The technical detail names the exception type.'
+        );
+        Assert.isTrue(
+            entry.Technical_Detail__c.contains('The pattern refers to a field'),
+            'And carries the words the exception itself used.'
         );
         Assert.areEqual(
             ErrorLogger.SEVERITY_ERROR,
@@ -178,6 +179,98 @@ private class ErrorLoggerTest {
         Assert.areEqual(1, logged.size(), 'The entry was still written.');
         Assert.areEqual(32000, logged[0].Message__c.length(), 'The message is trimmed to fit.');
         Assert.areEqual(255, logged[0].Context__c.length(), 'So is the context.');
+    }
+
+    @IsTest
+    static void anEntrySurvivesTheRollbackItDocuments() {
+        // The failure this feature exists for ends in a rollback. An ordinary insert would be
+        // undone with everything else, so the entry is published as a platform event instead
+        // (canonical model rule R-E4).
+        Test.startTest();
+        Savepoint beforeTheFailure = Database.setSavepoint();
+        TestDataFactory.insertErrorLogs(1, ErrorLogger.STATUS_NEW);
+        ErrorLogger.logMessage(
+            'The household could not be renamed, so nothing was saved.',
+            'Rollback',
+            ErrorLogger.SEVERITY_ERROR
+        );
+        Database.rollback(beforeTheFailure);
+        Test.getEventBus().deliver();
+        Test.stopTest();
+
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Error_Log__c WHERE Context__c LIKE 'Test context%'],
+            'The rollback undid the ordinary record, as a rollback does.'
+        );
+        List<Error_Log__c> survived = [
+            SELECT Message__c, Severity__c, Status__c, User__c, Timestamp__c
+            FROM Error_Log__c
+            WHERE Context__c = 'Rollback'
+        ];
+        Assert.areEqual(1, survived.size(), 'And the Error Log entry outlived it.');
+        Assert.areEqual(
+            'The household could not be renamed, so nothing was saved.',
+            survived[0].Message__c,
+            'With the message intact.'
+        );
+        Assert.areEqual(ErrorLogger.SEVERITY_ERROR, survived[0].Severity__c, 'And its severity.');
+        Assert.areEqual(ErrorLogger.STATUS_NEW, survived[0].Status__c, 'Waiting to be read.');
+        Assert.areEqual(UserInfo.getUserId(), survived[0].User__c, 'Naming who was working.');
+        Assert.isNotNull(survived[0].Timestamp__c, 'And when.');
+    }
+
+    @IsTest
+    static void anEventWithASeverityNobodyRecognizesIsStillWritten() {
+        Test.startTest();
+        ErrorLogEventHandler.handle(
+            new List<Error_Log_Event__e>{
+                new Error_Log_Event__e(
+                    Message__c = 'Something happened.',
+                    Context__c = 'Subscriber',
+                    Severity__c = 'Catastrophic'
+                )
+            }
+        );
+        ErrorLogEventHandler.handle(new List<Error_Log_Event__e>());
+        ErrorLogEventHandler.handle(null);
+        Test.stopTest();
+
+        List<Error_Log__c> written = [SELECT Severity__c, Timestamp__c FROM Error_Log__c];
+        Assert.areEqual(1, written.size(), 'The entry is written whatever the severity says.');
+        Assert.areEqual(ErrorLogger.SEVERITY_ERROR, written[0].Severity__c, 'As an error.');
+        Assert.isNotNull(written[0].Timestamp__c, 'With a time on it.');
+    }
+
+    @IsTest
+    static void theFallbackWritesEvenForSomeoneWithNoAccessToTheErrorLog() {
+        // The documented reason ErrorLogWriter is without sharing and writes in system mode: a
+        // person who hits a failure because of their own access must still leave a trace.
+        User david = TestDataFactory.createUser('David', new List<String>());
+
+        Test.startTest();
+        System.runAs(david) {
+            ErrorLogWriter.writeDirectly(
+                new List<Error_Log__c>{
+                    new Error_Log__c(
+                        Timestamp__c = System.now(),
+                        Context__c = 'No access',
+                        Message__c = 'Recorded for a user who cannot create Error Log records.',
+                        Severity__c = ErrorLogger.SEVERITY_ERROR,
+                        Status__c = ErrorLogger.STATUS_NEW
+                    )
+                }
+            );
+            ErrorLogWriter.writeDirectly(new List<Error_Log__c>());
+            ErrorLogWriter.writeDirectly(null);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Error_Log__c WHERE Context__c = 'No access'],
+            'The entry is there even though the running user has no create access.'
+        );
     }
 
     @IsTest

@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
   <fullName>Handler_Class__c</fullName>
-  <description>
-    The packaged code the dispatcher runs for this automation, copied from the shipped registry.
-  </description>
+  <description>The packaged code the dispatcher runs for this automation, copied from the shipped registry.</description>
   <externalId>false</externalId>
   <inlineHelpText>The packaged code this automation runs.</inlineHelpText>
   <label>Handler Class</label>

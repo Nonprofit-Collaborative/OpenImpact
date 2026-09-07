@@ -15,6 +15,7 @@
 @NamespaceAccessible
 public with sharing class AutomationControl {
     public static final String PAUSE_SETTING_NAME = 'Automation Paused Until';
+    public static final String MANAGE_SETTINGS_PERMISSION = 'Manage_Nonprofit_Settings';
 
     private static final Set<Integer> ALLOWED_PAUSE_HOURS = new Set<Integer>{ 1, 2, 4, 8, 24 };
     private static final Set<String> BYPASSED_NAMES = new Set<String>();
@@ -53,6 +54,7 @@ public with sharing class AutomationControl {
         if (String.isBlank(automationName)) {
             throw new AutomationControlException(Label.Core_Automation_NameRequired);
         }
+        requirePermission();
         List<Automation_Setting__c> matches = AutomationSettingSelector.selectByNames(
             new Set<String>{ automationName }
         );
@@ -101,6 +103,22 @@ public with sharing class AutomationControl {
             : null;
     }
 
+    /**
+     * The permission that governs every write on this page. Checked here rather than only in the
+     * controller, because the pause is written in system mode (`AutomationSettingsWriter` says
+     * why) and this is the check that stands in for the platform's.
+     */
+    @NamespaceAccessible
+    public static Boolean canManage() {
+        return FeatureManagement.checkPermission(MANAGE_SETTINGS_PERMISSION);
+    }
+
+    private static void requirePermission() {
+        if (!canManage()) {
+            throw new AutomationControlException(Label.Core_Automation_NoPermission);
+        }
+    }
+
     @NamespaceAccessible
     public static Datetime pauseAll(Integer hours) {
         if (hours == null || !ALLOWED_PAUSE_HOURS.contains(hours)) {
@@ -115,14 +133,9 @@ public with sharing class AutomationControl {
     }
 
     private static Datetime writePausedUntil(Datetime until) {
-        Nonprofit_Settings__c settings = SettingsService.getSettingsForUpdate();
-        Datetime previous = settings.Automation_Paused_Until__c;
-        settings.Automation_Paused_Until__c = until;
-        if (settings.Id == null) {
-            Database.insert(settings, AccessLevel.USER_MODE);
-        } else {
-            Database.update(settings, AccessLevel.USER_MODE);
-        }
+        requirePermission();
+        Datetime previous = SettingsService.getSettingsForUpdate().Automation_Paused_Until__c;
+        AutomationSettingsWriter.savePausedUntil(until);
         SettingsService.clearCache();
         SettingsService.logChange(
             PAUSE_SETTING_NAME,
@@ -205,7 +218,11 @@ public with sharing class AutomationControl {
         if (toCreate.isEmpty()) {
             return 0;
         }
-        Database.insert(toCreate, AccessLevel.USER_MODE);
+        // System mode on purpose: ADR-0006 has the post-install script materialize these rows,
+        // and a post-install context holds no permission sets, so a user mode insert would fail
+        // on a fresh install. Nothing here comes from user input: every value is copied from the
+        // package's own shipped metadata.
+        Database.insert(toCreate, AccessLevel.SYSTEM_MODE);
         clearCache();
         return toCreate.size();
     }
