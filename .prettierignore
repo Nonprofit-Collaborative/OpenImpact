@@ -8,3 +8,7 @@ package-lock.json
 LICENSE
 # Prose is hand-formatted; Prettier formats source and configuration only.
 *.md
+
+# Generated data, kept minified by scripts/data/generate-sample-data.py to control file
+# size (see data/sample/README.md); not hand-authored source.
+packages/core/main/default/staticresources/SampleData.json
