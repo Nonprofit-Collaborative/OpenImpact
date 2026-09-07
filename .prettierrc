@@ -21,14 +21,7 @@
       }
     },
     {
-      "files": "*.labels-meta.xml",
-      "options": {
-        "xmlWhitespaceSensitivity": "strict",
-        "printWidth": 400
-      }
-    },
-    {
-      "files": "*.md-meta.xml",
+      "files": "*-meta.xml",
       "options": {
         "xmlWhitespaceSensitivity": "strict",
         "printWidth": 400
