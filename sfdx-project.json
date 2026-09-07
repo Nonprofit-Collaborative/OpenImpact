@@ -1,0 +1,54 @@
+{
+  "namespace": "",
+  "sourceApiVersion": "67.0",
+  "pushPackageDirectoriesSequentially": true,
+  "packageDirectories": [
+    {
+      "path": "packages/core",
+      "default": true,
+      "package": "Open Impact Core",
+      "versionName": "v0.1",
+      "versionNumber": "0.1.0.NEXT"
+    },
+    {
+      "path": "packages/giving",
+      "default": false,
+      "package": "Open Impact Giving",
+      "versionName": "v0.1",
+      "versionNumber": "0.1.0.NEXT",
+      "dependencies": [{ "package": "Open Impact Core" }]
+    },
+    {
+      "path": "packages/volunteers",
+      "default": false,
+      "package": "Open Impact Volunteers",
+      "versionName": "v0.1",
+      "versionNumber": "0.1.0.NEXT",
+      "dependencies": [{ "package": "Open Impact Core" }]
+    },
+    {
+      "path": "packages/programs",
+      "default": false,
+      "package": "Open Impact Programs",
+      "versionName": "v0.1",
+      "versionNumber": "0.1.0.NEXT",
+      "dependencies": [{ "package": "Open Impact Core" }]
+    },
+    {
+      "path": "packages/funders",
+      "default": false,
+      "package": "Open Impact Funders",
+      "versionName": "v0.1",
+      "versionNumber": "0.1.0.NEXT",
+      "dependencies": [{ "package": "Open Impact Core" }, { "package": "Open Impact Giving" }]
+    },
+    {
+      "path": "packages/connect",
+      "default": false,
+      "package": "Open Impact Connect",
+      "versionName": "v0.1",
+      "versionNumber": "0.1.0.NEXT",
+      "dependencies": [{ "package": "Open Impact Core" }, { "package": "Open Impact Giving" }]
+    }
+  ]
+}

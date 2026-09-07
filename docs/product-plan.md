@@ -1,0 +1,773 @@
+# Open Impact: Product Plan and Development Handoff
+
+**Working name:** Open Impact (see Decision D-01; name and namespace must be verified before any public use)
+**Document version:** 1.1, 2026-09-06 (name changed to Open Impact; namespace deferred)
+**Author:** Brandon Mead (product owner) with Claude (product management)
+**Audience:** The Claude Code session (and its sub-agents) that will build this, plus future human and AI contributors. This document is written to be self-contained. Assume the reader has no access to any prior conversation.
+
+**Canonical copy:** this BMemory document is the source of truth for the plan (Brandon's rule, 2026-09-06: where a document exists in BMemory, the BMemory version is read and updated, never the repository copy). `docs/product-plan.md` in `Nonprofit-Collaborative/OpenImpact` is a mirror refreshed from this record after each change here.
+
+---
+
+## 0. How to use this document
+
+This is the single source of truth for the project. It is maintained here in BMemory and mirrored into the repository as `docs/product-plan.md`.
+
+Read it in this order:
+
+1. **Section 1 (Vision and principles)** tells you what we are building and why. Every later decision should be traceable to it.
+2. **Section 2 (Who this is for)** tells you who must be able to use the result without help.
+3. **Section 3 (Lessons from NPSP)** tells you what to copy and what to avoid.
+4. **Section 4 (Architecture)** gives the technical decisions that are settled. Do not re-open them without a written decision record (Section 12).
+5. **Section 5 (Feature catalog)** lists everything by module.
+6. **Section 6 (Roadmap)** sequences the catalog into iterations. Build in this order.
+7. **Sections 7 to 11** cover quality, AppExchange readiness, working agreements for AI agents, risks, and open questions.
+
+**Rule for the builder:** when this document and a Salesforce platform constraint disagree, the platform wins, and you record the deviation in the decision log (Section 12) with what you did instead and why. When this document and a nice idea disagree, this document wins. Put the idea in the parking lot (Section 11.3).
+
+---
+
+## 1. Vision and principles
+
+### 1.1 The one-paragraph vision
+
+Open Impact is a free, open source, AppExchange-listed suite of managed packages that gives small and medium nonprofits an easy, complete, and trustworthy way to run fundraising, constituents, and programs on Salesforce, on whatever Salesforce licenses they already have (Agentforce Nonprofit, Sales/Service Cloud, or plain Platform licenses), with no professional implementation required. It takes the best of NPSP (the household model, the data importer, the opinionated defaults, the community), the best of Nonprofit Cloud (the cleaner gift model, program and outcome thinking), and fills the gaps neither product closes (receipting and year-end statements, funder pipeline, front-end settings, modular enablement, upgrade-safe administration). It is built so that a two-person development office can install it on a Tuesday and enter gifts on Wednesday.
+
+### 1.2 The problem
+
+Salesforce stopped developing NPSP in March 2023 and, since December 2025, no longer bundles it for new Power of Us applicants. The replacement, Agentforce Nonprofit (formerly Nonprofit Cloud), is architecturally more capable but is widely reported as hard to set up and administer: G2 rates it 6.1 for ease of setup and 6.8 for ease of admin against 8.0 for meeting requirements. Its Person Account requirement is irreversible, its rollups run through the Data Processing Engine (scheduled batch, consumes compute credits, not admin-friendly), its permission model requires cloning managed permission sets that are overwritten every release, it lacks NPSP's household conventions, address history, donor levels, and engagement plans, and every implementation re-creates the same defaults from scratch. Small and medium nonprofits, the majority of the sector, have neither the budget for implementation partners nor the staff to absorb this complexity. They are stuck between a frozen product and an over-engineered one.
+
+### 1.3 Principles (in priority order)
+
+1. **A nonprofit administrator with no technical background must be able to install, configure, and operate it.** If a feature needs Setup, Apex, Flow Builder, or a consultant to be useful, it is not done. "Easy" is defined concretely in Section 2.3.
+2. **Numbers must be right.** Giving totals, receipts, and fund balances are the product's reputation. Correctness beats speed; visible freshness beats silent staleness. Every rollup shows when it was last calculated.
+3. **Turn on only what you use.** A module that is off leaves nothing behind in the org: no objects, no tabs, no triggers. This is achieved with separate packages, not hidden features (Decision D-03).
+4. **Compatible by design, dependent on nothing special.** Runs on Platform licenses; uses no Industries objects, no OmniStudio, no Data Cloud, no Person Account requirement. Where standard Salesforce objects exist (Opportunity, Campaign, Case), integration is optional and configurable, never required.
+5. **Opinionated defaults, every default overridable.** Ship a working configuration on install. Let the admin change it from the app, not from Setup.
+6. **Upgrade-safe.** Nothing an admin configures is overwritten by a package upgrade. Nothing the package ships is something an admin has to clone.
+7. **Built to be contributed to.** Small modules, clear contracts between them, a scratch-org story that works in under ten minutes, and documentation written as part of every feature, not after.
+8. **Nothing is built that already exists and is good.** Standard platform features first (record types, dynamic forms, Flow, reports). Well-maintained open source second (vendored under license where packaging requires). Custom code last.
+
+### 1.4 What "done" means for the whole project
+
+- **v1.0 = listed on AppExchange, passed security review, installed in at least 25 real nonprofit orgs, with the Core package plus Giving and Import, and at least one optional module (Volunteers or Programs).**
+- A nonprofit administrator can go from a fresh org to their first correctly-rolled-up gift, receipt, and household in under two hours, using only the in-app Setup Assistant and documentation.
+- At least three contributors outside the original author have merged pull requests.
+
+### 1.5 Explicit non-goals (for this project's lifetime, not just v1)
+
+- **Not a standalone product and not a multi-platform product.** The canonical data model is designed to be portable (Section 4.4), but no non-Salesforce runtime is built here. That is a possible future project, deliberately separate.
+- **Not an online giving platform, payment processor, email marketing tool, or donor portal.** We integrate with these (inbound gift API, export formats); we do not replace them. Experience Cloud portals are out of scope because they carry license cost the target customer cannot bear.
+- **Not a replacement for Agentforce Nonprofit's Industries features.** Orgs that want DPE, OmniStudio, Grantmaking as a funder, or Agentforce agents keep them. We coexist (Section 4.5).
+- **Not a consulting accelerator or migration tool for partners.** A nonprofit can migrate itself from NPSP with our importer; agency tooling is not the audience.
+- **Not a general CRM.** No sales pipeline, no B2B features beyond organizational donors and funders.
+
+---
+
+## 2. Who this is for
+
+### 2.1 Primary customer
+
+Small and medium nonprofits: roughly $250K to $10M annual revenue, 2 to 50 staff, one to ten Salesforce users, typically on ten free Power of Us licenses plus a handful of paid ones. They have no full-time Salesforce admin. The person configuring the system is a development director, operations manager, or executive director who is comfortable with spreadsheets and modern web apps.
+
+Secondary: organizations up to $50M who are cost-sensitive, and larger organizations using one module (for example Volunteers) alongside other systems.
+
+### 2.2 Personas (use these names in user stories, tests, and docs)
+
+| Persona | Role | What they need | What they must never have to do |
+|---|---|---|---|
+| **Maria, Operations Manager** | Installs and configures the package; the "admin" | Install, enable modules, set defaults, assign access, import the old spreadsheet, fix mistakes | Open Setup for routine configuration; write a formula; call a consultant |
+| **David, Development Director** | Runs fundraising | Enter gifts fast, see accurate donor totals, send receipts, know who lapsed, report to the board | Wait overnight for totals; wonder if a number is right; export to Excel to get a pledge balance |
+| **Priya, Program Coordinator** | Runs services and volunteers | Track participants, enrollments, attendance, volunteer shifts and hours | Use the fundraising screens; learn a separate system |
+| **Tom, Executive Director** | Accountable to the board and funders | Dashboards that are correct without asking; restricted fund balances; funder deadlines | Ask staff to build a report |
+| **Jen, Board Treasurer / Bookkeeper** | Reconciles with accounting | Export gifts by fund and date; year-end totals matching the bank | Reconcile by hand |
+| **Sam, Contributor** | Open source developer or admin who contributes | Clone, spin up a scratch org, run tests, understand one module without reading all of them | Read the whole codebase; guess conventions |
+
+### 2.3 What "easy" means, concretely (acceptance bar for the whole product)
+
+- **Install to first gift entered: under 30 minutes** with the Setup Assistant, no documentation required.
+- **Every setting is on a page in the app**, reachable from a single "Nonprofit Settings" tab, editable by any user with the `Manage Nonprofit Settings` custom permission. Setup is needed only for things Salesforce does not allow apps to do (user creation, org-wide email addresses, some sharing settings), and the Setup Assistant deep-links to those with instructions.
+- **No setting requires knowing an API name.** Pick lists show labels. Field selection uses a picker.
+- **Every error is human-readable**, says what to do, and is logged where the admin can find it (in-app Error Log, not debug logs).
+- **Every module has a "Turn on / Turn off" action and a five-minute walkthrough.**
+- **The package can be installed by a user who has never seen Salesforce Setup**, following one screen at a time.
+- **Every screen is usable on a phone**, because development staff enter gifts from events.
+
+### 2.4 The five needs this serves (market evidence, summarized)
+
+These are the data-backed needs of the segment, used to justify priority calls throughout:
+
+1. **Revenue resilience.** Donor counts have declined every year since 2021 (down 3.6% in 2025) while dollars rose 5%, meaning dependence on fewer, larger donors; overall retention is around 43%, and converting a first gift to a second is the sector's largest unsolved problem (Fundraising Effectiveness Project, Q4 2025). Government-funded organizations face grant terminations and freezes (one in three affected in 2025, per Urban Institute). **Implication:** retention analytics, stewardship plans, and a funder pipeline are core, not optional.
+2. **Staff capacity.** 95% of nonprofit leaders are concerned about burnout; 46% of staff report manually re-entering data across platforms and 48% report time wasted on repetitive tasks (Momentive 2026). **Implication:** automation of acknowledgment, receipting, and rollups; an importer that eliminates re-keying.
+3. **Data unification.** Most organizations' constituent data lives in more than one system. **Implication:** an importer and an inbound API that make Salesforce the system of record without a consultant.
+4. **Trustworthy numbers for funders and boards.** Outcome tracking is described as very rare in the sector; boards increasingly ask about concentration risk. **Implication:** shipped dashboards and KPI definitions (retention, LYBUNT/SYBUNT, restricted balances) that are correct by construction.
+5. **AI readiness without AI dependency.** 92% of nonprofits use AI, 7% see major impact; the difference is clean, governed data. **Implication:** the clean data model is the AI strategy; no AI features are built in v1.
+
+---
+
+## 3. Lessons from NPSP (and from Nonprofit Cloud)
+
+### 3.1 How NPSP was built (for comparison)
+
+- **Origin and stewardship.** Started in 2008 as the Nonprofit Starter Pack by the Salesforce Foundation, later Salesforce.org, later absorbed into Salesforce. Open source under BSD-3-Clause on GitHub (`SalesforceFoundation/NPSP`). Product management was in-house; the community contributed issues, ideas, testing, and some code. Feature development ended March 2023.
+- **Packaging.** Grew as five independent managed packages with separate namespaces (`npe01` Contacts and Organizations, `npo02` Households, `npe03` Recurring Donations, `npe4` Relationships, `npe5` Affiliations), later unified under a sixth package, `npsp` ("Cumulus"), that depends on the five. The result was six namespaces, overlapping settings, and legacy objects nobody could remove. Installers needed a special installer or the "NPSP installer" flow.
+- **Data model.** Contact plus Account, with Households as Accounts (record type) and Contact.AccountId as membership. Donations as Opportunities with Payments (`npe01__OppPayment__c`), General Accounting Units and Allocations, Recurring Donations, Relationships, Affiliations, Addresses (with seasonal addresses and change management), Levels, Engagement Plans, Soft Credits via Opportunity Contact Roles plus Partial Soft Credits.
+- **Administration.** A Visualforce-based "NPSP Settings" tab (this was the right instinct; it just aged), a Trigger Handler table that let admins disable specific automation (loved by admins; keep this), Customizable Rollups (declarative, with batch and real-time), Health Check, and a Data Import object plus Batch Gift Entry with Advanced Mapping in custom metadata.
+- **Engineering.** Built with CumulusCI (Salesforce.org's open source build tool), Apex unit tests in the thousands, Robot Framework browser tests, a release every two weeks pushed to all orgs, release notes in the Power of Us Hub, and a "Prerelease" sandbox program.
+
+### 3.2 What to copy from NPSP
+
+1. **The household model as an Account.** Standard object, standard features (activities, reports, addresses), understood by every AppExchange app. Keep it. (Section 4.6.)
+2. **Opinionated defaults**: household naming and greetings, default soft credit roles, standard rollups on install. People succeeded with NPSP because it worked on day one.
+3. **The Data Import pattern**: a staging object holding one "row" that can create or match a household, contacts, an organization, a gift, and a payment in one pass, with dry run, error reporting, and reprocessing. Keep the pattern; fix the configuration (Section 4.9).
+4. **Trigger bypass by an admin, from a table.** Keep it, put it on the front end.
+5. **Customizable rollups that admins own.** Keep the concept; make freshness visible.
+6. **Push upgrades on a cadence, with release notes written for admins.**
+7. **A prerelease program** so contributors and brave orgs see releases early.
+
+### 3.3 What to avoid from NPSP
+
+1. **Multiple namespaces.** One namespace across all packages (2GP allows this).
+2. **Settings that only an admin who knew NPSP could find.** Ours are on the front end with search and plain-language descriptions.
+3. **Silent nightly batches.** Every rollup shows "last calculated" and the app warns when a schedule has not run.
+4. **Everything always installed.** Modules are separate packages.
+5. **Opportunity as the gift record.** It ties the product to Sales Cloud licenses and drags in sales pipeline semantics (Stage, Probability, Close Date) that confuse nonprofit staff. See Decision D-04 for the trade-off and mitigation; this is the single most consequential architectural choice.
+6. **Documentation as a separate effort.** Docs ship with the feature.
+
+### 3.4 What to copy from Nonprofit Cloud
+
+1. **Separating the gift transaction from the commitment and the designation.** Pledge, schedule, transaction, and fund restriction are different things.
+2. **Program, service, benefit, and outcome as first-class concepts** rather than bolt-ons.
+3. **Donor scoring (recency, frequency, monetary value)** shipped as a default.
+4. **Interaction summaries for major gift work** (a lightweight version).
+
+### 3.5 What to avoid from Nonprofit Cloud
+
+Person Account dependency, batch-only rollups with compute credits, permission sets that must be cloned, setup pages that are invisible until a license is assigned, capability shipped without opinion, and row multiplication that raises storage cost.
+
+---
+
+## 4. Architecture
+
+### 4.1 Packaging model
+
+**Second-generation managed packages (2GP), one namespace, a Core package plus optional module packages that depend on Core.**
+
+| Package | Contains | Depends on |
+|---|---|---|
+| **Core** | Constituent model (Contacts, Accounts, Households, Relationships, Affiliations, Addresses), the Nonprofit Hub app, Settings framework and UI, Module Manager, permission sets, trigger framework, error log, rollup engine, Import framework, health check | (none) |
+| **Giving** | Gifts, funds and allocations, commitments and installments, soft credits, tributes, matching gifts, appeals, acknowledgments and receipts, giving rollups and dashboards, gift batches | Core |
+| **Volunteers** | Volunteer profiles, jobs, shifts, sign-ups, hours, skills | Core |
+| **Programs** | Programs, services, enrollments, attendance, service deliveries, light case notes, outcomes | Core |
+| **Funders** | Funder pipeline (grants received and applied for), reporting deadlines, restricted fund tracking, government award compliance fields | Core, Giving |
+| **Connect** | Adapters: Opportunity mirror (NPSP and Sales Cloud), Campaign sync, Gift Transaction mirror (Agentforce Nonprofit), inbound gift REST API, accounting export | Core, Giving |
+| **Events** (post-1.0) | Simple event registration and attendance for non-fundraising events | Core |
+
+Reasoning: Principle 3 requires that an unused module leave nothing in the org. Only separate packages achieve that on the platform. Multiple 2GP packages can share one namespace, so cross-package Apex and object references work as if in one package. The cost is multi-package install and upgrade orchestration; that cost is paid by the Module Manager (Section 4.8), not by the admin.
+
+**Minor features inside a package are feature-flagged** (a hierarchy custom setting per feature, exposed as a toggle in Settings). Flags are for behavior, not for hiding schema.
+
+### 4.2 Platform and license compatibility
+
+The product must install and function fully on any of these, verified by CI against each org shape:
+
+| Org shape | Licenses | Notes |
+|---|---|---|
+| **Platform only** | Salesforce Platform (or Lightning Platform Plus) | No Opportunity, Lead, Campaign, Case, Product objects available. This is the floor, and the cheapest path for the target customer beyond the ten free licenses. Everything in Core, Giving, Volunteers, Programs, and Funders must work here. |
+| **Sales/Service Cloud** | Enterprise Edition via Power of Us | Standard objects available. Connect module can mirror gifts to Opportunities and appeals to Campaigns. |
+| **NPSP installed** | Sales Cloud plus NPSP packages | Coexistence mode: adopt existing NPSP household accounts; mirror gifts to Opportunities so NPSP rollups and NPSP-dependent apps keep working during transition. |
+| **Agentforce Nonprofit** | Nonprofit Cloud licenses, Person Accounts likely enabled | Household junction mode (Section 4.6); optional Gift Transaction mirror so native donor summaries still function. Never require any Industries permission set license. |
+
+Hard rules that follow:
+
+- **No hard reference to Opportunity, Campaign, Case, Lead, or any Industries object in Core, Giving, Volunteers, Programs, or Funders.** References to those objects live only in Connect, and even there behind dynamic Apex (`Schema.getGlobalDescribe`, `Type.forName`) and `sObject` generic code, so Connect can be installed where the objects exist and its features degrade gracefully where they do not.
+- **No dependency on Person Accounts**, but full support when enabled.
+- **No dependency on any paid add-on** (Data Cloud, OmniStudio, CRM Analytics, Experience Cloud, Marketing Cloud). Standard reports and dashboards only.
+- **Multi-currency and Platform Encryption awareness**: not supported in v1, must not break when present; detect and warn in Health Check.
+
+### 4.3 Tooling and repository
+
+- **Salesforce CLI (`sf`) with scratch orgs, source-tracked metadata (SFDX source format), GitHub Actions CI.** CumulusCI is not required; a contributor who knows only `sf` must be able to work. (CumulusCI may be adopted later if multi-package orchestration becomes painful; record as a decision if so.)
+- **Repository layout (monorepo, one package directory per package):**
+
+```
+open-impact/
+  sfdx-project.json          # all packageDirectories, one namespace
+  packages/
+    core/
+    giving/
+    volunteers/
+    programs/
+    funders/
+    connect/
+  config/
+    scratch-defs/            # platform-only.json, sales-cloud.json, npsp.json, npc.json
+  scripts/
+    org/                     # create-scratch-org, install-dependencies, seed-sample-data
+    release/
+  data/
+    sample/                  # sample data plans per module
+  docs/
+    product-plan.md          # this document
+    architecture/            # ADRs live here as docs/architecture/decisions/NNNN-title.md
+    admin-guide/             # one page per feature, written with the feature
+    contributor-guide/
+    release-notes/
+  tests/
+    ui/                      # Playwright end-to-end (optional, post-0.6)
+  .github/
+    workflows/               # ci.yml (lint, unit tests on 4 org shapes), release.yml
+    ISSUE_TEMPLATE/, PULL_REQUEST_TEMPLATE.md
+  LICENSE, CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md, README.md
+```
+
+- **Namespace:** deferred by Brandon's decision (2026-09-06). Candidate: `openimpact` (verify availability; it is immutable once used). Until it is registered, **develop namespace-agnostic**: no namespace prefix hard-coded anywhere (Apex, SOQL, LWC imports, Flow, custom labels, static resource references, permission set files); use relative references inside the package and `Schema` describes for anything dynamic; keep `sfdx-project.json` `namespace` empty and packaged directories in source format so the namespace can be added with one field change. Do not create any 2GP package versions until the namespace is set; scratch orgs and unmanaged deploys are fine. Add a CI check (grep) that fails if the candidate namespace string or `__c` references with an explicit namespace appear in source.
+- **Dev Hub:** the Partner Business Org (PBO) obtained through the Salesforce Partner Program (free for ISVs listing free apps; verify current terms). Until the PBO exists, use a Developer Edition Dev Hub and migrate; package IDs are tied to the Dev Hub, so create the real Dev Hub before creating package versions that will be promoted.
+- **Branching:** trunk-based. `main` is always releasable. Feature branches per issue, squash-merged. Release branches `release/0.x` only if a hotfix is needed on a promoted version.
+- **Versioning:** `0.<iteration>.<patch>` until AppExchange listing, then `1.<minor>.<patch>`. The `versionNumber` in `sfdx-project.json` for each package tracks the iteration in which that package last changed.
+
+### 4.4 The canonical data model (platform-neutral layer)
+
+The data model is written once as a platform-neutral specification in `docs/architecture/canonical-model.md` (entities, fields, relationships, rules) and then implemented as Salesforce objects. This is what keeps the far-future standalone option open at near-zero cost, and it is also the best possible documentation for contributors and for AI agents. Every object below cites its canonical entity. The rule: **no field is added to a Salesforce object that is not first added to the canonical model with a one-line definition.**
+
+### 4.5 Coexistence modes (a single org-level setting, chosen in the Setup Assistant, changeable later)
+
+| Mode | When chosen | Household membership | Gift system of record | Connect behavior |
+|---|---|---|---|---|
+| **Standalone** (default) | Fresh org, Platform or Sales/Service licenses | Contact.AccountId (NPSP-style) | `Gift__c` | Optional Opportunity mirror off by default |
+| **NPSP coexistence** | NPSP detected | Adopt NPSP household Accounts (record type mapping) | `Gift__c`, with Opportunity mirror **on** so NPSP rollups and dependent apps keep working | Opportunity mirror one-way `Gift__c` to Opportunity by default; "Opportunity is source" option for orgs whose online giving writes Opportunities |
+| **Agentforce Nonprofit coexistence** | Industries objects or Person Accounts detected | Junction (`Household_Member__c`) | `Gift__c`, optional Gift Transaction mirror | Mirror off by default; enable if the org uses native donor summaries |
+
+Detection is automatic in the Setup Assistant (describe calls for `npsp__` objects, `GiftTransaction`, Person Account enablement) with the admin confirming.
+
+### 4.6 Household model (Core; must ship in v0.1)
+
+**Purpose:** give nonprofits an easier alternative to Party Relationship Groups and a faithful, improved successor to NPSP households.
+
+- **Household = Account with record type `Household`.** Organizations are Accounts with record type `Organization`. Both record types are packaged with default page layouts and compact layouts.
+- **Membership has two modes**, abstracted behind one Apex service (`HouseholdService`) so no other code cares which is in use:
+  - **Contact mode** (default): `Contact.AccountId` points to the Household Account. Simple, reportable, NPSP-compatible, compatible with every AppExchange app that assumes Contact belongs to Account.
+  - **Junction mode** (required when Person Accounts are enabled; optional otherwise): `Household_Member__c` junction with lookups to Contact (for business contacts) or Account (for Person Accounts), plus `Role__c`, `Is_Primary__c`, `Start_Date__c`, `End_Date__c`. Enables one person in multiple households (divorced parents, students) and full history.
+- **Automatic household creation**: on Contact insert with no Account (contact mode), create a Household named per the naming rules. Toggle per org; default on.
+- **Naming and greetings** computed by the package: Household Name (`The Smith Family`, `Smith and Jones Household`), Formal Greeting (`Mr. and Mrs. John Smith`), Informal Greeting (`John and Jane`). Rules are configurable on the front end with a live preview; per-household override with a "custom name, do not recompute" flag. Support for hyphenated names, different surnames, deceased members (excluded from greetings, optional "the late"), and member ordering.
+- **Primary contact** on the household; anniversary and other household-level fields.
+- **Household address** with change propagation to members (Section 4.7).
+- **Household merge and split tools** on the front end (move a contact to a new or existing household; merge two households with rollup recalculation).
+- **Household rollups**: total giving, first and last gift, largest gift, gift count, this year, last year, two years ago, pledge balance, soft credit totals, membership count. Provided by the rollup engine (Section 4.10) as packaged default definitions.
+
+### 4.7 Addresses (Core)
+
+NPC has no address object; NPSP's was one of its most valued features for donor mail.
+
+- `Address__c` related to Household or Organization Account (and to a Contact for "personal" addresses), with type (Home, Work, Mailing, Seasonal, Other), seasonal date ranges (start month/day, end month/day), verification status placeholder, and `Is_Default__c`.
+- The current default address is copied to the standard Account and Contact address fields so every standard feature and third-party app still works; seasonal addresses swap in automatically by a daily scheduled job with a visible "last run."
+- Address change on a Contact can (setting) update the household and all members, or create a new personal address.
+- Third-party verification is out of scope; the object is designed so a verification app can update it.
+
+### 4.8 Settings, Setup Assistant, and Module Manager (Core)
+
+- **Nonprofit Hub app** (Lightning app) with tabs: Home (Setup Assistant and health), Households, Contacts, Organizations, Gifts (from Giving), Import, Reports, and **Nonprofit Settings**.
+- **Nonprofit Settings** is a single LWC-based settings console with a left navigation grouped by module, search across all settings, and plain-language descriptions with "Learn more" links to the admin guide. Access is governed by the `Manage_Nonprofit_Settings` custom permission (packaged in the Admin permission set).
+- **Storage strategy** (settled, Decision D-06):
+  - *Simple org-wide toggles and values* (feature flags, naming rule selections, default record types): **protected hierarchy Custom Settings**, written synchronously by Apex from the console. Cached in Platform Cache with cache invalidation on write.
+  - *Structured configuration the admin manages as lists* (rollup definitions, import templates and mappings, level definitions, acknowledgment rules, stewardship plan templates): **custom objects** in the package (for example `Rollup_Definition__c`), so they are reportable, exportable, and editable with standard record UI where useful.
+  - *Package-shipped defaults* (default rollups, default import templates, default levels): **Custom Metadata Types**, read-only to admins, copied into the corresponding custom object records by the post-install script on first install and on "Restore defaults." Upgrades update the metadata defaults without touching the admin's records. This is how Principle 6 (upgrade-safe) is achieved.
+- **Setup Assistant**: a guided checklist on the Hub home page, run by Maria in under 30 minutes: (1) confirm coexistence mode, (2) confirm household naming with preview, (3) pick default fund and appeal, (4) assign access to users (in-app, via `PermissionSetAssignment` inserts), (5) set organization identity for receipts (name, EIN, address, logo, signature), (6) choose which modules to turn on, (7) import your first spreadsheet or load sample data, (8) verify with a "first gift" walkthrough. Each step records completion; the checklist stays visible until done and can be re-run.
+- **Module Manager**: lists every module with status (Not installed, Installed and off, On), version, and an action. "Install" opens the package install URL for the module in a new tab with instructions (the platform does not allow an app to install another package silently; the Module Manager checks back via describe when the user returns). "Turn on" runs the module's post-install configuration and assigns permission sets. "Turn off" disables its automation and hides its tabs; "Uninstall" links to the platform uninstall with a pre-flight report of data that would be lost.
+- **Access page**: assign packaged permission set groups (`Nonprofit Admin`, `Fundraising Staff`, `Program Staff`, `Volunteer Coordinator`, `Read Only`) to users from the front end. Packaged permission sets are never meant to be cloned; org-specific additions go in the admin's own permission sets layered on top.
+- **Trigger and automation control**: a table of every packaged automation with a description and an on/off switch, plus a global "Pause all Open Impact automation" for bulk loads, auto-expiring after a set time.
+- **Error Log** (`Error_Log__c`): every caught exception with context, user, record, and a plain-language message; surfaced as a Hub tile and an optional daily digest email to the admin.
+- **Health Check**: detects org shape, license shape, missing permission assignments, rollup schedules not running, orphaned records, and coexistence conflicts; each finding has a fix action where possible.
+
+### 4.9 Import framework (Core; the "NPSP data importer, done right")
+
+**Purpose:** let Maria load the old spreadsheet, and every future event list and payment processor export, without a consultant.
+
+- **Objects:** `Import_Template__c` (a reusable mapping definition: source columns to canonical targets, matching rules, defaults), `Import_Batch__c` (one upload: file, template, status, counts, run log), `Import_Row__c` (the staging row: raw column values stored as JSON plus a fixed set of resolved lookups such as `Household__c`, `Contact1__c`, `Contact2__c`, `Organization__c`, `Gift__c`, status, and error message).
+- **Flow:** upload CSV or XLSX in an LWC (client-side parsing with SheetJS, chunked to the server) → auto-detect columns and suggest a mapping from a library of known column names (NPSP export, common processors, generic donor lists) → the admin adjusts the mapping in a two-column picker with sample values shown → choose matching rules (email exact, name plus postal code, external ID) with a plain-language explanation → **dry run** producing a preview of what would be created, matched, updated, or rejected, with a downloadable exceptions file → commit → results page with links → **undo** for a batch within a retention window (records created by the batch are tagged with the batch ID and can be deleted; updates are journaled for reversal).
+- **Row semantics** (the NPSP insight): one row can describe a household, up to two contacts, an organization, an affiliation, a gift with allocations, a soft credit, and a payment. The processor resolves in dependency order and is idempotent per row.
+- **Templates ship for**: NPSP (Contacts, Accounts, Opportunities, Payments, Allocations, Recurring Donations, Relationships, Affiliations, Addresses), Agentforce Nonprofit (Gift Transaction and related), a generic donor list, a generic gift list, an event attendee list, and a volunteer hours sheet. Templates are custom object records and can be shared as JSON files in the repository's `data/import-templates/` so the community can contribute processor-specific templates.
+- **Ongoing imports**: a template can be marked "recurring" with a named source; the Hub shows last import date per source so Maria knows what she has not loaded.
+- **Bulk performance**: Batch Apex with configurable chunk size; large files (up to hundreds of thousands of rows) are processed asynchronously with progress.
+
+### 4.10 Rollup engine (Core; used by every module)
+
+- `Rollup_Definition__c`: source object, target object, relationship path (supports the household membership abstraction), aggregate (SUM, COUNT, MIN, MAX, FIRST, LAST, AVG), filters (declarative, with a filter builder UI, no SOQL typed by admins), fiscal-year awareness (fiscal year start month setting), and **mode**: Real-time (trigger-driven, for small volumes), Scheduled (batch, default nightly), or Both (real-time with nightly reconciliation). Every target field shows a `Last calculated` sibling value in the rollup UI.
+- Packaged default definitions for households, contacts, organizations, funds, appeals, and commitments are shipped as custom metadata and materialized as records on install (Section 4.8).
+- The engine must be governor-limit safe (queueable chaining, platform events for fan-out) and idempotent (a recalculation of any record set produces the same result).
+- **Build vs. reuse decision:** before writing a rollup engine, evaluate vendoring an existing well-maintained open source Apex rollup library under a compatible license (MIT-licensed libraries exist). Criteria: 2GP-packageable as source, supports parent-child and lookup rollups, has a declarative metadata model we can drive from our UI, and has tests. Record the outcome as a decision. Do not build a lesser version of something that already exists.
+- **Freshness surfacing**: the Hub shows "Rollups last completed" and a warning tile if the schedule has not run in 36 hours.
+
+### 4.11 Giving model (Giving package)
+
+Canonical entities and their Salesforce objects:
+
+| Entity | Object | Notes |
+|---|---|---|
+| Gift (a received transaction) | `Gift__c` | Donor (Contact or Account, one required), household (derived), date, amount, type (Cash, Check, Card, ACH, Stock, In-kind, Grant, Other), status (Received, Pending, Refunded, Written off), appeal, acknowledgment status and date, receipt number, tribute, matching gift link, commitment link, external ID, payment reference. Auto-named. |
+| Allocation | `Gift_Allocation__c` | Gift to Fund with amount or percent; default allocation rules by appeal or donor; must total 100%. |
+| Fund | `Fund__c` | The restriction or designation (NPSP General Accounting Unit, NPC Gift Designation). Active flag, restricted flag, accounting code, rollups. |
+| Commitment | `Commitment__c` | Pledges and recurring gifts in one object with `Type__c`: Pledge (fixed total, installments) or Recurring (open-ended schedule). Frequency, amount, start, end, day of month, status, expected total, paid to date, balance. |
+| Installment | `Installment__c` | Scheduled expected payments generated from the commitment; a Gift links to the installment it fulfills; overdue and upcoming reports come from here. |
+| Soft credit | `Soft_Credit__c` | Contact or Account, gift, role (Household Member, Matched Donor, Solicitor, Honoree, Influencer, custom), amount or percent. Automatic household-member soft credits (setting). |
+| Tribute | `Tribute__c` | In honor of or in memory of; honoree name or contact; notification recipient; notification sent flag. |
+| Matching gift | field on `Gift__c` | `Matched_Gift__c` lookup to the employer's gift plus employer on Contact; matching gift company data is out of scope. |
+| Appeal | `Appeal__c` | The nonprofit's "campaign" (year-end mailing, gala, spring appeal) with goal, cost, dates, parent appeal, response rollups. Optional link to standard Campaign in Connect. |
+| Acknowledgment rule | `Acknowledgment_Rule__c` | Criteria (amount range, gift type, appeal, first gift) to template and channel (email, letter, none). |
+| Receipt | `Receipt__c` | Numbered, immutable once issued, PDF stored as a File; per-gift or consolidated year-end statement per household or organization. |
+| Gift batch | `Gift_Batch__c` | Manual entry screen: enter twenty checks in a grid with defaults, validate totals against a control total, post. Uses the Import framework underneath. |
+
+Design rules: a Gift's donor is either a Contact (with household derived) or an Account (organization or household directly); never both. Refunds are new Gifts with negative amount linked to the original, not edits. Amounts never change after a receipt is issued; a correction voids and reissues.
+
+### 4.12 Connect adapters (Connect package)
+
+- **Opportunity mirror**: one-way `Gift__c` to Opportunity (record type `Donation`, Stage Closed Won, Close Date = gift date, Amount, Account, Primary Contact Role, Campaign from appeal link) so NPSP rollups, NPSP soft credits, and Opportunity-dependent apps keep working. Option "Opportunity is source": when an online giving tool writes Opportunities, create `Gift__c` from them instead. Conflict rule: exactly one direction per org, chosen in Settings, with a reconciliation report.
+- **Campaign sync**: `Appeal__c` to Campaign one-way, so Campaign Members and marketing tools work.
+- **Gift Transaction mirror** (Agentforce Nonprofit): one-way `Gift__c` to `GiftTransaction` plus designation, so native donor summaries and Agentforce actions still see gifts. Dynamic Apex only; feature hidden when the objects are absent.
+- **Inbound gift API**: a namespaced REST endpoint (`/services/apexrest/openimpact/v1/gifts`) accepting a simple JSON gift with donor matching, plus a Flow-invocable action, so any processor or integration platform can post gifts without knowing our objects. Idempotent by external ID.
+- **Accounting export**: gifts by fund, date range, and payment method as CSV in a QuickBooks-friendly layout; posting flag per gift.
+
+### 4.13 Security and sharing
+
+- Ship with private OWD recommended for Gifts and Commitments, public read for Households and Contacts; the Setup Assistant explains the choice and offers a one-click "small team: everyone sees everything" configuration.
+- All Apex runs `with sharing` unless a documented reason exists; CRUD and FLS checked via `Security.stripInaccessible` and `WITH USER_MODE`.
+- No hard-coded IDs, no `without sharing` utilities exposed to LWC, no secrets in metadata. These are security review requirements and CI enforces them with Salesforce Code Analyzer.
+
+### 4.14 Internationalization and accessibility
+
+- All labels in Custom Labels from day one; English only in v1, translation-ready.
+- Currency and date formatting via platform locale.
+- LWC built to WCAG 2.1 AA; use base Lightning components; no custom color-only status indicators.
+
+---
+
+## 5. Feature catalog
+
+Priority: **P0** must ship before v1.0; **P1** should ship before v1.0 if the iteration holds; **P2** post-1.0. "Iter" is the planned iteration from Section 6. Major features (M) are multi-week efforts with their own admin-guide page; minor features (m) are days of work.
+
+### 5.1 Core package
+
+| ID | Feature | Size | Pri | Iter | Notes |
+|---|---|---|---|---|---|
+| C-01 | Household model: Account record type, automatic creation, contact and junction membership modes behind `HouseholdService` | M | P0 | 0.1 | Section 4.6 |
+| C-02 | Household naming and greetings with live preview and per-record override | M | P0 | 0.1 | Handles deceased, differing surnames, ordering |
+| C-03 | Nonprofit Hub app, Settings console, `Manage_Nonprofit_Settings` permission | M | P0 | 0.1 | Section 4.8 |
+| C-04 | Trigger framework with per-automation admin bypass and global pause | M | P0 | 0.1 | Vendor or write; must be tiny |
+| C-05 | Error Log object, Hub tile, daily digest | m | P0 | 0.1 | |
+| C-06 | Packaged permission sets and groups; in-app access assignment page | m | P0 | 0.1 | Never require cloning |
+| C-07 | Coexistence mode setting with automatic detection | m | P0 | 0.1 | Section 4.5 |
+| C-08 | Record types, page layouts, compact layouts, list views for Contact and Account | m | P0 | 0.1 | Dynamic Forms where supported |
+| C-09 | Household merge and split tools | m | P0 | 0.1 | Recalculates rollups |
+| C-10 | Sample data loader (a realistic 200-household demo set) | m | P0 | 0.1 | Used by tests, demos, and the Setup Assistant |
+| C-11 | Health Check v1 (org shape, license shape, access gaps) | m | P0 | 0.1 | |
+| C-12 | Setup Assistant (guided, resumable checklist) | M | P0 | 0.2 | Skeleton in 0.1, full in 0.2 |
+| C-13 | Rollup engine with declarative definitions, modes, filter builder, freshness | M | P0 | 0.2 | Section 4.10; build-vs-vendor decision first |
+| C-14 | Import framework v1: upload, auto-mapping, dry run, commit, results | M | P0 | 0.2 | Section 4.9 |
+| C-15 | Relationships (contact to contact, reciprocal, typed) | M | P0 | 0.3 | NPSP `npe4` successor |
+| C-16 | Affiliations (contact to organization, role, primary, dates) | m | P0 | 0.3 | NPSP `npe5` successor |
+| C-17 | Addresses object with default propagation to standard fields | M | P0 | 0.3 | Section 4.7 |
+| C-18 | Seasonal address swap job with visible last run | m | P0 | 0.4 | |
+| C-19 | Import 2.0: undo, journaling, recurring sources, XLSX | M | P0 | 0.5 | |
+| C-20 | Duplicate detection and merge suggestions (households and contacts) | m | P0 | 0.5 | Uses platform duplicate rules where present |
+| C-21 | Health Check v2 with fix actions | m | P0 | 0.5 | |
+| C-22 | Junction membership hardening with Person Accounts (Agentforce Nonprofit coexistence) | M | P0 | 0.5 | |
+| C-23 | Automation pause with auto-expiry; error digest email | m | P0 | 0.6 | |
+| C-24 | Module Manager (install links, on, off, uninstall pre-flight) | M | P0 | 0.7 | Needed once a second package exists |
+| C-25 | Interaction notes (lightweight major-gift contact reports on Contact and Account) | m | P1 | 0.8 | Copies the useful part of NPC Interaction Summaries |
+| C-26 | Telemetry, opt-in, anonymous (installed modules, org shape, error counts) | m | P1 | 0.10 | Informs the roadmap; default off |
+| C-27 | In-app "What's new" after upgrade | m | P1 | 0.11 | |
+| C-28 | Data hygiene console (orphans, missing households, bad addresses) | m | P2 | 1.x | |
+
+### 5.2 Giving package
+
+| ID | Feature | Size | Pri | Iter | Notes |
+|---|---|---|---|---|---|
+| G-01 | Gift, Allocation, Fund objects with auto-naming, donor rules, default allocation | M | P0 | 0.2 | Section 4.11 |
+| G-02 | Default giving rollups (household, contact, organization, fund) via engine | m | P0 | 0.2 | Ships as metadata defaults |
+| G-03 | Quick gift entry form (mobile-friendly) | m | P0 | 0.2 | One screen, defaults from settings |
+| G-04 | Refund and write-off as linked negative gifts | m | P0 | 0.2 | |
+| G-05 | Appeal object with goal, cost, dates, parent, response rollups | m | P0 | 0.2 | |
+| G-06 | Giving dashboard v1 (by month, by fund, by appeal, top donors) | m | P0 | 0.2 | Standard reports and dashboard, packaged |
+| G-07 | Commitments (pledge and recurring) with generated installments, balances, overdue and upcoming views | M | P0 | 0.3 | |
+| G-08 | Soft credits with automatic household-member credits (setting) | M | P0 | 0.3 | |
+| G-09 | Tributes (honor, memorial, notification recipient) | m | P0 | 0.3 | |
+| G-10 | Matching gift linkage (employer gift to employee gift) | m | P0 | 0.3 | |
+| G-11 | Pledge balance and commitment rollups | m | P0 | 0.3 | |
+| G-12 | Acknowledgment rules and templates (email, letter merge) with sent tracking | M | P0 | 0.4 | Uses standard email templates where possible |
+| G-13 | Receipts: numbered, immutable PDF per gift; consolidated year-end statements per household and organization; batch generation | M | P0 | 0.4 | The most-requested missing feature in the segment |
+| G-14 | Donor levels (configurable tiers, auto-assign, previous level, movement) | M | P0 | 0.4 | NPSP Levels successor |
+| G-15 | Stewardship plans (templates that generate tasks on trigger events) | m | P0 | 0.4 | NPSP Engagement Plans successor |
+| G-16 | Retention reports: LYBUNT, SYBUNT, new vs retained, first-to-second conversion | m | P0 | 0.4 | Correct by construction; definitions documented |
+| G-17 | Gift batch entry grid with control totals | M | P0 | 0.5 | Built on Import framework |
+| G-18 | In-kind gifts with fair-market value and description | m | P0 | 0.4 | Receipt language differs |
+| G-19 | Donor scoring (recency, frequency, monetary) as rollups | m | P1 | 0.8 | Copies NPC's good idea |
+| G-20 | Accounting posting flag and period lock | m | P1 | 0.6 | Prevents edits to posted gifts |
+| G-21 | Stock and planned gift types with extra fields | m | P2 | 1.x | |
+| G-22 | Membership tracking (levels with expiry, renewal reminders) | M | P2 | 1.x | Common ask; separate module candidate |
+
+### 5.3 Volunteers package
+
+| ID | Feature | Size | Pri | Iter | Notes |
+|---|---|---|---|---|---|
+| V-01 | Volunteer profile on Contact; Jobs; Shifts | M | P0 | 0.7 | |
+| V-02 | Sign-ups and staff-entered hours with approval | M | P0 | 0.7 | No portal in v1 |
+| V-03 | Hours rollups to contact and household; coordinator dashboard | M | P0 | 0.7 | |
+| V-04 | Skills, availability, interests | m | P0 | 0.7 | |
+| V-05 | Onboarding status (application, background check, orientation) | m | P0 | 0.7 | |
+| V-06 | Volunteer hours import template | m | P0 | 0.7 | |
+| V-07 | Recurring shifts | m | P0 | 0.7 | |
+| V-08 | Hour letters and certificates via the receipts engine | m | P0 | 0.7 | |
+| V-09 | Public sign-up page (Sites, unauthenticated) | M | P2 | 1.x | Guest user security review burden |
+
+### 5.4 Programs package
+
+| ID | Feature | Size | Pri | Iter | Notes |
+|---|---|---|---|---|---|
+| P-01 | Program, Service, Enrollment | M | P0 | 0.8 | |
+| P-02 | Attendance and service delivery logging (grid, mobile) | M | P0 | 0.8 | |
+| P-03 | Outcomes light: indicators, targets, results per program and period | M | P0 | 0.8 | Enough for a funder report |
+| P-04 | Case notes (dated, typed, private by default) | m | P0 | 0.8 | Sharing preset for participant privacy |
+| P-05 | Program dashboard | m | P0 | 0.8 | |
+| P-06 | Program import template (roster) | m | P0 | 0.8 | |
+| P-07 | Intake and eligibility fields with configurable picklists | m | P0 | 0.8 | |
+| P-08 | Participant privacy sharing preset | m | P0 | 0.8 | |
+| P-09 | Waitlists and capacity | m | P2 | 1.x | |
+
+### 5.5 Funders package
+
+| ID | Feature | Size | Pri | Iter | Notes |
+|---|---|---|---|---|---|
+| F-01 | Funder pipeline: opportunities applied for, awards, stages, amounts, decision dates | M | P0 | 0.9 | Funder is an Organization Account |
+| F-02 | Reporting requirements and deadlines with reminders | M | P0 | 0.9 | Serves market need #1 |
+| F-03 | Restricted fund tracking: received, released or spent entries, balance | M | P0 | 0.9 | Simple ledger, not accounting |
+| F-04 | Government award fields (assistance listing number, award number, period, drawdowns) | m | P0 | 0.9 | |
+| F-05 | Multi-year award schedules | m | P0 | 0.9 | Reuses Commitment and Installment |
+| F-06 | Funder report merge template | m | P0 | 0.9 | |
+| F-07 | Board dashboard (revenue mix, concentration, restricted balances) | m | P0 | 0.9 | |
+| F-08 | Deadline calendar view | m | P0 | 0.9 | |
+
+### 5.6 Connect package
+
+| ID | Feature | Size | Pri | Iter | Notes |
+|---|---|---|---|---|---|
+| X-01 | Opportunity mirror, both directions, one active per org, reconciliation report | M | P0 | 0.6 | |
+| X-02 | Campaign sync from Appeals | m | P0 | 0.6 | |
+| X-03 | Inbound gift REST API and Flow-invocable action | M | P0 | 0.6 | Idempotent by external ID |
+| X-04 | Accounting export (CSV by fund, date, method) | m | P0 | 0.6 | |
+| X-05 | NPSP coexistence: adopt household accounts, map record types | m | P0 | 0.6 | |
+| X-06 | API documentation and sample payloads | m | P0 | 0.6 | |
+| X-07 | Gift Transaction mirror (Agentforce Nonprofit) | M | P0 | 0.9 | Dynamic Apex only |
+| X-08 | Webhook receivers for common processors (community-contributed) | m | P2 | 1.x | Belongs to the community |
+
+---
+
+## 6. Roadmap by iteration
+
+Each iteration targets about three major and five minor features, plus engineering work. Iterations are not time-boxed to a calendar; they are done when the definition of done (Section 7.4) is met. Realistic pace for one architect with AI agents: two to four weeks per iteration. Do not start an iteration's features until the previous iteration's package version is promoted and installed in the test orgs.
+
+| Iteration | Theme | Major | Minor | Engineering |
+|---|---|---|---|---|
+| **v0.1** | Foundation and households | C-01, C-02, C-03 | C-05, C-06, C-07, C-08, C-09 (plus C-04 trigger framework, C-10 sample data, C-11 health check as enabling work) | Namespace registered; Dev Hub; monorepo; CI on four scratch org shapes; Code Analyzer gate; first package version created |
+| **v0.2** | Giving core | G-01, C-13, C-14 | G-02, G-03, G-04, G-05, G-06 (plus C-12 Setup Assistant full) | Rollup build-vs-vendor decision recorded; performance baseline (10k gifts) |
+| **v0.3** | Commitments, relationships, addresses | G-07, C-15, C-17 | C-16, G-08, G-09, G-10, G-11 | NPSP import templates; second package (Giving) published |
+| **v0.4** | Stewardship and receipting | G-12, G-13, G-14 | G-15, G-16, G-18, C-18, gift receipt PDF branding settings | PDF generation approach settled (Visualforce render as PDF vs LWC print) |
+| **v0.5** | Import 2.0 and coexistence hardening | C-19, G-17, C-22 | C-20, C-21, NPC import templates, XLSX support, undo retention setting | Person Account scratch org shape in CI |
+| **v0.6** | Connect | X-01, X-03, C-23 (as the third major-sized effort) | X-02, X-04, X-05, X-06, G-20 | Connect package published; dynamic Apex conventions documented |
+| **v0.7** | Volunteers | V-01, V-02, V-03, C-24 Module Manager | V-04, V-05, V-06, V-07, V-08 | Volunteers package published; Module Manager tested with install links |
+| **v0.8** | Programs | P-01, P-02, P-03 | P-04, P-05, P-06, P-07, P-08 (plus C-25, G-19 if capacity) | Programs package published; participant privacy sharing verified |
+| **v0.9** | Funders and Agentforce Nonprofit mirror | F-01, F-02, F-03, X-07 | F-04, F-05, F-06, F-07, F-08 | Funders package published |
+| **v0.10** | Hardening | Security review remediation; scale test (100k contacts, 1M gifts) and fixes; complete admin and contributor docs | Accessibility fixes; mobile audit; translation readiness; upgrade-path tests from every prior version; C-26 telemetry | Code Analyzer and manual security checklist clean; security review submission prepared |
+| **v0.11** | Beta | Beta cohort of at least ten orgs with structured feedback; Setup Assistant polish against measured time-to-first-gift; NPSP self-migration playbook validated on real orgs | C-27, release-notes automation, support triage process, community forum, sample data v2 | Security review submitted; Trailblazer Community group; issue templates tuned |
+| **v0.12** | AppExchange | Listing content, screenshots, demo org; final review fixes; launch communications | Whatever the beta surfaced | **v1.0 tagged on listing approval** |
+
+### 6.1 Post-1.0 themes (parking, ordered by expected demand)
+
+1. Memberships (G-22) as its own package.
+2. Events package (registration, attendance, simple ticketing without payments).
+3. Public volunteer sign-up (V-09) after a guest-user security design.
+4. Community-contributed processor webhooks (X-08).
+5. Donor scoring maturity, interaction summaries, major-gift portfolios.
+6. Multi-currency.
+7. AI-readiness pack: documented export schemas and a canonical-model JSON export so any AI tool can be grounded in clean data.
+8. Localization (Spanish first).
+
+### 6.2 Priority rules used (so future re-prioritization stays consistent)
+
+1. Anything Maria needs on day one (install, households, gifts, import) outranks everything.
+2. Anything that protects the numbers (rollups, receipts, refunds as records) outranks convenience.
+3. Features that serve the five market needs (Section 2.4) outrank features that are merely familiar from NPSP.
+4. Compatibility adapters come after the native experience is solid; a mirror of a bad model is a bad mirror.
+5. Every new package costs install friction; a package is justified only when its schema would clutter an org that does not need it.
+
+---
+
+## 7. Engineering standards, quality, and definition of done
+
+### 7.1 Naming conventions
+
+- **Objects and fields:** `PascalCase__c`, module-neutral names (no module prefix in the API name because the namespace already disambiguates and prefixes make labels ugly). Labels are plain English a nonprofit uses: "Gift" not "Donation Transaction," "Fund" not "General Accounting Unit."
+- **Apex:** one class per responsibility. Prefixes by role: `*Service` (business logic, the only place other modules may call), `*Selector` (SOQL), `*Domain` or `*TriggerHandler` (record-level rules), `*Controller` (LWC-facing, `@AuraEnabled`), `*Batch`, `*Queueable`, `*Schedulable`, `*Test`. Cross-package calls go through `global` service interfaces only.
+- **LWC:** `npc` prefix folder naming not required (namespace handles it); component names describe the screen: `settingsConsole`, `householdNamingPreview`, `importWizard`.
+- **Custom labels:** `Module_Screen_Purpose` (for example `Giving_ReceiptPage_IssuedStamp`).
+- **Custom permissions:** `Manage_Nonprofit_Settings`, `Enter_Gifts`, `Issue_Receipts`, `Manage_Volunteers`, `Manage_Programs`, `View_Funder_Pipeline`.
+
+### 7.2 Code rules (CI-enforced where possible)
+
+- Apex: `with sharing` by default; `WITH USER_MODE` or `Security.stripInaccessible` on every DML and query that touches user-facing data; bulkified; no SOQL or DML in loops; no hard-coded IDs; no `Test.isRunningTest()` branches in production logic.
+- Every trigger goes through the trigger framework; one trigger per object; handlers are bypassable.
+- Every `@AuraEnabled` method validates input and returns a typed result or a structured error the UI can render.
+- Governor-limit safety proven by tests that insert 200 records per DML context.
+- LWC: no third-party JS except vetted static resources (SheetJS for import parsing is the only pre-approved one; record any addition as a decision). Jest tests for every component with logic.
+- Salesforce Code Analyzer (PMD, ESLint, retire-js, Graph Engine for FLS/CRUD) must pass with zero high or critical findings on every pull request. This is the single best predictor of passing security review.
+- Apex test coverage target 90% per package; 75% is the platform minimum and is not the target.
+
+### 7.3 Testing strategy
+
+- **Unit tests** per class, data created through a shared `TestDataFactory` in Core (exposed `@IsTest global` so module packages can use it).
+- **Org-shape matrix in CI:** every pull request runs tests on four scratch org definitions: Platform-only, Sales Cloud, Sales Cloud with NPSP installed, and Person Accounts enabled (simulating Agentforce Nonprofit shape; a true Nonprofit Cloud scratch org needs the Industries features flag, add it when available). Connect's dynamic Apex is verified by the Platform-only shape where the objects are absent.
+- **Upgrade tests:** install version N-1, load sample data, upgrade to N, run assertions. Automated from v0.3 onward.
+- **Scale tests** (v0.10): 100k contacts, 40k households, 1M gifts, rollup full recalculation within platform limits; import of a 250k-row file.
+- **Manual acceptance:** each feature has a scripted walkthrough in its admin-guide page that a human (Brandon) performs before the iteration is promoted. Playwright end-to-end tests are optional and post-0.6.
+
+### 7.4 Definition of done (per feature)
+
+- [ ] Canonical model updated first (Section 4.4).
+- [ ] Metadata, Apex, LWC complete with tests passing on all org shapes.
+- [ ] Settings for the feature exposed in the Settings console with descriptions; no Setup step required for normal use.
+- [ ] Permission sets updated; no new permission requires cloning.
+- [ ] Error paths logged to Error Log with human-readable messages.
+- [ ] Admin-guide page written (what it does, how to turn it on, a five-minute walkthrough, common mistakes).
+- [ ] Release note line written.
+- [ ] Sample data updated if the feature adds objects.
+- [ ] Reviewed by a second agent or human against this checklist (Section 9.4).
+
+### 7.5 Release process
+
+1. Merge to `main` with CI green.
+2. Create a package version (`sf package version create`) for each changed package; beta versions for testing.
+3. Install beta into the internal test orgs (one per org shape) and the prerelease cohort.
+4. Run upgrade tests and the manual walkthrough.
+5. Promote (`sf package version promote`) and tag the repo `v0.N.0`.
+6. Push upgrade to opted-in orgs (from v0.6; before that, manual installs). Push schedule: never on a Friday, never in the last week of December (year-end giving) or the first two weeks of January (year-end receipting).
+7. Publish release notes written for Maria, not for developers.
+
+---
+
+## 8. AppExchange and open source readiness
+
+### 8.1 AppExchange path (start in v0.1, not v0.10)
+
+- Join the Salesforce Partner Program as an ISV and obtain the Partner Business Org; use it as the Dev Hub for all promoted package versions. (Verify current program terms and whether the security review fee is waived for free listings; historically it has been reduced or waived for free apps, but confirm in writing.)
+- Package versions must be created from the Dev Hub that will own the listing; creating early versions from a throwaway Dev Hub means re-creating the package with new IDs later. Decide the Dev Hub before v0.1's first package version.
+- Security review requirements to design for from the start: Code Analyzer clean, FLS and CRUD enforcement, no secrets, external callouts documented (we make none by default), REST endpoints with authentication documented, a test org with sample data and credentials for the review team, and an architecture document (this file plus `docs/architecture/`).
+- License Management App (LMA) is optional for a free app; install it anyway so install counts and versions are visible.
+- Listing assets: short description, long description, five screenshots, a two-minute video, a demo org, support URL (GitHub Discussions), documentation URL, and a privacy statement (no data leaves the org; telemetry is opt-in and anonymous).
+
+### 8.2 Open source governance
+
+- **License:** Apache-2.0 recommended (patent grant protects contributors and adopters); BSD-3-Clause is the NPSP precedent and an acceptable alternative. Record as Decision D-08 once Brandon chooses.
+- **Contribution:** Developer Certificate of Origin (DCO sign-off on commits) rather than a CLA; lower friction, adequate protection for a free product.
+- **Steward entity:** the project needs a legal owner for the namespace, the PBO, the AppExchange listing, and the trademark. Options are a nonprofit (a revived Nonprofit Collaborative is a natural fit and aligns with "given to nonprofits for free"), an LLC, or a fiscal sponsor. This is a decision for Brandon, not the builder; it must be made before the PBO is created because the PBO is tied to a legal entity.
+- **Governance model:** BDFL (Brandon) for v0.x; a maintainers group with a documented decision process by v1.0; a public roadmap in GitHub Projects.
+- **Community surfaces:** GitHub Issues and Discussions, a Trailblazer Community group, quarterly community calls once there are users.
+- **Contributor experience targets:** clone to running scratch org with sample data in under ten minutes via one script; every module has a `README.md` with its objects, services, and how to test it alone; `good first issue` labels maintained.
+
+### 8.3 Name and trademark
+
+**Re-opened 2026-09-06 (later the same day):** Brandon found that "Open Impact" is already in use, including by a foundation that funds open source work, which is too close to this project to share a name. "Open Impact" is now only a placeholder working title in the repository until a replacement is chosen and thoroughly vetted (USPTO, AppExchange, GitHub, npm, domains, social handles, Salesforce namespace). D-01 is therefore open again; the fallback "OpenCause" must go through the same vetting before use.
+
+"Open Impact" was chosen by Brandon on 2026-09-06 after a web search found no Salesforce app, nonprofit software product, or consultancy of that name. Before any public repository, listing, or post: search the USPTO, the AppExchange listing directory, GitHub, npm, and domain registries; confirm the namespace is available. Fallback name if a conflict appears: OpenCause. Note that "impact" is heavily used across nonprofit technology, so the distinctiveness rests on the pair "Open Impact" and on a consistent visual identity. The namespace is immutable and the listing name is expensive to change.
+
+---
+
+## 9. Working agreements for the Claude Code session and sub-agents
+
+This section exists because the builder is an AI session that will not have the context of the conversations that produced this plan.
+
+### 9.1 First actions, in order (day one)
+
+1. Read this document fully. Then read `docs/architecture/` if it exists.
+2. Confirm with Brandon: license (D-08) and Dev Hub choice (Section 8.1). The namespace is deliberately deferred; build namespace-agnostic per Section 4.3 and do not create package versions until Brandon registers it.
+3. Scaffold the monorepo exactly as Section 4.3 describes, with CI running an empty test suite on the four org shapes and Code Analyzer as a required check.
+4. Write `docs/architecture/canonical-model.md` for the v0.1 entities (Household, Household Member, Contact, Organization) before creating any object.
+5. Write the v0.1 ADRs in `docs/architecture/decisions/` from Section 12.
+6. Build v0.1 per Section 6, feature by feature, each on its own branch, each meeting the definition of done.
+7. Stop at the end of v0.1 and report (Section 9.5) before starting v0.2.
+
+### 9.2 How to split work across sub-agents
+
+Split by **module and layer**, never by "front end vs back end" across the same feature, because the interface between them is the thing that most often breaks.
+
+- One agent owns the **canonical model and object metadata** for an iteration and publishes the field list before anyone codes against it.
+- One agent per **feature** (service, trigger handler, tests, LWC, admin-guide page) working against the published metadata.
+- One agent owns **CI, org shapes, and packaging** for the iteration.
+- One agent acts as **reviewer** against Section 7.4 and Section 2.3 for every pull request, and must try the feature as Maria with only the admin-guide page as instructions.
+- Shared metadata files (permission sets, the settings console navigation, custom labels, layouts) are merge-conflict magnets: assign one agent to integrate those from the feature agents' requests rather than letting every agent edit them.
+
+### 9.3 Rules for agents
+
+- Use the personas' names in tests and docs.
+- When a platform limitation blocks the plan, record an ADR with the workaround and continue; do not silently change the design.
+- Never add a dependency on a paid product, an Industries object, or a standard object outside Connect.
+- Never put a setting in Setup that could be in the console.
+- Prefer standard platform features over code (record types, dynamic forms, list views, standard reports, Flow for admin-editable logic) unless the standard feature cannot be packaged or would require Setup.
+- Write the admin-guide page **before** the LWC; if the page is hard to write, the feature is too complicated.
+- Keep pull requests under roughly 800 lines of change; larger ones are split.
+- Every SOQL query is in a Selector; every DML that user input can reach is in user mode.
+- Do not invent features. If something seems missing, add it to the parking lot (Section 11.3) with a sentence of justification and continue.
+
+### 9.4 Review checklist (used by the reviewer agent and by Brandon)
+
+- Does it meet the definition of done (Section 7.4)?
+- Could Maria do this without Setup and without the docs? If not, why not, and is that recorded?
+- Are the numbers right? (Rollups recalculated in tests after every path: insert, update, delete, undelete, reparent, merge.)
+- Does it work on the Platform-only org shape?
+- Does it degrade gracefully when a module is off or a standard object is absent?
+- Is anything overwritten on upgrade that an admin might have changed?
+- Is the label language a nonprofit's language?
+
+### 9.5 Reporting format (end of each iteration)
+
+A short markdown report in `docs/release-notes/v0.N.md` with: features completed against the plan, features deferred and why, ADRs added, test counts and coverage per package, org shapes passing, open risks, and the exact steps for Brandon to install and walk through the iteration in a fresh org. Brandon will review once per iteration; do not wait for him mid-iteration unless blocked by Section 9.1 item 2 or a decision in Section 11.4.
+
+---
+
+## 10. v0.1 in detail (the first build)
+
+### 10.1 User stories
+
+- As Maria, I want to install one package and land on a home page that tells me what to do next, so that I never need to search for where to start.
+- As Maria, I want new contacts to get a household automatically with a sensible name, so that I do not create households by hand.
+- As Maria, I want to preview how household names and greetings will look before I commit to a naming rule, so that my mail merges are right the first time.
+- As David, I want to override a specific household's name and greeting and have the system stop recomputing it, so that "The Reverend and Mrs. Smith" stays that way.
+- As Maria, I want to move a contact to another household or merge two households from the record page, so that data cleanup takes minutes.
+- As Maria, I want to give a colleague access by picking their name and a role, so that I never have to learn permission sets.
+- As Maria, I want to pause an automation that is causing a problem during an import, so that I am never stuck.
+- As Maria, I want to see errors in plain language in the app, so that I can fix them or ask for help with specifics.
+- As Maria, when my org already has NPSP or Person Accounts, I want the app to notice and set itself up compatibly, so that I do not break what I have.
+- As Sam, I want to clone the repo and have a scratch org with sample data in ten minutes, so that I can contribute.
+
+### 10.2 Acceptance criteria (representative; the builder extends per feature)
+
+**C-01 Household model**
+- Given a fresh Platform-only org with the package installed, when a Contact is inserted with no Account, then a Household Account with record type Household is created and the Contact is attached, within the same transaction.
+- Given junction mode is active and Person Accounts are enabled, when a Person Account is created, then no Household is created automatically unless the setting "Create households for person accounts" is on; when it is on, a `Household_Member__c` record links the Person Account to a new Household.
+- Given a Contact is reparented to a different Household, then both households' membership counts and (once Giving is installed) giving rollups are recalculated, and the previous household is deleted if empty and the "delete empty households" setting is on.
+- Given 200 Contacts are inserted in one DML, then all households are created without hitting limits.
+
+**C-02 Naming and greetings**
+- Given two members with surname Smith, then Household Name is "The Smith Family" (or the configured pattern), Formal Greeting uses configured salutations, and Informal Greeting is "John and Jane."
+- Given members with differing surnames, then the name is "Smith and Jones Household" and greetings list both.
+- Given a member marked deceased, then they are excluded from greetings and, if the setting is on, the name is unchanged.
+- Given `Custom_Name__c` is checked on a Household, then no automatic recomputation changes Name, Formal Greeting, or Informal Greeting.
+- Given the admin changes the naming pattern in the console, then a preview shows five sample households and a "Recompute all households" action runs as a batch with progress and a completion notice.
+
+**C-03 Hub and Settings console**
+- Given a user without `Manage_Nonprofit_Settings`, when they open Nonprofit Settings, then they see a read-only view with a message naming the permission.
+- Given a setting is changed, then it takes effect on the next transaction without cache staleness beyond ten seconds, and the change is logged (who, when, old, new).
+- Given the console search box, when "greeting" is typed, then the household naming settings appear.
+
+**C-06 Access page**
+- Given Maria selects a user and the role "Fundraising Staff," then the corresponding permission set group is assigned and the user appears in the role's list; removal works the same way.
+
+**C-04 Automation control**
+- Given "Pause all automation for 2 hours" is activated, then no packaged trigger logic runs for the org until expiry or manual resume, and the Hub shows a banner while paused.
+
+**C-11 Health Check**
+- Given NPSP is installed, then the Health Check reports "NPSP detected" and the coexistence setting defaults to NPSP coexistence with an explanation.
+
+### 10.3 v0.1 metadata inventory (starting point; the canonical model governs)
+
+- Account record types: Household, Organization. Contact: one record type (Household Contact) so orgs can add their own.
+- Account fields: `Household_Formal_Greeting__c`, `Household_Informal_Greeting__c`, `Custom_Name__c`, `Primary_Contact__c`, `Member_Count__c`, `Anniversary__c`.
+- Contact fields: `Deceased__c`, `Household_Role__c` (Head, Spouse or Partner, Child, Other), `Exclude_From_Household_Name__c`, `Exclude_From_Greetings__c`, `Preferred_Name__c`.
+- Objects: `Household_Member__c` (junction, used only in junction mode), `Error_Log__c`, `Automation_Setting__c` (or custom metadata plus custom setting per D-06), `Setting_Change__c` (audit).
+- Custom settings: `Nonprofit_Settings__c` (hierarchy, protected).
+- Custom metadata: `Naming_Pattern__mdt` defaults, `Automation_Registry__mdt`.
+- Apex: `HouseholdService`, `HouseholdNamingService`, `HouseholdSelector`, `ContactTriggerHandler`, `AccountTriggerHandler`, `TriggerDispatcher`, `AutomationControl`, `ErrorLogger`, `SettingsService`, `AccessService`, `HealthCheckService`, `OrgShapeDetector`, `SampleDataLoader`, `TestDataFactory`, tests for each.
+- LWC: `hubHome`, `setupAssistant`, `settingsConsole`, `settingsSearch`, `householdNamingSettings` (with preview), `householdMembersPanel` (record page), `householdMergeSplit`, `accessManager`, `automationControl`, `errorLogTile`, `healthCheckPanel`.
+- Permission sets: `Nonprofit_Admin`, `Nonprofit_Staff`, `Nonprofit_Read_Only`; group per role.
+- App: `Nonprofit Hub` with tabs Home, Households, Contacts, Organizations, Nonprofit Settings, Error Log (admin only).
+
+---
+
+## 11. Risks, open questions, and parking lot
+
+### 11.1 Risks
+
+| Risk | Likelihood | Impact | Mitigation |
+|---|---|---|---|
+| Namespace or Dev Hub chosen wrong early, forcing package re-creation | Medium | High | Blocking decision before any package version (Section 9.1) |
+| Custom `Gift__c` instead of Opportunity alienates NPSP-dependent apps and consultants | Medium | Medium | Opportunity mirror (X-01) in v0.6; document clearly; the Platform-license win is worth it |
+| Security review takes months and finds structural issues | Medium | High | Code Analyzer gate from v0.1; user-mode everywhere; review-readiness in v0.10, not at the end |
+| Multi-package install friction confuses Maria | High | Medium | Module Manager (C-24); Core plus Giving may ship as a bundled install link; measure time-to-first-gift in beta |
+| Rollup engine correctness bugs damage trust | Medium | Very high | Vendor a proven library if criteria met; exhaustive path tests; nightly reconciliation mode |
+| Salesforce changes the platform or Power of Us terms | Low | High | No Industries dependency; Platform-license floor is the hedge |
+| Solo maintainer burnout; project stalls | High | High | Small modules; contributor guide from day one; steward entity; scope discipline (Section 1.5) |
+| Person Account orgs behave differently in subtle ways | High | Medium | Dedicated CI org shape; junction mode isolated behind `HouseholdService` |
+| Year-end receipt bug during December | Low | Very high | Release freeze windows (Section 7.5); receipt engine tests with fiscal-year fixtures |
+
+### 11.2 Open questions for Brandon (blocking marked with **B**)
+
+1. Namespace registration (deferred by Brandon; blocks package version creation only, not development).
+2. **B** License: Apache-2.0 or BSD-3-Clause.
+3. **B** Dev Hub: Partner Business Org now, or Developer Edition Dev Hub with a planned migration before the first promoted version.
+4. Steward entity: Nonprofit Collaborative, a new entity, or personal for v0.x.
+5. Should Core and Giving ship as one package for v1.0 (fewer installs) with Volunteers, Programs, Funders, and Connect separate? Current plan says separate; the argument for merging is that nearly every org needs both. Recommendation: keep separate in the repo, decide at v0.5 based on install-friction evidence.
+6. PDF generation for receipts: Visualforce render-as-PDF (mature, packageable, limited styling) versus browser print from LWC (better styling, no stored file without a callout). Recommendation: Visualforce render-as-PDF for stored, immutable receipts; decide at v0.4.
+7. Telemetry: include opt-in anonymous usage at all? Recommendation: yes, default off, disclosed on the listing.
+
+### 11.3 Parking lot (good ideas, deliberately not now)
+
+- Donor portal and online giving (license and PCI burden).
+- Email marketing integration beyond export.
+- Grantmaking as a funder (NPC does this well; different customer).
+- Peer-to-peer fundraising.
+- Wealth screening integration.
+- Text-to-give.
+- Multi-org or affiliate roll-up reporting.
+- An "AI assistant" inside the app (the clean model is the AI strategy for v1).
+
+### 11.4 Decisions the builder must escalate rather than make
+
+Adding any package dependency; adding a standard-object reference outside Connect; adding a required Setup step; changing the household membership abstraction; changing the versioning or namespace; anything touching receipt immutability or gift amount mutability.
+
+---
+
+## 12. Decision log (initial ADRs; copy each into `docs/architecture/decisions/`)
+
+| ID | Decision | Alternatives rejected | Why |
+|---|---|---|---|
+| D-01 | Product name "Open Impact" (chosen 2026-09-06), namespace candidate `openimpact` deferred and subject to verification; fallback name OpenCause | "Nonprofit Commons" (collides with Salesforce.org's Open Source Commons program), "Next Impact" (echoes Salesforce's "next generation of Nonprofit Cloud" language), "Barnraise" (strong metaphor, not self-explanatory), "OpenNPC" (confusable with the Salesforce product) | Self-explanatory, signals open source and purpose, no known product collision |
+| D-02 | Second-generation managed packages with one shared namespace | Unlocked packages (no push upgrades, no AppExchange managed listing); 1GP (legacy tooling) | AppExchange listing, push upgrades, cross-package access under one namespace |
+| D-03 | Core plus separate module packages for heavy domains; feature flags for minor behavior | Single package with hidden features | Principle 3: an unused module leaves no schema behind |
+| D-04 | Custom `Gift__c` as the gift system of record; Opportunity and Gift Transaction as optional mirrors in Connect | Opportunity as the gift (NPSP); Gift Transaction (NPC) | Platform-license compatibility (large cost win for target customer), nonprofit semantics, no Industries dependency; mirrors preserve ecosystem compatibility |
+| D-05 | Household as Account record type with two membership modes behind one service | Custom Household object; Party Relationship Groups | Standard object benefits and NPSP compatibility, while junction mode handles Person Accounts and multi-household membership |
+| D-06 | Settings storage: protected hierarchy custom settings for toggles, custom objects for structured lists, custom metadata for shipped defaults materialized on install | All custom metadata (asynchronous writes, poor admin editing); all custom settings (not reportable, not versioned) | Synchronous front-end edits, upgrade-safe defaults, reportable configuration |
+| D-07 | `sf` CLI plus GitHub Actions; CumulusCI optional later | CumulusCI from the start | Lower contributor barrier; revisit if multi-package orchestration becomes painful |
+| D-08 | License: Apache-2.0 (proposed, pending Brandon) | BSD-3-Clause (NPSP precedent) | Explicit patent grant protects adopters and contributors |
+| D-09 | No Person Account, Industries, OmniStudio, Data Cloud, or Experience Cloud dependency anywhere | Building on NPC primitives | Principle 4; the target customer cannot afford or administer them |
+| D-10 | Receipts are immutable; corrections void and reissue; refunds are negative linked gifts | Editable amounts | Audit integrity; tax receipt correctness |
+| D-11 | Rollup engine: evaluate vendoring a proven MIT-licensed Apex rollup library before building | Build from scratch first | Principle 8; correctness risk is highest in rollups |
+| D-12 | Trunk-based development, squash merges, `main` always releasable | Git flow | Simplicity for a small team with AI agents |
+
+---
+
+## 13. Glossary (nonprofit and platform terms, for agents and contributors)
+
+- **Appeal:** a fundraising effort (mailing, event, campaign). We avoid the word "campaign" in the UI because Salesforce's Campaign object means something specific and is unavailable on Platform licenses.
+- **Commitment:** a promise to give, either a pledge (fixed total) or a recurring gift (open-ended).
+- **Fund:** a designation or restriction on how money may be used (NPSP: General Accounting Unit; NPC: Gift Designation).
+- **Hard credit:** the donor legally credited with a gift. **Soft credit:** recognition for influencing a gift without giving it (spouse, solicitor, honoree, matching employer relationship).
+- **Household:** the unit of relationship and recognition for individual donors; one mailing, one greeting, one giving history.
+- **LYBUNT / SYBUNT:** donors who gave Last Year But Unfortunately Not This year, and Some Year But Unfortunately Not This year; standard lapsed-donor lists.
+- **Receipt:** the document a donor uses for tax purposes; in the US it must state the amount, date, organization, and whether goods or services were provided.
+- **Restricted fund:** money a donor or funder limited to a purpose; the balance is a compliance obligation.
+- **Stewardship plan:** a scheduled sequence of touches after a gift or milestone (NPSP: Engagement Plan).
+- **Tribute:** a gift made in honor or in memory of someone.
+- **2GP:** second-generation managed packaging. **PBO:** Partner Business Org. **Dev Hub:** the org that owns package definitions. **Push upgrade:** the publisher-initiated upgrade of installed orgs.
+- **Org shape:** the license and package configuration of an org (Platform-only, Sales Cloud, NPSP, Agentforce Nonprofit) used in CI.
+
+---
+
+*End of document. Everything above is intended to be enough to begin. When in doubt, return to Section 1.3 and ask which principle the decision serves.*

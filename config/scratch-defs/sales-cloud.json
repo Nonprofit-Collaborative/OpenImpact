@@ -1,0 +1,16 @@
+{
+  "orgName": "Open Impact Sales Cloud",
+  "edition": "Enterprise",
+  "hasSampleData": false,
+  "features": ["EnableSetPasswordInApi"],
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "securitySettings": {
+      "sessionSettings": {
+        "forceRelogin": false
+      }
+    }
+  }
+}

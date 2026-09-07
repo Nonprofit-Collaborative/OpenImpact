@@ -1,0 +1,26 @@
+# Open Impact: Claude Code instructions
+
+Read the product plan before any work. Its canonical copy is the BMemory document `specification/open-impact-product-plan.md`; `docs/product-plan.md` is a mirror refreshed from it. When a document exists in BMemory, read and update the BMemory version first, then refresh the repo copy; never edit the repo copy alone. The plan is the single source of truth (Section 1.3 principles, Section 4 settled architecture, Section 9 working agreements, Section 12 decision log). Settled decisions are not re-opened without an ADR in `docs/architecture/decisions/`.
+
+## Non-negotiables
+- Namespace is deferred: keep `sfdx-project.json` namespace empty, never hard-code a prefix, never create 2GP package versions. CI runs `scripts/ci/check-namespace.sh`.
+- No dependency on Person Accounts, Industries objects, OmniStudio, Data Cloud, Experience Cloud, or any standard object outside `packages/connect` (Opportunity, Campaign, Case, Lead). CI runs `scripts/ci/check-standard-objects.sh`. Core must run on a Platform-only org (ADR-0013).
+- Every admin setting lives in the in-app Nonprofit Settings console, never only in Setup.
+- Salesforce Code Analyzer: zero high or critical findings before merge.
+- No em dashes in documentation, labels, or commit messages. Use colons, commas, parentheses.
+- Commits carry a DCO sign-off (`git commit -s`).
+
+## Working rules
+- Feature branches per feature ID (for example `feature/c-04-trigger-framework`), squash-merged to `main`, PRs under about 800 changed lines.
+- Canonical model (`docs/architecture/canonical-model.md`) is updated before any object or field is added.
+- Admin-guide page (`docs/admin-guide/`) is written before the LWC.
+- Definition of done: plan Section 7.4. Review checklist: Section 9.4.
+
+## Project docs
+The four standard project docs map to existing files (mapping recorded so they are not duplicated):
+- `architecture.md` = `docs/architecture/` (canonical model, ADRs) and `docs/contributor-guide/environment.md`
+- `roadmap.md` = `docs/product-plan.md` Section 6 (roadmap by iteration)
+- `changelog.md` = `docs/release-notes/`
+- `memory.md` = `docs/architecture/decisions/` (ADRs) and `docs/product-plan.md` Section 11 (open questions, parking lot)
+
+Onboarding complete 2026-09-06.

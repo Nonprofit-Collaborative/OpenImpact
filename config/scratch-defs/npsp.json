@@ -1,0 +1,32 @@
+{
+  "orgName": "Open Impact NPSP",
+  "edition": "Enterprise",
+  "hasSampleData": false,
+  "features": ["EnableSetPasswordInApi"],
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "securitySettings": {
+      "enableAdminLoginAsAnyUser": true,
+      "sessionSettings": {
+        "forceRelogin": false
+      }
+    },
+    "chatterSettings": {
+      "enableChatter": true
+    },
+    "apexSettings": {
+      "enableDisableParallelApexTesting": true
+    },
+    "enhancedNotesSettings": {
+      "enableEnhancedNotes": true
+    },
+    "languageSettings": {
+      "enableTranslationWorkbench": true
+    },
+    "mobileSettings": {
+      "enableS1EncryptedStoragePref2": false
+    }
+  }
+}

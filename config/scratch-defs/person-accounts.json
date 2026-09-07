@@ -1,0 +1,16 @@
+{
+  "orgName": "Open Impact Person Accounts",
+  "edition": "Enterprise",
+  "hasSampleData": false,
+  "features": ["PersonAccounts"],
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "securitySettings": {
+      "sessionSettings": {
+        "forceRelogin": false
+      }
+    }
+  }
+}

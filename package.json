@@ -1,0 +1,31 @@
+{
+  "name": "open-impact",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Open Impact: free open source Salesforce managed packages for small nonprofits.",
+  "scripts": {
+    "lint": "eslint \"packages/**/lwc/**/*.js\" --no-error-on-unmatched-pattern",
+    "lint:fix": "eslint \"packages/**/lwc/**/*.js\" --fix --no-error-on-unmatched-pattern",
+    "prettier": "prettier --write \"**/*.{cls,trigger,cmp,page,component,xml,json,md,yaml,yml,js}\"",
+    "prettier:verify": "prettier --check \"**/*.{cls,trigger,cmp,page,component,xml,json,md,yaml,yml,js}\"",
+    "test:unit": "sfdx-lwc-jest",
+    "test:unit:coverage": "sfdx-lwc-jest --coverage",
+    "check:namespace": "bash scripts/ci/check-namespace.sh",
+    "check:standard-objects": "bash scripts/ci/check-standard-objects.sh",
+    "precommit": "lint-staged"
+  },
+  "devDependencies": {
+    "@lwc/eslint-plugin-lwc": "3.5.0",
+    "@prettier/plugin-xml": "3.4.2",
+    "@salesforce/eslint-config-lwc": "4.1.2",
+    "@salesforce/eslint-plugin-lightning": "2.0.0",
+    "@salesforce/sfdx-lwc-jest": "7.9.0",
+    "eslint": "9.39.5",
+    "eslint-plugin-import": "2.32.0",
+    "eslint-plugin-jest": "29.16.6",
+    "husky": "9.1.7",
+    "lint-staged": "17.5.0",
+    "prettier": "3.9.6",
+    "prettier-plugin-apex": "2.3.0"
+  }
+}

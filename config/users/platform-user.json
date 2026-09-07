@@ -1,0 +1,12 @@
+{
+  "Username": "platformuser@<alias>.openimpact.test",
+  "LastName": "Platform User",
+  "Alias": "oiplat",
+  "Email": "platformuser@<alias>.openimpact.test",
+  "TimeZoneSidKey": "America/New_York",
+  "LocaleSidKey": "en_US",
+  "EmailEncodingKey": "UTF-8",
+  "LanguageLocaleKey": "en_US",
+  "profileName": "Standard Platform User",
+  "generatePassword": true
+}

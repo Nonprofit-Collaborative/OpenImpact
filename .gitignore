@@ -1,0 +1,28 @@
+# Salesforce
+.sf/
+.sfdx/
+.localdevserver/
+deploy-options.json
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Coverage / test artifacts
+coverage/
+apexcov.json
+
+# Logs
+*.log
+
+# Editor
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+
+# OS
+.DS_Store
+
+# Misc
+/tmp

@@ -1,0 +1,233 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  static:
+    name: Static checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prettier check
+        run: npm run prettier:verify
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests with coverage
+        run: npm run test:unit:coverage
+
+      - name: Check namespace
+        run: bash scripts/ci/check-namespace.sh
+
+      - name: Check standard object references
+        run: bash scripts/ci/check-standard-objects.sh
+
+      - name: Fail on em dash characters
+        run: |
+          set +e
+          git grep -n -I $'\xe2\x80\x94' -- . ':!package-lock.json'
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "Em dash characters found in tracked files. See lines above."
+            exit 1
+          elif [ "$status" -eq 1 ]; then
+            echo "No em dash characters found."
+          else
+            echo "git grep failed unexpectedly."
+            exit "$status"
+          fi
+
+      - name: Install Salesforce CLI
+        run: npm install -g @salesforce/cli
+
+      - name: Install Code Analyzer plugin
+        run: echo y | sf plugins install code-analyzer
+
+      - name: Run Salesforce Code Analyzer
+        run: |
+          sf code-analyzer run \
+            --workspace packages \
+            --rule-selector Recommended \
+            --severity-threshold 2 \
+            --output-file code-analyzer-results.html \
+            --output-file code-analyzer-results.json
+
+      - name: Upload Code Analyzer results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-analyzer-results
+          path: |
+            code-analyzer-results.html
+            code-analyzer-results.json
+          if-no-files-found: ignore
+
+  org-tests:
+    name: Org tests (${{ matrix.shape }})
+    needs: static
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shape: [platform-only, sales-cloud, npsp, person-accounts]
+    concurrency:
+      group: org-tests-${{ matrix.shape }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Salesforce CLI
+        run: npm install -g @salesforce/cli
+
+      - name: Check for Dev Hub secret
+        id: check
+        env:
+          SF_DEVHUB_AUTH_URL: ${{ secrets.SF_DEVHUB_AUTH_URL }}
+        run: |
+          if [ -n "$SF_DEVHUB_AUTH_URL" ]; then
+            echo "has_devhub=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_devhub=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Authenticate Dev Hub
+        if: steps.check.outputs.has_devhub == 'true'
+        env:
+          SF_DEVHUB_AUTH_URL: ${{ secrets.SF_DEVHUB_AUTH_URL }}
+        run: |
+          AUTH_FILE=$(mktemp)
+          echo "$SF_DEVHUB_AUTH_URL" > "$AUTH_FILE"
+          sf org login sfdx-url --sfdx-url-file "$AUTH_FILE" --alias devhub --set-default-dev-hub
+          rm -f "$AUTH_FILE"
+
+      - name: Create scratch org
+        if: steps.check.outputs.has_devhub == 'true'
+        run: |
+          bash scripts/org/create-scratch-org.sh ${{ matrix.shape }} ci-${{ matrix.shape }}-${{ github.run_id }} --days 1 --no-sample-data
+
+      - name: Check for Apex test classes
+        if: steps.check.outputs.has_devhub == 'true'
+        id: apex-tests
+        run: |
+          if grep -rl "@IsTest" packages/core --include=*.cls > /dev/null 2>&1; then
+            echo "has_tests=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_tests=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No Apex test classes found under packages/core; skipping Apex test run."
+          fi
+
+      - name: Run Apex tests
+        if: steps.check.outputs.has_devhub == 'true' && steps.apex-tests.outputs.has_tests == 'true'
+        run: |
+          sf apex run test \
+            --target-org ci-${{ matrix.shape }}-${{ github.run_id }} \
+            --test-level RunLocalTests \
+            --code-coverage \
+            --result-format human \
+            --output-dir test-results \
+            --wait 30
+
+      - name: Upload test results
+        if: steps.check.outputs.has_devhub == 'true' && steps.apex-tests.outputs.has_tests == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.shape }}
+          path: test-results
+          if-no-files-found: ignore
+
+      - name: Delete scratch org
+        if: always() && steps.check.outputs.has_devhub == 'true'
+        run: bash scripts/org/delete-scratch-org.sh ci-${{ matrix.shape }}-${{ github.run_id }}
+
+      - name: Warn if skipped
+        if: steps.check.outputs.has_devhub != 'true'
+        run: echo "::warning::SF_DEVHUB_AUTH_URL secret is not set; org-tests job for shape ${{ matrix.shape }} was skipped. See docs/contributor-guide/ci.md to configure it."
+
+  dco:
+    name: DCO sign-off check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check Signed-off-by trailer on PR commits
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          missing=0
+          for sha in $(git rev-list "$BASE_SHA..$HEAD_SHA"); do
+            if ! git show -s --format=%B "$sha" | grep -q '^Signed-off-by: '; then
+              echo "Commit $sha is missing a Signed-off-by trailer:"
+              git show -s --format='  %h %s' "$sha"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            echo ""
+            echo "Fix with 'git commit --amend -s' for the last commit, or 'git rebase --signoff <base>' to sign off a whole branch, then force-push."
+            exit 1
+          fi
+
+      - name: Check Signed-off-by trailer on pushed commits
+        if: github.event_name == 'push'
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          zero_sha="0000000000000000000000000000000000000000"
+          if [ "$BEFORE_SHA" = "$zero_sha" ]; then
+            echo "New branch push detected (before sha is zero); skipping DCO range check."
+            exit 0
+          fi
+          missing=0
+          for sha in $(git rev-list "$BEFORE_SHA..$AFTER_SHA"); do
+            if ! git show -s --format=%B "$sha" | grep -q '^Signed-off-by: '; then
+              echo "Commit $sha is missing a Signed-off-by trailer:"
+              git show -s --format='  %h %s' "$sha"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            echo ""
+            echo "Fix with 'git commit --amend -s' for the last commit, or 'git rebase --signoff <base>' to sign off a whole branch, then force-push."
+            exit 1
+          fi

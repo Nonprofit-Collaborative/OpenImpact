@@ -1,0 +1,10 @@
+node_modules/
+coverage/
+.sf/
+.sfdx/
+.localdevserver/
+package-lock.json
+**/*.gitkeep
+LICENSE
+# Prose is hand-formatted; Prettier formats source and configuration only.
+*.md

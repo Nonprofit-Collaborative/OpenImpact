@@ -1,0 +1,51 @@
+name: Feature request
+description: Propose a new feature or enhancement for Open Impact.
+title: '[Feature]: '
+labels: ['enhancement']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem does this solve, and for whom?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: persona
+    attributes:
+      label: Who it helps
+      description: Which persona from the product plan does this serve?
+      options:
+        - Maria (Operations Manager)
+        - David (Development Director)
+        - Priya (Program Coordinator)
+        - Tom (Executive Director)
+        - Jen (Board Treasurer / Bookkeeper)
+        - Sam (Contributor)
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution
+      description: What should Open Impact do?
+    validations:
+      required: true
+
+  - type: input
+    id: plan-section
+    attributes:
+      label: Plan section reference
+      description: The section of docs/product-plan.md this relates to, if any (for example 5.2).
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: parking-lot-check
+    attributes:
+      label: Parking lot check
+      options:
+        - label: I checked the parking lot in docs/product-plan.md Section 11.3
+          required: true

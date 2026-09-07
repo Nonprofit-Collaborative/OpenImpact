@@ -1,0 +1,3 @@
+License: to be confirmed by the project owner. The product plan (docs/product-plan.md, Decision D-08) recommends Apache-2.0; BSD-3-Clause is the alternative under consideration. Until this file is replaced with the full license text, no license is granted.
+
+Maintainers: replace this file with the full text of the chosen license, then update README.md, CONTRIBUTING.md and docs/architecture/decisions/0008-license.md to match.

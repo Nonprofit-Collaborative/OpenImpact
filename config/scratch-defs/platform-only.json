@@ -1,0 +1,15 @@
+{
+  "orgName": "Open Impact Platform Only",
+  "edition": "Developer",
+  "hasSampleData": false,
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "securitySettings": {
+      "sessionSettings": {
+        "forceRelogin": false
+      }
+    }
+  }
+}
