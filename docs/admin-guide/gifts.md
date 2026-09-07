@@ -46,8 +46,8 @@ You are David, and a check from Maria's neighbour arrived this morning.
    default fund, so no money is missing from fund reporting.
 9. Open that allocation and change its **Amount** to 100. The save is refused with "The
    allocations of this gift total 100.00, but the gift is 250.00. The difference is 150.00."
-   Set it back to 250 and save, or add a second allocation for the other 150 to a different
-   fund.
+   Set it back to 250 and save. Allocations always add up to the gift, which is why the money
+   in your fund reports is never more or less than the money you received.
 10. Now refund part of the gift: follow the Refunds page from step 1.
 
 ## Common mistakes
@@ -63,7 +63,9 @@ You are David, and a check from Maria's neighbour arrived this morning.
   gift has a receipt number, so its amount, date and donor cannot change. Void the receipt
   and reissue it, or record a refund." That rule protects the document already in the
   donor's hands.
-- **Splitting a gift and leaving the split short.** Allocations always total the gift. The
-  error names the difference so you can see exactly how much is unallocated.
+- **Splitting a gift one row at a time.** Allocations always total the gift, so a change that
+  leaves the gift over-allocated or under-allocated is refused, even halfway through a split
+  you meant to finish. Enter a split in one go on the gift entry screen, which sends the whole
+  split at once. The error names the difference so you can see exactly how much is out.
 - **Typing a name for the gift.** You never do: gifts number themselves, `G-000001` and
   onward. That number is not a receipt number.
