@@ -88,3 +88,4 @@ Each feature adds its row here when its page is written.
 
 | Feature | Page | Package | Iteration |
 |---|---|---|---|
+| Commitments (G-07, G-11) | [commitments.md](commitments.md) | Giving | v0.3 |
