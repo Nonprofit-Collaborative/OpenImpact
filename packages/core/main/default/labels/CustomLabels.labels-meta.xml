@@ -161,6 +161,14 @@
     <value>Setting</value>
   </labels>
   <labels>
+    <fullName>Core_Settings_ComponentNotInstalled</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Settings console: shown where a panel would be when its module is not installed</shortDescription>
+    <value>This part of the settings comes with a module that is not installed here yet. Turn that module on and it appears in this section.</value>
+  </labels>
+  <labels>
     <fullName>Core_Settings_DiscardButton</fullName>
     <categories>Core</categories>
     <language>en_US</language>
@@ -199,6 +207,14 @@
     <protected>true</protected>
     <shortDescription>Settings console: message shown when the page could not load</shortDescription>
     <value>The settings page could not load. The error is recorded in the Error Log.</value>
+  </labels>
+  <labels>
+    <fullName>Core_Settings_OpenSectionButton</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Settings console: button that opens a module's own settings page</shortDescription>
+    <value>Open this page</value>
   </labels>
   <labels>
     <fullName>Core_Settings_PermissionRequiredError</fullName>
