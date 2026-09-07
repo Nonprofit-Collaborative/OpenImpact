@@ -1,5 +1,5 @@
 @SuppressWarnings('PMD.AvoidGlobalModifier')
-global without sharing virtual class RollupSObjectUpdater {
+public without sharing virtual class RollupSObjectUpdater {
   @SuppressWarnings('PMD.FieldNamingConventions')
   @TestVisible
   private static String UPDATER_NAME = 'RollupCustomUpdater';
@@ -20,20 +20,20 @@ global without sharing virtual class RollupSObjectUpdater {
   private RollupControl__mdt rollupControl;
   private RollupFinalizer finalizer;
 
-  global interface IDispatcher {
+  public interface IDispatcher {
     void dispatch(List<SObject> records);
   }
 
-  global interface IUpdater {
+  public interface IUpdater {
     void performUpdate(List<SObject> recordsToUpdate, Database.DMLOptions options);
   }
 
-  global interface IPrePostUpdater {
+  public interface IPrePostUpdater {
     void preUpdate(List<SObject> recordsToUpdate, Database.DMLOptions options);
     void postUpdate(List<SObject> recordsToUpate);
   }
 
-  global RollupSObjectUpdater() {
+  public RollupSObjectUpdater() {
     this.plugin = new RollupPlugin();
     this.dispatchers = this.fillDispatchers();
   }
@@ -59,7 +59,7 @@ global without sharing virtual class RollupSObjectUpdater {
     this.doUpdate(recordsToUpdate);
   }
 
-  global virtual void doUpdate(List<SObject> recordsToUpdate) {
+  public virtual void doUpdate(List<SObject> recordsToUpdate) {
     if (this.forceSyncUpdate == false && Rollup.hasExceededCurrentRollupLimits(this.rollupControl)) {
       this.performAsyncUpdate(recordsToUpdate);
       return;
@@ -288,7 +288,7 @@ global without sharing virtual class RollupSObjectUpdater {
   }
 
   @SuppressWarnings('PMD.ApexCRUDViolation')
-  global without sharing class PreAndPostUpdater implements IPrePostUpdater {
+  public without sharing class PreAndPostUpdater implements IPrePostUpdater {
     public void preUpdate(List<SObject> records, Database.DMLOptions options) {
       RollupSettings__c settings = RollupSettings__c.getInstance();
       settings.BypassValidationRules__c = true;

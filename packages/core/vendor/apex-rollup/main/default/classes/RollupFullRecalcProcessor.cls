@@ -1,5 +1,5 @@
 @SuppressWarnings('PMD.AvoidGlobalModifier')
-global abstract without sharing class RollupFullRecalcProcessor extends RollupAsyncProcessor.QueueableProcessor {
+public abstract without sharing class RollupFullRecalcProcessor extends RollupAsyncProcessor.QueueableProcessor {
   protected final List<Rollup__mdt> rollupMetas;
   protected final Set<String> objIds = new Set<String>();
   protected String queryString;
@@ -54,14 +54,14 @@ global abstract without sharing class RollupFullRecalcProcessor extends RollupAs
     return null;
   }
 
-  global override Rollup addLimit(Integer limitAmount, Schema.SObjectField calcItemRollupField) {
+  public override Rollup addLimit(Integer limitAmount, Schema.SObjectField calcItemRollupField) {
     for (Rollup__mdt rollupMeta : this.rollupMetas) {
       this.addLimitToMetadata(rollupMeta, limitAmount, calcItemRollupField);
     }
     return this;
   }
 
-  global override Rollup addOrderBys(List<RollupOrderBy__mdt> orderBys, Schema.SObjectField calcItemRollupField) {
+  public override Rollup addOrderBys(List<RollupOrderBy__mdt> orderBys, Schema.SObjectField calcItemRollupField) {
     for (Integer index = 0; index < this.rollupMetas.size(); index++) {
       Rollup__mdt rollupMeta = this.addOrderBys(this.rollupMetas[index], orderBys, calcItemRollupField);
       this.rollupMetas.set(index, rollupMeta);
@@ -69,7 +69,7 @@ global abstract without sharing class RollupFullRecalcProcessor extends RollupAs
     return this;
   }
 
-  global override Rollup modifyMetadata(Rollup__mdt template) {
+  public override Rollup modifyMetadata(Rollup__mdt template) {
     this.modifyMetadata(this.rollupMetas, template);
     return this;
   }

@@ -1,84 +1,84 @@
 @SuppressWarnings('PMD.AvoidGlobalModifier')
-global without sharing class RollupFlowBulkProcessor {
+public without sharing class RollupFlowBulkProcessor {
   @SuppressWarnings('PMD.TooManyFields')
-  global class FlowInput {
+  public class FlowInput {
     @InvocableVariable(label='Records to rollup' description='Records to rollup to parent/related item(s)')
-    global List<SObject> recordsToRollup;
+    public List<SObject> recordsToRollup;
     @InvocableVariable(label='Prior records to rollup' description='The old version of the records for update/upsert')
-    global List<SObject> oldRecordsToRollup = new List<SObject>();
+    public List<SObject> oldRecordsToRollup = new List<SObject>();
     @InvocableVariable(label='Rollup Context' description='INSERT, UPDATE, UPSERT, DELETE or REFRESH' required=true)
-    global String rollupContext;
+    public String rollupContext;
     // Shared between this and Rollup.FlowInput
     @InvocableVariable(label='Defer processing?' description='When set to true, the "Process Deferred Rollups" action must also be called' defaultValue='false')
-    global Boolean deferProcessing;
+    public Boolean deferProcessing;
     @InvocableVariable(
       label='Child Object Type When Rollup Started From Parent'
       description='If "Is Rollup Started From Parent" is true, you must include the API name for the child in this field'
     )
-    global String calcItemTypeWhenRollupStartedFromParent;
+    public String calcItemTypeWhenRollupStartedFromParent;
     // Optional properties that can override the CMDT values
     @InvocableVariable(
       label='Child Object Changed Fields'
       description='Provide a comma-separated list of field API Names to consider prior to using records in the rollup'
     )
-    global String calcItemChangedFields;
+    public String calcItemChangedFields;
     @InvocableVariable(label='Concat Delimiter' description='Defaults to comma, except for multi-select picklist fields (which default to semi-colon)')
-    global String concatDelimiter;
+    public String concatDelimiter;
 
     @InvocableVariable(
       label='Full Recalculation Default Number Value'
       description='If provided, used in place of the existing value on the rollup field for the parent object for number-based rollups'
     )
-    global Decimal fullRecalculationDefaultNumberValue;
+    public Decimal fullRecalculationDefaultNumberValue;
     @InvocableVariable(
       label='Full Recalculation Default String Value'
       description='If provided, used in place of the existing value on the rollup field for the parent object for String-based rollups'
     )
-    global String fullRecalculationDefaultStringValue;
+    public String fullRecalculationDefaultStringValue;
 
     @InvocableVariable(label='Grandparent Relationship Field Path' description='Used for grand(or greater)parent rollups')
-    global String grandparentRelationshipFieldPath;
+    public String grandparentRelationshipFieldPath;
     @InvocableVariable(
       label='One To Many Grandparent Fields (Comma separated list)'
       description='When using this field, provide a comma-separated list that contains the junction object name and the field name that provides the lookup to the next record in your "grandparent" rollup.'
     )
-    global String oneToManyGrandparentFields;
+    public String oneToManyGrandparentFields;
     @InvocableVariable(
       label='Is Full Record Set'
       description='If provided, does not try to abort rollup calculation early if no records match, and instead resets the rollup field value'
     )
-    global Boolean isFullRecordSet;
+    public Boolean isFullRecordSet;
     @InvocableVariable(label='Is Rollup Started From Parent' description='If the calc records are the parent records, set this to true')
-    global Boolean isRollupStartedFromParent;
+    public Boolean isRollupStartedFromParent;
     @InvocableVariable(
       label='Order By (First/Last)'
       description='Unless you absolutely have to configure here, the recommended approach is to use Rollup Order By custom metadata records linked to your Rollup custom metadata record. Comma-separated list of fields to order by using API name and sort order (e.g Amount DESC, Name ASC). If a sort order is not specified, defaults to ASC.'
     )
-    global String orderByFirstLast;
+    public String orderByFirstLast;
     @InvocableVariable(
       label='Limit Amount'
       description='When provided, only N children are included, where N is the Limit Amount specified. Most commonly used in conjunction with Rollup Order By metadata and/or a WHERE clause to get the right results'
     )
-    global Decimal limitAmount;
+    public Decimal limitAmount;
 
     @InvocableVariable(
       label='Parent Record Id for Empty Children Collections'
       description='Runs rollup calculations even if no matching children when passed. Must also fill out Child Object Type When Rollup Started From Parent property'
     )
-    global Id parentRecordIdForEmptyChildrenCollections;
+    public Id parentRecordIdForEmptyChildrenCollections;
     @InvocableVariable(
       label='Should rollup to ultimate hierarchy parent'
       description='Used in conjunction with Ultimate Parent Field to drive hierarchical parent rollups'
     )
-    global Boolean rollupToUltimateParent;
+    public Boolean rollupToUltimateParent;
     @InvocableVariable(label='Sharing Mode' description='Defaults to System, set to User to run with sharing')
-    global String sharingMode;
+    public String sharingMode;
     @InvocableVariable(label='Should run sync?' description='Runs rollup calculations synchronously when set to true')
-    global Boolean shouldRunSync;
+    public Boolean shouldRunSync;
     @InvocableVariable(label='SOQL Where Clause To Exclude Calc Items' description='If provided, excludes records based on a valid SOQL where clause')
-    global String calcItemWhereClause;
+    public String calcItemWhereClause;
     @InvocableVariable(label='Ultimate Parent Field' description='The lookup field in hierarchy rollups')
-    global String ultimateParentLookup;
+    public String ultimateParentLookup;
   }
 
   @InvocableMethod(
@@ -86,7 +86,7 @@ global without sharing class RollupFlowBulkProcessor {
     label='Perform Rollup CMDT-based rollup'
     description='Uses Rollup custom metadata records to load rollups. By default, you must also include the "Process Deferred Rollups" action to actually start the rollups configured in this action, unless you override the Is Deferred flag to false'
   )
-  global static List<Rollup.FlowOutput> addRollup(List<FlowInput> flowInputs) {
+  public static List<Rollup.FlowOutput> addRollup(List<FlowInput> flowInputs) {
     List<Rollup.FlowOutput> outputs = new List<Rollup.FlowOutput>();
     List<Rollup.FlowInput> validInputs = new List<Rollup.FlowInput>();
     for (FlowInput flowInput : flowInputs) {

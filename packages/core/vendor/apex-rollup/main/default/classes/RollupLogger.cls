@@ -1,5 +1,5 @@
 @SuppressWarnings('PMD.AvoidGlobalModifier,PMD.CognitiveComplexity')
-global without sharing virtual class RollupLogger implements ILogger {
+public without sharing virtual class RollupLogger implements ILogger {
   @TestVisible
   // this gets updated via the pipeline as the version number gets incremented
   private static final String CURRENT_VERSION_NUMBER = 'v1.7.44';
@@ -26,10 +26,10 @@ global without sharing virtual class RollupLogger implements ILogger {
     private set;
   }
 
-  global interface ToStringObject {
+  public interface ToStringObject {
   }
 
-  global interface ILogger {
+  public interface ILogger {
     void log(String logString, System.LoggingLevel logLevel);
     void log(String logString, Object logObject, System.LoggingLevel logLevel);
     void save();
@@ -41,18 +41,18 @@ global without sharing virtual class RollupLogger implements ILogger {
     this.log(logString, null, logLevel);
   }
 
-  global virtual void log(String logString, Object logObject, System.LoggingLevel logLevel) {
+  public virtual void log(String logString, Object logObject, System.LoggingLevel logLevel) {
     if (logLevel.ordinal() >= this.currentLoggingLevel.ordinal()) {
       this.innerLog(logString, logObject, logLevel);
     }
   }
 
   @SuppressWarnings('PMD.EmptyStatementBlock')
-  global virtual void save() {
+  public virtual void save() {
     // this is a no-op by default; sub-classes can opt in if they need to perform DML
   }
 
-  global ILogger setExistingStack() {
+  public ILogger setExistingStack() {
     this.existingStack = this.existingStack ?? this.getExistingStack();
     return this;
   }
