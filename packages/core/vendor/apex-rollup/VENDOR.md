@@ -282,9 +282,44 @@ read every string literal in the changed hunks by hand, because nothing catches 
   configuration and reformatting 25,000 lines would destroy every future diff. See "Formatting".
 - Em dashes found in vendored comments were replaced, per the repository writing rule.
 
-## Counts on the vendored commit
+## Counts, and what the checks say
 
-Filled in by the last commit on this branch.
+Measured on `packages/core/vendor/apex-rollup/` after all five patches.
+
+| | |
+| --- | --- |
+| Files vendored | 230 |
+| Apex classes, total | 52 |
+| Engine classes | 32 (13,331 lines) |
+| Test classes | 20 (11,973 lines) |
+| Apex lines, total | 25,304 |
+| `@IsTest` annotations | 551 (20 class level, 531 method level) |
+| Custom metadata types | 6 |
+| Custom objects | `RollupState__c`, `RollupSettings__c` (custom setting), `RollupCalcItem__c` (test support, patch E) |
+| `global` declarations | 0 (153 before patch B) |
+
+Checks run on the final tree, all from the repository root:
+
+| Check | Result |
+| --- | --- |
+| `npm run check:namespace` | OK |
+| `npm run check:standard-objects` | OK |
+| `bash scripts/ci/check-apex-offline.sh` | no compile-level errors |
+| `sf code-analyzer run --workspace packages/core --rule-selector Recommended --severity-threshold 2` | exit 0: 0 critical, 0 high, 161 moderate, 1014 low, 50 info |
+| `npx prettier --check "packages/core/vendor/**/*.{cls,trigger,xml}"` | passes, because the tree is in `.prettierignore`; see "Formatting" |
+
+No Code Analyzer finding needed a code change, so no patch exists for one. The moderate and low
+findings are the shape of a large third party codebase and are dominated by four rules:
+`ApexUnitTestClassShouldHaveRunAs` (520), `ApexDoc` (494), `CyclomaticComplexity` (74) and
+`CognitiveComplexity` (56), plus 50 copy-paste detections in the test classes. They are upstream's
+style, not defects, and rewriting 25,000 lines to satisfy them would cost every future upgrade.
+Revisit them only if one is ever promoted to high severity.
+
+What no check here proves: the vendored tests have not been executed. There is no scratch org in
+this workspace, `check-apex-offline.sh` does not validate fields inside SOQL, and nothing validates
+a field name that lives inside a string. The first scratch org run of the Core suite on the
+Platform-only shape is the real acceptance test for patch E, and it should happen before this code
+is relied on.
 
 ## Pull procedure for a future upgrade
 
