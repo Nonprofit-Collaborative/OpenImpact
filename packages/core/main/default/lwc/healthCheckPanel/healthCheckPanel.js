@@ -36,6 +36,9 @@ const SEVERITY_DISPLAY = {
 
 const CATEGORY_ORDER = ['OrgShape', 'Licenses', 'Access', 'Settings'];
 
+// The Nonprofit Settings console tab, which hosts every section a fix can point at.
+const SETTINGS_TAB = 'Nonprofit_Settings';
+
 /**
  * Health Check: what Open Impact found in this org and what to do about it (feature C-11).
  *
@@ -217,6 +220,9 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
       return;
     }
 
+    // A section fix opens the settings console at that section. The event lets a console
+    // that is already hosting this panel switch section in place; the navigation is what
+    // makes the button work everywhere else, including the Hub home page.
     this.dispatchEvent(
       new CustomEvent('navigatetosection', {
         detail: { section: target },
@@ -224,6 +230,12 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
         composed: true
       })
     );
+
+    this[NavigationMixin.Navigate]({
+      type: 'standard__navItemPage',
+      attributes: { apiName: SETTINGS_TAB },
+      state: { c__section: target }
+    });
   }
 
   async runAction(action) {

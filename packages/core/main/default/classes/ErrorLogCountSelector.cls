@@ -7,10 +7,22 @@ public with sharing class ErrorLogCountSelector {
     private static final String STATUS_NEW = 'New';
 
     /**
-     * How many Error Log entries nobody has looked at yet.
+     * How many Error Log entries nobody has looked at yet, or zero for a user who cannot read
+     * the Error Log at all. A person without access is told nothing rather than shown a
+     * failure: what they cannot see is not evidence of what is there.
      */
     public static Integer countNew() {
+        if (!isReadable()) {
+            return 0;
+        }
         return [SELECT COUNT() FROM Error_Log__c WHERE Status__c = :STATUS_NEW WITH USER_MODE];
+    }
+
+    /**
+     * Whether the running user can read the Error Log at all.
+     */
+    public static Boolean isReadable() {
+        return Error_Log__c.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).isAccessible();
     }
 
     /**

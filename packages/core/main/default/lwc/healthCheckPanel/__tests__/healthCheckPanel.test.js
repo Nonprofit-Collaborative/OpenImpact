@@ -188,6 +188,11 @@ describe('c-health-check-panel', () => {
 
     expect(handler).toHaveBeenCalled();
     expect(handler.mock.calls[0][0].detail.section).toBe('Access');
+    expect(mockNavigate).toHaveBeenCalledWith({
+      type: 'standard__navItemPage',
+      attributes: { apiName: 'Nonprofit_Settings' },
+      state: { c__section: 'Access' }
+    });
   });
 
   it('is read only without the permission', async () => {

@@ -202,25 +202,32 @@ private class HealthCheckServiceTest {
 
     @IsTest
     static void anOrgWithNobodyInTheAdminRoleIsAnError() {
-        OrgShapeDetector.overrideShape = shape(false, false, false, false);
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
 
-        HealthCheckService.Finding finding = find(HealthCheckService.run(), 'no_nonprofit_admin');
+        System.runAs(maria) {
+            OrgShapeDetector.overrideShape = shape(false, false, false, false);
 
-        System.assertNotEquals(
-            null,
-            finding,
-            'No packaged role has been assigned in a test org, so this is reported.'
-        );
-        System.assertEquals(
-            HealthCheckService.SEVERITY_ERROR,
-            finding.severity,
-            'Nobody able to administer the app is an error.'
-        );
-        System.assertEquals(
-            HealthCheckService.SECTION_ACCESS,
-            finding.fixTarget,
-            'The fix opens the Access page.'
-        );
+            HealthCheckService.Finding finding = find(
+                HealthCheckService.run(),
+                'no_nonprofit_admin'
+            );
+
+            System.assertNotEquals(
+                null,
+                finding,
+                'No packaged role has been assigned in a test org, so this is reported.'
+            );
+            System.assertEquals(
+                HealthCheckService.SEVERITY_ERROR,
+                finding.severity,
+                'Nobody able to administer the app is an error.'
+            );
+            System.assertEquals(
+                HealthCheckService.SECTION_ACCESS,
+                finding.fixTarget,
+                'The fix opens the Access page.'
+            );
+        }
     }
 
     @IsTest
@@ -231,50 +238,97 @@ private class HealthCheckServiceTest {
             WHERE Name = :HealthCheckService.PERMISSION_SET_ADMIN
             LIMIT 1
         ];
-        if (packaged.isEmpty()) {
-            return;
+        System.assert(
+            !packaged.isEmpty(),
+            'The Nonprofit Admin permission set is not in this org. It ships with the access ' +
+            'feature (C-06), which has to merge before this test means anything.'
+        );
+
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
+        System.runAs(HealthCheckTestHelper.currentUser()) {
+            insert new PermissionSetAssignment(
+                AssigneeId = maria.Id,
+                PermissionSetId = packaged[0].Id
+            );
         }
 
-        User maria = new User(
-            Alias = 'maria',
-            Email = 'maria@example.invalid',
-            EmailEncodingKey = 'UTF-8',
-            FirstName = 'Maria',
-            LastName = 'Operations',
-            LanguageLocaleKey = 'en_US',
-            LocaleSidKey = 'en_US',
-            ProfileId = UserInfo.getProfileId(),
-            TimeZoneSidKey = 'America/New_York',
-            Username = 'maria.direct.' + System.now().getTime() + '@example.invalid'
-        );
-        insert maria;
-        insert new PermissionSetAssignment(AssigneeId = maria.Id, PermissionSetId = packaged[0].Id);
+        System.runAs(maria) {
+            OrgShapeDetector.overrideShape = shape(false, false, false, false);
 
-        OrgShapeDetector.overrideShape = shape(false, false, false, false);
-
-        System.assertEquals(
-            null,
-            find(HealthCheckService.run(), 'no_nonprofit_admin'),
-            'Someone given the admin permission set by hand is still an administrator.'
-        );
+            System.assertEquals(
+                null,
+                find(HealthCheckService.run(), 'no_nonprofit_admin'),
+                'Someone given the admin permission set by hand is still an administrator.'
+            );
+        }
     }
 
     @IsTest
     static void usersWithNoRoleAreCounted() {
-        OrgShapeDetector.overrideShape = shape(false, false, false, false);
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
 
-        HealthCheckService.Finding finding = find(HealthCheckService.run(), 'users_without_access');
+        System.runAs(maria) {
+            OrgShapeDetector.overrideShape = shape(false, false, false, false);
 
-        System.assertNotEquals(
-            null,
-            finding,
-            'The running user holds no packaged role, so at least one user is counted.'
-        );
-        System.assertEquals(
-            HealthCheckService.SEVERITY_WARNING,
-            finding.severity,
-            'People who cannot see the app is a warning, not an error.'
-        );
+            HealthCheckService.Finding finding = find(
+                HealthCheckService.run(),
+                'users_without_access'
+            );
+
+            System.assertNotEquals(
+                null,
+                finding,
+                'Nobody in a test org holds a packaged role, so people are counted.'
+            );
+            System.assertEquals(
+                HealthCheckService.SEVERITY_WARNING,
+                finding.severity,
+                'People who cannot see the app is a warning, not an error.'
+            );
+        }
+    }
+
+    @IsTest
+    static void someoneWhoCannotSeeTheAnswerIsNotGivenAWrongOne() {
+        User priya = HealthCheckTestHelper.priyaWithoutManageSettings();
+
+        System.runAs(priya) {
+            OrgShapeDetector.overrideShape = shape(false, false, false, false);
+            List<HealthCheckService.Finding> findings = HealthCheckService.run();
+
+            System.assertEquals(
+                null,
+                find(findings, 'no_nonprofit_admin'),
+                'Priya sees her own assignments and nothing else, so the count would be wrong.'
+            );
+            System.assertEquals(
+                null,
+                find(findings, 'users_without_access'),
+                'The same is true of counting who cannot see the app.'
+            );
+            System.assertEquals(
+                null,
+                find(findings, 'error_log_new'),
+                'And of counting errors she may not be allowed to read.'
+            );
+
+            HealthCheckService.Finding gate = find(findings, 'access_checks_need_admin');
+            System.assertNotEquals(
+                null,
+                gate,
+                'She is told why the access checks are missing rather than left guessing.'
+            );
+            System.assertEquals(
+                HealthCheckService.SEVERITY_INFO,
+                gate.severity,
+                'Not being an administrator is information, not a fault.'
+            );
+            System.assertNotEquals(
+                null,
+                find(findings, 'org_shape'),
+                'Everything that does not depend on seeing other people still runs.'
+            );
+        }
     }
 
     @IsTest
@@ -292,6 +346,29 @@ private class HealthCheckServiceTest {
             finding.severity,
             'Pausing is a normal thing to do during a load.'
         );
+        System.assertEquals(
+            null,
+            find(HealthCheckService.run(), 'automation_running'),
+            'Automation cannot be both paused and running.'
+        );
+    }
+
+    @IsTest
+    static void automationThatIsRunningIsSaidSo() {
+        OrgShapeDetector.overrideShape = shape(false, false, false, false);
+
+        HealthCheckService.Finding finding = find(HealthCheckService.run(), 'automation_running');
+
+        System.assertNotEquals(
+            null,
+            finding,
+            'Maria is told automation is running, so silence never has to be interpreted.'
+        );
+        System.assertEquals(
+            HealthCheckService.SEVERITY_INFO,
+            finding.severity,
+            'Working normally is information.'
+        );
     }
 
     @IsTest
@@ -301,16 +378,22 @@ private class HealthCheckServiceTest {
             new Map<String, Object>{ 'Automation_Paused_Until__c' => System.now().addHours(-1) }
         );
 
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+
         System.assertEquals(
             null,
-            find(HealthCheckService.run(), 'automation_paused'),
+            find(findings, 'automation_paused'),
             'A pause that has expired is not news.'
+        );
+        System.assertNotEquals(
+            null,
+            find(findings, 'automation_running'),
+            'Once the pause expires, automation is running again.'
         );
     }
 
     @IsTest
     static void unreadErrorsAreCounted() {
-        OrgShapeDetector.overrideShape = shape(false, false, false, false);
         insert new Error_Log__c(
             Timestamp__c = System.now(),
             Context__c = 'Health Check test',
@@ -318,27 +401,95 @@ private class HealthCheckServiceTest {
             Severity__c = 'Error',
             Status__c = 'New'
         );
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
 
-        HealthCheckService.Finding finding = find(HealthCheckService.run(), 'error_log_new');
+        System.runAs(maria) {
+            OrgShapeDetector.overrideShape = shape(false, false, false, false);
 
-        System.assertNotEquals(null, finding, 'A new error is surfaced where Maria will see it.');
-        System.assertEquals(
-            HealthCheckService.SEVERITY_WARNING,
-            finding.severity,
-            'Unread errors are a warning.'
-        );
-        System.assert(finding.title.contains('1'), 'The title says how many there are.');
+            HealthCheckService.Finding finding = find(HealthCheckService.run(), 'error_log_new');
+
+            System.assertNotEquals(
+                null,
+                finding,
+                'A new error is surfaced where Maria will see it.'
+            );
+            System.assertEquals(
+                HealthCheckService.SEVERITY_WARNING,
+                finding.severity,
+                'Unread errors are a warning.'
+            );
+            System.assert(finding.title.contains('1'), 'The title says how many there are.');
+        }
     }
 
     @IsTest
     static void noUnreadErrorsMeansNoFinding() {
-        OrgShapeDetector.overrideShape = shape(false, false, false, false);
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
 
+        System.runAs(maria) {
+            OrgShapeDetector.overrideShape = shape(false, false, false, false);
+
+            System.assertEquals(
+                null,
+                find(HealthCheckService.run(), 'error_log_new'),
+                'An empty Error Log produces no finding at all.'
+            );
+        }
+    }
+
+    @IsTest
+    static void oneFailingCheckDoesNotHideTheOthers() {
+        OrgShapeDetector.overrideShape = shape(true, false, false, false);
+        HealthCheckService.faultInjection = new BrokenCheck();
+
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+
+        HealthCheckService.Finding failed = find(findings, 'check_failed_injected');
+        System.assertNotEquals(null, failed, 'The check that failed says so, by name.');
         System.assertEquals(
-            null,
-            find(HealthCheckService.run(), 'error_log_new'),
-            'An empty Error Log produces no finding at all.'
+            HealthCheckService.SEVERITY_WARNING,
+            failed.severity,
+            'One check failing is a warning about the report, not an error about the org.'
         );
+        System.assertNotEquals(
+            null,
+            find(findings, 'org_shape'),
+            'The other eight answers are still there.'
+        );
+        System.assertNotEquals(
+            null,
+            find(findings, 'coexistence_mode_unset'),
+            'Including the ones that come after the failure.'
+        );
+    }
+
+    @IsTest
+    static void anErrorLoggerThatIsItselfBrokenDoesNotTakeTheReportDown() {
+        OrgShapeDetector.overrideShape = shape(true, false, false, false);
+        HealthCheckService.faultInjection = new BrokenCheck();
+        HealthCheckService.loggerFault = new BrokenCheckException('The Error Log is unwritable.');
+
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+
+        System.assertNotEquals(
+            null,
+            find(findings, 'check_failed_injected'),
+            'The failure is still reported even when it could not be written down.'
+        );
+        System.assertNotEquals(
+            null,
+            find(findings, 'org_shape'),
+            'And the rest of the report survives a logger that cannot log.'
+        );
+    }
+
+    private class BrokenCheckException extends Exception {
+    }
+
+    private class BrokenCheck implements HealthCheckService.Check {
+        public HealthCheckService.Finding run() {
+            throw new BrokenCheckException('This check is broken on purpose.');
+        }
     }
 
     @IsTest

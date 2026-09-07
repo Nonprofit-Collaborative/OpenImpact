@@ -46,9 +46,9 @@ There is nothing to do in Salesforce Setup. Detection happens inside the app.
 Maria has just installed Open Impact into her organization's Nonprofit Cloud org. Person
 Accounts are on, because that is how the org was set up for her two years ago.
 
-1. Maria opens the **Nonprofit Hub** app and clicks the **Home** tab. The Health Check card
-   is on the home page.
-2. She clicks **Open Health Check**. The first card is **What we found in your org**.
+1. Maria opens the **Nonprofit Hub** app, clicks the **Nonprofit Settings** tab, and chooses
+   **Health** in the left navigation.
+2. Health Check runs. The first card is **What we found in your org**.
 3. It reads **Person Accounts enabled. Agentforce Nonprofit objects detected.** Underneath,
    in plain language: this is a Nonprofit Cloud org, Open Impact supports it directly, and
    the recommended mode is **Agentforce Nonprofit coexistence**.
@@ -57,7 +57,7 @@ Accounts are on, because that is how the org was set up for her two years ago.
 5. Maria clicks **Use recommended mode**. The page saves Agentforce Nonprofit coexistence,
    switches household membership to junction mode at the same time (Person Accounts require
    it), re-runs itself, and the finding is replaced by **Coexistence mode matches your org**.
-6. She clicks **Nonprofit Settings**, then **General**, and sees Coexistence mode set to
+6. She chooses **General** in the left navigation and sees Coexistence mode set to
    **Agentforce Nonprofit coexistence**. The change is in the settings history with her name
    and the time.
 

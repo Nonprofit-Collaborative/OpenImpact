@@ -64,10 +64,7 @@ private class HealthCheckControllerTest {
 
     @IsTest
     static void withThePermissionTheRecommendationIsApplied() {
-        User maria = userWithManageSettings();
-        if (maria == null) {
-            return;
-        }
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
 
         System.runAs(maria) {
             OrgShapeDetector.overrideShape = npspShape();
@@ -96,10 +93,7 @@ private class HealthCheckControllerTest {
 
     @IsTest
     static void withThePermissionMembershipIsSwitched() {
-        User maria = userWithManageSettings();
-        if (maria == null) {
-            return;
-        }
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
 
         System.runAs(maria) {
             OrgShapeDetector.overrideShape = personAccountsShape();
@@ -114,52 +108,6 @@ private class HealthCheckControllerTest {
                 'The membership fix does what its button says.'
             );
         }
-    }
-
-    /**
-     * A user holding the Manage Nonprofit Settings custom permission, or null when the
-     * custom permission is not in the org yet (it ships with the settings console, C-03).
-     * Returning null rather than failing keeps this class useful while Core is assembled.
-     */
-    private static User userWithManageSettings() {
-        List<CustomPermission> permissions = [
-            SELECT Id
-            FROM CustomPermission
-            WHERE DeveloperName = 'Manage_Nonprofit_Settings'
-            LIMIT 1
-        ];
-        if (permissions.isEmpty()) {
-            return null;
-        }
-
-        PermissionSet permissionSet = new PermissionSet(
-            Name = 'Health_Check_Test_Access',
-            Label = 'Health Check test access'
-        );
-        insert permissionSet;
-        insert new SetupEntityAccess(
-            ParentId = permissionSet.Id,
-            SetupEntityId = permissions[0].Id
-        );
-
-        User maria = new User(
-            Alias = 'maria',
-            Email = 'maria@example.invalid',
-            EmailEncodingKey = 'UTF-8',
-            FirstName = 'Maria',
-            LastName = 'Operations',
-            LanguageLocaleKey = 'en_US',
-            LocaleSidKey = 'en_US',
-            ProfileId = UserInfo.getProfileId(),
-            TimeZoneSidKey = 'America/New_York',
-            Username = 'maria.healthcheck.' + System.now().getTime() + '@example.invalid'
-        );
-        insert maria;
-        insert new PermissionSetAssignment(
-            AssigneeId = maria.Id,
-            PermissionSetId = permissionSet.Id
-        );
-        return maria;
     }
 
     private static OrgShapeDetector.OrgShape npspShape() {

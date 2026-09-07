@@ -7,8 +7,6 @@
  * component.
  */
 public with sharing class HealthCheckController {
-    private static final String MANAGE_SETTINGS = 'Manage_Nonprofit_Settings';
-
     /**
      * The whole report: findings, org shape, current and recommended mode.
      */
@@ -34,9 +32,11 @@ public with sharing class HealthCheckController {
             return HealthCheckService.buildReport();
         } catch (AuraHandledException e) {
             throw e;
+        } catch (CoexistenceService.CoexistenceException e) {
+            throw new AuraHandledException(e.getMessage());
         } catch (Exception e) {
             ErrorLogger.log(e, System.Label.Core_HealthCheck_ErrorContext);
-            throw new AuraHandledException(e.getMessage());
+            throw new AuraHandledException(System.Label.Core_HealthCheck_FixFailed);
         }
     }
 
@@ -51,14 +51,16 @@ public with sharing class HealthCheckController {
             return HealthCheckService.buildReport();
         } catch (AuraHandledException e) {
             throw e;
+        } catch (CoexistenceService.CoexistenceException e) {
+            throw new AuraHandledException(e.getMessage());
         } catch (Exception e) {
             ErrorLogger.log(e, System.Label.Core_HealthCheck_ErrorContext);
-            throw new AuraHandledException(e.getMessage());
+            throw new AuraHandledException(System.Label.Core_HealthCheck_FixFailed);
         }
     }
 
     private static void requireManageSettings() {
-        if (!FeatureManagement.checkPermission(MANAGE_SETTINGS)) {
+        if (!HealthCheckService.canManageSettings()) {
             throw new AuraHandledException(System.Label.Core_HealthCheck_PermissionRequired);
         }
     }

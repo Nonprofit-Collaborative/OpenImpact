@@ -41,7 +41,7 @@ public with sharing class HealthCheckService {
     public static final String GROUP_ADMIN = 'Nonprofit_Admin_Group';
     public static final String PERMISSION_SET_ADMIN = 'Nonprofit_Admin';
     public static final Set<String> NONPROFIT_GROUPS = new Set<String>{
-        'Nonprofit_Admin_Group',
+        GROUP_ADMIN,
         'Fundraising_Staff',
         'Program_Staff',
         'Volunteer_Coordinator',
@@ -53,7 +53,7 @@ public with sharing class HealthCheckService {
      * directly, rather than through a role, has still given that person the app.
      */
     public static final Set<String> NONPROFIT_PERMISSION_SETS = new Set<String>{
-        'Nonprofit_Admin',
+        PERMISSION_SET_ADMIN,
         'Nonprofit_Staff',
         'Nonprofit_Read_Only'
     };
@@ -63,6 +63,20 @@ public with sharing class HealthCheckService {
      * without referencing it at compile time.
      */
     private static final String CONNECT_MARKER_CLASS = 'ConnectService';
+
+    /** The custom permission that gates changing settings and reading who else is in the org. */
+    public static final String MANAGE_SETTINGS = 'Manage_Nonprofit_Settings';
+
+    /**
+     * Test injection points, null in every real transaction: a check that always throws, and
+     * an exception for the Error Log call to throw. Between them they prove that one failing
+     * check, and a logger that is itself broken, still leave the rest of the report standing.
+     */
+    @TestVisible
+    private static Check faultInjection;
+
+    @TestVisible
+    private static Exception loggerFault;
 
     /** One thing Health Check has to say about this org. */
     public class Finding {
@@ -125,89 +139,153 @@ public with sharing class HealthCheckService {
     }
 
     /**
+     * One check. Returning null means there is nothing to report, which is the normal case
+     * for most of them.
+     */
+    public interface Check {
+        Finding run();
+    }
+
+    /** A check and the key its failure is reported under. */
+    private class CheckStep {
+        private final String key;
+        private final Check check;
+
+        private CheckStep(String key, Check check) {
+            this.key = key;
+            this.check = check;
+        }
+    }
+
+    private class OrgShapeCheck implements Check {
+        public Finding run() {
+            return orgShapeFinding(OrgShapeDetector.detect());
+        }
+    }
+
+    private class CoexistenceModeCheck implements Check {
+        public Finding run() {
+            return coexistenceModeFinding();
+        }
+    }
+
+    private class MembershipModeCheck implements Check {
+        public Finding run() {
+            return membershipModeFinding(OrgShapeDetector.detect());
+        }
+    }
+
+    private class ConnectModuleCheck implements Check {
+        public Finding run() {
+            return connectModuleFinding(OrgShapeDetector.detect());
+        }
+    }
+
+    private class MultiCurrencyCheck implements Check {
+        public Finding run() {
+            return multiCurrencyFinding(OrgShapeDetector.detect());
+        }
+    }
+
+    private class NoAdminCheck implements Check {
+        public Finding run() {
+            return noAdminFinding();
+        }
+    }
+
+    private class UsersWithoutAccessCheck implements Check {
+        public Finding run() {
+            return usersWithoutAccessFinding();
+        }
+    }
+
+    private class AutomationCheck implements Check {
+        public Finding run() {
+            return automationFinding();
+        }
+    }
+
+    private class ErrorLogCheck implements Check {
+        public Finding run() {
+            return errorLogFinding();
+        }
+    }
+
+    private class AccessChecksNeedAdminCheck implements Check {
+        public Finding run() {
+            return new Finding(
+                'access_checks_need_admin',
+                System.Label.Core_HealthCheck_AccessNeedsAdminTitle,
+                System.Label.Core_HealthCheck_AccessNeedsAdminDetail,
+                SEVERITY_INFO,
+                CATEGORY_ACCESS
+            );
+        }
+    }
+
+    /**
      * Every finding, in the order an administrator should read them.
+     *
+     * A check that throws becomes one finding of its own; the rest still run, because a
+     * report that hides eight answers because the ninth failed is worse than no report.
      */
     public static List<Finding> run() {
         List<Finding> findings = new List<Finding>();
-        OrgShapeDetector.OrgShape shape = null;
 
-        try {
-            shape = OrgShapeDetector.detect();
-            findings.add(orgShapeFinding(shape));
-        } catch (Exception e) {
-            findings.add(checkFailed('org_shape', e));
-        }
-
-        try {
-            findings.add(coexistenceModeFinding(shape));
-        } catch (Exception e) {
-            findings.add(checkFailed('coexistence_mode', e));
-        }
-
-        try {
-            Finding membership = membershipModeFinding(shape);
-            if (membership != null) {
-                findings.add(membership);
+        for (CheckStep step : steps()) {
+            try {
+                Finding finding = step.check.run();
+                if (finding != null) {
+                    findings.add(finding);
+                }
+            } catch (Exception e) {
+                findings.add(checkFailed(step.key, e));
             }
-        } catch (Exception e) {
-            findings.add(checkFailed('membership_mode', e));
-        }
-
-        try {
-            Finding connect = connectModuleFinding(shape);
-            if (connect != null) {
-                findings.add(connect);
-            }
-        } catch (Exception e) {
-            findings.add(checkFailed('connect_module', e));
-        }
-
-        try {
-            Finding currencyFinding = multiCurrencyFinding(shape);
-            if (currencyFinding != null) {
-                findings.add(currencyFinding);
-            }
-        } catch (Exception e) {
-            findings.add(checkFailed('multi_currency', e));
-        }
-
-        try {
-            Finding noAdmin = noAdminFinding();
-            if (noAdmin != null) {
-                findings.add(noAdmin);
-            }
-        } catch (Exception e) {
-            findings.add(checkFailed('nonprofit_admin', e));
-        }
-
-        try {
-            Finding withoutAccess = usersWithoutAccessFinding();
-            if (withoutAccess != null) {
-                findings.add(withoutAccess);
-            }
-        } catch (Exception e) {
-            findings.add(checkFailed('users_without_access', e));
-        }
-
-        try {
-            Finding paused = automationPausedFinding();
-            if (paused != null) {
-                findings.add(paused);
-            }
-        } catch (Exception e) {
-            findings.add(checkFailed('automation_paused', e));
-        }
-
-        try {
-            Finding errors = errorLogFinding();
-            if (errors != null) {
-                findings.add(errors);
-            }
-        } catch (Exception e) {
-            findings.add(checkFailed('error_log', e));
         }
 
         return findings;
+    }
+
+    /**
+     * The checks to run, in reading order. The access and Error Log counts are only asked
+     * for when the viewer can actually see the answer: a person without the administrator
+     * permission sees their own permission set assignments and nothing else, and a count
+     * taken from that is confidently wrong, which is worse than no count at all.
+     */
+    private static List<CheckStep> steps() {
+        List<CheckStep> steps = new List<CheckStep>();
+        if (faultInjection != null) {
+            steps.add(new CheckStep('injected', faultInjection));
+        }
+
+        steps.add(new CheckStep('org_shape', new OrgShapeCheck()));
+        steps.add(new CheckStep('coexistence_mode', new CoexistenceModeCheck()));
+        steps.add(new CheckStep('membership_mode', new MembershipModeCheck()));
+        steps.add(new CheckStep('connect_module', new ConnectModuleCheck()));
+        steps.add(new CheckStep('multi_currency', new MultiCurrencyCheck()));
+
+        if (canManageSettings()) {
+            steps.add(new CheckStep('nonprofit_admin', new NoAdminCheck()));
+            steps.add(new CheckStep('users_without_access', new UsersWithoutAccessCheck()));
+        } else {
+            steps.add(new CheckStep('access_checks_need_admin', new AccessChecksNeedAdminCheck()));
+        }
+
+        steps.add(new CheckStep('automation', new AutomationCheck()));
+
+        if (canManageSettings()) {
+            steps.add(new CheckStep('error_log', new ErrorLogCheck()));
+        }
+
+        return steps;
+    }
+
+    /**
+     * Whether the viewer may change settings, which is also the permission that lets them
+     * see who else is in the org.
+     */
+    public static Boolean canManageSettings() {
+        return FeatureManagement.checkPermission(MANAGE_SETTINGS);
     }
 
     /**
@@ -216,7 +294,7 @@ public with sharing class HealthCheckService {
     public static Report buildReport() {
         Report report = new Report();
         report.findings = run();
-        report.canManageSettings = FeatureManagement.checkPermission('Manage_Nonprofit_Settings');
+        report.canManageSettings = canManageSettings();
 
         try {
             report.orgShape = OrgShapeDetector.detect();
@@ -224,7 +302,7 @@ public with sharing class HealthCheckService {
             report.recommendedMode = OrgShapeDetector.recommendedCoexistenceMode();
             report.recommendedModeLabel = modeLabel(report.recommendedMode);
         } catch (Exception e) {
-            ErrorLogger.log(e, System.Label.Core_HealthCheck_ErrorContext);
+            logQuietly(e);
         }
 
         try {
@@ -235,7 +313,7 @@ public with sharing class HealthCheckService {
                 (report.recommendedMode != null &&
                 !report.recommendedMode.equals(report.currentMode));
         } catch (Exception e) {
-            ErrorLogger.log(e, System.Label.Core_HealthCheck_ErrorContext);
+            logQuietly(e);
         }
 
         return report;
@@ -283,7 +361,7 @@ public with sharing class HealthCheckService {
         return String.join(detected, '. ') + '.';
     }
 
-    private static Finding coexistenceModeFinding(OrgShapeDetector.OrgShape shape) {
+    private static Finding coexistenceModeFinding() {
         String recommended = OrgShapeDetector.recommendedCoexistenceMode();
         String current = CoexistenceService.getCurrentMode();
 
@@ -425,11 +503,17 @@ public with sharing class HealthCheckService {
             .withFix(System.Label.Core_HealthCheck_AccessFix, SECTION_ACCESS);
     }
 
-    private static Finding automationPausedFinding() {
+    private static Finding automationFinding() {
         Nonprofit_Settings__c settings = SettingsService.getSettings();
         Datetime pausedUntil = settings == null ? null : settings.Automation_Paused_Until__c;
         if (pausedUntil == null || pausedUntil <= System.now()) {
-            return null;
+            return new Finding(
+                'automation_running',
+                System.Label.Core_HealthCheck_AutomationRunningTitle,
+                System.Label.Core_HealthCheck_AutomationRunningDetail,
+                SEVERITY_INFO,
+                CATEGORY_SETTINGS
+            );
         }
 
         String detail = String.format(
@@ -467,7 +551,7 @@ public with sharing class HealthCheckService {
     }
 
     private static Finding checkFailed(String checkKey, Exception e) {
-        ErrorLogger.log(e, System.Label.Core_HealthCheck_ErrorContext);
+        logQuietly(e);
         String detail = String.format(
             System.Label.Core_HealthCheck_CheckFailedDetail,
             new List<Object>{ checkKey }
@@ -495,5 +579,21 @@ public with sharing class HealthCheckService {
             return System.Label.Core_CoexistenceMode_Standalone;
         }
         return System.Label.Core_CoexistenceMode_Unset;
+    }
+
+    /**
+     * Write one failure to the Error Log without ever letting the writing of it become a
+     * second failure. Canonical model R-E2: a failure to log is swallowed rather than masking
+     * the original error.
+     */
+    private static void logQuietly(Exception e) {
+        try {
+            if (loggerFault != null) {
+                throw loggerFault;
+            }
+            ErrorLogger.log(e, System.Label.Core_HealthCheck_ErrorContext);
+        } catch (Exception loggingFailed) {
+            System.debug(LoggingLevel.ERROR, loggingFailed);
+        }
     }
 }

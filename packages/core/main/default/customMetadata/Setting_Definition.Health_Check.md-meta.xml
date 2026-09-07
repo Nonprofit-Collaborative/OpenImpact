@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<CustomMetadata
-  xmlns="http://soap.sforce.com/2006/04/metadata"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
->
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <label>Health Check</label>
   <protected>false</protected>
   <values>
@@ -31,13 +28,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">
-      What Open Impact found in your org, whether the settings match it, who can get into the
-      app, and
-      anything currently in the way. Every finding says what to do about it, and most of them have a
-      button that takes you there. Run it after you install, after you add people, and any time
-      something feels wrong.
-    </value>
+    <value xsi:type="xsd:string">What Open Impact found in your org, whether the settings match it, who can get into the app, and anything currently in the way. Every finding says what to do about it, and most of them have a button that takes you there. Run it after you install, after you add people, and any time something feels wrong.</value>
   </values>
   <values>
     <field>Help_Path__c</field>
