@@ -26,10 +26,12 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0015](0015-vendor-apex-rollup-behind-adapter.md) | Vendor apex-rollup as the aggregation core, behind an OpenImpact adapter | Accepted |
 | [0016](0016-receipt-pdf-rendering.md) | Receipt PDFs are rendered by the Visualforce PDF rendering service, called from Apex | Proposed |
 | [0017](0017-cross-package-mechanisms.md) | Cross-package mechanisms under one namespace: NamespaceAccessible, per-package settings objects, registry-driven trigger dispatch | Accepted |
+| [0018](0018-module-tabs-and-apps.md) | Each module ships its own Lightning app; the Hub links to the module apps | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013 and ADR-0014 are builder decisions recorded under the
-platform-limitation rule in plan Section 9.3. ADR-0015 records the ADR-0011 evaluation outcome.
+platform-limitation rule in plan Section 9.3, as are ADR-0017 and ADR-0018. ADR-0015 records
+the ADR-0011 evaluation outcome.
 ADR-0016 is proposed for the owner's decision at v0.4 (plan Section 11.2 item 6).
 
 ## Adding a new ADR
