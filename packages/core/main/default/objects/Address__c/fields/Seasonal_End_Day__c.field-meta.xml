@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Seasonal_End_Day__c</fullName>
+  <description>The day of the end month, as a number from 1 to 31. Required when the type is Seasonal.</description>
+  <externalId>false</externalId>
+  <inlineHelpText>The day of the end month, as a number from 1 to 31. Required when the type is Seasonal.</inlineHelpText>
+  <label>Seasonal End Day</label>
+  <precision>2</precision>
+  <required>false</required>
+  <scale>0</scale>
+  <trackTrending>false</trackTrending>
+  <type>Number</type>
+  <unique>false</unique>
+</CustomField>

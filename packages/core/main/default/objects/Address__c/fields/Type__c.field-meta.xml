@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Type__c</fullName>
+  <description>What kind of address this is. Seasonal addresses take over automatically while today falls inside their date range.</description>
+  <inlineHelpText>What kind of address this is. Seasonal addresses take over automatically while today falls inside their date range.</inlineHelpText>
+  <label>Type</label>
+  <required>true</required>
+  <trackTrending>false</trackTrending>
+  <type>Picklist</type>
+  <valueSet>
+    <restricted>true</restricted>
+    <valueSetDefinition>
+      <sorted>false</sorted>
+      <value>
+        <fullName>Home</fullName>
+        <default>true</default>
+        <label>Home</label>
+      </value>
+      <value>
+        <fullName>Work</fullName>
+        <default>false</default>
+        <label>Work</label>
+      </value>
+      <value>
+        <fullName>Mailing</fullName>
+        <default>false</default>
+        <label>Mailing</label>
+      </value>
+      <value>
+        <fullName>Seasonal</fullName>
+        <default>false</default>
+        <label>Seasonal</label>
+      </value>
+      <value>
+        <fullName>Other</fullName>
+        <default>false</default>
+        <label>Other</label>
+      </value>
+    </valueSetDefinition>
+  </valueSet>
+</CustomField>

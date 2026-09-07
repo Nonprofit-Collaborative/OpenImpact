@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Seasonal_Addresses</fullName>
+  <columns>NAME</columns>
+  <columns>Account__c</columns>
+  <columns>Contact__c</columns>
+  <columns>Street__c</columns>
+  <columns>City__c</columns>
+  <columns>State__c</columns>
+  <columns>Seasonal_Start_Month__c</columns>
+  <columns>Seasonal_Start_Day__c</columns>
+  <columns>Seasonal_End_Month__c</columns>
+  <columns>Seasonal_End_Day__c</columns>
+  <columns>Is_Default__c</columns>
+  <filterScope>Everything</filterScope>
+  <filters>
+    <field>Type__c</field>
+    <operation>equals</operation>
+    <value>Seasonal</value>
+  </filters>
+  <label>Seasonal Addresses</label>
+</ListView>
