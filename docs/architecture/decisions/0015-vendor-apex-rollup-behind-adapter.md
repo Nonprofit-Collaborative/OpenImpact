@@ -36,7 +36,7 @@ for vendoring rather than depending.
 ## Decision
 
 We **vendor apex-rollup's `rollup/core` directory as source into Core**, under
-`packages/core/main/vendor/apex-rollup/`, retaining the MIT licence text and copyright notice, and we **drive it
+`packages/core/vendor/apex-rollup/`, retaining the MIT licence text and copyright notice, and we **drive it
 through an adapter we own**. Concretely:
 
 1. We vendor `rollup/core` (32 classes, 13,253 lines) and `rollup/tests`. We do not vendor `rollup/app`: no
@@ -48,13 +48,23 @@ through an adapter we own**. Concretely:
    `Rollup.performBulkFullRecalc(List<Rollup__mdt>, String)` for scheduled mode. No `Rollup__mdt` record is ever
    created in a subscriber org, so there is no metadata deployment, no remote site setting and no admin-visible
    custom metadata.
-3. Four patches are applied and recorded in `VENDOR.md`: (a) the merge-eligibility check in `Rollup.cls` becomes
+3. Four patches are named here and six were applied, all recorded in `VENDOR.md` (E ports the vendored
+   tests off the Sales Cloud objects, F strips dangling metadata references and makes the upstream
+   configuration protected): (a) the merge-eligibility check in `Rollup.cls` becomes
    a name-based check against a configurable set, removing the static `Schema.Case` and `Schema.Lead`
    references; (b) the `'Opportunity'` and `'OpportunitySplit'` dated-multicurrency literals in
    `RollupCurrencyInfo.cls` move into a custom metadata-driven map; (c) `global` is downgraded to `public`
-   throughout, since we ship none of their invocable actions; (d) our adapter defaults
-   `RollupControl__mdt.ShouldRunAs__c` and `Rollup__mdt.SharingMode__c` to `User`, with `System` only where a
-   documented reason exists. `check-standard-objects.sh` gains no path exclusion: after (a) and (b) the vendored
+   throughout, since we ship none of their invocable actions; (d) the sharing posture is documented rather than
+   claimed away. **Correction, 2026-09-07:** an earlier version of this item said our adapter defaults
+   `RollupControl__mdt.ShouldRunAs__c` and `Rollup__mdt.SharingMode__c` to `User`. That was wrong on both
+   counts. `ShouldRunAs__c` selects the execution context only (Queueable, Batchable, Synchronous Rollup); it
+   has no sharing meaning and no value named `User`. `SharingMode__c` affects queries only: it becomes the
+   `AccessLevel` on the SOQL in `RollupRepository`. The writes in `RollupSObjectUpdater` and `RollupState` pass
+   `System.AccessLevel.SYSTEM_MODE` unconditionally and no setting changes that. The engine writes rollup
+   targets in system mode by design, because computed totals must be correct regardless of the running user's
+   sharing, and no user input reaches these writes. That is the documented exception under plan Section 4.13,
+   and `VENDOR.md` patch C states it once for all 29 `without sharing` engine classes. The adapter default that
+   remains real, and is deferred to `RollupAdapter` in C-14, is `SharingMode__c`. `check-standard-objects.sh` gains no path exclusion: after (a) and (b) the vendored
    tree passes it as-is, which is the acceptance test for those patches.
 4. Upstream is tracked deliberately, not continuously (ADR-0011). `VENDOR.md` records upstream URL, licence, the
    vendored commit hash and tag (`6dc353c670fc381a56ac29968be2d1fbf7f60527`, v1.7.44), the date, the four
@@ -66,7 +76,7 @@ through an adapter we own**. Concretely:
   walking, 43 date literals and an in-memory where clause evaluator, about 3,000 lines of the
   highest-correctness-risk code in the product, to reach parity with something that exists and is tested.
 - **Take apex-rollup as a package dependency** instead of vendoring source. Rejected: ADR-0003 keeps Core's
-  dependency graph empty, install becomes two steps, and the four patches above become impossible.
+  dependency graph empty, install becomes two steps, and the six patches recorded in `VENDOR.md` become impossible.
 - **DLRS.** Rejected: runtime Metadata API trigger deployment, its own admin console, no multi-hop, a pinned
   namespace, and a 65,000-line footprint including fflib.
 - **NPSP Customizable Rollups.** Rejected: not extractable. Fifty NPSP class dependencies, a runtime metadata
@@ -78,23 +88,27 @@ through an adapter we own**. Concretely:
 
 - Core carries about 13,000 lines of third-party Apex plus its tests. Someone must read upstream release notes
   and decide, and a security finding in vendored code is our finding.
-- The four patches are a rebase cost on every upstream pull. They are kept minimal and mechanical for that
+- The patches are a rebase cost on every upstream pull. They are kept minimal and mechanical for that
   reason, and `VENDOR.md` states each rationale so a future maintainer can tell whether upstream has made one
   unnecessary.
 - Coverage (plan Section 7.2) is computed over the whole package. Vendored tests help, but our adapter tests
   must stand on their own and must not lean on upstream coverage.
-- The `without sharing` posture is inherited. Defaulting `ShouldRunAs__c` and `SharingMode__c` to User is a
-  mitigation, not a cure: v0.10 security review preparation treats the vendored tree as in scope and documents
-  every remaining `AccessLevel.SYSTEM_MODE` write.
+- The `without sharing` posture is inherited, and there is no setting that undoes it: 29 of the 32 engine
+  classes are `without sharing`, and every rollup write is system mode by design. `SharingMode__c` moves the
+  reads only. v0.10 security review preparation treats the vendored tree as in scope and documents every
+  remaining `AccessLevel.SYSTEM_MODE` write, starting from the patch C section of `VENDOR.md`.
 - `RollupState.cls` serialises chained-job state with a DataWeave script resource. If packaging a `.dwl` in a
   2GP managed package proves problematic, the fallback
   `RollupControl__mdt.ShouldUseJSONSerializationStrategy__c` already exists. Verified in the first packaging
   build, not later.
 - The 100k contact and 1M gift claim is structural, not measured. It is proven by the v0.10 scale test, and this
   decision is revisited if that test fails after tuning `RollupControl__mdt`.
+- Every vendored custom metadata type ships `Protected` and every vendored custom metadata record ships
+  `protected`, so item 1's promise that the administrator never sees `Rollup__mdt` holds in a subscriber org
+  rather than only in our own UI. This is decided before the first package version because it cannot be
+  relaxed afterwards: a protected type cannot be made public once subscribers hold a version.
 - If apex-rollup stops being maintained we keep a working MIT copy and become its maintainer for our purposes.
   That is the outcome vendoring was chosen to make survivable.
-```
 
 ## Integration plan for the recommended option
 
@@ -124,9 +138,9 @@ per-target `..._Last_Calculated__c` sibling after each successful run, from the 
 per job chain rather than once per chunk. The Hub reads the maximum across active definitions for "Rollups last
 completed" and raises the 36-hour warning tile. Upstream has no such concept and needs none.
 
-**Upgrade management.** `packages/core/main/vendor/apex-rollup/VENDOR.md` records upstream URL and licence file,
+**Upgrade management.** `packages/core/vendor/apex-rollup/VENDOR.md` records upstream URL and licence file,
 vendored commit `6dc353c670fc381a56ac29968be2d1fbf7f60527` (tag v1.7.44, 2026-07-30), the vendored subtree
-(`rollup/core`, `rollup/tests`), the four patches with rationale and the file and line each touches, and the
+(`rollup/core`, `rollup/tests`), the patches with rationale and the file and line each touches, and the
 pull procedure: fetch upstream, diff the new tag against the vendored hash, reapply the patches, run the full
 Core suite plus `check-standard-objects.sh` and `check-namespace.sh`, then update the hash and date in
 `VENDOR.md` in the same pull request. Upstream is reviewed on a schedule and on security advisories, never

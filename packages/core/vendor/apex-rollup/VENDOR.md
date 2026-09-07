@@ -160,21 +160,47 @@ nothing. Re-run the same substitution on any new upstream file.
 
 **Files:** `RollupSObjectUpdater.cls`, `RollupState.cls`, `RollupRepository.cls`
 
-**What changed.** No behavior change. A header comment block was added to the classes that write
-records, recording the documented exception required by plan Section 4.13.
+**What changed.** No behavior change at all: comment blocks only. A header block was added to the
+two classes that write records and to the one that reads them, recording the documented exception
+plan Section 4.13 requires.
 
-**Why.** Plan Section 4.13 requires all Apex to run `with sharing` unless a documented reason
-exists. The vendored engine is `without sharing` and does `System.AccessLevel.SYSTEM_MODE` DML. The
-documented reason: a rollup total is a property of the whole child record set, so a total computed
-under the running user's sharing would be silently wrong for any user who cannot see every child,
-and it would then be written to a field every user reads. No user-supplied string reaches these
-writes: the object and field names come from `Rollup_Definition__c` rows an administrator created,
-and the values are aggregates the engine computed. Upstream's own mitigations remain available,
-`RollupControl__mdt.ShouldRunAs__c` and `Rollup__mdt.SharingMode__c`, and `RollupAdapter` sets them.
+**The exception, stated once for the whole tree.** The engine writes rollup targets in system mode
+by design, because computed totals must be correct regardless of the running user's sharing, and no
+user input reaches these writes. A total computed under the running user's sharing would be silently
+wrong for anyone who cannot see every child record, and that wrong total would then be written to a
+field every other user reads. The values written are aggregates the engine computed from records it
+queried; the object and field names come from configuration, which under the planned Open Impact
+integration is `Rollup_Definition__c` rows an administrator created and the console validated
+(`RollupAdapter` and `Rollup_Definition__c` are C-14 work and do not exist yet).
 
-The `without sharing` declarations and the system-mode DML were deliberately left in place rather
-than changed, so that the next upstream pull is a clean rebase. This is a v0.10 security review item
-and every remaining system-mode write is in scope there.
+**Scope: 29 of the 32 engine classes.** The whole vendored tree is `without sharing` by upstream
+design. 29 of the 32 engine classes carry the `without sharing` keyword; the remaining three
+(`RollupContextFlowPicklistProvider`, `RollupFieldInitializer`, `RollupOperation`) declare no
+sharing keyword and so run in the caller's context, which in practice is one of the 29. Plan Section
+4.13 asks for a documented reason per class, and this paragraph is that reason for all 29 at once:
+they are one engine, they exist only to compute and commit aggregates, and splitting the posture
+across them would produce partial totals rather than protection. The three per-class header blocks
+mark the classes that actually write (`RollupSObjectUpdater`, `RollupState`) and the one that
+queries (`RollupRepository`); the other 26 are covered here. This paragraph is the entry point for
+the v0.10 security review item, which treats the vendored tree as in scope and enumerates every
+remaining system-mode write.
+
+**What the two upstream settings actually do.** Earlier drafts of this section and of ADR-0015 item
+4(d) described them as a sharing mitigation. They are not, and the code says so plainly:
+
+- `RollupControl__mdt.ShouldRunAs__c` selects the execution context only. Its three values are
+  Queueable, Batchable and Synchronous Rollup. It has no sharing meaning and no value named User.
+- `Rollup__mdt.SharingMode__c` affects queries only. `RollupMetaPicklists` maps it to a
+  `RollupRepository.RunAsMode`, which becomes the `System.AccessLevel` on the SOQL that
+  `RollupRepository` issues.
+- The writes are unconditional system mode. `RollupSObjectUpdater` and `RollupState` pass
+  `System.AccessLevel.SYSTEM_MODE` on every DML statement, and no custom metadata setting changes
+  that. Setting `SharingMode__c` to User moves the reads, never the writes.
+
+ADR-0015 item 4(d) is corrected in the same pull request.
+
+**Why the posture was left alone.** The `without sharing` declarations and the system-mode DML were
+deliberately not changed, so that the next upstream pull is a clean rebase.
 
 **Re-applying on the next pull.** Re-add the comment blocks. They are comments only, so a conflict
 here can never be a behavior change.
