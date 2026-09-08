@@ -185,15 +185,23 @@ private class ErrorLoggerTest {
     static void anEntrySurvivesTheRollbackItDocuments() {
         // The failure this feature exists for ends in a rollback. An ordinary insert would be
         // undone with everything else, so the entry is published as a platform event instead
-        // (canonical model rule R-E4).
+        // (canonical model rule R-E4). The person who hits the failure is David doing the day job,
+        // whose access comes from the packaged permission set and not from a system administrator
+        // profile, so the log runs inside System.runAs him: publishing is governed by Create on
+        // the event, and if Nonprofit Staff did not carry it the writer would silently fall back
+        // to the direct insert and the entry would go down with the rollback.
+        User david = TestDataFactory.createUser('David', new List<String>{ 'Nonprofit_Staff' });
+
         Test.startTest();
         Savepoint beforeTheFailure = Database.setSavepoint();
         TestDataFactory.insertErrorLogs(1, ErrorLogger.STATUS_NEW);
-        ErrorLogger.logMessage(
-            'The household could not be renamed, so nothing was saved.',
-            'Rollback',
-            ErrorLogger.SEVERITY_ERROR
-        );
+        System.runAs(david) {
+            ErrorLogger.logMessage(
+                'The household could not be renamed, so nothing was saved.',
+                'Rollback',
+                ErrorLogger.SEVERITY_ERROR
+            );
+        }
         Database.rollback(beforeTheFailure);
         Test.getEventBus().deliver();
         Test.stopTest();
@@ -216,7 +224,7 @@ private class ErrorLoggerTest {
         );
         Assert.areEqual(ErrorLogger.SEVERITY_ERROR, survived[0].Severity__c, 'And its severity.');
         Assert.areEqual(ErrorLogger.STATUS_NEW, survived[0].Status__c, 'Waiting to be read.');
-        Assert.areEqual(UserInfo.getUserId(), survived[0].User__c, 'Naming who was working.');
+        Assert.areEqual(david.Id, survived[0].User__c, 'Naming David, who was working.');
         Assert.isNotNull(survived[0].Timestamp__c, 'And when.');
     }
 

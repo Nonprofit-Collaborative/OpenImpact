@@ -15,6 +15,8 @@
 @NamespaceAccessible
 public with sharing class AutomationControl {
     public static final String PAUSE_SETTING_NAME = 'Automation Paused Until';
+    // Bare, and correctly so: a custom permission defined in the same package resolves without a
+    // namespace prefix, so this is not the B5 problem that TriggerHandler.getName had.
     public static final String MANAGE_SETTINGS_PERMISSION = 'Manage_Nonprofit_Settings';
 
     private static final Set<Integer> ALLOWED_PAUSE_HOURS = new Set<Integer>{ 1, 2, 4, 8, 24 };

@@ -29,7 +29,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0019](0019-custom-setting-picklist-keys-stored-as-text.md) | Nonprofit Settings picklist keys are stored as text | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
-(Section 12). ADR-0013 and ADR-0019 are builder decisions recorded under the
+(Section 12). ADR-0013, ADR-0014, and ADR-0019 are builder decisions recorded under the
 platform-limitation rule in plan Section 9.3. ADR-0015 records the ADR-0011 evaluation outcome.
 ADR-0016 is proposed for the owner's decision at v0.4 (plan Section 11.2 item 6).
 

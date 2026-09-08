@@ -412,7 +412,10 @@ end in a rollback: the save is refused and everything written in that transactio
 undone, an Error Log row included. So an entry is not written directly. It is published as
 an **Error Log Event**, which the platform delivers whether or not the transaction commits,
 and a subscriber writes the row. A direct write remains only as the fallback for when
-publishing itself fails.
+publishing itself fails. Publishing is governed by Create on the event, so all three
+packaged permission sets grant Read and Create on **Error Log Event**, Read Only
+included. A user holding none of them falls back to the direct write, and for that user
+the entry survives only when the transaction commits.
 
 ### Salesforce implementation
 
@@ -662,4 +665,5 @@ entity.
 |---|---|---|
 | v0.1 | 2026-09-06 | Initial model: Household, Household Member, Contact, Organization, plus the platform configuration entities Error Log, Automation Setting, Setting Change, Nonprofit Settings, and the shipped-defaults custom metadata Naming Pattern and Automation Registry. |
 | v0.1 | 2026-09-07 | C-05 review fix: Error Log entries are published as `Error_Log_Event__e` (Publish Immediately) and written by a subscriber, so an entry survives the rollback it documents (new rule R-E4). |
+| v0.1 | 2026-09-08 | C-05 review fix: all three packaged permission sets grant Read and Create on `Error_Log_Event__e`, because publishing is governed by Create on the event (rule R-E4). |
 | v0.1 | 2026-09-07 | C-04 and C-05 build. Error Log gains Object Name. Automation Setting gains Handler Class, Object Name, Execution Order, and Package Default, all copied from the shipped registry when a record is materialized. Automation Registry field API names fixed ("Object" and "Order" are reserved words). Error Log and Setting Change record names recorded as auto numbers. Nonprofit Settings picklist keys recorded as text, per ADR-0019. |

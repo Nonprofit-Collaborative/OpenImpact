@@ -98,35 +98,45 @@ private class SettingsServiceTest {
 
     @IsTest
     static void theShippedDefaultsAreExactlyWhatTheFieldsSay() {
-        Nonprofit_Settings__c fresh = Nonprofit_Settings__c.getOrgDefaults();
+        // A text field default value is a formula, so whatever sits inside the quotes is the
+        // value a fresh org gets: " Standalone " is not a coexistence mode the service
+        // recognizes, and a padded pattern puts spaces into every household name C-02 computes.
+        // The formula is read from the field describe and not from getOrgDefaults(), because on a
+        // fresh org that returns an empty in-memory instance whose every value is null, so an
+        // assertion made against it passes whatever the field ships.
+        Map<String, String> expectedByField = new Map<String, String>{
+            'Coexistence_Mode__c' => '"' +
+            SettingsService.COEXISTENCE_MODE_DEFAULT +
+            '"',
+            'Household_Membership_Mode__c' => '"' +
+            SettingsService.MEMBERSHIP_MODE_DEFAULT +
+            '"',
+            'Household_Name_Pattern__c' => '"The {LastName} Family"',
+            'Formal_Greeting_Pattern__c' => '"{Salutation} {FirstName} {LastName}"',
+            'Informal_Greeting_Pattern__c' => '"{FirstName}"'
+        };
+        Map<String, Schema.SObjectField> shipped = Schema.SObjectType.Nonprofit_Settings__c.fields.getMap();
 
-        // A text field default value is a formula, so any padding inside the quotes is part of
-        // the shipped value. Padded defaults would silently fall back to the code default and
-        // would put spaces into every household name C-02 computes.
-        for (
-            String value : new List<String>{
-                fresh.Coexistence_Mode__c,
-                fresh.Household_Membership_Mode__c,
-                fresh.Household_Name_Pattern__c,
-                fresh.Formal_Greeting_Pattern__c,
-                fresh.Informal_Greeting_Pattern__c
-            }
-        ) {
-            Assert.isTrue(
-                value == null || value == value.trim(),
-                'A shipped default must carry no padding: "' + value + '"'
+        for (String fieldName : expectedByField.keySet()) {
+            String formula = shipped.get(fieldName).getDescribe().getDefaultValueFormula();
+            Assert.isNotNull(formula, fieldName + ' ships a default value.');
+            Assert.areEqual(
+                formula,
+                formula.trim(),
+                'The default formula for ' + fieldName + ' carries no padding: "' + formula + '"'
+            );
+            Assert.areEqual(
+                formula.removeStart('"').removeEnd('"'),
+                formula.removeStart('"').removeEnd('"').trim(),
+                'And no padding inside the quotes either: "' + formula + '"'
+            );
+            Assert.areEqual(
+                expectedByField.get(fieldName),
+                formula,
+                'The shipped default for ' + fieldName + ' is exactly the literal we mean.'
             );
         }
-        Assert.isTrue(
-            fresh.Coexistence_Mode__c == null ||
-                fresh.Coexistence_Mode__c == SettingsService.COEXISTENCE_MODE_DEFAULT,
-            'The shipped coexistence mode is one the service recognizes.'
-        );
-        Assert.isTrue(
-            fresh.Household_Membership_Mode__c == null ||
-                fresh.Household_Membership_Mode__c == SettingsService.MEMBERSHIP_MODE_DEFAULT,
-            'So is the shipped membership mode.'
-        );
+
         Assert.isTrue(
             SettingsService.coexistenceModes().contains(SettingsService.COEXISTENCE_MODE_DEFAULT),
             'And the code default is itself one of the offered values.'
