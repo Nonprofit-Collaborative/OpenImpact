@@ -41,6 +41,17 @@ public with sharing class ImportRowProcessor {
 
     private static final String ORGANIZATION_RECORD_TYPE = 'Organization';
 
+    /**
+     * The attributes that can name or find a person. A full name column is not listed because
+     * `splitFullNames` has already turned one into a first and last name by the time anything
+     * asks this question.
+     */
+    private static final List<String> IDENTIFYING_ATTRIBUTES = new List<String>{
+        'LastName',
+        'FirstName',
+        'Email'
+    };
+
     /** What one chunk did, added up by the batch. */
     @NamespaceAccessible
     public class Outcome {
@@ -520,7 +531,11 @@ public with sharing class ImportRowProcessor {
             Boolean hasOrganization = item.organizationKey != null;
             Boolean hasPerson1 = describesPerson(item, ImportMapping.ENTITY_CONTACT_1);
             Boolean hasPerson2 = describesPerson(item, ImportMapping.ENTITY_CONTACT_2);
-            if (!hasOrganization && !hasPerson1 && !hasPerson2) {
+            Boolean identifiesSomebody =
+                hasOrganization ||
+                identifiesPerson(item, ImportMapping.ENTITY_CONTACT_1) ||
+                identifiesPerson(item, ImportMapping.ENTITY_CONTACT_2);
+            if (!identifiesSomebody) {
                 item.error = Label.Core_Import_ErrorRowIdentifiesNobody;
                 continue;
             }
@@ -538,6 +553,28 @@ public with sharing class ImportRowProcessor {
                 item.error = Label.Core_Import_ErrorLastNameMissing;
             }
         }
+    }
+
+    /**
+     * Whether the row carries a value that could name or find this person: a name part or an
+     * email. This is a narrower question than `describesPerson`, and deliberately so. A row that
+     * maps only an address puts a value on the entity, so `describesPerson` says yes, but an
+     * address on its own cannot create a person and cannot match one either, which is exactly what
+     * `Core_Import_ErrorRowIdentifiesNobody` tells the administrator: no name, no email and no
+     * organization means there is nothing to create or match. The organization side of that
+     * sentence is `item.organizationKey`, which is already built from the organization name alone.
+     */
+    private static Boolean identifiesPerson(Working item, String entity) {
+        Map<String, String> held = item.byEntity.get(entity);
+        if (held == null) {
+            return false;
+        }
+        for (String attribute : IDENTIFYING_ATTRIBUTES) {
+            if (String.isNotBlank(held.get(attribute))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Boolean describesPerson(Working item, String entity) {

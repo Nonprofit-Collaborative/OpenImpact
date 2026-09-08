@@ -290,9 +290,9 @@ formatting test asserts on, so that assertion is unchanged rather than rewritten
 
 Everything else about the tests is unchanged: same assertions, same shapes of data, same counts. No
 upstream test performed DML on the sales object, which is what made most of the substitution
-mechanical. The changes fall into four kinds, all verified by
+mechanical. The changes fall into five kinds. The first four are verified by
 `bash scripts/ci/check-apex-offline.sh`, which resolves every field reference against the vendored
-object metadata:
+object metadata; the fifth is not, and the note under it says why:
 
 1. the type name, in declarations, generics, constructors and `SObjectType` references;
 2. field access, both `Type.Field` and `variable.field`;
@@ -302,7 +302,22 @@ object metadata:
    read in context first: a literal naming a field on the parent Account, or on a Contact or
    activity calc item, was deliberately left alone;
 4. relationship paths, where the standard `Account.` prefix becomes `Account__r.` only where the
-   calculation item is the vendored object.
+   calculation item is the vendored object;
+5. stub record Ids, where a literal carrying the sales object's key prefix becomes an Id built from
+   `RollupCalcItem__c`'s own key prefix at run time.
+
+Kind 5 was missed on the first pass and corrected on 2026-09-08, after the first full test run
+against an org. `RollupCalculatorTests` set up 79 in-memory stub records with four literal Ids
+(`...001` through `...004`) carrying the sales object's key prefix. A literal from one object's key
+space is not a valid Id for another, so every test that touched one failed at run time with
+`System.TypeException: Invalid id value for this SObject type`, roughly 25 methods. No compiler
+catches this: an Id literal is a well-formed String at compile time and the platform only checks it
+against the field's owning object when the record is constructed, so `check-apex-offline.sh` passed
+throughout. The fix cannot be another literal, because a custom object's key prefix is assigned by
+the org rather than written in metadata. The file now derives four constants from the describe, and
+keeps them as four fixed constants rather than four `RollupTestUtils.createId` calls because several
+tests depend on two stubs written with the same literal being the same record. Any future upstream
+version of this file needs the same substitution.
 
 Two further changes in this patch exist only to satisfy the offline checker, and change no behavior:
 every `sort` call in `RollupCalcItemSorterTests` now goes through a `List<SObject>` reference,
