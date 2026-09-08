@@ -22,9 +22,12 @@ else sees.
    dashboards that read that way, open the dashboard, choose **Edit**, and in **View
    dashboard as** choose a person who can see all gifts, usually the person who installed
    the package.
-3. Give people access to the folder. In Nonprofit Settings, open **Access** and assign the
-   **Fundraising Staff** permission set group, which includes read access to the Open
-   Impact Giving reports and dashboards. Tom needs no more than that.
+3. Give people access. In Nonprofit Settings, open **Access** and assign the
+   **Fundraising Staff** role, and then, in Salesforce Setup, the Giving module's
+   **Giving Staff** or **Giving Read Only** permission set. The role does not carry the
+   Giving permission sets yet, and without one of them a person cannot read gifts, so the
+   dashboard has nothing to show them. The report and dashboard folders themselves ship as
+   public read only, so nothing has to be shared by hand.
 4. Optional, and worth the ten seconds: with the dashboard open, choose **Subscribe** and
    have it emailed to yourself on the first of the month.
 
@@ -63,8 +66,9 @@ Do this as Tom, from the sample data, after at least a few gifts exist.
 **The dashboard shows an error instead of numbers.** The message is "The running user for
 this dashboard doesn't have permission to run reports." The dashboard reads as whoever is
 looking at it, so this is a permission problem, not a dashboard problem: that person cannot
-run reports or cannot read gifts. Assign them the Fundraising Staff or Read Only permission
-set group in Nonprofit Settings, under Access. See step 3 below.
+run reports or cannot read gifts. Assign them the Fundraising Staff or Read Only role in
+Nonprofit Settings under Access, and the Giving module's permission set in Setup. See
+step 3 above.
 
 **The numbers look too small.** The money charts count gifts with the status **Received**,
 **Refunded**, or **Written off**. A gift left at Pending, for example a pledge payment that

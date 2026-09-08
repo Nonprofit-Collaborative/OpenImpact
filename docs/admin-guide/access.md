@@ -8,9 +8,15 @@ what a permission set is, and you never have to open Salesforce Setup to change 
 role. The page also shows you, at a glance, who currently holds each role, so you can
 answer "who can see our giving records?" in a few seconds.
 
-Roles ship with Open Impact and are kept up to date for you. When you turn on a module
-later, that module adds what it needs to the roles it belongs to, so the people already in
-a role get the new access without you touching anything.
+Roles ship with Open Impact and are kept up to date for you.
+
+One thing they do not do yet. A role today carries what Core provides, and nothing a
+module adds: the Giving module ships its own **Giving Admin**, **Giving Staff** and
+**Giving Read Only** permission sets, and no role includes them. Until the Module Manager
+in version 0.7 joins the two up, somebody with the Fundraising Staff role sees households
+and people but no gifts, and a Salesforce administrator has to assign the module's
+permission set in Setup alongside the role. That is the one place Open Impact still sends
+you to Setup for access, and it is a gap rather than a design.
 
 The five roles are:
 
@@ -56,8 +62,10 @@ Here is how she gives him access, checks it, and takes it away again.
 6. A message says "David Okafor now has the Fundraising Staff role." David's name appears
    on the Fundraising Staff card, and the number in brackets beside the role name goes up
    by one.
-7. David can now sign in and see gifts, households, and contacts. He does not see Nonprofit
-   Settings, because that belongs to the Nonprofit Admin role.
+7. David can now sign in and see households and contacts. He does not see Nonprofit
+   Settings, because that belongs to the Nonprofit Admin role, and he does not see gifts
+   yet either: for those he also needs the Giving module's own **Giving Staff**
+   permission set, which today is assigned in Salesforce Setup.
 8. To take the role away, find David's name on the Fundraising Staff card and click
    **Remove**. Confirm, and a message says "David Okafor no longer has the Fundraising
    Staff role." His name disappears from the card.

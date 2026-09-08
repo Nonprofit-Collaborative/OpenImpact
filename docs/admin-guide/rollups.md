@@ -6,7 +6,12 @@ Rollups are the totals that appear on a household, a person, an organization, a 
 appeal, a pledge, or a scheduled payment without anyone adding them up: total giving,
 first and last gift, largest gift, gift count, giving this year and the two years before
 it, pledge balance, soft credit totals, what a fund and an appeal have raised, what has
-been paid against a pledge, and how many people are in a household.
+been paid against a pledge.
+
+The member count on a household is not one of them. It looks like a rollup and it is kept
+up to date for you, but it is maintained by the household automation every time somebody
+joins or leaves, so it is not on the Rollups page and Recalculate does not touch it. If a
+member count looks wrong, the Households page is where to fix it.
 
 Open Impact calculates them for you and shows you when each one was last calculated, so
 you never have to guess whether a number on a record is current. If the calculation has
@@ -15,10 +20,10 @@ looking fresh.
 
 ## What Open Impact calculates for you
 
-Every total below is created for you on install, and every one of them can be edited,
-switched to another mode, or made inactive. Three of the giving totals exist once for each
-kind of record, because a household, an organization or person account, and a person each
-reach their gifts differently. You see the household one on a household, the account one
+Every total below is created by **Restore shipped rollups** on the Rollups page, and every
+one of them can then be switched to another mode, made inactive, or recalculated on its
+own. Three of the giving totals exist once for each kind of record, because a household,
+an organization or person account, and a person each reach their gifts differently. You see the household one on a household, the account one
 on an organization, and the contact one on a person, so on any one record there is a
 single number.
 
@@ -75,18 +80,23 @@ about a number that looks wrong:
 
 ## How to turn it on
 
-Rollups are on when you install Open Impact. The packaged totals are created for you on
-install and start calculating as soon as there is something to calculate. If an org has
-none, or you have removed one you want back, **Restore shipped rollups** on the Rollups
-page creates the ones Open Impact provides and leaves every rollup you have edited alone.
-
-There is one thing to switch on, and the Setup Assistant does it for you: the nightly
-recalculation. If you skipped that step, you can start it yourself:
+The rollup engine is installed with Open Impact, but an org starts with no rollups in it
+and nothing calculating. Two clicks set that right, and neither of them happens on its own:
 
 1. Open the **Nonprofit Hub** app and choose the **Nonprofit Settings** tab.
-2. Choose **Rollups** in the left navigation.
-3. Click **Schedule nightly recalculation**. The page then shows "Nightly recalculation
-   is scheduled for 2:00 AM".
+2. Choose **Rollups** in the left navigation. On a new org the page says "No rollups are
+   set up yet."
+3. Click **Restore shipped rollups**. Every total listed above is created, active, and
+   ready to calculate. The same button is how you get one back later: it creates only the
+   shipped rollups this org does not have, and leaves every rollup you have edited alone.
+   The totals themselves come from the modules, so an org with Core alone has nothing to
+   restore until the Giving module is installed.
+4. Click **Schedule nightly recalculation**. The page then shows "Nightly recalculation
+   is scheduled for 2:00 AM."
+
+Do both on the day you install. Nothing else in the app does either of them for you: the
+Setup Assistant has no rollup step, so an org whose administrator never opened this page
+has no totals at all.
 
 Two settings on the same page change how every rollup behaves:
 
@@ -108,10 +118,10 @@ Do this as Maria, with the sample data loaded.
    "Rollups last completed" with a time. If it has been more than 36 hours, the tile turns
    into a warning and offers a link to the Rollups page. Click that link, or open
    **Nonprofit Settings** and choose **Rollups**.
-2. You are looking at every total Open Impact maintains, a little over thirty rows. Each
-   row says what the number means in plain language, what it counts ("SUM Amount__c on
-   Gift__c"), where it shows ("Account.Total_Giving__c"), its mode, and when it was last
-   calculated. The names begin with the kind of record the number lands on, so
+2. You are looking at every total the rollup engine maintains, a little over forty rows.
+   Each row says what the number means in plain language, what it counts ("SUM Amount__c
+   on Gift__c"), where it shows ("Account.Total_Giving__c"), its mode, and when it was
+   last calculated. The names begin with the kind of record the number lands on, so
    **Household total giving**, **Account total giving**, and **Contact total giving** sit
    next to each other.
 3. Find **Household total giving** and change its **Mode** from **Both** to
@@ -130,8 +140,8 @@ Do this as Maria, with the sample data loaded.
 
 ## Common mistakes
 
-**Typing over a total by hand.** The giving totals and the member count are calculated
-fields. If you edit one on a record, the next calculation overwrites what you typed and
+**Typing over a total by hand.** The giving totals are calculated fields, and so is the
+member count, though that one is maintained by the household automation rather than here. If you edit one on a record, the next calculation overwrites what you typed and
 your change disappears without a message. If a total looks wrong, the gift records behind
 it are wrong; fix those and recalculate. If you need a number the rollups do not
 calculate, add your own field rather than borrowing one of these.
@@ -153,8 +163,8 @@ deliberate, so that turning something off never destroys data. If you want the f
 empty, clear it after you make the rollup inactive.
 
 **Never starting the nightly schedule.** If nobody clicks **Schedule nightly
-recalculation** and nobody finished the Setup Assistant, nothing recalculates overnight
-and the Hub tile stays in warning. The tile is the only warning you get, so act on it.
+recalculation**, nothing recalculates overnight and the Hub tile stays in warning. Nothing
+schedules it for you. The tile is the only warning you get, so act on it.
 
 **Changing the fiscal year start month and stopping there.** The year based totals are
 recalculated with the new fiscal year at the next run, not the moment you save the
@@ -168,7 +178,7 @@ For report builders only. Nothing on this page requires you to know these.
 |---|---|
 | Rollups last calculated, on a record | `Rollups_Last_Calculated__c` |
 | Last calculated, on the Rollups page | `Last_Calculated__c` on Rollup Definition |
-| Member count on a household | `Member_Count__c` |
+| Member count on a household, maintained by the household automation rather than by a rollup | `Member_Count__c` |
 | Total giving, on an account or a contact | `Total_Giving__c` |
 | Gift count, on an account or a contact | `Gift_Count__c` |
 | First gift date | `First_Gift_Date__c` |

@@ -24,7 +24,9 @@ once:
 Then give your fundraising staff the **Giving Staff** permission set, and give yourself
 **Giving Admin**. People who only need to see gifts get **Giving Read Only**.
 
-No Salesforce Setup step is needed.
+Those three are assigned in Salesforce Setup, which is the one step here that Open Impact
+cannot yet do for you: the roles on the Access page carry what Core provides and do not
+include a module's permission sets until the Module Manager arrives in version 0.7.
 
 ## A five-minute walkthrough
 

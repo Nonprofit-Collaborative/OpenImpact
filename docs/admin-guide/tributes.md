@@ -43,12 +43,12 @@ You are David. Start from the sample data.
 3. Choose the type **In memory of**. In **Honoree name** type a name that is not in your
    database, for example **Rosa Garcia**. Leave the honoree lookup empty: a memorial
    honoree is very often not a record, and Open Impact does not make you create one.
-4. Fill in the notification. Pick **Ana Garcia** as the **Notification recipient**, because
+4. Fill in the notification. Pick **Harper Garcia** as the **Notification recipient**, because
    the family should hear about the gift. If the family is not in your database, type
    their name and address in **Notification recipient name** instead.
 5. In **Message**, type what the donor asked you to pass on, for example **With love from
    the Tuesday reading group**. Save.
-6. The gift now shows a tribute summary: **In memory of Rosa Garcia, notify Ana Garcia,
+6. The gift now shows a tribute summary: **In memory of Rosa Garcia, notify Harper Garcia,
    not yet sent**.
 7. Post your letter, then come back and press **Mark notification sent**. The panel now
    says the notification has been sent, and shows the date. The button is gone, because it
