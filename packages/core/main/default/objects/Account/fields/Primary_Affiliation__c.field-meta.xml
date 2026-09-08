@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Primary_Affiliation__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>The organization this person is chiefly associated with. Open Impact keeps it equal to the organization on the person's primary affiliation, so a list view or a mail merge can show an employer without a report.</description>
+  <externalId>false</externalId>
+  <inlineHelpText>The organization this person is chiefly associated with. Open Impact keeps it equal to the organization on the person's primary affiliation, so a list view or a mail merge can show an employer without a report.</inlineHelpText>
+  <label>Primary Affiliation</label>
+  <referenceTo>Account</referenceTo>
+  <relationshipLabel>People Whose Primary Affiliation This Is</relationshipLabel>
+  <relationshipName>Primary_Affiliation_People</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

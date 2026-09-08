@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Is_Primary__c</fullName>
+  <defaultValue>false</defaultValue>
+  <description>Marks the organization this person is chiefly associated with. Only one current affiliation per person can be primary.</description>
+  <inlineHelpText>Marks the organization this person is chiefly associated with. Only one current affiliation per person can be primary.</inlineHelpText>
+  <label>Primary</label>
+  <trackTrending>false</trackTrending>
+  <type>Checkbox</type>
+</CustomField>
