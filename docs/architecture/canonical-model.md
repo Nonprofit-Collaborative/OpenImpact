@@ -1436,7 +1436,9 @@ whose record type is Organization and the employee's gift has a person donor, an
 the employee's Employer is set, only when it names that same organization. Linking creates
 one automatic soft credit on the employer's gift, crediting the employee with Role Matched
 Donor and the employer gift's amount; unlinking clears both references and removes that
-credit. A gift matches at most one other gift.
+credit. A gift matches at most one other gift. Neither gift may have been refunded or
+written off: a link that outlived the money would go on crediting the employee for a match
+the organization gave back.
 
 ### Salesforce implementation
 
@@ -1935,6 +1937,13 @@ not accounting, and no validation caps it.
 **R-SC5 Negative gifts.** A refund produces matching negative soft credits, so recognition
 totals correct themselves the same way giving totals do.
 
+**R-SC3a How a membership change reaches the credits.** The recompute a membership change
+causes is queued, not done in the saving transaction: a household's giving history has no
+bound, and moving one person between households must not fail on the size of it. The most
+recent 500 gifts of each affected household are recomputed, a bound set by the soft credit
+rows they imply rather than by the gifts themselves; a household that has given more than
+that has the rest corrected the next time each of those gifts is saved.
+
 **R-SC6 Automatic credits are recomputed, not accumulated.** The package recomputes a
 gift's automatic credits whenever its donor, its amount, or its status changes, and
 removes them when the gift is deleted or refunded. Recomputation is idempotent: running it
@@ -2017,8 +2026,10 @@ Sent is set, and neither is cleared by automation once set.
 notification to a family does not disclose it.
 
 **R-TR6 A memorial is never notified to the person who died.** An In memory of tribute
-whose honoree is a record marked deceased may not name that same person as the
-notification recipient. The message says who is named and what to do, because the usual
+whose honoree is a record marked deceased, whether that record is a Contact or an Account,
+may not name that same person as the notification recipient. Notifying an honoree who is
+not marked deceased is allowed, because an In honor of gift to a foundation may quite
+properly tell that foundation. The message says who is named and what to do, because the usual
 cause is picking the wrong name from a list.
 
 ### Salesforce implementation
@@ -2518,6 +2529,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.2 | 2026-09-07 | Core: Rollup Definition (Section 14) with the filter document format and the mode-resolved path notation; Import Template, Import Batch, and Import Row (Sections 15 to 17) with the Created By Import Batch tag on Household, Contact, Organization, and Gift. Giving: Gift, Gift Allocation, Fund, and Appeal (Sections 18 to 21), and the packaged default giving rollups (Section 26). Nonprofit Settings gains `Fiscal_Year_Start_Month__c`, `Default_Fund__c`, `Default_Appeal__c`, `Rollup_Mode_Default__c`, `Import_Chunk_Size__c`, and `Setup_Assistant_Steps_Complete__c`. Shipped defaults gain `Rollup_Definition_Default__mdt` and `Import_Template_Default__mdt`. Published for build, objects not yet created. |
 | v0.3 | 2026-09-07 | Giving: Commitment, Installment, Soft Credit, and Tribute (Sections 22 to 25) with their rollup targets. Core: Relationship, Affiliation, and Address (Sections 27 to 29), the Primary Affiliation reference on Contact, and the shipped defaults `Relationship_Type__mdt`. Nonprofit Settings gains `Automatic_Household_Soft_Credits__c`, `Installment_Generation_Horizon_Months__c`, `Installment_Overdue_Grace_Days__c`, `Contact_Address_Change_Behavior__c`, `Relationship_Auto_Reciprocal__c`, and `Seasonal_Address_Last_Run__c`. Published for build, objects not yet created. |
 | v0.3 | 2026-09-07 | Convention added: person references are a Contact and Account pair with exactly one set (Section 4), following the change of first customer to Nonprofit Cloud and Agentforce Nonprofit orgs where individuals are person Accounts. Import Row and Import Template carry the person-mode attributes this requires. |
+| v0.3 | 2026-09-08 | G-08, G-09, G-10 review round. R-SC3a records that the membership change recompute is queued and capped at 500 gifts per household. R-TR6 now reads Deceased on Account as well as Contact, and allows notifying an honoree who is not marked deceased. R-G11 refuses a link where either gift has been refunded or written off. |
 | v0.3 | 2026-09-07 | Giving G-08, G-09, G-10: the Employer attribute on Contact and on Account (`Employer__c`), rule R-G11 (matching gift linkage), rules R-SC6 and R-SC7 (automatic soft credits are recomputed and deduplicated), rule R-TR6 (a memorial is never notified to the person who died), and the gift status Received filter on the two soft credit rollups in Section 26. |
 | v0.3 | 2026-09-07 | Giving: Gift gains `Refund_Reason__c`, so the reason a refund or a write-off was recorded is held on the negative gift rather than by editing the original (R-G3, G-04). Giving Settings added as Section 21A: `Giving_Settings__c` holds the three v0.3 Giving keys that ADR-0017 moved out of `Nonprofit_Settings__c`, and Section 12 records the move. |
 | v0.3 | 2026-09-07 | Commitments (G-07, G-11): Giving Settings gains `Auto_Apply_Gifts_To_Installments__c` and `Installment_Top_Up_Last_Run__c`, and Section 12 records that the Giving keys live on `Giving_Settings__c` rather than `Nonprofit_Settings__c` (ADR-0017). R-CM5 states that Balance is empty for a recurring commitment; R-IN3 states the automatic linking of a gift to the earliest unpaid installment. |

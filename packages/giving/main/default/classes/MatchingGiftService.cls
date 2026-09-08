@@ -14,7 +14,9 @@
  *     the employer's gift;
  *   - the other comes from a person, and it is the employee's gift;
  *   - where that person's Employer is filled in, it names that same organization;
- *   - neither gift is already linked to a third gift, and a gift never matches itself.
+ *   - neither gift is already linked to a third gift, and a gift never matches itself;
+ *   - neither gift has been refunded or written off, because a link that outlived the money
+ *     would keep crediting an employee for a match the organization gave back.
  *
  * Where Employer is blank the link is accepted without complaint. Filling it in is what turns a
  * silent mistake into a message.
@@ -61,7 +63,12 @@ public with sharing class MatchingGiftService {
             true,
             AccessLevel.USER_MODE
         );
-        insertCredits(creditsFor(employerGift, donorPersonOf(employeeGift)));
+        insertCredits(
+            missingCreditsFor(
+                new Map<Id, Id>{ employerGift.Id => donorPersonOf(employeeGift) },
+                new Map<Id, Gift__c>{ employerGift.Id => employerGift }
+            )
+        );
     }
 
     /**
@@ -126,7 +133,7 @@ public with sharing class MatchingGiftService {
 
         Map<Id, Gift__c> giftById = giftsById(involved);
         Map<Id, Gift__c> updateById = new Map<Id, Gift__c>();
-        List<Soft_Credit__c> creditsToInsert = new List<Soft_Credit__c>();
+        Map<Id, Id> employeePersonByEmployerGift = new Map<Id, Id>();
         Set<Id> creditsToRemoveFor = new Set<Id>();
         Map<Id, Gift__c> byId = new Map<Id, Gift__c>(gifts);
 
@@ -175,16 +182,69 @@ public with sharing class MatchingGiftService {
             }
             creditsToRemoveFor.remove(giftId);
             creditsToRemoveFor.remove(partnerId);
-            creditsToInsert.addAll(creditsFor(employerGift, donorPersonOf(employeeGift)));
+            employeePersonByEmployerGift.put(employerGift.Id, donorPersonOf(employeeGift));
         }
 
         if (!creditsToRemoveFor.isEmpty()) {
             removeMatchedDonorCredits(creditsToRemoveFor);
         }
         if (!updateById.isEmpty()) {
+            // Writing the other side of the link fires this handler again for the partner gift.
+            // The credits are therefore worked out after this line and not before it, so that
+            // the pass that gets there first inserts them and this one sees them and stops.
             Database.update(updateById.values(), true, AccessLevel.USER_MODE);
         }
-        insertCredits(creditsToInsert);
+        insertCredits(missingCreditsFor(employeePersonByEmployerGift, giftById));
+    }
+
+    /**
+     * The matched donor credits these links need and do not yet have, in one query however many
+     * links are in front of it.
+     */
+    private static List<Soft_Credit__c> missingCreditsFor(
+        Map<Id, Id> employeePersonByEmployerGift,
+        Map<Id, Gift__c> giftById
+    ) {
+        List<Soft_Credit__c> credits = new List<Soft_Credit__c>();
+        if (employeePersonByEmployerGift.isEmpty()) {
+            return credits;
+        }
+        Set<String> alreadyCredited = new Set<String>();
+        for (
+            Soft_Credit__c existing : SoftCreditSelector.selectAutomaticForGifts(
+                employeePersonByEmployerGift.keySet(),
+                SoftCreditService.ROLE_MATCHED_DONOR
+            )
+        ) {
+            Id creditedId = existing.Contact__c != null ? existing.Contact__c : existing.Account__c;
+            alreadyCredited.add(
+                String.valueOf(existing.Gift__c) + ':' + String.valueOf(creditedId)
+            );
+        }
+        for (Id employerGiftId : employeePersonByEmployerGift.keySet()) {
+            Id employeePersonId = employeePersonByEmployerGift.get(employerGiftId);
+            Gift__c employerGift = giftById.get(employerGiftId);
+            if (employeePersonId == null || employerGift == null) {
+                continue;
+            }
+            if (
+                alreadyCredited.contains(
+                    String.valueOf(employerGiftId) + ':' + String.valueOf(employeePersonId)
+                )
+            ) {
+                continue;
+            }
+            credits.add(
+                SoftCreditService.buildAutomaticCredit(
+                    employerGiftId,
+                    employeePersonId,
+                    SoftCreditService.ROLE_MATCHED_DONOR,
+                    employerGift.Amount__c,
+                    employerGift.Amount__c
+                )
+            );
+        }
+        return credits;
     }
 
     /**
@@ -204,6 +264,9 @@ public with sharing class MatchingGiftService {
         ) {
             return Label.Giving_MatchingGift_AlreadyLinked;
         }
+        if (isClosedOut(employerGift) || isClosedOut(employeeGift)) {
+            return Label.Giving_MatchingGift_GiftNotReceived;
+        }
         Id statedEmployerId = employerOf(employeeGift);
         if (statedEmployerId != null && statedEmployerId != employerGift.Donor_Account__c) {
             return Label.Giving_MatchingGift_EmployerMismatch;
@@ -212,34 +275,14 @@ public with sharing class MatchingGiftService {
     }
 
     /**
-     * The matched donor credit for one link, unless it is already there.
+     * A gift that has been refunded or written off is not money the organization has, so it is
+     * not half of a matching gift pair. The refund is recorded on the gift itself rather than by
+     * deleting it, so without this the link would outlive the money (R-G11, R-SC5).
      */
-    private static List<Soft_Credit__c> creditsFor(Gift__c employerGift, Id employeePersonId) {
-        List<Soft_Credit__c> credits = new List<Soft_Credit__c>();
-        if (employeePersonId == null) {
-            return credits;
-        }
-        for (
-            Soft_Credit__c existing : SoftCreditSelector.selectAutomaticForGifts(
-                new Set<Id>{ employerGift.Id },
-                SoftCreditService.ROLE_MATCHED_DONOR
-            )
-        ) {
-            Id creditedId = existing.Contact__c != null ? existing.Contact__c : existing.Account__c;
-            if (creditedId == employeePersonId) {
-                return credits;
-            }
-        }
-        credits.add(
-            SoftCreditService.buildAutomaticCredit(
-                employerGift.Id,
-                employeePersonId,
-                SoftCreditService.ROLE_MATCHED_DONOR,
-                employerGift.Amount__c,
-                employerGift.Amount__c
-            )
-        );
-        return credits;
+    private static Boolean isClosedOut(Gift__c gift) {
+        return gift != null &&
+            (SoftCreditService.STATUS_REFUNDED.equals(gift.Status__c) ||
+            SoftCreditService.STATUS_WRITTEN_OFF.equals(gift.Status__c));
     }
 
     private static void insertCredits(List<Soft_Credit__c> credits) {

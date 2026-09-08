@@ -30,6 +30,17 @@ public with sharing class SoftCreditService {
     private static final Integer PERCENT_SCALE = 2;
 
     /**
+     * How many gifts of one household a membership change recomputes in one job.
+     *
+     * The number that matters is not gifts but the soft credit rows they imply: one household of
+     * ten people means nine credits per gift, and the transaction limit is ten thousand rows.
+     * Five hundred gifts leaves headroom for a household larger than any real one. Recognition on
+     * a household that has given more than that is corrected by the next save of the gift itself,
+     * which is the same path every other correction takes.
+     */
+    public static final Integer GIFTS_PER_HOUSEHOLD_CAP = 500;
+
+    /**
      * Whether this org wants household members credited automatically. Default on, and a missing
      * or unreadable setting is treated as on, because that is what the package ships with.
      */
@@ -56,9 +67,12 @@ public with sharing class SoftCreditService {
      * cased.
      */
     public static void createHouseholdMemberCredits(List<Gift__c> gifts) {
-        if (gifts == null || gifts.isEmpty() || !automaticHouseholdCreditsEnabled()) {
+        if (gifts == null || gifts.isEmpty()) {
             return;
         }
+        // The setting off does not mean "do nothing": it means no household member is wanted, so
+        // the reconcile below removes the credits an earlier setting created (R-SC3).
+        Boolean wantCredits = automaticHouseholdCreditsEnabled();
         Map<Id, Gift__c> giftById = new Map<Id, Gift__c>();
         for (Gift__c gift : gifts) {
             if (gift != null && gift.Id != null) {
@@ -72,7 +86,7 @@ public with sharing class SoftCreditService {
         Map<Id, Id> donorPersonByGift = new Map<Id, Id>();
         Set<Id> personIds = new Set<Id>();
         for (Gift__c gift : giftById.values()) {
-            if (isRecognizable(gift)) {
+            if (wantCredits && isRecognizable(gift)) {
                 Id donorPersonId = donorPersonOf(gift);
                 if (donorPersonId != null) {
                     donorPersonByGift.put(gift.Id, donorPersonId);
@@ -137,6 +151,32 @@ public with sharing class SoftCreditService {
         if (!existing.isEmpty()) {
             Database.delete(existing, true, AccessLevel.USER_MODE);
         }
+    }
+
+    /**
+     * Recomputes the automatic household credits on every gift belonging to these households,
+     * which is what a change of household membership makes necessary (R-SC3): the person who
+     * joined has to be credited on the gifts already recorded, and the person who left has to
+     * stop being credited on them.
+     *
+     * A household's gift history is unbounded, so this is deliberately capped and deliberately
+     * asynchronous: `HouseholdSoftCreditRecompute` calls it one chunk of gifts at a time. A
+     * household with more gifts than `GIFTS_PER_HOUSEHOLD_CAP` has the most recent that many
+     * recomputed and the overflow reported to the Error Log, because silently doing part of the
+     * job is worse than saying which part was left.
+     */
+    public static void recomputeForHouseholds(Set<Id> householdIds) {
+        if (householdIds == null || householdIds.isEmpty()) {
+            return;
+        }
+        List<Gift__c> gifts = GiftLookupSelector.selectForHouseholds(
+            householdIds,
+            GIFTS_PER_HOUSEHOLD_CAP * householdIds.size()
+        );
+        if (gifts.isEmpty()) {
+            return;
+        }
+        createHouseholdMemberCredits(gifts);
     }
 
     /**

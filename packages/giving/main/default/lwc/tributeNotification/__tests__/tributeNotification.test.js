@@ -6,7 +6,6 @@ import markNotificationSent from '@salesforce/apex/TributeController.markNotific
 jest.mock(
   '@salesforce/apex/TributeController.getTribute',
   () => {
-    // eslint-disable-next-line no-undef
     const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
     return { default: createApexTestWireAdapter(jest.fn()) };
   },
@@ -127,6 +126,25 @@ describe('c-tribute-notification', () => {
       'Notification sent'
     );
     expect(element.shadowRoot.querySelector('[data-id="mark-sent"]')).toBeNull();
+  });
+
+  it('says why there is no button when nobody is recorded to notify', async () => {
+    const element = createComponent();
+    getTribute.emit({
+      ...TRIBUTE,
+      recipientName: null,
+      canMarkSent: false,
+      blockedReason: 'Nobody is recorded as the person to notify, so there is no letter to send.'
+    });
+    await flush();
+
+    expect(element.shadowRoot.querySelector('[data-id="mark-sent"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="blocked-reason"]').textContent).toContain(
+      'Nobody is recorded as the person to notify'
+    );
+    expect(element.shadowRoot.querySelector('[data-id="summary"]').textContent).toContain(
+      'In memory of Rosa Garcia'
+    );
   });
 
   it('says nothing was honored when the gift has no tribute', async () => {

@@ -213,6 +213,114 @@ private class MatchingGiftServiceTest {
         );
     }
 
+    @IsTest
+    static void refusesAMatchOnARefundedGift() {
+        Setup data = setUp(true);
+        data.employeeGift.Status__c = SoftCreditService.STATUS_REFUNDED;
+        update data.employeeGift;
+
+        Test.startTest();
+        String message = null;
+        try {
+            MatchingGiftService.link(data.employeeGift.Id, data.employerGift.Id);
+        } catch (MatchingGiftService.MatchingGiftException refused) {
+            message = refused.getMessage();
+        }
+        Test.stopTest();
+
+        System.assertEquals(
+            Label.Giving_MatchingGift_GiftNotReceived,
+            message,
+            'A refunded gift is not half of a matching pair'
+        );
+        Gift__c employerGift = [
+            SELECT Matched_Gift__c
+            FROM Gift__c
+            WHERE Id = :data.employerGift.Id
+        ];
+        System.assertEquals(null, employerGift.Matched_Gift__c, 'And no link was written');
+    }
+
+    @IsTest
+    static void refusesAMatchOnAWrittenOffEmployerGift() {
+        Setup data = setUp(true);
+        data.employerGift.Status__c = SoftCreditService.STATUS_WRITTEN_OFF;
+        update data.employerGift;
+
+        Test.startTest();
+        data.employerGift.Matched_Gift__c = data.employeeGift.Id;
+        Database.SaveResult result = Database.update(data.employerGift, false);
+        Test.stopTest();
+
+        System.assertEquals(false, result.isSuccess(), 'The link is refused on the record itself');
+        System.assertEquals(
+            0,
+            RecognitionTestData.creditsFor(data.employerGift.Id).size(),
+            'And no matched donor credit was created'
+        );
+    }
+
+    @IsTest
+    static void createsOneCreditWhenBothSidesOfThePairAreSavedTogether() {
+        Setup data = setUp(true);
+
+        Test.startTest();
+        data.employerGift.Matched_Gift__c = data.employeeGift.Id;
+        update data.employerGift;
+        Test.stopTest();
+
+        List<Soft_Credit__c> credits = RecognitionTestData.creditsFor(data.employerGift.Id);
+        System.assertEquals(
+            1,
+            credits.size(),
+            'Writing the other side of the link re-enters the handler, and must not credit twice'
+        );
+    }
+
+    @IsTest
+    static void linksTwoHundredPairsInOneUpdate() {
+        RecognitionTestData.setAutomaticHouseholdCredits(false);
+        Account garcias = RecognitionTestData.household('The Garcia Family');
+        Account riverbend = RecognitionTestData.organization('Riverbend Manufacturing');
+        List<Contact> people = new List<Contact>();
+        for (Integer index = 0; index < 200; index++) {
+            people.add(
+                new Contact(
+                    FirstName = 'Giver',
+                    LastName = 'Number ' + index,
+                    AccountId = garcias.Id,
+                    Employer__c = riverbend.Id
+                )
+            );
+        }
+        insert people;
+        List<Gift__c> employeeGifts = new List<Gift__c>();
+        List<Gift__c> employerGifts = new List<Gift__c>();
+        for (Contact person : people) {
+            employeeGifts.add(RecognitionTestData.newGift(person.Id, null, 100));
+            employerGifts.add(RecognitionTestData.newGift(null, riverbend.Id, 100));
+        }
+        insert employeeGifts;
+        insert employerGifts;
+        for (Integer index = 0; index < 200; index++) {
+            employerGifts[index].Matched_Gift__c = employeeGifts[index].Id;
+        }
+
+        Test.startTest();
+        update employerGifts;
+        Test.stopTest();
+
+        System.assertEquals(
+            200,
+            [
+                SELECT COUNT()
+                FROM Soft_Credit__c
+                WHERE Role__c = :SoftCreditService.ROLE_MATCHED_DONOR
+            ],
+            'One matched donor credit per pair, from one query rather than two hundred'
+        );
+    }
+
     private class Setup {
         Contact ana;
         Account riverbend;

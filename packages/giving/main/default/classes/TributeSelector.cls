@@ -68,6 +68,27 @@ public with sharing class TributeSelector {
     }
 
     /**
+     * Which of these people, stored as accounts, are recorded as having died. Read in system
+     * mode for the same reason as the contact query below.
+     */
+    public static Set<Id> selectDeceasedAccountIds(Set<Id> accountIds) {
+        Set<Id> deceased = new Set<Id>();
+        if (accountIds == null || accountIds.isEmpty()) {
+            return deceased;
+        }
+        for (Account person : [
+            SELECT Id
+            FROM Account
+            WHERE Id IN :accountIds AND Deceased__c = TRUE
+            WITH SYSTEM_MODE
+            LIMIT 10000
+        ]) {
+            deceased.add(person.Id);
+        }
+        return deceased;
+    }
+
+    /**
      * Which of these people are recorded as having died.
      */
     public static Set<Id> selectDeceasedContactIds(Set<Id> contactIds) {

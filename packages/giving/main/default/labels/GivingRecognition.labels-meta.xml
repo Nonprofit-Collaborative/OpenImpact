@@ -280,4 +280,28 @@
     <shortDescription>Tribute panel title</shortDescription>
     <value>Tribute</value>
   </labels>
+  <labels>
+    <fullName>Giving_SoftCredits_RecomputeDeferred</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Household recompute deferred</shortDescription>
+    <value>Household soft credits for {0} household(s) could not be recomputed now, because this operation has no asynchronous capacity left. The credits are corrected the next time each gift is saved.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_MatchingGift_GiftNotReceived</fullName>
+    <categories>Giving, Matching Gifts</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Matching gift on a refunded gift</shortDescription>
+    <value>A gift that has been refunded or written off cannot be part of a matching gift pair. Unlink the match before recording the refund, or link the replacement gift instead.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_TributeNotification_NoRecipient</fullName>
+    <categories>Giving, Tributes</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>No notification recipient</shortDescription>
+    <value>Nobody is recorded as the person to notify, so there is no letter to send. Add a notification recipient, or a name and address, on the tribute.</value>
+  </labels>
 </CustomLabels>

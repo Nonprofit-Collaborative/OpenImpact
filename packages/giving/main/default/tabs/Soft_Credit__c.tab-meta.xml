@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
   <customObject>true</customObject>
-  <description>Everyone your organization recognizes for a gift they did not legally give.</description>
+  <description>
+    Everyone your organization recognizes for a gift they did not legally give.
+  </description>
   <label>Soft Credits</label>
   <motif>Custom19: Handshake</motif>
 </CustomTab>

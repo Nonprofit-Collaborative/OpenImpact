@@ -26,6 +26,11 @@
             {tribute.message}
           </p>
         </template>
+        <template if:true={showBlockedReason}>
+          <p data-id="blocked-reason" class="slds-text-body_small slds-var-m-top_x-small">
+            {blockedReason}
+          </p>
+        </template>
         <template if:true={showMarkSent}>
           <lightning-button
             data-id="mark-sent"

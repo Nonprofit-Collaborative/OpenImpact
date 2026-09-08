@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
   <customObject>true</customObject>
-  <description>Gifts given in honor of someone or in memory of someone, and who to tell.</description>
+  <description>
+    Gifts given in honor of someone or in memory of someone, and who to tell.
+  </description>
   <label>Tributes</label>
   <motif>Custom25: Heart</motif>
 </CustomTab>

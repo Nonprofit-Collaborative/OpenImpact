@@ -56,7 +56,7 @@ export default class TributeNotification extends LightningElement {
     if (!this.tribute) {
       return '';
     }
-    const parts = [`${this.tribute.tributeType} ${this.tribute.honoreeName}`];
+    const parts = [[this.tribute.tributeType, this.tribute.honoreeName].filter(Boolean).join(' ')];
     if (this.tribute.recipientName) {
       parts.push(`${this.labels.notifyPrefix} ${this.tribute.recipientName}`);
     }
@@ -68,6 +68,14 @@ export default class TributeNotification extends LightningElement {
       return '';
     }
     return this.tribute.notificationSent ? this.labels.sent : this.labels.notSent;
+  }
+
+  get blockedReason() {
+    return this.tribute ? this.tribute.blockedReason : undefined;
+  }
+
+  get showBlockedReason() {
+    return !!this.blockedReason;
   }
 
   get showMarkSent() {

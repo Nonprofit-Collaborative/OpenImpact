@@ -22,6 +22,12 @@ surprise to him.
 
 That is the whole setting. Nothing here needs Salesforce Setup.
 
+One piece of first-time setup does: the **Soft credits** panel lives on a gift's record
+page, and Open Impact ships a page called **Gift Record Page** with the panel already on
+it. Assign it once, as your org default for Gift, and every gift shows the panel from then
+on. If your organization has built a gift record page of its own, add the **Gift Soft
+Credits** component to that page instead.
+
 Two things to know about how the automatic credits behave:
 
 - **A household soft credit is for the full amount of the gift.** If Ana gives 500, Luis
@@ -64,17 +70,20 @@ Garcia household: Ana Garcia and her spouse Luis Garcia.
   to. Two people can each be recognized for the whole of a gift. If a total looks too
   large, check that you are reading Total soft credits and not Total giving.
 - **Trying to fix a household credit by editing it.** An automatic credit is recalculated
-  from the gift, so an edit is overwritten the next time the gift is saved. Fix the gift,
-  or fix who is in the household, and the credit follows. If you need different wording or
+  from the gift, so an edit is overwritten the next time the gift is saved or the household
+  changes. Fix the gift, or fix who is in the household, and the credit follows. If you need different wording or
   a different amount for one person, add a credit of your own instead.
-- **Wondering why a new spouse was not credited on last year's gifts.** Adding someone to
-  a household credits them on gifts saved from then on, not on the ones already entered.
-  To credit them on an older gift, open that gift and save it again, or add the credit by
-  hand.
-- **Turning the setting off and expecting old credits to vanish.** Turning off automatic
-  household soft credits stops new ones. The credits already on your gifts stay until
-  those gifts are edited or deleted, so that your reporting history does not change under
-  you.
+- **Expecting a household move to show up instantly.** Adding someone to a household, or
+  moving them out of one, does recredit the household's gifts, including the ones already
+  entered: a new spouse is credited on last year's gifts and a person who moves out stops
+  being credited on gifts they no longer share. That work is queued rather than done while
+  you wait, so give it a moment and refresh. A household that has given more than 500
+  gifts has its most recent 500 recredited, and the rest follow the next time each of those
+  gifts is saved.
+- **Turning the setting off and expecting old credits to vanish that minute.** Turning off
+  automatic household soft credits stops new ones at once. A credit already on a gift goes
+  the next time that gift is saved, so your reporting history does not change under you
+  the moment somebody flips a checkbox.
 
 ## Fields, for report builders
 

@@ -73,12 +73,24 @@ public with sharing class TributeService {
             return;
         }
         Set<Id> honoreeContactIds = new Set<Id>();
+        Set<Id> honoreeAccountIds = new Set<Id>();
         for (Tribute__c tribute : tributes) {
-            if (TYPE_IN_MEMORY_OF.equals(tribute.Type__c) && tribute.Honoree_Contact__c != null) {
+            if (!TYPE_IN_MEMORY_OF.equals(tribute.Type__c)) {
+                continue;
+            }
+            if (tribute.Honoree_Contact__c != null) {
                 honoreeContactIds.add(tribute.Honoree_Contact__c);
+            }
+            if (tribute.Honoree_Account__c != null) {
+                honoreeAccountIds.add(tribute.Honoree_Account__c);
             }
         }
         Set<Id> deceased = TributeSelector.selectDeceasedContactIds(honoreeContactIds);
+        // A person stored as an account carries Deceased the same way a contact does (Section 5),
+        // so the memorial rule has to ask both. Without this it would either miss the case
+        // entirely in a Person Account org, or refuse the legitimate memorial that notifies the
+        // foundation it honours.
+        deceased.addAll(TributeSelector.selectDeceasedAccountIds(honoreeAccountIds));
 
         for (Tribute__c tribute : tributes) {
             if (
@@ -98,7 +110,8 @@ public with sharing class TributeService {
                 deceased.contains(tribute.Honoree_Contact__c);
             Boolean notifiesHonoreeAccount =
                 tribute.Honoree_Account__c != null &&
-                tribute.Honoree_Account__c == tribute.Notification_Recipient_Account__c;
+                tribute.Honoree_Account__c == tribute.Notification_Recipient_Account__c &&
+                deceased.contains(tribute.Honoree_Account__c);
             if (notifiesHonoreeContact || notifiesHonoreeAccount) {
                 tribute.addError(Label.Giving_Tribute_DeceasedHonoreeNotified);
             }

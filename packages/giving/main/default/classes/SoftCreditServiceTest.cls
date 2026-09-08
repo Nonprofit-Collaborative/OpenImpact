@@ -66,6 +66,81 @@ private class SoftCreditServiceTest {
     }
 
     @IsTest
+    static void removesAutomaticCreditsWhenTheSettingIsTurnedOff() {
+        RecognitionTestData.setAutomaticHouseholdCredits(true);
+        Account garcias = RecognitionTestData.household('The Garcia Family');
+        Contact ana = RecognitionTestData.person('Ana', 'Garcia', garcias.Id);
+        Contact luis = RecognitionTestData.person('Luis', 'Garcia', garcias.Id);
+        Gift__c gift = RecognitionTestData.gift(ana.Id, null, 500);
+        System.assertEquals(
+            1,
+            RecognitionTestData.creditsFor(gift.Id).size(),
+            'Luis starts credited'
+        );
+
+        Test.startTest();
+        RecognitionTestData.setAutomaticHouseholdCredits(false);
+        SettingsService.clearCaches();
+        gift.Amount__c = 600;
+        update gift;
+        Test.stopTest();
+
+        System.assertEquals(
+            0,
+            RecognitionTestData.creditsFor(gift.Id).size(),
+            'The setting off means no household member is wanted, so the credit goes (R-SC3)'
+        );
+        System.assertNotEquals(null, luis.Id, 'Luis is still a person');
+    }
+
+    @IsTest
+    static void creditsTheNewMemberWhenSomebodyJoinsTheHousehold() {
+        RecognitionTestData.setAutomaticHouseholdCredits(true);
+        Account garcias = RecognitionTestData.household('The Garcia Family');
+        Contact ana = RecognitionTestData.person('Ana', 'Garcia', garcias.Id);
+        Gift__c gift = RecognitionTestData.gift(ana.Id, null, 500);
+        System.assertEquals(0, RecognitionTestData.creditsFor(gift.Id).size(), 'Ana lives alone');
+
+        Test.startTest();
+        RecognitionTestData.person('Luis', 'Garcia', garcias.Id);
+        Test.stopTest();
+
+        List<Soft_Credit__c> credits = RecognitionTestData.creditsFor(gift.Id);
+        System.assertEquals(
+            1,
+            credits.size(),
+            'Luis moves in and is recognized on the gift already recorded (R-SC3)'
+        );
+        System.assertEquals(500, credits[0].Amount__c, 'For the whole of it');
+    }
+
+    @IsTest
+    static void removesTheCreditWhenSomebodyLeavesTheHousehold() {
+        RecognitionTestData.setAutomaticHouseholdCredits(true);
+        Account garcias = RecognitionTestData.household('The Garcia Family');
+        Account alvarez = RecognitionTestData.household('The Alvarez Family');
+        Contact ana = RecognitionTestData.person('Ana', 'Garcia', garcias.Id);
+        Contact luis = RecognitionTestData.person('Luis', 'Garcia', garcias.Id);
+        Gift__c gift = RecognitionTestData.gift(ana.Id, null, 500);
+        System.assertEquals(
+            1,
+            RecognitionTestData.creditsFor(gift.Id).size(),
+            'Luis starts credited'
+        );
+
+        Test.startTest();
+        luis.AccountId = alvarez.Id;
+        update luis;
+        Test.stopTest();
+
+        System.assertEquals(
+            0,
+            RecognitionTestData.creditsFor(gift.Id).size(),
+            'Luis moves out and stops being recognized on the gift he no longer shares (R-SC3)'
+        );
+    }
+
+    @IsTest
     static void recomputesWhenTheAmountChanges() {
         RecognitionTestData.setAutomaticHouseholdCredits(true);
         Account garcias = RecognitionTestData.household('The Garcia Family');

@@ -107,6 +107,59 @@ private class RecognitionControllerTest {
     }
 
     @IsTest
+    static void saysWhyThereIsNothingToSendWhenNobodyIsNamedToNotify() {
+        RecognitionTestData.setAutomaticHouseholdCredits(false);
+        Account garcias = RecognitionTestData.household('The Garcia Family');
+        Contact ana = RecognitionTestData.person('Ana', 'Garcia', garcias.Id);
+        Gift__c gift = RecognitionTestData.gift(ana.Id, null, 100);
+        Tribute__c tribute = RecognitionTestData.tribute(
+            gift.Id,
+            TributeService.TYPE_IN_MEMORY_OF,
+            'Rosa Garcia'
+        );
+        insert tribute;
+
+        Test.startTest();
+        TributeController.TributeView view = TributeController.getTribute(gift.Id);
+        Test.stopTest();
+
+        System.assertEquals('Rosa Garcia', view.honoreeName, 'The tribute is still shown');
+        System.assertEquals(null, view.recipientName, 'There is nobody to write to');
+        System.assertEquals(false, view.canMarkSent, 'So there is nothing to mark sent');
+        System.assertEquals(
+            Label.Giving_TributeNotification_NoRecipient,
+            view.blockedReason,
+            'And the panel says why rather than hiding the button without a word'
+        );
+    }
+
+    @IsTest
+    static void allowsAMemorialToNotifyAnHonoreeWhoIsNotMarkedDeceased() {
+        RecognitionTestData.setAutomaticHouseholdCredits(false);
+        Account garcias = RecognitionTestData.household('The Garcia Family');
+        Account foundation = RecognitionTestData.organization('The Rosa Garcia Foundation');
+        Contact ana = RecognitionTestData.person('Ana', 'Garcia', garcias.Id);
+        Gift__c gift = RecognitionTestData.gift(ana.Id, null, 100);
+        Tribute__c tribute = RecognitionTestData.tribute(
+            gift.Id,
+            TributeService.TYPE_IN_MEMORY_OF,
+            null
+        );
+        tribute.Honoree_Account__c = foundation.Id;
+        tribute.Notification_Recipient_Account__c = foundation.Id;
+
+        Test.startTest();
+        Database.SaveResult result = Database.insert(tribute, false);
+        Test.stopTest();
+
+        System.assertEquals(
+            true,
+            result.isSuccess(),
+            'An organization that is not marked deceased may be told about a gift honoring it'
+        );
+    }
+
+    @IsTest
     static void answersWithNothingWhenAGiftHasNoTribute() {
         RecognitionTestData.setAutomaticHouseholdCredits(false);
         Account garcias = RecognitionTestData.household('The Garcia Family');

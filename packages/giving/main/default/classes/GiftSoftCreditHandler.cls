@@ -15,22 +15,18 @@ public with sharing class GiftSoftCreditHandler extends TriggerHandler {
         return;
     }
 
-    public override void afterInsert(List<SObject> newRecords, Map<Id, SObject> newRecordsById) {
-        SoftCreditService.createHouseholdMemberCredits(asGifts(newRecords));
+    public override void afterInsert() {
+        SoftCreditService.createHouseholdMemberCredits(asGifts(newRecords()));
     }
 
-    public override void afterUpdate(
-        List<SObject> newRecords,
-        Map<Id, SObject> newRecordsById,
-        List<SObject> oldRecords,
-        Map<Id, SObject> oldRecordsById
-    ) {
-        if (newRecords == null || oldRecordsById == null) {
+    public override void afterUpdate() {
+        Map<Id, SObject> priorById = oldRecordsById();
+        if (newRecords() == null || priorById == null) {
             return;
         }
         List<Gift__c> changed = new List<Gift__c>();
-        for (Gift__c gift : asGifts(newRecords)) {
-            Gift__c prior = (Gift__c) oldRecordsById.get(gift.Id);
+        for (Gift__c gift : asGifts(newRecords())) {
+            Gift__c prior = (Gift__c) priorById.get(gift.Id);
             if (prior == null || recognitionChanged(gift, prior)) {
                 changed.add(gift);
             }
@@ -38,11 +34,12 @@ public with sharing class GiftSoftCreditHandler extends TriggerHandler {
         SoftCreditService.createHouseholdMemberCredits(changed);
     }
 
-    public override void beforeDelete(List<SObject> oldRecords, Map<Id, SObject> oldRecordsById) {
-        if (oldRecordsById == null || oldRecordsById.isEmpty()) {
+    public override void beforeDelete() {
+        Map<Id, SObject> priorById = oldRecordsById();
+        if (priorById == null || priorById.isEmpty()) {
             return;
         }
-        SoftCreditService.removeAutomaticCredits(oldRecordsById.keySet());
+        SoftCreditService.removeAutomaticCredits(priorById.keySet());
     }
 
     private static Boolean recognitionChanged(Gift__c gift, Gift__c prior) {

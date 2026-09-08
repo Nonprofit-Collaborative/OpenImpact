@@ -16,30 +16,25 @@ public with sharing class TributeTriggerHandler extends TriggerHandler {
         return;
     }
 
-    public override void beforeInsert(List<SObject> newRecords) {
-        List<Tribute__c> tributes = asTributes(newRecords);
+    public override void beforeInsert() {
+        List<Tribute__c> tributes = asTributes(newRecords());
         TributeService.rejectSecondTribute(tributes);
         TributeService.validate(tributes);
         TributeService.stampSentDates(tributes, null);
     }
 
-    public override void beforeUpdate(
-        List<SObject> newRecords,
-        Map<Id, SObject> newRecordsById,
-        List<SObject> oldRecords,
-        Map<Id, SObject> oldRecordsById
-    ) {
-        List<Tribute__c> tributes = asTributes(newRecords);
+    public override void beforeUpdate() {
+        List<Tribute__c> tributes = asTributes(newRecords());
         TributeService.validate(tributes);
-        TributeService.stampSentDates(tributes, priorById(oldRecordsById));
+        TributeService.stampSentDates(tributes, priorById(oldRecordsById()));
     }
 
-    public override void afterInsert(List<SObject> newRecords, Map<Id, SObject> newRecordsById) {
-        TributeService.mirrorOnGifts(asTributes(newRecords), true);
+    public override void afterInsert() {
+        TributeService.mirrorOnGifts(asTributes(newRecords()), true);
     }
 
-    public override void afterDelete(List<SObject> oldRecords, Map<Id, SObject> oldRecordsById) {
-        TributeService.mirrorOnGifts(asTributes(oldRecords), false);
+    public override void afterDelete() {
+        TributeService.mirrorOnGifts(asTributes(oldRecords()), false);
     }
 
     private static Map<Id, Tribute__c> priorById(Map<Id, SObject> oldRecordsById) {

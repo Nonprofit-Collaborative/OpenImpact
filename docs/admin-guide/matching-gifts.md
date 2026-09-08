@@ -40,15 +40,20 @@ Riverbend Manufacturing.
 3. Press **New** again. Enter a gift from **Riverbend Manufacturing** for **500**, dated
    today, status **Received**. Save. This is the employer's match.
 4. On the employer's gift, set **Matched gift** to Ana's gift. Save.
-5. Look at what happened on the employer's gift: it now shows **Matches: Ana Garcia's gift
-   of 500**, and in **Soft credits** Ana Garcia appears with the role **Matched donor** and
-   the amount 500, marked automatic.
-6. Open **Ana Garcia's gift**. It shows **Matched by: Riverbend Manufacturing**. The link
-   reads correctly from both sides, and you only entered it once.
+5. Look at what happened on the employer's gift: **Matched gift** names Ana's gift, and in
+   **Soft credits** Ana Garcia appears with the role **Matched donor** and the amount 500,
+   marked automatic.
+6. Open **Ana Garcia's gift**. Its own **Matched gift** now names the Riverbend gift. The
+   link reads correctly from both sides, and you only entered it once.
 7. Open **Ana Garcia**. Her **Total giving** is 500, the gift she actually made. Her
    **Total soft credits** is 500, the match she caused. Neither number has been inflated by
    the other.
-8. Try a link that should fail. Go back to the employer's gift, clear **Matched gift**, save,
+8. Try a link that should fail because of the money. Record a refund against Ana's gift so
+   its status is **Refunded**, then try to link it. Open Impact refuses with: **A gift that
+   has been refunded or written off cannot be part of a matching gift pair. Unlink the match
+   before recording the refund, or link the replacement gift instead.** A link that outlived
+   the money would go on crediting Ana for a match you gave back.
+9. Try a link that should fail because of the employer. Go back to the employer's gift, clear **Matched gift**, save,
    then set it to a gift from a donor who works somewhere else. Open Impact refuses the save
    with: **That gift is from someone whose employer is a different organization. Check the
    employer on the person's record, or clear it if you are not sure.**
@@ -64,6 +69,9 @@ Riverbend Manufacturing.
   makes your receipts wrong.
 - **Leaving Employer blank and linking anyway.** That is allowed: Open Impact only compares
   when an employer is set. Filling it in is what turns a silent mistake into a warning.
+- **Refunding one half of a linked pair.** Unlink first, then record the refund. Open
+  Impact refuses to create a link involving a refunded or written off gift, and a refund
+  recorded against a gift that is already linked leaves a link you should clear by hand.
 - **Expecting the soft credit to survive an unlink.** Clearing Matched gift removes the
   matched donor credit that the link created, because it exists only to record the link. A
   credit you entered by hand stays.

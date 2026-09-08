@@ -16,27 +16,22 @@ public with sharing class GiftMatchingGiftHandler extends TriggerHandler {
         return;
     }
 
-    public override void afterInsert(List<SObject> newRecords, Map<Id, SObject> newRecordsById) {
-        MatchingGiftService.applyLinkChanges(asGifts(newRecords), new Map<Id, Gift__c>());
+    public override void afterInsert() {
+        MatchingGiftService.applyLinkChanges(asGifts(newRecords()), new Map<Id, Gift__c>());
     }
 
-    public override void afterUpdate(
-        List<SObject> newRecords,
-        Map<Id, SObject> newRecordsById,
-        List<SObject> oldRecords,
-        Map<Id, SObject> oldRecordsById
-    ) {
-        MatchingGiftService.applyLinkChanges(asGifts(newRecords), priorById(oldRecordsById));
+    public override void afterUpdate() {
+        MatchingGiftService.applyLinkChanges(asGifts(newRecords()), priorById(oldRecordsById()));
     }
 
-    public override void beforeDelete(List<SObject> oldRecords, Map<Id, SObject> oldRecordsById) {
+    public override void beforeDelete() {
         List<Gift__c> cleared = new List<Gift__c>();
-        for (Gift__c gift : asGifts(oldRecords)) {
+        for (Gift__c gift : asGifts(oldRecords())) {
             if (gift.Matched_Gift__c != null) {
                 cleared.add(new Gift__c(Id = gift.Id, Matched_Gift__c = null));
             }
         }
-        MatchingGiftService.applyLinkChanges(cleared, priorById(oldRecordsById));
+        MatchingGiftService.applyLinkChanges(cleared, priorById(oldRecordsById()));
     }
 
     private static Map<Id, Gift__c> priorById(Map<Id, SObject> oldRecordsById) {

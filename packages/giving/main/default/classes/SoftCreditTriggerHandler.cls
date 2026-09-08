@@ -19,17 +19,12 @@ public with sharing class SoftCreditTriggerHandler extends TriggerHandler {
         return;
     }
 
-    public override void beforeInsert(List<SObject> newRecords) {
-        apply(asCredits(newRecords));
+    public override void beforeInsert() {
+        apply(asCredits(newRecords()));
     }
 
-    public override void beforeUpdate(
-        List<SObject> newRecords,
-        Map<Id, SObject> newRecordsById,
-        List<SObject> oldRecords,
-        Map<Id, SObject> oldRecordsById
-    ) {
-        apply(asCredits(newRecords));
+    public override void beforeUpdate() {
+        apply(asCredits(newRecords()));
     }
 
     private static void apply(List<Soft_Credit__c> credits) {

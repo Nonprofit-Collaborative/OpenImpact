@@ -27,6 +27,13 @@ public with sharing class TributeController {
         public Date notificationSentDate;
         @AuraEnabled
         public Boolean canMarkSent = false;
+        /**
+         * Why there is nothing to send, when there is nothing to send. A tribute with no
+         * recipient recorded is a common and recoverable state, not an error, so the panel says
+         * so rather than quietly hiding its button (R-TR3).
+         */
+        @AuraEnabled
+        public String blockedReason;
     }
 
     @AuraEnabled(cacheable=true)
@@ -88,10 +95,14 @@ public with sharing class TributeController {
         view.message = tribute.Message__c;
         view.notificationSent = tribute.Notification_Sent__c == true;
         view.notificationSentDate = tribute.Notification_Sent_Date__c;
+        Boolean hasRecipient = String.isNotBlank(view.recipientName);
         view.canMarkSent =
             Tribute__c.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).isUpdateable() &&
             view.notificationSent == false &&
-            String.isNotBlank(view.recipientName);
+            hasRecipient;
+        if (!hasRecipient && view.notificationSent == false) {
+            view.blockedReason = Label.Giving_TributeNotification_NoRecipient;
+        }
         return view;
     }
 

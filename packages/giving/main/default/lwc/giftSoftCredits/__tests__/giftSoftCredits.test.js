@@ -7,7 +7,6 @@ import removeCredit from '@salesforce/apex/SoftCreditController.removeCredit';
 jest.mock(
   '@salesforce/apex/SoftCreditController.getCredits',
   () => {
-    // eslint-disable-next-line no-undef
     const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
     return { default: createApexTestWireAdapter(jest.fn()) };
   },
