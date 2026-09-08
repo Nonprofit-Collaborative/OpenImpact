@@ -27,7 +27,7 @@ single number.
 | Total | What it counts |
 |---|---|
 | Total giving | Every gift received from this donor. |
-| Gift count | How many gifts have been received from this donor. |
+| Gift count | How many gifts this donor has given. A gift that was later refunded still counts as one gift. |
 | First gift date | The date of the donor's first gift, which is what new donor reporting counts from. |
 | Last gift date | The date of the donor's most recent gift, which is what lapsed donor reporting counts from. |
 | Largest gift | The largest single gift this donor has given. |
@@ -44,18 +44,27 @@ single number.
 |---|---|---|
 | Fund | Total raised | Everything ever designated to this fund. |
 | Fund | Total raised this year | Designated to this fund in the fiscal year you are in now. |
-| Fund | Gift count | How many gifts have been designated to this fund. |
+| Fund | Gift count | How many gifts have been designated to this fund, counting a gift once even if it was later refunded. |
 | Fund | Last gift date | The date of the most recent gift to this fund. |
 | Appeal | Total raised | What this appeal brought in. |
 | Appeal | Gift count | How many gifts responded to this appeal. |
 | Commitment | Paid to date | What has been paid against this pledge or recurring gift. |
 | Installment | Paid amount | What has been paid against this scheduled payment. |
 
-Three things are true of all of them, and they explain most of the questions staff ask
+Four things are true of all of them, and they explain most of the questions staff ask
 about a number that looks wrong:
 
-- **Only gifts with a status of Received are counted.** A pending gift is a promise, not
-  money, so it is not in any total until it is marked Received.
+- **A pending gift is not in any total.** A promise is not money, so a gift counts only
+  once its status is Received, Refunded, or Written off: the three statuses that mean the
+  money actually moved. Refunded and Written off are in that list on purpose, and the next
+  point says why.
+- **A refunded gift stays in the count and leaves the total.** Open Impact records a
+  refund as a second gift for a negative amount rather than editing or deleting the
+  original, so the two cancel out. A donor who gave $250 and had all of it back shows
+  **1 gift** and **$0 total giving**. That is deliberate: they did give, once, and the
+  organization is holding none of it. The consequence is that dividing total giving by
+  gift count is not a meaningful average gift for a donor with refunds. A gift recorded at
+  $0, such as an in-kind gift with no value entered, is not counted either.
 - **Soft credits are never added into a giving total.** A soft credit is recognition, not
   money the organization received, so it is counted only in Total soft credits and Soft
   credit count. If it were in Total giving as well, every household gift would be counted
