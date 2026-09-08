@@ -88,6 +88,25 @@ Each feature adds its row here when its page is written.
 
 | Feature | Page | Package | Iteration |
 |---|---|---|---|
-| Soft credits (G-08) | [soft-credits.md](soft-credits.md) | Giving | v0.3 |
-| Tributes (G-09) | [tributes.md](tributes.md) | Giving | v0.3 |
-| Matching gifts (G-10) | [matching-gifts.md](matching-gifts.md) | Giving | v0.3 |
+| C-04 | [Automation control](automation-control.md) | Core | v0.1 |
+| C-05 | [Error Log](error-log.md) | Core | v0.1 |
+| C-06 | [Access](access.md) | Core | v0.1 |
+| C-01 Household model | [households.md](households.md) | Core | v0.1 |
+| C-02 Household names and greetings | [household-naming.md](household-naming.md) | Core | v0.1 |
+| C-07 | [Coexistence mode](coexistence-mode.md) | Core | v0.1 |
+| C-10 Sample data loader | [sample-data.md](sample-data.md) | Core | v0.1 |
+| C-11 | [Health Check](health-check.md) | Core | v0.1 |
+| C-03 Nonprofit Hub app and setup checklist | [nonprofit-hub.md](nonprofit-hub.md) | Core | v0.1 |
+| C-03 Nonprofit Settings console | [nonprofit-settings.md](nonprofit-settings.md) | Core | v0.1 |
+| C-12 Setup Assistant | [setup-assistant.md](setup-assistant.md) | Core | v0.2 |
+| G-01 Gifts | [gifts.md](gifts.md) | Giving | v0.2 |
+| G-03 Quick gift entry | [quick-gift-entry.md](quick-gift-entry.md) | Giving | v0.2 |
+| G-04 Funds | [funds.md](funds.md) | Giving | v0.2 |
+| G-05 Appeals | [appeals.md](appeals.md) | Giving | v0.2 |
+| G-06 Giving dashboard | [giving-dashboard.md](giving-dashboard.md) | Giving | v0.2 |
+| G-01 Refunds and write-offs | [refunds.md](refunds.md) | Giving | v0.2 |
+| G-07 and G-11 Commitments | [commitments.md](commitments.md) | Giving | v0.3 |
+| C-17 Addresses | [addresses.md](addresses.md) | Core | v0.3 |
+| G-08 Soft credits | [soft-credits.md](soft-credits.md) | Giving | v0.3 |
+| G-09 Tributes | [tributes.md](tributes.md) | Giving | v0.3 |
+| G-10 Matching gifts | [matching-gifts.md](matching-gifts.md) | Giving | v0.3 |

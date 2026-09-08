@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+  <apiVersion>67.0</apiVersion>
+  <isExposed>false</isExposed>
+  <masterLabel>Settings Search</masterLabel>
+  <description>Searches every Open Impact setting by name, description, or section.</description>
+</LightningComponentBundle>

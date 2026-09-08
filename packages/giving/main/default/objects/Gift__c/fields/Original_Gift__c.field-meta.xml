@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Original_Gift__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    The gift this one refunds or writes off. Required whenever the amount is negative.
+  </inlineHelpText>
+  <label>Original Gift</label>
+  <referenceTo>Gift__c</referenceTo>
+  <relationshipLabel>Refunds and Write-offs</relationshipLabel>
+  <relationshipName>Refunds</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

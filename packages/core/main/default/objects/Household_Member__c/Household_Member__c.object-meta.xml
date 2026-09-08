@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+  <allowInChatterGroups>false</allowInChatterGroups>
+  <compactLayoutAssignment>Household_Member_Compact</compactLayoutAssignment>
+  <deploymentStatus>Deployed</deploymentStatus>
+  <description>
+    One person's membership of one household over a period of time. Used only when the org has
+    chosen the flexible membership mode.
+  </description>
+  <enableActivities>false</enableActivities>
+  <enableBulkApi>true</enableBulkApi>
+  <enableFeeds>false</enableFeeds>
+  <enableHistory>false</enableHistory>
+  <enableLicensing>false</enableLicensing>
+  <enableReports>true</enableReports>
+  <enableSearch>true</enableSearch>
+  <enableSharing>true</enableSharing>
+  <enableStreamingApi>true</enableStreamingApi>
+  <label>Household Member</label>
+  <nameField>
+    <displayFormat>HM-{00000000}</displayFormat>
+    <label>Household Member Number</label>
+    <type>AutoNumber</type>
+  </nameField>
+  <pluralLabel>Household Members</pluralLabel>
+  <searchLayouts />
+  <sharingModel>ReadWrite</sharingModel>
+  <visibility>Public</visibility>
+</CustomObject>

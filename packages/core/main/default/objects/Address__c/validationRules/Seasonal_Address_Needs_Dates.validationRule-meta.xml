@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Seasonal_Address_Needs_Dates</fullName>
+    <active>true</active>
+    <description>A seasonal address needs all four range values so the seasonal swap knows when to use it (canonical model R-AD4).</description>
+    <errorConditionFormula>AND(ISPICKVAL(Type__c, &quot;Seasonal&quot;), OR(ISBLANK(Seasonal_Start_Month__c), ISBLANK(Seasonal_Start_Day__c), ISBLANK(Seasonal_End_Month__c), ISBLANK(Seasonal_End_Day__c)))</errorConditionFormula>
+    <errorDisplayField>Seasonal_Start_Month__c</errorDisplayField>
+    <errorMessage>A seasonal address needs a start month, a start day, an end month, and an end day so we know when to use it.</errorMessage>
+</ValidationRule>

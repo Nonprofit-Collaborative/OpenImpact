@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<RecordType xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Household</fullName>
+  <active>true</active>
+  <compactLayoutAssignment>Household_Compact</compactLayoutAssignment>
+  <description>
+    A group of people the nonprofit treats as one donor: one mailing, one greeting, one giving
+    history.
+  </description>
+  <label>Household</label>
+</RecordType>
