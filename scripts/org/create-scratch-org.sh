@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# create-scratch-org.sh <shape> [alias] [--days N] [--no-sample-data]
+# create-scratch-org.sh <shape> [alias] [--days N] [--no-sample-data] [--replace]
 #
 # Creates a scratch org of the given shape, deploys Core, assigns Core's permission sets, and
 # (for the platform-only shape) verifies that a Salesforce Platform license user can use every
@@ -21,7 +21,13 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: create-scratch-org.sh <shape> [alias] [--days N] [--no-sample-data]" >&2
+  echo "Usage: create-scratch-org.sh <shape> [alias] [--days N] [--no-sample-data] [--replace]" >&2
+  echo "  --days N     1 to 30. Salesforce caps a scratch org at 30 days; there is no" >&2
+  echo "               permanent scratch org. For a long lived development org use" >&2
+  echo "               --days 30 --replace and re-run it monthly, or use a Developer" >&2
+  echo "               Edition org instead. See docs/contributor-guide/scratch-orgs.md." >&2
+  echo "  --replace    Delete an existing scratch org with the same alias first, so a" >&2
+  echo "               refresh does not leave the old one consuming an active org slot." >&2
   echo "  shape: platform-only | sales-cloud | npsp | person-accounts | nonprofit-cloud" >&2
   exit 1
 }
@@ -33,6 +39,7 @@ shift || true
 ALIAS=""
 DAYS=7
 LOAD_SAMPLE_DATA=1
+REPLACE=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -42,6 +49,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-sample-data)
       LOAD_SAMPLE_DATA=0
+      shift
+      ;;
+    --replace)
+      REPLACE=1
       shift
       ;;
     -*)
@@ -69,6 +80,25 @@ fi
 
 if [[ -z "$ALIAS" ]]; then
   ALIAS="openimpact-${SHAPE}"
+fi
+
+# Salesforce caps a scratch org at 30 days and deletes it when it expires. Catching a
+# larger number here says so plainly, rather than letting the API reject it later.
+if ! [[ "$DAYS" =~ ^[0-9]+$ ]] || (( DAYS < 1 || DAYS > 30 )); then
+  echo "--days must be between 1 and 30. Salesforce caps a scratch org at 30 days:" >&2
+  echo "there is no permanent scratch org. For a long lived development org, use" >&2
+  echo "--days 30 --replace and re-run this monthly, or use a Developer Edition org." >&2
+  echo "See docs/contributor-guide/scratch-orgs.md, 'A development org that lasts'." >&2
+  exit 1
+fi
+
+if [[ "$REPLACE" -eq 1 ]]; then
+  if sf org display --target-org "$ALIAS" >/dev/null 2>&1; then
+    echo "== Deleting the existing org aliased ${ALIAS} (--replace) =="
+    sf org delete scratch --target-org "$ALIAS" --no-prompt || true
+  else
+    echo "No existing org aliased ${ALIAS}; nothing to replace."
+  fi
 fi
 
 echo "== Creating scratch org: shape=${SHAPE} alias=${ALIAS} days=${DAYS} =="
@@ -146,3 +176,11 @@ fi
 
 echo "== Done =="
 echo "Open the org with: sf org open --target-org ${ALIAS}"
+
+# An expiry nobody has been told about is how a development org and its data get lost.
+EXPIRY="$(sf org display --target-org "$ALIAS" --json 2>/dev/null |
+  python3 -c 'import json,sys; print(json.load(sys.stdin)["result"].get("expirationDate",""))' 2>/dev/null || true)"
+if [[ -n "$EXPIRY" ]]; then
+  echo "This scratch org expires on ${EXPIRY} and is deleted by Salesforce that day."
+  echo "Refresh it with: scripts/org/create-scratch-org.sh ${SHAPE} ${ALIAS} --days ${DAYS} --replace"
+fi

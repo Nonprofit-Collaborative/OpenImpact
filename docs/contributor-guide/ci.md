@@ -89,6 +89,21 @@ whatever org it names.
 To rotate or revoke, re-run steps 3 and 6 and replace the secret, or revoke the connected app
 session in the org under Setup, Connected Apps OAuth Usage.
 
+### Choosing which shapes run
+
+The `org-tests` job knows five shapes and runs only those named in the `SF_ORG_TEST_SHAPES`
+repository variable (Settings, then Secrets and variables, then Actions, then the Variables
+tab). Unset means `person-accounts` alone.
+
+That default is deliberate. The first customers are Nonprofit Cloud and Agentforce Nonprofit
+orgs, where people are stored as person Accounts, and `person-accounts` is the closest shape
+an ordinary Dev Hub can create. Running one shape per push also keeps the scratch org
+allowance from being the reason a build fails.
+
+Widen it when there is a reason to, for example `platform-only,person-accounts` to guard the
+platform only floor as well. Add `nonprofit-cloud` only once the Dev Hub carries that
+entitlement: without it, org creation fails, which is a red build rather than a reported gap.
+
 ### Scratch org limits are the thing that bites next
 
 Every push runs one scratch org per shape. A Developer Edition Dev Hub has a low daily

@@ -29,10 +29,10 @@ this shape against an entitled Dev Hub yet. If creation fails naming an unknown 
 error lists what your Dev Hub can grant: take the right name from that list and correct
 `config/scratch-defs/nonprofit-cloud.json`. That is the one line expected to need editing.
 
-**Continuous integration does not run this shape by default.** It runs only when the
-`SF_NONPROFIT_CLOUD_SHAPE` repository variable is set to `true`, so an unentitled Dev Hub
-reports a skipped shape rather than a failed build. Set it once the shape creates cleanly by
-hand.
+**Continuous integration does not run this shape by default.** It runs only when
+`nonprofit-cloud` is named in the `SF_ORG_TEST_SHAPES` repository variable, so an unentitled
+Dev Hub reports a skipped shape rather than a failed build. Add it once the shape creates
+cleanly by hand.
 
 **Most of what this shape would prove is already covered by Person Accounts**, which any Dev
 Hub grants: junction membership, the person account paths through households, naming and
@@ -41,10 +41,73 @@ setting rather than something inferred at run time, so it can be set explicitly 
 Accounts shape. What genuinely needs this shape is `OrgShapeDetector` answering "is Nonprofit
 Cloud installed" against a real org rather than a stub.
 
+## A development org that lasts
+
+**There is no permanent scratch org.** Salesforce caps one at 30 days and deletes it on the
+day it expires, along with everything in it. `--days` above 30 is refused by the script with
+that explanation rather than by the API with a less obvious one.
+
+So "persistent" means one of two things here, and they are different tools.
+
+### A 30 day development org, refreshed monthly
+
+The closest thing to what most people mean, and the one to use unless you have a reason not
+to. It is a real shape, created from the same definition CI uses, so what you see is what CI
+sees.
+
+```bash
+scripts/org/create-scratch-org.sh person-accounts dev --days 30 --replace
+```
+
+`person-accounts` is the shape to use until a Nonprofit Cloud entitlement exists: it is the
+closest an ordinary Dev Hub can get to the Agentforce Nonprofit shape the first customers
+run.
+
+That deploys Core, assigns the permission sets, and seeds the sample data, so the org is
+usable rather than empty.
+
+**Two settings make it behave like an Agentforce Nonprofit org**, and both are set in the app
+rather than by the script, because walking through them is itself worth testing. Open the
+Nonprofit Hub; the Setup Assistant offers the coexistence mode it detected. Set it to
+Agentforce Nonprofit coexistence, which moves household membership to the junction records
+that person accounts need in the same save. Health Check will then report an org shape that
+matches the mode. What still differs from a real Nonprofit Cloud org is that its objects are
+absent, so `OrgShapeDetector` reports them missing; that difference is the reason the
+`nonprofit-cloud` shape exists. When it prints the expiry date, put a reminder in your calendar for
+a day or two before. Re-running the same command refreshes it.
+
+`--replace` matters more than it looks. Without it, creating a second org under an alias that
+is already taken moves the alias to the new org and leaves the old one alive, quietly
+consuming one of the active scratch org slots a Developer Edition Dev Hub allows. `--replace`
+deletes the previous one first.
+
+**Anything you typed into the org is lost on refresh.** Configuration made in Setup, records
+created by hand, notes. What survives is what is in this repository: the metadata, the
+permission sets, and the sample data the seed script loads. If something is worth keeping,
+it belongs in the repository, which is the same discipline the package needs anyway.
+
+### A Developer Edition org, which really is permanent
+
+Free from developer.salesforce.com, never expires, and holds its data indefinitely. Deploy
+into it with `sf project deploy start --source-dir packages/core --target-org <alias>` rather
+than through the create script, which is written for scratch orgs.
+
+Use it for a demo environment, or for anything you want to keep for months. Two things it
+does not give you. Its shape is fixed, so it cannot verify the platform only guarantee, the
+Person Accounts path, or the NPSP and Nonprofit Cloud shapes: those are what the scratch org
+definitions exist for. And it drifts, because nothing recreates it from source, so over months
+it stops resembling a fresh install, which is exactly the state a subscriber will be in.
+
+### Which to use
+
+Use a 30 day scratch org for development and for anything you intend to trust. Use a Developer
+Edition org for a long lived demo. Do not use either as the only place a piece of
+configuration exists.
+
 ## Running the script
 
 ```bash
-scripts/org/create-scratch-org.sh <shape> [alias] [--days N] [--no-sample-data]
+scripts/org/create-scratch-org.sh <shape> [alias] [--days N] [--no-sample-data] [--replace]
 ```
 
 Example:

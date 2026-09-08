@@ -139,24 +139,28 @@ jobs:
         env:
           SF_DEVHUB_AUTH_URL: ${{ secrets.SF_DEVHUB_AUTH_URL }}
           SHAPE: ${{ matrix.shape }}
-          NPC_ENABLED: ${{ vars.SF_NONPROFIT_CLOUD_SHAPE }}
+          # Comma separated list of shapes to run. Unset means person-accounts only, which
+          # is the closest shape to Agentforce Nonprofit that an ordinary Dev Hub can
+          # create. Widen it as the Dev Hub allowance and the appetite for build minutes
+          # allow, for example: platform-only,person-accounts
+          # Add nonprofit-cloud only once the Dev Hub carries that entitlement: without it
+          # org creation fails, which is a red build rather than a reported gap.
+          SHAPES: ${{ vars.SF_ORG_TEST_SHAPES }}
         run: |
           if [ -z "$SF_DEVHUB_AUTH_URL" ]; then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
             echo "reason=no-devhub" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # The Nonprofit Cloud shape needs a Dev Hub that carries that entitlement. An
-          # ordinary Developer Edition Dev Hub cannot create it, so asking for it would fail
-          # the build rather than report a missing entitlement. It runs only when the
-          # SF_NONPROFIT_CLOUD_SHAPE repository variable is set to true.
-          if [ "$SHAPE" = "nonprofit-cloud" ] && [ "$NPC_ENABLED" != "true" ]; then
+          SHAPES="${SHAPES:-person-accounts}"
+          if printf '%s' ",$SHAPES," | tr -d '[:space:]' | grep -q ",$SHAPE,"; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "reason=ok" >> "$GITHUB_OUTPUT"
+          else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "reason=npc-not-enabled" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "reason=not-selected" >> "$GITHUB_OUTPUT"
+            echo "selected=$SHAPES" >> "$GITHUB_OUTPUT"
           fi
-          echo "enabled=true" >> "$GITHUB_OUTPUT"
-          echo "reason=ok" >> "$GITHUB_OUTPUT"
 
       - name: Authenticate Dev Hub
         if: steps.check.outputs.enabled == 'true'
@@ -212,9 +216,10 @@ jobs:
         env:
           REASON: ${{ steps.check.outputs.reason }}
           SHAPE: ${{ matrix.shape }}
+          SELECTED: ${{ steps.check.outputs.selected }}
         run: |
-          if [ "$REASON" = "npc-not-enabled" ]; then
-            echo "::notice::Shape $SHAPE was skipped: it needs a Dev Hub carrying the Nonprofit Cloud entitlement. Set the SF_NONPROFIT_CLOUD_SHAPE repository variable to true once you have one. See docs/contributor-guide/scratch-orgs.md."
+          if [ "$REASON" = "not-selected" ]; then
+            echo "::notice::Shape $SHAPE is not in the selected set ($SELECTED). Change the SF_ORG_TEST_SHAPES repository variable to run it. See docs/contributor-guide/ci.md."
           else
             echo "::warning::SF_DEVHUB_AUTH_URL secret is not set; org-tests job for shape $SHAPE was skipped. See docs/contributor-guide/ci.md to configure it."
           fi
