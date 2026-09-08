@@ -1,5 +1,7 @@
 import { LightningElement, wire } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
+// Bare, and correctly so: a custom permission defined in the same package resolves without a
+// namespace prefix, so this is not the B5 problem that TriggerHandler.getName had.
 import canManageSettings from '@salesforce/customPermission/Manage_Nonprofit_Settings';
 import getPage from '@salesforce/apex/AutomationControlController.getPage';
 import pauseAll from '@salesforce/apex/AutomationControlController.pauseAll';
@@ -123,10 +125,46 @@ export default class AutomationControl extends LightningElement {
   handleToggle(event) {
     const automationName = event.target.dataset.automation;
     const enabled = event.target.checked;
-    this.runAction(setEnabled({ automationName, enabled }));
+    // The switch has already moved in the browser, so the row moves with it before the call. The
+    // two have to agree first: LWC pushes a property to a child only when the value it rendered
+    // last time has changed, so a revert from a row that never moved would change nothing and the
+    // switch would sit in a position the server refused.
+    const before = this.enabledFor(automationName);
+    const input = event.target;
+    this.setEnabledOn(automationName, enabled);
+    this.runAction(setEnabled({ automationName, enabled }), () => {
+      this.setEnabledOn(automationName, before);
+      // The row is the truth the next render works from; the switch itself is put back here so
+      // that it is right whichever order the render and the rejection happen in.
+      input.checked = before;
+    });
   }
 
-  runAction(promise) {
+  enabledFor(automationName) {
+    const row = this.automations.find((automation) => automation.automationName === automationName);
+    return row ? row.enabled : undefined;
+  }
+
+  /**
+   * Replaces the one row that changed with a new object, so that the toggle is re-rendered.
+   * Copying the page alone would keep the same row objects and the same values, and nothing
+   * would be pushed to the switch.
+   */
+  setEnabledOn(automationName, enabled) {
+    if (!this.page || !this.page.automations) {
+      return;
+    }
+    this.page = {
+      ...this.page,
+      automations: this.page.automations.map((automation) => {
+        return automation.automationName === automationName
+          ? { ...automation, enabled }
+          : automation;
+      })
+    };
+  }
+
+  runAction(promise, revert) {
     this.busy = true;
     this.errorMessage = undefined;
     return promise
@@ -135,9 +173,10 @@ export default class AutomationControl extends LightningElement {
       })
       .catch((error) => {
         this.errorMessage = this.messageFrom(error);
-        // A refused switch must not leave a toggle showing a change the server did not make, so
-        // the list is rebuilt from what the server last said.
-        this.page = this.page ? { ...this.page } : this.page;
+        // A refused switch must not leave a toggle showing a change the server did not make.
+        if (revert) {
+          revert();
+        }
       })
       .finally(() => {
         this.busy = false;

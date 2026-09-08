@@ -159,6 +159,26 @@ describe('c-automation-control', () => {
     });
   });
 
+  it('puts the switch back where it was when the server refuses the change', async () => {
+    setEnabled.mockRejectedValue({
+      body: { message: 'Ask an administrator to make this change.' }
+    });
+    const element = createComponent();
+    getPage.emit(RUNNING_PAGE);
+    await flush();
+
+    const toggle = element.shadowRoot.querySelector('.automation-toggle');
+    expect(toggle.checked).toBe(true);
+    toggle.checked = false;
+    toggle.dispatchEvent(new CustomEvent('change'));
+    await flush();
+
+    expect(element.shadowRoot.querySelector('[data-id="error-message"]').textContent).toBe(
+      'Ask an administrator to make this change.'
+    );
+    expect(element.shadowRoot.querySelector('.automation-toggle').checked).toBe(true);
+  });
+
   it('shows the message the server sends when something is refused', async () => {
     pauseAll.mockRejectedValue({ body: { message: 'Choose how long to pause automation.' } });
     const element = createComponent();
