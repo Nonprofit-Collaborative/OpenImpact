@@ -2178,6 +2178,7 @@ donor gave, and what the organization is left holding.
 | `Giving_This_Year__c` | SUM | `Amount__c` | fiscal year offset 0 | Total given in the current fiscal year. |
 | `Giving_Last_Year__c` | SUM | `Amount__c` | fiscal year offset -1 | Total given in the previous fiscal year, which is the "LY" in LYBUNT. |
 | `Giving_Two_Years_Ago__c` | SUM | `Amount__c` | fiscal year offset -2 | Total given two fiscal years ago, used by SYBUNT and retention reporting. |
+| `Gifts_Last_Year__c` | COUNT | none | `Amount__c` greater than 0, fiscal year offset -1 | How many gifts this donor gave in the previous fiscal year, counting a gift once whether or not it was later refunded. A sum cannot answer this: a donor whose only gift last year was refunded inside that same year sums to zero while having given, and a donor whose sole activity last year was a refund of an older gift sums to less than zero while having given nothing. The retention reports read this attribute to tell a retained donor from a reactivated one (G-16, ADR-0026). |
 
 Two further definitions on the same targets use different sources:
 
@@ -2244,12 +2245,13 @@ why the definition keeps its own Last Calculated as well.
 | Giving This Year | `Giving_This_Year__c` | Currency |
 | Giving Last Year | `Giving_Last_Year__c` | Currency |
 | Giving Two Years Ago | `Giving_Two_Years_Ago__c` | Currency |
+| Gifts Last Year | `Gifts_Last_Year__c` | Number |
 | Pledge Balance | `Pledge_Balance__c` | Currency |
 | Total Soft Credits | `Total_Soft_Credits__c` | Currency |
 | Soft Credit Count | `Soft_Credit_Count__c` | Number |
 | Rollups Last Calculated | `Rollups_Last_Calculated__c` | DateTime |
 
-- **Fields on Contact** (shipped by Giving): the same twelve API names, with the same
+- **Fields on Contact** (shipped by Giving): the same thirteen API names, with the same
   types and the same definitions.
 
 - **Fields on `Fund__c`:**
@@ -2652,6 +2654,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.3 | 2026-09-08 | G-02 defect fix (ADR-0022). No object or field added. Section 26's base filter changes from `Status equals Received` to `Status` in `Received`, `Refunded`, `Written off`, because R-G3 moves a fully refunded gift's status while leaving the negative gifts that reverse it at Received, so the old filter kept the negatives, dropped the positive, and subtracted a refunded gift twice. The count rows, largest gift, and the two date rows additionally require `Amount__c` greater than 0, so a gift given once and refunded in full reads as one gift and a total of zero. All 38 gift sourced, Gift Allocation sourced and Soft Credit sourced `Rollup_Definition_Default__mdt` rows updated; the three Pledge Balance rows filter on Commitment status and are unaffected. R-R9 gains the sentence that makes this a consequence of the rule rather than an exception to it. |
 | v0.3 | 2026-09-08 | G-08 rule collision resolved (ADR-0023). No object, field, or rollup row changed. R-SC5 and R-SC6 collided on a full refund: R-SC5 creates a negative automatic credit on the negative gift while R-SC6 removed the original gift's automatic credits once its status became Refunded or Written off, so a fully refunded gift of 250 left a recognition total of minus 250 rather than zero. R-SC6 no longer removes credits on refund; removal is now only for a deleted gift. R-SC5 states the resulting pair explicitly and R-SC3 states that a gift keeps its household credits after its status is reversed. Section 26's soft credit rows already read gift status through the widened set from ADR-0022, so they need no further change and now carry both halves of the pair. |
 | v0.3 | 2026-09-08 | G-04 receipt lock (ADR-0024). `Automation_Registry__mdt` and `Automation_Setting__c` each gain `Always_Runs__c` (Checkbox, default false): an automation marked that way enforces a rule rather than providing a convenience, so the dispatcher ignores the bypass, the pause and the switch for it, and the console shows its switch off and disabled with a reason (new rule R-A4). Giving ships the `Gift_Receipt_Lock` automation (order 5, `GiftReceiptLockHandler`) carrying the two enforcement calls that used to run inside `Gift_Core_Rules`, and the custom permission `Override_Receipt_Lock`, which is on no permission set and in no permission set group. R-G4 restated: the lock survives the automation switch, the override is a deliberate act in Setup, and every use of it is written to the Error Log at Warning severity. No object added. |
+| v0.4 | 2026-09-08 | G-16 retention reports. One attribute added: `Gifts_Last_Year__c` (Number) on Account and Contact, filled by three new `Rollup_Definition_Default__mdt` rows (`Household_Gifts_Last_Year`, `Account_Gifts_Last_Year`, `Contact_Gifts_Last_Year`) as a COUNT over Gift with the ADR-0022 count filter and fiscal year offset -1. It is the one retention question no shipped attribute could answer: whether a donor gave last fiscal year, counted rather than summed. Everything else G-16 needs was already here, so LYBUNT, SYBUNT and the conversion report add no fields and read `Last_Gift_Date__c`, `First_Gift_Date__c` and `Gift_Count__c`, which already carry the count filter. No object added (ADR-0025, ADR-0026). |
 
 ---
 ## 32. Entity ownership by package
