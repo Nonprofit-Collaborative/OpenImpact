@@ -1,0 +1,100 @@
+<template>
+  <lightning-card title={labels.title} icon-name="custom:custom19">
+    <div class="slds-var-p-horizontal_medium">
+      <p class="slds-text-body_regular slds-var-m-bottom_small">{labels.intro}</p>
+
+      <template if:true={hasError}>
+        <p data-id="error-message" class="slds-text-color_error slds-var-m-bottom_small">
+          {errorMessage}
+        </p>
+      </template>
+
+      <template if:true={hasNotice}>
+        <p data-id="notice-message" class="slds-text-body_small slds-var-m-bottom_small">
+          {noticeMessage}
+        </p>
+      </template>
+
+      <template if:true={showOffNotice}>
+        <p data-id="off-notice" class="slds-text-body_small slds-var-m-bottom_small">
+          {labels.off}
+        </p>
+      </template>
+
+      <dl class="slds-dl_horizontal slds-var-m-bottom_small">
+        <dt class="slds-dl_horizontal__label">{labels.measuredOn}</dt>
+        <dd data-id="source-field" class="slds-dl_horizontal__detail">{sourceFieldLabel}</dd>
+        <dt class="slds-dl_horizontal__label">{labels.lastRecalculated}</dt>
+        <dd data-id="last-recalculated" class="slds-dl_horizontal__detail">
+          {lastRecalculatedText}
+        </dd>
+      </dl>
+
+      <template if:true={isEmpty}>
+        <p data-id="empty-state" class="slds-text-body_regular">{labels.empty}</p>
+      </template>
+
+      <template if:true={hasLadder}>
+        <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+          <thead>
+            <tr class="slds-line-height_reset">
+              <th scope="col">{labels.columnLevel}</th>
+              <th scope="col">{labels.columnFrom}</th>
+              <th scope="col">{labels.columnUpTo}</th>
+              <th scope="col">{labels.columnDonors}</th>
+              <th scope="col">{labels.columnActive}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template for:each={rungs} for:item="rung">
+              <tr key={rung.recordId} data-id="rung">
+                <td>
+                  <lightning-button
+                    data-id="rung-link"
+                    data-record-id={rung.recordId}
+                    variant="base"
+                    label={rung.name}
+                    onclick={handleOpenRung}
+                  ></lightning-button>
+                </td>
+                <td>
+                  <lightning-formatted-number
+                    format-style="currency"
+                    value={rung.minimumAmount}
+                  ></lightning-formatted-number>
+                </td>
+                <td>
+                  <template if:true={rung.isTopOfLadder}>{labels.topOfLadder}</template>
+                  <template if:false={rung.isTopOfLadder}>
+                    <lightning-formatted-number
+                      format-style="currency"
+                      value={rung.maximumAmount}
+                    ></lightning-formatted-number>
+                  </template>
+                </td>
+                <td data-id="donor-count">{rung.donorCount}</td>
+                <td data-id="rung-active">{rung.activeText}</td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </template>
+
+      <div class="slds-var-m-top_small">
+        <lightning-button
+          data-id="new-level"
+          label={labels.newLevel}
+          onclick={handleNewLevel}
+        ></lightning-button>
+        <lightning-button
+          data-id="recalculate"
+          class="slds-var-m-left_x-small"
+          variant="brand"
+          label={labels.recalculate}
+          disabled={recalculateDisabled}
+          onclick={handleRecalculate}
+        ></lightning-button>
+      </div>
+    </div>
+  </lightning-card>
+</template>

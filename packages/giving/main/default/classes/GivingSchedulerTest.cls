@@ -11,9 +11,9 @@ private class GivingSchedulerTest {
         Test.stopTest();
 
         Assert.areEqual(
-            2,
+            3,
             [SELECT COUNT() FROM CronTrigger WHERE CronJobDetail.Name LIKE 'Open Impact Giving%'],
-            'Turning the module on schedules the top up and the overdue pass.'
+            'Turning the module on schedules the top up, the overdue pass and the donor levels pass.'
         );
     }
 

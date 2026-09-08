@@ -1752,6 +1752,14 @@ Moved here from Section 12 by ADR-0017, with their definitions unchanged.
 | `Installment_Generation_Horizon_Months__c` | integer | 12 | How far ahead installments are generated for an open-ended recurring commitment, so the schedule does not generate rows forever (R-CM2). |
 | `Installment_Overdue_Grace_Days__c` | integer | 5 | How many days after its due date an unpaid installment waits before it is marked Overdue (R-IN2). |
 
+### v0.4 keys
+
+| Key | Type | Default | Definition |
+|---|---|---|---|
+| `Donor_Levels_Enabled__c` | boolean | false | Whether donor levels are assigned at all. Off until the organization has built its ladder, because a wrong ladder is worse than none (R-DL7). |
+| `Donor_Level_Source_Field__c` | text | `Total_Giving__c` | Which giving total the ladder is measured on, named as one of the packaged rollup attributes of Section 26 (R-DL1). Stored as text under ADR-0019. |
+| `Donor_Levels_Last_Recalculated__c` | datetime | empty | When the nightly or on demand level pass last completed, shown read only on the Donor Levels page, the same freshness promise the rollups make (Principle 2). |
+
 ### Rules
 
 **R-GS1 Same contract as Core settings.** Protected, hierarchical, written synchronously
@@ -2124,6 +2132,147 @@ cause is picking the wrong name from a list.
 - **Service:** `TributeService`.
 
 ---
+
+## 25A. Donor Level
+
+### Definition
+
+One rung of the organization's giving ladder: a name a nonprofit uses for a group of
+donors ("Leadership Circle", "Sustainer"), and the amount at which a donor reaches it.
+The NPSP Levels successor (plan Section 5.2, feature G-14).
+
+A level is not a calculation. It is a label put on a number that has already been
+calculated: the giving totals the packaged rollups maintain on the donor's own record
+(Section 26). That is what keeps a donor's level and the total shown next to it from
+disagreeing, and it is why nothing here aggregates a gift.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | yes | What the organization calls this group of donors, as it appears on the donor's record and in reports. |
+| Description | long text | no | What the level means and what a donor at it is offered, in the organization's own words. |
+| Minimum Amount | currency | yes | The amount at which a donor reaches this level. A donor whose amount equals it is at this level. |
+| Maximum Amount | currency | no | The amount at which a donor has passed beyond this level. A donor whose amount equals it is at the next level up. Empty means this is the top of the ladder. |
+| Active | boolean | yes (defaults true) | Whether the level takes part in assignment. An inactive level keeps its name on the donors already at it and receives nobody new. |
+
+### Relationships
+
+- **Donor Level to donor**, one to many, in two directions: the level a donor is at now,
+  and the level that donor was at before (R-DL4). The donor is a Household, an
+  Organization, a person Account, or a Contact (R-DL3).
+- Donor Level has no reference to Gift, to Rollup Definition, or to any settings record.
+  Which number the ladder is measured on is a setting (Section 21A), not a reference.
+
+### Rules
+
+**R-DL1 One ladder, measured on one number.** The active levels form a single ladder for
+the whole organization, ordered by Minimum Amount, and every donor is placed on it by one
+number: the giving total named by `Donor_Level_Source_Field__c` (Section 21A). That
+setting names one of the packaged rollup attributes of Section 26, so the number a level
+is measured on is a number the donor's record already shows, calculated once by the rollup
+engine under the status filter of ADR-0022, and never recalculated here. A ladder measured
+on a second, privately calculated number would disagree with the donor's own total on
+screen, which is the defect this rule exists to prevent.
+
+**R-DL2 Which level a donor is at.** The assigned level is the active level with the
+greatest Minimum Amount that is at most the donor's amount, and whose Maximum Amount is
+empty or greater than that amount. A donor whose amount is below every Minimum Amount, or
+whose amount is empty, is at no level, and no level is a legitimate answer rather than an
+error. Where two active levels overlap, the one with the greater Minimum Amount wins, so
+a badly built ladder is still deterministic.
+
+**R-DL3 Whose level it is.** Three kinds of record carry a level, and they are exactly the
+three the giving totals of Section 26 are written to: a Household Account, an Account that
+is an organization or a person, and a Contact. A household and its members can therefore
+sit at different levels, which is correct: they are answers to different questions, and
+each one is read from the total on that same record.
+
+Household membership mode does not enter into it. Because the level reads a total already
+written to the record, the household membership abstraction was applied when that total
+was calculated (R-R1), and no membership is resolved a second time here. Contact mode and
+junction mode give the same result for the same reason.
+
+**R-DL4 Previous level, and movement.** When assignment produces a level different from
+the one on the record, the level the record held moves to Previous Donor Level and Donor
+Level Changed Date is set to the date of the change. When assignment produces the level
+already held, nothing is written, so Donor Level Changed Date keeps saying when the donor
+last moved rather than when the calculation last ran. Previous Donor Level is the record
+of where the donor came from, and it is never cleared by a later assignment.
+
+**R-DL5 A donor whose total falls.** A refund, a write-off, or a corrected gift lowers the
+total the ladder reads, and the level follows it down in the same save. The level always
+states the level the current number earns, because a level that disagreed with the total
+printed beside it would be worse than no level at all (Principle 2). What is retained is
+the previous level and the date: a donor who drops from Leadership Circle to Sustainer
+reads as Sustainer, previously Leadership Circle, changed today, so the movement is
+visible to the person who has to decide what to do about it. Levels are not a floor; an
+organization that awards a level permanently records that on the donor, not here.
+
+**R-DL6 When assignment runs.** The same three answers the rollup engine gives (R-R4).
+Real time: assignment happens in the save that changes the source total, which includes
+the save the rollup engine itself makes when a gift lands, and it runs before the record
+is written so it costs no second update. Scheduled: a nightly pass re-places every donor,
+which is what catches a fiscal year turning over and a ladder edited yesterday. On demand:
+the Recalculate button on the Donor Levels page does the scheduled pass now. Assignment is
+idempotent in all three: running it twice over unchanged data writes nothing the second
+time.
+
+**R-DL7 Off until it is set up.** `Donor_Levels_Enabled__c` defaults false and no level
+records ship, because a ladder's amounts belong to the organization and a wrong one is
+worse than none. While it is off, nothing is assigned and nothing is cleared: the levels
+already assigned stay on the records, exactly as an inactive Rollup Definition keeps the
+values it calculated (R-R6).
+
+**R-DL8 Editing the ladder.** Changing an amount, adding a rung, or deactivating one takes
+effect for a donor at their next assignment, so the console offers Recalculate and the
+admin guide says to press it. Deleting a level record removes the name from every donor
+holding it, current and previous, which is the platform's behavior for a lookup and cannot
+be softened; deactivating a level instead keeps the history and stops new assignments,
+which is why the Active attribute exists.
+
+**R-DL9 Nothing shipped, nothing overwritten.** The package ships no Donor Level records
+and never edits one. An upgrade cannot change an organization's ladder because there is
+nothing packaged to conflict with it (ADR-0006).
+
+### Salesforce implementation
+
+- **Object:** `Donor_Level__c`, a rung of the ladder, listed and edited from the Donor
+  Levels page in the settings console.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Name | `Name` | Text (standard) |
+| Description | `Description__c` | Long Text Area |
+| Minimum Amount | `Minimum_Amount__c` | Currency |
+| Maximum Amount | `Maximum_Amount__c` | Currency |
+| Active | `Active__c` | Checkbox |
+
+- **Fields on Account** (shipped by Giving, on the Household, Organization, and person
+  layouts):
+
+| Attribute | API name | Type |
+|---|---|---|
+| Donor Level | `Donor_Level__c` | Lookup to `Donor_Level__c` |
+| Previous Donor Level | `Previous_Donor_Level__c` | Lookup to `Donor_Level__c` |
+| Donor Level Changed Date | `Donor_Level_Changed_Date__c` | Date |
+
+- **Fields on Contact** (shipped by Giving): the same three API names, with the same types
+  and the same definitions.
+
+- **Settings keys:** `Donor_Levels_Enabled__c`, `Donor_Level_Source_Field__c`, and
+  `Donor_Levels_Last_Recalculated__c` on `Giving_Settings__c` (Section 21A).
+- **Validation rule:** Maximum Amount, when it is filled in, is greater than Minimum
+  Amount.
+- **Automation:** `Donor_Level_Assignment` in `Automation_Registry__mdt`, one row for
+  Account and one for Contact, both naming `DonorLevelTriggerHandler`, both bypassable and
+  pausable like every other packaged automation (R-A1).
+- **Service:** `DonorLevelService`, `DonorLevelSelector`, `DonorLevelTriggerHandler`,
+  `DonorLevelBatch`, `DonorLevelSchedulable`, `DonorLevelWriter` (ADR-0021), and
+  `DonorLevelController` for the page.
+
+---
+
 
 ## 26. Packaged default rollups
 
@@ -2645,7 +2794,6 @@ that builds it, before its metadata is created.
 |---|---|---|---|
 | Acknowledgment Rule | Giving | v0.4 (G-12) | Section 4.11 |
 | Receipt | Giving | v0.4 (G-13) | Section 4.11, ADR-0010 |
-| Donor Level | Giving | v0.4 (G-14) | Section 5.2 |
 | Stewardship Plan | Giving | v0.4 (G-15) | Section 5.2 |
 | Gift Batch | Giving | v0.5 (G-17) | Section 4.11 |
 | Volunteer, Job, Shift, Sign-up, Hours, Skill | Volunteers | v0.7 | Section 5.3 |
@@ -2690,6 +2838,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.3 | 2026-09-08 | G-04 receipt lock (ADR-0024). `Automation_Registry__mdt` and `Automation_Setting__c` each gain `Always_Runs__c` (Checkbox, default false): an automation marked that way enforces a rule rather than providing a convenience, so the dispatcher ignores the bypass, the pause and the switch for it, and the console shows its switch off and disabled with a reason (new rule R-A4). Giving ships the `Gift_Receipt_Lock` automation (order 5, `GiftReceiptLockHandler`) carrying the two enforcement calls that used to run inside `Gift_Core_Rules`, and the custom permission `Override_Receipt_Lock`, which is on no permission set and in no permission set group. R-G4 restated: the lock survives the automation switch, the override is a deliberate act in Setup, and every use of it is written to the Error Log at Warning severity. No object added. |
 | v0.4 | 2026-09-08 | G-16 retention reports. One attribute added: `Gifts_Last_Year__c` (Number) on Account and Contact, filled by three new `Rollup_Definition_Default__mdt` rows (`Household_Gifts_Last_Year`, `Account_Gifts_Last_Year`, `Contact_Gifts_Last_Year`) as a COUNT over Gift with the ADR-0022 count filter and fiscal year offset -1. It is the one retention question no shipped attribute could answer: whether a donor gave last fiscal year, counted rather than summed. Everything else G-16 needs was already here, so LYBUNT, SYBUNT and the conversion report add no fields and read `Last_Gift_Date__c`, `First_Gift_Date__c` and `Gift_Count__c`, which already carry the count filter. No object added (ADR-0025, ADR-0026). |
 | v0.4 | 2026-09-08 | C-18 seasonal address swap build. `Address__c` gains `Replaced_By_Seasonal__c` (Checkbox, default false): R-AD4 said the previous default is restored when a season ends but nothing recorded which address that was, so an owner with a home address, a work address and a winter address had no unambiguous address to go back to. `Nonprofit_Settings__c` gains `Seasonal_Address_Last_Run_Summary__c` (Text 255) alongside the `Seasonal_Address_Last_Run__c` timestamp already specified in v0.3: a bare timestamp says the job woke up, not that it did anything, and "visible last run" is the half of C-18 that makes the job trustworthy. R-AD4 restated with the four outcomes per owner and the inclusive boundary days; R-AD8 added for the visible run and the system mode posture (ADR-0027). |
+| v0.4 | 2026-09-08 | G-14 donor levels (ADR-0028). New Section 25A, `Donor_Level__c`, with `Minimum_Amount__c`, `Maximum_Amount__c`, `Description__c` and `Active__c`, and three fields shipped by Giving on both Account and Contact: `Donor_Level__c`, `Previous_Donor_Level__c` and `Donor_Level_Changed_Date__c`. Giving Settings gains `Donor_Levels_Enabled__c`, `Donor_Level_Source_Field__c` and `Donor_Levels_Last_Recalculated__c`. A level is a label on a giving total the rollup engine already maintains (R-DL1), never a second aggregation, so the ladder cannot disagree with the total printed beside it and the household membership modes are resolved once, by the rollup, rather than twice. Donor Level is removed from the deferred table in Section 30 and its ownership row now points at Section 25A. |
 
 ---
 ## 32. Entity ownership by package
@@ -2730,7 +2879,7 @@ included; standard objects the packages extend are named by the entity that gove
 | Address | Core | v0.3 | 29 |
 | Acknowledgment Rule | Giving | v0.4 | 30 |
 | Receipt | Giving | v0.4 | 30 |
-| Donor Level | Giving | v0.4 | 30 |
+| Donor Level | Giving | v0.4 | 25A |
 | Stewardship Plan | Giving | v0.4 | 30 |
 | Gift Batch | Giving | v0.5 | 30 |
 | Gift Transaction mirror | Connect | v0.6 | 30 |

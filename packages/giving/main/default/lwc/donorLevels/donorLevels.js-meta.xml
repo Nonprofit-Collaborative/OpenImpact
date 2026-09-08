@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+  <apiVersion>67.0</apiVersion>
+  <description>
+    The organization's giving ladder: every level, what it starts at, how many donors are on it,
+    what the levels are measured on, and a button that places every donor now.
+  </description>
+  <isExposed>true</isExposed>
+  <masterLabel>Donor Levels</masterLabel>
+  <targets>
+    <target>lightning__AppPage</target>
+  </targets>
+</LightningComponentBundle>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>
+    Your giving ladder: the levels, what each one starts at, and who is on it.
+  </description>
+  <flexiPage>Donor_Levels</flexiPage>
+  <label>Donor Levels</label>
+  <mobileReady>true</mobileReady>
+  <motif>Custom19: Trophy</motif>
+</CustomTab>

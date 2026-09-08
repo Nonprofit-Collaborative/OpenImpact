@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+  <labels>
+    <fullName>Giving_DonorLevels_Title</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: heading</shortDescription>
+    <value>Donor levels</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_Intro</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: what the page is for</shortDescription>
+    <value>Your giving ladder. Each rung is a name you give a group of donors and the amount at which a donor reaches it. Donors are placed on it automatically as their giving changes.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_MeasuredOn</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: which total the ladder reads</shortDescription>
+    <value>Measured on</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_LastRecalculated</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: freshness stamp</shortDescription>
+    <value>Donors last placed</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_NeverRecalculated</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: never recalculated</shortDescription>
+    <value>Not yet</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_Off</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: the feature is switched off</shortDescription>
+    <value>Donor levels are off. Build your ladder here, then turn Donor levels on in Nonprofit Settings under Giving.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_Empty</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: no rungs yet</shortDescription>
+    <value>You have not created any levels yet. Choose New level to add the first rung of your ladder.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_NewLevel</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: create a rung</shortDescription>
+    <value>New level</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_Recalculate</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: recalculate button</shortDescription>
+    <value>Recalculate now</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_RecalculateStarted</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: recalculation started</shortDescription>
+    <value>Placing every donor on the ladder. This runs in the background and the counts below update when it finishes.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_ColumnLevel</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: level column</shortDescription>
+    <value>Level</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_ColumnFrom</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: minimum column</shortDescription>
+    <value>From</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_ColumnUpTo</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: maximum column</shortDescription>
+    <value>Up to</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_ColumnDonors</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: donor count column</shortDescription>
+    <value>Donors</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_ColumnActive</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: active column</shortDescription>
+    <value>Active</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_TopOfLadder</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: no maximum on the top rung</shortDescription>
+    <value>and above</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_Inactive</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: an inactive rung</shortDescription>
+    <value>Inactive</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_NotPermitted</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: recalculation refused</shortDescription>
+    <value>You need the Manage Nonprofit Settings permission to place every donor on the ladder. Ask whoever set up Open Impact for it.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_TurnOnFirst</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: recalculation refused because levels are off</shortDescription>
+    <value>Turn Donor levels on in Nonprofit Settings under Giving before placing donors on the ladder.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_DonorLevels_ActionFailed</fullName>
+    <categories>Giving, Donor Levels</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Donor levels page: something went wrong</shortDescription>
+    <value>Open Impact could not read your donor levels. The details are in the Error Log.</value>
+  </labels>
+</CustomLabels>

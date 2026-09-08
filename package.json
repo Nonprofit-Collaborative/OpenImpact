@@ -16,6 +16,7 @@
     "check:symlinks": "bash scripts/ci/check-symlinks.sh",
     "check:permission-sets": "python3 scripts/ci/check-permission-sets.py",
     "check:help-links": "python3 scripts/ci/check-help-links.py",
+    "check:adrs": "python3 scripts/ci/check-adrs.py",
     "check:canonical-model": "python3 scripts/ci/check-canonical-model.py",
     "precommit": "lint-staged",
     "check:apex": "bash scripts/ci/check-apex-offline.sh",
