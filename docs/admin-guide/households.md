@@ -92,6 +92,12 @@ The count includes current members only. In the flexible membership mode, a pers
 membership has an end date of today or earlier has left the household and is not counted.
 Check the end dates on the Members panel.
 
+**"The primary contact went blank when I moved someone out."**
+That is deliberate. The primary contact has to be somebody who is still in the household,
+so when that person leaves, Open Impact clears the field rather than leaving a name that no
+longer belongs there. It does not choose a replacement for you: pick the new primary
+contact yourself on the household record.
+
 **"I moved someone and their gifts stayed behind."**
 That is deliberate. Moving a person moves the person, not the giving history of the
 household they left. Use merge on the household record page when you want to combine two
@@ -104,7 +110,7 @@ For report builders only. Maria never needs this to use the feature.
 | Where | Field label | Purpose |
 |---|---|---|
 | Household | Member Count | Current members of this household |
-| Household | Primary Contact | The person named when only one person can be |
+| Household | Primary Contact | The person named when only one person can be. Cleared when that person leaves the household |
 | Household | Anniversary | A household date you steward, most often a wedding anniversary |
 | Person | Household Role | Head, Spouse or Partner, Child, or Other |
 | Household Member | Start Date and End Date | When the person joined and left (flexible mode only) |

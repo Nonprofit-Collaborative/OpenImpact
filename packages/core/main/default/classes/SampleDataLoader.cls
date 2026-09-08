@@ -3,6 +3,11 @@
  * organizations, read from the SampleData static resource. See data/sample/README.md for
  * the JSON format and docs/admin-guide/sample-data.md for the admin-facing behavior.
  *
+ * The set loads in either membership mode. People are joined to their households through
+ * HouseholdService, which knows what joining means in the mode the org is in, so this
+ * feature never writes a membership row itself. The people are contacts either way,
+ * because Core cannot create person accounts.
+ *
  * load() is idempotent: it throws SampleDataException when sample data is already
  * present, and refuses to start while a load is still running. Because a synchronous
  * transaction cannot safely insert every household, organization, and contact (the
@@ -42,29 +47,32 @@ public with sharing class SampleDataLoader {
         @AuraEnabled
         public Boolean loading;
         /**
-         * False when this org stores household membership as junction records, which the
-         * sample set cannot express. The card says why rather than offering a load that
-         * would produce 200 empty households.
+         * True when this org keeps household membership in household member records. The
+         * load works either way; the card uses this to say how the sample people will be
+         * joined to their households, and that they arrive as contacts.
          */
         @AuraEnabled
-        public Boolean contactMembership;
+        public Boolean junctionMembership;
     }
 
     /**
-     * Starts loading the sample data set. Throws SampleDataException when this org keeps
-     * household membership in junction records, when a load is already running, when
-     * sample data is already present, or when the static resource is missing or does not
-     * hold a usable payload.
+     * Starts loading the sample data set. Throws SampleDataException when a load is
+     * already running, when sample data is already present, or when the static resource is
+     * missing or does not hold a usable payload.
      *
-     * The sample set puts every member on its household through Contact.AccountId, which
-     * is what contact membership means. In junction mode nothing would join a person to a
-     * household, so the load is refused with a message naming the reason (canonical model
-     * Section 3, household membership).
+     * Both membership modes are loaded: the load stage asks HouseholdService to join each
+     * person to their household, so in contact mode the join is the contact's household
+     * field and in junction mode it is a household member record. Membership mode is
+     * therefore not a reason to refuse.
+     *
+     * The sample people are contacts in either mode. Core cannot create person accounts
+     * (plan Section 4, ADR-0013), so an org that stores its own people as accounts gets a
+     * sample set of contacts in household member records rather than one of person
+     * accounts. That is a difference the admin guide states, not a refusal: the households,
+     * the names, the greetings, the counts and the panels all behave as they will with the
+     * org's own data.
      */
     public static void load() {
-        if (!isContactMembership()) {
-            throw new SampleDataException(Label.Core_SampleData_ContactModeOnly);
-        }
         if (hasRunningLoadJob()) {
             throw new SampleDataException(Label.Core_SampleData_LoadInProgress);
         }
@@ -82,6 +90,12 @@ public with sharing class SampleDataLoader {
      * Deletes every household, organization, and contact flagged Sample_Data__c, and
      * returns the counts that were removed. Contacts are deleted first so no household is
      * ever left with a dangling AccountId reference mid-transaction.
+     *
+     * In junction mode the membership rows the load created go with the households: the
+     * Household field on a household member record is a required lookup that cascades, so
+     * deleting a household flagged Sample_Data__c takes its own membership rows with it.
+     * The account ids are read after the contacts are gone, so a household that upkeep has
+     * already tidied away is not asked for a second time.
      */
     public static Counts remove() {
         if (hasRunningLoadJob()) {
@@ -104,7 +118,7 @@ public with sharing class SampleDataLoader {
 
         result.loaded = false;
         result.loading = false;
-        result.contactMembership = isContactMembership();
+        result.junctionMembership = HouseholdService.isJunctionMode();
         return result;
     }
 
@@ -121,7 +135,7 @@ public with sharing class SampleDataLoader {
             result.contactCount = 0;
             result.loading = false;
             result.loaded = false;
-            result.contactMembership = isContactMembership();
+            result.junctionMembership = HouseholdService.isJunctionMode();
             return result;
         }
 
@@ -132,7 +146,7 @@ public with sharing class SampleDataLoader {
         result.loading = hasRunningLoadJob();
         result.loaded =
             !result.loading && (result.householdCount > 0 || result.organizationCount > 0);
-        result.contactMembership = isContactMembership();
+        result.junctionMembership = HouseholdService.isJunctionMode();
         return result;
     }
 
@@ -154,11 +168,6 @@ public with sharing class SampleDataLoader {
             throw new SampleDataException(Label.Core_SampleData_ResourceMissing);
         }
         return resource.Body.toString();
-    }
-
-    /** True while household members are stored as contacts, which is what the sample set assumes. */
-    public static Boolean isContactMembership() {
-        return !HouseholdService.isJunctionMode();
     }
 
     private static Boolean canReadSampleDataFields() {

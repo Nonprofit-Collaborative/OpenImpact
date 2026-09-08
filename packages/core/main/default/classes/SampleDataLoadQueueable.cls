@@ -4,9 +4,10 @@
  *
  * Stage one inserts every household and organization Account with Sample_Data__c true,
  * then enqueues SampleDataContactQueueable for the first contact chunk. Stage two
- * inserts up to SampleDataLoader.CONTACT_CHUNK_SIZE contacts at a time, so that
- * inserting several hundred contacts (each running through the household naming and
- * greeting triggers) never risks the CPU limit of one transaction.
+ * inserts up to SampleDataLoader.CONTACT_CHUNK_SIZE contacts at a time and joins each
+ * chunk to its households through HouseholdService, so that inserting several hundred
+ * contacts (each running through the household naming and greeting triggers) never risks
+ * the CPU limit of one transaction.
  *
  * Both stages are static and take an already parsed SampleDataSet, so tests call them
  * directly and assert chunk boundaries without relying on queueable chaining, which an
@@ -66,8 +67,16 @@ public with sharing class SampleDataLoadQueueable implements Queueable {
     }
 
     /**
-     * Stage two: inserts the contacts of one zero-based chunk and returns how many were
-     * inserted. data.householdIdsByKey must already hold the stage one map.
+     * Stage two: inserts the contacts of one zero-based chunk and joins each of them to
+     * their household, then returns how many were inserted. data.householdIdsByKey must
+     * already hold the stage one map.
+     *
+     * How a person is joined to a household is the membership mode's business, so the
+     * chunk is joined through HouseholdService rather than by this class writing the join
+     * itself. In contact mode that join is the contact's own household field, which costs
+     * nothing to set as the record is built, so it is set here and the service is told
+     * about people who are already where they belong. In junction mode the contact is
+     * inserted with no household of its own and the service writes the membership row.
      */
     public static Integer loadContactChunk(SampleDataSet data, Integer chunkIndex) {
         List<Map<String, Object>> chunk = data.membersInChunk(chunkIndex);
@@ -75,13 +84,41 @@ public with sharing class SampleDataLoadQueueable implements Queueable {
             return 0;
         }
 
+        Boolean junctionMembership = HouseholdService.isJunctionMode();
         Id contactRecordTypeId = recordTypeId(Contact.SObjectType, 'Household_Contact');
         List<Contact> contactsToInsert = new List<Contact>();
+        List<Id> householdIds = new List<Id>();
         for (Map<String, Object> member : chunk) {
-            contactsToInsert.add(buildContact(member, data.householdIdsByKey, contactRecordTypeId));
+            Id householdId = data.householdIdsByKey.get((String) member.get('householdKey'));
+            householdIds.add(householdId);
+            contactsToInsert.add(
+                buildContact(member, junctionMembership ? null : householdId, contactRecordTypeId)
+            );
         }
         Database.insert(contactsToInsert, AccessLevel.USER_MODE);
+        if (junctionMembership) {
+            HouseholdService.addMembers(peopleByHousehold(contactsToInsert, householdIds));
+        }
         return contactsToInsert.size();
+    }
+
+    /**
+     * The inserted people of this chunk grouped by the household each of them belongs to,
+     * in the shape HouseholdService.addMembers takes.
+     */
+    private static Map<Id, Set<Id>> peopleByHousehold(List<Contact> people, List<Id> householdIds) {
+        Map<Id, Set<Id>> result = new Map<Id, Set<Id>>();
+        for (Integer i = 0; i < people.size(); i++) {
+            Id householdId = householdIds[i];
+            if (householdId == null || people[i].Id == null) {
+                continue;
+            }
+            if (!result.containsKey(householdId)) {
+                result.put(householdId, new Set<Id>());
+            }
+            result.get(householdId).add(people[i].Id);
+        }
+        return result;
     }
 
     private static Account buildHouseholdAccount(Map<String, Object> household, Id recordTypeId) {
@@ -131,13 +168,15 @@ public with sharing class SampleDataLoadQueueable implements Queueable {
 
     private static Contact buildContact(
         Map<String, Object> member,
-        Map<String, Id> householdIdsByKey,
+        Id householdId,
         Id recordTypeId
     ) {
         Contact con = new Contact();
         con.RecordTypeId = recordTypeId;
         con.Sample_Data__c = true;
-        con.AccountId = householdIdsByKey.get((String) member.get('householdKey'));
+        // Null in junction mode: the household is named by the membership row instead, and
+        // a contact carrying both would be in the household twice over.
+        con.AccountId = householdId;
         con.FirstName = (String) member.get('firstName');
         con.LastName = (String) member.get('lastName');
         con.Salutation = (String) member.get('salutation');

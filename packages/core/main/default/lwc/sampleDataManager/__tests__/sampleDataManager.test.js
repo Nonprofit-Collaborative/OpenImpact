@@ -28,7 +28,7 @@ const NOT_LOADED_STATUS = {
   organizationCount: 0,
   loaded: false,
   loading: false,
-  contactMembership: true
+  junctionMembership: false
 };
 
 const LOADED_STATUS = {
@@ -37,7 +37,7 @@ const LOADED_STATUS = {
   organizationCount: 25,
   loaded: true,
   loading: false,
-  contactMembership: true
+  junctionMembership: false
 };
 
 // Outside the confirmation panel there are exactly two buttons, Load then Remove;
@@ -90,15 +90,25 @@ describe('c-sample-data-manager', () => {
     expect(buttons(element).length).toBe(0);
   });
 
-  it('says why sample data cannot be loaded in a junction membership org', async () => {
+  it('says how sample data arrives in a junction membership org, and still offers it', async () => {
     canManageSampleData.mockResolvedValue(true);
-    getStatus.mockResolvedValue({ ...NOT_LOADED_STATUS, contactMembership: false });
+    getStatus.mockResolvedValue({ ...NOT_LOADED_STATUS, junctionMembership: true });
 
     const element = createManager();
     await flushPromises();
 
-    expect(element.shadowRoot.querySelector('[data-id="contact-mode-only"]')).not.toBeNull();
-    expect(buttons(element)[LOAD_BUTTON_INDEX].disabled).toBe(true);
+    expect(element.shadowRoot.querySelector('[data-id="junction-mode-note"]')).not.toBeNull();
+    expect(buttons(element)[LOAD_BUTTON_INDEX].disabled).toBe(false);
+  });
+
+  it('leaves the junction note out of a contact membership org', async () => {
+    canManageSampleData.mockResolvedValue(true);
+    getStatus.mockResolvedValue(NOT_LOADED_STATUS);
+
+    const element = createManager();
+    await flushPromises();
+
+    expect(element.shadowRoot.querySelector('[data-id="junction-mode-note"]')).toBeNull();
   });
 
   it('shows Load enabled and Remove disabled when nothing is loaded', async () => {
