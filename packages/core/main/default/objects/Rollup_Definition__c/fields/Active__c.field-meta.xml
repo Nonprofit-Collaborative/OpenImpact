@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Active__c</fullName>
+    <defaultValue>true</defaultValue>
+    <description>Whether the engine runs this rollup. Turning it off never deletes the values already calculated.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Turn a rollup off to stop it being recalculated. The numbers already on your records stay as they are.</inlineHelpText>
+    <label>Active</label>
+    <trackHistory>true</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

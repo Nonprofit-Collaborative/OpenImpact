@@ -14,6 +14,10 @@ import LOAD_ERROR from '@salesforce/label/c.Core_HubHome_LoadErrorMessage';
 import SETUP_COMPLETE_HEADING from '@salesforce/label/c.Core_SetupAssistant_CompleteTileHeading';
 import REOPEN_SETUP from '@salesforce/label/c.Core_SetupAssistant_ReopenButton';
 import PROGRESS_FORMAT from '@salesforce/label/c.Core_SetupAssistant_ProgressFormat';
+import ROLLUPS_HEADING from '@salesforce/label/c.Core_Rollups_FreshnessTitle';
+import ROLLUPS_NEVER from '@salesforce/label/c.Core_Rollups_FreshnessNever';
+import ROLLUPS_STALE from '@salesforce/label/c.Core_Rollups_FreshnessStale';
+import ROLLUPS_LINK from '@salesforce/label/c.Core_Rollups_FreshnessLink';
 
 export default class HubHome extends LightningElement {
   labels = {
@@ -26,7 +30,11 @@ export default class HubHome extends LightningElement {
     quickLinksHeading: QUICK_LINKS_HEADING,
     loadError: LOAD_ERROR,
     setupCompleteHeading: SETUP_COMPLETE_HEADING,
-    reopenSetup: REOPEN_SETUP
+    reopenSetup: REOPEN_SETUP,
+    rollupsHeading: ROLLUPS_HEADING,
+    rollupsNever: ROLLUPS_NEVER,
+    rollupsStale: ROLLUPS_STALE,
+    rollupsLink: ROLLUPS_LINK
   };
 
   quickLinks = [
@@ -40,6 +48,10 @@ export default class HubHome extends LightningElement {
   ];
 
   errorLogUrl = '/lightning/o/Error_Log__c/list';
+  rollupsUrl = '/lightning/n/Nonprofit_Settings';
+
+  rollupsLastCalculated;
+  rollupsStale = false;
 
   stepsCompleted = 0;
   stepsTotal = 0;
@@ -55,6 +67,10 @@ export default class HubHome extends LightningElement {
 
   get hasErrors() {
     return this.newErrorCount > 0;
+  }
+
+  get hasRollupTime() {
+    return !!this.rollupsLastCalculated;
   }
 
   /** The assistant is the home page until it is finished, and one click away after that. */
@@ -89,6 +105,8 @@ export default class HubHome extends LightningElement {
     this.automationPaused = Boolean(model.automationPaused);
     this.newErrorCount = model.newErrorCount || 0;
     this.canEdit = Boolean(model.canEdit);
+    this.rollupsLastCalculated = model.rollupsLastCalculated;
+    this.rollupsStale = Boolean(model.rollupsStale);
   }
 
   /** The assistant reports its own progress, so the page collapses without reloading. */

@@ -1,0 +1,257 @@
+/**
+ * The Relationship Path notation of canonical model R-R1, read.
+ *
+ * A path is a sequence of segments separated by ` > `. Each segment is either a reference
+ * attribute on the entity reached so far, or one of the two mode-resolved tokens `{Household}`
+ * and `{HouseholdMembers}`. Alternatives are separated by ` | ` and are tried in order.
+ *
+ * Two facts decide the shape of this class.
+ *
+ * 1. The mode-resolved tokens are not relationships. In contact mode `{Household}` happens to be
+ *    `Account` on a Contact, but in junction mode it is a row on `Household_Member__c` and no
+ *    single relationship path exists at all (ADR-0015). So a path holding a token is resolved by
+ *    `HouseholdService`, per record, and handed to the engine as parent ids rather than as a
+ *    relationship the engine walks itself. `HouseholdService` stays the only class that knows
+ *    which membership mode is in use (plan Section 4.6).
+ * 2. Everything else is a relationship the engine can walk. One reference attribute is a plain
+ *    lookup; two or more are a grandparent path, which the engine expresses as a dot-separated
+ *    chain ending in the attribute on the ultimate parent.
+ *
+ * Nothing here reads `Contact.AccountId` or `Household_Member__c`, and no packaged definition
+ * names a person account attribute in metadata, so the same definition is correct in both modes
+ * and on both org shapes.
+ */
+public with sharing class RollupPath {
+    /** Raised when a path cannot be read. */
+    public class RollupPathException extends Exception {
+    }
+
+    public static final String TOKEN_HOUSEHOLD = '{Household}';
+    public static final String TOKEN_HOUSEHOLD_MEMBERS = '{HouseholdMembers}';
+
+    private static final String ALTERNATIVE_SEPARATOR = '|';
+    private static final String SEGMENT_SEPARATOR = '>';
+    private static final Pattern REFERENCE_SEGMENT = Pattern.compile('^[A-Za-z][A-Za-z0-9_]*$');
+
+    /** One alternative of a path: the segments to walk, in order. */
+    public class Branch {
+        public List<String> segments = new List<String>();
+
+        /** True when any segment is a mode-resolved token, so the engine cannot walk this alone. */
+        public Boolean needsHouseholdResolution() {
+            for (String segment : this.segments) {
+                if (isToken(segment)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * The reference attributes before the first mode-resolved token. In `Donor_Contact__c >
+         * {Household}` that is the one attribute that reaches the person, which is what has to be
+         * read off a source record before `HouseholdService` can take over.
+         */
+        public List<String> referencePrefix() {
+            List<String> prefix = new List<String>();
+            for (String segment : this.segments) {
+                if (isToken(segment)) {
+                    return prefix;
+                }
+                prefix.add(segment);
+            }
+            return prefix;
+        }
+    }
+
+    /** A whole path: its alternatives, in the order they are tried. */
+    public class Parsed {
+        public List<Branch> branches = new List<Branch>();
+
+        public Boolean needsHouseholdResolution() {
+            for (Branch branch : this.branches) {
+                if (branch.needsHouseholdResolution()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /** The single branch a path has when it has exactly one. */
+        public Branch onlyBranch() {
+            return this.branches.size() == 1 ? this.branches[0] : null;
+        }
+    }
+
+    public static Boolean isToken(String segment) {
+        return TOKEN_HOUSEHOLD.equalsIgnoreCase(segment) ||
+            TOKEN_HOUSEHOLD_MEMBERS.equalsIgnoreCase(segment);
+    }
+
+    /**
+     * Reads a path, refusing anything that is not a reference attribute or a known token so that
+     * nothing an administrator can type reaches a query as a relationship name.
+     */
+    public static Parsed parse(String path) {
+        if (String.isBlank(path)) {
+            throw new RollupPathException(System.Label.Core_Rollups_ErrorInvalidFilter);
+        }
+        Parsed parsed = new Parsed();
+        for (String rawBranch : path.split('\\' + ALTERNATIVE_SEPARATOR)) {
+            String trimmedBranch = rawBranch.trim();
+            if (String.isBlank(trimmedBranch)) {
+                continue;
+            }
+            Branch branch = new Branch();
+            for (String rawSegment : trimmedBranch.split(SEGMENT_SEPARATOR)) {
+                String segment = rawSegment.trim();
+                if (String.isBlank(segment)) {
+                    continue;
+                }
+                if (!isToken(segment) && !REFERENCE_SEGMENT.matcher(segment).matches()) {
+                    throw new RollupPathException(System.Label.Core_Rollups_ErrorInvalidFilter);
+                }
+                branch.segments.add(segment);
+            }
+            if (!branch.segments.isEmpty()) {
+                parsed.branches.add(branch);
+            }
+        }
+        if (parsed.branches.isEmpty()) {
+            throw new RollupPathException(System.Label.Core_Rollups_ErrorInvalidFilter);
+        }
+        return parsed;
+    }
+
+    /**
+     * The engine's dot-separated relationship chain for a branch the engine can walk itself,
+     * ending in the Id of the ultimate parent. A single lookup has no chain: the engine takes it
+     * as a plain lookup attribute instead, so this returns an empty string for that case.
+     *
+     * A custom reference attribute is walked as its relationship name, which is the attribute name
+     * with `__c` replaced by `__r`. A standard reference such as `AccountId` walks as the name
+     * without its `Id` suffix.
+     */
+    public static String toGrandparentFieldPath(Branch branch) {
+        if (branch == null || branch.segments.size() < 2) {
+            return '';
+        }
+        List<String> relationships = new List<String>();
+        for (Integer i = 0; i < branch.segments.size(); i++) {
+            relationships.add(relationshipNameFor(branch.segments[i]));
+        }
+        return String.join(relationships, '.') + '.Id';
+    }
+
+    /** The relationship name of a reference attribute. */
+    public static String relationshipNameFor(String referenceField) {
+        if (String.isBlank(referenceField)) {
+            return referenceField;
+        }
+        if (referenceField.endsWith('__c')) {
+            return referenceField.removeEnd('__c') + '__r';
+        }
+        return referenceField.endsWith('Id') && referenceField.length() > 2
+            ? referenceField.removeEnd('Id')
+            : referenceField;
+    }
+
+    /**
+     * The target record ids a set of source records reaches, for every branch that needs
+     * `HouseholdService` to resolve it.
+     *
+     * The alternatives are tried in order and the first that resolves to a record wins, which is
+     * exactly what R-R1 asks for: a source record whose alternatives all resolve to nothing is not
+     * counted, so it simply contributes no id.
+     *
+     * @param parsed the path
+     * @param sourceRecords the records being aggregated
+     * @return the ids of the target records those source records reach
+     */
+    public static Map<Id, Set<Id>> resolveTargets(Parsed parsed, List<SObject> sourceRecords) {
+        Map<Id, Set<Id>> targetsBySource = new Map<Id, Set<Id>>();
+        if (parsed == null || sourceRecords == null || sourceRecords.isEmpty()) {
+            return targetsBySource;
+        }
+        for (Branch branch : parsed.branches) {
+            Map<Id, Id> personBySource = new Map<Id, Id>();
+            for (SObject source : sourceRecords) {
+                if (source.Id == null || targetsBySource.containsKey(source.Id)) {
+                    continue;
+                }
+                Id reached = walkReferencePrefix(source, branch.referencePrefix());
+                if (reached != null) {
+                    personBySource.put(source.Id, reached);
+                }
+            }
+            if (personBySource.isEmpty()) {
+                continue;
+            }
+            applyBranch(branch, personBySource, targetsBySource);
+        }
+        return targetsBySource;
+    }
+
+    /**
+     * Reads the reference attributes before the first token off one source record. Only the first
+     * hop can be read from the record in front of us; a longer prefix means the caller has queried
+     * the relationship, so the value is read through the relationship name.
+     */
+    private static Id walkReferencePrefix(SObject source, List<String> prefix) {
+        if (prefix.isEmpty()) {
+            return source.Id;
+        }
+        SObject current = source;
+        for (Integer i = 0; i < prefix.size() - 1; i++) {
+            current = current == null ? null : current.getSObject(relationshipNameFor(prefix[i]));
+        }
+        if (current == null) {
+            return null;
+        }
+        Object value = current.get(prefix[prefix.size() - 1]);
+        return value == null ? null : (Id) value;
+    }
+
+    private static void applyBranch(
+        Branch branch,
+        Map<Id, Id> personBySource,
+        Map<Id, Set<Id>> targetsBySource
+    ) {
+        String token = firstTokenOf(branch);
+        Map<Id, Id> householdByPerson = HouseholdService.getHouseholdIdsFor(
+            new Set<Id>(personBySource.values())
+        );
+        if (TOKEN_HOUSEHOLD_MEMBERS.equalsIgnoreCase(token)) {
+            Set<Id> householdIds = new Set<Id>();
+            for (Id householdId : householdByPerson.values()) {
+                if (householdId != null) {
+                    householdIds.add(householdId);
+                }
+            }
+            Map<Id, Set<Id>> membersByHousehold = HouseholdService.getMemberPersonIds(householdIds);
+            for (Id sourceId : personBySource.keySet()) {
+                Id householdId = householdByPerson.get(personBySource.get(sourceId));
+                Set<Id> members = householdId == null ? null : membersByHousehold.get(householdId);
+                if (members != null && !members.isEmpty()) {
+                    targetsBySource.put(sourceId, new Set<Id>(members));
+                }
+            }
+            return;
+        }
+        for (Id sourceId : personBySource.keySet()) {
+            Id householdId = householdByPerson.get(personBySource.get(sourceId));
+            if (householdId != null) {
+                targetsBySource.put(sourceId, new Set<Id>{ householdId });
+            }
+        }
+    }
+
+    private static String firstTokenOf(Branch branch) {
+        for (String segment : branch.segments) {
+            if (isToken(segment)) {
+                return segment;
+            }
+        }
+        return null;
+    }
+}

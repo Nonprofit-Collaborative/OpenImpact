@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>The rollup definitions the package ships, materialized into Rollup Definition records on install and on Restore defaults, matched by Definition Key. Read-only to administrators.</description>
+    <label>Rollup Definition Default</label>
+    <pluralLabel>Rollup Definition Defaults</pluralLabel>
+    <visibility>Public</visibility>
+</CustomObject>

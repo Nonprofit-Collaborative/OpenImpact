@@ -824,6 +824,7 @@ itself belongs to Core.
 | Target Filter JSON | long text | The target filter document (R-R8). |
 | Fiscal Year Aware | boolean | Whether the calculation is limited to a fiscal year window. |
 | Fiscal Year Offset | integer | Which window: 0, -1, or -2. |
+| Fiscal Date Field | text | The date attribute the window is measured on, written to the materialized definition. |
 | Mode | picklist(Real-time, Scheduled, Both) | The mode the materialized definition starts in. |
 | Default Active | boolean | Whether the definition is active when it is first materialized. |
 | Package | text | The package that ships this row, so Giving's rows are materialized only when Giving is installed. |
@@ -915,6 +916,7 @@ never types SOQL (plan Section 2.3).
 | Target Filter | long text | no | Which target records this definition maintains, held in the same filter format; empty means all of them. |
 | Fiscal Year Aware | boolean | yes (defaults false) | Whether the calculation is limited to one fiscal year window. |
 | Fiscal Year Offset | integer | conditional | Which window: 0 this fiscal year, -1 last, -2 two years ago; required when Fiscal Year Aware is true. |
+| Fiscal Date Attribute | text | conditional | The date attribute the window is measured on, for example the gift date; required when Fiscal Year Aware is true and the attribute being aggregated is not itself the date. |
 | Mode | picklist(Real-time, Scheduled, Both) | yes | When the number is recalculated; defaults from the org's rollup mode default. |
 | Last Calculated | datetime | computed | When this definition last completed a calculation, of any scope. |
 | Is Package Default | boolean | yes (defaults false) | Marks a definition materialized from a shipped default rather than created by the admin. |
@@ -986,7 +988,11 @@ builder is the only writer, and the `version` key exists so the format can chang
 anyone having to guess what an older row meant.
 
 **R-R3 Fiscal-year windows.** When Fiscal Year Aware is true, the window is computed at
-run time from the org's fiscal year start month (Section 12) and Fiscal Year Offset.
+run time from the org's fiscal year start month (Section 12) and Fiscal Year Offset, and
+it is measured on the Fiscal Date Attribute. A definition that sums an amount has no date
+of its own to bound, so the attribute that decides which year a record falls in is named
+separately; a definition that aggregates a date directly may leave it empty, and the
+attribute being aggregated is used.
 Windows are never stored on the definition, so changing the fiscal year start month and
 recalculating is enough to correct every fiscal rollup in the org.
 
@@ -1046,6 +1052,7 @@ problem in plain language.
 | Target Filter | `Target_Filter_JSON__c` | Long Text Area |
 | Fiscal Year Aware | `Fiscal_Year_Aware__c` | Checkbox |
 | Fiscal Year Offset | `Fiscal_Year_Offset__c` | Number (0 decimals) |
+| Fiscal Date Attribute | `Fiscal_Date_Field__c` | Text |
 | Mode | `Mode__c` | Picklist: Real-time, Scheduled, Both |
 | Last Calculated | `Last_Calculated__c` | DateTime |
 | Is Package Default | `Is_Package_Default__c` | Checkbox |
@@ -2601,6 +2608,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.3 | 2026-09-07 | Sections renumbered to keep the document in reading order: the former Section 14 "Deferred to later iterations" is now Section 30 and the former Section 15 "Change log" is now Section 31. Section 32 "Entity ownership by package" is new. |
 | v0.3 | 2026-09-07 | C-10 sample data loader: added `Sample Data` (`Sample_Data__c`, Checkbox, default false) to Household, Contact, and Organization so the sample data set can be removed in one action. |
 | v0.3 | 2026-09-08 | C-15 and C-16 automation split (product owner decision). No object or field added. Relationships and affiliations each ship two `Automation_Registry__mdt` rows instead of one: `Relationship_Validation` (order 10, `RelationshipValidationHandler`) with `Relationship_Reciprocal` (order 30, `RelationshipMaintenanceHandler`), and `Affiliation_Validation` (order 10, `AffiliationValidationHandler`) with `Affiliation_Primary` (order 30, `AffiliationMaintenanceHandler`). Switching the maintenance automation off no longer switches off that object's validation, which is what an administrator pausing automation before a bulk import needs. `applyDefaults` sits with the validation handler because the status and date rules (R-RL5, R-AF4) have to survive the upkeep being off. Both services now bypass the validation row alongside their own while they write. |
+| v0.3 | 2026-09-08 | C-13 rollup adapter build. `Rollup_Definition__c` and `Rollup_Definition_Default__mdt` created as Sections 14 and 13 specify, with one correction: both gain `Fiscal_Date_Field__c`. R-R3 said the fiscal window is computed from the start month and the offset but never said which date attribute it is measured on, and every fiscal definition in Section 26 sums an amount rather than a date, so the window had nothing to bound. The attribute is optional and falls back to the attribute being aggregated, which is right for a rollup that aggregates a date. `Mode__c` on the definition ships with Both as its default value, matching R-R4 and the shipped Giving rows. |
 | v0.3 | 2026-09-08 | C-17 Addresses build. `Address__c` and its fields, list views, compact layout, and validation rules created as specified in Section 29, with two recorded deviations: `Street__c` ships as Text Area (255) because the platform has no long text field that a list view or a validation rule can read, and `Contact_Address_Change_Behavior__c` ships as Text(40) on `Nonprofit_Settings__c` per ADR-0019 rather than as a picklist. `Verification_Status__c` defaults to Unverified and is left writable for a third party verification app (R-AD6); no packaged code writes it. |
 
 ---

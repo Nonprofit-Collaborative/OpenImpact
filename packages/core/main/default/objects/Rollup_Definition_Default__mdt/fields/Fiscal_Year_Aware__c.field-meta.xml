@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Fiscal_Year_Aware__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Whether the calculation is limited to a fiscal year window.</description>
+    <externalId>false</externalId>
+    <fieldManageability>Locked</fieldManageability>
+    <label>Fiscal Year Aware</label>
+    <type>Checkbox</type>
+</CustomField>

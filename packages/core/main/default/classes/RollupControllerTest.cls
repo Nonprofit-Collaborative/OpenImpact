@@ -1,0 +1,140 @@
+/**
+ * The Rollups page of the settings console, from the Apex side.
+ *
+ * These tests have not been executed: no Salesforce org exists in this environment.
+ */
+@IsTest
+private class RollupControllerTest {
+    private static Rollup_Definition__c definition() {
+        return new Rollup_Definition__c(
+            Name = 'Household member count',
+            Definition_Key__c = 'Core_Household_Member_Count',
+            Source_Object__c = 'Household_Member__c',
+            Target_Object__c = 'Account',
+            Relationship_Path__c = 'Household__c',
+            Aggregate__c = 'COUNT',
+            Target_Field__c = 'Member_Count__c',
+            Mode__c = RollupService.MODE_BOTH,
+            Fiscal_Year_Aware__c = false,
+            Active__c = true
+        );
+    }
+
+    @IsTest
+    static void thePageCarriesEveryRollupAndTheFreshnessTheAdminAsksAbout() {
+        insert definition();
+
+        RollupController.RollupPageView page = RollupController.getPage();
+
+        System.Assert.areEqual(1, page.rollups.size(), 'Every rollup is listed');
+        System.Assert.areEqual(
+            'Household member count',
+            page.rollups[0].name,
+            'By the name the admin gave it'
+        );
+        System.Assert.areEqual(
+            'Member_Count__c',
+            page.rollups[0].targetField,
+            'And where the number shows'
+        );
+        System.Assert.isTrue(page.stale, 'Nothing has been calculated yet, which the page says');
+        System.Assert.areEqual(3, page.modes.size(), 'Real time, Scheduled, and Both');
+    }
+
+    @IsTest
+    static void switchingARollupOffLeavesTheNumbersAlone() {
+        Rollup_Definition__c rollup = definition();
+        insert rollup;
+
+        Test.startTest();
+        RollupController.setActive(rollup.Id, false);
+        Test.stopTest();
+
+        Rollup_Definition__c saved = [
+            SELECT Active__c
+            FROM Rollup_Definition__c
+            WHERE Id = :rollup.Id
+        ];
+        System.Assert.isFalse(
+            saved.Active__c,
+            'R-R6: an admin turns a shipped rollup off rather than deleting it'
+        );
+    }
+
+    @IsTest
+    static void changingTheModeIsSaved() {
+        Rollup_Definition__c rollup = definition();
+        insert rollup;
+
+        Test.startTest();
+        RollupController.setMode(rollup.Id, RollupService.MODE_SCHEDULED);
+        Test.stopTest();
+
+        Rollup_Definition__c saved = [
+            SELECT Mode__c
+            FROM Rollup_Definition__c
+            WHERE Id = :rollup.Id
+        ];
+        System.Assert.areEqual(
+            RollupService.MODE_SCHEDULED,
+            saved.Mode__c,
+            'The mode the admin chose'
+        );
+    }
+
+    @IsTest
+    static void aModeThatIsNotAModeIsRefusedInPlainLanguage() {
+        Rollup_Definition__c rollup = definition();
+        insert rollup;
+
+        try {
+            RollupController.setMode(rollup.Id, 'Whenever');
+            System.Assert.fail('Only the three modes are modes');
+        } catch (AuraHandledException expected) {
+            System.Assert.isNotNull(expected.getMessage(), 'The message names the three');
+        }
+    }
+
+    @IsTest
+    static void recalculatingSomethingThatIsGoneSaysSoRatherThanFailing() {
+        RollupService.skipEngine = true;
+        try {
+            RollupController.recalculate(null);
+            System.Assert.fail('An unknown definition is refused');
+        } catch (AuraHandledException expected) {
+            System.Assert.isNotNull(
+                expected.getMessage(),
+                'The message tells the admin to refresh'
+            );
+        }
+    }
+
+    @IsTest
+    static void restoringDefaultsCreatesTheShippedRollupsThisOrgIsMissing() {
+        RollupSelector.defaultsOverride = new List<Rollup_Definition_Default__mdt>{
+            new Rollup_Definition_Default__mdt(
+                DeveloperName = 'Core_Household_Member_Count',
+                MasterLabel = 'Household member count',
+                Definition_Key__c = 'Core_Household_Member_Count',
+                Source_Object__c = 'Household_Member__c',
+                Target_Object__c = 'Account',
+                Relationship_Path__c = 'Household__c',
+                Aggregate__c = 'COUNT',
+                Target_Field__c = 'Member_Count__c',
+                Mode__c = 'Both',
+                Default_Active__c = true,
+                Package__c = 'Core'
+            )
+        };
+
+        Test.startTest();
+        RollupController.RollupPageView page = RollupController.restoreDefaults();
+        Test.stopTest();
+
+        System.Assert.areEqual(
+            1,
+            page.rollups.size(),
+            'The shipped rollup is there after restoring'
+        );
+    }
+}

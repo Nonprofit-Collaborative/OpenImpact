@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Relationship_Path__c</fullName>
+    <description>How a counted record reaches the record that shows the total.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Segments separated by a greater-than sign. Use {Household} for the household of the person reached so far.</inlineHelpText>
+    <label>Relationship Path</label>
+    <length>255</length>
+    <required>false</required>
+    <trackHistory>true</trackHistory>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

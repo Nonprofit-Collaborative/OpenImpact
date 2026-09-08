@@ -1,0 +1,72 @@
+/**
+ * Real-time rollups, on whichever entity the trigger that invoked this handler is for.
+ *
+ * One handler serves every source entity, because a rollup's source is configuration, not code:
+ * a package registers this class against its object in `Automation_Registry__mdt` and its rollups
+ * become real time, without Core naming that object anywhere (R-R7, ADR-0014).
+ *
+ * Core registers it against Contact and Household Member. That is not decoration: in contact mode
+ * a household total reaches its household through the contact, and the engine requires the
+ * intermediate object in a grandparent chain to re-run when a record is reparented, which is what
+ * makes moving a person between households correct (ADR-0015). In junction mode the membership row
+ * is the reparenting event, so the same is true there.
+ */
+public with sharing class RollupTriggerHandler extends TriggerHandler {
+    private static final String CONTEXT = 'RollupTriggerHandler';
+
+    public override void afterInsert() {
+        run(newRecords(), null);
+    }
+
+    public override void afterUpdate() {
+        run(newRecords(), oldRecordsById());
+    }
+
+    public override void beforeDelete() {
+        run(oldRecords(), null);
+    }
+
+    public override void afterUndelete() {
+        run(newRecords(), null);
+    }
+
+    /**
+     * Hands the records to the engine once per transaction per record, so a rollup that causes its
+     * own source object to be updated again does not run twice over the same rows.
+     */
+    private void run(List<SObject> records, Map<Id, SObject> oldRecords) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+        try {
+            Set<Id> recordIds = new Set<Id>();
+            for (SObject record : records) {
+                if (record.Id != null) {
+                    recordIds.add(record.Id);
+                }
+            }
+            Set<Id> unclaimed = claimRunFor('rollup', recordIds);
+            if (unclaimed.isEmpty()) {
+                return;
+            }
+            List<SObject> toRun = new List<SObject>();
+            for (SObject record : records) {
+                if (unclaimed.contains(record.Id)) {
+                    toRun.add(record);
+                }
+            }
+            RollupService.runRealTime(objectNameOf(toRun), toRun, oldRecords);
+        } catch (Exception failed) {
+            // A rollup must never fail an administrator's save. The failure is logged and the
+            // nightly reconciliation puts the number right (R-R4).
+            ErrorLogger.log(failed, CONTEXT);
+        }
+    }
+
+    private String objectNameOf(List<SObject> records) {
+        if (records.isEmpty()) {
+            return null;
+        }
+        return String.valueOf(records[0].getSObjectType());
+    }
+}
