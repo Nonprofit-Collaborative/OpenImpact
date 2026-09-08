@@ -9,10 +9,13 @@
  * Three things carry that weight.
  *
  * 1. **The automation stands itself down while it writes.** Every write this class makes to
- *    Relationship__c happens inside `AutomationControl.bypass(AUTOMATION_NAME)`, cleared in a
- *    finally block, which is exactly how HouseholdMergeService moves people without the
- *    membership handlers running. The bypass is per transaction and per automation, so the
- *    user's own next save in the same transaction still gets the full treatment.
+ *    Relationship__c happens inside a bypass of both automations this object ships, the
+ *    maintenance one and the validation one, cleared in a finally block, which is exactly how
+ *    HouseholdMergeService moves people without the membership handlers running. The bypass is
+ *    per transaction and per automation, so the user's own next save in the same transaction
+ *    still gets the full treatment. The validation automation is stood down as well because the
+ *    mirror is built complete and already valid here, and running the duplicate check over a
+ *    record this class just built would compare it against the very record it mirrors.
  * 2. **Because the handler is stood down, the mirror is built complete.** Nothing runs after
  *    us to fill in the reciprocal type or to settle the status against the dates, so every
  *    field on the mirrored record is set here, from the record it mirrors.
@@ -28,8 +31,16 @@
  * one of each, mirrors through the same code as any other.
  */
 public with sharing class RelationshipService {
-    /** The registry row this feature ships, and the name the bypass is keyed on. */
+    /** The maintenance registry row this feature ships, and the name its bypass is keyed on. */
     public static final String AUTOMATION_NAME = 'Relationship_Reciprocal';
+
+    /**
+     * The validation registry row, stood down alongside the maintenance one while this class
+     * writes. The two are separate rows so an administrator can switch the maintenance off and
+     * keep the checks (see the registry descriptions), but the package's own writes are exempt
+     * from both.
+     */
+    public static final String VALIDATION_AUTOMATION_NAME = 'Relationship_Validation';
 
     @TestVisible
     private static final String STATUS_CURRENT = 'Current';
@@ -263,9 +274,12 @@ public with sharing class RelationshipService {
     // ------------------------------------------------------------------ helpers
 
     /**
-     * Every write this class makes, inside one bypass. The handler that would run on these
-     * records is this same handler, so without the bypass an insert of the other side would
-     * ask for the other side of the other side, and a delete would chase its own tail.
+     * Every write this class makes, inside one bypass of both of this object's automations.
+     * The maintenance handler that would run on these records is this same handler, so without
+     * the bypass an insert of the other side would ask for the other side of the other side,
+     * and a delete would chase its own tail. The validation handler is stood down with it
+     * because the mirror is built complete here, so there is nothing left for it to fill in and
+     * nothing to check that was not already checked on the side the person actually saved.
      */
     private static void withoutReentry(
         List<Relationship__c> updates,
@@ -281,6 +295,7 @@ public with sharing class RelationshipService {
             return;
         }
         AutomationControl.bypass(AUTOMATION_NAME);
+        AutomationControl.bypass(VALIDATION_AUTOMATION_NAME);
         try {
             if (inserts != null && !inserts.isEmpty()) {
                 Database.insert(inserts, AccessLevel.USER_MODE);
@@ -303,6 +318,7 @@ public with sharing class RelationshipService {
             }
         } finally {
             AutomationControl.clearBypass(AUTOMATION_NAME);
+            AutomationControl.clearBypass(VALIDATION_AUTOMATION_NAME);
         }
     }
 

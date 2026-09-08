@@ -2348,10 +2348,14 @@ a Spouse relationship, and the two mechanisms do not read each other.
 - **Shipped defaults:** `Relationship_Type__mdt` (Section 13).
 - **Settings key:** `Relationship_Auto_Reciprocal__c` (Section 12).
 - **Service:** `RelationshipService`, `RelationshipDomain`, `RelationshipSelector`.
-- **Automation:** one registry row, `Relationship_Reciprocal`, handler
-  `RelationshipTriggerHandler` on `Relationship__c`, execution order 30. The service stands
-  that automation down by name while it writes the other side, which is how a mirrored
-  write does not re-enter the trigger that made it.
+- **Automation:** two registry rows on `Relationship__c`. `Relationship_Validation`, handler
+  `RelationshipValidationHandler`, execution order 10, holds the defaults and the rules
+  (R-RL3, R-RL4, R-RL5). `Relationship_Reciprocal`, handler
+  `RelationshipMaintenanceHandler`, execution order 30, writes and removes the other side.
+  Two rows so that switching the upkeep off from the Automation page leaves every rule
+  running. The service stands both automations down by name while it writes the other side,
+  which is how a mirrored write does not re-enter the trigger that made it and is not
+  checked a second time against the record it mirrors.
 
 ---
 
@@ -2432,8 +2436,12 @@ matches an affiliation (R-IR1), which is how most affiliations in a converted or
   point of the field is that a list view or a mail merge can show an employer without a
   subquery, and an Affiliation id would not do that. The label an admin sees is Primary
   Affiliation because that is the nonprofit's word for it.
-- **Automation:** one registry row, `Affiliation_Primary`, handler
-  `AffiliationTriggerHandler` on `Affiliation__c`, execution order 30.
+- **Automation:** two registry rows on `Affiliation__c`. `Affiliation_Validation`, handler
+  `AffiliationValidationHandler`, execution order 10, holds the defaults and the rules
+  (R-AF1, R-AF4). `Affiliation_Primary`, handler `AffiliationMaintenanceHandler`, execution
+  order 30, settles who is primary. Two rows so that switching the upkeep off from the
+  Automation page leaves every rule running. The service stands both automations down by
+  name while it clears the primary flag from a person's other affiliations.
 - **Service:** `AffiliationService`, `AffiliationDomain`.
 
 ---
@@ -2592,6 +2600,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.3 | 2026-09-07 | Commitments (G-07, G-11): Giving Settings gains `Auto_Apply_Gifts_To_Installments__c` and `Installment_Top_Up_Last_Run__c`, and Section 12 records that the Giving keys live on `Giving_Settings__c` rather than `Nonprofit_Settings__c` (ADR-0017). R-CM5 states that Balance is empty for a recurring commitment; R-IN3 states the automatic linking of a gift to the earliest unpaid installment. |
 | v0.3 | 2026-09-07 | Sections renumbered to keep the document in reading order: the former Section 14 "Deferred to later iterations" is now Section 30 and the former Section 15 "Change log" is now Section 31. Section 32 "Entity ownership by package" is new. |
 | v0.3 | 2026-09-07 | C-10 sample data loader: added `Sample Data` (`Sample_Data__c`, Checkbox, default false) to Household, Contact, and Organization so the sample data set can be removed in one action. |
+| v0.3 | 2026-09-08 | C-15 and C-16 automation split (product owner decision). No object or field added. Relationships and affiliations each ship two `Automation_Registry__mdt` rows instead of one: `Relationship_Validation` (order 10, `RelationshipValidationHandler`) with `Relationship_Reciprocal` (order 30, `RelationshipMaintenanceHandler`), and `Affiliation_Validation` (order 10, `AffiliationValidationHandler`) with `Affiliation_Primary` (order 30, `AffiliationMaintenanceHandler`). Switching the maintenance automation off no longer switches off that object's validation, which is what an administrator pausing automation before a bulk import needs. `applyDefaults` sits with the validation handler because the status and date rules (R-RL5, R-AF4) have to survive the upkeep being off. Both services now bypass the validation row alongside their own while they write. |
 | v0.3 | 2026-09-08 | C-17 Addresses build. `Address__c` and its fields, list views, compact layout, and validation rules created as specified in Section 29, with two recorded deviations: `Street__c` ships as Text Area (255) because the platform has no long text field that a list view or a validation rule can read, and `Contact_Address_Change_Behavior__c` ships as Text(40) on `Nonprofit_Settings__c` per ADR-0019 rather than as a picklist. `Verification_Status__c` defaults to Unverified and is left writable for a third party verification app (R-AD6); no packaged code writes it. |
 
 ---

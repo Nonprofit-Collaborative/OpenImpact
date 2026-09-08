@@ -6,9 +6,13 @@
  * sides of a connection for the same reason every other rule does: the other side is an
  * ordinary record that an ordinary person can edit.
  *
- * It does not run on the record this package writes itself. The reciprocal service stands the
- * whole automation down while it writes the other side (see RelationshipService), so the
- * mirror is built already valid rather than validated on the way in.
+ * It runs from RelationshipValidationHandler, which is its own registry row separate from the
+ * one that maintains the other side, so these rules keep running when an administrator
+ * switches that maintenance off.
+ *
+ * It does not run on the record this package writes itself. The reciprocal service stands both
+ * of this object's automations down while it writes the other side (see RelationshipService),
+ * so the mirror is built already valid rather than validated on the way in.
  */
 public with sharing class RelationshipDomain {
     @TestVisible

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <label>Keep both sides of a relationship in step</label>
+  <label>Check relationships before they are saved</label>
   <protected>true</protected>
   <values>
     <field>Description__c</field>
     <value
       xsi:type="xsd:string"
-    >Writes the other side of every relationship, keeps its type, status, dates, and description equal to the side that was edited, and deletes it when the first side is deleted. Switch this off and relationships stay one sided: nothing creates, updates, or removes the matching record on the other person. The checks on a relationship are a separate automation and keep running.</value>
+    >Checks that a relationship is between two different people, that both sides name a person, and that the same relationship is not entered twice, and fills in the reciprocal type and a status that agrees with the dates. Switch this off and none of those checks run: a bulk import can create duplicate relationships, relationships between someone and themselves, and records whose status disagrees with their end date.</value>
   </values>
   <values>
     <field>Enabled_By_Default__c</field>
@@ -14,7 +14,7 @@
   </values>
   <values>
     <field>Handler_Class__c</field>
-    <value xsi:type="xsd:string">RelationshipMaintenanceHandler</value>
+    <value xsi:type="xsd:string">RelationshipValidationHandler</value>
   </values>
   <values>
     <field>Object_Name__c</field>
@@ -22,6 +22,6 @@
   </values>
   <values>
     <field>Execution_Order__c</field>
-    <value xsi:type="xsd:double">30</value>
+    <value xsi:type="xsd:double">10</value>
   </values>
 </CustomMetadata>

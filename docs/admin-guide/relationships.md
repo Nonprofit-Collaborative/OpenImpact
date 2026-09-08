@@ -25,6 +25,20 @@ nothing to install and no Setup step.
    writing the same records.
 4. Choose **Save**. The change applies to the next relationship you save.
 
+On the **Automation** page in Nonprofit Settings you will see two rows for relationships
+rather than one:
+
+- **Check relationships before they are saved.** The rules: a relationship is between two
+  different people, both sides name someone, the same relationship is not entered twice, and
+  the status agrees with the dates. Leave this on. Switching it off lets an import create
+  duplicate relationships and relationships between someone and themselves, with nothing to
+  tell you afterwards which records those were.
+- **Keep both sides of a relationship in step.** The upkeep: writing, updating, and removing
+  the matching record on the other person.
+
+They are two rows on purpose. Switching the upkeep off before a large import, which is the
+usual reason to touch it, leaves every check running.
+
 To let your team see and manage relationships, make sure they have one of the packaged
 access levels (Nonprofit Admin, Fundraising Staff, or Program Staff) on the **Access** page
 in Nonprofit Settings. Read Only users see relationships and cannot change them.
@@ -112,7 +126,9 @@ sides and stays on file, which is what you want for anything you may need to exp
 
 **Turning the setting off and wondering why nothing mirrors.** With **Keep both sides of a
 relationship in step** switched off, Open Impact writes only the side you entered and
-leaves any pairing it made earlier exactly as it is. Switch it back on and the next save on
-a relationship brings its other side back into step. You can also stop the mirroring for one
-relationship only, without changing the setting for everyone: clear **Keep both sides in
-step** on that one record.
+leaves any pairing it made earlier exactly as it is. Your relationships are still checked:
+duplicates and self relationships are still refused, because the checks are the separate
+**Check relationships before they are saved** row on the Automation page. Switch the upkeep
+back on and the next save on a relationship brings its other side back into step. You can
+also stop the mirroring for one relationship only, without changing the setting for everyone:
+clear **Keep both sides in step** on that one record.

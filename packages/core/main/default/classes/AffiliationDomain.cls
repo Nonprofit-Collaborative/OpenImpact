@@ -7,6 +7,10 @@
  * still being the one the person is chiefly associated with. The third, the overlap check,
  * exists because the honest way to record someone who was on the board twice is two
  * affiliations with two date ranges, and the easy mistake is two open ended ones.
+ *
+ * It runs from AffiliationValidationHandler, which is its own registry row separate from the
+ * one that settles who is primary, so these rules keep running when an administrator switches
+ * that maintenance off.
  */
 public with sharing class AffiliationDomain {
     @TestVisible

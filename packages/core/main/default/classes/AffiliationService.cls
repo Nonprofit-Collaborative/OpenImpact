@@ -13,8 +13,11 @@
  *
  * Two bypasses, both cleared in a finally block:
  *
- * 1. This automation, while it clears the flag from a person's other affiliations, because
- *    those writes would otherwise re-enter this same handler.
+ * 1. This automation and the validation automation that runs before it, while it clears the
+ *    flag from a person's other affiliations, because those writes would otherwise re-enter
+ *    this same handler and would put a second set of checks over records the package itself
+ *    wrote. The two are separate registry rows so an administrator can switch this maintenance
+ *    off and keep the checks; the package's own writes are exempt from both.
  * 2. The contact and account handlers, while it writes the person's Primary Affiliation
  *    field. R-AF3 is explicit that an affiliation never changes a person's household or their
  *    address, and standing those handlers down is how that is guaranteed rather than hoped
@@ -26,8 +29,11 @@
  * two lists the update goes into.
  */
 public with sharing class AffiliationService {
-    /** The registry row this feature ships, and the name the bypass is keyed on. */
+    /** The maintenance registry row this feature ships, and the name its bypass is keyed on. */
     public static final String AUTOMATION_NAME = 'Affiliation_Primary';
+
+    /** The validation registry row, stood down alongside the maintenance one while this writes. */
+    public static final String VALIDATION_AUTOMATION_NAME = 'Affiliation_Validation';
 
     private static final String CONTACT_HANDLER = 'ContactTriggerHandler';
     private static final String ACCOUNT_HANDLER = 'AccountTriggerHandler';
@@ -158,10 +164,12 @@ public with sharing class AffiliationService {
             return;
         }
         AutomationControl.bypass(AUTOMATION_NAME);
+        AutomationControl.bypass(VALIDATION_AUTOMATION_NAME);
         try {
             Database.update(flagsToClear, AccessLevel.USER_MODE);
         } finally {
             AutomationControl.clearBypass(AUTOMATION_NAME);
+            AutomationControl.clearBypass(VALIDATION_AUTOMATION_NAME);
         }
     }
 
