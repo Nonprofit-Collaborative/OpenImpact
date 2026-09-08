@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Gifts_Last_Year__c</fullName>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    How many gifts were received from this donor in the previous fiscal year. A gift refunded
+    later still counts as one gift, which is why retention reporting reads this rather than
+    last year's total.
+  </inlineHelpText>
+  <label>Gifts Last Year</label>
+  <precision>18</precision>
+  <required>false</required>
+  <scale>0</scale>
+  <trackTrending>false</trackTrending>
+  <type>Number</type>
+  <unique>false</unique>
+</CustomField>

@@ -92,6 +92,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
+    <field>Account.Gifts_Last_Year__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
     <field>Account.Giving_Last_Year__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -273,6 +278,11 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Contact.Gift_Count__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Contact.Gifts_Last_Year__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>

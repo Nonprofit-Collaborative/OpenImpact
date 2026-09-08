@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Report xmlns="http://soap.sforce.com/2006/04/metadata">
+  <buckets>
+    <bucketType>number</bucketType>
+    <developerName>BucketField_Gave_Last_Year</developerName>
+    <masterLabel>Gave last fiscal year</masterLabel>
+    <nullTreatment>z</nullTreatment>
+    <sourceColumnName>Account.Gifts_Last_Year__c</sourceColumnName>
+    <values>
+      <sourceValues>
+        <to>0.5</to>
+      </sourceValues>
+      <value>Did not give last fiscal year</value>
+    </values>
+    <values>
+      <sourceValues>
+        <from>0.5</from>
+      </sourceValues>
+      <value>Gave last fiscal year</value>
+    </values>
+  </buckets>
+  <columns>
+    <field>Account.Name</field>
+  </columns>
+  <columns>
+    <field>Account.First_Gift_Date__c</field>
+  </columns>
+  <columns>
+    <field>Account.Gifts_Last_Year__c</field>
+  </columns>
+  <columns>
+    <aggregateTypes>Sum</aggregateTypes>
+    <field>Account.Giving_This_Year__c</field>
+  </columns>
+  <columns>
+    <aggregateTypes>Sum</aggregateTypes>
+    <field>Account.Giving_Last_Year__c</field>
+  </columns>
+  <columns>
+    <field>Account.Last_Gift_Date__c</field>
+  </columns>
+  <columns>
+    <field>Account.Rollups_Last_Calculated__c</field>
+  </columns>
+  <description>
+    Everyone who has given this fiscal year, split three ways. The first grouping is the fiscal
+    year of their first gift: the current fiscal year means a new donor. The second grouping
+    says whether they also gave last fiscal year, counted as gifts rather than added as money:
+    an earlier first gift plus a gift last year is a retained donor, and an earlier first gift
+    with nothing last year is a reactivated donor. Record count is donors, not gifts.
+  </description>
+  <filter>
+    <criteriaItems>
+      <column>Account.Last_Gift_Date__c</column>
+      <operator>equals</operator>
+      <value>THIS_FISCAL_YEAR</value>
+    </criteriaItems>
+  </filter>
+  <format>Summary</format>
+  <groupingsDown>
+    <dateGranularity>FiscalYear</dateGranularity>
+    <field>Account.First_Gift_Date__c</field>
+    <sortOrder>Desc</sortOrder>
+  </groupingsDown>
+  <groupingsDown>
+    <field>BucketField_Gave_Last_Year</field>
+    <sortOrder>Asc</sortOrder>
+  </groupingsDown>
+  <name>New Versus Retained Donors</name>
+  <reportType>Donors_with_Giving</reportType>
+  <scope>organization</scope>
+  <showDetails>false</showDetails>
+</Report>

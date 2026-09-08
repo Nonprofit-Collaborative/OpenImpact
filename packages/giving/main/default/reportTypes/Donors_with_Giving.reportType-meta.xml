@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ReportType xmlns="http://soap.sforce.com/2006/04/metadata">
+  <baseObject>Account</baseObject>
+  <category>other</category>
+  <deployed>true</deployed>
+  <description>
+    Donors, one row each, with the packaged giving rollups: first and last gift date, gift
+    count, gifts last year, and the fiscal year totals. Households, organizations and person
+    accounts are all here, because the rollups fill the same fields on all three. This is the
+    report type the retention reports are built on.
+  </description>
+  <label>Donors with Giving</label>
+  <sections>
+    <columns>
+      <checkedByDefault>true</checkedByDefault>
+      <field>Name</field>
+      <table>Account</table>
+    </columns>
+    <columns>
+      <checkedByDefault>false</checkedByDefault>
+      <field>RecordTypeId</field>
+      <table>Account</table>
+    </columns>
+    <columns>
+      <checkedByDefault>true</checkedByDefault>
+      <field>First_Gift_Date__c</field>
+      <table>Account</table>
+    </columns>
+    <columns>
+      <checkedByDefault>true</checkedByDefault>
+      <field>Last_Gift_Date__c</field>
+      <table>Account</table>
+    </columns>
+    <columns>
+      <checkedByDefault>true</checkedByDefault>
+      <field>Gift_Count__c</field>
+      <table>Account</table>
+    </columns>
+    <columns>
+      <checkedByDefault>true</checkedByDefault>
+      <field>Gifts_Last_Year__c</field>
+      <table>Account</table>
+    </columns>
+    <columns>
+      <checkedByDefault>true</checkedByDefault>
+      <field>Total_Giving__c</field>
+      <table>Account</table>
+    </columns>
+    <columns>
+      <checkedByDefault>true</checkedByDefault>
+      <field>Giving_This_Year__c</field>
+      <table>Account</table>
+    </columns>
+    <columns>
+      <checkedByDefault>true</checkedByDefault>
+      <field>Giving_Last_Year__c</field>
+      <table>Account</table>
+    </columns>
+    <columns>
+      <checkedByDefault>false</checkedByDefault>
+      <field>Giving_Two_Years_Ago__c</field>
+      <table>Account</table>
+    </columns>
+    <columns>
+      <checkedByDefault>false</checkedByDefault>
+      <field>Largest_Gift__c</field>
+      <table>Account</table>
+    </columns>
+    <columns>
+      <checkedByDefault>false</checkedByDefault>
+      <field>Rollups_Last_Calculated__c</field>
+      <table>Account</table>
+    </columns>
+    <masterLabel>Donor</masterLabel>
+  </sections>
+</ReportType>
