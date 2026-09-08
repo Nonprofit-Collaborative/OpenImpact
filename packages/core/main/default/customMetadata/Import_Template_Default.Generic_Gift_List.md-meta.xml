@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <label>Generic gift list</label>
+  <protected>true</protected>
+  <values>
+    <field>Template_Key__c</field>
+    <value xsi:type="xsd:string">generic_gift_list</value>
+  </values>
+  <values>
+    <field>Description__c</field>
+    <value xsi:type="xsd:string">A list of gifts with the donor on each row: donor name and email, amount, date, payment method, and fund. The donor columns load now; the gift columns are recognized and kept with the row, and are loaded once the Giving module ships its part of the importer.</value>
+  </values>
+  <values>
+    <field>Column_Mapping_JSON__c</field>
+    <value
+      xsi:type="xsd:string"
+    >{"version": 1, "columns": [{"source": "Donor First Name", "target": "Contact1.FirstName"}, {"source": "Donor Last Name", "target": "Contact1.LastName"}, {"source": "Donor Email", "target": "Contact1.Email"}, {"source": "Organization", "target": "Organization.Name"}, {"source": "Gift Amount", "target": "Gift.Amount__c"}, {"source": "Gift Date", "target": "Gift.Gift_Date__c"}, {"source": "Payment Method", "target": "Gift.Type__c"}, {"source": "Payment Reference", "target": "Gift.Payment_Reference__c"}, {"source": "Fund", "target": "Allocation.Fund"}]}</value>
+  </values>
+  <values>
+    <field>Default_Values_JSON__c</field>
+    <value xsi:type="xsd:string">{"version": 1, "defaults": []}</value>
+  </values>
+  <values>
+    <field>Matching_Rule__c</field>
+    <value xsi:type="xsd:string">Email exact</value>
+  </values>
+  <values>
+    <field>Person_Mode__c</field>
+    <value xsi:type="xsd:string">Contacts</value>
+  </values>
+  <values>
+    <field>Default_Active__c</field>
+    <value xsi:type="xsd:boolean">true</value>
+  </values>
+</CustomMetadata>

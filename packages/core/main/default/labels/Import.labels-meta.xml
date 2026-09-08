@@ -1,0 +1,499 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_Import_ErrorTemplateGone</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import: the chosen mapping no longer exists</shortDescription>
+        <value>That import mapping no longer exists. Go back and choose one from the list.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorBatchGone</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import: the batch record has gone</shortDescription>
+        <value>That import no longer exists. Start again from the Import tab.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorMappingIdentifiesNobody</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import: refused because no column identifies anyone</shortDescription>
+        <value>No column was matched to a name or an email. Check that the first row of your file is the header row, then set at least one column to a last name, a full name, an email, or an organization name.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorNoRows</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import: refused because the file staged no rows</shortDescription>
+        <value>This file has no rows to import. Check that it is not empty and that the first row is the header row.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorDryRunFirst</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import: commit refused before a dry run</shortDescription>
+        <value>Run a dry run before you commit, so you can see what would happen first.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorPersonModeUnavailable</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import: template asks for person accounts the org does not have</shortDescription>
+        <value>This mapping stores people as person accounts, and this org does not have them. Change the mapping to store people as contacts.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorLastNameMissing</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import row: rejected for a missing last name</shortDescription>
+        <value>Required value missing: last name. Map a last name or a full name column, or fill in the blank in your file.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorRowIdentifiesNobody</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import row: rejected because it describes nobody</shortDescription>
+        <value>This row has no name, no email and no organization, so there is nothing to create or match.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorRowUnreadable</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import row: rejected because its values could not be read</shortDescription>
+        <value>This row could not be read. Check the file for stray quotation marks or line breaks inside a value.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorOrganizationNotSaved</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import row: rejected because its organization did not save</shortDescription>
+        <value>The organization on this row could not be saved, so the rest of the row was left alone.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorSaveFailed</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import row: rejected with no message from the platform</shortDescription>
+        <value>This row could not be saved and Salesforce gave no reason.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorNoPermission</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import: refused because the user lacks Manage Nonprofit Settings</shortDescription>
+        <value>You need the Manage Nonprofit Settings permission to import. Ask whoever set up your org for the Nonprofit Admin role.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogDryRunHeader</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: first line of a dry run</shortDescription>
+        <value>Dry run. Nothing was written.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogCommitHeader</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: first line of a commit</shortDescription>
+        <value>Commit. Records were created and updated as shown.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogEntitiesNotLoaded</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: columns staged but not loaded, list of entities</shortDescription>
+        <value>These columns were kept with each row but not loaded, because nothing in this org loads them yet: {0}.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogAttributeUnknown</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: a mapped attribute the object does not have</shortDescription>
+        <value>The mapping refers to {0}, which this org does not have. Those values were skipped.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogValueNotAccepted</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: a value the field would not take</shortDescription>
+        <value>{0} would not accept the value &quot;{1}&quot;. Those values were skipped.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogNoExternalIdField</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: External ID rule with no external id field</shortDescription>
+        <value>This org has no external identifier field, so nothing could be matched by external ID. Choose a different matching rule.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogOrganizationRecordTypeMissing</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: the organization record type is missing</shortDescription>
+        <value>The organization record type is missing, so no organization column was loaded.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogPersonRecordTypeMissing</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: no person account record type</shortDescription>
+        <value>This org has no person account record type, so no person was created.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogChunkFailed</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: one chunk failed, with its number and reason</shortDescription>
+        <value>Chunk {0} failed and its rows were rejected: {1}</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_CardTitle</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import page: card heading</shortDescription>
+        <value>Import a spreadsheet</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_StepTemplate</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: step one heading</shortDescription>
+        <value>Choose what kind of file this is</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_StepUpload</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: step two heading</shortDescription>
+        <value>Upload the file</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_StepColumns</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: step three heading</shortDescription>
+        <value>Check the columns</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_StepMatching</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: step four heading</shortDescription>
+        <value>Choose how rows are matched</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_StepPreview</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: step five heading</shortDescription>
+        <value>Dry run</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_StepResults</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: step six heading</shortDescription>
+        <value>Results</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_NextButton</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: button that moves to the next step</shortDescription>
+        <value>Next</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_BackButton</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: button that moves to the previous step</shortDescription>
+        <value>Back</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DryRunButton</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: button that starts the dry run</shortDescription>
+        <value>Dry run</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_CommitButton</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: button that commits the import</shortDescription>
+        <value>Commit</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_StartOverButton</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: button that starts a new import</shortDescription>
+        <value>Import another file</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DownloadExceptionsButton</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: button that downloads the rejected rows</shortDescription>
+        <value>Download exceptions</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UploadLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: file upload control label</shortDescription>
+        <value>Upload file</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UploadHint</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: what kind of file to upload</shortDescription>
+        <value>A CSV file whose first row is the column headings.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ColumnHeader</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: column of the picker showing the file's headings</shortDescription>
+        <value>Column in your file</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_TargetHeader</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: column of the picker showing what it becomes</shortDescription>
+        <value>What it means</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_SampleHeader</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: column of the picker showing sample values</shortDescription>
+        <value>First values</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DoNotLoad</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: the mapping choice that loads nothing</shortDescription>
+        <value>Do not load</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_MatchingRuleLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: the matching rule picker label</shortDescription>
+        <value>Match a row to someone you already have by</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_MatchingEmailHelp</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: what the email rule does and risks</shortDescription>
+        <value>Matches only when the email in your file is exactly the email on the record. The safest rule, and the one to start with.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_MatchingNamePostalHelp</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: what the name and postal code rule does and risks</shortDescription>
+        <value>Matches on last name and postal code together. This will treat two different people who share a name at one address as the same person.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_MatchingExternalIdHelp</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: what the external id rule does and risks</shortDescription>
+        <value>Matches on the external identifier your other system gave the record. The most reliable rule for a file you load every month, but only if your org has an external identifier field.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_PreviewWouldCreate</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: dry run count of rows that would create</shortDescription>
+        <value>Would create</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_PreviewWouldUpdate</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: dry run count of rows that would update</shortDescription>
+        <value>Would update</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_PreviewWouldMatch</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: dry run count of rows that match and change nothing</shortDescription>
+        <value>Would match and change nothing</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_PreviewWouldReject</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: dry run count of rows that would be rejected</shortDescription>
+        <value>Would be rejected</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ResultCreated</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import results: count of rows that created something</shortDescription>
+        <value>Created</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ResultUpdated</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import results: count of rows that updated something</shortDescription>
+        <value>Updated</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ResultMatched</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import results: count of rows that changed nothing</shortDescription>
+        <value>Matched, nothing changed</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ResultRejected</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import results: count of rows that failed</shortDescription>
+        <value>Rejected</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_RunningMessage</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: shown while a run is going</shortDescription>
+        <value>Working through the file. This page updates as it goes.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_RunLogHeading</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import results: heading above the run log</shortDescription>
+        <value>What happened</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_RejectedHeading</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import results: heading above the table of failed rows</shortDescription>
+        <value>Rows that were rejected</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_RowNumberHeader</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import results: table column of file row numbers</shortDescription>
+        <value>Row</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ReasonHeader</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import results: table column of rejection reasons</shortDescription>
+        <value>Reason</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_NoRejectedRows</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import results: shown when nothing was rejected</shortDescription>
+        <value>Every row went through.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ReadOnlyMessage</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import page: shown to a user without the permission</shortDescription>
+        <value>You need the Manage Nonprofit Settings permission to import. Ask whoever set up your org for the Nonprofit Admin role.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LoadingAltText</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import page: alternative text of the spinner</shortDescription>
+        <value>Loading</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ParsingMessage</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: shown while the browser reads the file</shortDescription>
+        <value>Reading your file.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_NoHeaderRow</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: shown when the file has no usable header row</shortDescription>
+        <value>This file has no heading row that Open Impact can read. Check that the first row of the file holds the column names.</value>
+    </labels>
+</CustomLabels>

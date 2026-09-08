@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+  <deploymentStatus>Deployed</deploymentStatus>
+  <description>
+    One upload: the file, the mapping it was read with, what happened, and the log of it. The unit
+    an administrator dry runs, commits and later undoes. Canonical model Section 16.
+  </description>
+  <enableActivities>false</enableActivities>
+  <enableBulkApi>true</enableBulkApi>
+  <enableFeeds>false</enableFeeds>
+  <enableHistory>false</enableHistory>
+  <enableLicensing>false</enableLicensing>
+  <enableReports>true</enableReports>
+  <enableSearch>true</enableSearch>
+  <enableSharing>true</enableSharing>
+  <enableStreamingApi>true</enableStreamingApi>
+  <label>Import</label>
+  <nameField>
+    <displayFormat>IB-{000000}</displayFormat>
+    <label>Import Number</label>
+    <type>AutoNumber</type>
+  </nameField>
+  <pluralLabel>Imports</pluralLabel>
+  <searchLayouts />
+  <sharingModel>ReadWrite</sharingModel>
+  <visibility>Public</visibility>
+</CustomObject>

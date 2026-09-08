@@ -1,0 +1,115 @@
+/**
+ * The mapping document: parsing, the entity and attribute halves of a target, and the check
+ * that refuses a mapping which identifies nobody.
+ */
+@IsTest
+private class ImportMappingTest {
+    @IsTest
+    static void parsesAMappingDocument() {
+        ImportMapping mapping = ImportMapping.parse(ImportTestDataFactory.donorMapping());
+        Assert.areEqual(1, mapping.version, 'The shipped document is version one.');
+        Assert.areEqual(5, mapping.columns.size(), 'Every column is read.');
+        Assert.areEqual(
+            'Contact1.Email',
+            mapping.targetsBySourceKey().get('email'),
+            'A column is found by its name folded to lower case.'
+        );
+    }
+
+    @IsTest
+    static void anUnreadableDocumentIsAnEmptyMapping() {
+        ImportMapping mapping = ImportMapping.parse('this is not JSON');
+        Assert.isTrue(mapping.columns.isEmpty(), 'Nothing is read from an unreadable document.');
+        Assert.isFalse(
+            mapping.identifiesSomebody(),
+            'An empty mapping identifies nobody, which is what the caller reports.'
+        );
+    }
+
+    @IsTest
+    static void aBlankDocumentIsAnEmptyMapping() {
+        Assert.isTrue(
+            ImportMapping.parse(null).columns.isEmpty(),
+            'A null document reads as an empty mapping rather than throwing.'
+        );
+        Assert.isTrue(ImportMapping.parse('').columns.isEmpty(), 'So does a blank one.');
+    }
+
+    @IsTest
+    static void readsTheDefaultsDocumentSeparately() {
+        ImportMapping mapping = ImportMapping.parse(
+            ImportTestDataFactory.donorMapping(),
+            '{"version":1,"defaults":[{"target":"Contact1.MailingCountry","value":"United States"}]}'
+        );
+        Assert.areEqual(1, mapping.defaults.size(), 'The defaults come from the second document.');
+        Assert.areEqual('United States', mapping.defaults[0].value, 'With their value intact.');
+    }
+
+    @IsTest
+    static void splitsATargetIntoItsEntityAndAttribute() {
+        Assert.areEqual('Contact1', ImportMapping.entityOf('Contact1.Email'), 'Entity half.');
+        Assert.areEqual('Email', ImportMapping.attributeOf('Contact1.Email'), 'Attribute half.');
+        Assert.isNull(ImportMapping.entityOf('Email'), 'A target with no dot names no entity.');
+        Assert.isNull(
+            ImportMapping.attributeOf('Contact1.'),
+            'Nor does one with nothing after it.'
+        );
+    }
+
+    @IsTest
+    static void treatsUnusableTargetsAsIgnored() {
+        Assert.isTrue(ImportMapping.isIgnored(null), 'A blank target loads nothing.');
+        Assert.isTrue(ImportMapping.isIgnored('Ignore'), 'So does the ignore target.');
+        Assert.isTrue(ImportMapping.isIgnored('Nonsense'), 'So does one that names no entity.');
+        Assert.isFalse(ImportMapping.isIgnored('Contact1.Email'), 'A real target is not ignored.');
+    }
+
+    @IsTest
+    static void aMappingWithOnlyAnAddressIdentifiesNobody() {
+        ImportMapping mapping = new ImportMapping();
+        mapping.columns.add(new ImportMapping.Column('City', 'Contact1.MailingCity'));
+        Assert.isFalse(
+            mapping.identifiesSomebody(),
+            'An address alone cannot say who a row is about, so the run is refused.'
+        );
+    }
+
+    @IsTest
+    static void anEmailOrANameOrAnOrganizationIdentifiesSomebody() {
+        for (
+            String target : new List<String>{
+                'Contact1.Email',
+                'Contact1.LastName',
+                'Contact1.FullName',
+                'Organization.Name'
+            }
+        ) {
+            ImportMapping mapping = new ImportMapping();
+            mapping.columns.add(new ImportMapping.Column('A column', target));
+            Assert.isTrue(mapping.identifiesSomebody(), target + ' identifies somebody.');
+        }
+    }
+
+    @IsTest
+    static void reportsTheEntitiesCoreCannotLoad() {
+        ImportMapping mapping = new ImportMapping();
+        mapping.columns.add(new ImportMapping.Column('Email', 'Contact1.Email'));
+        mapping.columns.add(new ImportMapping.Column('Amount', 'Gift.Amount__c'));
+        mapping.columns.add(new ImportMapping.Column('Fund', 'Allocation.Fund'));
+        Set<String> deferred = mapping.deferredEntities();
+        Assert.areEqual(2, deferred.size(), 'The gift and the allocation are both deferred.');
+        Assert.isTrue(deferred.contains('Gift'), 'The gift is one of them.');
+        Assert.isFalse(deferred.contains('Contact1'), 'A person is not: Core loads people.');
+    }
+
+    @IsTest
+    static void roundTripsThroughItsOwnDocument() {
+        ImportMapping mapping = ImportMapping.parse(ImportTestDataFactory.donorMapping());
+        ImportMapping again = ImportMapping.parse(mapping.serialize());
+        Assert.areEqual(
+            mapping.targetsBySourceKey(),
+            again.targetsBySourceKey(),
+            'A mapping saved and read again is the same mapping.'
+        );
+    }
+}

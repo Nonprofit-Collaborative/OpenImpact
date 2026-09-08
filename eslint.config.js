@@ -33,9 +33,20 @@ module.exports = [
     }
   },
   {
+    // importWizard (C-14) polls ImportController.getBatch while a dry run or a commit runs,
+    // for the same reason and by the same supported mechanism as sampleDataManager.
+    files: ['packages/core/main/default/lwc/importWizard/importWizard.js'],
+    rules: {
+      '@lwc/lwc/no-async-operation': 'off'
+    }
+  },
+  {
     // Test-only timer helpers: a real setTimeout to flush promises, and a microtask
     // drain loop used under jest.useFakeTimers().
-    files: ['packages/core/main/default/lwc/sampleDataManager/__tests__/*.js'],
+    files: [
+      'packages/core/main/default/lwc/sampleDataManager/__tests__/*.js',
+      'packages/core/main/default/lwc/importWizard/__tests__/*.js'
+    ],
     rules: {
       '@lwc/lwc/no-async-operation': 'off',
       'no-await-in-loop': 'off'

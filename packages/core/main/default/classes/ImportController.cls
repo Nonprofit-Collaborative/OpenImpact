@@ -1,0 +1,338 @@
+/**
+ * The entry points the import wizard and the results screen call (C-14).
+ *
+ * Everything that changes anything checks the Manage Nonprofit Settings custom permission
+ * first. The read that only shows a batch's progress does not, so a colleague watching a long
+ * import does not need the administrator's permission to see how it is going.
+ *
+ * Every failure is logged once here and re-raised with its own message intact, so the screen
+ * can say what went wrong instead of "an internal server error occurred".
+ */
+public with sharing class ImportController {
+    /**
+     * Injected by the tests so the permitted path can be asserted in an org where the
+     * Manage_Nonprofit_Settings custom permission is not assigned to the running user. Null
+     * in production, where the real check runs.
+     */
+    @TestVisible
+    private static Boolean permissionOverride;
+
+    /** One template as the wizard shows it. */
+    public class TemplateView {
+        @AuraEnabled
+        public String id;
+        @AuraEnabled
+        public String name;
+        @AuraEnabled
+        public String description;
+        @AuraEnabled
+        public String matchingRule;
+        @AuraEnabled
+        public String personMode;
+        @AuraEnabled
+        public String mapping;
+        @AuraEnabled
+        public Boolean isPackageDefault;
+        @AuraEnabled
+        public String lastImportDate;
+    }
+
+    /** One import as the wizard and the results screen show it. */
+    public class BatchView {
+        @AuraEnabled
+        public String id;
+        @AuraEnabled
+        public String name;
+        @AuraEnabled
+        public String fileName;
+        @AuraEnabled
+        public String status;
+        @AuraEnabled
+        public Boolean isDryRun;
+        @AuraEnabled
+        public Boolean isFinished;
+        @AuraEnabled
+        public Integer rowCount;
+        @AuraEnabled
+        public Integer created;
+        @AuraEnabled
+        public Integer updated;
+        @AuraEnabled
+        public Integer matched;
+        @AuraEnabled
+        public Integer rejected;
+        @AuraEnabled
+        public String runLog;
+    }
+
+    /** One staged row as the exceptions table shows it. */
+    public class RowView {
+        @AuraEnabled
+        public String id;
+        @AuraEnabled
+        public Integer rowNumber;
+        @AuraEnabled
+        public String status;
+        @AuraEnabled
+        public String errorMessage;
+        @AuraEnabled
+        public String values;
+    }
+
+    /** True when the running user may upload and commit an import. */
+    @AuraEnabled(cacheable=true)
+    public static Boolean canImport() {
+        return hasManagePermission();
+    }
+
+    /** The templates the wizard offers, materializing the shipped ones on first use. */
+    @AuraEnabled
+    public static List<TemplateView> getTemplates() {
+        try {
+            enforcePermission();
+            List<TemplateView> result = new List<TemplateView>();
+            for (Import_Template__c template : ImportTemplateService.listActive()) {
+                TemplateView view = new TemplateView();
+                view.id = template.Id;
+                view.name = template.Name;
+                view.description = template.Description__c;
+                view.matchingRule = template.Matching_Rule__c;
+                view.personMode = template.Person_Mode__c;
+                view.mapping = template.Column_Mapping_JSON__c;
+                view.isPackageDefault = template.Is_Package_Default__c;
+                view.lastImportDate = template.Last_Import_Date__c == null
+                    ? null
+                    : String.valueOf(template.Last_Import_Date__c);
+                result.add(view);
+            }
+            return result;
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.getTemplates');
+        }
+    }
+
+    /**
+     * The mapping Open Impact suggests for a file's header row, as a mapping document. The
+     * template's own mapping wins for any column it already names, so a template used every
+     * month keeps the corrections its administrator made to it.
+     */
+    @AuraEnabled
+    public static String suggestMapping(String templateId, List<String> headers) {
+        try {
+            enforcePermission();
+            ImportMapping suggested = ImportColumnLibrary.suggestMapping(headers);
+            Import_Template__c template = ImportTemplateSelector.selectById(templateId);
+            if (template != null) {
+                Map<String, String> known = ImportMapping.parse(template.Column_Mapping_JSON__c)
+                    .targetsBySourceKey();
+                for (ImportMapping.Column column : suggested.columns) {
+                    String fromTemplate = known.get(ImportMapping.key(column.source));
+                    if (String.isNotBlank(fromTemplate)) {
+                        column.target = fromTemplate;
+                    }
+                }
+            }
+            return suggested.serialize();
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.suggestMapping');
+        }
+    }
+
+    /**
+     * Saves the mapping the administrator settled on back to the template, then creates the
+     * batch for this upload. One call, because the two always happen together and a batch
+     * created against a mapping that failed to save would import the wrong thing.
+     */
+    @AuraEnabled
+    public static BatchView createBatch(
+        String templateId,
+        String fileId,
+        String fileName,
+        String mappingDocument,
+        String matchingRule
+    ) {
+        try {
+            enforcePermission();
+            ImportTemplateService.saveMapping(templateId, mappingDocument, matchingRule);
+            return toView(ImportBatchService.create(templateId, fileId, fileName));
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.createBatch');
+        }
+    }
+
+    /**
+     * Keeps the uploaded file as a Salesforce File so the original can be downloaded again
+     * (canonical model Section 16, File Reference), and returns its document identifier.
+     *
+     * The component sends the file only when it is small enough to pass through a request
+     * without risking the heap. A larger file still imports: the batch keeps its name and the
+     * run log says the original was not kept, which is the honest answer rather than a
+     * failure the administrator cannot act on.
+     */
+    @AuraEnabled
+    public static String saveFile(String fileName, String base64Content) {
+        try {
+            enforcePermission();
+            if (String.isBlank(base64Content)) {
+                return null;
+            }
+            ContentVersion version = new ContentVersion(
+                Title = String.isBlank(fileName) ? 'import' : fileName.abbreviate(255),
+                PathOnClient = String.isBlank(fileName) ? 'import.csv' : fileName.abbreviate(255),
+                VersionData = EncodingUtil.base64Decode(base64Content)
+            );
+            Database.insert(version, AccessLevel.USER_MODE);
+            List<ContentVersion> saved = [
+                SELECT ContentDocumentId
+                FROM ContentVersion
+                WHERE Id = :version.Id
+                WITH USER_MODE
+                LIMIT 1
+            ];
+            return saved.isEmpty() ? null : String.valueOf(saved[0].ContentDocumentId);
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.saveFile');
+        }
+    }
+
+    /** Stages one page of the file's rows. Returns how many rows the batch now has. */
+    @AuraEnabled
+    public static Integer stageRows(String batchId, String rowsJson, Integer firstRowNumber) {
+        try {
+            enforcePermission();
+            List<Object> parsed = (List<Object>) JSON.deserializeUntyped(rowsJson);
+            List<Map<String, Object>> rows = new List<Map<String, Object>>();
+            for (Object row : parsed) {
+                rows.add((Map<String, Object>) row);
+            }
+            return ImportBatchService.stageRows(batchId, rows, firstRowNumber);
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.stageRows');
+        }
+    }
+
+    /** Starts the dry run. Nothing is written by it. */
+    @AuraEnabled
+    public static BatchView startDryRun(String batchId) {
+        try {
+            enforcePermission();
+            ImportBatchService.startDryRun(batchId);
+            return getBatch(batchId);
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.startDryRun');
+        }
+    }
+
+    /** Commits the import. Refused unless the dry run of this batch has completed. */
+    @AuraEnabled
+    public static BatchView startCommit(String batchId) {
+        try {
+            enforcePermission();
+            ImportBatchService.startCommit(batchId);
+            return getBatch(batchId);
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.startCommit');
+        }
+    }
+
+    /** Where a batch has got to. Polled by the screen while a run is going. */
+    @AuraEnabled
+    public static BatchView getBatch(String batchId) {
+        try {
+            return toView(ImportBatchSelector.selectById(batchId));
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.getBatch');
+        }
+    }
+
+    /** The most recent imports, for the history list on the results screen. */
+    @AuraEnabled
+    public static List<BatchView> getRecentBatches(Integer howMany) {
+        try {
+            List<BatchView> result = new List<BatchView>();
+            for (Import_Batch__c batch : ImportBatchSelector.selectRecent(howMany)) {
+                result.add(toView(batch));
+            }
+            return result;
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.getRecentBatches');
+        }
+    }
+
+    /**
+     * One page of a batch's rows, optionally only those in one status. The exceptions file is
+     * built from this with status Rejected.
+     */
+    @AuraEnabled
+    public static List<RowView> getRows(String batchId, String status, Integer offsetRows) {
+        try {
+            List<Import_Row__c> rows = String.isBlank(status)
+                ? ImportRowSelector.selectByBatch(batchId, offsetRows)
+                : ImportRowSelector.selectByBatchAndStatus(batchId, status, offsetRows);
+            List<RowView> result = new List<RowView>();
+            for (Import_Row__c row : rows) {
+                RowView view = new RowView();
+                view.id = row.Id;
+                view.rowNumber = row.Row_Number__c == null ? null : row.Row_Number__c.intValue();
+                view.status = row.Status__c;
+                view.errorMessage = row.Error_Message__c;
+                view.values = row.Raw_Values_JSON__c;
+                result.add(view);
+            }
+            return result;
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.getRows');
+        }
+    }
+
+    private static BatchView toView(Import_Batch__c batch) {
+        if (batch == null) {
+            return null;
+        }
+        BatchView view = new BatchView();
+        view.id = batch.Id;
+        view.name = batch.Name;
+        view.fileName = batch.File_Name__c;
+        view.status = batch.Status__c;
+        view.isDryRun = batch.Is_Dry_Run__c;
+        view.isFinished =
+            ImportBatchService.STATUS_DRY_RUN_COMPLETE.equals(batch.Status__c) ||
+            ImportBatchService.STATUS_COMPLETE.equals(batch.Status__c) ||
+            ImportBatchService.STATUS_FAILED.equals(batch.Status__c);
+        view.rowCount = intOf(batch.Row_Count__c);
+        view.created = intOf(batch.Rows_Created__c);
+        view.updated = intOf(batch.Rows_Updated__c);
+        view.matched = intOf(batch.Rows_Matched__c);
+        view.rejected = intOf(batch.Rows_Rejected__c);
+        view.runLog = batch.Run_Log__c;
+        return view;
+    }
+
+    private static Integer intOf(Decimal value) {
+        return value == null ? 0 : value.intValue();
+    }
+
+    private static void enforcePermission() {
+        if (!hasManagePermission()) {
+            throw new ImportException(Label.Core_Import_ErrorNoPermission);
+        }
+    }
+
+    private static Boolean hasManagePermission() {
+        if (permissionOverride != null) {
+            return permissionOverride;
+        }
+        return FeatureManagement.checkPermission('Manage_Nonprofit_Settings');
+    }
+
+    /**
+     * Logs once and wraps the message for the component. setMessage keeps the readable text
+     * on the exception, which AuraHandledException otherwise replaces with a generic message.
+     */
+    private static AuraHandledException auraError(Exception e, String context) {
+        ErrorLogger.log(e, context);
+        AuraHandledException wrapped = new AuraHandledException(e.getMessage());
+        wrapped.setMessage(e.getMessage());
+        return wrapped;
+    }
+}

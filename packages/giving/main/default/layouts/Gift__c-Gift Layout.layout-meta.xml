@@ -125,6 +125,10 @@
         <behavior>Edit</behavior>
         <field>External_Id__c</field>
       </layoutItems>
+      <layoutItems>
+        <behavior>Readonly</behavior>
+        <field>Created_By_Import_Batch__c</field>
+      </layoutItems>
     </layoutColumns>
   </layoutSections>
   <layoutSections>

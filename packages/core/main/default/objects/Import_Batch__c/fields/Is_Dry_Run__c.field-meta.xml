@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Is_Dry_Run__c</fullName>
+  <defaultValue>true</defaultValue>
+  <description>Whether this pass only previewed what would happen. A committed import has run at least one dry run first.</description>
+  <label>Is Dry Run</label>
+  <type>Checkbox</type>
+</CustomField>

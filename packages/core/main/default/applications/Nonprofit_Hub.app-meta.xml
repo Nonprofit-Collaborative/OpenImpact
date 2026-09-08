@@ -18,6 +18,7 @@
   <tabs>Households</tabs>
   <tabs>standard-Contact</tabs>
   <tabs>Organizations</tabs>
+  <tabs>Import</tabs>
   <tabs>Nonprofit_Settings</tabs>
   <tabs>Error_Log__c</tabs>
   <uiType>Lightning</uiType>

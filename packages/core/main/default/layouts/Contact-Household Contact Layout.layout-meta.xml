@@ -97,6 +97,10 @@
         <behavior>Readonly</behavior>
         <field>RecordTypeId</field>
       </layoutItems>
+      <layoutItems>
+        <behavior>Readonly</behavior>
+        <field>Created_By_Import_Batch__c</field>
+      </layoutItems>
     </layoutColumns>
     <style>TwoColumnsTopToBottom</style>
   </layoutSections>

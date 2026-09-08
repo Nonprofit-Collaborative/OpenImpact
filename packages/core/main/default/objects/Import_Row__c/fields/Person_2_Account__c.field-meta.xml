@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Person_2_Account__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>The second person, where people are person Accounts.</description>
+  <externalId>false</externalId>
+  <label>Person 2 Account</label>
+  <referenceTo>Account</referenceTo>
+  <relationshipLabel>Import Rows as Second Person</relationshipLabel>
+  <relationshipName>Import_Rows_Person_2</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

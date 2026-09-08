@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Status__c</fullName>
+  <description>Where this import has got to.</description>
+  <label>Status</label>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Picklist</type>
+  <valueSet>
+    <restricted>true</restricted>
+    <valueSetDefinition>
+      <sorted>false</sorted>
+      <value>
+        <fullName>Draft</fullName>
+        <default>true</default>
+        <label>Draft</label>
+      </value>
+      <value>
+        <fullName>Parsing</fullName>
+        <default>false</default>
+        <label>Parsing</label>
+      </value>
+      <value>
+        <fullName>Dry run</fullName>
+        <default>false</default>
+        <label>Dry run</label>
+      </value>
+      <value>
+        <fullName>Dry run complete</fullName>
+        <default>false</default>
+        <label>Dry run complete</label>
+      </value>
+      <value>
+        <fullName>Committing</fullName>
+        <default>false</default>
+        <label>Committing</label>
+      </value>
+      <value>
+        <fullName>Complete</fullName>
+        <default>false</default>
+        <label>Complete</label>
+      </value>
+      <value>
+        <fullName>Failed</fullName>
+        <default>false</default>
+        <label>Failed</label>
+      </value>
+      <value>
+        <fullName>Undone</fullName>
+        <default>false</default>
+        <label>Undone</label>
+      </value>
+    </valueSetDefinition>
+  </valueSet>
+</CustomField>

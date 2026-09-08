@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <label>Import</label>
+  <protected>false</protected>
+  <values>
+    <field>Setting_Key__c</field>
+    <value xsi:type="xsd:string">Import_Wizard</value>
+  </values>
+  <values>
+    <field>Section__c</field>
+    <value xsi:type="xsd:string">Import</value>
+  </values>
+  <values>
+    <field>Module__c</field>
+    <value xsi:type="xsd:string">Core</value>
+  </values>
+  <values>
+    <field>Data_Type__c</field>
+    <value xsi:type="xsd:string">Component</value>
+  </values>
+  <values>
+    <field>Picklist_Values__c</field>
+    <value xsi:nil="true" />
+  </values>
+  <values>
+    <field>Navigation_Target__c</field>
+    <value xsi:type="xsd:string">Import</value>
+  </values>
+  <values>
+    <field>Description__c</field>
+    <value xsi:type="xsd:string">Load a spreadsheet of people, households and organizations. Open Impact suggests what each column means, shows you exactly what would happen before anything is written, and then tells you what did happen, row by row.</value>
+  </values>
+  <values>
+    <field>Help_Path__c</field>
+    <value xsi:type="xsd:string">admin-guide/importing.md</value>
+  </values>
+  <values>
+    <field>Sort_Order__c</field>
+    <value xsi:type="xsd:double">10.0</value>
+  </values>
+</CustomMetadata>

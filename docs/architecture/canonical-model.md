@@ -1152,7 +1152,9 @@ attributes.
 | Active | `Active__c` | Checkbox |
 
 - **Shipped defaults:** `Import_Template_Default__mdt` (Section 13).
-- **Service:** `ImportTemplateService`, LWC `importWizard`.
+- **Service:** `ImportTemplateService` (materialization and save), `ImportTemplateSelector`,
+  `ImportMapping` (the mapping document in R-IT1), `ImportColumnLibrary` (the known column
+  names automatic mapping suggests from), LWC `importWizard`.
 
 ---
 
@@ -1249,8 +1251,9 @@ needs, are C-19 in v0.5.
   `Gift__c`. The Account and Contact fields ship in Core with the import framework; the
   `Gift__c` field ships in Giving (Section 18).
 - **Settings key:** `Import_Chunk_Size__c` (Section 12).
-- **Service:** `ImportBatchService`, `ImportProcessorBatch`, LWC `importWizard`,
-  `importResults`.
+- **Service:** `ImportBatchService`, `ImportBatchSelector`, `ImportProcessorBatch`,
+  `ImportController` (the one Aura-enabled entry point both screens call), LWC
+  `importWizard`, `importResults`.
 
 ---
 
@@ -1313,6 +1316,14 @@ the batch remains an accurate record of what was loaded.
 **R-IR5 Retention.** Rows are kept for the undo window and are deletable in bulk from the
 batch record, so a large import does not sit in storage forever.
 
+**R-IR6 Entities Core cannot resolve.** Core resolves `Organization`, `Household`,
+`Contact1` and `Contact2`. `Affiliation`, `Gift`, `Allocation` and `SoftCredit` belong to
+features or packages Core may not reference (ADR-0014), so the processor offers them to an
+optional `ImportEntityProcessor` implementation found by `Type.forName` (the mechanism in
+ADR-0017), and where none is installed it leaves those columns staged on the row, says so
+in the run log, and counts the row on what it did resolve. A row is never rejected for
+carrying a column nothing can load yet.
+
 ### Salesforce implementation
 
 - **Object:** `Import_Row__c`, auto-number Name with format `IR-{000000}`.
@@ -1333,7 +1344,9 @@ batch record, so a large import does not sit in storage forever.
 | Gift | `Gift_Id__c` | Text (18) |
 | Soft Credit | `Soft_Credit_Id__c` | Text (18) |
 
-- **Service:** `ImportRowProcessor`, `ImportMatcher`, `ImportRowSelector`.
+- **Service:** `ImportRowProcessor`, `ImportMatcher`, `ImportRowSelector`,
+  `ImportEntityProcessor` (the interface a dependent package implements to resolve the row
+  entities Core cannot, R-IR6).
 
 ---
 

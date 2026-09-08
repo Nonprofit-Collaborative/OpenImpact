@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Soft_Credit_Id__c</fullName>
+  <description>The soft credit this row resolved to, held as a record identifier for the same reason as the gift.</description>
+  <externalId>false</externalId>
+  <label>Soft Credit</label>
+  <length>18</length>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Text</type>
+  <unique>false</unique>
+</CustomField>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Raw_Values_JSON__c</fullName>
+  <description>The original column values exactly as uploaded, held as a document keyed by column name. Never rewritten (canonical model R-IR4).</description>
+  <label>Raw Values</label>
+  <length>32768</length>
+  <trackTrending>false</trackTrending>
+  <type>LongTextArea</type>
+  <visibleLines>10</visibleLines>
+</CustomField>

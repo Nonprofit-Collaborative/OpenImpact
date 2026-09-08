@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Is_Recurring__c</fullName>
+  <defaultValue>false</defaultValue>
+  <description>Marks a template used for an ongoing feed, so the Hub can show how long it is since the last load.</description>
+  <inlineHelpText>This file arrives regularly.</inlineHelpText>
+  <label>Is Recurring</label>
+  <type>Checkbox</type>
+</CustomField>

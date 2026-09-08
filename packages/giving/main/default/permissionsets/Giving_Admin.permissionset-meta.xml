@@ -437,6 +437,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
+    <field>Gift__c.Created_By_Import_Batch__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
     <field>Gift__c.Donor_Account__c</field>
     <readable>true</readable>
   </fieldPermissions>

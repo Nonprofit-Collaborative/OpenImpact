@@ -1,0 +1,189 @@
+<template>
+    <lightning-card title={labels.cardTitle} icon-name="standard:file">
+        <div class="slds-var-p-horizontal_medium slds-var-p-bottom_medium">
+            <template lwc:if={loading}>
+                <lightning-spinner
+                    alternative-text={labels.loadingAltText}
+                    size="small"
+                ></lightning-spinner>
+            </template>
+
+            <template lwc:if={hasMessage}>
+                <div class="slds-box slds-theme_warning slds-var-m-bottom_small" role="alert">
+                    <p data-id="message">{message}</p>
+                </div>
+            </template>
+
+            <template lwc:if={showWizard}>
+                <template lwc:if={isStepTemplate}>
+                    <h2 class="slds-text-heading_small slds-var-m-bottom_small">
+                        {labels.stepTemplate}
+                    </h2>
+                    <lightning-combobox
+                        data-id="template"
+                        label={labels.stepTemplate}
+                        value={templateId}
+                        options={templateOptions}
+                        onchange={handleTemplateChange}
+                    ></lightning-combobox>
+                    <p class="slds-text-body_small slds-var-m-top_x-small" data-id="template-help">
+                        {templateDescription}
+                    </p>
+                </template>
+
+                <template lwc:if={isStepUpload}>
+                    <h2 class="slds-text-heading_small slds-var-m-bottom_small">
+                        {labels.stepUpload}
+                    </h2>
+                    <lightning-input
+                        type="file"
+                        data-id="file"
+                        label={labels.uploadLabel}
+                        accept=".csv,text/csv"
+                        onchange={handleFileChange}
+                    ></lightning-input>
+                    <p class="slds-text-body_small slds-var-m-top_x-small">{labels.uploadHint}</p>
+                    <template lwc:if={parsing}>
+                        <p class="slds-text-body_small" data-id="parsing">
+                            {labels.parsingMessage}
+                        </p>
+                    </template>
+                </template>
+
+                <template lwc:if={isStepColumns}>
+                    <h2 class="slds-text-heading_small slds-var-m-bottom_small">
+                        {labels.stepColumns}
+                    </h2>
+                    <div class="slds-scrollable_x">
+                        <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                            <thead>
+                                <tr class="slds-line-height_reset">
+                                    <th scope="col">{labels.columnHeader}</th>
+                                    <th scope="col">{labels.targetHeader}</th>
+                                    <th scope="col">{labels.sampleHeader}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={columns} for:item="column">
+                                    <tr key={column.key} data-id="column-row">
+                                        <td>{column.source}</td>
+                                        <td>
+                                            <lightning-combobox
+                                                label={labels.targetHeader}
+                                                variant="label-hidden"
+                                                data-source={column.source}
+                                                value={column.target}
+                                                options={targetOptions}
+                                                onchange={handleTargetChange}
+                                            ></lightning-combobox>
+                                        </td>
+                                        <td class="slds-text-body_small">{column.samples}</td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </template>
+
+                <template lwc:if={isStepMatching}>
+                    <h2 class="slds-text-heading_small slds-var-m-bottom_small">
+                        {labels.stepMatching}
+                    </h2>
+                    <lightning-combobox
+                        data-id="rule"
+                        label={labels.matchingRuleLabel}
+                        value={matchingRule}
+                        options={ruleOptions}
+                        onchange={handleRuleChange}
+                    ></lightning-combobox>
+                    <p class="slds-text-body_small slds-var-m-top_x-small" data-id="rule-help">
+                        {ruleHelp}
+                    </p>
+                </template>
+
+                <template lwc:if={showResults}>
+                    <h2 class="slds-text-heading_small slds-var-m-bottom_small">
+                        <template lwc:if={isStepPreview}>{labels.stepPreview}</template>
+                        <template lwc:else>{labels.stepResults}</template>
+                    </h2>
+                    <c-import-results
+                        batch={batch}
+                        rejected-rows={rejectedRows}
+                        data-id="results"
+                    ></c-import-results>
+                </template>
+
+                <div class="slds-var-m-top_medium">
+                    <template lwc:if={canGoBack}>
+                        <lightning-button
+                            label={labels.backButton}
+                            data-id="back"
+                            onclick={handleBack}
+                        ></lightning-button>
+                    </template>
+                    <template lwc:if={isStepTemplate}>
+                        <lightning-button
+                            class="slds-var-m-left_x-small"
+                            variant="brand"
+                            label={labels.nextButton}
+                            data-id="next"
+                            disabled={cannotLeaveTemplateStep}
+                            onclick={handleNext}
+                        ></lightning-button>
+                    </template>
+                    <template lwc:if={isStepColumns}>
+                        <lightning-button
+                            class="slds-var-m-left_x-small"
+                            variant="brand"
+                            label={labels.nextButton}
+                            data-id="next"
+                            onclick={handleNext}
+                        ></lightning-button>
+                    </template>
+                    <template lwc:if={isStepMatching}>
+                        <lightning-button
+                            class="slds-var-m-left_x-small"
+                            variant="brand"
+                            label={labels.dryRunButton}
+                            data-id="dry-run"
+                            disabled={cannotDryRun}
+                            onclick={handleDryRun}
+                        ></lightning-button>
+                    </template>
+                    <template lwc:if={isStepPreview}>
+                        <lightning-button
+                            variant="brand"
+                            label={labels.commitButton}
+                            data-id="commit"
+                            disabled={cannotCommit}
+                            onclick={handleCommit}
+                        ></lightning-button>
+                        <lightning-button
+                            class="slds-var-m-left_x-small"
+                            label={labels.downloadExceptionsButton}
+                            data-id="download"
+                            onclick={handleDownloadExceptions}
+                        ></lightning-button>
+                    </template>
+                    <template lwc:if={isStepResults}>
+                        <lightning-button
+                            label={labels.startOverButton}
+                            data-id="start-over"
+                            onclick={handleStartOver}
+                        ></lightning-button>
+                        <lightning-button
+                            class="slds-var-m-left_x-small"
+                            label={labels.downloadExceptionsButton}
+                            data-id="download"
+                            onclick={handleDownloadExceptions}
+                        ></lightning-button>
+                    </template>
+                </div>
+            </template>
+
+            <template lwc:if={showReadOnlyNotice}>
+                <p data-id="read-only">{labels.readOnlyMessage}</p>
+            </template>
+        </div>
+    </lightning-card>
+</template>
