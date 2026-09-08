@@ -7,6 +7,10 @@
     console, automation control, and the Error Log. Later features add to this set: it is never
     meant to be cloned.
   </description>
+  <applicationVisibilities>
+    <application>Nonprofit_Hub</application>
+    <visible>true</visible>
+  </applicationVisibilities>
   <classAccesses>
     <apexClass>AccessController</apexClass>
     <enabled>true</enabled>
@@ -64,6 +68,14 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>HubController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>HubErrorCountSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>NamespaceUtil</apexClass>
     <enabled>true</enabled>
   </classAccesses>
@@ -85,6 +97,38 @@
   </classAccesses>
   <classAccesses>
     <apexClass>PersonRecordSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>SettingChangeSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>SettingDefinitionSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>SettingSections</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>SettingsController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>SettingsRecordSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>SettingsService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>SettingsWriter</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>SetupAssistantService</apexClass>
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
@@ -314,21 +358,6 @@
     <field>Setting_Change__c.Setting_Name__c</field>
     <readable>true</readable>
   </fieldPermissions>
-  <layoutAssignments>
-    <layout>Account-Household Layout</layout>
-    <recordType>Account.Household</recordType>
-  </layoutAssignments>
-  <layoutAssignments>
-    <layout>Account-Organization Layout</layout>
-    <recordType>Account.Organization</recordType>
-  </layoutAssignments>
-  <layoutAssignments>
-    <layout>Contact-Household Contact Layout</layout>
-    <recordType>Contact.Household_Contact</recordType>
-  </layoutAssignments>
-  <layoutAssignments>
-    <layout>Household_Member__c-Household Member Layout</layout>
-  </layoutAssignments>
   <objectPermissions>
     <allowCreate>true</allowCreate>
     <allowDelete>true</allowDelete>
@@ -415,6 +444,22 @@
     <tab>Household_Member__c</tab>
     <visibility>Available</visibility>
   </tabSettings>
+  <tabSettings>
+    <tab>Households</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Nonprofit_Hub_Home</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Nonprofit_Settings</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Organizations</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
   <userPermissions>
     <enabled>true</enabled>
     <name>AssignPermissionSets</name>
@@ -427,4 +472,19 @@
     <enabled>true</enabled>
     <name>ViewSetup</name>
   </userPermissions>
+  <layoutAssignments>
+    <layout>Account-Household Layout</layout>
+    <recordType>Account.Household</recordType>
+  </layoutAssignments>
+  <layoutAssignments>
+    <layout>Account-Organization Layout</layout>
+    <recordType>Account.Organization</recordType>
+  </layoutAssignments>
+  <layoutAssignments>
+    <layout>Contact-Household Contact Layout</layout>
+    <recordType>Contact.Household_Contact</recordType>
+  </layoutAssignments>
+  <layoutAssignments>
+    <layout>Household_Member__c-Household Member Layout</layout>
+  </layoutAssignments>
 </PermissionSet>

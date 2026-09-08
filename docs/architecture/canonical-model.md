@@ -615,6 +615,7 @@ may add keys, and must add them here first.
 | `Informal_Greeting_Pattern__c` | text | {FirstName} | The pattern used to compute the informal greeting. |
 | `Include_Deceased_In_Name__c` | boolean | false | Whether a deceased member remains in the computed household name. |
 | `Automation_Paused_Until__c` | datetime | empty | While in the future, all packaged automation is paused; it resumes by itself at this time. |
+| `Setup_Steps_Completed__c` | text (255) | empty | The comma separated keys of the Setup Assistant steps the administrator has marked done, so the Hub checklist remembers progress across sessions. |
 
 ### v0.2 keys
 
@@ -699,6 +700,28 @@ something to restore to.
 | Default Enabled | boolean | Whether this pattern is the one selected on a fresh install. |
 | Pattern Type | picklist(Household Name, Formal Greeting, Informal Greeting) | Which of the three computed values this pattern produces. |
 | Pattern | text | The pattern string itself, using the tokens the naming service understands. |
+
+### Setting Definition
+
+`Setting_Definition__mdt`: the catalog of everything the Nonprofit Settings console shows,
+one row per setting or per section that a component renders, so that a feature adds its
+settings to the console by shipping rows rather than by editing the console.
+
+| Field | Type | Definition |
+|---|---|---|
+| DeveloperName | text | The stable identifier of this console row. |
+| Label | text | The setting's name as the admin sees it in the console. |
+| `Setting_Key__c` | text (80) | The API name of the settings field this row edits; blank for rows that render a component instead of a single value. |
+| `Settings_Object__c` | text (80), default `Nonprofit_Settings__c` | The protected hierarchy custom setting this row reads and writes, so a module can ship rows against its own settings object (Decision ADR-0017). |
+| `Section__c` | text (80) | The left navigation group this row belongs to, for example Households, Automation, Access, Health. |
+| `Module__c` | text (40) | The package that ships this row, for example Core or Giving. |
+| `Data_Type__c` | picklist(Checkbox, Text, Number, Picklist, DateTime, Component) | How the console renders and validates this row. |
+| `Picklist_Values__c` | long text | The choices for a picklist row, as semicolon separated `value:label` pairs. |
+| `Component__c` | text (80) | The Lightning web component rendered when the data type is Component. Core components only: the console imports them by name at compile time (Decision ADR-0020). |
+| `Navigation_Target__c` | text (80) | The Lightning tab a module's own settings page lives on, used when the data type is Component and no component is named, because Core cannot import a component from a package that depends on it (Decision ADR-0020). |
+| `Description__c` | long text | The plain-language help shown under the control. |
+| `Help_Path__c` | text (255) | The admin guide path, relative to `docs/admin-guide/`, behind the row's Learn more link. |
+| `Sort_Order__c` | number | The order of this row inside its section. |
 
 ### Automation Registry
 
@@ -2374,13 +2397,10 @@ Fair Market Value for G-18 (R-G9).
 | v0.3 | 2026-09-07 | Sections renumbered to keep the document in reading order: the former Section 14 "Deferred to later iterations" is now Section 30 and the former Section 15 "Change log" is now Section 31. Section 32 "Entity ownership by package" is new. |
 
 ---
-
 ## 32. Entity ownership by package
-
 One row per entity in the model, so a contributor or an agent can tell at a glance which
 package owns a thing and which iteration creates it. Package configuration entities are
 included; standard objects the packages extend are named by the entity that governs them.
-
 | Entity | Package | Iteration | Section |
 |---|---|---|---|
 | Household (Account, record type Household) | Core | v0.1 | 5 |
@@ -2424,8 +2444,10 @@ included; standard objects the packages extend are named by the entity that gove
 | Programs entities | Programs | v0.8 | 30 |
 | Funders entities | Funders | v0.9 | 30 |
 | NPSP household adoption | Connect | v0.9 | 30 |
-
 Two rows differ from plan Section 6 because the first customers are now Nonprofit Cloud
 and Agentforce Nonprofit orgs: the Gift Transaction mirror is v0.6, brought forward from
 v0.9, and NPSP household adoption is v0.9, moved back from v0.6. The plan's roadmap table
 is the place that reprioritization is recorded permanently; this table follows it.
+| v0.1 | 2026-09-07 | C-03: added the shipped-defaults type Setting Definition (Section 13), which drives the Nonprofit Settings console, and the Nonprofit Settings key `Setup_Steps_Completed__c` (Section 12), which records Setup Assistant progress. |
+| v0.1 | 2026-09-07 | C-03, following ADR-0017: added `Settings_Object__c` to Setting Definition, so each package owns its own protected hierarchy custom setting and the console reads and writes any registered one. |
+| v0.1 | 2026-09-07 | C-03, following ADR-0020: added `Navigation_Target__c` to Setting Definition, so a module's settings page is reached by navigation while Core's own panels are imported by name. |

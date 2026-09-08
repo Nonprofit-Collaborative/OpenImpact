@@ -95,3 +95,5 @@ Each feature adds its row here when its page is written.
 | C-02 Household names and greetings | [household-naming.md](household-naming.md) | Core | v0.1 |
 | C-07 | [Coexistence mode](coexistence-mode.md) | Core | v0.1 |
 | C-11 | [Health Check](health-check.md) | Core | v0.1 |
+| C-03 Nonprofit Hub app and setup checklist | [nonprofit-hub.md](nonprofit-hub.md) | Core | v0.1 |
+| C-03 Nonprofit Settings console | [nonprofit-settings.md](nonprofit-settings.md) | Core | v0.1 |

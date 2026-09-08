@@ -14,7 +14,16 @@ object references: those live only in the Connect module, behind dynamic Apex.
   Programs, Funders) are added by those packages when installed.
 - **Settings framework**: the Nonprofit Settings console (LWC-based), protected hierarchy
   Custom Settings for simple toggles, custom objects for structured configuration, and Custom
-  Metadata Types for package-shipped defaults.
+  Metadata Types for package-shipped defaults. The console's rows come from
+  `Setting_Definition__mdt`, so a feature adds its settings to the console by shipping rows
+  rather than by editing the console.
+
+  **Platform Cache is optional.** `SettingsService` uses an org cache partition named
+  `NonprofitSettings` when one exists and a per-transaction static cache when it does not,
+  so Core runs unchanged on an org with no cache allocation. The package ships no partition
+  file: an org that wants the cross-transaction cache creates the partition in Setup and
+  allocates it a few megabytes. Either way a change takes effect on the next transaction,
+  because every write clears both caches.
 - **Trigger framework**: one trigger per object, bypassable handlers, a pause-all switch.
 - **Error Log** (`Error_Log__c`): every caught exception with context, user, record, and a
   plain-language message, published as a platform event so the entry survives the rollback it

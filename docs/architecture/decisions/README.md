@@ -34,6 +34,10 @@ ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's dec
 (Section 12). ADR-0013, ADR-0014, ADR-0019, ADR-0020 and ADR-0021 are builder decisions recorded under the
 platform-limitation rule in plan Section 9.3. ADR-0015 records the ADR-0011 evaluation outcome.
 ADR-0016 is proposed for the owner's decision at v0.4 (plan Section 11.2 item 6).
+| [0020](0020-module-settings-pages-reached-by-navigation.md) | Module settings pages reached by navigation, Core pages by literal import | Accepted |
+(Section 12). ADR-0013 and ADR-0014 are builder decisions recorded under the
+ADR-0016 is proposed for the owner's decision at v0.4 (plan Section 11.2 item 6). ADR-0020 is a
+builder decision under the same platform-limitation rule.
 
 ## Adding a new ADR
 

@@ -1,0 +1,53 @@
+<template>
+    <div class="slds-var-m-bottom_small">
+        <h2 class="slds-text-heading_small" id="setup-checklist-heading">{labels.heading}</h2>
+        <p class="slds-text-body_small slds-text-color_weak">
+            <span class="slds-assistive-text">{labels.progress}</span>
+            {progressText}
+        </p>
+    </div>
+
+    <template lwc:if={allDone}>
+        <p class="slds-text-color_success slds-var-m-bottom_small" role="status">
+            {labels.allDone}
+        </p>
+    </template>
+
+    <ul class="slds-has-dividers_bottom-space" aria-labelledby="setup-checklist-heading">
+        <template for:each={rows} for:item="step">
+            <li key={step.key} class="slds-item slds-var-p-vertical_x-small">
+                <div class="slds-grid slds-wrap slds-gutters_x-small">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12">
+                        <span class={step.badgeClass}>{step.badge}</span>
+                        <span class="slds-text-heading_x-small slds-var-m-left_x-small">
+                            {step.position}. {step.label}
+                        </span>
+                        <p class="slds-text-body_small slds-text-color_weak">
+                            {step.description}
+                        </p>
+                    </div>
+                    <div
+                        class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-text-align_right"
+                    >
+                        <a
+                            href={step.openUrl}
+                            class="slds-button slds-button_neutral"
+                            data-key={step.key}
+                        >
+                            {labels.open}
+                            <span class="slds-assistive-text">{step.label}</span>
+                        </a>
+                        <template lwc:if={canEdit}>
+                            <lightning-button
+                                class="slds-var-m-left_x-small"
+                                label={step.toggleLabel}
+                                data-key={step.key}
+                                onclick={handleToggle}
+                            ></lightning-button>
+                        </template>
+                    </div>
+                </div>
+            </li>
+        </template>
+    </ul>
+</template>
