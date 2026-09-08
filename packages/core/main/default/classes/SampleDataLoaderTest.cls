@@ -205,6 +205,31 @@ private class SampleDataLoaderTest {
     }
 
     @IsTest
+    static void testLoadRefusesWhenHouseholdMembershipIsJunction() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        SettingsService.clearCaches();
+        SampleDataLoader.jsonOverride = buildJson(1, 1, false);
+
+        Boolean threw = false;
+        try {
+            SampleDataLoader.load();
+        } catch (SampleDataException e) {
+            threw = true;
+            System.assertEquals(
+                Label.Core_SampleData_ContactModeOnly,
+                e.getMessage(),
+                'a junction membership org should be told why sample data cannot load'
+            );
+        }
+        System.assertEquals(true, threw, 'loading in junction mode should throw');
+        System.assertEquals(
+            false,
+            SampleDataLoader.status().contactMembership,
+            'the card is told the org keeps membership in junction records'
+        );
+    }
+
+    @IsTest
     static void testLoadRefusesWhileALoadIsRunning() {
         SampleDataLoader.jsonOverride = buildJson(1, 1, false);
         SampleDataLoader.runningJobOverride = true;

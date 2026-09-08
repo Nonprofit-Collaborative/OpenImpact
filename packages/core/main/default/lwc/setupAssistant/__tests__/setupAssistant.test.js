@@ -257,6 +257,42 @@ describe('c-setup-assistant', () => {
     });
   });
 
+  it('offers each role by its label, not its developer name', async () => {
+    getState.mockResolvedValue(state({ completedKeys: ['coexistence', 'naming', 'funddefaults'] }));
+    const element = build();
+    await settle();
+
+    const options = element.shadowRoot.querySelector('lightning-combobox').options;
+    expect(options).toEqual([
+      { label: 'Nonprofit Admin', value: 'Nonprofit_Admin' },
+      { label: 'Fundraising Staff', value: 'Fundraising_Staff' }
+    ]);
+  });
+
+  it('collapses back to the completion screen when a reopened setup is finished again', async () => {
+    const everyStep = STEP_DEFINITIONS.map(([key]) => key);
+    getState.mockResolvedValue(state({ completedKeys: everyStep }));
+    completeStep.mockResolvedValue(state({ completedKeys: everyStep }));
+    const element = build(true);
+    await settle();
+
+    // The Hub asked for the assistant, so it opens on step one rather than the summary.
+    expect(element.shadowRoot.querySelector('[data-id="complete-heading"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="step-label"]').textContent).toContain(
+      'Confirm how Open Impact fits your existing org'
+    );
+    await STEP_DEFINITIONS.reduce(
+      (chain) =>
+        chain.then(() => {
+          click(element, 'forward');
+          return settle();
+        }),
+      Promise.resolve()
+    );
+
+    expect(element.shadowRoot.querySelector('[data-id="complete-heading"]')).not.toBeNull();
+  });
+
   it('saves the organization identity the receipts need', async () => {
     getState.mockResolvedValue(
       state({ completedKeys: ['coexistence', 'naming', 'funddefaults', 'access'] })
@@ -341,7 +377,9 @@ describe('c-setup-assistant', () => {
     await settle();
 
     expect(element.shadowRoot.querySelector('[data-id="complete-heading"]')).toBeNull();
-    expect(element.shadowRoot.querySelector('[data-id="step-label"]')).not.toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="step-label"]').textContent).toContain(
+      'Confirm how Open Impact fits your existing org'
+    );
   });
 
   it('confirms that a colleague was given a role', async () => {
@@ -355,10 +393,13 @@ describe('c-setup-assistant', () => {
     element.shadowRoot
       .querySelector('lightning-combobox')
       .dispatchEvent(new CustomEvent('change', { detail: { value: 'Fundraising_Staff' } }));
+    const picker = element.shadowRoot.querySelector('[data-id="user-picker"]');
+    picker.clearSelection = jest.fn();
     click(element, 'give-access');
     await settle();
 
     expect(element.shadowRoot.querySelector('[data-id="access-granted"]')).not.toBeNull();
+    expect(picker.clearSelection).toHaveBeenCalled();
   });
 
   it('shows the summary and how long setup took once every step is done', async () => {

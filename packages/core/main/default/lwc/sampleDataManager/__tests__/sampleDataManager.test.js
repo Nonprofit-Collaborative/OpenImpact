@@ -27,7 +27,8 @@ const NOT_LOADED_STATUS = {
   contactCount: 0,
   organizationCount: 0,
   loaded: false,
-  loading: false
+  loading: false,
+  contactMembership: true
 };
 
 const LOADED_STATUS = {
@@ -35,7 +36,8 @@ const LOADED_STATUS = {
   contactCount: 440,
   organizationCount: 25,
   loaded: true,
-  loading: false
+  loading: false,
+  contactMembership: true
 };
 
 // Outside the confirmation panel there are exactly two buttons, Load then Remove;
@@ -86,6 +88,17 @@ describe('c-sample-data-manager', () => {
     const readOnly = element.shadowRoot.querySelector('.slds-text-color_weak');
     expect(readOnly).not.toBeNull();
     expect(buttons(element).length).toBe(0);
+  });
+
+  it('says why sample data cannot be loaded in a junction membership org', async () => {
+    canManageSampleData.mockResolvedValue(true);
+    getStatus.mockResolvedValue({ ...NOT_LOADED_STATUS, contactMembership: false });
+
+    const element = createManager();
+    await flushPromises();
+
+    expect(element.shadowRoot.querySelector('[data-id="contact-mode-only"]')).not.toBeNull();
+    expect(buttons(element)[LOAD_BUTTON_INDEX].disabled).toBe(true);
   });
 
   it('shows Load enabled and Remove disabled when nothing is loaded', async () => {

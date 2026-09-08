@@ -13,6 +13,7 @@ import QUICK_LINK_ORGANIZATIONS from '@salesforce/label/c.Core_HubHome_QuickLink
 import LOAD_ERROR from '@salesforce/label/c.Core_HubHome_LoadErrorMessage';
 import SETUP_COMPLETE_HEADING from '@salesforce/label/c.Core_SetupAssistant_CompleteTileHeading';
 import REOPEN_SETUP from '@salesforce/label/c.Core_SetupAssistant_ReopenButton';
+import PROGRESS_FORMAT from '@salesforce/label/c.Core_SetupAssistant_ProgressFormat';
 
 export default class HubHome extends LightningElement {
   labels = {
@@ -65,8 +66,9 @@ export default class HubHome extends LightningElement {
     return this.stepsTotal > 0 && this.stepsCompleted === this.stepsTotal;
   }
 
+  // The same translatable sentence the assistant shows, from the same label.
   get setupProgressText() {
-    return `${this.stepsCompleted} of ${this.stepsTotal}`;
+    return PROGRESS_FORMAT.replace('{0}', this.stepsCompleted).replace('{1}', this.stepsTotal);
   }
 
   async load() {

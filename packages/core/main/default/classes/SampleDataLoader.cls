@@ -41,14 +41,30 @@ public with sharing class SampleDataLoader {
         public Boolean loaded;
         @AuraEnabled
         public Boolean loading;
+        /**
+         * False when this org stores household membership as junction records, which the
+         * sample set cannot express. The card says why rather than offering a load that
+         * would produce 200 empty households.
+         */
+        @AuraEnabled
+        public Boolean contactMembership;
     }
 
     /**
-     * Starts loading the sample data set. Throws SampleDataException when a load is
-     * already running, when sample data is already present, or when the static resource
-     * is missing or does not hold a usable payload.
+     * Starts loading the sample data set. Throws SampleDataException when this org keeps
+     * household membership in junction records, when a load is already running, when
+     * sample data is already present, or when the static resource is missing or does not
+     * hold a usable payload.
+     *
+     * The sample set puts every member on its household through Contact.AccountId, which
+     * is what contact membership means. In junction mode nothing would join a person to a
+     * household, so the load is refused with a message naming the reason (canonical model
+     * Section 3, household membership).
      */
     public static void load() {
+        if (!isContactMembership()) {
+            throw new SampleDataException(Label.Core_SampleData_ContactModeOnly);
+        }
         if (hasRunningLoadJob()) {
             throw new SampleDataException(Label.Core_SampleData_LoadInProgress);
         }
@@ -88,6 +104,7 @@ public with sharing class SampleDataLoader {
 
         result.loaded = false;
         result.loading = false;
+        result.contactMembership = isContactMembership();
         return result;
     }
 
@@ -104,6 +121,7 @@ public with sharing class SampleDataLoader {
             result.contactCount = 0;
             result.loading = false;
             result.loaded = false;
+            result.contactMembership = isContactMembership();
             return result;
         }
 
@@ -114,6 +132,7 @@ public with sharing class SampleDataLoader {
         result.loading = hasRunningLoadJob();
         result.loaded =
             !result.loading && (result.householdCount > 0 || result.organizationCount > 0);
+        result.contactMembership = isContactMembership();
         return result;
     }
 
@@ -135,6 +154,11 @@ public with sharing class SampleDataLoader {
             throw new SampleDataException(Label.Core_SampleData_ResourceMissing);
         }
         return resource.Body.toString();
+    }
+
+    /** True while household members are stored as contacts, which is what the sample set assumes. */
+    public static Boolean isContactMembership() {
+        return !HouseholdService.isJunctionMode();
     }
 
     private static Boolean canReadSampleDataFields() {
