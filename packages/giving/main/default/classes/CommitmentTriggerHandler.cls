@@ -9,26 +9,29 @@
  */
 public with sharing class CommitmentTriggerHandler extends TriggerHandler {
     public override void beforeInsert() {
-        deriveHouseholds((List<Commitment__c>) Trigger.new, null);
+        deriveHouseholds((List<Commitment__c>) newRecords(), null);
     }
 
     public override void beforeUpdate() {
         deriveHouseholds(
-            (List<Commitment__c>) Trigger.new,
-            (Map<Id, Commitment__c>) Trigger.oldMap
+            (List<Commitment__c>) newRecords(),
+            (Map<Id, Commitment__c>) oldRecordsById()
         );
     }
 
     public override void afterInsert() {
-        onAfterInsert((List<Commitment__c>) Trigger.new);
+        onAfterInsert((List<Commitment__c>) newRecords());
     }
 
     public override void afterUpdate() {
-        onAfterUpdate((List<Commitment__c>) Trigger.new, (Map<Id, Commitment__c>) Trigger.oldMap);
+        onAfterUpdate(
+            (List<Commitment__c>) newRecords(),
+            (Map<Id, Commitment__c>) oldRecordsById()
+        );
     }
 
     public override void beforeDelete() {
-        onBeforeDelete((List<Commitment__c>) Trigger.old);
+        onBeforeDelete((List<Commitment__c>) oldRecords());
     }
 
     /**

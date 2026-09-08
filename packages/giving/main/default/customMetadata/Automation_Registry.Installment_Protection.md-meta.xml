@@ -7,7 +7,7 @@
         <value xsi:type="xsd:string">Stops an expected payment being deleted once a gift has been received against it.</value>
     </values>
     <values>
-        <field>Default_Enabled__c</field>
+        <field>Enabled_By_Default__c</field>
         <value xsi:type="xsd:boolean">true</value>
     </values>
     <values>
@@ -15,7 +15,7 @@
         <value xsi:type="xsd:string">InstallmentTriggerHandler</value>
     </values>
     <values>
-        <field>Object__c</field>
+        <field>Object_Name__c</field>
         <value xsi:type="xsd:string">Installment__c</value>
     </values>
     <values>

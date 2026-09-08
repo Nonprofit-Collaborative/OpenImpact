@@ -7,7 +7,7 @@
         <value xsi:type="xsd:string">Applies a received gift to the payment it fulfills and updates that payment's status.</value>
     </values>
     <values>
-        <field>Default_Enabled__c</field>
+        <field>Enabled_By_Default__c</field>
         <value xsi:type="xsd:boolean">true</value>
     </values>
     <values>
@@ -15,7 +15,7 @@
         <value xsi:type="xsd:string">GiftCommitmentHandler</value>
     </values>
     <values>
-        <field>Object__c</field>
+        <field>Object_Name__c</field>
         <value xsi:type="xsd:string">Gift__c</value>
     </values>
     <values>

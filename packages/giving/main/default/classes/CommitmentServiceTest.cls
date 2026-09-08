@@ -114,6 +114,40 @@ private class CommitmentServiceTest {
     }
 
     @IsTest
+    static void handlesTheLeapDay() {
+        Contact person = donor();
+        // A monthly schedule that starts on a leap day keeps landing on the last day it can.
+        Commitment__c monthly = newPledge(person.Id, Date.newInstance(2028, 2, 29));
+        monthly.Installments_Planned__c = 2;
+        monthly.Expected_Total__c = null;
+        monthly.End_Date__c = null;
+        List<Installment__c> monthlyPlan = CommitmentService.buildSchedule(monthly);
+        Assert.areEqual(
+            Date.newInstance(2028, 2, 29),
+            monthlyPlan[0].Due_Date__c,
+            'The first payment falls on the leap day itself.'
+        );
+        Assert.areEqual(
+            Date.newInstance(2028, 3, 29),
+            monthlyPlan[1].Due_Date__c,
+            'The next month is the twenty ninth, because March has one.'
+        );
+
+        // A yearly schedule from a leap day falls on the twenty eighth in a common year.
+        Commitment__c yearly = newPledge(person.Id, Date.newInstance(2028, 2, 29));
+        yearly.Frequency__c = 'Yearly';
+        yearly.Installments_Planned__c = 2;
+        yearly.Expected_Total__c = null;
+        yearly.End_Date__c = null;
+        List<Installment__c> yearlyPlan = CommitmentService.buildSchedule(yearly);
+        Assert.areEqual(
+            Date.newInstance(2029, 2, 28),
+            yearlyPlan[1].Due_Date__c,
+            'A leap day anniversary falls on the twenty eighth in a year that has no twenty ninth.'
+        );
+    }
+
+    @IsTest
     static void spacesEveryFrequencyCorrectly() {
         Contact person = donor();
         Date start = Date.newInstance(2026, 10, 5);
@@ -162,7 +196,9 @@ private class CommitmentServiceTest {
         insert recurring;
         CommitmentService.generateInstallments(new Set<Id>{ recurring.Id });
         Integer firstPass = installmentsOf(recurring.Id).size();
-        CommitmentService.topUpRecurringSchedules();
+        CommitmentService.topUpRecurringSchedules(
+            new List<Commitment__c>{ new Commitment__c(Id = recurring.Id) }
+        );
         Test.stopTest();
 
         Assert.isTrue(firstPass >= 12, 'A year of payments is generated ahead: ' + firstPass);
@@ -479,6 +515,54 @@ private class CommitmentServiceTest {
         Test.stopTest();
 
         Assert.isTrue(refused, 'A cancelled commitment cannot be paused.');
+    }
+
+    @IsTest
+    static void keepsAnInstallmentAPendingGiftPointsAtWhenTheScheduleShrinks() {
+        Contact person = donor();
+        Commitment__c pledge = newPledge(person.Id, Date.newInstance(2026, 10, 1));
+        pledge.Installments_Planned__c = 4;
+        pledge.Expected_Total__c = 400;
+        pledge.End_Date__c = null;
+        insert pledge;
+        CommitmentService.generateInstallments(new Set<Id>{ pledge.Id });
+        List<Installment__c> schedule = installmentsOf(pledge.Id);
+        Installment__c last = schedule[3];
+
+        // A pledged gift is not Received, so it adds nothing to Paid Amount, but it does
+        // point at the payment and must not have that payment removed from under it.
+        insert new Gift__c(
+            Donor_Contact__c = person.Id,
+            Gift_Date__c = Date.newInstance(2026, 10, 1),
+            Amount__c = 100,
+            Type__c = 'Check',
+            Status__c = 'Pending',
+            Commitment__c = pledge.Id,
+            Installment__c = last.Id
+        );
+
+        pledge.Installments_Planned__c = 2;
+        pledge.Expected_Total__c = 200;
+        update pledge;
+
+        Test.startTest();
+        CommitmentService.regenerateFutureInstallments(new Set<Id>{ pledge.Id });
+        Test.stopTest();
+
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Installment__c WHERE Id = :last.Id],
+            'A payment a gift points at survives the schedule shrinking (R-CM2).'
+        );
+        Assert.areEqual(
+            0,
+            [
+                SELECT COUNT()
+                FROM Installment__c
+                WHERE Commitment__c = :pledge.Id AND Sequence__c = 3
+            ],
+            'The payment beyond the shorter schedule that nothing points at is removed.'
+        );
     }
 
     @IsTest

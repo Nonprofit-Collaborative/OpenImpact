@@ -7,7 +7,7 @@
  */
 public with sharing class InstallmentTriggerHandler extends TriggerHandler {
     public override void beforeDelete() {
-        onBeforeDelete((List<Installment__c>) Trigger.old);
+        onBeforeDelete((List<Installment__c>) oldRecords());
     }
 
     @TestVisible

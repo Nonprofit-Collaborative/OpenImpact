@@ -31,7 +31,7 @@ public with sharing class GivingScheduler {
             return System.schedule(jobName, cron, job);
         } catch (Exception scheduleFailure) {
             // Already scheduled, or the running user cannot schedule Apex.
-            ErrorLogger.log('GivingScheduler.' + jobName, scheduleFailure);
+            ErrorLogger.log(scheduleFailure, 'GivingScheduler.' + jobName);
             return null;
         }
     }

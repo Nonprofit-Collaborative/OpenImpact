@@ -1739,7 +1739,7 @@ Section 26.
   `Installment_Generation_Horizon_Months__c`, `Auto_Apply_Gifts_To_Installments__c`,
   `Installment_Top_Up_Last_Run__c`.
 - **Service:** `CommitmentService`, `CommitmentSelector`, `CommitmentTriggerHandler`,
-  `GiftCommitmentHandler`, `InstallmentTopUpSchedulable`.
+  `GiftCommitmentHandler`, `InstallmentTopUpSchedulable`, `InstallmentTopUpBatch`.
 
 ---
 

@@ -5,11 +5,11 @@
  */
 public with sharing class GiftCommitmentHandler extends TriggerHandler {
     public override void afterInsert() {
-        onAfterInsert((List<Gift__c>) Trigger.new);
+        onAfterInsert((List<Gift__c>) newRecords());
     }
 
     public override void afterUpdate() {
-        onAfterUpdate((List<Gift__c>) Trigger.new, (Map<Id, Gift__c>) Trigger.oldMap);
+        onAfterUpdate((List<Gift__c>) newRecords(), (Map<Id, Gift__c>) oldRecordsById());
     }
 
     @TestVisible

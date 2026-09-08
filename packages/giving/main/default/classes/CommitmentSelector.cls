@@ -39,33 +39,36 @@ public with sharing class CommitmentSelector {
     }
 
     /**
-     * Active recurring commitments whose schedule may need extending, oldest first.
+     * Every active recurring commitment whose schedule may need extending, as a query the
+     * top up batch iterates. A batch is what makes this safe at any size: one capped query
+     * would extend the same oldest commitments every night and never reach the rest.
      */
-    public List<Commitment__c> selectActiveRecurring(Integer maximum) {
+    public Database.QueryLocator activeRecurringLocator() {
         Date today = Date.today();
-        return [
-            SELECT
-                Id,
-                Name,
-                Type__c,
-                Status__c,
-                Amount__c,
-                Frequency__c,
-                Day_of_Month__c,
-                Start_Date__c,
-                End_Date__c,
-                Expected_Total__c,
-                Installments_Planned__c
-            FROM Commitment__c
-            WHERE
-                Type__c = :TYPE_RECURRING
-                AND Status__c = :STATUS_ACTIVE
-                AND (End_Date__c = NULL
-                OR End_Date__c >= :today)
-            WITH USER_MODE
-            ORDER BY Start_Date__c
-            LIMIT :maximum
-        ];
+        return Database.getQueryLocator(
+            [
+                SELECT
+                    Id,
+                    Name,
+                    Type__c,
+                    Status__c,
+                    Amount__c,
+                    Frequency__c,
+                    Day_of_Month__c,
+                    Start_Date__c,
+                    End_Date__c,
+                    Expected_Total__c,
+                    Installments_Planned__c
+                FROM Commitment__c
+                WHERE
+                    Type__c = :TYPE_RECURRING
+                    AND Status__c = :STATUS_ACTIVE
+                    AND (End_Date__c = NULL
+                    OR End_Date__c >= :today)
+                WITH USER_MODE
+                ORDER BY Start_Date__c
+            ]
+        );
     }
 
     /**

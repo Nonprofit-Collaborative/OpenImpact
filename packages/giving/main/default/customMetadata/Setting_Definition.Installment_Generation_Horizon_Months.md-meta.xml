@@ -3,15 +3,19 @@
     <label>Installment generation horizon (months)</label>
     <protected>true</protected>
     <values>
+        <field>Setting_Key__c</field>
+        <value xsi:type="xsd:string">Installment_Generation_Horizon_Months__c</value>
+    </values>
+    <values>
         <field>Settings_Object__c</field>
         <value xsi:type="xsd:string">Giving_Settings__c</value>
     </values>
     <values>
-        <field>Setting_Field__c</field>
-        <value xsi:type="xsd:string">Installment_Generation_Horizon_Months__c</value>
+        <field>Section__c</field>
+        <value xsi:type="xsd:string">Giving</value>
     </values>
     <values>
-        <field>Section__c</field>
+        <field>Module__c</field>
         <value xsi:type="xsd:string">Giving</value>
     </values>
     <values>
@@ -19,15 +23,15 @@
         <value xsi:type="xsd:string">Number</value>
     </values>
     <values>
-        <field>Default_Value__c</field>
-        <value xsi:type="xsd:string">12</value>
+        <field>Sort_Order__c</field>
+        <value xsi:type="xsd:double">40</value>
     </values>
     <values>
         <field>Description__c</field>
         <value xsi:type="xsd:string">How far ahead payments are created for a recurring gift, so an open-ended schedule does not fill the org with rows.</value>
     </values>
     <values>
-        <field>Sort_Order__c</field>
-        <value xsi:type="xsd:double">10</value>
+        <field>Help_Path__c</field>
+        <value xsi:type="xsd:string">admin-guide/commitments.md</value>
     </values>
 </CustomMetadata>

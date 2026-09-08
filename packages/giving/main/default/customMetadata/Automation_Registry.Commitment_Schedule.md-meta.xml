@@ -7,7 +7,7 @@
         <value xsi:type="xsd:string">Generates the expected payments for a new commitment and rebuilds the unpaid ones when the schedule changes.</value>
     </values>
     <values>
-        <field>Default_Enabled__c</field>
+        <field>Enabled_By_Default__c</field>
         <value xsi:type="xsd:boolean">true</value>
     </values>
     <values>
@@ -15,7 +15,7 @@
         <value xsi:type="xsd:string">CommitmentTriggerHandler</value>
     </values>
     <values>
-        <field>Object__c</field>
+        <field>Object_Name__c</field>
         <value xsi:type="xsd:string">Commitment__c</value>
     </values>
     <values>

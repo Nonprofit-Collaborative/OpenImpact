@@ -108,6 +108,11 @@ private class CommitmentControllerTest {
 
         Assert.areEqual(3, preview.count, 'The component reads the schedule the commitment has.');
         Assert.areEqual(300, preview.expectedTotal, 'The total is what the three payments expect.');
+        Assert.areEqual(
+            'Active',
+            preview.commitmentStatus,
+            'The status comes back too, so the component offers only the changes it allows.'
+        );
     }
 
     @IsTest

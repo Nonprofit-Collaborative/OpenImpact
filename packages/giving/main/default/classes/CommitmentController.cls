@@ -33,6 +33,9 @@ public with sharing class CommitmentController {
         public Decimal expectedTotal { get; set; }
         @AuraEnabled
         public Boolean saved { get; set; }
+        /** The commitment's status, so the component offers only the changes it allows. */
+        @AuraEnabled
+        public String commitmentStatus { get; set; }
 
         public SchedulePreview(List<InstallmentRow> rows, Boolean saved) {
             this.installments = rows;
@@ -82,9 +85,18 @@ public with sharing class CommitmentController {
             ) {
                 rows.add(toRow(installment));
             }
-            return new SchedulePreview(rows, true);
+            SchedulePreview schedule = new SchedulePreview(rows, true);
+            List<Commitment__c> commitments = new CommitmentSelector()
+                .selectByIds(new Set<Id>{ commitmentId });
+            if (commitments.isEmpty()) {
+                throw badRequest(System.Label.Giving_Commitment_NotFound);
+            }
+            schedule.commitmentStatus = commitments[0].Status__c;
+            return schedule;
+        } catch (AuraHandledException alreadyHandled) {
+            throw alreadyHandled;
         } catch (Exception readFailure) {
-            ErrorLogger.log('CommitmentController.getSchedule', readFailure);
+            ErrorLogger.log(readFailure, 'CommitmentController.getSchedule');
             throw badRequest(System.Label.Giving_SchedulePreview_LoadError);
         }
     }
@@ -120,7 +132,7 @@ public with sharing class CommitmentController {
             }
             return new SchedulePreview(rows, false);
         } catch (Exception previewFailure) {
-            ErrorLogger.log('CommitmentController.getSchedulePreview', previewFailure);
+            ErrorLogger.log(previewFailure, 'CommitmentController.getSchedulePreview');
             throw badRequest(System.Label.Giving_SchedulePreview_LoadError);
         }
     }
@@ -137,7 +149,7 @@ public with sharing class CommitmentController {
         try {
             CommitmentService.generateInstallments(new Set<Id>{ commitmentId });
         } catch (Exception generateFailure) {
-            ErrorLogger.log('CommitmentController.generateNow', generateFailure);
+            ErrorLogger.log(generateFailure, 'CommitmentController.generateNow');
             throw badRequest(System.Label.Giving_SchedulePreview_GenerateError);
         }
         return getSchedule(commitmentId);
@@ -170,7 +182,7 @@ public with sharing class CommitmentController {
         } catch (AuraHandledException alreadyHandled) {
             throw alreadyHandled;
         } catch (Exception changeFailure) {
-            ErrorLogger.log('CommitmentController.changeStatus', changeFailure);
+            ErrorLogger.log(changeFailure, 'CommitmentController.changeStatus');
             throw badRequest(System.Label.Giving_Commitment_TransitionNotAllowed);
         }
         return getSchedule(commitmentId);

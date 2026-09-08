@@ -4,7 +4,6 @@
 public with sharing class InstallmentSelector {
     private static final String STATUS_RECEIVED = 'Received';
     private static final String STATUS_SCHEDULED = 'Scheduled';
-    private static final String STATUS_OVERDUE = 'Overdue';
 
     /**
      * Every installment of the commitments named, in schedule order.
@@ -48,13 +47,16 @@ public with sharing class InstallmentSelector {
     }
 
     /**
-     * Unpaid installments whose due date is on or before the cutoff, for the daily job.
+     * Still-scheduled installments whose due date is on or before the cutoff, for the daily
+     * job. Rows already marked Overdue are deliberately outside the query: they already
+     * carry the right status, and including them would let a backlog of old overdue rows
+     * fill the row cap every night so that a newly overdue payment was never reached.
      */
     public List<Installment__c> selectUnpaidDueBefore(Date cutoff, Integer maximum) {
         return [
             SELECT Id, Commitment__c, Sequence__c, Due_Date__c, Expected_Amount__c, Status__c
             FROM Installment__c
-            WHERE Status__c IN (:STATUS_SCHEDULED, :STATUS_OVERDUE) AND Due_Date__c <= :cutoff
+            WHERE Status__c = :STATUS_SCHEDULED AND Due_Date__c <= :cutoff
             WITH USER_MODE
             ORDER BY Due_Date__c
             LIMIT :maximum

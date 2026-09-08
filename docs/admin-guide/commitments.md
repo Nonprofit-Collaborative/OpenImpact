@@ -32,9 +32,9 @@ Four settings control how the schedules behave. Open **Nonprofit Settings**, cho
 Change a value and choose **Save**. The new value applies to the next commitment you
 create or change; existing schedules are left alone until you edit them.
 
-The nightly job that extends recurring schedules and marks payments overdue is scheduled
-for you when the Giving module is turned on. If you ever need to check it, the Hub shows
-when it last ran.
+Two nightly jobs are scheduled for you when the Giving module is turned on: one extends
+recurring schedules up to the horizon at 01:15, the other marks payments overdue at 01:45.
+If you ever need to check them, the Hub shows when the top up last ran.
 
 ## A five-minute walkthrough
 
@@ -73,10 +73,15 @@ oldest unpaid payment by itself, because the automatic setting is on.
 12. Open the **Commitments** tab and open one of the sample recurring gifts, or create one:
     Type Recurring, Amount 25, Frequency Monthly, a start date, no expected total and no
     end date. A recurring gift has payments generated a year ahead, not forever.
-13. Choose **Pause** on the commitment. The status changes to Paused, no further payments
-    are generated, and the payments already scheduled stay where they are. Choose
-    **Resume** when the donor starts giving again, and the schedule picks back up from
-    today.
+13. On the payment schedule card, choose **Pause**. The status changes to Paused, no
+    further payments are generated, and the payments already scheduled stay where they
+    are. The card then offers **Resume** instead of Pause: choose it when the donor starts
+    giving again and the missing payments are filled back in, keeping their original dates
+    and their original numbering.
+
+The same card offers **Mark complete** for a commitment that is finished and **Cancel
+commitment** for one the donor has stopped. Cancelling marks the unpaid payments Skipped
+and deletes nothing.
 
 ### Jen checks what is overdue
 

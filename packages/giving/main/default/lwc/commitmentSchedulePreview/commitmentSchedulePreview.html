@@ -24,6 +24,44 @@
         ></lightning-button>
       </template>
 
+      <template if:true={hasActions}>
+        <div class="slds-var-m-bottom_small" data-id="actions">
+          <template if:true={canPause}>
+            <lightning-button
+              label={labels.pause}
+              data-id="pause"
+              data-action="pause"
+              class="slds-var-m-right_x-small"
+              onclick={handleStatusChange}
+            ></lightning-button>
+          </template>
+          <template if:true={canResume}>
+            <lightning-button
+              label={labels.resume}
+              data-id="resume"
+              data-action="resume"
+              class="slds-var-m-right_x-small"
+              onclick={handleStatusChange}
+            ></lightning-button>
+          </template>
+          <template if:true={canEnd}>
+            <lightning-button
+              label={labels.complete}
+              data-id="complete"
+              data-action="complete"
+              class="slds-var-m-right_x-small"
+              onclick={handleStatusChange}
+            ></lightning-button>
+            <lightning-button
+              label={labels.cancel}
+              data-id="cancel"
+              data-action="cancel"
+              onclick={handleStatusChange}
+            ></lightning-button>
+          </template>
+        </div>
+      </template>
+
       <template if:true={hasInstallments}>
         <table class="slds-table slds-table_cell-buffer slds-table_bordered" data-id="schedule">
           <thead>
@@ -66,6 +104,13 @@
             </template>
           </tbody>
         </table>
+        <p class="slds-var-m-top_small slds-text-title_bold" data-id="total">
+          {labels.total}
+          <lightning-formatted-number
+            format-style="currency"
+            value={expectedTotal}
+          ></lightning-formatted-number>
+        </p>
       </template>
     </div>
   </lightning-card>

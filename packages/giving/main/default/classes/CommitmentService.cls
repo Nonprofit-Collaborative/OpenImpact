@@ -40,7 +40,6 @@ public with sharing class CommitmentService {
     private static final Integer DEFAULT_GRACE_DAYS = 5;
     private static final Integer MAX_SCHEDULE_LENGTH = 520;
     private static final Integer MAX_OVERDUE_ROWS = 5000;
-    private static final Integer MAX_TOP_UP_COMMITMENTS = 500;
 
     /** Gifts this transaction has already linked to an installment, so it does not loop. */
     @TestVisible
@@ -220,15 +219,15 @@ public with sharing class CommitmentService {
                 continue;
             }
             List<Installment__c> plan = buildSchedule(commitment);
-            Map<Decimal, Installment__c> existingBySequence = new Map<Decimal, Installment__c>();
+            Map<Integer, Installment__c> existingBySequence = new Map<Integer, Installment__c>();
             List<Installment__c> existing = existingByCommitment.get(commitment.Id);
             if (existing != null) {
                 for (Installment__c installment : existing) {
-                    existingBySequence.put(installment.Sequence__c, installment);
+                    existingBySequence.put(sequenceOf(installment), installment);
                 }
             }
             for (Installment__c planned : plan) {
-                Installment__c current = existingBySequence.remove(planned.Sequence__c);
+                Installment__c current = existingBySequence.remove(sequenceOf(planned));
                 if (current == null) {
                     toInsert.add(planned);
                     continue;
@@ -253,6 +252,8 @@ public with sharing class CommitmentService {
             }
         }
 
+        toDelete = withoutLinkedGifts(toDelete);
+
         if (!toInsert.isEmpty()) {
             Database.insert(toInsert, true, AccessLevel.USER_MODE);
         }
@@ -265,12 +266,15 @@ public with sharing class CommitmentService {
     }
 
     /**
-     * Extends the schedules of active recurring commitments up to the horizon, and is what
-     * the daily job calls.
+     * Extends the schedules of the active recurring commitments handed in, and is what each
+     * chunk of the daily batch calls. The batch hands in a chunk small enough that the
+     * installments one chunk generates stay well inside the row limits of one transaction,
+     * which a single capped query over the whole org could not promise.
      */
-    public static Integer topUpRecurringSchedules() {
-        List<Commitment__c> commitments = new CommitmentSelector()
-            .selectActiveRecurring(MAX_TOP_UP_COMMITMENTS);
+    public static Integer topUpRecurringSchedules(List<Commitment__c> commitments) {
+        if (commitments == null || commitments.isEmpty()) {
+            return 0;
+        }
         Set<Id> commitmentIds = new Map<Id, Commitment__c>(commitments).keySet();
         generateInstallments(commitmentIds);
         return commitmentIds.size();
@@ -546,6 +550,31 @@ public with sharing class CommitmentService {
 
     // ---------------------------------------------------------------------- helpers
 
+    private static Integer sequenceOf(Installment__c installment) {
+        return installment.Sequence__c == null ? null : installment.Sequence__c.intValue();
+    }
+
+    /**
+     * Drops from a delete list any installment a gift of any status points at. Paid Amount
+     * only counts received gifts, so a pending gift would otherwise have its installment
+     * removed from under it and lose the link (R-CM2).
+     */
+    private static List<Installment__c> withoutLinkedGifts(List<Installment__c> installments) {
+        if (installments.isEmpty()) {
+            return installments;
+        }
+        Map<Id, Integer> giftCounts = new InstallmentSelector()
+            .countGifts(new Map<Id, Installment__c>(installments).keySet());
+        List<Installment__c> safe = new List<Installment__c>();
+        for (Installment__c installment : installments) {
+            Integer gifts = giftCounts.get(installment.Id);
+            if (gifts == null || gifts == 0) {
+                safe.add(installment);
+            }
+        }
+        return safe;
+    }
+
     /** True when nothing has been received against this installment. */
     @TestVisible
     private static Boolean isUnpaid(Installment__c installment) {
@@ -585,19 +614,41 @@ public with sharing class CommitmentService {
 
     @TestVisible
     private static Boolean autoApplyGifts() {
-        String value = SettingsService.getValue(SETTINGS_OBJECT, KEY_AUTO_APPLY);
-        return String.isBlank(value) ? true : Boolean.valueOf(value);
+        Object value = SettingsService.getValue(SETTINGS_OBJECT, KEY_AUTO_APPLY);
+        if (value == null) {
+            return true;
+        }
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        String text = String.valueOf(value).trim();
+        return String.isBlank(text) ? true : Boolean.valueOf(text);
     }
 
+    /**
+     * A whole number setting. The settings object returns a Decimal for a number field and
+     * a String only when the value came from text, so both are accepted and a value that is
+     * neither is logged and treated as unset.
+     */
     private static Integer readInteger(String key) {
-        String value = SettingsService.getValue(SETTINGS_OBJECT, key);
-        if (String.isBlank(value)) {
+        Object value = SettingsService.getValue(SETTINGS_OBJECT, key);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Decimal) {
+            return ((Decimal) value).intValue();
+        }
+        if (value instanceof Integer) {
+            return (Integer) value;
+        }
+        String text = String.valueOf(value).trim();
+        if (String.isBlank(text)) {
             return null;
         }
         try {
-            return Integer.valueOf(value.trim());
+            return Integer.valueOf(text);
         } catch (System.TypeException parseFailure) {
-            ErrorLogger.log('CommitmentService.' + key, parseFailure);
+            ErrorLogger.log(parseFailure, 'CommitmentService.' + key);
             return null;
         }
     }

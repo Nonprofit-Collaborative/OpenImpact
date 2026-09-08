@@ -7,7 +7,7 @@ public with sharing class InstallmentSchedulable implements Schedulable {
         try {
             CommitmentService.markOverdue();
         } catch (Exception jobFailure) {
-            ErrorLogger.log('InstallmentSchedulable', jobFailure);
+            ErrorLogger.log(jobFailure, 'InstallmentSchedulable');
         }
     }
 }
