@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Negative_Gift_Needs_Original</fullName>
+  <active>true</active>
+  <description>
+    R-G3: a refund or a write-off is a negative gift linked to the gift it reverses.
+  </description>
+  <errorConditionFormula>
+    AND(Amount__c &lt; 0, ISBLANK(Original_Gift__c))
+  </errorConditionFormula>
+  <errorDisplayField>Original_Gift__c</errorDisplayField>
+  <errorMessage>
+    A negative gift is a refund or a write-off, so it must name the original gift it reverses. Use
+    the Refund or Write Off action on the original gift instead of entering this by hand.
+  </errorMessage>
+</ValidationRule>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Receipt_Number__c</fullName>
+  <caseSensitive>false</caseSensitive>
+  <externalId>true</externalId>
+  <inlineHelpText>
+    The number of the receipt issued for this gift. Once it is filled in, the amount, date and donor
+    are locked.
+  </inlineHelpText>
+  <label>Receipt Number</label>
+  <length>50</length>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Text</type>
+  <unique>true</unique>
+</CustomField>

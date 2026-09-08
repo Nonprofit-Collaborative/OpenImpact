@@ -99,3 +99,7 @@ Each feature adds its row here when its page is written.
 | C-03 Nonprofit Hub app and setup checklist | [nonprofit-hub.md](nonprofit-hub.md) | Core | v0.1 |
 | C-03 Nonprofit Settings console | [nonprofit-settings.md](nonprofit-settings.md) | Core | v0.1 |
 | C-12 Setup Assistant | [setup-assistant.md](setup-assistant.md) | Core | v0.2 |
+| G-01 Gifts | [gifts.md](gifts.md) | Giving | v0.2 |
+| G-04 Funds | [funds.md](funds.md) | Giving | v0.2 |
+| G-05 Appeals | [appeals.md](appeals.md) | Giving | v0.2 |
+| G-01 Refunds and write-offs | [refunds.md](refunds.md) | Giving | v0.2 |

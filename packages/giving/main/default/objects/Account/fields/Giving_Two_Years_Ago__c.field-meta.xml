@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Giving_Two_Years_Ago__c</fullName>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    Total given two fiscal years ago, used by SYBUNT and retention reporting.
+  </inlineHelpText>
+  <label>Giving Two Years Ago</label>
+  <precision>18</precision>
+  <required>false</required>
+  <scale>2</scale>
+  <trackTrending>false</trackTrending>
+  <type>Currency</type>
+</CustomField>

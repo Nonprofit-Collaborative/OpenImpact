@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Refunds_And_Write_Offs</fullName>
+  <columns>NAME</columns>
+  <columns>Original_Gift__c</columns>
+  <columns>Gift_Date__c</columns>
+  <columns>Amount__c</columns>
+  <columns>Refund_Reason__c</columns>
+  <filters>
+    <field>Amount__c</field>
+    <operation>lessThan</operation>
+    <value>0</value>
+  </filters>
+  <filterScope>Everything</filterScope>
+  <label>Refunds and Write-offs</label>
+</ListView>

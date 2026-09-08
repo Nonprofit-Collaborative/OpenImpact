@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>First_Gift_Date__c</fullName>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    The date of this donor's first gift, which is what new donor reporting counts from.
+  </inlineHelpText>
+  <label>First Gift Date</label>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Date</type>
+</CustomField>
