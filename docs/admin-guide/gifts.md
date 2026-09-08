@@ -65,6 +65,12 @@ including Nonprofit Admin, carries it. A user who holds it can save a change to 
 gift's amount, date, donor or receipt number, and can delete a receipted gift. Nobody else
 can, whatever else they are allowed to do.
 
+**What it does not lift.** A gift that has been refunded or written off still cannot be
+deleted by anyone, override or not. The refund is a separate negative gift linked back to
+the original, so deleting the original would leave that negative gift standing with nothing
+to say what it reverses, and a total that is wrong with no trace of why. Correct a refunded
+gift by working with the refund (see [Refunds](refunds.md)), never by removing the original.
+
 **How to grant it.** There is no screen for this inside Open Impact, on purpose.
 
 1. In Salesforce, click the gear icon and choose **Setup**.

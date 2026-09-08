@@ -88,6 +88,11 @@ The escalation ADR-0010 called for was therefore made, and the owner decided.
 - A subscriber cannot mark their own automation `Always_Runs__c`, because the field lives on
   a protected custom metadata type. That is intended: it is a statement the package makes
   about its own rules, not a configuration surface.
+- **The override reaches receipt immutability and nothing else.** R-G3's separate refusal, that
+  a gift with a linked reversal is not deletable, stays absolute. `Gift__c.Original_Gift__c` is a
+  lookup with `SetNull`, so lifting that one would leave a negative gift standing with nothing to
+  say what it reverses: a wrong total with no trace of why. The two rules are enforced next door
+  to each other and are not the same rule.
 - `Override_Receipt_Lock` is a permission an org can misuse by simply leaving it assigned.
   Health Check should report it as a finding when anyone holds it, which is recorded as
   follow-up work rather than shipped here.

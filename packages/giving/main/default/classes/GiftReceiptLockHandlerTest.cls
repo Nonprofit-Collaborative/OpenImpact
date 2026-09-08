@@ -276,6 +276,45 @@ private class GiftReceiptLockHandlerTest {
     }
 
     @IsTest
+    static void theOverrideDoesNotReachTheReversalRefusal() {
+        Contact person = otherDonor();
+        Gift__c original = GivingTestDataFactory.buildGift(person.Id, 250);
+        insert original;
+        Gift__c reversal = GivingTestDataFactory.buildGift(person.Id, -250);
+        reversal.Original_Gift__c = original.Id;
+        insert reversal;
+        User maria = userHoldingTheOverride();
+
+        String refusal;
+        Test.startTest();
+        System.runAs(maria) {
+            try {
+                delete original;
+                Assert.fail('The reversal refusal is not the receipt lock, so it still applies.');
+            } catch (DmlException expected) {
+                refusal = expected.getDmlMessage(0);
+            }
+        }
+        Test.stopTest();
+
+        Assert.isTrue(
+            refusal != null && refusal.contains(Label.Giving_Gift_ReversedGiftNotDeletable),
+            'Refused for the reason R-G3 gives, not the receipt one: ' + refusal
+        );
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Gift__c WHERE Id = :original.Id],
+            'Original_Gift__c is a lookup with SetNull, so a deletion here would leave the ' +
+            'negative gift standing with nothing to say what it reverses.'
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Error_Log__c WHERE Context__c = 'Receipt lock override'],
+            'Nothing was overridden, so nothing was recorded as overridden.'
+        );
+    }
+
+    @IsTest
     static void aGiftWithNoReceiptIsStillAnOrdinaryEditableGift() {
         Contact person = otherDonor();
         Gift__c plain = GivingTestDataFactory.buildGift(person.Id, 60);

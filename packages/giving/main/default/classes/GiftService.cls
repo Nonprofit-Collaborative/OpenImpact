@@ -252,26 +252,33 @@ public with sharing class GiftService {
         Boolean overridden = canOverrideReceiptLock();
         List<String> overrides = new List<String>();
         for (Gift__c gift : gifts) {
-            Boolean refused =
-                String.isNotBlank(gift.Receipt_Number__c) || withReversals.contains(gift.Id);
-            if (refused && overridden) {
-                overrides.add(
-                    String.format(
-                        Label.Giving_Gift_ReceiptLockOverridden,
-                        new List<String>{
-                            String.valueOf(gift.Id),
-                            valueOrNone(gift.Receipt_Number__c),
-                            'the gift was deleted'
-                        }
-                    )
-                );
+            // The reversal refusal is not the receipt lock and the override does not reach it.
+            // R-G3 keeps a refund as a negative gift linked back to its original, and
+            // Original_Gift__c is a lookup with SetNull, so deleting the original would leave a
+            // negative gift standing with nothing to say what it reverses: a wrong total with no
+            // trace of why. Receipt immutability is what ADR-0024 decided to make liftable, and
+            // this is a different rule that happens to be enforced next door.
+            if (withReversals.contains(gift.Id)) {
+                gift.addError(Label.Giving_Gift_ReversedGiftNotDeletable);
                 continue;
             }
-            if (String.isNotBlank(gift.Receipt_Number__c)) {
-                gift.addError(Label.Giving_Gift_ReceiptedGiftNotDeletable);
-            } else if (withReversals.contains(gift.Id)) {
-                gift.addError(Label.Giving_Gift_ReversedGiftNotDeletable);
+            if (String.isBlank(gift.Receipt_Number__c)) {
+                continue;
             }
+            if (!overridden) {
+                gift.addError(Label.Giving_Gift_ReceiptedGiftNotDeletable);
+                continue;
+            }
+            overrides.add(
+                String.format(
+                    Label.Giving_Gift_ReceiptLockOverridden,
+                    new List<String>{
+                        String.valueOf(gift.Id),
+                        valueOrNone(gift.Receipt_Number__c),
+                        'the gift was deleted'
+                    }
+                )
+            );
         }
         ErrorLogger.logMessages(overrides, OVERRIDE_LOG_CONTEXT, ErrorLogger.SEVERITY_WARNING);
     }
