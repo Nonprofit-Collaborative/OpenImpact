@@ -36,13 +36,15 @@
                 <template if:true={isMoving}>
                     <div class="slds-box slds-var-m-top_small move-box">
                         <p class="slds-var-m-bottom_x-small">{label.moveHelp}</p>
-                        <lightning-record-edit-form object-api-name="Contact">
-                            <lightning-input-field
-                                field-name="AccountId"
-                                variant="label-hidden"
-                                onchange={handleTargetChange}
-                            ></lightning-input-field>
-                        </lightning-record-edit-form>
+                        <lightning-record-picker
+                            label={label.moveHelp}
+                            variant="label-hidden"
+                            placeholder={label.moveMember}
+                            object-api-name="Account"
+                            filter={householdFilter}
+                            onchange={handleTargetChange}
+                            class="move-target"
+                        ></lightning-record-picker>
                         <div class="slds-var-m-top_x-small">
                             <lightning-button
                                 variant="brand"

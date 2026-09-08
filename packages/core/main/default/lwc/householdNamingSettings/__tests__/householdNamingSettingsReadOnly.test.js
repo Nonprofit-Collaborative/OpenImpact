@@ -9,6 +9,12 @@ jest.mock(
 );
 
 jest.mock(
+  '@salesforce/apex/HouseholdController.getNamingSettings',
+  () => ({ default: jest.fn(() => Promise.resolve(null)) }),
+  { virtual: true }
+);
+
+jest.mock(
   '@salesforce/apex/HouseholdController.recomputeAll',
   () => ({ default: jest.fn(() => Promise.resolve('')) }),
   { virtual: true }
@@ -24,8 +30,15 @@ jest.mock(
   { virtual: true }
 );
 
+// Lets every promise the component started settle, including the settings load that the
+// first preview waits for.
 function flush() {
-  return Promise.resolve();
+  return Promise.resolve()
+    .then(() => {})
+    .then(() => {})
+    .then(() => {})
+    .then(() => {})
+    .then(() => {});
 }
 
 describe('c-household-naming-settings without the settings permission', () => {

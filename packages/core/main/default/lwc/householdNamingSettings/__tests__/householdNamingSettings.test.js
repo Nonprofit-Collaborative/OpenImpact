@@ -1,12 +1,19 @@
 import { createElement } from 'lwc';
 import HouseholdNamingSettings from 'c/householdNamingSettings';
 import preview from '@salesforce/apex/HouseholdController.preview';
+import getNamingSettings from '@salesforce/apex/HouseholdController.getNamingSettings';
 import recomputeAll from '@salesforce/apex/HouseholdController.recomputeAll';
 import saveSettings from '@salesforce/apex/SettingsController.saveSettings';
 
 jest.mock(
   '@salesforce/apex/HouseholdController.preview',
   () => ({ default: jest.fn(() => Promise.resolve([])) }),
+  { virtual: true }
+);
+
+jest.mock(
+  '@salesforce/apex/HouseholdController.getNamingSettings',
+  () => ({ default: jest.fn(() => Promise.resolve(null)) }),
   { virtual: true }
 );
 
@@ -26,6 +33,14 @@ jest.mock(
   { virtual: true }
 );
 
+const SAVED = {
+  namePattern: '{LastName} Household',
+  formalPattern: '{Salutation} {LastName}',
+  informalPattern: '{FirstName}',
+  includeDeceasedInName: false,
+  canEdit: true
+};
+
 const SAMPLES = [
   {
     members: 'John Smith, Jane Smith',
@@ -41,8 +56,15 @@ const SAMPLES = [
   }
 ];
 
+// Lets every promise the component started settle, including the settings load that the
+// first preview waits for.
 function flush() {
-  return Promise.resolve();
+  return Promise.resolve()
+    .then(() => {})
+    .then(() => {})
+    .then(() => {})
+    .then(() => {})
+    .then(() => {});
 }
 
 function build() {
@@ -55,6 +77,7 @@ describe('c-household-naming-settings', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     preview.mockResolvedValue(SAMPLES);
+    getNamingSettings.mockResolvedValue(SAVED);
     recomputeAll.mockResolvedValue('707000000000000AAA');
     saveSettings.mockResolvedValue();
   });
@@ -103,8 +126,8 @@ describe('c-household-naming-settings', () => {
 
     expect(saveSettings).toHaveBeenCalledWith({
       settings: {
-        Household_Name_Pattern__c: 'The {LastName} Family',
-        Formal_Greeting_Pattern__c: '{Salutation} {FirstName} {LastName}',
+        Household_Name_Pattern__c: '{LastName} Household',
+        Formal_Greeting_Pattern__c: '{Salutation} {LastName}',
         Informal_Greeting_Pattern__c: '{FirstName}'
       }
     });
@@ -131,5 +154,45 @@ describe('c-household-naming-settings', () => {
     const inputs = element.shadowRoot.querySelectorAll('lightning-input');
     expect(inputs.length).toBe(3);
     inputs.forEach((input) => expect(input.disabled).toBe(false));
+  });
+
+  it('opens on the patterns this org has saved, not on the shipped ones', async () => {
+    const element = build();
+    await flush();
+    await flush();
+    await flush();
+
+    const inputs = element.shadowRoot.querySelectorAll('lightning-input');
+    expect(getNamingSettings).toHaveBeenCalled();
+    expect(inputs[0].value).toBe('{LastName} Household');
+    expect(inputs[1].value).toBe('{Salutation} {LastName}');
+    expect(inputs[2].value).toBe('{FirstName}');
+    expect(preview).toHaveBeenCalledWith(
+      expect.objectContaining({ namePattern: '{LastName} Household' })
+    );
+  });
+
+  it('falls back to the shipped patterns where this org has saved none', async () => {
+    getNamingSettings.mockResolvedValue({ namePattern: null, formalPattern: null });
+    const element = build();
+    await flush();
+    await flush();
+    await flush();
+
+    const inputs = element.shadowRoot.querySelectorAll('lightning-input');
+    expect(inputs[0].value).toBe('The {LastName} Family');
+    expect(inputs[1].value).toBe('{Salutation} {FirstName} {LastName}');
+  });
+
+  it('shows what went wrong when the preview cannot be produced', async () => {
+    preview.mockRejectedValue({ body: { message: 'Naming is not set up yet' } });
+    const element = build();
+    await flush();
+    await flush();
+    await flush();
+
+    const alert = element.shadowRoot.querySelector('[role="alert"]');
+    expect(alert).not.toBeNull();
+    expect(alert.textContent).toContain('Naming is not set up yet');
   });
 });

@@ -3,6 +3,7 @@
 /* eslint-disable @lwc/lwc/no-unexpected-wire-adapter-usages */
 import { createElement } from 'lwc';
 import { getRecord } from 'lightning/uiRecordApi';
+import { getObjectInfo } from 'lightning/uiObjectInfoApi';
 import HouseholdMembersPanel from 'c/householdMembersPanel';
 import getMembers from '@salesforce/apex/HouseholdController.getMembers';
 import getMembershipMode from '@salesforce/apex/HouseholdController.getMembershipMode';
@@ -35,6 +36,23 @@ jest.mock(
 const HOUSEHOLD_ID = '001000000000001AAA';
 const OTHER_HOUSEHOLD_ID = '001000000000002AAA';
 const PERSON_ID = '003000000000001AAA';
+const PERSON_ACCOUNT_ID = '001000000000009AAA';
+const HOUSEHOLD_RECORD_TYPE_ID = '012000000000001AAA';
+
+const ACCOUNT_INFO = {
+  recordTypeInfos: {
+    [HOUSEHOLD_RECORD_TYPE_ID]: {
+      recordTypeId: HOUSEHOLD_RECORD_TYPE_ID,
+      developerName: 'Household',
+      name: 'Household'
+    },
+    '012000000000002AAA': {
+      recordTypeId: '012000000000002AAA',
+      developerName: 'Organization',
+      name: 'Organization'
+    }
+  }
+};
 
 const MEMBERS = [
   {
@@ -63,8 +81,15 @@ function recordOfType(developerName) {
   };
 }
 
+// Lets every promise the component started settle, including the settings load that the
+// first preview waits for.
 function flush() {
-  return Promise.resolve();
+  return Promise.resolve()
+    .then(() => {})
+    .then(() => {})
+    .then(() => {})
+    .then(() => {})
+    .then(() => {});
 }
 
 function build() {
@@ -137,6 +162,7 @@ describe('c-household-members-panel', () => {
     moveContact.mockResolvedValue();
     const element = build();
     getRecord.emit(recordOfType('Household'));
+    getObjectInfo.emit(ACCOUNT_INFO);
     getMembershipMode.emit('Contact');
     getMembers.emit(MEMBERS);
     await flush();
@@ -144,8 +170,8 @@ describe('c-household-members-panel', () => {
     element.shadowRoot.querySelectorAll('.move-button')[0].dispatchEvent(new CustomEvent('click'));
     await flush();
 
-    const lookup = element.shadowRoot.querySelector('lightning-input-field');
-    lookup.dispatchEvent(new CustomEvent('change', { detail: { value: [OTHER_HOUSEHOLD_ID] } }));
+    const picker = element.shadowRoot.querySelector('.move-target');
+    picker.dispatchEvent(new CustomEvent('change', { detail: { recordId: OTHER_HOUSEHOLD_ID } }));
     element.shadowRoot.querySelector('.move-save-button').dispatchEvent(new CustomEvent('click'));
     await flush();
 
@@ -153,5 +179,74 @@ describe('c-household-members-panel', () => {
       contactId: PERSON_ID,
       targetHouseholdId: OTHER_HOUSEHOLD_ID
     });
+  });
+
+  it('offers households to move to and not organizations', async () => {
+    const element = build();
+    getRecord.emit(recordOfType('Household'));
+    getObjectInfo.emit(ACCOUNT_INFO);
+    getMembershipMode.emit('Contact');
+    getMembers.emit(MEMBERS);
+    await flush();
+
+    element.shadowRoot.querySelectorAll('.move-button')[0].dispatchEvent(new CustomEvent('click'));
+    await flush();
+
+    const picker = element.shadowRoot.querySelector('.move-target');
+    expect(picker.objectApiName).toBe('Account');
+    expect(picker.filter).toEqual({
+      criteria: [{ fieldPath: 'RecordTypeId', operator: 'eq', value: HOUSEHOLD_RECORD_TYPE_ID }]
+    });
+  });
+
+  it('moves a person the org stores as an account', async () => {
+    moveContact.mockResolvedValue();
+    const element = build();
+    getRecord.emit(recordOfType('Household'));
+    getObjectInfo.emit(ACCOUNT_INFO);
+    getMembershipMode.emit('Junction');
+    getMembers.emit([
+      {
+        personId: PERSON_ACCOUNT_ID,
+        name: 'Maria Garcia',
+        role: 'Head',
+        source: 'Account',
+        isPrimary: true,
+        isDeceased: false
+      }
+    ]);
+    await flush();
+
+    element.shadowRoot.querySelectorAll('.move-button')[0].dispatchEvent(new CustomEvent('click'));
+    await flush();
+
+    const picker = element.shadowRoot.querySelector('.move-target');
+    picker.dispatchEvent(new CustomEvent('change', { detail: { recordId: OTHER_HOUSEHOLD_ID } }));
+    element.shadowRoot.querySelector('.move-save-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+
+    expect(moveContact).toHaveBeenCalledWith({
+      contactId: PERSON_ACCOUNT_ID,
+      targetHouseholdId: OTHER_HOUSEHOLD_ID
+    });
+  });
+
+  it('shows what went wrong when a move is refused', async () => {
+    moveContact.mockRejectedValue({ body: { message: 'That account is not a household.' } });
+    const element = build();
+    getRecord.emit(recordOfType('Household'));
+    getObjectInfo.emit(ACCOUNT_INFO);
+    getMembershipMode.emit('Contact');
+    getMembers.emit(MEMBERS);
+    await flush();
+
+    element.shadowRoot.querySelectorAll('.move-button')[0].dispatchEvent(new CustomEvent('click'));
+    await flush();
+    element.shadowRoot.querySelector('.move-save-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+
+    const alert = element.shadowRoot.querySelector('[role="alert"]');
+    expect(alert).not.toBeNull();
+    expect(alert.textContent).toContain('That account is not a household.');
   });
 });

@@ -1,6 +1,7 @@
 import { LightningElement, api, wire, track } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import { getRecord } from 'lightning/uiRecordApi';
+import { getObjectInfo } from 'lightning/uiObjectInfoApi';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getMembers from '@salesforce/apex/HouseholdController.getMembers';
 import getMembershipMode from '@salesforce/apex/HouseholdController.getMembershipMode';
@@ -44,6 +45,7 @@ export default class HouseholdMembersPanel extends LightningElement {
   @track members = [];
   membershipMode;
   recordTypeName;
+  householdRecordTypeId;
   errorMessage;
   isAdding = false;
   movingPersonId;
@@ -57,6 +59,20 @@ export default class HouseholdMembersPanel extends LightningElement {
       const recordType = data.fields.RecordType;
       this.recordTypeName =
         recordType && recordType.value ? recordType.value.fields.DeveloperName.value : undefined;
+    } else if (error) {
+      this.errorMessage = this.readError(error);
+    }
+  }
+
+  @wire(getObjectInfo, { objectApiName: 'Account' })
+  wiredAccountInfo({ data, error }) {
+    if (data) {
+      // Which record type is the household one, so that the move offers households and
+      // never an organization.
+      const infos = data.recordTypeInfos || {};
+      this.householdRecordTypeId = Object.keys(infos).find(
+        (id) => infos[id].developerName === HOUSEHOLD || infos[id].name === HOUSEHOLD
+      );
     } else if (error) {
       this.errorMessage = this.readError(error);
     }
@@ -106,6 +122,22 @@ export default class HouseholdMembersPanel extends LightningElement {
     return !!this.movingPersonId;
   }
 
+  /**
+   * The move offers households only. Until the record type is known nothing is offered,
+   * which is better than offering every account in the org.
+   */
+  get householdFilter() {
+    return {
+      criteria: [
+        {
+          fieldPath: 'RecordTypeId',
+          operator: 'eq',
+          value: this.householdRecordTypeId || ''
+        }
+      ]
+    };
+  }
+
   badgesFor(member) {
     const badges = [];
     if (member.isPrimary) {
@@ -142,7 +174,8 @@ export default class HouseholdMembersPanel extends LightningElement {
   }
 
   handleTargetChange(event) {
-    const value = event.detail.value;
+    const detail = event.detail || {};
+    const value = detail.recordId === undefined ? detail.value : detail.recordId;
     this.targetHouseholdId = Array.isArray(value) ? value[0] : value;
   }
 
