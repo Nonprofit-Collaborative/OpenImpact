@@ -125,6 +125,9 @@ public with sharing class SampleDataLoadQueueable implements Queueable {
         Account acct = new Account();
         acct.RecordTypeId = recordTypeId;
         acct.Sample_Data__c = true;
+        // The generator's key, kept on the record so the connection stage and a module
+        // sample set (Giving) can find this household again in a later transaction.
+        acct.Sample_Data_Key__c = (String) household.get('key');
 
         Object addressValue = household.get('address');
         if (addressValue instanceof Map<String, Object>) {
@@ -160,6 +163,7 @@ public with sharing class SampleDataLoadQueueable implements Queueable {
         Account acct = new Account();
         acct.RecordTypeId = recordTypeId;
         acct.Sample_Data__c = true;
+        acct.Sample_Data_Key__c = (String) organization.get('key');
         acct.Name = (String) organization.get('name');
         acct.Website = (String) organization.get('website');
         acct.Phone = (String) organization.get('phone');
@@ -174,6 +178,7 @@ public with sharing class SampleDataLoadQueueable implements Queueable {
         Contact con = new Contact();
         con.RecordTypeId = recordTypeId;
         con.Sample_Data__c = true;
+        con.Sample_Data_Key__c = (String) member.get('key');
         // Null in junction mode: the household is named by the membership row instead, and
         // a contact carrying both would be in the household twice over.
         con.AccountId = householdId;

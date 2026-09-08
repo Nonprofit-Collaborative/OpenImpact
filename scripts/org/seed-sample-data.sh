@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # seed-sample-data.sh <alias>
 #
-# Loads the C-10 sample data set (200 households, 440 contacts, and 25 organizations)
-# into the target org and waits for it to actually finish.
+# Loads the C-10 sample data set (200 households, 440 contacts, 25 organizations, their
+# connections and affiliations, and the Giving gifts where Giving is installed) into the
+# target org and waits for it to actually finish.
 #
 # SampleDataLoader.load() runs as a chain of queueable jobs (SampleDataLoadQueueable for
 # the accounts, then SampleDataContactQueueable once per chunk of contacts), so the Apex
@@ -28,7 +29,10 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 APEX_FILE="$REPO_ROOT/scripts/org/load-sample-data.apex"
 SAMPLE_JSON="$REPO_ROOT/packages/core/main/default/staticresources/SampleData.json"
 POLL_INTERVAL_SECONDS=5
-MAX_WAIT_SECONDS=300
+# The chain is longer than it was: five contact chunks, the connection stage, and then the
+# Giving stages (reference data plus one job per hundred gifts), each waiting its turn in
+# the queue, so a scratch org with Giving installed needs minutes rather than one minute.
+MAX_WAIT_SECONDS=900
 
 if [[ ! -f "$APEX_FILE" ]]; then
   echo "sample data not yet available (C-10)"
@@ -64,7 +68,9 @@ sf apex run --target-org "$ALIAS" --file "$APEX_FILE"
 
 echo "Waiting for ${EXPECTED_CONTACTS} sample contacts and for the load jobs to finish (up to ${MAX_WAIT_SECONDS}s)..."
 
-RUNNING_JOB_QUERY="SELECT COUNT() FROM AsyncApexJob WHERE ApexClass.Name IN ('SampleDataLoadQueueable', 'SampleDataContactQueueable') AND Status IN ('Queued', 'Preparing', 'Processing', 'Holding')"
+# Every stage of the chain, Core's and Giving's: waiting only on the contact stages would
+# report success while the connections and the gifts were still being written.
+RUNNING_JOB_QUERY="SELECT COUNT() FROM AsyncApexJob WHERE ApexClass.Name IN ('SampleDataLoadQueueable', 'SampleDataContactQueueable', 'SampleDataConnectionQueueable', 'GivingSampleDataQueueable') AND Status IN ('Queued', 'Preparing', 'Processing', 'Holding')"
 
 ELAPSED=0
 while [[ "$ELAPSED" -lt "$MAX_WAIT_SECONDS" ]]; do

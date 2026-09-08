@@ -51,6 +51,67 @@ private class SampleDataSetTest {
     }
 
     @IsTest
+    static void testConnectionsAreOptional() {
+        SampleDataSet data = SampleDataSet.parse(JSON.serialize(validRoot()));
+
+        System.assertEquals(
+            0,
+            data.relationships.size(),
+            'a payload with no connections parses as none rather than failing'
+        );
+        System.assertEquals(0, data.affiliations.size(), 'the same for affiliations');
+    }
+
+    @IsTest
+    static void testParsesConnectionsWhenTheyArePresent() {
+        Map<String, Object> relationship = new Map<String, Object>();
+        relationship.put('person', 'H001-1');
+        relationship.put('relatedPerson', 'H002-1');
+        relationship.put('type', 'Sibling');
+        Map<String, Object> affiliation = new Map<String, Object>();
+        affiliation.put('person', 'H001-1');
+        affiliation.put('organization', 'O001');
+        Map<String, Object> root = validRoot();
+        root.put('relationships', new List<Object>{ relationship });
+        root.put('affiliations', new List<Object>{ affiliation });
+
+        SampleDataSet data = SampleDataSet.parse(JSON.serialize(root));
+
+        System.assertEquals(1, data.relationships.size(), 'the one connection is read');
+        System.assertEquals(
+            'Sibling',
+            (String) data.relationships[0].get('type'),
+            'the connection keeps the type the file gave it'
+        );
+        System.assertEquals(
+            'O001',
+            (String) data.affiliations[0].get('organization'),
+            'the affiliation keeps the organization key the file gave it'
+        );
+    }
+
+    @IsTest
+    static void testRejectsAConnectionMissingItsOtherSide() {
+        Map<String, Object> relationship = new Map<String, Object>();
+        relationship.put('person', 'H001-1');
+        relationship.put('type', 'Sibling');
+        Map<String, Object> root = validRoot();
+        root.put('relationships', new List<Object>{ relationship });
+
+        assertRejects(root, 'a connection with only one person named is invalid data');
+    }
+
+    @IsTest
+    static void testRejectsAnAffiliationMissingItsOrganization() {
+        Map<String, Object> affiliation = new Map<String, Object>();
+        affiliation.put('person', 'H001-1');
+        Map<String, Object> root = validRoot();
+        root.put('affiliations', new List<Object>{ affiliation });
+
+        assertRejects(root, 'an affiliation with no organization named is invalid data');
+    }
+
+    @IsTest
     static void testParsesAValidPayload() {
         SampleDataSet data = SampleDataSet.parse(JSON.serialize(validRoot()));
         System.assertEquals(1, data.households.size(), 'one household');

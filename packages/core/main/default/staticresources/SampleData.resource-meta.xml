@@ -3,7 +3,8 @@
   <cacheControl>Private</cacheControl>
   <contentType>application/json</contentType>
   <description>
-    C-10 sample data set: 200 households, 440 contacts, and 25 organizations, loaded
+    C-10 sample data set, Core half: 200 households, 440 contacts, 25 organizations, 60
+    connections and 80 affiliations, loaded
     and removed by SampleDataLoader. Regenerate with scripts/data/generate-sample-data.py; see
     data/sample/README.md.
   </description>

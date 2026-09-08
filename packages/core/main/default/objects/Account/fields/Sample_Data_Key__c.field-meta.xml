@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Sample_Data_Key__c</fullName>
+  <label>Sample Data Key</label>
+  <type>Text</type>
+  <length>20</length>
+  <externalId>false</externalId>
+  <required>false</required>
+  <unique>false</unique>
+  <trackTrending>false</trackTrending>
+  <description>
+    The key the generated sample data set gives this household or organization, so a module sample set (the Giving
+    gifts, for example) can join its own records to the people and households the Core loader
+    created. Empty on every record an administrator entered.
+  </description>
+  <inlineHelpText>
+    Set by the sample data loader (C-10) on each household or organization it creates, so sample gifts and pledges
+    attach to the right sample record. Leave it empty on your own records.
+  </inlineHelpText>
+</CustomField>
