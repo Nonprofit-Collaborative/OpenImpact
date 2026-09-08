@@ -7,6 +7,10 @@
     can change a record but never delete one: a fund that has been used is deactivated and a gift is
     reversed.
   </description>
+  <applicationVisibilities>
+    <application>Fundraising</application>
+    <visible>true</visible>
+  </applicationVisibilities>
   <classAccesses>
     <apexClass>AppealSelector</apexClass>
     <enabled>true</enabled>
@@ -49,6 +53,10 @@
   </classAccesses>
   <classAccesses>
     <apexClass>GivingAccountSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>QuickGiftEntryController</apexClass>
     <enabled>true</enabled>
   </classAccesses>
   <fieldPermissions>
@@ -357,16 +365,7 @@
     <allowEdit>true</allowEdit>
     <allowRead>true</allowRead>
     <modifyAllRecords>false</modifyAllRecords>
-    <object>Gift__c</object>
-    <viewAllRecords>false</viewAllRecords>
-  </objectPermissions>
-  <objectPermissions>
-    <allowCreate>true</allowCreate>
-    <allowDelete>false</allowDelete>
-    <allowEdit>true</allowEdit>
-    <allowRead>true</allowRead>
-    <modifyAllRecords>false</modifyAllRecords>
-    <object>Gift_Allocation__c</object>
+    <object>Appeal__c</object>
     <viewAllRecords>false</viewAllRecords>
   </objectPermissions>
   <objectPermissions>
@@ -384,7 +383,16 @@
     <allowEdit>true</allowEdit>
     <allowRead>true</allowRead>
     <modifyAllRecords>false</modifyAllRecords>
-    <object>Appeal__c</object>
+    <object>Gift_Allocation__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>true</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>true</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Gift__c</object>
     <viewAllRecords>false</viewAllRecords>
   </objectPermissions>
   <tabSettings>
@@ -401,6 +409,10 @@
   </tabSettings>
   <tabSettings>
     <tab>Gift__c</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Quick_Gift_Entry</tab>
     <visibility>Visible</visibility>
   </tabSettings>
 </PermissionSet>

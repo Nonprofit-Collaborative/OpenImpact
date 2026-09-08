@@ -6,6 +6,10 @@
     Tom and Jen look at the giving numbers without being able to change them. The Gift panel
     loads, and every action on it fails, because the package writes in user mode.
   </description>
+  <applicationVisibilities>
+    <application>Fundraising</application>
+    <visible>true</visible>
+  </applicationVisibilities>
   <classAccesses>
     <apexClass>AppealSelector</apexClass>
     <enabled>true</enabled>
@@ -356,16 +360,7 @@
     <allowEdit>false</allowEdit>
     <allowRead>true</allowRead>
     <modifyAllRecords>false</modifyAllRecords>
-    <object>Gift__c</object>
-    <viewAllRecords>false</viewAllRecords>
-  </objectPermissions>
-  <objectPermissions>
-    <allowCreate>false</allowCreate>
-    <allowDelete>false</allowDelete>
-    <allowEdit>false</allowEdit>
-    <allowRead>true</allowRead>
-    <modifyAllRecords>false</modifyAllRecords>
-    <object>Gift_Allocation__c</object>
+    <object>Appeal__c</object>
     <viewAllRecords>false</viewAllRecords>
   </objectPermissions>
   <objectPermissions>
@@ -383,7 +378,16 @@
     <allowEdit>false</allowEdit>
     <allowRead>true</allowRead>
     <modifyAllRecords>false</modifyAllRecords>
-    <object>Appeal__c</object>
+    <object>Gift_Allocation__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>false</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>false</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Gift__c</object>
     <viewAllRecords>false</viewAllRecords>
   </objectPermissions>
   <tabSettings>

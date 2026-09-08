@@ -1,0 +1,216 @@
+<template>
+    <lightning-card icon-name="standard:sales_path" title={labels.heading}>
+        <div class="slds-var-p-horizontal_medium slds-var-p-bottom_medium">
+            <template lwc:if={formError}>
+                <div
+                    class="slds-box slds-box_x-small slds-theme_error slds-var-m-bottom_small"
+                    role="alert"
+                    data-id="form-error"
+                >
+                    <p class="slds-text-title_bold">{labels.errorTitle}</p>
+                    <p>{formError}</p>
+                </div>
+            </template>
+
+            <template lwc:if={saveWarning}>
+                <div
+                    class="slds-box slds-box_x-small slds-theme_warning slds-var-m-bottom_small"
+                    role="alert"
+                    data-id="save-warning"
+                >
+                    <p>{saveWarning}</p>
+                </div>
+            </template>
+
+            <template lwc:if={savedGift}>
+                <div
+                    class="slds-box slds-box_x-small slds-theme_success slds-var-m-bottom_small"
+                    aria-live="polite"
+                    data-id="saved"
+                >
+                    <p>{savedMessage}</p>
+                    <a href={savedGift.url} data-id="saved-link">{labels.openGiftLink}</a>
+                </div>
+            </template>
+
+            <lightning-radio-group
+                name="donorKind"
+                type="button"
+                label={labels.donorKindLabel}
+                options={donorKindOptions}
+                value={donorKind}
+                onchange={handleDonorKindChange}
+                data-id="donor-kind"
+            ></lightning-radio-group>
+
+            <div class="slds-var-m-top_small">
+                <template lwc:if={isPersonDonor}>
+                    <lightning-record-picker
+                        label={labels.personLabel}
+                        placeholder={labels.donorPlaceholder}
+                        object-api-name={personObjectApiName}
+                        value={donorId}
+                        required
+                        onchange={handleDonorChange}
+                        data-id="donor-person"
+                    ></lightning-record-picker>
+                </template>
+                <template lwc:else>
+                    <lightning-record-picker
+                        label={labels.organizationLabel}
+                        placeholder={labels.donorPlaceholder}
+                        object-api-name={accountObjectApiName}
+                        value={donorId}
+                        required
+                        onchange={handleDonorChange}
+                        data-id="donor-organization"
+                    ></lightning-record-picker>
+                </template>
+                <template lwc:if={errorDonor}>
+                    <p
+                        class="slds-form-element__help slds-text-color_error"
+                        role="alert"
+                        data-id="error-donor"
+                    >
+                        {errorDonor}
+                    </p>
+                </template>
+            </div>
+
+            <div class="slds-var-m-top_small">
+                <lightning-input
+                    type="number"
+                    formatter="currency"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    label={labels.amountLabel}
+                    value={amount}
+                    onchange={handleAmountChange}
+                    data-id="amount"
+                ></lightning-input>
+                <template lwc:if={errorAmount}>
+                    <p
+                        class="slds-form-element__help slds-text-color_error"
+                        role="alert"
+                        data-id="error-amount"
+                    >
+                        {errorAmount}
+                    </p>
+                </template>
+            </div>
+
+            <div class="slds-var-m-top_small">
+                <lightning-input
+                    type="date"
+                    required
+                    label={labels.dateLabel}
+                    value={giftDate}
+                    onchange={handleDateChange}
+                    data-id="gift-date"
+                ></lightning-input>
+                <template lwc:if={errorDate}>
+                    <p
+                        class="slds-form-element__help slds-text-color_error"
+                        role="alert"
+                        data-id="error-date"
+                    >
+                        {errorDate}
+                    </p>
+                </template>
+            </div>
+
+            <div class="slds-var-m-top_small">
+                <lightning-combobox
+                    required
+                    label={labels.typeLabel}
+                    placeholder={labels.typePlaceholder}
+                    options={giftTypeOptions}
+                    value={giftType}
+                    onchange={handleTypeChange}
+                    data-id="gift-type"
+                ></lightning-combobox>
+                <template lwc:if={errorType}>
+                    <p
+                        class="slds-form-element__help slds-text-color_error"
+                        role="alert"
+                        data-id="error-type"
+                    >
+                        {errorType}
+                    </p>
+                </template>
+            </div>
+
+            <div class="slds-var-m-top_small">
+                <lightning-input
+                    type="text"
+                    max-length="255"
+                    label={labels.paymentReferenceLabel}
+                    value={paymentReference}
+                    onchange={handlePaymentReferenceChange}
+                    data-id="payment-reference"
+                ></lightning-input>
+            </div>
+
+            <div class="slds-var-m-top_small">
+                <lightning-record-picker
+                    label={labels.appealLabel}
+                    placeholder={labels.donorPlaceholder}
+                    object-api-name={appealObjectApiName}
+                    value={appealId}
+                    onchange={handleAppealChange}
+                    data-id="appeal"
+                ></lightning-record-picker>
+                <template lwc:if={errorAppeal}>
+                    <p
+                        class="slds-form-element__help slds-text-color_error"
+                        role="alert"
+                        data-id="error-appeal"
+                    >
+                        {errorAppeal}
+                    </p>
+                </template>
+            </div>
+
+            <div class="slds-var-m-top_small">
+                <lightning-record-picker
+                    label={labels.fundLabel}
+                    placeholder={labels.donorPlaceholder}
+                    object-api-name={fundObjectApiName}
+                    value={fundId}
+                    onchange={handleFundChange}
+                    data-id="fund"
+                ></lightning-record-picker>
+                <template lwc:if={errorFund}>
+                    <p
+                        class="slds-form-element__help slds-text-color_error"
+                        role="alert"
+                        data-id="error-fund"
+                    >
+                        {errorFund}
+                    </p>
+                </template>
+            </div>
+
+            <div class="slds-var-m-top_medium slds-grid slds-grid_vertical-align-center slds-wrap">
+                <lightning-button
+                    class="slds-var-m-right_x-small"
+                    variant="brand"
+                    label={labels.saveButton}
+                    disabled={isSaveDisabled}
+                    onclick={handleSave}
+                    data-id="save"
+                ></lightning-button>
+                <lightning-button
+                    label={labels.saveAndNewButton}
+                    disabled={isSaveDisabled}
+                    onclick={handleSaveAndNew}
+                    data-id="save-and-new"
+                ></lightning-button>
+                <template lwc:if={saving}>
+                    <span class="slds-var-m-left_small" role="status">{labels.savingMessage}</span>
+                </template>
+            </div>
+        </div>
+    </lightning-card>
+</template>

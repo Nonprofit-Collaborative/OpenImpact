@@ -6,6 +6,10 @@
     Maria configures giving and fixes mistakes: funds, appeals, gifts, refunds and
     write-offs, including deleting a record entered by accident.
   </description>
+  <applicationVisibilities>
+    <application>Fundraising</application>
+    <visible>true</visible>
+  </applicationVisibilities>
   <classAccesses>
     <apexClass>AppealSelector</apexClass>
     <enabled>true</enabled>
@@ -48,6 +52,10 @@
   </classAccesses>
   <classAccesses>
     <apexClass>GivingAccountSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>QuickGiftEntryController</apexClass>
     <enabled>true</enabled>
   </classAccesses>
   <fieldPermissions>
@@ -356,16 +364,7 @@
     <allowEdit>true</allowEdit>
     <allowRead>true</allowRead>
     <modifyAllRecords>false</modifyAllRecords>
-    <object>Gift__c</object>
-    <viewAllRecords>false</viewAllRecords>
-  </objectPermissions>
-  <objectPermissions>
-    <allowCreate>true</allowCreate>
-    <allowDelete>true</allowDelete>
-    <allowEdit>true</allowEdit>
-    <allowRead>true</allowRead>
-    <modifyAllRecords>false</modifyAllRecords>
-    <object>Gift_Allocation__c</object>
+    <object>Appeal__c</object>
     <viewAllRecords>false</viewAllRecords>
   </objectPermissions>
   <objectPermissions>
@@ -383,7 +382,16 @@
     <allowEdit>true</allowEdit>
     <allowRead>true</allowRead>
     <modifyAllRecords>false</modifyAllRecords>
-    <object>Appeal__c</object>
+    <object>Gift_Allocation__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>true</allowCreate>
+    <allowDelete>true</allowDelete>
+    <allowEdit>true</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Gift__c</object>
     <viewAllRecords>false</viewAllRecords>
   </objectPermissions>
   <tabSettings>
@@ -402,4 +410,16 @@
     <tab>Gift__c</tab>
     <visibility>Visible</visibility>
   </tabSettings>
+  <tabSettings>
+    <tab>Quick_Gift_Entry</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <userPermissions>
+    <enabled>true</enabled>
+    <name>ManageDashbdsInPubFolders</name>
+  </userPermissions>
+  <userPermissions>
+    <enabled>true</enabled>
+    <name>ManageReportsInPubFolders</name>
+  </userPermissions>
 </PermissionSet>
