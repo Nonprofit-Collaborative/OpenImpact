@@ -184,7 +184,7 @@ private class QuickGiftEntryControllerTest {
 
     @IsTest
     static void leavesTheDefaultAllocationAloneWhenNobodyChoseAFund() {
-        makeFund();
+        Fund__c fund = makeFund();
         Contact donor = makeContact();
 
         QuickGiftEntryController.GiftInput input = baseInput();
@@ -195,10 +195,22 @@ private class QuickGiftEntryControllerTest {
         Test.stopTest();
 
         Assert.isTrue(result.success, 'A gift with no fund chosen still saves.');
-        Assert.isTrue(
-            [SELECT COUNT() FROM Gift_Allocation__c WHERE Gift__c = :result.giftId] <= 1,
-            'The gift keeps at most the one allocation the package gave it.'
+        List<Gift_Allocation__c> allocations = [
+            SELECT Fund__c, Amount__c
+            FROM Gift_Allocation__c
+            WHERE Gift__c = :result.giftId
+        ];
+        Assert.areEqual(
+            1,
+            allocations.size(),
+            'The gift keeps the one allocation the package gave it, and gains no second one.'
         );
+        Assert.areEqual(
+            fund.Id,
+            allocations[0].Fund__c,
+            'Which is to the default fund, because nobody chose another.'
+        );
+        Assert.areEqual(50, allocations[0].Amount__c, 'And it is the whole gift.');
     }
 
     @IsTest
