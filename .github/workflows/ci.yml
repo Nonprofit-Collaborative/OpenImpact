@@ -114,7 +114,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shape: [platform-only, sales-cloud, npsp, person-accounts]
+        shape: [platform-only, sales-cloud, npsp, person-accounts, nonprofit-cloud]
     concurrency:
       group: org-tests-${{ matrix.shape }}-${{ github.ref }}
       cancel-in-progress: true
@@ -134,19 +134,32 @@ jobs:
       - name: Install Salesforce CLI
         run: npm install -g @salesforce/cli
 
-      - name: Check for Dev Hub secret
+      - name: Decide whether this shape can run
         id: check
         env:
           SF_DEVHUB_AUTH_URL: ${{ secrets.SF_DEVHUB_AUTH_URL }}
+          SHAPE: ${{ matrix.shape }}
+          NPC_ENABLED: ${{ vars.SF_NONPROFIT_CLOUD_SHAPE }}
         run: |
-          if [ -n "$SF_DEVHUB_AUTH_URL" ]; then
-            echo "has_devhub=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_devhub=false" >> "$GITHUB_OUTPUT"
+          if [ -z "$SF_DEVHUB_AUTH_URL" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "reason=no-devhub" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          # The Nonprofit Cloud shape needs a Dev Hub that carries that entitlement. An
+          # ordinary Developer Edition Dev Hub cannot create it, so asking for it would fail
+          # the build rather than report a missing entitlement. It runs only when the
+          # SF_NONPROFIT_CLOUD_SHAPE repository variable is set to true.
+          if [ "$SHAPE" = "nonprofit-cloud" ] && [ "$NPC_ENABLED" != "true" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "reason=npc-not-enabled" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+          echo "reason=ok" >> "$GITHUB_OUTPUT"
 
       - name: Authenticate Dev Hub
-        if: steps.check.outputs.has_devhub == 'true'
+        if: steps.check.outputs.enabled == 'true'
         env:
           SF_DEVHUB_AUTH_URL: ${{ secrets.SF_DEVHUB_AUTH_URL }}
         run: |
@@ -156,12 +169,12 @@ jobs:
           rm -f "$AUTH_FILE"
 
       - name: Create scratch org
-        if: steps.check.outputs.has_devhub == 'true'
+        if: steps.check.outputs.enabled == 'true'
         run: |
           bash scripts/org/create-scratch-org.sh ${{ matrix.shape }} ci-${{ matrix.shape }}-${{ github.run_id }} --days 1 --no-sample-data
 
       - name: Check for Apex test classes
-        if: steps.check.outputs.has_devhub == 'true'
+        if: steps.check.outputs.enabled == 'true'
         id: apex-tests
         run: |
           if grep -rl "@IsTest" packages/core --include=*.cls > /dev/null 2>&1; then
@@ -172,7 +185,7 @@ jobs:
           fi
 
       - name: Run Apex tests
-        if: steps.check.outputs.has_devhub == 'true' && steps.apex-tests.outputs.has_tests == 'true'
+        if: steps.check.outputs.enabled == 'true' && steps.apex-tests.outputs.has_tests == 'true'
         run: |
           sf apex run test \
             --target-org ci-${{ matrix.shape }}-${{ github.run_id }} \
@@ -183,7 +196,7 @@ jobs:
             --wait 30
 
       - name: Upload test results
-        if: steps.check.outputs.has_devhub == 'true' && steps.apex-tests.outputs.has_tests == 'true'
+        if: steps.check.outputs.enabled == 'true' && steps.apex-tests.outputs.has_tests == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.shape }}
@@ -191,12 +204,20 @@ jobs:
           if-no-files-found: ignore
 
       - name: Delete scratch org
-        if: always() && steps.check.outputs.has_devhub == 'true'
+        if: always() && steps.check.outputs.enabled == 'true'
         run: bash scripts/org/delete-scratch-org.sh ci-${{ matrix.shape }}-${{ github.run_id }}
 
-      - name: Warn if skipped
-        if: steps.check.outputs.has_devhub != 'true'
-        run: echo "::warning::SF_DEVHUB_AUTH_URL secret is not set; org-tests job for shape ${{ matrix.shape }} was skipped. See docs/contributor-guide/ci.md to configure it."
+      - name: Say why this shape was skipped
+        if: steps.check.outputs.enabled != 'true'
+        env:
+          REASON: ${{ steps.check.outputs.reason }}
+          SHAPE: ${{ matrix.shape }}
+        run: |
+          if [ "$REASON" = "npc-not-enabled" ]; then
+            echo "::notice::Shape $SHAPE was skipped: it needs a Dev Hub carrying the Nonprofit Cloud entitlement. Set the SF_NONPROFIT_CLOUD_SHAPE repository variable to true once you have one. See docs/contributor-guide/scratch-orgs.md."
+          else
+            echo "::warning::SF_DEVHUB_AUTH_URL secret is not set; org-tests job for shape $SHAPE was skipped. See docs/contributor-guide/ci.md to configure it."
+          fi
 
   dco:
     name: DCO sign-off check

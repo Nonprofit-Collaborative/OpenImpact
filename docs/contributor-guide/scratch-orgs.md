@@ -1,10 +1,11 @@
 # Scratch orgs
 
-Open Impact is verified against four org shapes, matching the license and package
+Open Impact is verified against five org shapes, matching the license and package
 configurations described in the product plan (Section 4.2). Each shape has a scratch org
-definition in `config/scratch-defs/`.
+definition in `config/scratch-defs/`. Four of them any Dev Hub can create; the fifth needs
+an entitlement, and is described below.
 
-## The four shapes
+## The shapes
 
 | Shape           | Definition file                            | What it verifies                                                                                                                             |
 | --------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -12,6 +13,33 @@ definition in `config/scratch-defs/`.
 | Sales Cloud     | `config/scratch-defs/sales-cloud.json`     | Standard Sales/Service objects present; Connect's Opportunity mirror and Campaign sync have real targets.                                    |
 | NPSP installed  | `config/scratch-defs/npsp.json`            | Sales Cloud plus NPSP installed; NPSP coexistence mode (Section 4.5).                                                                        |
 | Person Accounts | `config/scratch-defs/person-accounts.json` | Person Accounts enabled, simulating the Agentforce Nonprofit shape; junction household mode is required here.                                |
+| Nonprofit Cloud | `config/scratch-defs/nonprofit-cloud.json` | The real Agentforce Nonprofit shape, with the Nonprofit Cloud objects present. Needs an entitled Dev Hub: see below.                          |
+
+### The Nonprofit Cloud shape needs an entitled Dev Hub
+
+Scratch org features that map to a licensed product are granted only when the Dev Hub org
+itself carries that entitlement. An ordinary Developer Edition Dev Hub creates the first four
+shapes and refuses this one, listing the features it can grant, which is the quickest way to
+find the right feature string for your entitlement.
+
+Two things follow from that.
+
+**The `NonprofitCloud` feature string in the definition file is unverified.** Nobody has run
+this shape against an entitled Dev Hub yet. If creation fails naming an unknown feature, the
+error lists what your Dev Hub can grant: take the right name from that list and correct
+`config/scratch-defs/nonprofit-cloud.json`. That is the one line expected to need editing.
+
+**Continuous integration does not run this shape by default.** It runs only when the
+`SF_NONPROFIT_CLOUD_SHAPE` repository variable is set to `true`, so an unentitled Dev Hub
+reports a skipped shape rather than a failed build. Set it once the shape creates cleanly by
+hand.
+
+**Most of what this shape would prove is already covered by Person Accounts**, which any Dev
+Hub grants: junction membership, the person account paths through households, naming and
+greetings, relationships, the sample data loader in junction mode. Coexistence mode is a
+setting rather than something inferred at run time, so it can be set explicitly in the Person
+Accounts shape. What genuinely needs this shape is `OrgShapeDetector` answering "is Nonprofit
+Cloud installed" against a real org rather than a stub.
 
 ## Running the script
 

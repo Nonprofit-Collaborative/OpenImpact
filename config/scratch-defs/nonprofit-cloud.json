@@ -1,0 +1,16 @@
+{
+  "orgName": "Open Impact Nonprofit Cloud",
+  "edition": "Enterprise",
+  "hasSampleData": false,
+  "features": ["PersonAccounts", "EnableSetPasswordInApi", "NonprofitCloud"],
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "securitySettings": {
+      "sessionSettings": {
+        "forceRelogin": false
+      }
+    }
+  }
+}

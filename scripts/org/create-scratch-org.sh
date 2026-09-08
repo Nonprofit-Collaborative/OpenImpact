@@ -12,12 +12,17 @@
 #   sales-cloud        Enterprise edition, standard Sales Cloud objects available.
 #   npsp                Enterprise edition, NPSP installed on top (scripts/org/install-npsp.sh).
 #   person-accounts     Enterprise edition with Person Accounts enabled.
+#   nonprofit-cloud     Enterprise edition with Person Accounts and the Nonprofit Cloud
+#                      feature. Needs a Dev Hub that carries the Nonprofit Cloud entitlement:
+#                      an ordinary Developer Edition Dev Hub cannot create this shape, and
+#                      says so by listing the features it can grant. See
+#                      docs/contributor-guide/scratch-orgs.md before using it.
 
 set -euo pipefail
 
 usage() {
   echo "Usage: create-scratch-org.sh <shape> [alias] [--days N] [--no-sample-data]" >&2
-  echo "  shape: platform-only | sales-cloud | npsp | person-accounts" >&2
+  echo "  shape: platform-only | sales-cloud | npsp | person-accounts | nonprofit-cloud" >&2
   exit 1
 }
 
@@ -57,7 +62,7 @@ done
 
 DEF_FILE="config/scratch-defs/${SHAPE}.json"
 if [[ ! -f "$DEF_FILE" ]]; then
-  echo "Unknown shape '${SHAPE}'. Expected one of: platform-only, sales-cloud, npsp, person-accounts" >&2
+  echo "Unknown shape '${SHAPE}'. Expected one of: platform-only, sales-cloud, npsp, person-accounts, nonprofit-cloud" >&2
   echo "(no scratch-def file found at ${DEF_FILE})" >&2
   exit 1
 fi

@@ -63,6 +63,40 @@ Salesforce CLI with the `code-analyzer` plugin. It is also the one that enforces
 non-negotiable: zero high or critical findings before merge. Skipping it locally means
 finding out from a red build.
 
+## Connecting a Dev Hub
+
+Until a Dev Hub is connected, the `org-tests` job skips every shape and no Apex test has
+ever been executed. This is the setup, once, by someone with administrator access to the org
+being used as the Dev Hub.
+
+A Dev Hub is not special. Any Salesforce org can be one, including a free Developer Edition,
+and its edition does not constrain the scratch orgs it creates. Use a development org, never a
+production org holding real constituent data: the credential below grants full API access to
+whatever org it names.
+
+1. **Enable Dev Hub in the org.** Setup, then Quick Find, then Dev Hub, then switch Enable Dev
+   Hub on. The switch cannot be turned off again, which is why this belongs in a development
+   org. Nothing else on that page is needed yet: second generation packaging stays off until
+   the namespace question is settled (plan Section 4.3).
+2. **Install the Salesforce CLI locally**, if it is not already there: `npm install -g @salesforce/cli`, then `sf --version`.
+3. **Log in to the org and mark it the default Dev Hub.** `sf org login web --alias devhub --set-default-dev-hub` opens a browser; sign in as the administrator of that org.
+4. **Check it took.** `sf org list` shows `devhub` with a Dev Hub marker. `sf org display --target-org devhub` shows the username and instance you expect.
+5. **Prove it can create a scratch org before involving continuous integration.** `scripts/org/create-scratch-org.sh platform-only smoke --days 1` creates the org, deploys Core and assigns the permission sets. If that fails, fix it here rather than in a build log. Delete it with `scripts/org/delete-scratch-org.sh smoke`.
+6. **Read out the authentication URL.** `sf org display --target-org devhub --verbose --json` prints a `sfdxAuthUrl` field. **That string is a credential**: it carries a refresh token and anyone holding it has API access to the org. Do not paste it into a commit, an issue, or a chat window.
+7. **Store it as a repository secret.** In GitHub: Settings, then Secrets and variables, then Actions, then New repository secret. Name it exactly `SF_DEVHUB_AUTH_URL` and paste the value from step 6.
+8. **Push anything, or re-run the last workflow.** The `org-tests` job stops skipping and runs the four shapes it can. Expect failures on the first run: several hundred Apex tests have been written and none has ever executed.
+
+To rotate or revoke, re-run steps 3 and 6 and replace the secret, or revoke the connected app
+session in the org under Setup, Connected Apps OAuth Usage.
+
+### Scratch org limits are the thing that bites next
+
+Every push runs one scratch org per shape. A Developer Edition Dev Hub has a low daily
+allowance, so a busy day can exhaust it and later builds fail for want of an org rather than
+for anything wrong with the code. Check the allowance in Setup under Company Information on
+the Dev Hub org. If it becomes a problem, the fix is to run the full matrix on a schedule and
+keep only `platform-only` and `person-accounts` on every push.
+
 ### `org-tests`
 
 Runs after `static` succeeds, as a matrix over four org shapes:
