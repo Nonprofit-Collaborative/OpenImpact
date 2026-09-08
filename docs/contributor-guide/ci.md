@@ -28,11 +28,17 @@ Salesforce org is needed for this job. Steps:
    machine that committed it and dangles everywhere else, so every local check passes and
    CI fails. This ran because a stray `.tools` symlink, left in an agent worktree and swept
    in by `git add -A`, broke the offline Apex compile check on `main`.
-9. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
+9. `scripts/ci/check-permission-sets.py`, failing the build if a packaged permission set
+   grants access to a class, tab, app, custom permission, object, record type or field that
+   the repository does not ship. A dangling grant refuses the whole deployment, and the
+   permission sets are assembled by hand at every merge from each branch's integration
+   file, so the reference and the metadata can drift apart silently. This ran because
+   `Nonprofit_Admin` granted a `Household_Member__c` tab that was never created.
+10. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
    is missing from `docs/architecture/canonical-model.md`. The canonical model is updated
    before an object or a field is added, so this is the gate that keeps it true.
-10. A grep check that fails the build if any tracked file contains an em dash character.
-11. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
+11. A grep check that fails the build if any tracked file contains an em dash character.
+12. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
    `sf code-analyzer run --workspace packages --rule-selector Recommended --severity-threshold 2`.
    The results are uploaded as a build artifact (`code-analyzer-results.html` and
    `code-analyzer-results.json`) even if the job fails, so anyone can download and read
@@ -53,6 +59,7 @@ npm run check:namespace
 npm run check:standard-objects
 npm run check:custom-metadata
 npm run check:symlinks
+npm run check:permission-sets
 npm run check:canonical-model
 npm run check:apex
 npm run check:analyzer
