@@ -40,6 +40,28 @@ The vendored code is redistributed inside Open Impact Core under the Open Impact
 with the upstream MIT notice preserved unchanged. Open Impact claims no copyright over the upstream
 code; the local patches below are Open Impact's and are offered under the same terms.
 
+The repository root `LICENSE` names this component and states that its MIT grant is in force and is
+not withheld by the project's own license placeholder. Whatever license the owner settles on
+(Decision D-08, ADR-0008) applies to Open Impact's own code and cannot narrow James Simone's grant.
+
+**What the first packaging build has to do, because nothing does it automatically.** A plain
+`LICENSE` file is not a Salesforce metadata type. It sits in the source tree, it is not deployed by
+`sf project deploy start`, and it is not carried into a 2GP package version, so a subscriber org
+receives the vendored Apex without the notice next to it. MIT asks that the notice travel with the
+copies, so the first packaging build has to place it somewhere the subscriber actually receives it.
+Any one of these satisfies that, and one of them must be chosen before the first package version is
+promoted:
+
+- an attribution section in the public release notes that ship with the promoted version, naming
+  apex-rollup, the copyright line and the MIT text or a link to it;
+- the same attribution on a page in the Nonprofit Settings console (an About or Third Party Notices
+  entry), which is the surface a subscriber admin can reach without leaving the org;
+- a `ContentAsset` or static resource carrying the notice text, deployed with the package.
+
+Until then the obligation is met only for people who read the repository, which is everyone the
+project distributes to today, because no package version exists yet (namespace deferred, CLAUDE.md).
+This is a packaging-build task, not a blocker on this branch.
+
 ## What was copied
 
 | Upstream path | Vendored path | Contents |
@@ -138,7 +160,9 @@ re-apply. Both patches are a handful of lines each.
 `RollupFlowBulkSaver.cls`, `RollupFlowFullRecalcDispatcher.cls`, `RollupFlowRecalculator.cls`,
 `RollupFullRecalcProcessor.cls`, `RollupLogger.cls`, `RollupSObjectUpdater.cls`
 
-**What changed.** Every `global` declaration became `public`. Count: see "Counts" below.
+**What changed.** Every `global` declaration became `public`. Count: see "Counts" below. Two comments
+in `Rollup.cls` that described the same members as "global facing" were reworded to "public facing"
+in the same pass, and a one line comment was added at the top of `Rollup.cls` recording the patch.
 
 **Why.** In a 2GP managed package a `global` member is a permanent, unremovable API commitment to
 subscribers. Open Impact ships none of upstream's invocable actions or extension points to
@@ -153,8 +177,10 @@ subscriber org, which is the intent: those entry points exist for upstream's own
 in-package callers, not for administrators. If Open Impact ever wants a Flow-callable rollup action
 it will be ours, on our own class, over `RollupAdapter`.
 
-**Re-applying on the next pull.** `grep -rn '\bglobal\b' main/default/classes` should return
-nothing. Re-run the same substitution on any new upstream file.
+**Re-applying on the next pull.** `grep -rnE '^\s*(global|@[A-Za-z]+\s+global)\b'
+main/default/classes` should return nothing: no declaration keeps the keyword. A plain
+`grep -rn '\bglobal\b'` is not the test, because it also matches the patch comment in `Rollup.cls`
+that says the keyword is gone. Re-run the same substitution on any new upstream file.
 
 ### Patch C: documented sharing exception
 
@@ -373,7 +399,12 @@ does, and one of them must be run before the import is called finished.
 
 - `packages/core/vendor/` is listed in `.prettierignore`. Upstream formats with its own Prettier
   configuration and reformatting 25,000 lines would destroy every future diff. See "Formatting".
-- Em dashes found in vendored comments were replaced, per the repository writing rule.
+- Em dashes found in vendored comments were replaced with colons, per the repository writing rule.
+  The vendored commit contained exactly two of them, both comment lines in
+  `RollupDatetimeTimezoneTests.cls`, which is therefore the one file changed by this rule alone and
+  by no lettered patch. Acceptance test: `grep -rnP '\xe2\x80\x94' main/default` returns nothing.
+  The pattern is written as the UTF-8 byte sequence so that this file does not itself carry the
+  character the rule forbids.
 
 ## Counts, and what the checks say
 
@@ -383,9 +414,9 @@ Measured on `packages/core/vendor/apex-rollup/` after all six patches.
 | --- | --- |
 | Files vendored | 230 |
 | Apex classes, total | 52 |
-| Engine classes | 32 (13,331 lines) |
+| Engine classes | 32 (13,359 lines) |
 | Test classes | 20 (11,973 lines) |
-| Apex lines, total | 25,304 |
+| Apex lines, total | 25,332 |
 | `@IsTest` annotations | 551 (20 class level, 531 method level) |
 | Custom metadata types | 6 |
 | Custom objects | `RollupState__c`, `RollupSettings__c` (custom setting), `RollupCalcItem__c` (test support, patch E) |
