@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>End_Date__c</fullName>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    The date this person left the household. Leave it empty while they are still a member.
+  </inlineHelpText>
+  <label>End Date</label>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Date</type>
+</CustomField>

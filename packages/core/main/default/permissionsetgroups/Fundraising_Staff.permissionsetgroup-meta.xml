@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>
+    For development and fundraising staff. Day to day work with people, households, and
+    organizations, and with giving records once the Giving module is turned on. Does not include
+    Nonprofit Settings.
+  </description>
+  <hasActivationRequired>false</hasActivationRequired>
+  <label>Fundraising Staff</label>
+  <permissionSets>Nonprofit_Staff</permissionSets>
+</PermissionSetGroup>

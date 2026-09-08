@@ -1,0 +1,189 @@
+<template>
+    <lightning-card title={labels.title} icon-name="standard:settings">
+        <div class="slds-var-p-horizontal_medium">
+            <template lwc:if={loading}>
+                <lightning-spinner
+                    alternative-text={labels.title}
+                    size="small"
+                ></lightning-spinner>
+            </template>
+
+            <template lwc:if={showReadOnlyNotice}>
+                <div class="slds-box slds-theme_shade slds-var-m-bottom_small" role="status">
+                    {labels.readOnly}
+                </div>
+            </template>
+
+            <div class="slds-grid slds-wrap slds-gutters">
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4">
+                    <c-settings-search onsettingselect={handleSearchSelect}></c-settings-search>
+                    <h2
+                        class="slds-text-title_caps slds-var-p-vertical_small"
+                        id="settings-sections"
+                    >
+                        {labels.sectionsHeading}
+                    </h2>
+                    <lightning-vertical-navigation
+                        selected-item={selectedSection}
+                        onselect={handleSectionSelect}
+                        aria-labelledby="settings-sections"
+                    >
+                        <lightning-vertical-navigation-section label={labels.sectionsHeading}>
+                            <template for:each={navigationItems} for:item="item">
+                                <lightning-vertical-navigation-item
+                                    key={item.name}
+                                    label={item.label}
+                                    name={item.name}
+                                ></lightning-vertical-navigation-item>
+                            </template>
+                        </lightning-vertical-navigation-section>
+                    </lightning-vertical-navigation>
+                </div>
+
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-4">
+                    <template lwc:if={sectionIsEmpty}>
+                        <p class="slds-text-color_weak">{labels.emptySection}</p>
+                    </template>
+
+                    <template for:each={currentSettings} for:item="row">
+                        <div key={row.key} class="slds-form-element slds-var-m-bottom_medium">
+                            <template lwc:if={row.isCheckbox}>
+                                <lightning-input
+                                    type="checkbox"
+                                    label={row.label}
+                                    checked={row.checked}
+                                    disabled={row.disabled}
+                                    data-key={row.key}
+                                    data-kind="Checkbox"
+                                    onchange={handleChange}
+                                ></lightning-input>
+                            </template>
+
+                            <template lwc:elseif={row.isText}>
+                                <lightning-input
+                                    type="text"
+                                    label={row.label}
+                                    value={row.value}
+                                    disabled={row.disabled}
+                                    data-key={row.key}
+                                    data-kind="Text"
+                                    onchange={handleChange}
+                                ></lightning-input>
+                            </template>
+
+                            <template lwc:elseif={row.isNumber}>
+                                <lightning-input
+                                    type="number"
+                                    label={row.label}
+                                    value={row.value}
+                                    disabled={row.disabled}
+                                    data-key={row.key}
+                                    data-kind="Number"
+                                    onchange={handleChange}
+                                ></lightning-input>
+                            </template>
+
+                            <template lwc:elseif={row.isDateTime}>
+                                <lightning-input
+                                    type="datetime"
+                                    label={row.label}
+                                    value={row.value}
+                                    disabled={row.disabled}
+                                    data-key={row.key}
+                                    data-kind="DateTime"
+                                    onchange={handleChange}
+                                ></lightning-input>
+                            </template>
+
+                            <template lwc:elseif={row.isPicklist}>
+                                <lightning-combobox
+                                    label={row.label}
+                                    value={row.value}
+                                    options={row.options}
+                                    disabled={row.disabled}
+                                    data-key={row.key}
+                                    data-kind="Picklist"
+                                    onchange={handleChange}
+                                ></lightning-combobox>
+                            </template>
+
+                            <template lwc:elseif={row.isComponent}>
+                                <h3 class="slds-text-heading_small slds-var-m-bottom_x-small">
+                                    {row.label}
+                                </h3>
+                                <template lwc:if={row.ctor}>
+                                    <lwc:component lwc:is={row.ctor}></lwc:component>
+                                </template>
+                                <template lwc:elseif={row.navigatesAway}>
+                                    <lightning-button
+                                        label={labels.openSection}
+                                        data-target={row.navigationTarget}
+                                        onclick={handleOpenSection}
+                                    ></lightning-button>
+                                </template>
+                                <template lwc:elseif={row.missing}>
+                                    <p class="slds-text-color_weak" role="status">
+                                        {labels.notInstalled}
+                                    </p>
+                                </template>
+                            </template>
+
+                            <template lwc:if={row.description}>
+                                <p class="slds-form-element__help slds-text-color_weak">
+                                    {row.description}
+                                    <template lwc:if={row.hasHelp}>
+                                        <a
+                                            href={row.helpUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            >{labels.learnMore}</a
+                                        >
+                                    </template>
+                                </p>
+                            </template>
+                        </div>
+                    </template>
+
+                    <template lwc:if={message}>
+                        <p class={messageClass} role="status" aria-live="polite">{message}</p>
+                    </template>
+
+                    <template lwc:if={canEdit}>
+                        <div class="slds-var-m-top_medium">
+                            <lightning-button
+                                variant="brand"
+                                label={labels.save}
+                                disabled={saveDisabled}
+                                onclick={handleSave}
+                            ></lightning-button>
+                            <lightning-button
+                                class="slds-var-m-left_x-small"
+                                label={labels.discard}
+                                disabled={saveDisabled}
+                                onclick={handleDiscard}
+                            ></lightning-button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <div class="slds-var-m-top_large">
+                <h2 class="slds-text-heading_small" id="settings-recent-changes">
+                    {labels.recentHeading}
+                </h2>
+                <template lwc:if={hasChangesToShow}>
+                    <lightning-datatable
+                        key-field="id"
+                        data={changes}
+                        columns={columns}
+                        hide-checkbox-column
+                        aria-labelledby="settings-recent-changes"
+                    ></lightning-datatable>
+                </template>
+                <template lwc:else>
+                    <p class="slds-text-color_weak">{labels.recentEmpty}</p>
+                </template>
+            </div>
+        </div>
+    </lightning-card>
+</template>

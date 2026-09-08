@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+  <apiVersion>67.0</apiVersion>
+  <description>
+    The Error Log tile for the Nonprofit Hub home page: how many problems are waiting, the five most
+    recent in plain language, and a way to mark one as seen.
+  </description>
+  <isExposed>true</isExposed>
+  <masterLabel>Error Log Tile</masterLabel>
+  <targets>
+    <target>lightning__AppPage</target>
+    <target>lightning__RecordPage</target>
+    <target>lightning__HomePage</target>
+  </targets>
+</LightningComponentBundle>

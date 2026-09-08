@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Informal_Greeting_Pattern__c</fullName>
+  <defaultValue>&quot;{FirstName}&quot;</defaultValue>
+  <description>The pattern used to compute the informal greeting.</description>
+  <inlineHelpText>How informal greetings are written.</inlineHelpText>
+  <label>Informal Greeting Pattern</label>
+  <length>255</length>
+  <required>false</required>
+  <type>Text</type>
+</CustomField>
