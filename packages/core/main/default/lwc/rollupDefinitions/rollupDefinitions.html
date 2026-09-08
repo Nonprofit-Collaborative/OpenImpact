@@ -1,0 +1,164 @@
+<template>
+    <lightning-card title={labels.title} icon-name="utility:number_input">
+        <div class="slds-var-p-horizontal_medium slds-var-p-bottom_medium">
+            <p class="slds-var-m-bottom_small">{labels.intro}</p>
+
+            <template if:true={isReadOnly}>
+                <div class="slds-box slds-box_x-small slds-theme_shade slds-var-m-bottom_small">
+                    <p data-id="read-only-notice">{labels.readOnly}</p>
+                </div>
+            </template>
+
+            <template if:true={hasError}>
+                <div
+                    class="slds-box slds-box_x-small slds-theme_error slds-var-m-bottom_small"
+                    role="alert"
+                >
+                    <span data-id="error-message">{errorMessage}</span>
+                </div>
+            </template>
+
+            <template if:true={hasNotice}>
+                <div
+                    class="slds-box slds-box_x-small slds-theme_success slds-var-m-bottom_small"
+                    role="status"
+                    aria-live="polite"
+                >
+                    <span data-id="notice-message">{noticeMessage}</span>
+                </div>
+            </template>
+
+            <div class="slds-box slds-box_x-small slds-var-m-bottom_small">
+                <p>
+                    <strong>{labels.freshnessTitle}:</strong>
+                    <template if:true={lastCalculated}>
+                        <lightning-formatted-date-time
+                            data-id="last-calculated"
+                            value={lastCalculated}
+                            year="numeric"
+                            month="short"
+                            day="2-digit"
+                            hour="2-digit"
+                            minute="2-digit"
+                        ></lightning-formatted-date-time>
+                    </template>
+                    <template if:false={lastCalculated}>
+                        <span data-id="never-calculated">{labels.neverCalculated}</span>
+                    </template>
+                </p>
+                <template if:true={isStale}>
+                    <p class="slds-text-color_error" data-id="stale-warning">
+                        {labels.freshnessStale}
+                    </p>
+                </template>
+                <p data-id="schedule-message">{scheduleMessage}</p>
+                <div class="slds-var-m-top_x-small">
+                    <lightning-button
+                        data-id="schedule-button"
+                        label={scheduleButtonLabel}
+                        disabled={controlsDisabled}
+                        onclick={handleSchedule}
+                    ></lightning-button>
+                    <lightning-button
+                        class="slds-var-m-left_x-small"
+                        data-id="recalculate-all"
+                        label={labels.recalculateAll}
+                        disabled={controlsDisabled}
+                        onclick={handleRecalculateAll}
+                    ></lightning-button>
+                    <lightning-button
+                        class="slds-var-m-left_x-small"
+                        data-id="restore-defaults"
+                        label={labels.restoreDefaults}
+                        disabled={controlsDisabled}
+                        onclick={handleRestoreDefaults}
+                    ></lightning-button>
+                </div>
+            </div>
+
+            <template if:true={isEmpty}>
+                <p data-id="empty-message">{labels.emptyList}</p>
+            </template>
+
+            <template if:true={hasRows}>
+                <div class="slds-scrollable_x">
+                    <table
+                        class="slds-table slds-table_cell-buffer slds-table_bordered"
+                        aria-label={labels.title}
+                    >
+                        <thead>
+                            <tr class="slds-line-height_reset">
+                                <th scope="col">{labels.columnRollup}</th>
+                                <th scope="col">{labels.columnCounts}</th>
+                                <th scope="col">{labels.columnTarget}</th>
+                                <th scope="col">{labels.columnMode}</th>
+                                <th scope="col">{labels.columnLastCalculated}</th>
+                                <th scope="col">{labels.columnActive}</th>
+                                <th scope="col">
+                                    <span class="slds-assistive-text">{labels.recalculate}</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={rows} for:item="row">
+                                <tr key={row.recordId} data-id="rollup-row">
+                                    <th scope="row">
+                                        <div>{row.name}</div>
+                                        <div class="slds-text-body_small">{row.description}</div>
+                                    </th>
+                                    <td>{row.counts}</td>
+                                    <td>{row.target}</td>
+                                    <td>
+                                        <lightning-combobox
+                                            data-id={row.recordId}
+                                            label={labels.columnMode}
+                                            variant="label-hidden"
+                                            value={row.mode}
+                                            options={modeOptions}
+                                            disabled={controlsDisabled}
+                                            onchange={handleModeChange}
+                                        ></lightning-combobox>
+                                    </td>
+                                    <td>
+                                        <template if:true={row.hasLastCalculated}>
+                                            <lightning-formatted-date-time
+                                                value={row.lastCalculated}
+                                                year="numeric"
+                                                month="short"
+                                                day="2-digit"
+                                                hour="2-digit"
+                                                minute="2-digit"
+                                            ></lightning-formatted-date-time>
+                                        </template>
+                                        <template if:false={row.hasLastCalculated}>
+                                            {labels.neverCalculated}
+                                        </template>
+                                    </td>
+                                    <td>
+                                        <lightning-input
+                                            type="toggle"
+                                            data-id={row.recordId}
+                                            label={labels.columnActive}
+                                            variant="label-hidden"
+                                            checked={row.active}
+                                            disabled={controlsDisabled}
+                                            onchange={handleActiveToggle}
+                                        ></lightning-input>
+                                    </td>
+                                    <td>
+                                        <lightning-button
+                                            data-id={row.recordId}
+                                            label={labels.recalculate}
+                                            disabled={controlsDisabled}
+                                            onclick={handleRecalculate}
+                                        ></lightning-button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

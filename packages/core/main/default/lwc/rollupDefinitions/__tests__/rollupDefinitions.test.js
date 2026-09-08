@@ -1,0 +1,185 @@
+import { createElement } from 'lwc';
+import RollupDefinitions from 'c/rollupDefinitions';
+import getPage from '@salesforce/apex/RollupController.getPage';
+import recalculate from '@salesforce/apex/RollupController.recalculate';
+import setSchedule from '@salesforce/apex/RollupController.setSchedule';
+import setActive from '@salesforce/apex/RollupController.setActive';
+import restoreDefaults from '@salesforce/apex/RollupController.restoreDefaults';
+
+jest.mock(
+  '@salesforce/apex/RollupController.getPage',
+  () => {
+    const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
+    return { default: createApexTestWireAdapter(jest.fn()) };
+  },
+  { virtual: true }
+);
+
+jest.mock('@salesforce/apex/RollupController.recalculate', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock('@salesforce/apex/RollupController.recalculateAll', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock('@salesforce/apex/RollupController.setSchedule', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock('@salesforce/apex/RollupController.setActive', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock('@salesforce/apex/RollupController.setMode', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock('@salesforce/apex/RollupController.restoreDefaults', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+
+jest.mock('@salesforce/customPermission/Manage_Nonprofit_Settings', () => ({ default: true }), {
+  virtual: true
+});
+
+jest.mock(
+  '@salesforce/label/c.Core_Rollups_FreshnessStale',
+  () => ({ default: 'Rollups have not been calculated in more than 36 hours.' }),
+  { virtual: true }
+);
+
+jest.mock(
+  '@salesforce/label/c.Core_Rollups_RecalculateStarted',
+  () => ({ default: 'Recalculation started.' }),
+  { virtual: true }
+);
+
+const ROLLUP = {
+  recordId: 'a01000000000001AAA',
+  name: 'Household total giving',
+  description: 'Everything this household has given.',
+  definitionKey: 'Household_Total_Giving',
+  sourceObject: 'Gift__c',
+  targetObject: 'Account',
+  targetField: 'Total_Giving__c',
+  relationshipPath: 'Household__c',
+  aggregate: 'SUM',
+  sourceField: 'Amount__c',
+  mode: 'Both',
+  fiscalYearAware: false,
+  fiscalYearOffset: null,
+  active: true,
+  packageDefault: true,
+  lastCalculated: '2026-09-08T02:00:00.000Z',
+  filterJson: null,
+  targetFilterJson: null
+};
+
+const PAGE = {
+  canManage: true,
+  scheduled: true,
+  nextRunAt: '2026-09-09T02:00:00.000Z',
+  lastCalculated: '2026-09-08T02:00:00.000Z',
+  stale: false,
+  defaultMode: 'Both',
+  modes: ['Real-time', 'Scheduled', 'Both'],
+  rollups: [ROLLUP]
+};
+
+const EMPTY_PAGE = { ...PAGE, scheduled: false, lastCalculated: null, stale: true, rollups: [] };
+
+function createComponent() {
+  const element = createElement('c-rollup-definitions', { is: RollupDefinitions });
+  document.body.appendChild(element);
+  return element;
+}
+
+function flush() {
+  return Promise.resolve().then(() => Promise.resolve());
+}
+
+describe('c-rollup-definitions', () => {
+  afterEach(() => {
+    while (document.body.firstChild) {
+      document.body.removeChild(document.body.firstChild);
+    }
+    jest.clearAllMocks();
+  });
+
+  it('lists every rollup with what it counts and where it shows', async () => {
+    const element = createComponent();
+    getPage.emit(PAGE);
+    await flush();
+
+    const rows = element.shadowRoot.querySelectorAll('[data-id="rollup-row"]');
+    expect(rows.length).toBe(1);
+    expect(rows[0].textContent).toContain('Household total giving');
+    expect(rows[0].textContent).toContain('SUM Amount__c on Gift__c');
+    expect(rows[0].textContent).toContain('Account.Total_Giving__c');
+  });
+
+  it('warns when the rollups have not run inside the freshness window', async () => {
+    const element = createComponent();
+    getPage.emit(EMPTY_PAGE);
+    await flush();
+
+    expect(element.shadowRoot.querySelector('[data-id="stale-warning"]')).not.toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="never-calculated"]')).not.toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="empty-message"]')).not.toBeNull();
+  });
+
+  it('recalculates one rollup and says so', async () => {
+    recalculate.mockResolvedValue(PAGE);
+    const element = createComponent();
+    getPage.emit(PAGE);
+    await flush();
+
+    element.shadowRoot.querySelector(`lightning-button[data-id="${ROLLUP.recordId}"]`).click();
+    await flush();
+
+    expect(recalculate).toHaveBeenCalledWith({ definitionId: ROLLUP.recordId });
+    expect(element.shadowRoot.querySelector('[data-id="notice-message"]').textContent).toContain(
+      'Recalculation started.'
+    );
+  });
+
+  it('starts and stops the nightly recalculation', async () => {
+    setSchedule.mockResolvedValue({ ...PAGE, scheduled: false });
+    const element = createComponent();
+    getPage.emit(PAGE);
+    await flush();
+
+    element.shadowRoot.querySelector('[data-id="schedule-button"]').click();
+    await flush();
+
+    expect(setSchedule).toHaveBeenCalledWith({ scheduled: false });
+  });
+
+  it('puts a refused switch back where it was', async () => {
+    setActive.mockRejectedValue({ body: { message: 'You do not have permission.' } });
+    const element = createComponent();
+    getPage.emit(PAGE);
+    await flush();
+
+    const toggle = element.shadowRoot.querySelector(
+      `lightning-input[data-id="${ROLLUP.recordId}"]`
+    );
+    toggle.checked = false;
+    toggle.dispatchEvent(new CustomEvent('change'));
+    await flush();
+
+    expect(setActive).toHaveBeenCalledWith({ definitionId: ROLLUP.recordId, active: false });
+    expect(toggle.checked).toBe(true);
+    expect(element.shadowRoot.querySelector('[data-id="error-message"]').textContent).toContain(
+      'You do not have permission.'
+    );
+  });
+
+  it('restores the shipped rollups', async () => {
+    restoreDefaults.mockResolvedValue(PAGE);
+    const element = createComponent();
+    getPage.emit(EMPTY_PAGE);
+    await flush();
+
+    element.shadowRoot.querySelector('[data-id="restore-defaults"]').click();
+    await flush();
+
+    expect(restoreDefaults).toHaveBeenCalled();
+  });
+});

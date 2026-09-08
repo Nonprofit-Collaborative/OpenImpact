@@ -124,4 +124,27 @@ describe('c-hub-home', () => {
     expect(element.shadowRoot.querySelector('c-setup-assistant')).toBeNull();
     expect(element.shadowRoot.querySelector('[data-id="reopen-setup"]')).not.toBeNull();
   });
+
+  it('says when the rollups last completed', async () => {
+    getHomeModel.mockResolvedValue(
+      model({ rollupsLastCalculated: '2026-09-08T02:00:00.000Z', rollupsStale: false })
+    );
+    const element = build();
+    await settle();
+
+    expect(element.shadowRoot.querySelector('[data-id="rollups-last-calculated"]')).not.toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="rollups-stale"]')).toBeNull();
+  });
+
+  it('warns when the rollups are more than 36 hours old, and not by color alone', async () => {
+    getHomeModel.mockResolvedValue(model({ rollupsLastCalculated: null, rollupsStale: true }));
+    const element = build();
+    await settle();
+
+    expect(element.shadowRoot.querySelector('[data-id="rollups-never"]')).not.toBeNull();
+    const warning = element.shadowRoot.querySelector('[data-id="rollups-stale"]');
+    expect(warning).not.toBeNull();
+    expect(warning.getAttribute('aria-live')).toBe('polite');
+    expect(warning.querySelector('lightning-icon')).not.toBeNull();
+  });
 });

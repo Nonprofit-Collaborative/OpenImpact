@@ -25,6 +25,10 @@ public with sharing class HubController {
         public Integer stepsCompleted;
         @AuraEnabled
         public Integer stepsTotal;
+        @AuraEnabled
+        public Datetime rollupsLastCalculated;
+        @AuraEnabled
+        public Boolean rollupsStale;
     }
 
     @AuraEnabled(cacheable=true)
@@ -45,6 +49,7 @@ public with sharing class HubController {
         model.stepsCompleted = SetupAssistantService.countCompleted(steps);
         model.automationPaused = readAutomationPaused();
         model.newErrorCount = readNewErrorCount();
+        readRollupFreshness(model);
         return model;
     }
 
@@ -54,6 +59,21 @@ public with sharing class HubController {
         } catch (Exception e) {
             ErrorLogger.log(e, ERROR_CONTEXT);
             return false;
+        }
+    }
+
+    /**
+     * "Rollups last completed", and whether the nightly run is overdue (plan Section 4.10).
+     * Optional like the rest: an org where the rollup engine cannot answer loses a tile, not the
+     * page.
+     */
+    private static void readRollupFreshness(HomeModel model) {
+        try {
+            model.rollupsLastCalculated = RollupService.lastCalculated();
+            model.rollupsStale = RollupService.isStale();
+        } catch (Exception e) {
+            ErrorLogger.log(e, ERROR_CONTEXT);
+            model.rollupsStale = false;
         }
     }
 
