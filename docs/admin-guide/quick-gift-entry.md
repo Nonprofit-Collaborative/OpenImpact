@@ -25,8 +25,10 @@ Nothing to install and no Setup step. Quick Gift Entry arrives with the Giving p
      appeal season, or set it to the appeal you are running right now so that staff do
      not have to pick it every time.
 3. Give your fundraising staff access. In Nonprofit Settings, open **Access** and assign
-   the **Fundraising Staff** permission set group to the people who enter gifts. They
-   need it to see the tab and to save a gift.
+   the **Fundraising Staff** role, and then, in Salesforce Setup, the **Giving Staff**
+   permission set that the Giving module ships. The tab and the save both come from that
+   permission set, and no role carries it yet: joining the two up arrives with the Module
+   Manager in version 0.7.
 
 If you would rather have the form on a household or a person's page than on its own tab,
 open that page in the Lightning App Builder (from the page's setup gear, Edit Page), drag

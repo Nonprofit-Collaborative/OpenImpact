@@ -66,15 +66,16 @@ year at home, and letters have been going to the wrong place. Start from the sam
    household's address boxes read the home address again. Nothing was deleted: both
    addresses are still on the card, and you can move the default between them whenever you
    like.
-6. Open **Ana Garcia**, one of the household's members, from the household's related
+6. Open **Harper Garcia**, one of the household's members, from the household's related
    people. Change her **Mailing Street** to a new street and save.
 7. Go back to **The Garcia Family**. Because your setting says **Update household**, the
-   household's default address now shows Ana's new street, and every other member of the
+   household's default address now shows Harper's new street, and every other member of the
    household has the same new mailing address. One edit moved the whole household, which is
    what a household moving actually means.
 
-If you had set **Create personal address** instead, step 7 would look different: Ana would
-have her own address card on her own record, marked default for her, and the rest of the
+If you had set **Create personal address** instead, step 7 would look different: Harper
+would have her own address card on her own record, marked default for her, and the rest of
+the
 Garcia household would still be at the old street. Both behaviors are correct; they are
 just different organizations.
 

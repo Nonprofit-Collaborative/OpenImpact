@@ -50,14 +50,15 @@ Two things to know about how the automatic credits behave:
 ## A five-minute walkthrough
 
 You are David, the development director. Start from the sample data, which includes the
-Garcia household: Ana Garcia and her spouse Luis Garcia.
+Garcia household: Harper Garcia, her spouse Luis Garcia, and their son Diego.
 
 1. Click the **Gifts** tab and press **New**.
-2. Enter a gift from **Ana Garcia** for **500**, dated today, type **Check**, status
+2. Enter a gift from **Harper Garcia** for **500**, dated today, type **Check**, status
    **Received**. Save.
-3. On the gift you just saved, look at **Soft credits**. Luis Garcia is already there,
-   with the role **Household member**, the amount **500**, and an **Automatic** badge. You
-   did nothing to make that happen.
+3. On the gift you just saved, look at **Soft credits**. Luis Garcia and Diego Garcia are
+   already there, each with the role **Household member**, the amount **500**, and an
+   **Automatic** badge. Every other current member of the household is credited, not just
+   the spouse, and you did nothing to make that happen.
 4. Now add the solicitor. In the **Soft credits** panel press **Add credit**, pick the
    person who asked for the gift, choose the role **Solicitor**, leave the amount at 500,
    and press **Save**. The new credit appears with no Automatic badge, because you entered
@@ -66,10 +67,10 @@ Garcia household: Ana Garcia and her spouse Luis Garcia.
    giving** is unchanged, because he did not give this gift. That separation is the point
    of the feature.
 6. Go back to the gift and change the amount from 500 to **750**. Save, then look at the
-   soft credits again: Luis is now credited with 750, and the solicitor credit you entered
+   soft credits again: Luis and Diego are now credited with 750, and the solicitor credit you entered
    is still 500, because it is yours to change.
-7. Remove the solicitor credit with the **Remove** button beside it. The automatic credit
-   for Luis has no Remove button: it belongs to the gift, and it goes when the gift goes.
+7. Remove the solicitor credit with the **Remove** button beside it. The automatic credits
+   for Luis and Diego have no Remove button: it belongs to the gift, and it goes when the gift goes.
 
 ## Common mistakes
 

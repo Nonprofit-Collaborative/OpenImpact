@@ -31,28 +31,28 @@ warns you if the two do not agree.
 
 ## A five-minute walkthrough
 
-You are David. Start from the sample data, which includes Ana Garcia and the organization
-Riverbend Manufacturing.
+You are David. Start from the sample data, which includes Harper Garcia and the
+organization Riverside Consulting Group.
 
-1. Open **Ana Garcia** and set **Employer** to **Riverbend Manufacturing**. Save.
-2. Click the **Gifts** tab and press **New**. Enter a gift from **Ana Garcia** for **500**,
-   dated last month, status **Received**. Save. This is the employee's gift.
-3. Press **New** again. Enter a gift from **Riverbend Manufacturing** for **500**, dated
+1. Open **Harper Garcia** and set **Employer** to **Riverside Consulting Group**. Save.
+2. Click the **Gifts** tab and press **New**. Enter a gift from **Harper Garcia** for
+   **500**, dated last month, status **Received**. Save. This is the employee's gift.
+3. Press **New** again. Enter a gift from **Riverside Consulting Group** for **500**, dated
    today, status **Received**. Save. This is the employer's match.
-4. On the employer's gift, set **Matched gift** to Ana's gift. Save.
-5. Look at what happened on the employer's gift: **Matched gift** names Ana's gift, and in
-   **Soft credits** Ana Garcia appears with the role **Matched donor** and the amount 500,
-   marked automatic.
-6. Open **Ana Garcia's gift**. Its own **Matched gift** now names the Riverbend gift. The
+4. On the employer's gift, set **Matched gift** to Harper's gift. Save.
+5. Look at what happened on the employer's gift: **Matched gift** names Harper's gift, and
+   in **Soft credits** Harper Garcia appears with the role **Matched donor** and the amount
+   500, marked automatic.
+6. Open **Harper Garcia's gift**. Its own **Matched gift** now names the Riverside gift. The
    link reads correctly from both sides, and you only entered it once.
-7. Open **Ana Garcia**. Her **Total giving** is 500, the gift she actually made. Her
+7. Open **Harper Garcia**. Her **Total giving** is 500, the gift she actually made. Her
    **Total soft credits** is 500, the match she caused. Neither number has been inflated by
    the other.
-8. Try a link that should fail because of the money. Record a refund against Ana's gift so
+8. Try a link that should fail because of the money. Record a refund against Harper's gift so
    its status is **Refunded**, then try to link it. Open Impact refuses with: **A gift that
    has been refunded or written off cannot be part of a matching gift pair. Unlink the match
    before recording the refund, or link the replacement gift instead.** A link that outlived
-   the money would go on crediting Ana for a match you gave back.
+   the money would go on crediting Harper for a match you gave back.
 9. Try a link that should fail because of the employer. Go back to the employer's gift, clear **Matched gift**, save,
    then set it to a gift from a donor who works somewhere else. Open Impact refuses the save
    with: **That gift is from someone whose employer is a different organization. Check the

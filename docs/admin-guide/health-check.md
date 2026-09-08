@@ -24,8 +24,9 @@ nothing to configure.
 4. Click **Re-run** whenever you want a fresh look. Health Check reads your org each time;
    it never shows you a saved result.
 
-The Nonprofit Hub home page also gets a Health Check card, which arrives with the Hub itself.
-Until then, the settings console is the way in, and it is the way that always works.
+The Nonprofit Hub home page does not carry a Health Check card today, although the Hub
+itself has shipped. The settings console is the way in, and it is the way that always
+works.
 
 To act on a finding you need the **Manage Nonprofit Settings** permission, which the
 Nonprofit Admin role includes. Without it you can still read most of the report: the page says

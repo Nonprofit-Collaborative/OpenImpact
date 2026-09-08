@@ -19,22 +19,28 @@ to a spreadsheet.
 Commitments come with the Giving module. When Giving is on, the Commitments and
 Installments tabs are in the app and no further step is required.
 
-Four settings control how the schedules behave. Open **Nonprofit Settings**, choose
-**Giving**, and find the **Commitments** section:
+Three settings control how the schedules behave. Open **Nonprofit Settings** and choose
+**Giving**; they sit in that section alongside the default fund and appeal:
 
 | Setting | What it does | Default |
 |---|---|---|
 | Installment generation horizon (months) | How far ahead payments are created for a recurring gift, so an open-ended schedule does not fill the org with rows | 12 |
 | Overdue grace days | How many days an unpaid payment waits after its due date before it is marked Overdue | 5 |
 | Apply gifts to installments automatically | When a gift names a commitment but not a particular payment, whether Open Impact links it to the oldest unpaid payment | On |
-| Installments last topped up | When the nightly job last extended recurring schedules; read only, shown so you can tell the job is running | (set by the job) |
 
 Change a value and choose **Save**. The new value applies to the next commitment you
 create or change; existing schedules are left alone until you edit them.
 
-Two nightly jobs are scheduled for you when the Giving module is turned on: one extends
-recurring schedules up to the horizon at 01:15, the other marks payments overdue at 01:45.
-If you ever need to check them, the Hub shows when the top up last ran.
+**The two nightly jobs are not running yet.** One extends recurring schedules up to the
+horizon (01:15), the other marks payments overdue (01:45). Both are built, and both are
+scheduled by the module turn on action, which arrives with the Module Manager in version
+0.7. Until then nothing schedules them, and there is no button in the app that does: a
+recurring commitment is topped up only when somebody saves it, and an unpaid payment stays
+Pending rather than turning Overdue on its own. A Salesforce administrator can schedule
+`InstallmentTopUpSchedulable` and `InstallmentSchedulable` from Setup in the meantime.
+The job stamps **Installments last topped up** in the Giving settings when it finishes,
+which is how you will tell it is running once it is. That value is not on the settings
+console today, so it is read from the Giving Settings custom setting.
 
 ## A five-minute walkthrough
 
@@ -44,7 +50,7 @@ Start from the sample data. The first part is David's work, the last step is Jen
 
 1. Open the **Commitments** tab and choose **New**.
 2. Set **Type** to Pledge.
-3. In **Donor**, choose a person from a household in the sample data, for example Sarah
+3. In **Donor**, choose a person from a household in the sample data, for example Ana
    Nguyen. Leave the account donor field empty: a commitment has one donor, not two.
 4. Set **Expected total** to 1,200 and **Amount** to 100. The amount is what is expected
    each time, not the total.
@@ -59,7 +65,7 @@ Start from the sample data. The first part is David's work, the last step is Jen
 ### David enters the first payment
 
 9. Open the first payment in the list and note its due date.
-10. Open the **Gifts** tab, choose **New**, and enter a gift for Sarah for 100 with the
+10. Open the **Gifts** tab, choose **New**, and enter a gift for Ana for 100 with the
     same date. In **Commitment** choose the pledge you just made, and in **Installment**
     choose the first payment.
 11. Choose **Save**, then go back to the commitment. The first payment now reads **Paid**,
@@ -85,9 +91,11 @@ and deletes nothing.
 
 ### Jen checks what is overdue
 
-14. Open the **Installments** tab and choose the **Overdue** list view. Every unpaid
-    payment whose due date passed more than the grace period ago is here, with its
-    commitment, its donor, and what was expected.
+14. Open the **Installments** tab and choose the **Overdue** list view. Every payment
+    already marked Overdue is here, with its commitment, its donor, and what was expected.
+    A payment is marked Overdue by the nightly job, so until that job is scheduled (see
+    "How to turn it on") this list stays empty and **Upcoming 30 days** with a due date in
+    the past is what to read instead.
 15. Switch to **Upcoming 30 days** to see what should arrive next, which is the list Jen
     uses when she reconciles the bank statement.
 

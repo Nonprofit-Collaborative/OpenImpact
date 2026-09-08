@@ -90,15 +90,16 @@ surprising, and it is wrong in the direction that makes a donor look like a net 
 - **A gift recorded at zero is not counted.** `Amount greater than 0` excludes it, which
   is already true of the first and last gift date rows today. An in-kind gift entered at
   zero shows in the related list and not in the count. If that turns out to matter for
-  in-kind reporting, the condition becomes `not equals 0` on the count rows, which is a
-  one-row edit an admin can make without a code change.
+  in-kind reporting, the condition becomes `not equals 0` on the count rows. That is a one
+  row change, but not one an admin can make comfortably: there is no filter builder, so it
+  means editing the Filter field's JSON on the record directly.
 - **The filter document now uses the `in` operator with a list.** `RollupFilterParser`
   already supports it and the Pledge Balance rows already ship it, so nothing new is
   required of the engine.
 - **The status list is a literal in 38 shipped rows.** A new gift status that represents
-  money the organization holds has to be added to every money row, and the settings
-  console shows admins the list they are editing. A status meaning "not money" needs no
-  change.
+  money the organization holds has to be added to every money row. The settings console
+  lists the rollups but does not yet offer a filter builder, so that is 38 records edited
+  by hand or a new shipped default. A status meaning "not money" needs no change.
 - **The soft credit rows are widened for manual credits only.** `SoftCreditService`
   removes a refunded gift's *automatic* credits (R-SC6): the positive row is deleted, not
   hidden, so widening the filter cannot double count it and equally cannot restore it. The
