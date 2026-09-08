@@ -67,5 +67,9 @@ You are David, and a check from Maria's neighbour arrived this morning.
   leaves the gift over-allocated or under-allocated is refused, even halfway through a split
   you meant to finish. Enter a split in one go on the gift entry screen, which sends the whole
   split at once. The error names the difference so you can see exactly how much is out.
+- **Mixing amounts and percentages in one split.** Enter a split either way, but not both ways
+  at once: when every row is a percentage and they come to 100, Open Impact works out the
+  amounts and puts the odd cent on the largest row. Mix the two and you are back to making the
+  amounts add up yourself.
 - **Typing a name for the gift.** You never do: gifts number themselves, `G-000001` and
   onward. That number is not a receipt number.

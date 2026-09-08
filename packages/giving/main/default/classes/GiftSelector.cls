@@ -73,6 +73,15 @@ public with sharing class GiftSelector {
     }
 
     /**
+     * The allocations of the given gifts. It delegates to the allocation selector rather than
+     * repeating the query, and it exists here because a caller that has gifts in hand looks for
+     * it here first (the gift entry screen, G-03, does).
+     */
+    public static List<Gift_Allocation__c> selectAllocationsByGiftIds(Set<Id> giftIds) {
+        return GiftAllocationSelector.selectByGiftIds(giftIds);
+    }
+
+    /**
      * The negative gifts that reverse the given gifts, so a second refund knows what is left.
      */
     public static List<Gift__c> selectReversalsFor(Set<Id> originalGiftIds) {

@@ -1,6 +1,11 @@
 /**
  * Record-level rules for Gift__c, run by the Core trigger dispatcher through the automation
  * registry, so an administrator can switch it off from the console (ADR-0017).
+ *
+ * The handler methods take no arguments and read the trigger context, which is the Core
+ * TriggerHandler contract. Every rule they apply is a GiftService method that takes explicit
+ * lists, so the rules are unit tested without a trigger context and the handler stays a
+ * three-line wrapper.
  */
 public with sharing class GiftTriggerHandler extends TriggerHandler {
     public override String getName() {
@@ -36,6 +41,10 @@ public with sharing class GiftTriggerHandler extends TriggerHandler {
 
     public override void afterInsert() {
         GiftService.applyDefaultAllocations((List<Gift__c>) Trigger.new);
+    }
+
+    public override void beforeDelete() {
+        GiftService.preventLossOfHistory((List<Gift__c>) Trigger.old);
     }
 
     public override void afterUpdate() {

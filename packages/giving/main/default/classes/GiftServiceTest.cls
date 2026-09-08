@@ -236,4 +236,63 @@ private class GiftServiceTest {
             'A stale setting does not stop David entering a gift.'
         );
     }
+
+    @IsTest
+    static void mirroredAllocationsStillTotalTheRefundWhenTheySplitUnevenly() {
+        Contact person = [SELECT Id FROM Contact LIMIT 1];
+        Fund__c general = [SELECT Id FROM Fund__c WHERE Is_Default__c = TRUE LIMIT 1];
+        Fund__c scholarship = GivingTestDataFactory.buildFund('Scholarship', false);
+        insert scholarship;
+
+        Gift__c gift = GivingTestDataFactory.buildGift(person.Id, 10);
+        try {
+            GiftService.suppressDefaultAllocations = true;
+            insert gift;
+        } finally {
+            GiftService.suppressDefaultAllocations = false;
+        }
+        insert new List<Gift_Allocation__c>{
+            GivingTestDataFactory.buildAllocation(gift.Id, general.Id, 3.33),
+            GivingTestDataFactory.buildAllocation(gift.Id, scholarship.Id, 6.67)
+        };
+
+        Test.startTest();
+        Id refundId = GiftService.refund(gift.Id, 5, 'Half back');
+        Test.stopTest();
+
+        Decimal total = 0;
+        for (Gift_Allocation__c allocation : [
+            SELECT Amount__c
+            FROM Gift_Allocation__c
+            WHERE Gift__c = :refundId
+        ]) {
+            total += allocation.Amount__c;
+        }
+        System.assertEquals(
+            -5,
+            total,
+            'A refund of an unevenly split gift still totals the refund exactly, with the ' +
+            'rounding difference on the largest mirrored allocation (R-GA3).'
+        );
+    }
+
+    @IsTest
+    static void aCallerThatWasSuppressingAllocationsStillIsAfterARefund() {
+        Gift__c original = insertGift(90);
+
+        Test.startTest();
+        GiftService.suppressDefaultAllocations = true;
+        try {
+            GiftService.refund(original.Id, 30, 'Part back');
+            System.assertEquals(
+                true,
+                GiftService.suppressDefaultAllocations,
+                'Recording a refund gives the caller back the suppression it had, rather than ' +
+                'quietly turning it off part way through their own save.'
+            );
+        } finally {
+            GiftService.suppressDefaultAllocations = false;
+        }
+        Test.stopTest();
+    }
 }

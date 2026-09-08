@@ -107,11 +107,20 @@ private class GiftTriggerHandlerTest {
         insert gift;
         Test.stopTest();
 
-        Gift__c saved = [SELECT Id, Donor_Account__c FROM Gift__c WHERE Id = :gift.Id];
+        Gift__c saved = [
+            SELECT Id, Donor_Account__c, Household__c
+            FROM Gift__c
+            WHERE Id = :gift.Id
+        ];
         System.assertEquals(
             person.Id,
             saved.Donor_Account__c,
-            'A person held as an account is a donor account, and the household comes from Core.'
+            'A person held as an account is a donor account.'
+        );
+        System.assertEquals(
+            HouseholdService.getHouseholdIdsFor(new Set<Id>{ person.Id }).get(person.Id),
+            saved.Household__c,
+            'And the household on the gift is the one Core says that person belongs to.'
         );
     }
 
@@ -214,6 +223,165 @@ private class GiftTriggerHandlerTest {
             200,
             [SELECT COUNT() FROM Gift_Allocation__c],
             'Every one of them gets its default allocation.'
+        );
+    }
+
+    @IsTest
+    static void aReceiptNumberCannotBeClearedToLiftTheLock() {
+        Contact person = donor();
+        Gift__c gift = GivingTestDataFactory.buildGift(person.Id, 250);
+        insert gift;
+        gift.Receipt_Number__c = 'R-000002';
+        update gift;
+
+        String message = '';
+        Test.startTest();
+        try {
+            gift.Receipt_Number__c = null;
+            update gift;
+        } catch (DmlException clearError) {
+            message = clearError.getDmlMessage(0);
+        }
+        Test.stopTest();
+
+        System.assert(
+            message.contains('cannot be changed or cleared'),
+            'Clearing the number in one save and changing the amount in the next is the bypass ' +
+                'this rule exists to close: ' +
+                message
+        );
+        System.assertEquals(
+            'R-000002',
+            [SELECT Receipt_Number__c FROM Gift__c WHERE Id = :gift.Id].Receipt_Number__c,
+            'The number the donor is holding is still there.'
+        );
+    }
+
+    @IsTest
+    static void issuingANumberAndChangingTheAmountInOneSaveIsRefused() {
+        Contact person = donor();
+        Gift__c gift = GivingTestDataFactory.buildGift(person.Id, 250);
+        insert gift;
+
+        String message = '';
+        Test.startTest();
+        try {
+            gift.Receipt_Number__c = 'R-000003';
+            gift.Amount__c = 400;
+            update gift;
+        } catch (DmlException lockError) {
+            message = lockError.getDmlMessage(0);
+        }
+        Test.stopTest();
+
+        System.assert(
+            message.contains('receipt number'),
+            'A save cannot issue a receipt and restate the amount at the same time: ' + message
+        );
+    }
+
+    @IsTest
+    static void theReceiptingFeatureCanVoidAndReissue() {
+        Contact person = donor();
+        Gift__c gift = GivingTestDataFactory.buildGift(person.Id, 250);
+        insert gift;
+        gift.Receipt_Number__c = 'R-000004';
+        update gift;
+
+        Test.startTest();
+        GiftService.allowReceiptNumberChange = true;
+        try {
+            gift.Receipt_Number__c = 'R-000005';
+            update gift;
+        } finally {
+            GiftService.allowReceiptNumberChange = false;
+        }
+        Test.stopTest();
+
+        System.assertEquals(
+            'R-000005',
+            [SELECT Receipt_Number__c FROM Gift__c WHERE Id = :gift.Id].Receipt_Number__c,
+            'Void and reissue is the sanctioned way the number changes (G-13).'
+        );
+    }
+
+    @IsTest
+    static void aReceiptedGiftCannotBeDeleted() {
+        Contact person = donor();
+        Gift__c gift = GivingTestDataFactory.buildGift(person.Id, 250);
+        insert gift;
+        gift.Receipt_Number__c = 'R-000006';
+        update gift;
+
+        String message = '';
+        Test.startTest();
+        try {
+            delete gift;
+        } catch (DmlException deleteError) {
+            message = deleteError.getDmlMessage(0);
+        }
+        Test.stopTest();
+
+        System.assert(
+            message.contains('cannot be deleted'),
+            'A gift a donor holds a receipt for is reversed, not deleted: ' + message
+        );
+    }
+
+    @IsTest
+    static void aGiftWithARefundCannotBeDeleted() {
+        Contact person = donor();
+        Gift__c gift = GivingTestDataFactory.buildGift(person.Id, 200);
+        insert gift;
+        GiftService.refund(gift.Id, 50, 'Part back');
+
+        String message = '';
+        Test.startTest();
+        try {
+            delete gift;
+        } catch (DmlException deleteError) {
+            message = deleteError.getDmlMessage(0);
+        }
+        Test.stopTest();
+
+        System.assert(
+            message.contains('cannot be deleted'),
+            'Deleting the original would leave the refund explaining nothing: ' + message
+        );
+    }
+
+    @IsTest
+    static void aPlainMistakeIsStillDeletable() {
+        Contact person = donor();
+        Gift__c gift = GivingTestDataFactory.buildGift(person.Id, 25);
+        insert gift;
+
+        Test.startTest();
+        delete gift;
+        Test.stopTest();
+
+        System.assertEquals(
+            0,
+            [SELECT COUNT() FROM Gift__c],
+            'A gift typed a minute ago with nothing pointing at it is a mistake, not history.'
+        );
+    }
+
+    @IsTest
+    static void davidEntersAGiftAsHimself() {
+        Contact person = donor();
+        User david = new User(Id = UserInfo.getUserId());
+
+        Test.startTest();
+        System.runAs(david) {
+            insert GivingTestDataFactory.buildGift(person.Id, 60);
+        }
+        Test.stopTest();
+
+        System.assertEquals(
+            1,
+            [SELECT COUNT() FROM Gift__c],
+            'The user-mode queries and inserts behave for a person entering a gift.'
         );
     }
 }

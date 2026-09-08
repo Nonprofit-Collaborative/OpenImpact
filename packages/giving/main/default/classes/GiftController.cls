@@ -48,7 +48,9 @@ public with sharing class GiftController {
             }
             return new GiftSummary(gifts[0]);
         } catch (Exception summaryError) {
-            ErrorLogger.log(summaryError, 'GiftController.getGiftSummary', giftId);
+            // No logging here on purpose: this method is cacheable, and the Error Log is a
+            // record insert, which the platform refuses inside a cacheable call. The screen
+            // still gets a sentence it can show, and the actions below do log.
             throw asUserError(summaryError);
         }
     }

@@ -13,5 +13,14 @@ module.exports = [
   {
     files: ['packages/**/lwc/**/*.js'],
     rules: {}
+  },
+  {
+    // Jest module factories run in CommonJS, so a mock factory may call require.
+    files: ['packages/**/lwc/**/__tests__/**/*.js'],
+    languageOptions: {
+      globals: {
+        require: 'readonly'
+      }
+    }
   }
 ];

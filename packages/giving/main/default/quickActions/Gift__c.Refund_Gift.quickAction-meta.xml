@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<QuickAction xmlns="http://soap.sforce.com/2006/04/metadata">
+  <actionSubtype>ScreenAction</actionSubtype>
+  <description>
+    Records money going back to a donor: a refund of part or all of this gift, or a write-off of
+    what is left. Both are recorded as a linked negative gift.
+  </description>
+  <height>500</height>
+  <label>Refund or Write Off</label>
+  <lightningWebComponent>giftRefund</lightningWebComponent>
+  <optionsCreateFeedItem>false</optionsCreateFeedItem>
+  <type>LightningWebComponent</type>
+</QuickAction>

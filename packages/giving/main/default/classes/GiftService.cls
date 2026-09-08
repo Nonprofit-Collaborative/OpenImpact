@@ -13,6 +13,15 @@ public with sharing class GiftService {
      */
     public static Boolean suppressDefaultAllocations = false;
 
+    /**
+     * The allowance that lets a gift's receipt number change once it exists, which happens only
+     * when a receipt is voided and reissued (ADR-0010). The receipting feature (G-13) opens it
+     * through a service method of its own; nothing else does. It is visible to tests so the
+     * lock can be tested from both sides.
+     */
+    @TestVisible
+    private static Boolean allowReceiptNumberChange = false;
+
     private static final String STATUS_RECEIVED = 'Received';
     private static final String STATUS_REFUNDED = 'Refunded';
     private static final String STATUS_WRITTEN_OFF = 'Written off';
@@ -87,7 +96,25 @@ public with sharing class GiftService {
     public static void enforceReceiptLock(List<Gift__c> gifts, Map<Id, Gift__c> oldGifts) {
         for (Gift__c gift : gifts) {
             Gift__c previous = oldGifts.get(gift.Id);
-            if (previous == null || String.isBlank(previous.Receipt_Number__c)) {
+            if (previous == null) {
+                continue;
+            }
+            Boolean receiptNumberChanged = gift.Receipt_Number__c != previous.Receipt_Number__c;
+            Boolean hadReceipt = String.isNotBlank(previous.Receipt_Number__c);
+
+            // Clearing or changing the number is how the lock would otherwise be lifted in two
+            // saves, so the number itself is locked once it exists. Issuing a number for the
+            // first time stays allowed, and voiding and reissuing is the receipting feature's
+            // job (G-13), which sets the allowance below when it lands.
+            if (hadReceipt && receiptNumberChanged && !allowReceiptNumberChange) {
+                gift.addError(Label.Giving_Gift_ReceiptNumberLocked);
+                continue;
+            }
+
+            // A gift is locked if it carried a number before this save or carries one after it,
+            // so a save that sets the number and changes the amount at the same time is refused
+            // too.
+            if (!hadReceipt && String.isBlank(gift.Receipt_Number__c)) {
                 continue;
             }
             Boolean locked =
@@ -97,6 +124,27 @@ public with sharing class GiftService {
                 gift.Donor_Account__c != previous.Donor_Account__c;
             if (locked) {
                 gift.addError(Label.Giving_Gift_ReceiptLocked);
+            }
+        }
+    }
+
+    /**
+     * ADR-0010: a gift is a fact about something that happened, so one that carries a receipt or
+     * that something else already points at is corrected by a reversal rather than deleted. A
+     * plain mistyped gift with neither is still deletable, because a mistake made a minute ago
+     * is not history.
+     */
+    public static void preventLossOfHistory(List<Gift__c> gifts) {
+        Map<Id, Gift__c> byId = new Map<Id, Gift__c>(gifts);
+        Set<Id> withReversals = new Set<Id>();
+        for (Gift__c reversal : GiftSelector.selectReversalsFor(byId.keySet())) {
+            withReversals.add(reversal.Original_Gift__c);
+        }
+        for (Gift__c gift : gifts) {
+            if (String.isNotBlank(gift.Receipt_Number__c)) {
+                gift.addError(Label.Giving_Gift_ReceiptedGiftNotDeletable);
+            } else if (withReversals.contains(gift.Id)) {
+                gift.addError(Label.Giving_Gift_ReversedGiftNotDeletable);
             }
         }
     }
@@ -151,7 +199,14 @@ public with sharing class GiftService {
                 )
             );
         }
-        Database.insert(allocations, AccessLevel.USER_MODE);
+        try {
+            Database.insert(allocations, AccessLevel.USER_MODE);
+        } catch (Exception allocationError) {
+            ErrorLogger.log(allocationError, 'GiftService.applyDefaultAllocations');
+            for (Gift__c gift : candidates.values()) {
+                gift.addError(Label.Giving_Gift_DefaultAllocationFailed);
+            }
+        }
     }
 
     /**
@@ -376,7 +431,14 @@ public with sharing class GiftService {
             }
         }
         if (!toUpdate.isEmpty()) {
-            Database.update(toUpdate, AccessLevel.USER_MODE);
+            try {
+                Database.update(toUpdate, AccessLevel.USER_MODE);
+            } catch (Exception allocationError) {
+                ErrorLogger.log(allocationError, 'GiftService.synchronizeAllocationsToAmount');
+                for (Gift__c gift : changed.values()) {
+                    gift.addError(Label.Giving_Gift_AllocationUpdateFailed);
+                }
+            }
         }
     }
 
@@ -397,8 +459,13 @@ public with sharing class GiftService {
         if (amount > remaining) {
             throw new GiftServiceException(Label.Giving_Gift_RefundExceedsRemaining);
         }
-        Boolean whole = amount == remaining && remaining == original.Amount__c;
-        return recordReversal(original, -amount, reason, whole ? STATUS_REFUNDED : null);
+        Boolean nothingLeftAfterThis = amount == remaining;
+        return recordReversal(
+            original,
+            -amount,
+            reason,
+            nothingLeftAfterThis ? STATUS_REFUNDED : null
+        );
     }
 
     /**
@@ -467,11 +534,14 @@ public with sharing class GiftService {
         List<Gift_Allocation__c> originalAllocations = original.Gift_Allocations__r;
         Boolean mirrorAllocations = originalAllocations != null && !originalAllocations.isEmpty();
 
+        // Restore what the caller had, rather than assuming false: a screen that is part way
+        // through its own suppressed insert may record a refund in the same block.
+        Boolean callerSuppression = suppressDefaultAllocations;
         try {
             suppressDefaultAllocations = mirrorAllocations;
             Database.insert(reversal, AccessLevel.USER_MODE);
         } finally {
-            suppressDefaultAllocations = false;
+            suppressDefaultAllocations = callerSuppression;
         }
 
         if (mirrorAllocations) {

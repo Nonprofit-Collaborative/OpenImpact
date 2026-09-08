@@ -61,7 +61,9 @@ private class GiftAllocationTriggerHandlerTest {
 
     @IsTest
     static void percentagesThatRoundStillTotalTheGift() {
-        Gift__c gift = giftOf(100, false);
+        // 100.01 in thirds is the case that actually rounds: each share works out to a
+        // fraction of a cent, and the leftover cent has to land somewhere.
+        Gift__c gift = giftOf(100.01, false);
         Fund__c general = [SELECT Id FROM Fund__c LIMIT 1];
         Fund__c scholarship = GivingTestDataFactory.buildFund('Scholarship', false);
         Fund__c building = GivingTestDataFactory.buildFund('Building', false);
@@ -84,9 +86,21 @@ private class GiftAllocationTriggerHandlerTest {
             total += allocation.Amount__c;
         }
         System.assertEquals(
-            100,
+            100.01,
             total,
             'The rounding difference goes to the largest allocation, so the total is exact.'
+        );
+        System.assertEquals(
+            33.35,
+            [
+                SELECT Amount__c
+                FROM Gift_Allocation__c
+                WHERE Gift__c = :gift.Id
+                ORDER BY Amount__c DESC
+                LIMIT 1
+            ]
+            .Amount__c,
+            'And it lands on the largest allocation, not on whichever row saved last.'
         );
     }
 
@@ -199,6 +213,30 @@ private class GiftAllocationTriggerHandlerTest {
             200,
             [SELECT COUNT() FROM Gift_Allocation__c],
             'Two hundred allocations in one save stay inside the platform limits.'
+        );
+    }
+
+    @IsTest
+    static void undeletingAGiftBringsItsAllocationsBackAndTheyStillAddUp() {
+        Gift__c gift = giftOf(250, true);
+        delete gift;
+
+        Test.startTest();
+        undelete gift;
+        Test.stopTest();
+
+        Decimal total = 0;
+        for (Gift_Allocation__c allocation : [
+            SELECT Amount__c
+            FROM Gift_Allocation__c
+            WHERE Gift__c = :gift.Id
+        ]) {
+            total += allocation.Amount__c;
+        }
+        System.assertEquals(
+            250,
+            total,
+            'Allocations come back with their gift and the totals are rechecked, not assumed.'
         );
     }
 }
