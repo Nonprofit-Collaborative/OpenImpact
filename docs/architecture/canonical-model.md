@@ -122,6 +122,7 @@ does.
 | Member Count | integer | computed | The number of current (not ended, not deceased-excluded) members of the household. |
 | Anniversary | date | no | A household-level date the nonprofit stewards, most often a wedding anniversary. |
 | Record Type | picklist(Household, Organization) | yes | Distinguishes a household from an organization; a Household always carries Household. |
+| Sample Data | boolean | yes (defaults false) | True when the record was created by the sample data loader so it can be removed in one action. |
 
 ### Relationships
 
@@ -240,6 +241,7 @@ Custom Name set.
 | Primary Contact | `Primary_Contact__c` | Lookup to Contact |
 | Member Count | `Member_Count__c` | Number |
 | Anniversary | `Anniversary__c` | Date |
+| Sample Data | `Sample_Data__c` | Checkbox |
 
 - **Person attributes on Account.** The five person attributes listed under Contact
   (Section 7) are present on Account as well, with the same API names and the same
@@ -341,6 +343,7 @@ address fields are used as the platform provides them.
 | Exclude From Household Name | boolean | yes (defaults false) | Leaves this person out of the computed household name. |
 | Exclude From Greetings | boolean | yes (defaults false) | Leaves this person out of both computed greetings. |
 | Household | reference(Household) | conditional | The household this person belongs to; in contact mode this is the person's Account. |
+| Sample Data | boolean | yes (defaults false) | True when the record was created by the sample data loader so it can be removed in one action. |
 
 ### Relationships
 
@@ -386,6 +389,7 @@ no feature code branches on it.
 | Exclude From Household Name | `Exclude_From_Household_Name__c` | Checkbox |
 | Exclude From Greetings | `Exclude_From_Greetings__c` | Checkbox |
 | Preferred Name | `Preferred_Name__c` | Text |
+| Sample Data | `Sample_Data__c` | Checkbox |
 
 These five are person attributes, present on both Contact and Account with the same API
 names so that Person Accounts carry them (Section 5). `HouseholdService.Person` is the
@@ -408,6 +412,7 @@ partner. Organizations are not households and never carry household naming or gr
 | Name | text | yes | The organization's legal or commonly used name, entered by staff and never computed. |
 | Record Type | picklist(Household, Organization) | yes | Always Organization for this entity. |
 | Primary Contact | reference(Contact) | no | The person the nonprofit deals with at this organization. |
+| Sample Data | boolean | yes (defaults false) | True when the record was created by the sample data loader so it can be removed in one action. |
 
 ### Relationships
 
@@ -433,7 +438,8 @@ not shown on Organization layouts.
 ### Salesforce implementation
 
 - **Object:** Account, record type `Organization`.
-- **Fields:** standard `Name`; `Primary_Contact__c` (shared with Household, above).
+- **Fields:** standard `Name`; `Primary_Contact__c` (shared with Household, above);
+  `Sample_Data__c` (Checkbox, shared field definition with Household, above).
 
 ---
 
@@ -2395,6 +2401,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.3 | 2026-09-07 | Giving: Commitment, Installment, Soft Credit, and Tribute (Sections 22 to 25) with their rollup targets. Core: Relationship, Affiliation, and Address (Sections 27 to 29), the Primary Affiliation reference on Contact, and the shipped defaults `Relationship_Type__mdt`. Nonprofit Settings gains `Automatic_Household_Soft_Credits__c`, `Installment_Generation_Horizon_Months__c`, `Installment_Overdue_Grace_Days__c`, `Contact_Address_Change_Behavior__c`, `Relationship_Auto_Reciprocal__c`, and `Seasonal_Address_Last_Run__c`. Published for build, objects not yet created. |
 | v0.3 | 2026-09-07 | Convention added: person references are a Contact and Account pair with exactly one set (Section 4), following the change of first customer to Nonprofit Cloud and Agentforce Nonprofit orgs where individuals are person Accounts. Import Row and Import Template carry the person-mode attributes this requires. |
 | v0.3 | 2026-09-07 | Sections renumbered to keep the document in reading order: the former Section 14 "Deferred to later iterations" is now Section 30 and the former Section 15 "Change log" is now Section 31. Section 32 "Entity ownership by package" is new. |
+| v0.3 | 2026-09-07 | C-10 sample data loader: added `Sample Data` (`Sample_Data__c`, Checkbox, default false) to Household, Contact, and Organization so the sample data set can be removed in one action. |
 
 ---
 ## 32. Entity ownership by package
