@@ -108,6 +108,22 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>SeasonalAddressController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>SeasonalAddressScheduler</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>SeasonalAddressSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>SeasonalAddressService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>SettingChangeSelector</apexClass>
     <enabled>true</enabled>
   </classAccesses>
@@ -254,6 +270,11 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Address__c.Postal_Code__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Address__c.Replaced_By_Seasonal__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_SeasonalAddress_CollisionWarning</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Seasonal swap: two seasonal addresses cover the same day</shortDescription>
+        <value>Two seasonal addresses for the same household or person cover today, so Open Impact used the one that was added first. Open the record and change the dates on one of them so only one seasonal address covers each day.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SeasonalAddress_HubLink</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Hub tile: link to the Addresses page of the settings console</shortDescription>
+        <value>Open the Addresses settings</value>
+    </labels>
+    <labels>
+        <fullName>Core_SeasonalAddress_HubTitle</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Hub tile: heading over the seasonal swap last run</shortDescription>
+        <value>Seasonal addresses last swapped</value>
+    </labels>
+    <labels>
+        <fullName>Core_SeasonalAddress_NeverRun</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown where the last run would be, before the job has ever run</shortDescription>
+        <value>The seasonal address swap has not run yet.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SeasonalAddress_NotScheduled</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Status shown when the nightly swap is not scheduled</shortDescription>
+        <value>The nightly swap is not scheduled, so seasonal addresses will not move on their own.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SeasonalAddress_PageIntro</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Settings console: what the seasonal swap panel is for</shortDescription>
+        <value>A seasonal address takes over on the day its season starts, and the address it replaced comes back on the day the season ends. Schedule the nightly job here, and check below that it is really running.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SeasonalAddress_PageTitle</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Settings console: heading of the seasonal swap panel</shortDescription>
+        <value>Seasonal address swap</value>
+    </labels>
+    <labels>
+        <fullName>Core_SeasonalAddress_PermissionRequired</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Message when a user without Manage Nonprofit Settings tries to change the schedule</shortDescription>
+        <value>You need the Manage Nonprofit Settings permission to start, stop, or run the seasonal address swap. Ask your administrator for the Nonprofit Admin access level.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SeasonalAddress_ReadOnly</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Note shown to a user who can see the panel but not change it</shortDescription>
+        <value>You can see when the swap last ran. Changing the schedule needs the Manage Nonprofit Settings permission.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SeasonalAddress_RunNow</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that runs the swap immediately</shortDescription>
+        <value>Run the swap now</value>
+    </labels>
+    <labels>
+        <fullName>Core_SeasonalAddress_RunNowStarted</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Confirmation after the swap is started by hand</shortDescription>
+        <value>The swap has started. Refresh this page in a minute to see what it did.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SeasonalAddress_RunSummaryFormat</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>What the last run did: moved in, moved back, failed</shortDescription>
+        <value>{0} moved to a seasonal address, {1} moved back, {2} could not be changed.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SeasonalAddress_ScheduleActive</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Status shown when the nightly swap is scheduled</shortDescription>
+        <value>The swap runs every night at 12:30 AM.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SeasonalAddress_ScheduleButton</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that starts the nightly swap</shortDescription>
+        <value>Schedule the nightly swap</value>
+    </labels>
+    <labels>
+        <fullName>Core_SeasonalAddress_Stale</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Warning when a scheduled swap has not run inside its window</shortDescription>
+        <value>The swap is scheduled but has not run in more than 36 hours. Choose Run the swap now, and check the Error Log if it does not finish.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SeasonalAddress_StopButton</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that stops the nightly swap</shortDescription>
+        <value>Stop the nightly swap</value>
+    </labels>
+    <labels>
+        <fullName>Core_SeasonalAddress_UnexpectedError</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Message shown when the seasonal swap panel fails for a reason it cannot explain</shortDescription>
+        <value>Something went wrong with the seasonal address swap. Try again, and if it happens again ask your administrator to check the Error Log.</value>
+    </labels>
+</CustomLabels>

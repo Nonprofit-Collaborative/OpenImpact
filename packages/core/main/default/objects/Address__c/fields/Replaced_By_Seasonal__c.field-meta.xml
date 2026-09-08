@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Replaced_By_Seasonal__c</fullName>
+  <defaultValue>false</defaultValue>
+  <description>Marks the address that a seasonal address took over from, so the nightly seasonal swap knows which address to put back when the season ends (R-AD4). Set and cleared by the swap job; there is no reason to edit it by hand.</description>
+  <inlineHelpText>Set by Open Impact when a seasonal address took over from this one. It is cleared when this address comes back into use.</inlineHelpText>
+  <label>Replaced By Seasonal</label>
+  <trackTrending>false</trackTrending>
+  <type>Checkbox</type>
+</CustomField>
