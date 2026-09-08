@@ -82,8 +82,7 @@ public with sharing class SetupAssistantController {
         try {
             return buildState();
         } catch (Exception e) {
-            ErrorLogger.log(e, ERROR_CONTEXT);
-            throw asAuraException(System.Label.Core_SetupAssistant_LoadErrorMessage);
+            throw logged(e, System.Label.Core_SetupAssistant_LoadErrorMessage);
         }
     }
 
@@ -93,12 +92,8 @@ public with sharing class SetupAssistantController {
         try {
             SetupAssistantService.markComplete(stepKey);
             return buildState();
-        } catch (SetupAssistantService.SetupStepException e) {
-            ErrorLogger.log(e, ERROR_CONTEXT);
-            throw asAuraException(e.getMessage());
         } catch (Exception e) {
-            ErrorLogger.log(e, ERROR_CONTEXT);
-            throw asAuraException(System.Label.Core_SetupAssistant_LoadErrorMessage);
+            throw logged(e, System.Label.Core_SetupAssistant_LoadErrorMessage);
         }
     }
 
@@ -108,12 +103,8 @@ public with sharing class SetupAssistantController {
         try {
             SetupAssistantService.markSkipped(stepKey);
             return buildState();
-        } catch (SetupAssistantService.SetupStepException e) {
-            ErrorLogger.log(e, ERROR_CONTEXT);
-            throw asAuraException(e.getMessage());
         } catch (Exception e) {
-            ErrorLogger.log(e, ERROR_CONTEXT);
-            throw asAuraException(System.Label.Core_SetupAssistant_LoadErrorMessage);
+            throw logged(e, System.Label.Core_SetupAssistant_LoadErrorMessage);
         }
     }
 
@@ -124,8 +115,7 @@ public with sharing class SetupAssistantController {
             SetupAssistantService.reset();
             return buildState();
         } catch (Exception e) {
-            ErrorLogger.log(e, ERROR_CONTEXT);
-            throw asAuraException(System.Label.Core_SetupAssistant_LoadErrorMessage);
+            throw logged(e, System.Label.Core_SetupAssistant_LoadErrorMessage);
         }
     }
 
@@ -143,8 +133,7 @@ public with sharing class SetupAssistantController {
             SetupAssistantService.markComplete('coexistence');
             return buildState();
         } catch (Exception e) {
-            ErrorLogger.log(e, ERROR_CONTEXT);
-            throw asAuraException(System.Label.Core_SetupAssistant_SaveErrorMessage);
+            throw logged(e, System.Label.Core_SetupAssistant_SaveErrorMessage);
         }
     }
 
@@ -170,12 +159,8 @@ public with sharing class SetupAssistantController {
                 SetupAssistantService.markComplete('identity');
             }
             return buildState();
-        } catch (SettingsService.SettingsException e) {
-            ErrorLogger.log(e, ERROR_CONTEXT);
-            throw asAuraException(e.getMessage());
         } catch (Exception e) {
-            ErrorLogger.log(e, ERROR_CONTEXT);
-            throw asAuraException(System.Label.Core_SetupAssistant_SaveErrorMessage);
+            throw logged(e, System.Label.Core_SetupAssistant_SaveErrorMessage);
         }
     }
 
@@ -189,6 +174,8 @@ public with sharing class SetupAssistantController {
         if (!ModuleDetectionService.isGivingPresent()) {
             throw asAuraException(System.Label.Core_SetupAssistant_GivingRequiredError);
         }
+        requireType(fundId, ModuleDetectionService.fundObjectName());
+        requireType(appealId, ModuleDetectionService.appealObjectName());
         try {
             SetupAssistantService.ensureStarted();
             SettingsService.saveSystemValue(
@@ -203,12 +190,8 @@ public with sharing class SetupAssistantController {
                 SetupAssistantService.markComplete('funddefaults');
             }
             return buildState();
-        } catch (SettingsService.SettingsException e) {
-            ErrorLogger.log(e, ERROR_CONTEXT);
-            throw asAuraException(e.getMessage());
         } catch (Exception e) {
-            ErrorLogger.log(e, ERROR_CONTEXT);
-            throw asAuraException(System.Label.Core_SetupAssistant_SaveErrorMessage);
+            throw logged(e, System.Label.Core_SetupAssistant_SaveErrorMessage);
         }
     }
 
@@ -225,8 +208,7 @@ public with sharing class SetupAssistantController {
             SetupAssistantService.markComplete('access');
             return buildState();
         } catch (Exception e) {
-            ErrorLogger.log(e, ERROR_CONTEXT);
-            throw asAuraException(System.Label.Core_SetupAssistant_AccessErrorMessage);
+            throw logged(e, System.Label.Core_SetupAssistant_AccessErrorMessage);
         }
     }
 
@@ -295,6 +277,33 @@ public with sharing class SetupAssistantController {
         }
         String value = SettingsService.asText(SettingsService.getValue(key));
         return String.isBlank(value) ? null : value;
+    }
+
+    /**
+     * Refuses a record identifier that does not point at the object the step is choosing
+     * from. The expected object is resolved by describe, so no Giving object is ever named
+     * here, and a client that sends any other identifier is turned away rather than storing
+     * a default that Giving would fail to read later.
+     */
+    private static void requireType(Id recordId, String expectedObject) {
+        if (recordId == null) {
+            return;
+        }
+        String actual = recordId.getSObjectType()
+            .getDescribe(SObjectDescribeOptions.DEFERRED)
+            .getName();
+        if (String.isBlank(expectedObject) || !expectedObject.equalsIgnoreCase(actual)) {
+            throw asAuraException(System.Label.Core_SetupAssistant_WrongRecordTypeError);
+        }
+    }
+
+    /** Logs what went wrong and gives the page one message Maria can act on. */
+    private static AuraHandledException logged(Exception e, String fallback) {
+        ErrorLogger.log(e, ERROR_CONTEXT);
+        Boolean speaksForItself =
+            e instanceof SetupAssistantService.SetupStepException ||
+            e instanceof SettingsService.SettingsException;
+        return asAuraException(speaksForItself ? e.getMessage() : fallback);
     }
 
     private static void requireEdit() {

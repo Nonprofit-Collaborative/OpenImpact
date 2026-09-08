@@ -45,6 +45,22 @@ describe('c-setup-step-identity', () => {
     expect(saved.mock.calls[0][0].detail.values.Organization_EIN__c).toBe('12-3456789');
   });
 
+  it('shows the uploaded logo rather than its record identifier', () => {
+    const element = build({ Receipt_Logo_Document_Id__c: '069000000000001' });
+
+    const preview = element.shadowRoot.querySelector('[data-id="logo-preview"]');
+    expect(preview.src).toContain('/sfc/servlet.shepherd/document/download/069000000000001');
+    expect(element.shadowRoot.textContent).not.toContain('069000000000001');
+  });
+
+  it('says what a tax identification number looks like', () => {
+    const element = build({});
+
+    const ein = element.shadowRoot.querySelector('lightning-input[data-key="Organization_EIN__c"]');
+    expect(ein.pattern).toBe('[0-9]{2}-[0-9]{7}');
+    expect(ein.messageWhenPatternMismatch).toContain('Core_SetupAssistant_EinPatternMessage');
+  });
+
   it('keeps an uploaded logo as a file identifier and saves it at once', () => {
     const element = build({});
     const saved = jest.fn();

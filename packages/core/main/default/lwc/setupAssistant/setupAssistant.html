@@ -30,6 +30,14 @@
             data-id="reopen"
             onclick={handleReopen}
         ></lightning-button>
+        <template lwc:if={canEdit}>
+            <lightning-button
+                class="slds-var-m-top_small slds-var-m-left_x-small"
+                label={labels.startAgain}
+                data-id="start-again"
+                onclick={handleReset}
+            ></lightning-button>
+        </template>
     </template>
 
     <template lwc:if={showPanels}>
@@ -44,12 +52,16 @@
         </div>
 
         <template lwc:if={activeStep}>
-            <div class="slds-box slds-var-p-around_medium" aria-labelledby="setup-assistant-heading">
-                <p class="slds-text-body_small slds-text-color_weak">
+            <div
+                class="slds-box slds-var-p-around_medium"
+                role="group"
+                aria-labelledby="setup-assistant-heading"
+            >
+                <p class="slds-text-body_small slds-text-color_weak" aria-live="polite">
                     <span class="slds-assistive-text">{labels.stepCounter}</span>
                     {counterText}
                 </p>
-                <h3 class="slds-text-heading_x-small" data-id="step-label">
+                <h3 class="slds-text-heading_x-small" data-id="step-label" tabindex="-1">
                     {activeStep.position}. {activeStep.label}
                 </h3>
                 <p class="slds-text-body_small slds-var-m-bottom_small">
@@ -65,12 +77,17 @@
                 </template>
 
                 <template lwc:if={isNamingStep}>
-                    <template lwc:if={namingType}>
+                    <template lwc:if={showNamingPanel}>
                         <lwc:component
                             lwc:is={namingType}
                             onsave={handleNamingSaved}
                             onsettingsaved={handleNamingSaved}
                         ></lwc:component>
+                    </template>
+                    <template lwc:else>
+                        <p class="slds-text-body_regular" data-id="naming-missing">
+                            {labels.namingUnavailable}
+                        </p>
                     </template>
                 </template>
 
@@ -110,6 +127,7 @@
                     <lightning-record-picker
                         label={labels.user}
                         object-api-name="User"
+                        filter={userFilter}
                         data-id="user-picker"
                         onchange={handleUserChange}
                     ></lightning-record-picker>
@@ -128,6 +146,15 @@
                             data-id="give-access"
                             onclick={handleAssignAccess}
                         ></lightning-button>
+                    </template>
+                    <template lwc:if={accessGranted}>
+                        <p
+                            class="slds-text-color_success slds-var-m-top_x-small"
+                            role="status"
+                            data-id="access-granted"
+                        >
+                            {labels.accessGranted}
+                        </p>
                     </template>
                     <p class="slds-var-m-top_x-small">
                         <a href={createUserUrl}>{labels.createUser}</a>
@@ -165,18 +192,29 @@
                             {labels.importMissing}
                         </p>
                     </template>
-                    <template lwc:if={showSampleData}>
-                        <template lwc:if={sampleDataType}>
-                            <div class="slds-var-m-top_small">
-                                <lwc:component lwc:is={sampleDataType}></lwc:component>
-                            </div>
-                        </template>
+                    <template lwc:if={showSampleDataPanel}>
+                        <div class="slds-var-m-top_small">
+                            <lwc:component lwc:is={sampleDataType}></lwc:component>
+                        </div>
+                    </template>
+                    <template lwc:if={sampleDataUnavailable}>
+                        <p
+                            class="slds-text-body_regular slds-var-m-top_small"
+                            data-id="sample-missing"
+                        >
+                            {labels.sampleUnavailable}
+                        </p>
                     </template>
                 </template>
 
                 <template lwc:if={isVerifyStep}>
-                    <template lwc:if={giftEntryType}>
-                        <lwc:component lwc:is={giftEntryType}></lwc:component>
+                    <template lwc:if={givingPresent}>
+                        <lightning-button
+                            variant="brand"
+                            label={labels.enterGift}
+                            data-id="enter-gift"
+                            onclick={handleEnterGift}
+                        ></lightning-button>
                     </template>
                     <template lwc:else>
                         <p class="slds-text-body_regular" data-id="verify-missing">
@@ -187,6 +225,9 @@
 
                 <p class="slds-text-body_small slds-text-color_weak slds-var-m-top_small">
                     {ruleText}
+                    <a class="slds-var-m-left_x-small" href={sectionUrl} data-id="section-link"
+                        >{labels.openSection}</a
+                    >
                 </p>
 
                 <div class="slds-var-m-top_small">

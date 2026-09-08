@@ -101,8 +101,9 @@ function state(overrides = {}) {
   };
 }
 
-function build() {
+function build(reopened = false) {
   const element = createElement('c-setup-assistant', { is: SetupAssistant });
+  element.reopened = reopened;
   document.body.appendChild(element);
   return element;
 }
@@ -272,6 +273,31 @@ describe('c-setup-assistant', () => {
     });
   });
 
+  it('says why the household naming panel is missing instead of showing an empty step', async () => {
+    getState.mockResolvedValue(state({ completedKeys: ['coexistence'] }));
+    const element = build();
+    await settle();
+
+    // c/householdNamingSettings belongs to C-02 and is not in this build, so the import
+    // rejects and the step has to say so.
+    expect(element.shadowRoot.querySelector('[data-id="naming-missing"]')).not.toBeNull();
+  });
+
+  it('says why the sample data panel is missing instead of leaving the button inert', async () => {
+    getState.mockResolvedValue(
+      state({
+        completedKeys: ['coexistence', 'naming', 'funddefaults', 'access', 'identity', 'modules']
+      })
+    );
+    const element = build();
+    await settle();
+
+    click(element, 'load-sample');
+    await settle();
+
+    expect(element.shadowRoot.querySelector('[data-id="sample-missing"]')).not.toBeNull();
+  });
+
   it('says the first gift check is waiting when Giving is not installed', async () => {
     getState.mockResolvedValue(
       state({
@@ -292,6 +318,44 @@ describe('c-setup-assistant', () => {
     expect(element.shadowRoot.querySelector('[data-id="verify-missing"]')).not.toBeNull();
   });
 
+  it('opens on a step Maria skipped the next time she comes back', async () => {
+    getState.mockResolvedValue(
+      state({ completedKeys: ['coexistence', 'naming'], skippedKeys: ['funddefaults'] })
+    );
+    const element = build();
+    await settle();
+
+    expect(element.shadowRoot.querySelector('[data-id="step-label"]').textContent).toContain(
+      'Choose your default fund and appeal'
+    );
+  });
+
+  it('opens on the first step when the Hub asked to reopen a finished setup', async () => {
+    getState.mockResolvedValue(state({ completedKeys: STEP_DEFINITIONS.map(([key]) => key) }));
+    const element = build(true);
+    await settle();
+
+    expect(element.shadowRoot.querySelector('[data-id="complete-heading"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="step-label"]')).not.toBeNull();
+  });
+
+  it('confirms that a colleague was given a role', async () => {
+    getState.mockResolvedValue(state({ completedKeys: ['coexistence', 'naming', 'funddefaults'] }));
+    const element = build();
+    await settle();
+
+    element.shadowRoot
+      .querySelector('[data-id="user-picker"]')
+      .dispatchEvent(new CustomEvent('change', { detail: { recordId: '005000000000001' } }));
+    element.shadowRoot
+      .querySelector('lightning-combobox')
+      .dispatchEvent(new CustomEvent('change', { detail: { value: 'Fundraising_Staff' } }));
+    click(element, 'give-access');
+    await settle();
+
+    expect(element.shadowRoot.querySelector('[data-id="access-granted"]')).not.toBeNull();
+  });
+
   it('shows the summary and how long setup took once every step is done', async () => {
     getState.mockResolvedValue(state({ completedKeys: STEP_DEFINITIONS.map(([key]) => key) }));
     const element = build();
@@ -304,6 +368,20 @@ describe('c-setup-assistant', () => {
     click(element, 'reopen');
     await settle();
     expect(element.shadowRoot.querySelector('[data-id="step-label"]')).not.toBeNull();
+  });
+
+  it('starts setup again when Maria asks, and forgets the progress it recorded', async () => {
+    getState.mockResolvedValue(state({ completedKeys: STEP_DEFINITIONS.map(([key]) => key) }));
+    const element = build();
+    await settle();
+
+    click(element, 'start-again');
+    await settle();
+
+    expect(resetSetup).toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('[data-id="step-label"]').textContent).toContain(
+      'Confirm how Open Impact fits your existing org'
+    );
   });
 
   it('tells the page how far setup has got', async () => {

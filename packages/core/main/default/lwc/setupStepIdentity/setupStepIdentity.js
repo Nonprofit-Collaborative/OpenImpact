@@ -8,10 +8,17 @@ import SIGNATURE from '@salesforce/label/c.Core_SetupAssistant_SignatureLabel';
 import SIGNER_NAME from '@salesforce/label/c.Core_SetupAssistant_SignerNameLabel';
 import SIGNER_TITLE from '@salesforce/label/c.Core_SetupAssistant_SignerTitleLabel';
 import UPLOAD_HELP from '@salesforce/label/c.Core_SetupAssistant_UploadHelp';
+import EIN_PATTERN_MESSAGE from '@salesforce/label/c.Core_SetupAssistant_EinPatternMessage';
+import LOGO_PREVIEW_ALT from '@salesforce/label/c.Core_SetupAssistant_LogoPreviewAlt';
+import SIGNATURE_PREVIEW_ALT from '@salesforce/label/c.Core_SetupAssistant_SignaturePreviewAlt';
 import SAVE from '@salesforce/label/c.Core_SetupAssistant_SaveButton';
 
 const LOGO_KEY = 'Receipt_Logo_Document_Id__c';
 const SIGNATURE_KEY = 'Receipt_Signature_Document_Id__c';
+const FILE_URL = '/sfc/servlet.shepherd/document/download/';
+// A tax identification number in the United States: two digits, a hyphen, seven digits.
+// Left blank elsewhere, which the help text says.
+const EIN_PATTERN = '[0-9]{2}-[0-9]{7}';
 
 /**
  * Step five: the name, tax identification number, address, signer, logo, and signature
@@ -36,8 +43,13 @@ export default class SetupStepIdentity extends LightningElement {
     signerName: SIGNER_NAME,
     signerTitle: SIGNER_TITLE,
     uploadHelp: UPLOAD_HELP,
+    einPattern: EIN_PATTERN_MESSAGE,
+    logoAlt: LOGO_PREVIEW_ALT,
+    signatureAlt: SIGNATURE_PREVIEW_ALT,
     save: SAVE
   };
+
+  einPattern = EIN_PATTERN;
 
   @api
   get values() {
@@ -56,12 +68,18 @@ export default class SetupStepIdentity extends LightningElement {
     return ['.png', '.jpg', '.jpeg'];
   }
 
-  get logoDocumentId() {
-    return this.draft[LOGO_KEY];
+  // Maria never sees the file's record identifier, only the picture it points at
+  // (plan Section 2.3: no setting requires knowing an API name).
+  get logoUrl() {
+    return this.fileUrl(LOGO_KEY);
   }
 
-  get signatureDocumentId() {
-    return this.draft[SIGNATURE_KEY];
+  get signatureUrl() {
+    return this.fileUrl(SIGNATURE_KEY);
+  }
+
+  fileUrl(key) {
+    return this.draft[key] ? `${FILE_URL}${this.draft[key]}` : undefined;
   }
 
   handleFieldChange(event) {

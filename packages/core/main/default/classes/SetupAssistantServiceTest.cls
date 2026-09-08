@@ -60,15 +60,6 @@ private class SetupAssistantServiceTest {
             stepByKey(afterMarking, 'modules').completed,
             'The step Maria marked is the one that is done'
         );
-
-        List<SetupAssistantService.Step> afterUnmarking = SetupAssistantService.markIncomplete(
-            'modules'
-        );
-        Assert.areEqual(
-            before,
-            SetupAssistantService.countCompleted(afterUnmarking),
-            'Maria can put a step back on the list'
-        );
     }
 
     @IsTest
@@ -143,8 +134,9 @@ private class SetupAssistantServiceTest {
     }
 
     @IsTest
-    static void putsEveryStepBackOnTheList() {
+    static void putsTheStepsMariaRecordedBackOnTheList() {
         SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
+        SettingsService.saveSystemValue('Household_Name_Pattern__c', 'The {LastName} Family');
         SetupAssistantService.markComplete('modules');
         SetupAssistantService.markSkipped('funddefaults');
 
@@ -152,13 +144,16 @@ private class SetupAssistantServiceTest {
         List<SetupAssistantService.Step> steps = SetupAssistantService.reset();
         Test.stopTest();
 
-        Assert.areEqual(
-            0,
-            SetupAssistantService.countCompleted(steps),
-            'Running setup again starts from the first step'
+        Assert.isFalse(
+            stepByKey(steps, 'modules').completed,
+            'A step Maria recorded as done is back on the list'
         );
         Assert.isFalse(stepByKey(steps, 'funddefaults').skipped, 'A skip is forgotten too');
         Assert.isNull(SetupAssistantService.getStartedAt(), 'So is when setup started');
+        Assert.isTrue(
+            stepByKey(steps, 'naming').completed,
+            'A step whose setting really does have a value stays done: re-running setup revisits decisions, it does not empty the org'
+        );
     }
 
     @IsTest

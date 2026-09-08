@@ -22,8 +22,9 @@ finish it.
 3. The home page opens on the assistant, at the first step you have not finished.
 
 When every step is done, the assistant collapses to a small **Setup complete** tile that
-shows how long setup took and how many steps you finished. The tile has a **Reopen setup**
-button, so the assistant is always one click away.
+shows how many steps you finished. The tile has a **Reopen setup** button, so the assistant
+is always one click away, and it opens straight back on the first step rather than on the
+completion screen.
 
 You need the **Manage Nonprofit Settings** permission to change anything in the assistant.
 Everyone else sees the same steps, reads the same explanations, and cannot save. If you can
@@ -83,7 +84,9 @@ The assistant opens the household naming settings inside the step, with the live
 Choose the pattern for the household name, the formal greeting, and the informal greeting,
 and watch five real households from your own data change as you type.
 
-Click **Save**, and the step completes itself.
+Click **Save**, and the step completes itself. If your org does not have the household
+naming screen yet, the step says so and tells you that Open Impact will name households
+with the pattern it ships until you change it.
 
 **What Maria sees:** `The Smith Family`, `Mr. and Mrs. John Smith`, `John and Jane`. She
 tries `Smith Household` in the name box, sees it in the preview, decides she prefers the
@@ -98,7 +101,9 @@ This step needs the **Giving** module, which is a separate package.
 
 - **If Giving is installed**, you get two pickers: the fund a gift belongs to when nobody
   says otherwise (usually your general operating fund) and the appeal it is credited to
-  (usually a general or unsolicited appeal). Choose them and click **Save**.
+  (usually a general or unsolicited appeal). Choose them and click **Save**. The pickers
+  only offer real funds and appeals, and anything else is refused, so a default can never
+  point at the wrong kind of record.
 - **If Giving is not installed**, the step says **Install the Giving module to choose
   defaults** and offers **Skip for now**. Skipping does not mark the step done, so it is
   waiting for you after you install Giving.
@@ -110,7 +115,9 @@ clicks **Skip for now** and moves on.
 
 ### Step 4: Give your colleagues access
 
-Pick one or more people, pick a role, and click **Give access**. The roles are:
+Pick one person, pick a role, and click **Give access**. The step confirms with "Access
+given. Add another person, or continue.", and the person box clears so you can do the next
+one. Give access to as many colleagues as you like, one at a time. The roles are:
 
 | Role | Who it is for |
 |---|---|
@@ -136,7 +143,8 @@ This is the form the "before you start" list was for. Fill in:
 - **Legal name**, exactly as on your tax filings, not your nickname.
 - **Tax identification number** (EIN in the United States).
 - **Address**, on one line, as you want it printed.
-- **Logo**: click **Upload logo** and choose the file.
+- **Logo**: click **Upload logo** and choose the file. The logo appears under the button
+  once it has uploaded, so you can see what your receipts will carry.
 - **Signature image**: the same, for the scanned signature on receipt letters.
 - **Signer name and title**, for example `Ana Ruiz` and `Executive Director`.
 
@@ -150,8 +158,9 @@ record to attach a logo to. Two consequences: keep the person who uploads the lo
 active user, and if the logo needs to change, upload the new one rather than editing the
 old file.
 
-**What Maria sees:** seven fields, two of them upload buttons, and a preview of the logo
-after it uploads.
+**What Maria sees:** five boxes, two upload buttons, and the logo and signature themselves
+once they are uploaded. The tax identification number box says what one looks like
+(`12-3456789`) and tells her to leave it blank outside the United States.
 
 **What she decides:** which name is the legal one. If you have a "doing business as" name,
 the legal name goes here and your everyday name goes on the letter text later.
@@ -185,7 +194,7 @@ Two buttons, and you may use either, both, or neither:
   columns, run a dry run, and see what would happen before anything is created.
 
 If the Import tab is not in your org yet, the step says so rather than sending you to a
-page that does not exist.
+page that does not exist, and the same is true of the sample data loader.
 
 **What Maria sees:** both buttons. She loads the sample data, because her real export is
 still being cleaned up.
@@ -194,9 +203,9 @@ still being cleaned up.
 
 ### Step 8: Check that everything works
 
-If the Giving module is installed, the quick gift entry form opens right inside the step:
-enter one gift, save it, and you have proved the whole chain works, from donor to household
-to gift.
+If the Giving module is installed, **Enter your first gift** opens the Giving module's own
+gift entry screen: enter one gift, save it, and you have proved the whole chain works, from
+donor to household to gift. Come back to the Hub afterwards and click **Finish**.
 
 If Giving is not installed yet, the step shows a **You are ready** summary of what you
 configured, and says that the first gift check is waiting for Giving.
@@ -204,14 +213,18 @@ configured, and says that the first gift check is waiting for Giving.
 Click **Finish**. The assistant shows the completion screen: every step with its status,
 and how long setup took, measured from the first change you made.
 
-**What Maria sees:** "You are ready", her eight steps, and `21 minutes`.
+**What Maria sees:** "You are ready", her eight steps, and `21 minutes`. Two buttons sit
+under the summary: **Reopen setup** walks the steps again with her answers intact, and
+**Start setup again** forgets the progress it recorded so the checklist starts from the
+first step. Neither of them empties a setting: a step whose answer is already saved stays
+finished, because it is.
 
 ## Common mistakes
 
 - **Treating Skip for now as done.** Skipping moves you on without marking the step
-  finished, on purpose. A skipped step still shows as **To do** and the assistant still
-  offers it next time. That is the point: step three is meant to wait until Giving is
-  installed.
+  finished, on purpose. A skipped step still shows as **To do**, and the next time you open
+  the Hub the assistant opens on it again. That is the point: step three is meant to wait
+  until Giving is installed.
 - **Marking coexistence mode and then changing your mind quietly.** Changing the mode later
   is allowed and is a real change: it changes how household membership is tracked from that
   point on. Change it on the Nonprofit Settings page, read the note there first, and do it

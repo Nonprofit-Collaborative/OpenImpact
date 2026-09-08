@@ -1,4 +1,5 @@
-import { LightningElement } from 'lwc';
+import { LightningElement, api } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
 import getState from '@salesforce/apex/SetupAssistantController.getState';
 import completeStep from '@salesforce/apex/SetupAssistantController.completeStep';
 import skipStep from '@salesforce/apex/SetupAssistantController.skipStep';
@@ -32,14 +33,26 @@ import APPEAL_LABEL from '@salesforce/label/c.Core_SetupAssistant_AppealLabel';
 import USER_LABEL from '@salesforce/label/c.Core_SetupAssistant_UserLabel';
 import ROLE_LABEL from '@salesforce/label/c.Core_SetupAssistant_RoleLabel';
 import GIVE_ACCESS from '@salesforce/label/c.Core_SetupAssistant_GiveAccessButton';
+import ACCESS_GRANTED from '@salesforce/label/c.Core_SetupAssistant_AccessGrantedMessage';
 import CREATE_USER from '@salesforce/label/c.Core_SetupAssistant_CreateUserLink';
 import LOAD_SAMPLE from '@salesforce/label/c.Core_SetupAssistant_LoadSampleButton';
 import IMPORT_BUTTON from '@salesforce/label/c.Core_SetupAssistant_ImportButton';
 import IMPORT_MISSING from '@salesforce/label/c.Core_SetupAssistant_ImportMissingNotice';
 import VERIFY_MISSING from '@salesforce/label/c.Core_SetupAssistant_VerifyGivingMissing';
+import NAMING_UNAVAILABLE from '@salesforce/label/c.Core_SetupAssistant_NamingUnavailableNotice';
+import SAMPLE_UNAVAILABLE from '@salesforce/label/c.Core_SetupAssistant_SampleDataUnavailableNotice';
+import ENTER_GIFT from '@salesforce/label/c.Core_SetupAssistant_EnterFirstGiftButton';
+import START_AGAIN from '@salesforce/label/c.Core_SetupAssistant_StartAgainButton';
+import OPEN_SECTION from '@salesforce/label/c.Core_SetupAssistant_OpenSectionButton';
 
 const CREATE_USER_URL = '/lightning/setup/ManageUsers/home';
+// The tabs the assistant links to. Both are unprefixed today; they are revisited when a
+// namespace is assigned (Decision D-01), which is recorded in the integration file.
 const IMPORT_URL = '/lightning/n/Import';
+const SETTINGS_PAGE = '/lightning/n/Nonprofit_Settings';
+// detection-only: the Giving package ships this tab, and Core may not import its components
+// (ADR-0020), so the first gift check is reached by navigation when Giving is installed.
+const GIFT_ENTRY_TAB = 'Gift_Entry';
 
 /**
  * The guided Setup Assistant: one step open at a time, Back and Next, Skip for now, and it
@@ -47,19 +60,25 @@ const IMPORT_URL = '/lightning/n/Import';
  * feature's component dynamically, so a step whose module is not installed shows a notice
  * instead of breaking the page.
  */
-export default class SetupAssistant extends LightningElement {
+export default class SetupAssistant extends NavigationMixin(LightningElement) {
+  /** Set by the Hub home page when Maria asked to reopen a finished setup. */
+  @api reopened = false;
+
+  reopenedHere = false;
   state;
   activeIndex = 0;
   errorMessage;
-  reopened = false;
   namingType;
   sampleDataType;
-  giftEntryType;
+  importsTried = false;
+  focusStepHeading = false;
   showSampleData = false;
   chosenUserId;
   chosenRole;
   chosenFundId;
   chosenAppealId;
+  accessGranted = false;
+  userFilter = { criteria: [{ fieldPath: 'IsActive', operator: 'eq', value: true }] };
 
   labels = {
     heading: HEADING,
@@ -80,11 +99,17 @@ export default class SetupAssistant extends LightningElement {
     user: USER_LABEL,
     role: ROLE_LABEL,
     giveAccess: GIVE_ACCESS,
+    accessGranted: ACCESS_GRANTED,
     createUser: CREATE_USER,
     loadSample: LOAD_SAMPLE,
     importButton: IMPORT_BUTTON,
     importMissing: IMPORT_MISSING,
-    verifyMissing: VERIFY_MISSING
+    verifyMissing: VERIFY_MISSING,
+    namingUnavailable: NAMING_UNAVAILABLE,
+    sampleUnavailable: SAMPLE_UNAVAILABLE,
+    enterGift: ENTER_GIFT,
+    startAgain: START_AGAIN,
+    openSection: OPEN_SECTION
   };
 
   createUserUrl = CREATE_USER_URL;
@@ -123,25 +148,25 @@ export default class SetupAssistant extends LightningElement {
     );
   }
 
+  // A skipped step is not a finished step, so a later visit opens on it again, which is what
+  // the admin guide promises. Skipping only moves past it for the rest of this sitting.
   firstUnfinishedIndex(state) {
     const steps = state.steps || [];
-    const index = steps.findIndex((step) => !step.completed && !step.skipped);
+    const index = steps.findIndex((step) => !step.completed);
     return index < 0 ? Math.max(steps.length - 1, 0) : index;
   }
 
-  // Steps that belong to another feature render that feature's component. Each import is
-  // written out literally so the compiler can see it, and a build without that component
-  // shows the step's notice instead of failing to render.
+  // The two panels Core itself ships are imported by name, written out literally so the
+  // compiler can see the specifier (ADR-0020). A build without one shows that step's notice
+  // rather than an empty panel. A module's own screen is reached by navigation instead,
+  // because Core cannot import from a package that depends on it.
   async importComponents() {
-    if (!this.namingType) {
-      this.namingType = await this.tryImport(() => import('c/householdNamingSettings'));
+    if (this.importsTried) {
+      return;
     }
-    if (!this.sampleDataType) {
-      this.sampleDataType = await this.tryImport(() => import('c/sampleDataManager'));
-    }
-    if (!this.giftEntryType && this.state && this.state.giving && this.state.giving.isPresent) {
-      this.giftEntryType = await this.tryImport(() => import('c/quickGiftEntry'));
-    }
+    this.importsTried = true;
+    this.namingType = await this.tryImport(() => import('c/householdNamingSettings'));
+    this.sampleDataType = await this.tryImport(() => import('c/sampleDataManager'));
   }
 
   async tryImport(loader) {
@@ -189,7 +214,7 @@ export default class SetupAssistant extends LightningElement {
   }
 
   get showCompletionScreen() {
-    return Boolean(this.state && this.state.isComplete && !this.reopened);
+    return Boolean(this.state && this.state.isComplete && !this.reopened && !this.reopenedHere);
   }
 
   get showPanels() {
@@ -291,46 +316,82 @@ export default class SetupAssistant extends LightningElement {
     return (this.state && this.state.coexistence) || {};
   }
 
+  /** The settings section this step's answers live in afterwards, for the Open in Settings link. */
+  get sectionUrl() {
+    const section = this.activeStep && this.activeStep.target ? this.activeStep.target : '';
+    return `${SETTINGS_PAGE}?c__section=${encodeURIComponent(section)}`;
+  }
+
+  get showNamingPanel() {
+    return Boolean(this.namingType);
+  }
+
+  get showSampleDataPanel() {
+    return this.showSampleData && Boolean(this.sampleDataType);
+  }
+
+  get sampleDataUnavailable() {
+    return this.showSampleData && !this.sampleDataType;
+  }
+
   handleBack() {
     if (this.activeIndex > 0) {
-      this.activeIndex -= 1;
+      this.moveTo(this.activeIndex - 1);
     }
   }
 
-  handleForward() {
+  // Nothing moves on until the save has answered, so an error is never reported about a step
+  // Maria has already left.
+  async handleForward() {
     if (this.canEdit && this.activeStep && this.activeStep.completionRule === 'Action') {
-      this.call(completeStep, { stepKey: this.activeKey }, false);
-      this.advance();
+      await this.call(completeStep, { stepKey: this.activeKey }, false, () => this.advance());
       return;
     }
     this.advance();
   }
 
-  handleSkip() {
+  async handleSkip() {
     if (!this.canEdit) {
       this.advance();
       return;
     }
-    this.call(skipStep, { stepKey: this.activeKey }, false);
-    this.advance();
+    await this.call(skipStep, { stepKey: this.activeKey }, false, () => this.advance());
   }
 
   advance() {
     if (!this.isLastStep) {
-      this.activeIndex += 1;
+      this.moveTo(this.activeIndex + 1);
     } else {
-      this.reopened = false;
+      this.reopenedHere = false;
     }
   }
 
+  moveTo(index) {
+    this.activeIndex = index;
+    this.focusStepHeading = true;
+  }
+
+  /** Start setup again: the recorded progress is forgotten, the settings are not. */
   handleReset() {
-    this.reopened = true;
+    this.reopenedHere = true;
     this.call(resetSetup, {}, true);
   }
 
   handleReopen() {
-    this.reopened = true;
-    this.activeIndex = 0;
+    this.reopenedHere = true;
+    this.moveTo(0);
+  }
+
+  /** Moves focus to the new step's heading, so a screen reader announces the change. */
+  renderedCallback() {
+    if (!this.focusStepHeading) {
+      return;
+    }
+    const heading = this.template.querySelector('[data-id="step-label"]');
+    if (heading) {
+      this.focusStepHeading = false;
+      heading.focus();
+    }
   }
 
   handleCoexistenceConfirm(event) {
@@ -371,11 +432,27 @@ export default class SetupAssistant extends LightningElement {
   }
 
   handleAssignAccess() {
-    this.call(assignAccess, { userId: this.chosenUserId, roleDeveloperName: this.chosenRole });
+    this.call(
+      assignAccess,
+      { userId: this.chosenUserId, roleDeveloperName: this.chosenRole },
+      false,
+      () => {
+        this.accessGranted = true;
+        this.chosenUserId = undefined;
+      }
+    );
   }
 
   handleShowSampleData() {
     this.showSampleData = true;
+  }
+
+  /** The first gift is entered on the Giving package's own tab (ADR-0020). */
+  handleEnterGift() {
+    this[NavigationMixin.Navigate]({
+      type: 'standard__navItemPage',
+      attributes: { apiName: GIFT_ENTRY_TAB }
+    });
   }
 
   async call(action, parameters, moveToFirstUnfinished, afterwards) {

@@ -30,19 +30,31 @@ public with sharing class ModuleDetectionService {
         public String docsUrl;
     }
 
-    /** True when the Giving package is installed, decided by describe, never by a compile time reference. */
+    /**
+     * True when the Giving package is installed. The package announcing itself with its own
+     * Setting Definition rows is the primary signal (ADR-0017): it survives a namespace and
+     * cannot be imitated by an org's own object. The describe probe is the fallback, and is
+     * only trusted when both objects are there, so that an org with its own `Fund__c` and no
+     * appeal object is not mistaken for Giving.
+     */
     public static Boolean isGivingPresent() {
+        if (announcedModules().contains(MODULE_GIVING.toLowerCase())) {
+            return true;
+        }
         return objectExists(GIVING_FUND_OBJECT) && objectExists(GIVING_APPEAL_OBJECT);
     }
 
-    /** The fund object's API name, or null when Giving is not installed. */
+    /**
+     * The fund object's API name, or null when it is not in this org. Resolved by describe,
+     * matching on the unqualified name so that a namespaced installation still answers.
+     */
     public static String fundObjectName() {
-        return objectExists(GIVING_FUND_OBJECT) ? GIVING_FUND_OBJECT : null;
+        return resolveObject(GIVING_FUND_OBJECT);
     }
 
-    /** The appeal object's API name, or null when Giving is not installed. */
+    /** The appeal object's API name, or null when it is not in this org. */
     public static String appealObjectName() {
-        return objectExists(GIVING_APPEAL_OBJECT) ? GIVING_APPEAL_OBJECT : null;
+        return resolveObject(GIVING_APPEAL_OBJECT);
     }
 
     /** True when the Import framework's staging object is in this org, so the Import tab is worth linking to. */
@@ -95,6 +107,26 @@ public with sharing class ModuleDetectionService {
     }
 
     private static Boolean objectExists(String objectName) {
-        return Schema.getGlobalDescribe().containsKey(objectName.toLowerCase());
+        return resolveObject(objectName) != null;
+    }
+
+    /**
+     * The API name an object actually has in this org, matching the unqualified name so that
+     * the same probe works before and after a namespace is assigned (Decision D-01), or null
+     * when no object matches.
+     */
+    private static String resolveObject(String unqualifiedName) {
+        String wanted = unqualifiedName.toLowerCase();
+        Map<String, Schema.SObjectType> describes = Schema.getGlobalDescribe();
+        if (describes.containsKey(wanted)) {
+            return describes.get(wanted).getDescribe(SObjectDescribeOptions.DEFERRED).getName();
+        }
+        String suffix = '__' + wanted;
+        for (String name : describes.keySet()) {
+            if (name.endsWith(suffix)) {
+                return describes.get(name).getDescribe(SObjectDescribeOptions.DEFERRED).getName();
+            }
+        }
+        return null;
     }
 }

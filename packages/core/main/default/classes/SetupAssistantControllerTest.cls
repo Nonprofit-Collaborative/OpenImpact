@@ -3,13 +3,31 @@
  * Nonprofit Cloud org, fills in what her receipts need, skips the step that is waiting for
  * the Giving module, and starts again when she wants to.
  *
- * Whether the running user holds `Manage_Nonprofit_Settings` depends on the org the tests
- * run in, so every test that saves something accepts either outcome and asserts that the
- * outcome matches the permission, the same way the settings console tests do.
+ * The permission the assistant checks is granted in setup, so the saving tests assert the
+ * saving path itself, and David's refusal is asserted once, under `System.runAs`.
  */
 @IsTest
 private class SetupAssistantControllerTest {
-    private static final String EDIT_PERMISSION = 'Manage_Nonprofit_Settings';
+    @TestSetup
+    static void grantPermission() {
+        SettingsTestPermissions.grantTo('C12_Setup_Assistant_Test', UserInfo.getUserId());
+    }
+
+    private static User buildDavid() {
+        Profile standard = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        return new User(
+            FirstName = 'David',
+            LastName = 'Okonkwo',
+            Alias = 'davids',
+            Email = 'david.setup@example.com',
+            Username = 'david.setup.' + DateTime.now().getTime() + '@example.com',
+            ProfileId = standard.Id,
+            TimeZoneSidKey = 'America/New_York',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+    }
 
     @IsTest
     static void opensWithEveryPanelItNeeds() {
@@ -71,26 +89,18 @@ private class SetupAssistantControllerTest {
     @IsTest
     static void confirmsTheCoexistenceModeAndMarksStepOneDone() {
         SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
-        Boolean canEdit = FeatureManagement.checkPermission(EDIT_PERMISSION);
 
         Test.startTest();
-        try {
-            SetupAssistantController.SetupState state = SetupAssistantController.applyCoexistence(
-                SetupAssistantService.MODE_STANDALONE
-            );
-            Assert.isTrue(canEdit, 'Only a user with the permission gets this far');
-            Assert.isTrue(
-                stepByKey(state.steps, 'coexistence').completed,
-                'Confirming the mode is what finishes step one'
-            );
-            Assert.isNotNull(
-                state.elapsedMinutes,
-                'The clock starts at the first change Maria makes'
-            );
-        } catch (AuraHandledException e) {
-            Assert.isFalse(canEdit, 'Maria must be able to confirm the mode');
-        }
+        SetupAssistantController.SetupState state = SetupAssistantController.applyCoexistence(
+            SetupAssistantService.MODE_STANDALONE
+        );
         Test.stopTest();
+
+        Assert.isTrue(
+            stepByKey(state.steps, 'coexistence').completed,
+            'Confirming the mode is what finishes step one'
+        );
+        Assert.isNotNull(state.elapsedMinutes, 'The clock starts at the first change Maria makes');
     }
 
     @IsTest
@@ -111,31 +121,26 @@ private class SetupAssistantControllerTest {
     @IsTest
     static void savesTheOrganizationIdentityAndFinishesStepFive() {
         SettingDefinitionSelector.stubbedRows = identityRows();
-        Boolean canEdit = FeatureManagement.checkPermission(EDIT_PERMISSION);
 
         Test.startTest();
-        try {
-            SetupAssistantController.SetupState state = SetupAssistantController.saveOrganizationIdentity(
-                new Map<String, Object>{
-                    'Organization_Legal_Name__c' => 'Riverside Community Aid',
-                    'Organization_EIN__c' => '12-3456789',
-                    'Receipt_Signer_Name__c' => 'Ana Ruiz'
-                }
-            );
-            Assert.isTrue(canEdit, 'Only a user with the permission gets this far');
-            Assert.areEqual(
-                'Riverside Community Aid',
-                state.identity.get('Organization_Legal_Name__c'),
-                'The legal name is what receipts are printed with'
-            );
-            Assert.isTrue(
-                stepByKey(state.steps, 'identity').completed,
-                'A receipt needs the legal name, so that is what finishes the step'
-            );
-        } catch (AuraHandledException e) {
-            Assert.isFalse(canEdit, 'Maria must be able to record her receipt details');
-        }
+        SetupAssistantController.SetupState state = SetupAssistantController.saveOrganizationIdentity(
+            new Map<String, Object>{
+                'Organization_Legal_Name__c' => 'Riverside Community Aid',
+                'Organization_EIN__c' => '12-3456789',
+                'Receipt_Signer_Name__c' => 'Ana Ruiz'
+            }
+        );
         Test.stopTest();
+
+        Assert.areEqual(
+            'Riverside Community Aid',
+            state.identity.get('Organization_Legal_Name__c'),
+            'The legal name is what receipts are printed with'
+        );
+        Assert.isTrue(
+            stepByKey(state.steps, 'identity').completed,
+            'A receipt needs the legal name, so that is what finishes the step'
+        );
     }
 
     @IsTest
@@ -157,7 +162,6 @@ private class SetupAssistantControllerTest {
 
     @IsTest
     static void refusesGivingDefaultsWhileTheGivingModuleIsAbsent() {
-        Boolean canEdit = FeatureManagement.checkPermission(EDIT_PERMISSION);
         Boolean refused = false;
         String message;
 
@@ -171,13 +175,11 @@ private class SetupAssistantControllerTest {
         Test.stopTest();
 
         Assert.isTrue(refused, 'There is no fund to point at until Giving is installed');
-        if (canEdit) {
-            Assert.areEqual(
-                System.Label.Core_SetupAssistant_GivingRequiredError,
-                message,
-                'The message tells Maria to install the module'
-            );
-        }
+        Assert.areEqual(
+            System.Label.Core_SetupAssistant_GivingRequiredError,
+            message,
+            'The message tells Maria to install the module'
+        );
     }
 
     @IsTest
@@ -201,47 +203,33 @@ private class SetupAssistantControllerTest {
     @IsTest
     static void skipsAStepWithoutCountingItDone() {
         SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
-        Boolean canEdit = FeatureManagement.checkPermission(EDIT_PERMISSION);
 
         Test.startTest();
-        try {
-            SetupAssistantController.SetupState state = SetupAssistantController.skipStep(
-                'funddefaults'
-            );
-            Assert.isTrue(canEdit, 'Only a user with the permission gets this far');
-            SetupAssistantService.Step step = stepByKey(state.steps, 'funddefaults');
-            Assert.isTrue(step.skipped, 'The step is out of the way');
-            Assert.isFalse(step.completed, 'Skipping is not finishing');
-            Assert.areEqual(
-                0,
-                state.stepsCompleted,
-                'A skipped step does not count towards progress'
-            );
-        } catch (AuraHandledException e) {
-            Assert.isFalse(canEdit, 'Maria must be able to skip a step that is waiting');
-        }
+        SetupAssistantController.SetupState state = SetupAssistantController.skipStep(
+            'funddefaults'
+        );
         Test.stopTest();
+
+        SetupAssistantService.Step step = stepByKey(state.steps, 'funddefaults');
+        Assert.isTrue(step.skipped, 'The step is out of the way');
+        Assert.isFalse(step.completed, 'Skipping is not finishing');
+        Assert.areEqual(0, state.stepsCompleted, 'A skipped step does not count towards progress');
     }
 
     @IsTest
     static void finishesAStepThatHasNoSettingBehindIt() {
         SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
-        Boolean canEdit = FeatureManagement.checkPermission(EDIT_PERMISSION);
 
         Test.startTest();
-        try {
-            SetupAssistantController.SetupState state = SetupAssistantController.completeStep(
-                'modules'
-            );
-            Assert.isTrue(canEdit, 'Only a user with the permission gets this far');
-            Assert.isTrue(
-                stepByKey(state.steps, 'modules').completed,
-                'Reading the module list is what finishes step six'
-            );
-        } catch (AuraHandledException e) {
-            Assert.isFalse(canEdit, 'Maria must be able to finish a step');
-        }
+        SetupAssistantController.SetupState state = SetupAssistantController.completeStep(
+            'modules'
+        );
         Test.stopTest();
+
+        Assert.isTrue(
+            stepByKey(state.steps, 'modules').completed,
+            'Reading the module list is what finishes step six'
+        );
     }
 
     @IsTest
@@ -262,23 +250,18 @@ private class SetupAssistantControllerTest {
     @IsTest
     static void givesAColleagueARoleAndFinishesStepFour() {
         SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
-        Boolean canEdit = FeatureManagement.checkPermission(EDIT_PERMISSION);
 
         Test.startTest();
-        try {
-            SetupAssistantController.SetupState state = SetupAssistantController.assignAccess(
-                UserInfo.getUserId(),
-                'Nonprofit_Admin'
-            );
-            Assert.isTrue(canEdit, 'Only a user with the permission gets this far');
-            Assert.isTrue(
-                stepByKey(state.steps, 'access').completed,
-                'Giving someone a role is what finishes step four'
-            );
-        } catch (AuraHandledException e) {
-            Assert.isFalse(canEdit, 'Maria must be able to give a colleague a role');
-        }
+        SetupAssistantController.SetupState state = SetupAssistantController.assignAccess(
+            UserInfo.getUserId(),
+            'Nonprofit_Admin'
+        );
         Test.stopTest();
+
+        Assert.isTrue(
+            stepByKey(state.steps, 'access').completed,
+            'Giving someone a role is what finishes step four'
+        );
     }
 
     @IsTest
@@ -299,19 +282,64 @@ private class SetupAssistantControllerTest {
     @IsTest
     static void startsAgainWhenTheOrganizationChanges() {
         SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
-        Boolean canEdit = FeatureManagement.checkPermission(EDIT_PERMISSION);
+        SetupAssistantController.completeStep('modules');
+
+        Test.startTest();
+        SetupAssistantController.SetupState state = SetupAssistantController.reset();
+        Test.stopTest();
+
+        Assert.areEqual(0, state.stepsCompleted, 'Every step Maria recorded is back on the list');
+        Assert.isNull(state.elapsedMinutes, 'The clock starts again with the next change');
+    }
+
+    @IsTest
+    static void letsDavidReadTheStepsAndRefusesHisChanges() {
+        User david = buildDavid();
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert david;
+        }
+        Boolean refused = false;
+
+        Test.startTest();
+        System.runAs(david) {
+            SetupAssistantController.SetupState state = SetupAssistantController.getState();
+            Assert.areEqual(8, state.steps.size(), 'David sees the same eight steps');
+            Assert.isFalse(state.canEdit, 'David may read the assistant but not change it');
+            try {
+                SetupAssistantController.completeStep('modules');
+            } catch (AuraHandledException e) {
+                refused = true;
+                Assert.areEqual(
+                    System.Label.Core_Settings_PermissionRequiredError,
+                    e.getMessage(),
+                    'The message names the permission he is missing'
+                );
+            }
+        }
+        Test.stopTest();
+
+        Assert.isTrue(refused, 'Finishing a step without the permission is refused');
+    }
+
+    @IsTest
+    static void refusesARecordThatIsNotTheKindTheStepAsksFor() {
+        if (!ModuleDetectionService.isGivingPresent()) {
+            return;
+        }
+        Boolean refused = false;
 
         Test.startTest();
         try {
-            SetupAssistantController.completeStep('modules');
-            SetupAssistantController.SetupState state = SetupAssistantController.reset();
-            Assert.isTrue(canEdit, 'Only a user with the permission gets this far');
-            Assert.areEqual(0, state.stepsCompleted, 'Every step is back on the list');
-            Assert.isNull(state.elapsedMinutes, 'The clock starts again with the next change');
+            SetupAssistantController.saveDefaults(UserInfo.getUserId(), null);
         } catch (AuraHandledException e) {
-            Assert.isFalse(canEdit, 'Maria must be able to run setup again');
+            refused = true;
         }
         Test.stopTest();
+
+        Assert.isTrue(
+            refused,
+            'A user identifier is not a fund, so it never becomes the default fund'
+        );
     }
 
     private static List<Setting_Definition__mdt> identityRows() {

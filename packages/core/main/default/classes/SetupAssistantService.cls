@@ -99,17 +99,17 @@ public with sharing class SetupAssistantService {
         return setMembership(PROGRESS_KEY, stepKey, true);
     }
 
-    public static List<Step> markIncomplete(String stepKey) {
-        return setMembership(PROGRESS_KEY, stepKey, false);
-    }
-
     /** Moves a step out of the way without counting it done, so the assistant offers it again. */
     public static List<Step> markSkipped(String stepKey) {
         ensureStarted();
         return setMembership(SKIPPED_KEY, stepKey, true);
     }
 
-    /** Puts every step back on the list and forgets when setup started, so it can be run again. */
+    /**
+     * Forgets the progress the administrator recorded, so setup can be run again from the
+     * first step. A step whose setting already has a value stays finished, because it really
+     * is: re-running setup revisits decisions, it does not empty the org's settings.
+     */
     public static List<Step> reset() {
         SettingsService.saveSystemValue(PROGRESS_KEY, '');
         SettingsService.saveSystemValue(SKIPPED_KEY, '');

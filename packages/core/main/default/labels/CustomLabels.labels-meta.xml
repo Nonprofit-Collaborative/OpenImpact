@@ -321,14 +321,6 @@
     <value>Address, as you want it printed</value>
   </labels>
   <labels>
-    <fullName>Core_SetupAssistant_AllDoneMessage</fullName>
-    <categories>Core</categories>
-    <language>en_US</language>
-    <protected>true</protected>
-    <shortDescription>Setup assistant: message shown when every step is done</shortDescription>
-    <value>Every setup step is done. You can re-open any step at any time.</value>
-  </labels>
-  <labels>
     <fullName>Core_SetupAssistant_AppealLabel</fullName>
     <categories>Core</categories>
     <language>en_US</language>
@@ -393,12 +385,28 @@
     <value>Tax identification number</value>
   </labels>
   <labels>
+    <fullName>Core_SetupAssistant_EinPatternMessage</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: what a tax identification number looks like</shortDescription>
+    <value>In the United States this is two digits, a hyphen, and seven digits, for example 12-3456789. Leave it blank if your country does not use one.</value>
+  </labels>
+  <labels>
     <fullName>Core_SetupAssistant_ElapsedLabel</fullName>
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
     <shortDescription>Setup assistant: label in front of how long setup took, in minutes</shortDescription>
     <value>Setup took, in minutes</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_EnterFirstGiftButton</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: button that opens the Giving package's gift entry screen</shortDescription>
+    <value>Enter your first gift</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_FinishButton</fullName>
@@ -497,20 +505,12 @@
     <value>Logo</value>
   </labels>
   <labels>
-    <fullName>Core_SetupAssistant_MarkDoneButton</fullName>
+    <fullName>Core_SetupAssistant_LogoPreviewAlt</fullName>
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription>Setup assistant: button that records a step as finished</shortDescription>
-    <value>Mark done</value>
-  </labels>
-  <labels>
-    <fullName>Core_SetupAssistant_MarkNotDoneButton</fullName>
-    <categories>Core</categories>
-    <language>en_US</language>
-    <protected>true</protected>
-    <shortDescription>Setup assistant: button that puts a finished step back on the list</shortDescription>
-    <value>Mark not done</value>
+    <shortDescription>Setup assistant: alternative text of the uploaded logo preview</shortDescription>
+    <value>The logo that will be printed on your receipts</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_ModeAgentforce</fullName>
@@ -577,6 +577,14 @@
     <value>Present</value>
   </labels>
   <labels>
+    <fullName>Core_SetupAssistant_NamingUnavailableNotice</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: notice when the household naming panel is not in this org</shortDescription>
+    <value>The household naming screen is not in this org yet, so there is nothing to confirm here. Skip this step, and Open Impact will name households with the pattern it ships until you change it.</value>
+  </labels>
+  <labels>
     <fullName>Core_SetupAssistant_NextButton</fullName>
     <categories>Core</categories>
     <language>en_US</language>
@@ -593,12 +601,12 @@
     <value>There was nothing to save. Fill something in first.</value>
   </labels>
   <labels>
-    <fullName>Core_SetupAssistant_OpenButton</fullName>
+    <fullName>Core_SetupAssistant_OpenSectionButton</fullName>
     <categories>Core</categories>
     <language>en_US</language>
     <protected>true</protected>
-    <shortDescription>Setup assistant: button that opens the page a step is about</shortDescription>
-    <value>Open</value>
+    <shortDescription>Setup assistant: link from a step to where its answers live in Nonprofit Settings</shortDescription>
+    <value>Where this lives in Settings</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_ProgressLabel</fullName>
@@ -657,6 +665,14 @@
     <value>This step finishes by itself once the setting it fills in has a value.</value>
   </labels>
   <labels>
+    <fullName>Core_SetupAssistant_SampleDataUnavailableNotice</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: notice when the sample data panel is not in this org</shortDescription>
+    <value>The sample data loader is not in this org yet. Import your own spreadsheet instead, or skip this step and come back.</value>
+  </labels>
+  <labels>
     <fullName>Core_SetupAssistant_SaveButton</fullName>
     <categories>Core</categories>
     <language>en_US</language>
@@ -705,6 +721,14 @@
     <value>Signature image</value>
   </labels>
   <labels>
+    <fullName>Core_SetupAssistant_SignaturePreviewAlt</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: alternative text of the uploaded signature preview</shortDescription>
+    <value>The signature that will be printed on your receipt letters</value>
+  </labels>
+  <labels>
     <fullName>Core_SetupAssistant_SignerNameLabel</fullName>
     <categories>Core</categories>
     <language>en_US</language>
@@ -735,6 +759,14 @@
     <protected>true</protected>
     <shortDescription>Setup assistant: badge on a step that was skipped</shortDescription>
     <value>Skipped</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_StartAgainButton</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: button that forgets recorded progress and runs setup again</shortDescription>
+    <value>Start setup again</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_Step1Description</fullName>
@@ -919,5 +951,13 @@
     <protected>true</protected>
     <shortDescription>Setup assistant: notice on the last step when the Giving module is absent</shortDescription>
     <value>The first gift check is waiting for the Giving module. Everything else is set up and ready.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_WrongRecordTypeError</fullName>
+    <categories>Core</categories>
+    <language>en_US</language>
+    <protected>true</protected>
+    <shortDescription>Setup assistant: error when a chosen record is not the kind of record the step asks for</shortDescription>
+    <value>That is not the kind of record this step is choosing, so nothing was saved. Pick again from the list.</value>
   </labels>
 </CustomLabels>

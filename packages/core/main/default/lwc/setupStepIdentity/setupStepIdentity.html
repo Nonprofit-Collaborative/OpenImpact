@@ -17,6 +17,9 @@
                 value={draft.Organization_EIN__c}
                 disabled={isReadOnly}
                 max-length="20"
+                pattern={einPattern}
+                message-when-pattern-mismatch={labels.einPattern}
+                field-level-help={labels.einPattern}
                 onchange={handleFieldChange}
             ></lightning-input>
         </div>
@@ -62,9 +65,15 @@
                     record-id={userId}
                     onuploadfinished={handleLogoUploaded}
                 ></lightning-file-upload>
-                <p class="slds-text-body_small slds-text-color_weak" data-id="logo-id">
-                    {logoDocumentId}
-                </p>
+                <template lwc:if={logoUrl}>
+                    <img
+                        class="slds-var-m-top_x-small"
+                        src={logoUrl}
+                        alt={labels.logoAlt}
+                        data-id="logo-preview"
+                        height="60"
+                    />
+                </template>
             </div>
             <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
                 <lightning-file-upload
@@ -74,9 +83,15 @@
                     record-id={userId}
                     onuploadfinished={handleSignatureUploaded}
                 ></lightning-file-upload>
-                <p class="slds-text-body_small slds-text-color_weak" data-id="signature-id">
-                    {signatureDocumentId}
-                </p>
+                <template lwc:if={signatureUrl}>
+                    <img
+                        class="slds-var-m-top_x-small"
+                        src={signatureUrl}
+                        alt={labels.signatureAlt}
+                        data-id="signature-preview"
+                        height="60"
+                    />
+                </template>
             </div>
         </div>
 
