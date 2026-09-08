@@ -107,16 +107,14 @@ jobs:
           if-no-files-found: ignore
 
   org-tests:
-    name: Org tests (${{ matrix.shape }})
+    name: Org tests
     needs: static
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        shape: [platform-only, sales-cloud, npsp, person-accounts, nonprofit-cloud]
+    # One long lived org, so two runs must not deploy into it at the same time. The newer
+    # run wins: an older deploy that is about to be superseded is not worth waiting for.
     concurrency:
-      group: org-tests-${{ matrix.shape }}-${{ github.ref }}
+      group: org-tests-persistent
       cancel-in-progress: true
     steps:
       - name: Checkout
@@ -134,65 +132,60 @@ jobs:
       - name: Install Salesforce CLI
         run: npm install -g @salesforce/cli
 
-      - name: Decide whether this shape can run
+      - name: Check for the test org secret
         id: check
         env:
-          SF_DEVHUB_AUTH_URL: ${{ secrets.SF_DEVHUB_AUTH_URL }}
-          SHAPE: ${{ matrix.shape }}
-          # Comma separated list of shapes to run. Unset means person-accounts only, which
-          # is the closest shape to Agentforce Nonprofit that an ordinary Dev Hub can
-          # create. Widen it as the Dev Hub allowance and the appetite for build minutes
-          # allow, for example: platform-only,person-accounts
-          # Add nonprofit-cloud only once the Dev Hub carries that entitlement: without it
-          # org creation fails, which is a red build rather than a reported gap.
-          SHAPES: ${{ vars.SF_ORG_TEST_SHAPES }}
+          SF_TEST_ORG_AUTH_URL: ${{ secrets.SF_TEST_ORG_AUTH_URL }}
         run: |
-          if [ -z "$SF_DEVHUB_AUTH_URL" ]; then
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "reason=no-devhub" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          SHAPES="${SHAPES:-person-accounts}"
-          if printf '%s' ",$SHAPES," | tr -d '[:space:]' | grep -q ",$SHAPE,"; then
+          if [ -n "$SF_TEST_ORG_AUTH_URL" ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
-            echo "reason=ok" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "reason=not-selected" >> "$GITHUB_OUTPUT"
-            echo "selected=$SHAPES" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Authenticate Dev Hub
+      - name: Authenticate the test org
         if: steps.check.outputs.enabled == 'true'
         env:
-          SF_DEVHUB_AUTH_URL: ${{ secrets.SF_DEVHUB_AUTH_URL }}
+          SF_TEST_ORG_AUTH_URL: ${{ secrets.SF_TEST_ORG_AUTH_URL }}
         run: |
           AUTH_FILE=$(mktemp)
-          echo "$SF_DEVHUB_AUTH_URL" > "$AUTH_FILE"
-          sf org login sfdx-url --sfdx-url-file "$AUTH_FILE" --alias devhub --set-default-dev-hub
+          echo "$SF_TEST_ORG_AUTH_URL" > "$AUTH_FILE"
+          sf org login sfdx-url --sfdx-url-file "$AUTH_FILE" --alias testorg
           rm -f "$AUTH_FILE"
 
-      - name: Create scratch org
+      - name: Report how long the org has left
         if: steps.check.outputs.enabled == 'true'
-        run: |
-          bash scripts/org/create-scratch-org.sh ${{ matrix.shape }} ci-${{ matrix.shape }}-${{ github.run_id }} --days 1 --no-sample-data
+        run: bash scripts/org/check-org-expiry.sh testorg
 
-      - name: Check for Apex test classes
+      - name: Deploy Core
         if: steps.check.outputs.enabled == 'true'
-        id: apex-tests
         run: |
-          if grep -rl "@IsTest" packages/core --include=*.cls > /dev/null 2>&1; then
-            echo "has_tests=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_tests=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No Apex test classes found under packages/core; skipping Apex test run."
+          DEPLOY_LOG=$(mktemp)
+          set +e
+          sf project deploy start --source-dir packages/core --wait 30 --ignore-conflicts --target-org testorg 2>&1 | tee "$DEPLOY_LOG"
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          if [ "$STATUS" -ne 0 ]; then
+            echo "== Deploy failed. Asking the org for the component level detail =="
+            JOB_ID=$(grep -oE 'Deploy ID: [0-9A-Za-z]+' "$DEPLOY_LOG" | head -1 | awk '{print $3}')
+            if [ -n "$JOB_ID" ]; then
+              sf project deploy report --job-id "$JOB_ID" --target-org testorg || true
+              sf project deploy report --job-id "$JOB_ID" --target-org testorg --json || true
+            else
+              sf project deploy report --use-most-recent --target-org testorg || true
+            fi
+            exit "$STATUS"
           fi
 
+      - name: Deploy Giving
+        if: steps.check.outputs.enabled == 'true'
+        run: sf project deploy start --source-dir packages/giving --wait 30 --ignore-conflicts --target-org testorg
+
       - name: Run Apex tests
-        if: steps.check.outputs.enabled == 'true' && steps.apex-tests.outputs.has_tests == 'true'
+        if: steps.check.outputs.enabled == 'true'
         run: |
           sf apex run test \
-            --target-org ci-${{ matrix.shape }}-${{ github.run_id }} \
+            --target-org testorg \
             --test-level RunLocalTests \
             --code-coverage \
             --result-format human \
@@ -200,29 +193,16 @@ jobs:
             --wait 30
 
       - name: Upload test results
-        if: steps.check.outputs.enabled == 'true' && steps.apex-tests.outputs.has_tests == 'true'
+        if: steps.check.outputs.enabled == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.shape }}
+          name: test-results
           path: test-results
           if-no-files-found: ignore
 
-      - name: Delete scratch org
-        if: always() && steps.check.outputs.enabled == 'true'
-        run: bash scripts/org/delete-scratch-org.sh ci-${{ matrix.shape }}-${{ github.run_id }}
-
-      - name: Say why this shape was skipped
+      - name: Say why this was skipped
         if: steps.check.outputs.enabled != 'true'
-        env:
-          REASON: ${{ steps.check.outputs.reason }}
-          SHAPE: ${{ matrix.shape }}
-          SELECTED: ${{ steps.check.outputs.selected }}
-        run: |
-          if [ "$REASON" = "not-selected" ]; then
-            echo "::notice::Shape $SHAPE is not in the selected set ($SELECTED). Change the SF_ORG_TEST_SHAPES repository variable to run it. See docs/contributor-guide/ci.md."
-          else
-            echo "::warning::SF_DEVHUB_AUTH_URL secret is not set; org-tests job for shape $SHAPE was skipped. See docs/contributor-guide/ci.md to configure it."
-          fi
+        run: echo "::warning::SF_TEST_ORG_AUTH_URL is not set, so no Apex test ran. Create a 30 day org with scripts/org/create-scratch-org.sh and store its auth URL. See docs/contributor-guide/ci.md."
 
   dco:
     name: DCO sign-off check
