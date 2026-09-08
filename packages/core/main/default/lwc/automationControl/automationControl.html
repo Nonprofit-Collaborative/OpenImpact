@@ -1,0 +1,113 @@
+<template>
+    <lightning-card title={labels.title} icon-name="utility:settings">
+        <div class="slds-var-p-horizontal_medium slds-var-p-bottom_medium">
+            <p class="slds-var-m-bottom_small">{labels.intro}</p>
+
+            <template if:true={isReadOnly}>
+                <div class="slds-box slds-box_x-small slds-theme_shade slds-var-m-bottom_small">
+                    <p data-id="read-only-notice">{labels.readOnly}</p>
+                </div>
+            </template>
+
+            <template if:true={hasError}>
+                <div
+                    class="slds-box slds-box_x-small slds-theme_error slds-var-m-bottom_small"
+                    role="alert"
+                >
+                    <lightning-icon
+                        icon-name="utility:error"
+                        size="x-small"
+                        alternative-text={labels.errorPrefix}
+                    ></lightning-icon>
+                    <span data-id="error-message">{errorMessage}</span>
+                </div>
+            </template>
+
+            <template if:true={isPaused}>
+                <div
+                    class="slds-box slds-box_x-small slds-theme_warning slds-var-m-bottom_small"
+                    role="status"
+                    aria-live="polite"
+                >
+                    <p data-id="paused-banner">
+                        <lightning-icon
+                            icon-name="utility:pause"
+                            size="x-small"
+                            alternative-text={labels.pausedPrefix}
+                        ></lightning-icon>
+                        {labels.pausedBanner}
+                        <lightning-formatted-date-time
+                            value={pausedUntil}
+                            year="numeric"
+                            month="short"
+                            day="2-digit"
+                            hour="2-digit"
+                            minute="2-digit"
+                        ></lightning-formatted-date-time>
+                    </p>
+                </div>
+            </template>
+
+            <div class="slds-grid slds-gutters slds-grid_vertical-align-end slds-var-m-bottom_medium">
+                <div class="slds-col slds-size_1-of-3">
+                    <lightning-combobox
+                        data-id="pause-hours"
+                        label={labels.pauseLength}
+                        value={selectedHours}
+                        options={hourOptions}
+                        disabled={controlsDisabled}
+                        onchange={handleHoursChange}
+                    ></lightning-combobox>
+                </div>
+                <div class="slds-col">
+                    <lightning-button
+                        data-id="pause-button"
+                        label={labels.pauseButton}
+                        variant="brand"
+                        disabled={controlsDisabled}
+                        onclick={handlePause}
+                    ></lightning-button>
+                    <lightning-button
+                        data-id="resume-button"
+                        class="slds-var-m-left_x-small"
+                        label={labels.resumeButton}
+                        disabled={controlsDisabled}
+                        onclick={handleResume}
+                    ></lightning-button>
+                </div>
+            </div>
+
+            <template if:true={isEmpty}>
+                <p data-id="empty-state">{labels.empty}</p>
+            </template>
+
+            <ul class="slds-has-dividers_bottom-space" data-id="automation-list">
+                <template for:each={automations} for:item="automation">
+                    <li key={automation.automationName} class="slds-item">
+                        <div class="slds-grid slds-gutters slds-grid_vertical-align-center">
+                            <div class="slds-col slds-size_2-of-3">
+                                <p class="slds-text-heading_small">{automation.label}</p>
+                                <p class="slds-text-body_small">{automation.description}</p>
+                                <p class="slds-text-body_small">
+                                    {labels.runsOn} {automation.objectName}
+                                </p>
+                            </div>
+                            <div class="slds-col slds-size_1-of-3">
+                                <lightning-input
+                                    type="toggle"
+                                    class="automation-toggle"
+                                    data-automation={automation.automationName}
+                                    label={automation.label}
+                                    variant="label-hidden"
+                                    checked={automation.enabled}
+                                    disabled={controlsDisabled}
+                                    onchange={handleToggle}
+                                ></lightning-input>
+                            </div>
+                        </div>
+                    </li>
+                </template>
+            </ul>
+        </div>
+    </lightning-card>
+</template>

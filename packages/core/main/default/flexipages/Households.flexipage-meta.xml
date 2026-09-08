@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>
+    The households a nonprofit serves, shown through the packaged Households list view.
+  </description>
+  <flexiPageRegions>
+    <itemInstances>
+      <componentInstance>
+        <componentInstanceProperties>
+          <name>entityName</name>
+          <value>Account</value>
+        </componentInstanceProperties>
+        <componentInstanceProperties>
+          <name>filterName</name>
+          <value>Households</value>
+        </componentInstanceProperties>
+        <componentInstanceProperties>
+          <name>showActionBar</name>
+          <value>true</value>
+        </componentInstanceProperties>
+        <componentInstanceProperties>
+          <name>showListViewSelector</name>
+          <value>true</value>
+        </componentInstanceProperties>
+        <componentName>force:listViewManager</componentName>
+        <identifier>force_listViewManagerHouseholds</identifier>
+      </componentInstance>
+    </itemInstances>
+    <mode>Replace</mode>
+    <name>main</name>
+    <type>Region</type>
+  </flexiPageRegions>
+  <masterLabel>Households</masterLabel>
+  <template>
+    <name>flexipage:defaultAppHomeTemplate</name>
+  </template>
+  <type>AppPage</type>
+</FlexiPage>

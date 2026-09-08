@@ -13,5 +13,32 @@ module.exports = [
   {
     files: ['packages/**/lwc/**/*.js'],
     rules: {}
+  },
+  {
+    // Jest test files load the wire adapter factories with require() inside jest.mock, which is
+    // hoisted above the imports, so require is available to them and to nothing else.
+    files: ['packages/**/lwc/**/__tests__/**/*.js'],
+    languageOptions: {
+      globals: {
+        require: 'readonly'
+      }
+    }
+  },
+  {
+    // sampleDataManager (C-10) polls SampleDataController.getStatus while a load runs;
+    // setInterval/clearInterval is the standard, supported way to do that in an LWC.
+    files: ['packages/core/main/default/lwc/sampleDataManager/sampleDataManager.js'],
+    rules: {
+      '@lwc/lwc/no-async-operation': 'off'
+    }
+  },
+  {
+    // Test-only timer helpers: a real setTimeout to flush promises, and a microtask
+    // drain loop used under jest.useFakeTimers().
+    files: ['packages/core/main/default/lwc/sampleDataManager/__tests__/*.js'],
+    rules: {
+      '@lwc/lwc/no-async-operation': 'off',
+      'no-await-in-loop': 'off'
+    }
   }
 ];

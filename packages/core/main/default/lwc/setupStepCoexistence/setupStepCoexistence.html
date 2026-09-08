@@ -1,0 +1,25 @@
+<template>
+    <p class="slds-text-body_regular slds-var-m-bottom_small" data-id="shape">{shapeText}</p>
+
+    <p class="slds-text-body_small slds-var-m-bottom_small">
+        <strong>{labels.recommended}:</strong>
+        <span data-id="recommended">{recommendedText}</span>
+    </p>
+
+    <lightning-combobox
+        label={labels.mode}
+        value={chosen}
+        options={options}
+        disabled={isReadOnly}
+        onchange={handleModeChange}
+    ></lightning-combobox>
+
+    <template lwc:if={canEdit}>
+        <lightning-button
+            class="slds-var-m-top_small"
+            variant="brand"
+            label={labels.confirm}
+            onclick={handleConfirm}
+        ></lightning-button>
+    </template>
+</template>
