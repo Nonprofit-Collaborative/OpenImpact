@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Voided</fullName>
+  <columns>Receipt_Number__c</columns>
+  <columns>Type__c</columns>
+  <columns>Statement_Year__c</columns>
+  <columns>Void_Reason__c</columns>
+  <columns>Voided_On__c</columns>
+  <columns>Replaced_By__c</columns>
+  <filterScope>Everything</filterScope>
+  <filters>
+    <field>Status__c</field>
+    <operation>equals</operation>
+    <value>Void</value>
+  </filters>
+  <label>Voided Receipts</label>
+</ListView>

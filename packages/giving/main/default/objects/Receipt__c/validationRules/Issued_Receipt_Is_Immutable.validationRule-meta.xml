@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Issued_Receipt_Is_Immutable</fullName>
+  <active>true</active>
+  <description>
+    R-RC1 and ADR-0010: a receipt's number, type, statement year, donor, amount, issue date and stored file do not change once the record exists. A correction is a void plus a new receipt. The stored file identifier is written once, immediately after the document is stored, and is immutable from then on: it starts empty because the file does not exist until the record it is linked to does.
+  </description>
+  <errorConditionFormula>
+    OR( ISCHANGED(Receipt_Number__c), ISCHANGED(Type__c), ISCHANGED(Statement_Year__c), ISCHANGED(Donor_Contact__c), ISCHANGED(Donor_Account__c), ISCHANGED(Gift__c), ISCHANGED(Total_Amount__c), ISCHANGED(Issue_Date__c), AND( ISCHANGED(Content_Document_Id__c), NOT(ISBLANK(PRIORVALUE(Content_Document_Id__c))) ) )
+  </errorConditionFormula>
+  <errorMessage>
+    A receipt cannot be changed once it exists. Void it and issue a new one instead.
+  </errorMessage>
+</ValidationRule>

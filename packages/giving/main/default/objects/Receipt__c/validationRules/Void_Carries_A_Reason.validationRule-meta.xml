@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Void_Carries_A_Reason</fullName>
+  <active>true</active>
+  <description>
+    R-RC4: a void is a record. It says why and when, so an auditor reading the receipt later learns something rather than finding a status with nothing behind it.
+  </description>
+  <errorConditionFormula>
+    AND( TEXT(Status__c) = "Void", OR( ISBLANK(Void_Reason__c), ISBLANK(Voided_On__c) ) )
+  </errorConditionFormula>
+  <errorMessage>
+    Say why this receipt is being voided. A void needs a reason and a date.
+  </errorMessage>
+</ValidationRule>
