@@ -104,10 +104,10 @@ Each feature adds its row here when its page is written.
 | C-14 Importing | [importing.md](importing.md) | Core | v0.2 |
 | G-01 Gifts | [gifts.md](gifts.md) | Giving | v0.2 |
 | G-03 Quick gift entry | [quick-gift-entry.md](quick-gift-entry.md) | Giving | v0.2 |
-| G-04 Funds | [funds.md](funds.md) | Giving | v0.2 |
+| G-01 Funds | [funds.md](funds.md) | Giving | v0.2 |
 | G-05 Appeals | [appeals.md](appeals.md) | Giving | v0.2 |
 | G-06 Giving dashboard | [giving-dashboard.md](giving-dashboard.md) | Giving | v0.2 |
-| G-01 Refunds and write-offs | [refunds.md](refunds.md) | Giving | v0.2 |
+| G-04 Refunds and write-offs | [refunds.md](refunds.md) | Giving | v0.2 |
 | G-07 and G-11 Commitments | [commitments.md](commitments.md) | Giving | v0.3 |
 | C-17 Addresses | [addresses.md](addresses.md) | Core | v0.3 |
 | C-15 Relationships | [relationships.md](relationships.md) | Core | v0.3 |

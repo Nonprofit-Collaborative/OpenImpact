@@ -13,6 +13,15 @@
   </flexiPageRegions>
   <flexiPageRegions>
     <componentInstances>
+      <componentName>relationshipPanel</componentName>
+    </componentInstances>
+    <componentInstances>
+      <componentName>affiliationPanel</componentName>
+    </componentInstances>
+    <componentInstances>
+      <componentName>addressPanel</componentName>
+    </componentInstances>
+    <componentInstances>
       <componentName>force:detailPanel</componentName>
     </componentInstances>
     <componentInstances>

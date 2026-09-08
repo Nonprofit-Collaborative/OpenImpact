@@ -38,11 +38,17 @@ Salesforce org is needed for this job. Steps:
    permission sets are assembled by hand at every merge from each branch's integration
    file, so the reference and the metadata can drift apart silently. This ran because
    `Nonprofit_Admin` granted a `Household_Member__c` tab that was never created.
-10. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
+10. `scripts/ci/check-help-links.py`, failing the build if a Setting Definition's Learn
+   more link points at a page that does not exist. `SettingsController` appends
+   `Help_Path__c` to a base already ending in `docs/admin-guide/`, so a row storing
+   `admin-guide/access.md` produces a 404 that nothing else notices: the value is a string,
+   so it deploys, and it is only wrong once an administrator clicks it in an org looking for
+   help. This ran because twelve of the thirty four shipped rows did exactly that.
+11. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
    is missing from `docs/architecture/canonical-model.md`. The canonical model is updated
    before an object or a field is added, so this is the gate that keeps it true.
-11. A grep check that fails the build if any tracked file contains an em dash character.
-12. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
+12. A grep check that fails the build if any tracked file contains an em dash character.
+13. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
    `sf code-analyzer run --workspace packages --rule-selector Recommended --severity-threshold 2`.
    The results are uploaded as a build artifact (`code-analyzer-results.html` and
    `code-analyzer-results.json`) even if the job fails, so anyone can download and read
@@ -64,6 +70,7 @@ npm run check:standard-objects
 npm run check:custom-metadata
 npm run check:symlinks
 npm run check:permission-sets
+npm run check:help-links
 npm run check:canonical-model
 npm run check:apex
 npm run check:analyzer
