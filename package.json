@@ -16,7 +16,8 @@
     "check:symlinks": "bash scripts/ci/check-symlinks.sh",
     "check:canonical-model": "python3 scripts/ci/check-canonical-model.py",
     "precommit": "lint-staged",
-    "check:apex": "bash scripts/ci/check-apex-offline.sh"
+    "check:apex": "bash scripts/ci/check-apex-offline.sh",
+    "check:analyzer": "sf code-analyzer run --workspace packages --rule-selector Recommended --severity-threshold 2"
   },
   "devDependencies": {
     "@lwc/eslint-plugin-lwc": "3.5.0",

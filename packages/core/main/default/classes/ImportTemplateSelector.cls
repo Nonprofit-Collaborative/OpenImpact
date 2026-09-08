@@ -6,20 +6,30 @@
  */
 @NamespaceAccessible
 public with sharing class ImportTemplateSelector {
-    private static final String FIELDS =
-        'Id, Name, Description__c, Template_Key__c, ' +
-        'Column_Mapping_JSON__c, Default_Values_JSON__c, Matching_Rule__c, Person_Mode__c, ' +
-        'Is_Package_Default__c, Is_Recurring__c, Source_Name__c, Last_Import_Date__c, Active__c';
-
     /** Active templates, in the order the wizard lists them. */
     @NamespaceAccessible
     public static List<Import_Template__c> selectActive() {
-        return Database.query(
-            'SELECT ' +
-                FIELDS +
-                ' FROM Import_Template__c WHERE Active__c = true ORDER BY Name ASC LIMIT 500',
-            AccessLevel.USER_MODE
-        );
+        return [
+            SELECT
+                Id,
+                Name,
+                Description__c,
+                Template_Key__c,
+                Column_Mapping_JSON__c,
+                Default_Values_JSON__c,
+                Matching_Rule__c,
+                Person_Mode__c,
+                Is_Package_Default__c,
+                Is_Recurring__c,
+                Source_Name__c,
+                Last_Import_Date__c,
+                Active__c
+            FROM Import_Template__c
+            WHERE Active__c = TRUE
+            WITH USER_MODE
+            ORDER BY Name ASC
+            LIMIT 500
+        ];
     }
 
     /** One template, or null when it is gone or the user cannot see it. */
@@ -28,11 +38,26 @@ public with sharing class ImportTemplateSelector {
         if (templateId == null) {
             return null;
         }
-        List<Import_Template__c> found = Database.queryWithBinds(
-            'SELECT ' + FIELDS + ' FROM Import_Template__c WHERE Id = :templateId LIMIT 1',
-            new Map<String, Object>{ 'templateId' => templateId },
-            AccessLevel.USER_MODE
-        );
+        List<Import_Template__c> found = [
+            SELECT
+                Id,
+                Name,
+                Description__c,
+                Template_Key__c,
+                Column_Mapping_JSON__c,
+                Default_Values_JSON__c,
+                Matching_Rule__c,
+                Person_Mode__c,
+                Is_Package_Default__c,
+                Is_Recurring__c,
+                Source_Name__c,
+                Last_Import_Date__c,
+                Active__c
+            FROM Import_Template__c
+            WHERE Id = :templateId
+            WITH USER_MODE
+            LIMIT 1
+        ];
         return found.isEmpty() ? null : found[0];
     }
 
@@ -74,6 +99,7 @@ public with sharing class ImportTemplateSelector {
                 Person_Mode__c,
                 Default_Active__c
             FROM Import_Template_Default__mdt
+            WITH SYSTEM_MODE
             ORDER BY MasterLabel ASC
             LIMIT 200
         ];

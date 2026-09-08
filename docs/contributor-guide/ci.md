@@ -41,6 +41,28 @@ Salesforce org is needed for this job. Steps:
 If `packages/` has no Apex or JavaScript yet, Code Analyzer may report nothing to scan.
 That is expected in the early scaffold and is not a failure.
 
+### Run the same checks locally, before you push
+
+Every gate above except the org tests runs on a laptop, and all of them are fast:
+
+```
+npm run prettier:verify
+npm run lint
+npm run test:unit
+npm run check:namespace
+npm run check:standard-objects
+npm run check:custom-metadata
+npm run check:symlinks
+npm run check:canonical-model
+npm run check:apex
+npm run check:analyzer
+```
+
+`check:analyzer` is the one most easily forgotten, because it is the slowest and needs the
+Salesforce CLI with the `code-analyzer` plugin. It is also the one that enforces a
+non-negotiable: zero high or critical findings before merge. Skipping it locally means
+finding out from a red build.
+
 ### `org-tests`
 
 Runs after `static` succeeds, as a matrix over four org shapes:
