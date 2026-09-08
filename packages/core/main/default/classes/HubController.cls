@@ -1,6 +1,10 @@
 /**
- * The Nonprofit Hub home page's Apex surface: the setup checklist, whether automation is
+ * The Nonprofit Hub home page's Apex surface: how far setup has got, whether automation is
  * paused, and how many errors nobody has looked at.
+ *
+ * The steps themselves belong to the Setup Assistant, which loads them itself, so the home
+ * page asks only for the two counters it uses to decide whether the assistant is still the
+ * main panel.
  *
  * Everything except the checklist is optional: automation control and the Error Log belong
  * to other features, so each call is wrapped and a failure costs the page a number, not the
@@ -21,8 +25,6 @@ public with sharing class HubController {
         public Integer stepsCompleted;
         @AuraEnabled
         public Integer stepsTotal;
-        @AuraEnabled
-        public List<SetupAssistantService.Step> steps;
     }
 
     @AuraEnabled(cacheable=true)
@@ -35,42 +37,12 @@ public with sharing class HubController {
         }
     }
 
-    @AuraEnabled
-    public static HomeModel markStepDone(String stepKey) {
-        return setStep(stepKey, true);
-    }
-
-    @AuraEnabled
-    public static HomeModel markStepNotDone(String stepKey) {
-        return setStep(stepKey, false);
-    }
-
-    private static HomeModel setStep(String stepKey, Boolean completed) {
-        if (!FeatureManagement.checkPermission(EDIT_PERMISSION)) {
-            throw asAuraException(System.Label.Core_Settings_PermissionRequiredError);
-        }
-        try {
-            if (completed) {
-                SetupAssistantService.markComplete(stepKey);
-            } else {
-                SetupAssistantService.markIncomplete(stepKey);
-            }
-            return buildModel();
-        } catch (SetupAssistantService.SetupStepException e) {
-            ErrorLogger.log(e, ERROR_CONTEXT);
-            throw asAuraException(e.getMessage());
-        } catch (Exception e) {
-            ErrorLogger.log(e, ERROR_CONTEXT);
-            throw asAuraException(System.Label.Core_HubHome_LoadErrorMessage);
-        }
-    }
-
     private static HomeModel buildModel() {
         HomeModel model = new HomeModel();
         model.canEdit = FeatureManagement.checkPermission(EDIT_PERMISSION);
-        model.steps = SetupAssistantService.getSteps();
-        model.stepsTotal = model.steps.size();
-        model.stepsCompleted = SetupAssistantService.countCompleted(model.steps);
+        List<SetupAssistantService.Step> steps = SetupAssistantService.getSteps();
+        model.stepsTotal = steps.size();
+        model.stepsCompleted = SetupAssistantService.countCompleted(steps);
         model.automationPaused = readAutomationPaused();
         model.newErrorCount = readNewErrorCount();
         return model;

@@ -17,18 +17,31 @@
 
         <div class="slds-grid slds-wrap slds-gutters">
             <div class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12">
-                <lightning-card title={labels.checklistHeading}>
-                    <div class="slds-var-p-horizontal_medium">
-                        <c-setup-assistant
-                            steps={steps}
-                            completed={stepsCompleted}
-                            total={stepsTotal}
-                            can-edit={canEdit}
-                            onstepdone={handleStepDone}
-                            onstepnotdone={handleStepNotDone}
-                        ></c-setup-assistant>
-                    </div>
-                </lightning-card>
+                <template lwc:if={showAssistant}>
+                    <lightning-card title={labels.checklistHeading}>
+                        <div class="slds-var-p-horizontal_medium">
+                            <c-setup-assistant
+                                reopened={setupReopened}
+                                onsetupchanged={handleSetupChanged}
+                            ></c-setup-assistant>
+                        </div>
+                    </lightning-card>
+                </template>
+                <template lwc:else>
+                    <lightning-card title={labels.setupCompleteHeading}>
+                        <div class="slds-var-p-horizontal_medium">
+                            <p class="slds-text-body_small" data-id="setup-progress">
+                                {setupProgressText}
+                            </p>
+                            <lightning-button
+                                class="slds-var-m-top_x-small"
+                                label={labels.reopenSetup}
+                                data-id="reopen-setup"
+                                onclick={handleReopenSetup}
+                            ></lightning-button>
+                        </div>
+                    </lightning-card>
+                </template>
             </div>
 
             <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">

@@ -24,7 +24,7 @@ page are for administrators only:
 - The **Errors to review** tile counts only errors you are allowed to see, and the Error
   Log tab itself is on the administrator role.
 - The **Setup checklist** can be read by anyone, but only a person with the **Manage
-  Nonprofit Settings** permission can mark a step done or change a setting.
+  Nonprofit Settings** permission can finish a step or change a setting.
 
 ## A five-minute walkthrough
 
@@ -32,17 +32,18 @@ Maria has just installed Open Impact and has the sample data loaded.
 
 1. Open the app launcher, type `Nonprofit`, and choose **Nonprofit Hub**. The home page
    opens with the heading **Welcome to Open Impact**.
-2. Read the **Setup checklist**. There are eight steps, each with one sentence saying what
-   it is for. Steps you have already finished show a **Done** badge, and the rest show
-   **To do**. The checklist tells you how many are done, for example "3 of 8".
-3. Find the first step, **Confirm how Open Impact fits your existing org**, and click
-   **Open**. The Nonprofit Settings page opens at the section that step belongs to. If your
-   org uses Person Accounts, as Nonprofit Cloud orgs do, the step says so plainly and
-   household membership uses the junction model, so what you already have keeps working.
-   Come back to the Hub with your browser's back button.
-4. Back on the home page, click **Mark done** on a step you have finished. The badge
-   changes to **Done** and the count at the top goes up. Nothing else happens: marking a
-   step is a note to yourself, not a switch.
+2. Read the **Setup checklist**. It opens on the first of eight steps you have not
+   finished, with one sentence saying what that step is for and the count of how far you
+   have got, for example "3 of 8". The steps are guided: each one is done here, on the home
+   page, not somewhere else.
+3. The first step, **Confirm how Open Impact fits your existing org**, says what it found in
+   your org. If your org uses Person Accounts, as Nonprofit Cloud orgs do, it says so
+   plainly, recommends Agentforce Nonprofit coexistence, and household membership uses the
+   junction model so that what you already have keeps working. Click **Confirm and
+   continue**.
+4. Use **Next**, **Back**, and **Skip for now** to move around. Skipping does not mark a
+   step done: it moves the step out of the way and offers it to you again next time. The
+   full walkthrough of all eight steps is in [setup-assistant.md](setup-assistant.md).
 5. Look at the **Errors to review** tile. On a fresh org it says `0`. If it ever shows a
    number, click **Open the Error Log** and read the plain-language message on each row.
 6. If someone has paused automation (for example during a large import), a banner sits
@@ -60,13 +61,13 @@ whether anything went wrong.
   launcher, not the gear icon. If `Nonprofit Hub` does not appear in the app launcher, you
   have not been assigned an Open Impact role: ask whoever installed the package to add you
   on the Access page.
-- **Expecting Mark done to configure something.** The checklist records your progress. It
-  does not change any setting on its own. Use **Open** on the step to make the actual
-  change, then come back and mark it done.
-- **Reading the checklist as a one-time task.** The checklist stays on the home page after
-  you finish it, and you can un-mark a step at any time. Re-run any step whenever your
-  organization changes: a new fiscal year, a new staff member, a new bank account for
-  receipts.
+- **Treating Skip for now as done.** Skipping moves you on without finishing the step, on
+  purpose, so that a step waiting for a module you have not installed does not block you. A
+  skipped step is still waiting for you next time.
+- **Reading the checklist as a one-time task.** When every step is done the checklist
+  collapses to a small **Setup complete** tile with a **Reopen setup** button. Re-run it
+  whenever your organization changes: a new fiscal year, a new staff member, a new bank
+  account for receipts.
 - **Assuming an empty Errors tile means nothing failed.** The tile counts errors with the
   status **New**. If someone has already marked an error Acknowledged or Resolved, it
   stops counting. Open the Error Log tab to see everything.

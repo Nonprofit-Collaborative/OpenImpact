@@ -98,3 +98,4 @@ Each feature adds its row here when its page is written.
 | C-11 | [Health Check](health-check.md) | Core | v0.1 |
 | C-03 Nonprofit Hub app and setup checklist | [nonprofit-hub.md](nonprofit-hub.md) | Core | v0.1 |
 | C-03 Nonprofit Settings console | [nonprofit-settings.md](nonprofit-settings.md) | Core | v0.1 |
+| C-12 Setup Assistant | [setup-assistant.md](setup-assistant.md) | Core | v0.2 |

@@ -1,53 +1,258 @@
 <template>
-    <div class="slds-var-m-bottom_small">
-        <h2 class="slds-text-heading_small" id="setup-checklist-heading">{labels.heading}</h2>
-        <p class="slds-text-body_small slds-text-color_weak">
-            <span class="slds-assistive-text">{labels.progress}</span>
-            {progressText}
-        </p>
-    </div>
+    <template lwc:if={errorMessage}>
+        <p class="slds-text-color_error slds-var-m-bottom_small" role="alert">{errorMessage}</p>
+    </template>
 
-    <template lwc:if={allDone}>
-        <p class="slds-text-color_success slds-var-m-bottom_small" role="status">
-            {labels.allDone}
+    <template lwc:if={isReadOnly}>
+        <p class="slds-text-body_small slds-var-m-bottom_small" role="status">
+            {labels.readOnly}
         </p>
     </template>
 
-    <ul class="slds-has-dividers_bottom-space" aria-labelledby="setup-checklist-heading">
-        <template for:each={rows} for:item="step">
-            <li key={step.key} class="slds-item slds-var-p-vertical_x-small">
-                <div class="slds-grid slds-wrap slds-gutters_x-small">
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12">
-                        <span class={step.badgeClass}>{step.badge}</span>
-                        <span class="slds-text-heading_x-small slds-var-m-left_x-small">
-                            {step.position}. {step.label}
-                        </span>
-                        <p class="slds-text-body_small slds-text-color_weak">
-                            {step.description}
+    <template lwc:if={showCompletionScreen}>
+        <h2 class="slds-text-heading_small" data-id="complete-heading">
+            {labels.completeHeading}
+        </h2>
+        <p class="slds-text-body_small slds-var-m-bottom_small">
+            {labels.elapsed}: <span data-id="elapsed">{elapsedText}</span>
+        </p>
+        <ul class="slds-has-dividers_bottom-space">
+            <template for:each={summaryRows} for:item="step">
+                <li key={step.key} class="slds-item slds-var-p-vertical_xx-small">
+                    <span class={step.badgeClass}>{step.badge}</span>
+                    <span class="slds-var-m-left_x-small">{step.position}. {step.label}</span>
+                </li>
+            </template>
+        </ul>
+        <lightning-button
+            class="slds-var-m-top_small"
+            label={labels.reopen}
+            data-id="reopen"
+            onclick={handleReopen}
+        ></lightning-button>
+        <template lwc:if={canEdit}>
+            <lightning-button
+                class="slds-var-m-top_small slds-var-m-left_x-small"
+                label={labels.startAgain}
+                data-id="start-again"
+                onclick={handleReset}
+            ></lightning-button>
+        </template>
+    </template>
+
+    <template lwc:if={showPanels}>
+        <div class="slds-var-m-bottom_small">
+            <h2 class="slds-text-heading_small" id="setup-assistant-heading">
+                {labels.heading}
+            </h2>
+            <p class="slds-text-body_small slds-text-color_weak">
+                <span class="slds-assistive-text">{labels.progress}</span>
+                {progressText}
+            </p>
+        </div>
+
+        <template lwc:if={activeStep}>
+            <div
+                class="slds-box slds-var-p-around_medium"
+                role="group"
+                aria-labelledby="setup-assistant-heading"
+            >
+                <p class="slds-text-body_small slds-text-color_weak" aria-live="polite">
+                    <span class="slds-assistive-text">{labels.stepCounter}</span>
+                    {counterText}
+                </p>
+                <h3 class="slds-text-heading_x-small" data-id="step-label" tabindex="-1">
+                    {activeStep.position}. {activeStep.label}
+                </h3>
+                <p class="slds-text-body_small slds-var-m-bottom_small">
+                    {activeStep.description}
+                </p>
+
+                <template lwc:if={isCoexistenceStep}>
+                    <c-setup-step-coexistence
+                        coexistence={coexistence}
+                        can-edit={canEdit}
+                        onconfirm={handleCoexistenceConfirm}
+                    ></c-setup-step-coexistence>
+                </template>
+
+                <template lwc:if={isNamingStep}>
+                    <template lwc:if={showNamingPanel}>
+                        <lwc:component
+                            lwc:is={namingType}
+                            data-id="naming-panel"
+                            onsave={handleNamingSaved}
+                            onsettingsaved={handleNamingSaved}
+                        ></lwc:component>
+                    </template>
+                    <template lwc:else>
+                        <p class="slds-text-body_regular" data-id="naming-missing">
+                            {labels.namingUnavailable}
                         </p>
-                    </div>
-                    <div
-                        class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-text-align_right"
-                    >
-                        <a
-                            href={step.openUrl}
-                            class="slds-button slds-button_neutral"
-                            data-key={step.key}
-                        >
-                            {labels.open}
-                            <span class="slds-assistive-text">{step.label}</span>
-                        </a>
+                    </template>
+                </template>
+
+                <template lwc:if={isDefaultsStep}>
+                    <template lwc:if={givingPresent}>
+                        <lightning-record-picker
+                            label={labels.fund}
+                            object-api-name={fundObject}
+                            data-id="fund-picker"
+                            onchange={handleFundChange}
+                        ></lightning-record-picker>
+                        <lightning-record-picker
+                            class="slds-var-m-top_x-small"
+                            label={labels.appeal}
+                            object-api-name={appealObject}
+                            data-id="appeal-picker"
+                            onchange={handleAppealChange}
+                        ></lightning-record-picker>
                         <template lwc:if={canEdit}>
                             <lightning-button
-                                class="slds-var-m-left_x-small"
-                                label={step.toggleLabel}
-                                data-key={step.key}
-                                onclick={handleToggle}
+                                class="slds-var-m-top_small"
+                                variant="brand"
+                                label={labels.save}
+                                data-id="save-defaults"
+                                onclick={handleDefaultsSave}
                             ></lightning-button>
                         </template>
-                    </div>
+                    </template>
+                    <template lwc:else>
+                        <p class="slds-text-body_regular" data-id="giving-missing">
+                            {labels.givingMissing}
+                        </p>
+                    </template>
+                </template>
+
+                <template lwc:if={isAccessStep}>
+                    <lightning-record-picker
+                        label={labels.user}
+                        object-api-name="User"
+                        filter={userFilter}
+                        data-id="user-picker"
+                        onchange={handleUserChange}
+                    ></lightning-record-picker>
+                    <lightning-combobox
+                        class="slds-var-m-top_x-small"
+                        label={labels.role}
+                        value={chosenRole}
+                        options={roleOptions}
+                        onchange={handleRoleChange}
+                    ></lightning-combobox>
+                    <template lwc:if={canEdit}>
+                        <lightning-button
+                            class="slds-var-m-top_small"
+                            variant="brand"
+                            label={labels.giveAccess}
+                            data-id="give-access"
+                            onclick={handleAssignAccess}
+                        ></lightning-button>
+                    </template>
+                    <template lwc:if={accessGranted}>
+                        <p
+                            class="slds-text-color_success slds-var-m-top_x-small"
+                            role="status"
+                            data-id="access-granted"
+                        >
+                            {labels.accessGranted}
+                        </p>
+                    </template>
+                    <p class="slds-var-m-top_x-small">
+                        <a href={createUserUrl}>{labels.createUser}</a>
+                    </p>
+                </template>
+
+                <template lwc:if={isIdentityStep}>
+                    <c-setup-step-identity
+                        values={identityValues}
+                        can-edit={canEdit}
+                        onsave={handleIdentitySave}
+                    ></c-setup-step-identity>
+                </template>
+
+                <template lwc:if={isModulesStep}>
+                    <c-setup-step-modules modules={modules}></c-setup-step-modules>
+                </template>
+
+                <template lwc:if={isDataStep}>
+                    <lightning-button
+                        label={labels.loadSample}
+                        data-id="load-sample"
+                        onclick={handleShowSampleData}
+                    ></lightning-button>
+                    <template lwc:if={importAvailable}>
+                        <a
+                            class="slds-button slds-button_neutral slds-var-m-left_x-small"
+                            href={importUrl}
+                            data-id="import-link"
+                            >{labels.importButton}</a
+                        >
+                    </template>
+                    <template lwc:else>
+                        <p class="slds-text-body_small slds-var-m-top_x-small" data-id="import-missing">
+                            {labels.importMissing}
+                        </p>
+                    </template>
+                    <template lwc:if={showSampleDataPanel}>
+                        <div class="slds-var-m-top_small">
+                            <lwc:component lwc:is={sampleDataType} data-id="sample-panel"></lwc:component>
+                        </div>
+                    </template>
+                    <template lwc:if={sampleDataUnavailable}>
+                        <p
+                            class="slds-text-body_regular slds-var-m-top_small"
+                            data-id="sample-missing"
+                        >
+                            {labels.sampleUnavailable}
+                        </p>
+                    </template>
+                </template>
+
+                <template lwc:if={isVerifyStep}>
+                    <template lwc:if={givingPresent}>
+                        <lightning-button
+                            variant="brand"
+                            label={labels.enterGift}
+                            data-id="enter-gift"
+                            onclick={handleEnterGift}
+                        ></lightning-button>
+                    </template>
+                    <template lwc:else>
+                        <p class="slds-text-body_regular" data-id="verify-missing">
+                            {labels.verifyMissing}
+                        </p>
+                    </template>
+                </template>
+
+                <p class="slds-text-body_small slds-text-color_weak slds-var-m-top_small">
+                    {ruleText}
+                    <a class="slds-var-m-left_x-small" href={sectionUrl} data-id="section-link"
+                        >{labels.openSection}</a
+                    >
+                </p>
+
+                <div class="slds-var-m-top_small">
+                    <lightning-button
+                        label={labels.back}
+                        disabled={isFirstStep}
+                        data-id="back"
+                        onclick={handleBack}
+                    ></lightning-button>
+                    <lightning-button
+                        class="slds-var-m-left_x-small"
+                        label={labels.skip}
+                        data-id="skip"
+                        onclick={handleSkip}
+                    ></lightning-button>
+                    <lightning-button
+                        class="slds-var-m-left_x-small"
+                        variant="brand"
+                        label={forwardLabel}
+                        data-id="forward"
+                        onclick={handleForward}
+                    ></lightning-button>
                 </div>
-            </li>
+            </div>
         </template>
-    </ul>
+    </template>
 </template>
