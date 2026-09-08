@@ -177,13 +177,51 @@
 
                         <template if:true={isSplittingToExisting}>
                             <div class="slds-var-m-top_small split-target">
-                                <lightning-record-edit-form object-api-name="Contact">
-                                    <lightning-input-field
-                                        field-name="AccountId"
-                                        variant="label-hidden"
-                                        onchange={handleSplitTargetChange}
-                                    ></lightning-input-field>
-                                </lightning-record-edit-form>
+                                <lightning-input
+                                    type="search"
+                                    label={label.searchLabel}
+                                    placeholder={label.searchPlaceholder}
+                                    value={splitSearchTerm}
+                                    onchange={handleSplitSearchChange}
+                                    onkeyup={handleSplitSearchChange}
+                                    class="split-search-input"
+                                ></lightning-input>
+                                <lightning-button
+                                    label={label.searchLabel}
+                                    onclick={handleSplitSearch}
+                                    class="slds-var-m-top_x-small split-search-button"
+                                ></lightning-button>
+
+                                <template if:true={showSplitNoResults}>
+                                    <p class="slds-text-color_weak slds-var-m-top_small split-no-results">
+                                        {label.noResults}
+                                    </p>
+                                </template>
+
+                                <template if:true={hasSplitSearchResults}>
+                                    <ul class="slds-has-dividers_bottom-space slds-var-m-top_small split-search-results">
+                                        <template for:each={splitSearchResults} for:item="option">
+                                            <li key={option.id} class="slds-item split-search-result">
+                                                <lightning-button
+                                                    variant="base"
+                                                    label={option.name}
+                                                    data-household-id={option.id}
+                                                    onclick={handlePickSplitTarget}
+                                                    class="split-pick-button"
+                                                ></lightning-button>
+                                                <span class="slds-text-body_small slds-var-m-left_x-small">
+                                                    {option.location}
+                                                </span>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </template>
+
+                                <template if:true={splitTargetName}>
+                                    <p class="slds-var-m-top_x-small split-target-name">
+                                        {splitTargetName}
+                                    </p>
+                                </template>
                             </div>
                         </template>
 
@@ -191,7 +229,7 @@
                             <lightning-button
                                 variant="brand"
                                 label={label.splitButton}
-                                disabled={busy}
+                                disabled={cannotSplit}
                                 onclick={handleSplitClick}
                                 class="split-button"
                             ></lightning-button>

@@ -275,6 +275,9 @@ describe('c-household-merge-split', () => {
 
   it('splits into a household that already exists when one is chosen', async () => {
     splitHousehold.mockResolvedValue(TARGET_HOUSEHOLD_ID);
+    searchHouseholds.mockResolvedValue([
+      { id: TARGET_HOUSEHOLD_ID, name: 'Lee Household', memberCount: 2, location: 'Oakland, CA' }
+    ]);
     const element = await openOn('Household', true);
 
     const checkboxes = element.shadowRoot.querySelectorAll('.member-checkbox');
@@ -287,8 +290,12 @@ describe('c-household-merge-split', () => {
       .dispatchEvent(new CustomEvent('change', { detail: { value: 'Existing' } }));
     await flush();
 
-    const lookup = element.shadowRoot.querySelector('.split-target lightning-input-field');
-    lookup.dispatchEvent(new CustomEvent('change', { detail: { value: [TARGET_HOUSEHOLD_ID] } }));
+    element.shadowRoot
+      .querySelector('.split-search-button')
+      .dispatchEvent(new CustomEvent('click'));
+    await flush();
+    await flush();
+    element.shadowRoot.querySelector('.split-pick-button').dispatchEvent(new CustomEvent('click'));
     await flush();
 
     element.shadowRoot.querySelector('.split-button').dispatchEvent(new CustomEvent('click'));
@@ -303,5 +310,49 @@ describe('c-household-merge-split', () => {
       personIds: [WEI_ID],
       targetHouseholdId: TARGET_HOUSEHOLD_ID
     });
+  });
+
+  it('will not split until somebody is ticked', async () => {
+    const element = await openOn('Household', true);
+
+    expect(element.shadowRoot.querySelector('.split-button').disabled).toBe(true);
+
+    const checkboxes = element.shadowRoot.querySelectorAll('.member-checkbox');
+    checkboxes[0].checked = true;
+    checkboxes[0].dispatchEvent(new CustomEvent('change'));
+    await flush();
+
+    expect(element.shadowRoot.querySelector('.split-button').disabled).toBe(false);
+  });
+
+  it('will not split into an existing household until one is picked', async () => {
+    searchHouseholds.mockResolvedValue([
+      { id: TARGET_HOUSEHOLD_ID, name: 'Lee Household', memberCount: 2, location: 'Oakland, CA' }
+    ]);
+    const element = await openOn('Household', true);
+
+    const checkboxes = element.shadowRoot.querySelectorAll('.member-checkbox');
+    checkboxes[1].checked = true;
+    checkboxes[1].dispatchEvent(new CustomEvent('change'));
+    await flush();
+    element.shadowRoot
+      .querySelector('.destination-choice')
+      .dispatchEvent(new CustomEvent('change', { detail: { value: 'Existing' } }));
+    await flush();
+
+    expect(element.shadowRoot.querySelector('.split-button').disabled).toBe(true);
+
+    element.shadowRoot
+      .querySelector('.split-search-button')
+      .dispatchEvent(new CustomEvent('click'));
+    await flush();
+    await flush();
+    element.shadowRoot.querySelector('.split-pick-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+
+    expect(element.shadowRoot.querySelector('.split-target-name').textContent).toBe(
+      'Lee Household'
+    );
+    expect(element.shadowRoot.querySelector('.split-button').disabled).toBe(false);
   });
 });

@@ -93,6 +93,10 @@ export default class HouseholdMergeSplit extends NavigationMixin(LightningElemen
   @track splitMembers = [];
   splitDestination = NEW_HOUSEHOLD;
   splitTargetId;
+  splitTargetName;
+  @track splitSearchResults = [];
+  splitSearchTerm = '';
+  splitSearchedOnce = false;
   confirmingSplit = false;
 
   @wire(getRecord, { recordId: '$recordId', fields: [RECORD_TYPE_FIELD] })
@@ -172,6 +176,18 @@ export default class HouseholdMergeSplit extends NavigationMixin(LightningElemen
 
   get isSplittingToExisting() {
     return this.splitDestination === EXISTING_HOUSEHOLD;
+  }
+
+  get cannotSplit() {
+    return this.busy || !this.canSplit;
+  }
+
+  get hasSplitSearchResults() {
+    return this.splitSearchResults.length > 0;
+  }
+
+  get showSplitNoResults() {
+    return this.splitSearchedOnce && !this.hasSplitSearchResults && !this.splitTargetId;
   }
 
   get destinationOptions() {
@@ -290,11 +306,38 @@ export default class HouseholdMergeSplit extends NavigationMixin(LightningElemen
   handleDestinationChange(event) {
     this.splitDestination = event.detail.value;
     this.splitTargetId = undefined;
+    this.splitTargetName = undefined;
+    this.splitSearchResults = [];
+    this.splitSearchedOnce = false;
   }
 
-  handleSplitTargetChange(event) {
-    const value = event.detail.value;
-    this.splitTargetId = Array.isArray(value) ? value[0] : value;
+  handleSplitSearchChange(event) {
+    this.splitSearchTerm = event.target.value;
+  }
+
+  /**
+   * The destination of a split is looked up the same way the other household in a merge
+   * is, so that only households are ever offered and an organization cannot be picked by
+   * accident. The household being split is left out of its own results.
+   */
+  handleSplitSearch() {
+    this.splitSearchedOnce = true;
+    return searchHouseholds({ term: this.splitSearchTerm, excludeId: this.recordId })
+      .then((results) => {
+        this.splitSearchResults = results || [];
+        this.errorMessage = undefined;
+      })
+      .catch((error) => {
+        this.splitSearchResults = [];
+        this.errorMessage = this.readError(error);
+      });
+  }
+
+  handlePickSplitTarget(event) {
+    const chosenId = event.target.dataset.householdId;
+    const chosen = this.splitSearchResults.find((row) => row.id === chosenId);
+    this.splitTargetId = chosenId;
+    this.splitTargetName = chosen ? chosen.name : '';
   }
 
   handleSplitClick() {
