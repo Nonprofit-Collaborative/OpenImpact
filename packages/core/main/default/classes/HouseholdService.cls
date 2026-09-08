@@ -652,13 +652,29 @@ public with sharing class HouseholdService {
      */
     @NamespaceAccessible
     public static void moveContact(Id contactId, Id targetHouseholdId) {
-        if (contactId == null || targetHouseholdId == null) {
+        if (contactId == null) {
             throw new HouseholdException(Label.Core_Households_ErrorMoveMissingInput);
         }
-        Boolean storedAsAccount = contactId.getSObjectType() == Account.SObjectType;
-        List<Contact> people = storedAsAccount
-            ? new List<Contact>()
-            : HouseholdSelector.getContactsByIds(new Set<Id>{ contactId });
+        // One upkeep path, the same one the membership trigger uses, so the work is not
+        // done twice when the trigger has already run for this move.
+        afterMembershipChange(moveMembers(new Set<Id>{ contactId }, targetHouseholdId));
+    }
+
+    /**
+     * Moves several people to one household in a single pass, whichever object holds each
+     * of them and whichever membership mode the org uses, and answers with every household
+     * the move touched: the target, and each household somebody left.
+     *
+     * Nothing is recounted, renamed, or tidied away here. The caller decides when to settle
+     * up by calling `afterMembershipChange` with the answer, so that a merge or a split of
+     * fifty people settles once rather than fifty times. `moveContact` is that caller for a
+     * single move. R-H12.
+     */
+    @NamespaceAccessible
+    public static Set<Id> moveMembers(Set<Id> personIds, Id targetHouseholdId) {
+        if (personIds == null || personIds.isEmpty() || targetHouseholdId == null) {
+            throw new HouseholdException(Label.Core_Households_ErrorMoveMissingInput);
+        }
         List<Account> targets = HouseholdSelector.getHouseholdsByIds(
             new Set<Id>{ targetHouseholdId }
         );
@@ -668,55 +684,119 @@ public with sharing class HouseholdService {
         if (targets[0].RecordTypeId != householdRecordTypeId()) {
             throw new HouseholdException(Label.Core_Households_ErrorNotAHousehold);
         }
-        Boolean personMissing =
-            storedAsAccount && PersonRecordSelector.getPersons(new Set<Id>{ contactId }).isEmpty();
-        if (personMissing) {
+        Set<Id> contactPeople = idsOfType(personIds, Contact.SObjectType);
+        Set<Id> accountPeople = idsOfType(personIds, Account.SObjectType);
+        if (contactPeople.size() + accountPeople.size() != personIds.size()) {
+            // An id of any other object is not a person this service can move.
             throw new HouseholdException(Label.Core_Households_ErrorMoveNotFound);
         }
-        if (!storedAsAccount && people.isEmpty()) {
+        if (!accountPeople.isEmpty() && !isJunctionMode()) {
+            // A person stored as an account has no account reference of their own to move,
+            // so this org has to be in the flexible membership mode to move them at all.
+            throw new HouseholdException(Label.Core_Households_ErrorMoveNeedsJunction);
+        }
+        // Everybody named is read through the object that holds them, and everybody named
+        // has to exist. A merge or a split that names somebody who has since been deleted
+        // is refused rather than quietly moving the rest.
+        Map<Id, Contact> contacts = new Map<Id, Contact>(
+            HouseholdSelector.getContactsByIds(contactPeople)
+        );
+        if (contacts.size() != contactPeople.size()) {
+            throw new HouseholdException(Label.Core_Households_ErrorMoveNotFound);
+        }
+        Set<Id> foundAsAccount = new Set<Id>();
+        for (Person person : PersonRecordSelector.getPersons(accountPeople)) {
+            foundAsAccount.add(person.id);
+        }
+        if (foundAsAccount.size() != accountPeople.size()) {
             throw new HouseholdException(Label.Core_Households_ErrorMoveNotFound);
         }
         Set<Id> affected = new Set<Id>{ targetHouseholdId };
         if (isJunctionMode()) {
-            moveJunctionMember(contactId, targetHouseholdId, storedAsAccount, affected);
-        } else if (storedAsAccount) {
-            // A person stored as an account has no account reference of their own to move,
-            // so this org has to be in the flexible membership mode to move them at all.
-            throw new HouseholdException(Label.Core_Households_ErrorMoveNeedsJunction);
+            moveJunctionMembers(personIds, targetHouseholdId, affected);
         } else {
-            Contact person = people[0];
+            moveContactMembers(contacts.values(), targetHouseholdId, affected);
+        }
+        HOUSEHOLD_ID_BY_PERSON.clear();
+        return affected;
+    }
+
+    /**
+     * In contact mode the move is the person's own account reference, so everybody moves in
+     * one update. Somebody already in the target is left alone.
+     */
+    private static void moveContactMembers(
+        List<Contact> people,
+        Id targetHouseholdId,
+        Set<Id> affected
+    ) {
+        List<Contact> updates = new List<Contact>();
+        for (Contact person : people) {
+            if (person.AccountId == targetHouseholdId) {
+                continue;
+            }
             if (person.AccountId != null) {
                 affected.add(person.AccountId);
             }
-            person.AccountId = targetHouseholdId;
-            Database.update(new List<Contact>{ person }, AccessLevel.USER_MODE);
+            updates.add(new Contact(Id = person.Id, AccountId = targetHouseholdId));
         }
-        // One upkeep path, the same one the membership trigger uses, so the work is not
-        // done twice when the trigger has already run for this move.
-        afterMembershipChange(affected);
+        if (!updates.isEmpty()) {
+            Database.update(updates, AccessLevel.USER_MODE);
+        }
     }
 
-    private static void moveJunctionMember(
-        Id personId,
+    /**
+     * In junction mode a person who is already a current member of the target keeps that
+     * one membership: their other memberships are end dated and no second row is written,
+     * so that a move never leaves a person in the same household twice.
+     *
+     * The role a person had comes with them, so that a move does not quietly turn a Head
+     * into nobody in particular. The primary flag comes with them only where the target has
+     * room for it: at most one current member of a household is primary (R-M3), so if the
+     * target already has a primary, or two people arrive holding the flag, the arrivals
+     * join as ordinary members and the household keeps the one primary it is allowed.
+     */
+    private static void moveJunctionMembers(
+        Set<Id> personIds,
         Id targetHouseholdId,
-        Boolean storedAsAccount,
         Set<Id> affected
     ) {
-        List<Household_Member__c> current = HouseholdSelector.getMembershipsForPeople(
-            new Set<Id>{ personId }
-        );
+        Boolean primaryIsFree = true;
+        for (
+            Household_Member__c membership : HouseholdSelector.getMemberships(
+                new Set<Id>{ targetHouseholdId }
+            )
+        ) {
+            if (membership.Is_Primary__c == true) {
+                primaryIsFree = false;
+            }
+        }
+        Set<Id> alreadyInTarget = new Set<Id>();
+        Map<Id, String> roleByPerson = new Map<Id, String>();
+        Set<Id> wasPrimary = new Set<Id>();
         List<Household_Member__c> ended = new List<Household_Member__c>();
-        String role;
-        Boolean isPrimary = false;
-        for (Household_Member__c membership : current) {
+        for (
+            Household_Member__c membership : HouseholdSelector.getMembershipsForPeople(personIds)
+        ) {
+            Id personId = membership.Contact__c != null
+                ? membership.Contact__c
+                : membership.Account__c;
+            if (personId == null || !personIds.contains(personId)) {
+                continue;
+            }
             if (membership.Household__c == targetHouseholdId) {
+                alreadyInTarget.add(personId);
                 continue;
             }
             affected.add(membership.Household__c);
-            if (String.isBlank(role) && String.isNotBlank(membership.Role__c)) {
-                role = membership.Role__c;
+            if (
+                String.isBlank(roleByPerson.get(personId)) && String.isNotBlank(membership.Role__c)
+            ) {
+                roleByPerson.put(personId, membership.Role__c);
             }
-            isPrimary = isPrimary || membership.Is_Primary__c == true;
+            if (membership.Is_Primary__c == true) {
+                wasPrimary.add(personId);
+            }
             // Ended today, and the current-membership filter counts only a membership that
             // ends after today, so the person leaves the old household straight away.
             ended.add(new Household_Member__c(Id = membership.Id, End_Date__c = Date.today()));
@@ -724,18 +804,74 @@ public with sharing class HouseholdService {
         if (!ended.isEmpty()) {
             Database.update(ended, AccessLevel.USER_MODE);
         }
-        Household_Member__c joined = new Household_Member__c(
-            Household__c = targetHouseholdId,
+        Boolean primaryStillFree = primaryIsFree && wasPrimary.size() == 1;
+        List<Household_Member__c> joined = new List<Household_Member__c>();
+        for (Id personId : personIds) {
+            if (alreadyInTarget.contains(personId)) {
+                continue;
+            }
+            Boolean takesPrimary = primaryStillFree && wasPrimary.contains(personId);
+            if (takesPrimary) {
+                primaryStillFree = false;
+            }
+            joined.add(
+                newMembership(personId, targetHouseholdId, roleByPerson.get(personId), takesPrimary)
+            );
+        }
+        if (!joined.isEmpty()) {
+            Database.insert(joined, AccessLevel.USER_MODE);
+        }
+    }
+
+    /**
+     * A membership row that points at the person through whichever object holds them, so
+     * that an org storing people as accounts is joined up the same way as any other.
+     */
+    private static Household_Member__c newMembership(
+        Id personId,
+        Id householdId,
+        String role,
+        Boolean isPrimary
+    ) {
+        Household_Member__c membership = new Household_Member__c(
+            Household__c = householdId,
             Role__c = role,
             Is_Primary__c = isPrimary,
             Start_Date__c = Date.today()
         );
-        if (storedAsAccount) {
-            joined.Account__c = personId;
+        if (personId.getSObjectType() == Contact.SObjectType) {
+            membership.Contact__c = personId;
         } else {
-            joined.Contact__c = personId;
+            membership.Account__c = personId;
         }
-        Database.insert(new List<Household_Member__c>{ joined }, AccessLevel.USER_MODE);
+        return membership;
+    }
+
+    /**
+     * Creates one household named from the people who are about to join it, for a split
+     * that has no household to move them into yet. The people are not attached here: the
+     * caller moves them, so that one move path serves every caller.
+     */
+    @NamespaceAccessible
+    public static Id createHouseholdFor(List<Person> members) {
+        Id recordTypeId = householdRecordTypeId();
+        if (recordTypeId == null) {
+            throw new HouseholdException(Label.Core_Households_ErrorRecordTypeMissing);
+        }
+        List<Person> people = members == null ? new List<Person>() : members;
+        Account household = newHousehold(people, recordTypeId, SettingsService.getSettings());
+        household.Member_Count__c = 0;
+        // The name, the greetings and the count on this record are the package's own
+        // bookkeeping, so it is saved by HouseholdWriter for the reason ADR-0021 gives.
+        List<Id> created = HouseholdWriter.createHouseholds(new List<Account>{ household });
+        HOUSEHOLD_ID_BY_PERSON.clear();
+        Id householdId = created.isEmpty() ? null : created[0];
+        if (householdId == null) {
+            // HouseholdWriter has already logged why. Nobody is moved into a household
+            // that does not exist, so the split stops here rather than half happening.
+            throw new HouseholdException(Label.Core_Households_ErrorCreateFailed);
+        }
+        return householdId;
     }
 
     /**

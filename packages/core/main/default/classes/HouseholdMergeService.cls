@@ -1,0 +1,461 @@
+/**
+ * Combining two households into one, and moving people out of a household into another.
+ *
+ * A merge is done with the platform's own account merge, so that everything hanging off
+ * the household that goes away follows it to the survivor without this class knowing what
+ * any of it is: activities, files, notes, and every lookup any other package points at a
+ * household with. That is why a merge here is a merge and not a copy.
+ *
+ * The membership itself is moved first, through HouseholdService, so that neither the
+ * merge nor the split has to know how this org says a person belongs to a household.
+ *
+ * Canonical model Section 5, rule R-H13.
+ */
+@NamespaceAccessible
+public with sharing class HouseholdMergeService {
+    @NamespaceAccessible
+    public static final String KEEP_SURVIVOR = 'Survivor';
+    @NamespaceAccessible
+    public static final String KEEP_VICTIM = 'Victim';
+
+    // The two handlers that keep household membership tidy. Named here because a merge
+    // deliberately stands them down while it moves people (see mergeHouseholds).
+    private static final String CONTACT_HANDLER = 'ContactTriggerHandler';
+    private static final String MEMBER_HANDLER = 'HouseholdMemberTriggerHandler';
+
+    /**
+     * The fields a merge offers a choice about, in the order the comparison shows them.
+     * Every one of them is a field a person typed or a person cares about; the computed
+     * member count is not among them because it is recalculated afterwards either way.
+     */
+    private static final List<String> COMPARED_FIELDS = new List<String>{
+        'Name',
+        'Custom_Name__c',
+        'Household_Formal_Greeting__c',
+        'Household_Informal_Greeting__c',
+        'Primary_Contact__c',
+        'Anniversary__c',
+        'BillingStreet',
+        'BillingCity',
+        'BillingState',
+        'BillingPostalCode',
+        'BillingCountry'
+    };
+
+    /**
+     * One field, as the side by side comparison presents it.
+     */
+    @NamespaceAccessible
+    public class FieldChoice {
+        @AuraEnabled
+        @NamespaceAccessible
+        public String fieldName;
+        @AuraEnabled
+        @NamespaceAccessible
+        public String label;
+        @AuraEnabled
+        @NamespaceAccessible
+        public String survivorValue;
+        @AuraEnabled
+        @NamespaceAccessible
+        public String victimValue;
+        @AuraEnabled
+        @NamespaceAccessible
+        public Boolean inConflict;
+    }
+
+    /**
+     * One person who will be in the household after the merge, and which of the two
+     * households they are in now.
+     */
+    @NamespaceAccessible
+    public class MemberChoice {
+        @AuraEnabled
+        @NamespaceAccessible
+        public Id personId;
+        @AuraEnabled
+        @NamespaceAccessible
+        public String name;
+        @AuraEnabled
+        @NamespaceAccessible
+        public String role;
+        @AuraEnabled
+        @NamespaceAccessible
+        public String source;
+        @AuraEnabled
+        @NamespaceAccessible
+        public Boolean isPrimary;
+        @AuraEnabled
+        @NamespaceAccessible
+        public Boolean isDeceased;
+        @AuraEnabled
+        @NamespaceAccessible
+        public Boolean fromSurvivor;
+    }
+
+    /**
+     * Everything the screen needs to let a person decide, and nothing it does not.
+     */
+    @NamespaceAccessible
+    public class MergePreview {
+        @AuraEnabled
+        @NamespaceAccessible
+        public Id survivorId;
+        @AuraEnabled
+        @NamespaceAccessible
+        public String survivorName;
+        @AuraEnabled
+        @NamespaceAccessible
+        public Id victimId;
+        @AuraEnabled
+        @NamespaceAccessible
+        public String victimName;
+        @AuraEnabled
+        @NamespaceAccessible
+        public Boolean canEdit;
+        @AuraEnabled
+        @NamespaceAccessible
+        public List<FieldChoice> fields = new List<FieldChoice>();
+        @AuraEnabled
+        @NamespaceAccessible
+        public List<MemberChoice> members = new List<MemberChoice>();
+    }
+
+    /**
+     * Which household each contested field is taken from. A field left out is taken from
+     * the survivor, which is what the screen preselects.
+     */
+    @NamespaceAccessible
+    public class MergeChoices {
+        @AuraEnabled
+        @NamespaceAccessible
+        public Map<String, String> keepFrom = new Map<String, String>();
+
+        /**
+         * Built from what the screen sent, which may be nothing at all when the person
+         * accepted every value the surviving household already had.
+         */
+        @NamespaceAccessible
+        public MergeChoices(Map<String, String> keepFrom) {
+            this.keepFrom = keepFrom == null ? new Map<String, String>() : keepFrom;
+        }
+    }
+
+    // ------------------------------------------------------------------ preview
+
+    /**
+     * The two households side by side: every compared field with both values and whether
+     * they disagree, and the people who will be in the household afterwards.
+     */
+    @NamespaceAccessible
+    public static MergePreview preview(Id survivorId, Id victimId) {
+        Map<Id, Account> households = loadPair(survivorId, victimId);
+        Account survivor = households.get(survivorId);
+        Account victim = households.get(victimId);
+
+        MergePreview result = new MergePreview();
+        result.survivorId = survivorId;
+        result.survivorName = survivor.Name;
+        result.victimId = victimId;
+        result.victimName = victim.Name;
+        result.canEdit =
+            HouseholdSelector.getEditableIds(new Set<Id>{ survivorId, victimId }).size() == 2;
+
+        Map<String, Schema.SObjectField> describe = Schema.SObjectType.Account.fields.getMap();
+        for (String fieldName : COMPARED_FIELDS) {
+            Schema.SObjectField token = describe.get(fieldName);
+            if (token == null || !token.getDescribe().isAccessible()) {
+                continue;
+            }
+            FieldChoice choice = new FieldChoice();
+            choice.fieldName = fieldName;
+            choice.label = token.getDescribe().getLabel();
+            choice.survivorValue = display(survivor, fieldName);
+            choice.victimValue = display(victim, fieldName);
+            choice.inConflict = differs(choice.survivorValue, choice.victimValue);
+            result.fields.add(choice);
+        }
+
+        Map<Id, List<HouseholdService.Person>> membersByHousehold = HouseholdService.getMembers(
+            new Set<Id>{ survivorId, victimId }
+        );
+        addMembers(result, membersByHousehold.get(survivorId), true);
+        addMembers(result, membersByHousehold.get(victimId), false);
+        return result;
+    }
+
+    private static void addMembers(
+        MergePreview result,
+        List<HouseholdService.Person> people,
+        Boolean fromSurvivor
+    ) {
+        if (people == null) {
+            return;
+        }
+        Set<Id> alreadyListed = new Set<Id>();
+        for (MemberChoice listed : result.members) {
+            alreadyListed.add(listed.personId);
+        }
+        for (HouseholdService.Person person : people) {
+            if (person.id != null && alreadyListed.contains(person.id)) {
+                continue;
+            }
+            MemberChoice row = new MemberChoice();
+            row.personId = person.id;
+            row.name = fullName(person);
+            row.role = person.role;
+            row.source = person.sourceObject;
+            row.isPrimary = person.isPrimary == true;
+            row.isDeceased = person.isDeceased == true;
+            row.fromSurvivor = fromSurvivor;
+            result.members.add(row);
+        }
+    }
+
+    // ------------------------------------------------------------------ merge
+
+    /**
+     * Combines the two households. The people move first, then the chosen values are
+     * written to the survivor, then the platform merges the accounts so that everything
+     * else follows, and finally both the member count and the wording are settled.
+     *
+     * A merge is not reversible and it is not logged by this class: the platform records
+     * an account merge in the survivor's own history, which is the audit trail a person
+     * can actually read. Only a failure is logged, by the caller.
+     */
+    @NamespaceAccessible
+    public static Id mergeHouseholds(Id survivorId, Id victimId, MergeChoices choices) {
+        Map<Id, Account> households = loadPair(survivorId, victimId);
+        Account survivor = households.get(survivorId);
+        Account victim = households.get(victimId);
+        if (HouseholdSelector.getEditableIds(new Set<Id>{ survivorId, victimId }).size() != 2) {
+            throw new HouseholdException(Label.Core_HouseholdMerge_ErrorNoEditAccess);
+        }
+
+        Set<Id> movedPeople = HouseholdService.getMemberPersonIds(new Set<Id>{ victimId })
+            .get(victimId);
+        if (movedPeople != null && !movedPeople.isEmpty()) {
+            // The move empties the household that is about to go away, and the upkeep the
+            // membership handlers run would tidy an empty household away where the org asks
+            // for that. That would delete the very record the platform merge is about to
+            // fold into the survivor, and everything hanging off it, activities, files,
+            // notes and giving history, would go with it instead of following the merge.
+            // So the handlers are stood down for the move only, and this method settles the
+            // survivor up itself once the merge has happened.
+            withoutMembershipUpkeep(movedPeople, survivorId);
+        }
+
+        Boolean keepsCustomName = applyChoices(survivor, victim, choices);
+
+        // The platform's own merge, so that activities, files, notes, and every lookup
+        // another package points at this household follow the record that goes away.
+        Database.MergeResult merged = Database.merge(
+            new Account(Id = survivorId),
+            victimId,
+            false,
+            AccessLevel.USER_MODE
+        );
+        if (!merged.isSuccess()) {
+            // The people have already moved. Throwing here rolls the whole transaction
+            // back, so a merge that cannot finish leaves both households as they were
+            // rather than emptying one and keeping it.
+            List<String> reasons = new List<String>();
+            for (Database.Error problem : merged.getErrors()) {
+                reasons.add(problem.getMessage());
+            }
+            throw new HouseholdException(
+                Label.Core_HouseholdMerge_ErrorMergeFailed + ' ' + String.join(reasons, ' ')
+            );
+        }
+
+        Set<Id> survivorOnly = new Set<Id>{ survivorId };
+        if (keepsCustomName) {
+            HouseholdService.recalculateMemberCounts(survivorOnly);
+        } else {
+            HouseholdService.afterMembershipChange(survivorOnly);
+        }
+        return survivorId;
+    }
+
+    /**
+     * Writes the values the person chose onto the survivor, and answers whether the
+     * household is now one whose wording a person has taken over, in which case nothing
+     * afterwards is allowed to rewrite it.
+     */
+    private static Boolean applyChoices(Account survivor, Account victim, MergeChoices choices) {
+        Map<String, String> keepFrom = choices == null ||
+            choices.keepFrom == null
+            ? new Map<String, String>()
+            : choices.keepFrom;
+        Account changes = new Account(Id = survivor.Id);
+        Boolean anyChange = false;
+        Map<String, Schema.SObjectField> describe = Schema.SObjectType.Account.fields.getMap();
+        for (String fieldName : COMPARED_FIELDS) {
+            Schema.SObjectField token = describe.get(fieldName);
+            if (token == null || !token.getDescribe().isUpdateable()) {
+                continue;
+            }
+            if (!KEEP_VICTIM.equalsIgnoreCase(keepFrom.get(fieldName))) {
+                continue;
+            }
+            Object value = victim.get(fieldName);
+            if (value == null && fieldName == 'Name') {
+                continue;
+            }
+            changes.put(fieldName, value);
+            anyChange = true;
+        }
+        if (anyChange) {
+            Database.update(new List<Account>{ changes }, AccessLevel.USER_MODE);
+        }
+        Object custom = KEEP_VICTIM.equalsIgnoreCase(keepFrom.get('Custom_Name__c'))
+            ? victim.get('Custom_Name__c')
+            : survivor.get('Custom_Name__c');
+        return custom == true;
+    }
+
+    // ------------------------------------------------------------------ split
+
+    /**
+     * Moves people out of one household into another. With no destination given, a new
+     * household is created and named from the people moving into it. Both households are
+     * settled afterwards, and the one they left goes away when it is empty and the org
+     * asked for that.
+     *
+     * Answers with the household the people now belong to, so that the screen can send
+     * the person there.
+     */
+    @NamespaceAccessible
+    public static Id split(Id householdId, Set<Id> personIds, Id targetHouseholdId) {
+        if (householdId == null || personIds == null || personIds.isEmpty()) {
+            throw new HouseholdException(Label.Core_HouseholdMerge_ErrorSplitNoMembers);
+        }
+        List<Account> sources = HouseholdSelector.getHouseholdsByIds(new Set<Id>{ householdId });
+        if (
+            sources.isEmpty() || sources[0].RecordTypeId != HouseholdService.householdRecordTypeId()
+        ) {
+            throw new HouseholdException(Label.Core_HouseholdMerge_ErrorNotHousehold);
+        }
+        if (targetHouseholdId == householdId) {
+            throw new HouseholdException(Label.Core_HouseholdMerge_ErrorSplitSameHousehold);
+        }
+        // Both ends of the move are edited, so edit access is needed on both. Checking only
+        // the household people leave would let somebody push people into a household they
+        // cannot see the inside of.
+        Set<Id> bothEnds = new Set<Id>{ householdId };
+        if (targetHouseholdId != null) {
+            bothEnds.add(targetHouseholdId);
+        }
+        if (HouseholdSelector.getEditableIds(bothEnds).size() != bothEnds.size()) {
+            throw new HouseholdException(Label.Core_HouseholdMerge_ErrorNoEditAccess);
+        }
+
+        List<HouseholdService.Person> moving = new List<HouseholdService.Person>();
+        List<HouseholdService.Person> members = HouseholdService.getMembers(
+                new Set<Id>{ householdId }
+            )
+            .get(householdId);
+        if (members != null) {
+            for (HouseholdService.Person person : members) {
+                if (personIds.contains(person.id)) {
+                    moving.add(person);
+                }
+            }
+        }
+        if (moving.isEmpty()) {
+            throw new HouseholdException(Label.Core_HouseholdMerge_ErrorSplitNotMembers);
+        }
+
+        Id destination = targetHouseholdId;
+        if (destination == null) {
+            destination = HouseholdService.createHouseholdFor(moving);
+        }
+
+        Set<Id> affected = HouseholdService.moveMembers(personIds, destination);
+        affected.add(householdId);
+        // One settle-up for the whole split, however many people moved: counts, names and
+        // greetings on both households, and the household left empty tidied away when the
+        // org asks for that.
+        HouseholdService.afterMembershipChange(affected);
+        return destination;
+    }
+
+    // ------------------------------------------------------------------ helpers
+
+    /**
+     * Moves people with the membership handlers stood down, so that nothing is recounted,
+     * renamed, or tidied away in the middle of a merge. The bypass is per transaction and
+     * is always cleared, including when the move throws.
+     */
+    private static void withoutMembershipUpkeep(Set<Id> personIds, Id survivorId) {
+        AutomationControl.bypass(CONTACT_HANDLER);
+        AutomationControl.bypass(MEMBER_HANDLER);
+        try {
+            HouseholdService.moveMembers(personIds, survivorId);
+        } finally {
+            AutomationControl.clearBypass(CONTACT_HANDLER);
+            AutomationControl.clearBypass(MEMBER_HANDLER);
+        }
+    }
+
+    /**
+     * Both households, checked to be two different households and not organizations,
+     * before anything is moved or written.
+     */
+    private static Map<Id, Account> loadPair(Id survivorId, Id victimId) {
+        if (survivorId == null || victimId == null) {
+            throw new HouseholdException(Label.Core_HouseholdMerge_ErrorMissingInput);
+        }
+        if (survivorId == victimId) {
+            throw new HouseholdException(Label.Core_HouseholdMerge_ErrorSameRecord);
+        }
+        Map<Id, Account> result = new Map<Id, Account>();
+        for (
+            Account household : HouseholdSelector.getHouseholdsForMerge(
+                new Set<Id>{ survivorId, victimId }
+            )
+        ) {
+            result.put(household.Id, household);
+        }
+        if (result.size() != 2) {
+            throw new HouseholdException(Label.Core_HouseholdMerge_ErrorNotFound);
+        }
+        Id recordTypeId = HouseholdService.householdRecordTypeId();
+        for (Account household : result.values()) {
+            if (recordTypeId == null || household.RecordTypeId != recordTypeId) {
+                throw new HouseholdException(Label.Core_HouseholdMerge_ErrorNotHousehold);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * A field's value as the comparison shows it: the person's name rather than the id
+     * behind a lookup, and an empty string rather than nothing, so that two blank fields
+     * read as agreeing.
+     */
+    private static String display(Account household, String fieldName) {
+        if (fieldName == 'Primary_Contact__c') {
+            return household.Primary_Contact__r == null ? '' : household.Primary_Contact__r.Name;
+        }
+        Object value = household.get(fieldName);
+        return value == null ? '' : String.valueOf(value);
+    }
+
+    private static Boolean differs(String left, String right) {
+        String a = left == null ? '' : left.trim();
+        String b = right == null ? '' : right.trim();
+        return a != b;
+    }
+
+    private static String fullName(HouseholdService.Person person) {
+        String first = String.isNotBlank(person.preferredName)
+            ? person.preferredName
+            : person.firstName;
+        String full =
+            (first == null ? '' : first) +
+            ' ' +
+            (person.lastName == null ? '' : person.lastName);
+        return full.trim();
+    }
+}

@@ -221,6 +221,15 @@ household, rollups recalculate, names and greetings recompute unless Custom Name
 and a contact can be split out to a new or existing household. Both are front-end
 actions on the record page, not Setup operations.
 
+Two households only: an organization is never a merge target, and the two records must
+be different. A merge moves membership first, in whichever membership mode is active,
+then applies the field values a person chose, then uses the platform's own account merge
+so that activities, files, notes, and every lookup from another entity follow the record
+that goes away. A merge is not reversible and is audited by the platform's own record
+history rather than by a log this model defines. Membership changes made by a merge or a
+split settle through one hook (member count and naming in v0.1, giving rollups from v0.2)
+so that no caller has to know what settling involves.
+
 **R-H14 Recompute action.** Changing a naming pattern in the settings console shows a
 preview against five sample households and offers a "Recompute all households" batch
 with progress and a completion notice. Recomputation never touches households with
@@ -242,6 +251,14 @@ Custom Name set.
 | Member Count | `Member_Count__c` | Number |
 | Anniversary | `Anniversary__c` | Date |
 | Sample Data | `Sample_Data__c` | Checkbox |
+
+- **Person attributes on Account.** The five person attributes listed under Contact
+  (Section 7) are present on Account as well, with the same API names and the same
+  definitions: `Deceased__c`, `Household_Role__c`, `Exclude_From_Household_Name__c`,
+  `Exclude_From_Greetings__c`, `Preferred_Name__c`. They belong to the person, not to the
+  household, and they exist on both objects so that an org that stores people as accounts
+  carries them on the person's own record. They are not shown on Household or Organization
+  layouts.
 
 - **Person attributes on Account.** The five person attributes listed under Contact
   (Section 7) are present on Account as well, with the same API names and the same
@@ -390,6 +407,10 @@ no feature code branches on it.
 | Exclude From Greetings | `Exclude_From_Greetings__c` | Checkbox |
 | Preferred Name | `Preferred_Name__c` | Text |
 | Sample Data | `Sample_Data__c` | Checkbox |
+
+These five are person attributes, present on both Contact and Account with the same API
+names so that Person Accounts carry them (Section 5). `HouseholdService.Person` is the
+shape naming and greetings read, so no naming code knows which object a person came from.
 
 These five are person attributes, present on both Contact and Account with the same API
 names so that Person Accounts carry them (Section 5). `HouseholdService.Person` is the
@@ -2478,6 +2499,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.1 | 2026-09-06 | Initial model: Household, Household Member, Contact, Organization, plus the platform configuration entities Error Log, Automation Setting, Setting Change, Nonprofit Settings, and the shipped-defaults custom metadata Naming Pattern and Automation Registry. |
 | v0.1 | 2026-09-07 | C-05 review fix: Error Log entries are published as `Error_Log_Event__e` (Publish Immediately) and written by a subscriber, so an entry survives the rollback it documents (new rule R-E4). |
 | v0.1 | 2026-09-08 | C-05 review fix: all three packaged permission sets grant Read and Create on `Error_Log_Event__e`, because publishing is governed by Create on the event (rule R-E4). |
+| v0.1 | 2026-09-08 | C-09 merge and split build. No object or field added. R-H13 gains the paragraph above on what a merge does, in what order, and what audits it. Recorded against R-M3: a move carries a person's role and primary flag with them, but never gives a household a second primary, so a merge or a split of people who were each primary in their own household leaves the survivor with one. |
 | v0.1 | 2026-09-07 | C-04 and C-05 build. Error Log gains Object Name. Automation Setting gains Handler Class, Object Name, Execution Order, and Package Default, all copied from the shipped registry when a record is materialized. Automation Registry field API names fixed ("Object" and "Order" are reserved words). Error Log and Setting Change record names recorded as auto numbers. Nonprofit Settings picklist keys recorded as text, per ADR-0019. |
 | v0.1 | 2026-09-07 | C-01 and C-02 build. Added `Household__c` (Lookup to Account) to Household Member: the original field list named the household side and the person side with the same attribute, so junction mode had no way to say which household a membership belonged to. `Account__c` is now defined as the person side only, matching R-M4. Recorded the naming service's token forms: `{FirstName}`, `{LastName}`, and `{Salutation}`, with the `{!Token}` spelling accepted as an alias so patterns copied from formula fields keep working. |
 | v0.1 | 2026-09-07 | Junction membership made a first-class v0.1 path for orgs that store people as accounts (product owner priority change). The five Contact person attributes (`Deceased__c`, `Household_Role__c`, `Exclude_From_Household_Name__c`, `Exclude_From_Greetings__c`, `Preferred_Name__c`) are now present on Account with the same API names and definitions, because a person stored as an account carries them on that record. Naming and greetings read a person through the `HouseholdService.Person` shape rather than through Contact, so one set of rules serves both. |

@@ -165,6 +165,90 @@ public with sharing class HouseholdSelector {
         ];
     }
 
+    /**
+     * The households a merge compares, with every field the comparison offers a choice
+     * about: the wording, the primary contact, the anniversary, and the address a letter
+     * is sent to.
+     */
+    @NamespaceAccessible
+    public static List<Account> getHouseholdsForMerge(Set<Id> householdIds) {
+        if (householdIds == null || householdIds.isEmpty()) {
+            return new List<Account>();
+        }
+        return [
+            SELECT
+                Id,
+                Name,
+                RecordTypeId,
+                Custom_Name__c,
+                Member_Count__c,
+                Primary_Contact__c,
+                Primary_Contact__r.Name,
+                Anniversary__c,
+                Household_Formal_Greeting__c,
+                Household_Informal_Greeting__c,
+                BillingStreet,
+                BillingCity,
+                BillingState,
+                BillingPostalCode,
+                BillingCountry
+            FROM Account
+            WHERE Id IN :householdIds
+            WITH USER_MODE
+            LIMIT 100
+        ];
+    }
+
+    /**
+     * Households whose name contains what the person typed, for the picker that chooses
+     * the other household in a merge or the destination of a split. Only households are
+     * offered, never organizations, and the household the person started from is left out.
+     */
+    @NamespaceAccessible
+    public static List<Account> searchHouseholds(String term, Id excludeId, Integer maxRows) {
+        Id recordTypeId = HouseholdService.householdRecordTypeId();
+        if (recordTypeId == null || String.isBlank(term)) {
+            return new List<Account>();
+        }
+        // The term is a bind variable, not string concatenation, so it needs no escaping.
+        // Escaping it would put a backslash into the pattern and lose every O'Brien.
+        String pattern = '%' + term.trim() + '%';
+        Integer rows = maxRows == null || maxRows <= 0 ? 20 : maxRows;
+        Id skip = excludeId;
+        return [
+            SELECT Id, Name, Member_Count__c, BillingCity, BillingState
+            FROM Account
+            WHERE RecordTypeId = :recordTypeId AND Name LIKE :pattern AND Id != :skip
+            WITH USER_MODE
+            ORDER BY Name
+            LIMIT :rows
+        ];
+    }
+
+    /**
+     * Of the records given, the ones this user may actually edit. Object level access is
+     * not the whole answer on a record that sharing may withhold, so the platform's own
+     * record access view is asked rather than inferred.
+     */
+    @NamespaceAccessible
+    public static Set<Id> getEditableIds(Set<Id> recordIds) {
+        Set<Id> result = new Set<Id>();
+        if (recordIds == null || recordIds.isEmpty()) {
+            return result;
+        }
+        Id userId = UserInfo.getUserId();
+        for (UserRecordAccess access : [
+            SELECT RecordId
+            FROM UserRecordAccess
+            WHERE UserId = :userId AND RecordId IN :recordIds AND HasEditAccess = TRUE
+            WITH USER_MODE
+            LIMIT 200
+        ]) {
+            result.add(access.RecordId);
+        }
+        return result;
+    }
+
     @NamespaceAccessible
     public static List<Household_Member__c> getMemberships(Set<Id> householdIds) {
         if (householdIds == null || householdIds.isEmpty()) {
