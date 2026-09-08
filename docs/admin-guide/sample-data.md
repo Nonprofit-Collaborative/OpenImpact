@@ -28,12 +28,16 @@ other step.
 You need the **Manage Nonprofit Settings** permission to load or remove sample data.
 Without it, the card is read only and tells you who to ask.
 
-Sample data needs household members to be stored as contacts, which is how Open Impact
-works unless you chose otherwise. If your org tracks household membership with household
-member records (the Agentforce Nonprofit coexistence mode, which Nonprofit Cloud orgs get),
-the card says so and the **Load Sample Data** button stays unavailable: the sample
-households would arrive with nobody in them. Import your own data instead, or change the
-household membership mode in **Nonprofit Settings** first.
+Sample data loads whichever way your org tracks household membership. In the simple way,
+each sample person carries their household on their own record. In the flexible way (the
+Agentforce Nonprofit coexistence mode, which Nonprofit Cloud orgs get), each sample person
+is joined to their household by a household member record, exactly as your own people are,
+and the card says so before you load.
+
+One difference to expect in an org that stores people as accounts: the sample people arrive
+as contacts. Open Impact never creates person accounts, so the sample set shows you
+households of contacts. Everything else behaves as it will with your own data: the same
+household records, names, greetings, member counts, and Members panel.
 
 ## 3. A five-minute walkthrough (as Maria)
 
@@ -52,7 +56,8 @@ household membership mode in **Nonprofit Settings** first.
    can find a familiar name while you are learning the app.
 5. Return to **Nonprofit Settings**, **Sample Data**, and select **Remove Sample Data**.
    Confirm the dialog. The card returns to **Not loaded** and every household, contact,
-   and organization the loader created is gone. Anything you entered yourself is
+   and organization the loader created is gone, along with the household member records
+   that joined them if your org uses the flexible way. Anything you entered yourself is
    untouched.
 
 ## 4. Common mistakes
@@ -70,9 +75,10 @@ household membership mode in **Nonprofit Settings** first.
   attaching people to.
 - **Assuming removal is instant.** Removal deletes several hundred records and takes a
   few seconds; wait for the card to confirm **Not loaded** before assuming it is done.
-- **Expecting it in an Agentforce Nonprofit org.** In junction membership mode the loader
-  is unavailable, and the card says why. This is not a fault to work around: the sample
-  people would have no way to join their households.
+- **Expecting sample person accounts in an Agentforce Nonprofit org.** The sample people
+  are contacts even where your own people are stored as accounts. That is a limit of the
+  sample set, not of households: the households, memberships, names, greetings, and counts
+  all work the same way they will with your own records.
 - **Not having the permission.** If the **Load Sample Data** button does not appear, you
   are missing **Manage Nonprofit Settings**. Ask an administrator to grant it from the
   **Access** page, not from Setup.
@@ -82,4 +88,5 @@ household membership mode in **Nonprofit Settings** first.
 | What you see | Underlying field or object |
 |---|---|
 | Sample Data checkbox on households, contacts, and organizations | `Sample_Data__c` on Account and Contact |
+| The join between a sample person and their household, flexible mode only | `Household_Member__c`, removed with the household it belongs to |
 | Sample Data settings entry | `Setting_Definition__mdt` record `Sample_Data` |

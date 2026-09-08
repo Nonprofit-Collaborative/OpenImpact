@@ -129,4 +129,4 @@ For report builders only. Maria never needs this to use the feature.
 |---|---|---|
 | Household | Custom Name | When ticked, the name and greetings are never recalculated |
 | Household | Member Count | Recalculated on both households after a merge or a split |
-| Household | Primary Contact | One of the values a merge offers a choice about |
+| Household | Primary Contact | One of the values a merge offers a choice about, and cleared on a household a split moves that person out of |
