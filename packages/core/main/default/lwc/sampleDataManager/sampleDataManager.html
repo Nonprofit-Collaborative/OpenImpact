@@ -10,7 +10,10 @@
             </div>
 
             <template if:true={isLoadingStatus}>
-                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                <lightning-spinner
+                    alternative-text={labels.loadingAltText}
+                    size="small"
+                ></lightning-spinner>
             </template>
 
             <template if:false={isLoadingStatus}>

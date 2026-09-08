@@ -16,6 +16,7 @@ import productionWarning from '@salesforce/label/c.Core_SampleData_ProductionWar
 import statusLoaded from '@salesforce/label/c.Core_SampleData_StatusLoaded';
 import statusNotLoaded from '@salesforce/label/c.Core_SampleData_StatusNotLoaded';
 import statusLoading from '@salesforce/label/c.Core_SampleData_StatusLoading';
+import loadingAltText from '@salesforce/label/c.Core_SampleData_LoadingAltText';
 import householdsLabel from '@salesforce/label/c.Core_SampleData_HouseholdsLabel';
 import contactsLabel from '@salesforce/label/c.Core_SampleData_ContactsLabel';
 import organizationsLabel from '@salesforce/label/c.Core_SampleData_OrganizationsLabel';
@@ -49,6 +50,7 @@ export default class SampleDataManager extends LightningElement {
     statusLoaded,
     statusNotLoaded,
     statusLoading,
+    loadingAltText,
     householdsLabel,
     contactsLabel,
     organizationsLabel,
@@ -172,7 +174,9 @@ export default class SampleDataManager extends LightningElement {
   }
 
   get removeDisabled() {
-    return !this.canManage || (!this.loaded && !this.loading) || this.isBusy;
+    // Remove stays disabled while a load runs: deleting the households mid-chain would
+    // leave the next contact chunk inserting against records that no longer exist.
+    return !this.canManage || this.loading || !this.loaded || this.isBusy;
   }
 
   handleLoadClick() {

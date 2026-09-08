@@ -32,7 +32,7 @@ const NOT_LOADED_STATUS = {
 
 const LOADED_STATUS = {
   householdCount: 200,
-  contactCount: 449,
+  contactCount: 440,
   organizationCount: 25,
   loaded: true,
   loading: false
@@ -113,6 +113,26 @@ describe('c-sample-data-manager', () => {
     expect(actionButtons[REMOVE_BUTTON_INDEX].disabled).toBe(false);
   });
 
+  it('disables both actions while a load is running', async () => {
+    jest.useFakeTimers();
+    canManageSampleData.mockResolvedValue(true);
+    getStatus.mockResolvedValue({
+      householdCount: 200,
+      contactCount: 120,
+      organizationCount: 25,
+      loaded: false,
+      loading: true
+    });
+
+    const element = createManager();
+    await flushMicrotasks();
+
+    const actionButtons = buttons(element);
+    expect(actionButtons[LOAD_BUTTON_INDEX].disabled).toBe(true);
+    // Removing mid-chain would delete the households the next contact chunk needs.
+    expect(actionButtons[REMOVE_BUTTON_INDEX].disabled).toBe(true);
+  });
+
   it('shows the counts once loaded', async () => {
     canManageSampleData.mockResolvedValue(true);
     getStatus.mockResolvedValue(LOADED_STATUS);
@@ -122,7 +142,7 @@ describe('c-sample-data-manager', () => {
 
     const headings = element.shadowRoot.querySelectorAll('.slds-text-heading_medium');
     const values = Array.from(headings).map((el) => el.textContent);
-    expect(values).toEqual(['200', '449', '25']);
+    expect(values).toEqual(['200', '440', '25']);
   });
 
   it('asks for confirmation before loading, then calls the Apex load method', async () => {
@@ -219,7 +239,7 @@ describe('c-sample-data-manager', () => {
     getStatus.mockResolvedValue(LOADED_STATUS);
     removeSampleData.mockResolvedValue({
       householdCount: 200,
-      contactCount: 449,
+      contactCount: 440,
       organizationCount: 25
     });
 
