@@ -29,10 +29,12 @@ this shape against an entitled Dev Hub yet. If creation fails naming an unknown 
 error lists what your Dev Hub can grant: take the right name from that list and correct
 `config/scratch-defs/nonprofit-cloud.json`. That is the one line expected to need editing.
 
-**Continuous integration does not run this shape by default.** It runs only when
-`nonprofit-cloud` is named in the `SF_ORG_TEST_SHAPES` repository variable, so an unentitled
-Dev Hub reports a skipped shape rather than a failed build. Add it once the shape creates
-cleanly by hand.
+**Continuous integration does not run this shape at all.** An earlier version of this page
+said it runs when `nonprofit-cloud` is named in an `SF_ORG_TEST_SHAPES` repository variable.
+No such variable exists and nothing reads it: the workflow has no shape matrix, it deploys
+into one long lived org named by `SF_TEST_ORG_AUTH_URL`. Running this shape in continuous
+integration means creating an org from it by hand against an entitled Dev Hub and putting
+that org's auth URL in the secret, in place of the current one.
 
 **Most of what this shape would prove is already covered by Person Accounts**, which any Dev
 Hub grants: junction membership, the person account paths through households, naming and

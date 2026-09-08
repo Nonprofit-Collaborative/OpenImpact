@@ -119,7 +119,8 @@ year end recognition list produced before the refund has to be explicable afterw
   pair, so it produces no negative matched donor credit. A refunded employer gift therefore
   leaves its matched donor credit standing at the full amount. That behavior is unchanged
   by this decision, in either direction, and fixing it means deciding whether a refund
-  should propagate along the match link, which belongs with G-09.
+  should propagate along the match link, which belongs with G-10 (matching gift
+  linkage, plan Section 5). An earlier draft of this ADR said G-09, which is Tributes.
 - **Unverified in an org.** No Salesforce org is available to this change, so the Apex test
   added with it has not been executed and the behavior above is reasoned from the code
   rather than observed.

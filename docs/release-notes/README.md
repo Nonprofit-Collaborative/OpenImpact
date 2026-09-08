@@ -69,6 +69,7 @@ Coverage target is 90% per package; 75% is the platform minimum and is not the t
 | Sales Cloud | | |
 | Sales Cloud with NPSP | | |
 | Person Accounts | | |
+| Nonprofit Cloud | | Opt in, and needs an entitled Dev Hub |
 
 ## Open risks
 

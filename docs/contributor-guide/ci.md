@@ -1,8 +1,12 @@
 # Continuous integration
 
-This page explains what `.github/workflows/ci.yml` does, the four org shapes it tests
-against, how to configure the Dev Hub secret, and how to sign off commits under the
-project's DCO policy.
+This page explains what `.github/workflows/ci.yml` does, how the one long lived test org it
+deploys into is configured, and how to sign off commits under the project's DCO policy.
+
+It used to say the workflow tests four org shapes. It does not, and has not since the org
+tests moved to a single long lived org: there is no shape matrix, so exactly one shape is
+exercised, whichever the test org was created from. Testing a second shape means a second
+org and a second secret.
 
 ## Jobs
 
