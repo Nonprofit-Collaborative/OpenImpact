@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Tracked as **C-10** in the product plan: roughly 200 realistic households (about 430
+Tracked as **C-10** in the product plan: 200 realistic households (440
 contacts) and 25 organizations, so a contributor or reviewer can see the product working
 immediately, without hand-entering data. Gifts join the set once Giving ships (v0.2).
 

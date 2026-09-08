@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """generate-sample-data.py
 
-Generates the C-10 sample data set: about 200 realistic, diverse US households
-(around 430 contacts), plus 25 organizations, and writes it as the JSON body of
+Generates the C-10 sample data set: 200 realistic, diverse US households
+(440 contacts), plus 25 organizations, and writes it as the JSON body of
 the SampleData static resource consumed by SampleDataLoader (Apex).
 
 Python 3 standard library only. Deterministic: a fixed random seed means the
@@ -134,6 +134,11 @@ STREET_SUFFIXES = ["St", "Ave", "Dr", "Ln", "Rd", "Ct", "Way", "Blvd"]
 
 HOUSEHOLD_ROLES = ["Head", "Spouse or Partner", "Child", "Other"]
 
+ADULT_MIN_AGE = 24
+ADULT_MAX_AGE = 88
+# Half the widest plausible gap between partners, so a couple is at most 24 years apart.
+SPOUSE_AGE_SPREAD = 12
+
 # "Garcia" is reserved for the single guaranteed household the admin guide's
 # walkthrough looks for ("The Garcia Family"), so every other random draw
 # uses this pool instead, keeping that name unique in the sample set.
@@ -164,12 +169,19 @@ def pick_first_name(rng, gender):
     return rng.choice(MALE_FIRST_NAMES if gender == "M" else FEMALE_FIRST_NAMES)
 
 
-def salutation_for(gender, formal_title=None):
+# Children below this age get no salutation and no email address of their own:
+# a nonprofit does not address a nine year old as "Mr." or mail them directly.
+MINOR_COURTESY_AGE = 13
+
+REFERENCE_YEAR = 2026
+
+
+def salutation_for(rng, gender, formal_title=None):
     if formal_title:
         return formal_title
     if gender == "M":
         return "Mr."
-    return random_choice_weighted(RNG, [("Mrs.", 0.6), ("Ms.", 0.4)])
+    return random_choice_weighted(rng, [("Mrs.", 0.6), ("Ms.", 0.4)])
 
 
 def random_choice_weighted(rng, options):
@@ -212,7 +224,7 @@ def make_address(rng):
     }
 
 
-def make_birthdate(rng, min_age, max_age, reference_year=2026):
+def make_birthdate(rng, min_age, max_age, reference_year=REFERENCE_YEAR):
     age = rng.randint(min_age, max_age)
     year = reference_year - age
     month = rng.randint(1, 12)
@@ -238,30 +250,70 @@ def make_member(
     is_child=False,
     formal_title=None,
     deceased=False,
+    min_age=None,
+    max_age=None,
 ):
-    salutation = salutation_for(gender, formal_title)
+    if is_child:
+        birthdate = make_birthdate(rng, 2, 17)
+    else:
+        birthdate = make_birthdate(
+            rng,
+            ADULT_MIN_AGE if min_age is None else min_age,
+            ADULT_MAX_AGE if max_age is None else max_age,
+        )
+    age = age_from_birthdate(birthdate)
+
     member = {
         "firstName": first_name,
         "lastName": last_name,
-        "salutation": salutation,
-        "householdRole": role,
-        "email": make_email(first_name, last_name, index),
-        "phone": make_phone(rng),
-        "mailingStreet": address["street"],
-        "mailingCity": address["city"],
-        "mailingState": address["state"],
-        "mailingPostalCode": address["postalCode"],
     }
-    if is_child:
-        member["birthdate"] = make_birthdate(rng, 2, 17)
-    else:
-        member["birthdate"] = make_birthdate(rng, 24, 88)
+    if age >= MINOR_COURTESY_AGE:
+        member["salutation"] = salutation_for(rng, gender, formal_title)
+    member["householdRole"] = role
+    if age >= MINOR_COURTESY_AGE:
+        member["email"] = make_email(first_name, last_name, index)
+    member["phone"] = make_phone(rng)
+    member["mailingStreet"] = address["street"]
+    member["mailingCity"] = address["city"]
+    member["mailingState"] = address["state"]
+    member["mailingPostalCode"] = address["postalCode"]
+    member["birthdate"] = birthdate
+
     preferred = maybe_preferred_name(rng, first_name)
     if preferred:
         member["preferredName"] = preferred
     if deceased:
         member["deceased"] = True
     return member
+
+
+def age_from_birthdate(birthdate):
+    return REFERENCE_YEAR - int(birthdate[:4])
+
+
+def spouse_age_range(head_member):
+    """Keep partners within a plausible span: at most 24 years apart."""
+    head_age = age_from_birthdate(head_member["birthdate"])
+    return (
+        max(ADULT_MIN_AGE, head_age - SPOUSE_AGE_SPREAD),
+        min(ADULT_MAX_AGE, head_age + SPOUSE_AGE_SPREAD),
+    )
+
+
+def make_anniversary(rng, members):
+    """A date after every adult in the household turned twenty, never before one was born."""
+    adult_years = [
+        int(member["birthdate"][:4])
+        for member in members
+        if member["householdRole"] != "Child"
+    ]
+    if not adult_years:
+        return None
+    earliest_year = max(adult_years) + 20
+    if earliest_year > REFERENCE_YEAR:
+        return None
+    year = rng.randint(earliest_year, REFERENCE_YEAR)
+    return "{0:04d}-{1:02d}-{2:02d}".format(year, rng.randint(1, 12), rng.randint(1, 28))
 
 
 def build_family(
@@ -274,10 +326,10 @@ def build_family(
     spouse_first = pick_first_name(rng, spouse_gender)
 
     members = []
-    members.append(
-        make_member(rng, head_first, surname, head_gender, "Head", address, member_index[0])
-    )
+    head = make_member(rng, head_first, surname, head_gender, "Head", address, member_index[0])
+    members.append(head)
     member_index[0] += 1
+    spouse_min, spouse_max = spouse_age_range(head)
     members.append(
         make_member(
             rng,
@@ -288,6 +340,8 @@ def build_family(
             address,
             member_index[0],
             deceased=deceased,
+            min_age=spouse_min,
+            max_age=spouse_max,
         )
     )
     member_index[0] += 1
@@ -304,7 +358,7 @@ def build_family(
         )
         member_index[0] += 1
 
-    anniversary = make_birthdate(rng, 3, 40) if rng.random() < 0.7 else None
+    anniversary = make_anniversary(rng, members) if rng.random() < 0.7 else None
     return {
         "key": key,
         "name": None,
@@ -338,12 +392,22 @@ def build_differing_surnames(rng, key, address, member_index):
     gender_b = "F" if gender_a == "M" else "M"
     first_a = pick_first_name(rng, gender_a)
     first_b = pick_first_name(rng, gender_b)
-    members = [
-        make_member(rng, first_a, surname_a, gender_a, "Head", address, member_index[0]),
-    ]
+    head = make_member(rng, first_a, surname_a, gender_a, "Head", address, member_index[0])
+    members = [head]
     member_index[0] += 1
+    spouse_min, spouse_max = spouse_age_range(head)
     members.append(
-        make_member(rng, first_b, surname_b, gender_b, "Spouse or Partner", address, member_index[0])
+        make_member(
+            rng,
+            first_b,
+            surname_b,
+            gender_b,
+            "Spouse or Partner",
+            address,
+            member_index[0],
+            min_age=spouse_min,
+            max_age=spouse_max,
+        )
     )
     member_index[0] += 1
     if rng.random() < 0.5:
@@ -367,7 +431,7 @@ def build_differing_surnames(rng, key, address, member_index):
         "key": key,
         "name": None,
         "customName": False,
-        "anniversary": make_birthdate(rng, 1, 30) if rng.random() < 0.5 else None,
+        "anniversary": make_anniversary(rng, members) if rng.random() < 0.5 else None,
         "address": address,
         "members": members,
     }
@@ -381,13 +445,21 @@ def build_hyphenated(rng, key, address, member_index):
     spouse_gender = "F" if head_gender == "M" else "M"
     head_first = pick_first_name(rng, head_gender)
     spouse_first = pick_first_name(rng, spouse_gender)
-    members = [
-        make_member(rng, head_first, hyphenated, head_gender, "Head", address, member_index[0]),
-    ]
+    head = make_member(rng, head_first, hyphenated, head_gender, "Head", address, member_index[0])
+    members = [head]
     member_index[0] += 1
+    spouse_min, spouse_max = spouse_age_range(head)
     members.append(
         make_member(
-            rng, spouse_first, hyphenated, spouse_gender, "Spouse or Partner", address, member_index[0]
+            rng,
+            spouse_first,
+            hyphenated,
+            spouse_gender,
+            "Spouse or Partner",
+            address,
+            member_index[0],
+            min_age=spouse_min,
+            max_age=spouse_max,
         )
     )
     member_index[0] += 1
@@ -411,7 +483,7 @@ def build_hyphenated(rng, key, address, member_index):
         "key": key,
         "name": None,
         "customName": False,
-        "anniversary": make_birthdate(rng, 2, 35) if rng.random() < 0.7 else None,
+        "anniversary": make_anniversary(rng, members) if rng.random() < 0.7 else None,
         "address": address,
         "members": members,
     }
@@ -443,13 +515,21 @@ def build_three_generation(rng, key, surname, address, member_index):
     spouse_gender = "F" if parent_gender == "M" else "M"
     parent_first = pick_first_name(rng, parent_gender)
     spouse_first = pick_first_name(rng, spouse_gender)
-    members.append(
-        make_member(rng, parent_first, surname, parent_gender, "Head", address, member_index[0])
-    )
+    head = make_member(rng, parent_first, surname, parent_gender, "Head", address, member_index[0])
+    members.append(head)
     member_index[0] += 1
+    spouse_min, spouse_max = spouse_age_range(head)
     members.append(
         make_member(
-            rng, spouse_first, surname, spouse_gender, "Spouse or Partner", address, member_index[0]
+            rng,
+            spouse_first,
+            surname,
+            spouse_gender,
+            "Spouse or Partner",
+            address,
+            member_index[0],
+            min_age=spouse_min,
+            max_age=spouse_max,
         )
     )
     member_index[0] += 1
@@ -468,7 +548,7 @@ def build_three_generation(rng, key, surname, address, member_index):
         "key": key,
         "name": None,
         "customName": False,
-        "anniversary": make_birthdate(rng, 20, 55) if rng.random() < 0.6 else None,
+        "anniversary": make_anniversary(rng, members) if rng.random() < 0.6 else None,
         "address": address,
         "members": members,
     }
@@ -479,21 +559,38 @@ def build_custom_name_household(rng, key, custom_name, surname, address, member_
     spouse_gender = "F" if head_gender == "M" else "M"
     head_first = pick_first_name(rng, head_gender)
     spouse_first = pick_first_name(rng, spouse_gender)
-    members = [
-        make_member(
-            rng, head_first, surname, head_gender, "Head", address, member_index[0], formal_title=formal_title
-        ),
-    ]
+    head = make_member(
+        rng,
+        head_first,
+        surname,
+        head_gender,
+        "Head",
+        address,
+        member_index[0],
+        formal_title=formal_title,
+    )
+    members = [head]
     member_index[0] += 1
+    spouse_min, spouse_max = spouse_age_range(head)
     members.append(
-        make_member(rng, spouse_first, surname, spouse_gender, "Spouse or Partner", address, member_index[0])
+        make_member(
+            rng,
+            spouse_first,
+            surname,
+            spouse_gender,
+            "Spouse or Partner",
+            address,
+            member_index[0],
+            min_age=spouse_min,
+            max_age=spouse_max,
+        )
     )
     member_index[0] += 1
     return {
         "key": key,
         "name": custom_name,
         "customName": True,
-        "anniversary": make_birthdate(rng, 5, 45),
+        "anniversary": make_anniversary(rng, members),
         "address": address,
         "members": members,
     }

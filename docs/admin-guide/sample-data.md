@@ -2,9 +2,9 @@
 
 ## 1. What it does
 
-Sample data fills your org with a realistic demo dataset: about 200 households, roughly
-430 people, and 25 organizations such as foundations, local businesses, churches, and a
-school district. Use it to see Open Impact working with real-looking names and
+Sample data fills your org with a realistic demo dataset: 200 households, 440 people,
+and 25 organizations such as foundations, local businesses, churches, and a school
+district. Use it to see Open Impact working with real-looking names and
 addresses before you import your own list, to train a new colleague, or to try a
 setting change (for example a household naming pattern) against data that already has
 the variety your real list has: shared surnames, different surnames, hyphenated names,
@@ -38,7 +38,8 @@ Without it, the card is read only and tells you who to ask.
 3. On the household record, check the formal and informal greeting fields. They read
    naturally, for example "Mr. and Mrs." followed by the names, and a first-names-only
    informal greeting, because they were computed by the naming rules from the sample
-   household's members.
+   household's members. The names and greetings are computed by household automation as
+   the people are added, so they only appear if household naming is turned on.
 4. Still on **Households**, search for "Staff Household". This is the sample data's own
    staff family: Maria, David, Priya, Tom, Jen, and Sam appear here as contacts, so you
    can find a familiar name while you are learning the app.
@@ -56,7 +57,10 @@ Without it, the card is read only and tells you who to ask.
   mistake. Remove it right away with **Remove Sample Data**, and audit any receipts,
   exports, or emails sent while it was present.
 - **Trying to load twice.** Loading again while sample data is already present shows a
-  message that it is already loaded. Remove it first if you want a fresh copy.
+  message that it is already loaded. Remove it first if you want a fresh copy. While a
+  load is still running, both **Load Sample Data** and **Remove Sample Data** are
+  unavailable: removing halfway through would delete households the loader is still
+  attaching people to.
 - **Assuming removal is instant.** Removal deletes several hundred records and takes a
   few seconds; wait for the card to confirm **Not loaded** before assuming it is done.
 - **Not having the permission.** If the **Load Sample Data** button does not appear, you
