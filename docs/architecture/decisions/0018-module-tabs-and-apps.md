@@ -95,10 +95,11 @@ module apps rather than absorbing their tabs.**
 - The Modules tile is a dependency running from Giving's documentation to Core's C-03 home
   page. Until C-03 ships it, the app launcher is the path between apps, and the Giving admin
   guide says so in plain words.
-- A packaged dashboard needs its running user set once by the subscriber after install. The
-  Giving admin guide's Common mistakes section carries the exact error message and the fix,
-  and the Setup Assistant should add it as a step when the Giving module is turned on
-  (recorded as a request, not built here).
+- A packaged dashboard has to say who it reads as, and it cannot name a subscriber's user.
+  `Giving_Overview` therefore ships with `dashboardType` set to `LoggedInUser`, so it reads
+  as whoever opens it and arrives working with no post-install step. The cost is that
+  dashboards of this kind are capped per edition; an org that has used its allowance sets a
+  specific running user instead, and the Giving admin guide says how.
 - If Salesforce later allows a package to contribute a tab to another package's app, or
   allows a Lightning page to reference a dashboard by API name, this ADR is worth revisiting:
   the first would let the Hub carry module tabs directly, and the second would let the

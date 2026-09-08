@@ -12,6 +12,16 @@
                 </div>
             </template>
 
+            <template lwc:if={saveWarning}>
+                <div
+                    class="slds-box slds-box_x-small slds-theme_warning slds-var-m-bottom_small"
+                    role="alert"
+                    data-id="save-warning"
+                >
+                    <p>{saveWarning}</p>
+                </div>
+            </template>
+
             <template lwc:if={savedGift}>
                 <div
                     class="slds-box slds-box_x-small slds-theme_success slds-var-m-bottom_small"
@@ -187,13 +197,13 @@
                     class="slds-var-m-right_x-small"
                     variant="brand"
                     label={labels.saveButton}
-                    disabled={saving}
+                    disabled={isSaveDisabled}
                     onclick={handleSave}
                     data-id="save"
                 ></lightning-button>
                 <lightning-button
                     label={labels.saveAndNewButton}
-                    disabled={saving}
+                    disabled={isSaveDisabled}
                     onclick={handleSaveAndNew}
                     data-id="save-and-new"
                 ></lightning-button>

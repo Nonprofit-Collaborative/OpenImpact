@@ -30,8 +30,9 @@ Nothing to install and no Setup step. Quick Gift Entry arrives with the Giving p
 
 If you would rather have the form on a household or a person's page than on its own tab,
 open that page in the Lightning App Builder (from the page's setup gear, Edit Page), drag
-**Quick Gift Entry** onto it, and save. The form works the same there, and it does not
-preselect the donor.
+**Quick Gift Entry** onto it, and save. On a person's or an organization's page the form
+starts with that record already chosen as the donor, and Save and new keeps it, so a page
+of gifts from one donor goes in without picking the donor each time.
 
 ## A five-minute walkthrough
 
@@ -78,13 +79,20 @@ disappear from the appeal results Tom reads on the dashboard. Set the **Default 
 in Nonprofit Settings to the appeal you are running before the event starts, and every
 gift entered that evening carries it.
 
-**Saving with no default fund set.** If nobody has chosen a default fund, the gift saves
-with no allocation and the fund totals miss it. Nonprofit Settings shows a warning until
-a default fund is picked. Set it once, on the day you install, and it is done.
+**Saving with no default fund set.** Every gift has to be designated to a fund, so a gift
+saved without one is refused rather than saved incomplete: the message names the missing
+default fund. Choose a default fund in Nonprofit Settings, or mark one fund as the default
+on the fund record, and it is done for good. Set it once, on the day you install.
 
-**Losing the form on a bad signal.** The form saves one gift per tap and tells you when
-it has saved. If you do not see the confirmation, the gift did not save; the values stay
-on screen, so tap Save again when you have signal rather than retyping.
+**Choosing a fund on a gift that is already split.** The Fund box sets the gift's single
+allocation. A gift that already carries a split across several funds keeps its split, and
+the form says so instead of quietly repointing it: open the gift to change the allocations.
+
+**Losing the form on a bad signal.** The form saves one gift per tap and tells you when it
+has saved. If you do not see the confirmation, the gift did not save; the values stay on
+screen, so tap Save again when you have signal rather than retyping. You cannot enter the
+same gift twice by accident: once a gift is saved, Save and Save and new are greyed out
+until you change something or start another gift.
 
 ## Field reference
 

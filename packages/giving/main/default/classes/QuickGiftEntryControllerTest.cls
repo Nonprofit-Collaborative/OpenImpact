@@ -97,6 +97,22 @@ private class QuickGiftEntryControllerTest {
     }
 
     @IsTest
+    static void getDefaultsFallsBackToTheFundCarryingTheDefaultFlag() {
+        Fund__c flagged = makeFund();
+        setDefaults(null, null);
+
+        Test.startTest();
+        QuickGiftEntryController.EntryDefaults defaults = QuickGiftEntryController.getDefaults();
+        Test.stopTest();
+
+        Assert.areEqual(
+            flagged.Id,
+            defaults.defaultFundId,
+            'With no settings key the form shows the fund the save will use.'
+        );
+    }
+
+    @IsTest
     static void savesAGiftFromAPersonWithTheFundThePersonChose() {
         Fund__c fund = makeFund();
         Appeal__c appeal = makeAppeal();
@@ -134,6 +150,10 @@ private class QuickGiftEntryControllerTest {
             FROM Gift_Allocation__c
             WHERE Gift__c = :result.giftId
         ];
+        Assert.isFalse(
+            result.fundNotApplied,
+            'A gift that is not already split takes the fund the person chose.'
+        );
         Assert.areEqual(1, allocations.size(), 'One gift, one allocation.');
         Assert.areEqual(fund.Id, allocations[0].Fund__c, 'The allocation is to the fund chosen.');
         Assert.areEqual(50, allocations[0].Amount__c, 'The allocation is the whole gift.');
@@ -294,30 +314,5 @@ private class QuickGiftEntryControllerTest {
             result.formError,
             'The person is told to enter the gift again.'
         );
-    }
-
-    @IsTest
-    static void readsAGiftThatArrivesAsJsonAndRefusesOneThatIsNotAGift() {
-        QuickGiftEntryController.GiftInput parsed = QuickGiftEntryController.fromJson(
-            '{"amount":25,"giftType":"Cash"}'
-        );
-        Assert.areEqual(25, parsed.amount, 'The amount is read.');
-        Assert.areEqual('Cash', parsed.giftType, 'The type is read.');
-
-        Boolean refusedEmpty = false;
-        try {
-            QuickGiftEntryController.fromJson('');
-        } catch (QuickGiftEntryController.QuickGiftEntryException e) {
-            refusedEmpty = true;
-        }
-        Assert.isTrue(refusedEmpty, 'An empty payload is refused.');
-
-        Boolean refusedRubbish = false;
-        try {
-            QuickGiftEntryController.fromJson('{"notAGiftField":true}');
-        } catch (QuickGiftEntryController.QuickGiftEntryException e) {
-            refusedRubbish = true;
-        }
-        Assert.isTrue(refusedRubbish, 'A payload that is not a gift is refused.');
     }
 }

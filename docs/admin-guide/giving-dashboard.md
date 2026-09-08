@@ -16,13 +16,12 @@ else sees.
 
 1. Open the **Fundraising** app from the app launcher. Tap **Dashboards**, open the
    **Open Impact Giving** folder, and open **Giving Overview**.
-2. Set who the dashboard reads as. Open the dashboard, choose **Edit**, and in **View
-   dashboard as** choose **The dashboard viewer**. Save. Every person then sees the gifts
-   they are allowed to see. If your edition does not offer "The dashboard viewer", choose
-   a person who can see all gifts, usually the person who installed the package.
-   **Do this once, on the day you install.** A dashboard that arrives in a package has no
-   running user of its own, and until one is set the dashboard shows an error instead of
-   numbers.
+2. Check who the dashboard reads as. It ships set to **The dashboard viewer**, so every
+   person sees the gifts they are allowed to see and nothing needs changing. If your
+   edition does not offer the dashboard viewer, or your org has used up its allowance of
+   dashboards that read that way, open the dashboard, choose **Edit**, and in **View
+   dashboard as** choose a person who can see all gifts, usually the person who installed
+   the package.
 3. Give people access to the folder. In Nonprofit Settings, open **Access** and assign the
    **Fundraising Staff** permission set group, which includes read access to the Open
    Impact Giving reports and dashboards. Tom needs no more than that.
@@ -59,19 +58,21 @@ Do this as Tom, from the sample data, after at least a few gifts exist.
 ## Common mistakes
 
 **The dashboard shows an error instead of numbers.** The message is "The running user for
-this dashboard doesn't have permission to run reports." A dashboard that arrives inside a
-package does not carry a running user with it. Fix it once: open the dashboard, choose
-Edit, set **View dashboard as** to **The dashboard viewer**, and save. See step 2 above.
+this dashboard doesn't have permission to run reports." The dashboard reads as whoever is
+looking at it, so this is a permission problem, not a dashboard problem: that person cannot
+run reports or cannot read gifts. Assign them the Fundraising Staff or Read Only permission
+set group in Nonprofit Settings, under Access. See step 3 below.
 
 **The numbers look too small.** Only gifts with the status **Received** count. A gift left
 at Pending, for example a pledge payment that has not arrived, is deliberately excluded so
 that the totals match the bank. Open Recent gifts and look at the status column if a gift
 you expected is missing.
 
-**A fund total looks short.** A gift counts toward a fund only through its allocation. If
-your organization has no default fund chosen in Nonprofit Settings, gifts entered without
-a fund have no allocation and appear in the monthly totals but not in the fund chart. Set
-the default fund, then edit the affected gifts to allocate them.
+**A fund total looks short.** A gift counts toward a fund only through its allocation, and
+a gift split across several funds appears once per fund. Check the split on the gift itself
+before concluding a fund is short. Every gift has an allocation, because a gift saved
+without one is refused until a default fund exists, so a gift can never be missing from the
+fund chart while appearing in the monthly total.
 
 **Someone changes the shared report.** The reports live in a shared folder and a person
 with edit access can save over them. Ask staff to use **Save As** and keep their copies in

@@ -31,11 +31,22 @@ import openGiftLink from '@salesforce/label/c.Giving_QuickGiftEntry_OpenGiftLink
 import errorTitle from '@salesforce/label/c.Giving_QuickGiftEntry_ErrorTitle';
 import errorLoadDefaults from '@salesforce/label/c.Giving_QuickGiftEntry_ErrorLoadDefaults';
 import errorUnexpected from '@salesforce/label/c.Giving_QuickGiftEntry_ErrorUnexpected';
+import fundNotApplied from '@salesforce/label/c.Giving_QuickGiftEntry_FundNotApplied';
 
 const PERSON = 'person';
 const ORGANIZATION = 'organization';
 const ACCOUNT = 'Account';
 const CONTACT = 'Contact';
+
+/** The order the fields appear in, so the first message is the first one to fix. */
+const FIELD_ORDER = [
+  ['donor', 'donor-person', 'donor-organization'],
+  ['amount', 'amount'],
+  ['giftDate', 'gift-date'],
+  ['giftType', 'gift-type'],
+  ['appealId', 'appeal'],
+  ['fundId', 'fund']
+];
 
 /**
  * Quick gift entry (G-03): one screen, built for a phone, for a gift that has just
@@ -83,6 +94,13 @@ export default class QuickGiftEntry extends LightningElement {
   formError;
   saving = false;
   savedGift;
+  saveWarning;
+  /**
+   * True from a successful save until the person changes something or starts another
+   * gift. It is what stops a second tap on Save, or a retry on a slow connection, from
+   * entering the same gift twice.
+   */
+  entrySaved = false;
 
   defaults;
   prefilledDonorId;
@@ -149,37 +167,54 @@ export default class QuickGiftEntry extends LightningElement {
     return this.fieldErrors.fundId;
   }
 
+  get isSaveDisabled() {
+    return this.saving || this.entrySaved;
+  }
+
   handleDonorKindChange(event) {
+    this.markChanged();
     this.donorKind = event.detail.value;
     this.donorId = undefined;
   }
 
   handleDonorChange(event) {
+    this.markChanged();
     this.donorId = event.detail ? event.detail.recordId : undefined;
   }
 
   handleAmountChange(event) {
+    this.markChanged();
     this.amount = event.detail.value;
   }
 
   handleDateChange(event) {
+    this.markChanged();
     this.giftDate = event.detail.value;
   }
 
   handleTypeChange(event) {
+    this.markChanged();
     this.giftType = event.detail.value;
   }
 
   handlePaymentReferenceChange(event) {
+    this.markChanged();
     this.paymentReference = event.detail.value;
   }
 
   handleAppealChange(event) {
+    this.markChanged();
     this.appealId = event.detail ? event.detail.recordId : undefined;
   }
 
   handleFundChange(event) {
+    this.markChanged();
     this.fundId = event.detail ? event.detail.recordId : undefined;
+  }
+
+  /** Any edit makes this a gift that has not been saved yet. */
+  markChanged() {
+    this.entrySaved = false;
   }
 
   handleSave() {
@@ -235,15 +270,22 @@ export default class QuickGiftEntry extends LightningElement {
   }
 
   async save(startAnother) {
+    if (this.isSaveDisabled) {
+      return;
+    }
     this.formError = undefined;
+    this.saveWarning = undefined;
     this.fieldErrors = {};
     this.saving = true;
     try {
       const result = await saveGift({ input: this.buildInput() });
       if (!result || result.success !== true) {
         this.applyResultErrors(result);
+        this.focusFirstError();
         return;
       }
+      this.entrySaved = true;
+      this.saveWarning = result.fundNotApplied === true ? fundNotApplied : undefined;
       this.savedGift = {
         id: result.giftId,
         name: result.giftName,
@@ -309,8 +351,27 @@ export default class QuickGiftEntry extends LightningElement {
     }
   }
 
+  /**
+   * Moves the keyboard to the first field the controller complained about, so a person
+   * working without a mouse lands on the thing to fix rather than hunting for it.
+   */
+  focusFirstError() {
+    const first = FIELD_ORDER.find((entry) => this.fieldErrors[entry[0]]);
+    if (!first) {
+      return;
+    }
+    for (const dataId of first.slice(1)) {
+      const target = this.template.querySelector(`[data-id="${dataId}"]`);
+      if (target && typeof target.focus === 'function') {
+        target.focus();
+        return;
+      }
+    }
+  }
+
   /** Keeps the date, the appeal and the fund, clears what changes gift to gift. */
   startAnotherGift() {
+    this.entrySaved = false;
     this.donorId = this.prefilledDonorId;
     this.donorKind = this.prefilledDonorKind || PERSON;
     this.amount = undefined;

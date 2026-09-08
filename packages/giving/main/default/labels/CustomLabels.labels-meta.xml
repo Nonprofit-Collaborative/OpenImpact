@@ -256,4 +256,12 @@
         <shortDescription>Quick gift entry: unexpected failure</shortDescription>
         <value>The gift could not be saved. Your administrator can find the details in the Error Log.</value>
     </labels>
+    <labels>
+        <fullName>Giving_QuickGiftEntry_FundNotApplied</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Quick gift entry: the gift saved but the chosen fund was not applied</shortDescription>
+        <value>The gift was saved, but it is already split across more than one fund, so the fund you chose was not applied. Open the gift to change its allocations.</value>
+    </labels>
 </CustomLabels>

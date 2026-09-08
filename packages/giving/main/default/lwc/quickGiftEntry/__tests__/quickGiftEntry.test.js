@@ -179,4 +179,78 @@ describe('c-quick-gift-entry', () => {
     expect(pick(element, 'form-error').textContent).toContain('Insufficient access on Gift.');
     expect(pick(element, 'saved')).toBeNull();
   });
+
+  it('will not enter the same gift twice when Save is tapped again', async () => {
+    const element = build();
+    await settle();
+
+    await enterAGift(element);
+    pick(element, 'save').click();
+    await settle();
+
+    expect(saveGift).toHaveBeenCalledTimes(1);
+    expect(pick(element, 'save').disabled).toBe(true);
+    expect(pick(element, 'save-and-new').disabled).toBe(true);
+
+    pick(element, 'save').click();
+    await settle();
+    expect(saveGift).toHaveBeenCalledTimes(1);
+
+    change(pick(element, 'amount'), { value: '75' });
+    await settle();
+    expect(pick(element, 'save').disabled).toBe(false);
+
+    pick(element, 'save').click();
+    await settle();
+    expect(saveGift).toHaveBeenCalledTimes(2);
+  });
+
+  it('is ready for the next gift straight after save and new', async () => {
+    const element = build();
+    await settle();
+
+    await enterAGift(element);
+    pick(element, 'save-and-new').click();
+    await settle();
+
+    expect(pick(element, 'save-and-new').disabled).toBe(false);
+  });
+
+  it('moves the keyboard to the first field that has a message', async () => {
+    saveGift.mockResolvedValue({
+      success: false,
+      fieldErrors: [
+        { field: 'amount', message: 'Enter an amount greater than zero.' },
+        { field: 'giftType', message: 'Choose how the gift arrived.' }
+      ]
+    });
+    const element = build();
+    await settle();
+    const focus = jest.fn();
+    pick(element, 'amount').focus = focus;
+
+    pick(element, 'save').click();
+    await settle();
+
+    expect(focus).toHaveBeenCalled();
+  });
+
+  it('says so when the gift saved but the fund chosen could not be applied', async () => {
+    saveGift.mockResolvedValue({
+      success: true,
+      giftId: '004000000000000AAA',
+      giftName: 'G-000124',
+      fundNotApplied: true,
+      fieldErrors: []
+    });
+    const element = build();
+    await settle();
+
+    await enterAGift(element);
+    pick(element, 'save').click();
+    await settle();
+
+    expect(pick(element, 'saved')).not.toBeNull();
+    expect(pick(element, 'save-warning')).not.toBeNull();
+  });
 });

@@ -26,8 +26,9 @@ public with sharing class QuickGiftEntryController {
             defaults.giftDate = Date.today();
             defaults.giftTypes = giftTypeOptions();
             defaults.hasPersonAccounts = OrgShapeDetector.detect().hasPersonAccounts;
-            applyDefaultFund(defaults);
-            applyDefaultAppeal(defaults);
+            Nonprofit_Settings__c settings = SettingsService.getSettings();
+            applyDefaultFund(defaults, settings);
+            applyDefaultAppeal(defaults, settings);
             return defaults;
         } catch (Exception e) {
             ErrorLogger.log(e, CONTEXT + '.getDefaults');
@@ -54,10 +55,14 @@ public with sharing class QuickGiftEntryController {
         try {
             Gift__c gift = input.toGift();
             Database.insert(gift, true, AccessLevel.USER_MODE);
-            applyChosenFund(gift, asId(input.fundId, Fund__c.SObjectType));
+            Boolean applyChosenFundWasApplied = applyChosenFund(
+                gift,
+                asId(input.fundId, Fund__c.SObjectType)
+            );
             result.success = true;
             result.giftId = gift.Id;
             result.giftName = nameOf(gift.Id);
+            result.fundNotApplied = !applyChosenFundWasApplied;
             return result;
         } catch (DmlException e) {
             ErrorLogger.log(e, CONTEXT + '.saveGift');
@@ -77,10 +82,14 @@ public with sharing class QuickGiftEntryController {
      * allocation. When the person chose a fund, that one allocation is pointed at their
      * choice rather than a second one being added, so the allocations still total the
      * gift (canonical model R-GA1).
+     *
+     * Returns false when the choice could not be applied, which happens only when the gift
+     * already carries a split across several funds. The gift is saved either way, and the
+     * component says so rather than reporting a designation the gift does not have.
      */
-    private static void applyChosenFund(Gift__c gift, Id fundId) {
+    private static Boolean applyChosenFund(Gift__c gift, Id fundId) {
         if (fundId == null) {
-            return;
+            return true;
         }
         List<Gift_Allocation__c> existing = GiftSelector.selectAllocationsByGiftIds(
             new Set<Id>{ gift.Id }
@@ -92,18 +101,19 @@ public with sharing class QuickGiftEntryController {
                 Amount__c = gift.Amount__c
             );
             Database.insert(allocation, true, AccessLevel.USER_MODE);
-            return;
+            return true;
         }
         if (existing.size() > 1) {
-            return;
+            return false;
         }
         Gift_Allocation__c allocation = existing[0];
         if (allocation.Fund__c == fundId) {
-            return;
+            return true;
         }
         allocation.Fund__c = fundId;
         allocation.Amount__c = gift.Amount__c;
         Database.update(allocation, true, AccessLevel.USER_MODE);
+        return true;
     }
 
     private static String nameOf(Id giftId) {
@@ -111,8 +121,17 @@ public with sharing class QuickGiftEntryController {
         return saved.isEmpty() ? null : saved[0].Name;
     }
 
-    private static void applyDefaultFund(EntryDefaults defaults) {
-        Id fundId = asId(SettingsService.getSettings().Default_Fund__c, Fund__c.SObjectType);
+    /**
+     * The form shows the fund the gift will actually land in. Where the settings key names
+     * no usable fund, the save falls back to the fund carrying the default flag (R-F4,
+     * R-GA2), so the form asks the domain the same question rather than showing an empty
+     * Fund box and then designating the gift somewhere the person never saw.
+     */
+    private static void applyDefaultFund(EntryDefaults defaults, Nonprofit_Settings__c settings) {
+        Id fundId = asId(settings.Default_Fund__c, Fund__c.SObjectType);
+        if (fundId == null) {
+            fundId = GiftService.resolveDefaultFundId();
+        }
         if (fundId == null) {
             return;
         }
@@ -124,8 +143,8 @@ public with sharing class QuickGiftEntryController {
         }
     }
 
-    private static void applyDefaultAppeal(EntryDefaults defaults) {
-        Id appealId = asId(SettingsService.getSettings().Default_Appeal__c, Appeal__c.SObjectType);
+    private static void applyDefaultAppeal(EntryDefaults defaults, Nonprofit_Settings__c settings) {
+        Id appealId = asId(settings.Default_Appeal__c, Appeal__c.SObjectType);
         if (appealId == null) {
             return;
         }
@@ -170,27 +189,6 @@ public with sharing class QuickGiftEntryController {
             values.add(option.value);
         }
         return values;
-    }
-
-    /**
-     * Parses a gift that arrives as JSON, rejecting anything that is not exactly the shape
-     * of GiftInput. Callers that hold a payload rather than a typed value use this rather
-     * than deserializing it themselves, so the guard is written once. Apex does not allow
-     * a static method on an inner class, which is why this sits on the controller.
-     */
-    public static GiftInput fromJson(String raw) {
-        if (String.isBlank(raw)) {
-            throw new QuickGiftEntryException(Label.Giving_QuickGiftEntry_ErrorNoInput);
-        }
-        try {
-            GiftInput parsed = (GiftInput) JSON.deserializeStrict(raw, GiftInput.class);
-            if (parsed == null) {
-                throw new QuickGiftEntryException(Label.Giving_QuickGiftEntry_ErrorNoInput);
-            }
-            return parsed;
-        } catch (JSONException e) {
-            throw new QuickGiftEntryException(Label.Giving_QuickGiftEntry_ErrorNoInput);
-        }
     }
 
     private static AuraHandledException asAuraException(String message) {
@@ -253,6 +251,8 @@ public with sharing class QuickGiftEntryController {
         public String giftName;
         @AuraEnabled
         public String formError;
+        @AuraEnabled
+        public Boolean fundNotApplied = false;
         @AuraEnabled
         public List<FieldError> fieldErrors = new List<FieldError>();
     }
@@ -349,9 +349,5 @@ public with sharing class QuickGiftEntryController {
                 Payment_Reference__c = this.paymentReference
             );
         }
-    }
-
-    /** Raised when a gift payload cannot be read at all. */
-    public class QuickGiftEntryException extends Exception {
     }
 }

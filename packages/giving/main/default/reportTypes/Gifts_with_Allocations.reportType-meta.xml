@@ -73,22 +73,22 @@
     <columns>
       <checkedByDefault>true</checkedByDefault>
       <field>Name</field>
-      <table>Gift_Allocation__c</table>
+      <table>Gift__c.Gift_Allocations__r</table>
     </columns>
     <columns>
       <checkedByDefault>true</checkedByDefault>
       <field>Fund__c</field>
-      <table>Gift_Allocation__c</table>
+      <table>Gift__c.Gift_Allocations__r</table>
     </columns>
     <columns>
       <checkedByDefault>true</checkedByDefault>
       <field>Amount__c</field>
-      <table>Gift_Allocation__c</table>
+      <table>Gift__c.Gift_Allocations__r</table>
     </columns>
     <columns>
       <checkedByDefault>false</checkedByDefault>
       <field>Percent__c</field>
-      <table>Gift_Allocation__c</table>
+      <table>Gift__c.Gift_Allocations__r</table>
     </columns>
     <masterLabel>Gift Allocation</masterLabel>
   </sections>
