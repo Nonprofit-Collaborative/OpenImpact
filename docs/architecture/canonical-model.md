@@ -2,7 +2,7 @@
 
 **Version:** v0.3
 **Status:** governing specification for the v0.1, v0.2, and v0.3 builds
-**Last updated:** 2026-09-07
+**Last updated:** 2026-09-08
 
 ## 1. Purpose
 
@@ -1971,8 +1971,11 @@ the interface always labels them as recognition.
 **R-SC3 Automatic household-member credits.** When the org's automatic household soft
 credit setting is on, every current member of the donor's household other than the donor
 receives a soft credit with Role Household Member, Is Automatic true, and the gift's full
-amount. These records are maintained by the package: they are recreated when household
-membership changes and removed when the setting is turned off. A credit a person entered
+amount. This holds for every gift, including a negative gift recording a refund, whose
+credits are negative in the same way, and including a gift whose own status has since
+become Refunded or Written off (R-SC5). These records are maintained by the package: they
+are recreated when household membership changes and removed when the setting is turned
+off. A credit a person entered
 is never touched by that maintenance, which is what Is Automatic is for.
 
 **R-SC4 Amounts may exceed the gift.** The soft credits on a gift may total more than the
@@ -1980,7 +1983,10 @@ gift, because two people can each be recognized for the whole of it. This is rec
 not accounting, and no validation caps it.
 
 **R-SC5 Negative gifts.** A refund produces matching negative soft credits, so recognition
-totals correct themselves the same way giving totals do.
+totals correct themselves the same way giving totals do. That negative credit is the only
+reversal recognition gets: the gift being refunded keeps the credits it earned, and the
+two rows cancel. A gift of 250 refunded in full leaves a credit of 250 on the original and
+a credit of minus 250 on the negative gift, and the recognition total is zero (ADR-0023).
 
 **R-SC3a How a membership change reaches the credits.** The recompute a membership change
 causes is queued, not done in the saving transaction: a household's giving history has no
@@ -1991,9 +1997,12 @@ that has the rest corrected the next time each of those gifts is saved.
 
 **R-SC6 Automatic credits are recomputed, not accumulated.** The package recomputes a
 gift's automatic credits whenever its donor, its amount, or its status changes, and
-removes them when the gift is deleted or refunded. Recomputation is idempotent: running it
-twice over the same gift leaves the same records. Manual credits are never read, changed,
-or deleted by it.
+removes them when the gift is deleted. A refund does not remove them: the reversal is
+R-SC5's negative credit, and doing both would take a fully refunded gift's recognition to
+minus its own amount rather than to zero (ADR-0023). A status change therefore still
+triggers a recompute but no longer changes its outcome. Recomputation is idempotent:
+running it twice over the same gift leaves the same records. Manual credits are never
+read, changed, or deleted by it.
 
 **R-SC7 A credited party is credited once per gift and role.** Two automatic credits for
 the same person, the same gift, and the same role are a duplicate, and the package keeps
@@ -2625,6 +2634,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.3 | 2026-09-08 | C-13 rollup adapter build. `Rollup_Definition__c` and `Rollup_Definition_Default__mdt` created as Sections 14 and 13 specify, with one correction: both gain `Fiscal_Date_Field__c`. R-R3 said the fiscal window is computed from the start month and the offset but never said which date attribute it is measured on, and every fiscal definition in Section 26 sums an amount rather than a date, so the window had nothing to bound. The attribute is optional and falls back to the attribute being aggregated, which is right for a rollup that aggregates a date. `Mode__c` on the definition ships with Both as its default value, matching R-R4 and the shipped Giving rows. |
 | v0.3 | 2026-09-08 | C-17 Addresses build. `Address__c` and its fields, list views, compact layout, and validation rules created as specified in Section 29, with two recorded deviations: `Street__c` ships as Text Area (255) because the platform has no long text field that a list view or a validation rule can read, and `Contact_Address_Change_Behavior__c` ships as Text(40) on `Nonprofit_Settings__c` per ADR-0019 rather than as a picklist. `Verification_Status__c` defaults to Unverified and is left writable for a third party verification app (R-AD6); no packaged code writes it. |
 | v0.3 | 2026-09-08 | G-02 defect fix (ADR-0022). No object or field added. Section 26's base filter changes from `Status equals Received` to `Status` in `Received`, `Refunded`, `Written off`, because R-G3 moves a fully refunded gift's status while leaving the negative gifts that reverse it at Received, so the old filter kept the negatives, dropped the positive, and subtracted a refunded gift twice. The count rows, largest gift, and the two date rows additionally require `Amount__c` greater than 0, so a gift given once and refunded in full reads as one gift and a total of zero. All 38 gift sourced, Gift Allocation sourced and Soft Credit sourced `Rollup_Definition_Default__mdt` rows updated; the three Pledge Balance rows filter on Commitment status and are unaffected. R-R9 gains the sentence that makes this a consequence of the rule rather than an exception to it. |
+| v0.3 | 2026-09-08 | G-08 rule collision resolved (ADR-0023). No object, field, or rollup row changed. R-SC5 and R-SC6 collided on a full refund: R-SC5 creates a negative automatic credit on the negative gift while R-SC6 removed the original gift's automatic credits once its status became Refunded or Written off, so a fully refunded gift of 250 left a recognition total of minus 250 rather than zero. R-SC6 no longer removes credits on refund; removal is now only for a deleted gift. R-SC5 states the resulting pair explicitly and R-SC3 states that a gift keeps its household credits after its status is reversed. Section 26's soft credit rows already read gift status through the widened set from ADR-0022, so they need no further change and now carry both halves of the pair. |
 
 ---
 ## 32. Entity ownership by package

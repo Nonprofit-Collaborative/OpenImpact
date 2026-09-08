@@ -33,6 +33,12 @@ useful average gift for a donor with refunds, because the two numbers deliberate
 different questions. And Ana's **Last gift date** stays on the day of the original gift
 rather than moving to the day of the refund, because the date totals ignore negative gifts.
 
+Recognition follows the same arithmetic. If Ana's household member Luis was soft credited
+for her gift, the refund gives him a negative soft credit of the same size and leaves the
+original credit where it is, so his **Total soft credits** ends at nothing. Both rows stay
+on the record, which is why a negative soft credit is a normal thing to see next to a
+refund.
+
 ## How to turn it on
 
 Refunds and write-offs arrive with the Giving module. There is nothing to configure.

@@ -53,7 +53,10 @@ Do this as Tom, from the sample data, after at least a few gifts exist.
    tell you how current the numbers are; everything on this dashboard is calculated from
    the gifts themselves, so a refresh is all it ever needs.
 8. Open **Recent gifts** from the Reports tab, in the same folder, when someone asks
-   "did that gift arrive?". It lists every gift from the last thirty days, newest first.
+   "did that gift arrive?". It lists every gift from the last thirty days, newest first,
+   with no status filter at all: pending gifts, refunds, and the gifts they reverse are
+   all on it, because the answer to "did that gift arrive?" sometimes is "it arrived and
+   then it went back". The status column tells you which is which.
 
 ## Common mistakes
 
@@ -63,10 +66,25 @@ looking at it, so this is a permission problem, not a dashboard problem: that pe
 run reports or cannot read gifts. Assign them the Fundraising Staff or Read Only permission
 set group in Nonprofit Settings, under Access. See step 3 below.
 
-**The numbers look too small.** Only gifts with the status **Received** count. A gift left
-at Pending, for example a pledge payment that has not arrived, is deliberately excluded so
-that the totals match the bank. Open Recent gifts and look at the status column if a gift
-you expected is missing.
+**The numbers look too small.** The money charts count gifts with the status **Received**,
+**Refunded**, or **Written off**. A gift left at Pending, for example a pledge payment that
+has not arrived, is deliberately excluded so that the totals match the bank. Open Recent
+gifts and look at the status column if a gift you expected is missing.
+
+The two reversed statuses are in that list on purpose. A refund is recorded as a second
+gift for a negative amount, and the original keeps its own row with the status Refunded or
+Written off, so the charts have to see both rows for them to cancel: a gift of $250 with
+all of it returned adds $250 and subtracts $250 and nets to nothing. If the charts counted
+only Received, they would keep the refund and drop the gift it reverses, and that donor
+would show as minus $250. See the refunds page for how a refund is recorded.
+
+**A donor or a fund shows a negative number.** The charts are filtered by date, and a
+refund carries the date the money went back, not the date it arrived. A gift received in
+December and refunded in January is a positive row in last year's window and a negative
+row in this year's, so a year to date chart shows the refund on its own. That is correct
+for a chart that answers "what came in this year", and it is why a negative bar is worth
+reading rather than reporting as a defect. Open Recent gifts, or the report behind the
+chart, and look for a gift with the status Refunded dated before the window.
 
 **A fund total looks short.** A gift counts toward a fund only through its allocation, and
 a gift split across several funds appears once per fund. Check the split on the gift itself

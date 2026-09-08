@@ -37,8 +37,15 @@ Two things to know about how the automatic credits behave:
   gave, which is correct and is why they are reported separately from giving totals.
 - **The package looks after the credits it created and never touches the ones you
   entered.** Change the donor or the amount on a gift and the automatic credits are
-  recalculated. Delete the gift or record a refund and they go away or turn negative. A
-  soft credit David entered by hand stays exactly as he left it.
+  recalculated. Delete the gift and they go with it. A soft credit David entered by hand
+  stays exactly as he left it.
+- **A refund reverses a credit, it does not erase it.** A refund is recorded as a second
+  gift for a negative amount, and that gift earns its own automatic credits, which are
+  negative. The gift being refunded keeps the credit it earned. So Luis, credited 500 for
+  Ana's gift, keeps that 500 and gains a credit of minus 500 on the refund, and his Total
+  Soft Credits is nothing. Both rows carry the Automatic badge, and a negative credit is
+  the package working rather than a fault. This is the same shape as the gifts themselves,
+  where the refunded gift also keeps its row.
 
 ## A five-minute walkthrough
 

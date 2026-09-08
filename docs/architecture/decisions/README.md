@@ -31,12 +31,14 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0020](0020-module-settings-pages-reached-by-navigation.md) | Module settings pages reached by navigation, Core pages by literal import | Accepted |
 | [0021](0021-system-mode-writes-for-package-owned-data.md) | System-mode writes for package-owned data through dedicated writer classes | Accepted |
 | [0022](0022-rollup-status-filter-includes-reversed-gifts.md) | Packaged giving rollups include reversed gifts, and count gifts rather than transactions | Accepted |
+| [0023](0023-refunded-gifts-keep-their-soft-credits.md) | A refunded gift keeps its soft credits, and the negative gift reverses them | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions
 recorded under the platform-limitation rule in plan Section 9.3. ADR-0015 records the ADR-0011
 evaluation outcome. ADR-0016 is proposed for the owner's decision at v0.4 (plan Section 11.2
-item 6). ADR-0022 is a product owner decision on a defect found in G-02.
+item 6). ADR-0022 is a product owner decision on a defect found in G-02. ADR-0023 resolves the rule
+collision ADR-0022 recorded as still open, between R-SC5 and R-SC6 in G-08.
 
 ## Adding a new ADR
 

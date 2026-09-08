@@ -176,12 +176,17 @@ private class SoftCreditServiceTest {
         System.assertEquals(ana.Id, credits[0].Contact__c, 'Ana is now the one recognized');
     }
 
+    /**
+     * ADR-0023: the status a refund writes on the original gift does not take the recognition
+     * away. The negative gift's own negative credit is the reversal, and deleting this one as
+     * well would leave the household member recognized for minus the gift.
+     */
     @IsTest
-    static void removesCreditsWhenTheGiftIsRefunded() {
+    static void keepsCreditsWhenTheGiftIsMarkedRefunded() {
         RecognitionTestData.setAutomaticHouseholdCredits(true);
         Account garcias = RecognitionTestData.household('The Garcia Family');
         Contact ana = RecognitionTestData.person('Ana', 'Garcia', garcias.Id);
-        RecognitionTestData.person('Luis', 'Garcia', garcias.Id);
+        Contact luis = RecognitionTestData.person('Luis', 'Garcia', garcias.Id);
         Gift__c gift = RecognitionTestData.gift(ana.Id, null, 500);
 
         Test.startTest();
@@ -189,10 +194,37 @@ private class SoftCreditServiceTest {
         update gift;
         Test.stopTest();
 
+        List<Soft_Credit__c> credits = RecognitionTestData.creditsFor(gift.Id);
+        System.assertEquals(1, credits.size(), 'The gift keeps the credit it earned');
+        System.assertEquals(luis.Id, credits[0].Contact__c, 'Still the same person recognized');
         System.assertEquals(
-            0,
+            500,
+            credits[0].Amount__c,
+            'At the amount it earned, for the negative gift to cancel'
+        );
+    }
+
+    /**
+     * A write-off is the same shape as a refund with a different status, so it reads the same
+     * way (ADR-0023).
+     */
+    @IsTest
+    static void keepsCreditsWhenTheGiftIsWrittenOff() {
+        RecognitionTestData.setAutomaticHouseholdCredits(true);
+        Account garcias = RecognitionTestData.household('The Garcia Family');
+        Contact ana = RecognitionTestData.person('Ana', 'Garcia', garcias.Id);
+        RecognitionTestData.person('Luis', 'Garcia', garcias.Id);
+        Gift__c gift = RecognitionTestData.gift(ana.Id, null, 500);
+
+        Test.startTest();
+        gift.Status__c = SoftCreditService.STATUS_WRITTEN_OFF;
+        update gift;
+        Test.stopTest();
+
+        System.assertEquals(
+            1,
             RecognitionTestData.creditsFor(gift.Id).size(),
-            'A refunded gift recognizes nobody'
+            'A written off gift keeps its credit, and its negative gift carries the reversal'
         );
     }
 
