@@ -8,9 +8,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">
-      Produces Garcia Household. Useful for organizations that prefer a plainer style.
-    </value>
+    <value xsi:type="xsd:string">Produces Garcia Household. Useful for organizations that prefer a plainer style.</value>
   </values>
   <values>
     <field>Pattern_Type__c</field>

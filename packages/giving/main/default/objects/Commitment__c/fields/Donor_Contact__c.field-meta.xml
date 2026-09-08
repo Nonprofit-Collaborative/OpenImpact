@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Donor_Contact__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>The person who made the commitment, where people are Contacts.</description>
+    <label>Donor</label>
+    <referenceTo>Contact</referenceTo>
+    <relationshipLabel>Commitments</relationshipLabel>
+    <relationshipName>Commitments</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

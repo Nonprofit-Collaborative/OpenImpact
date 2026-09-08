@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Picklist_Values__c</fullName>
+  <description>
+    The choices for a picklist row, as semicolon separated value:label pairs.
+  </description>
+  <externalId>false</externalId>
+  <fieldManageability>DeveloperControlled</fieldManageability>
+  <label>Picklist Values</label>
+  <length>32768</length>
+  <required>false</required>
+  <type>LongTextArea</type>
+  <visibleLines>3</visibleLines>
+</CustomField>

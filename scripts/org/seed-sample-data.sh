@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
 # seed-sample-data.sh <alias>
 #
-# Loads sample data into the target org, if a sample data plan exists yet (tracked as C-10 in
-# the product plan: 200 realistic households). Safe to call before the plan exists; it just
-# prints a note and exits successfully so callers (create-scratch-org.sh) do not fail.
+# Loads the C-10 sample data set (200 households, 440 contacts, and 25 organizations)
+# into the target org and waits for it to actually finish.
+#
+# SampleDataLoader.load() runs as a chain of queueable jobs (SampleDataLoadQueueable for
+# the accounts, then SampleDataContactQueueable once per chunk of contacts), so the Apex
+# call returns as soon as the first job is queued, not once loading is done. Stage one
+# inserts all 200 households in a single DML, so counting households proves nothing about
+# the contacts. This polls both the contact count (target read from the generated JSON)
+# and AsyncApexJob, and reports success only when every contact is in and no load job is
+# still queued or running. See docs/admin-guide/sample-data.md and data/sample/README.md.
+#
+# Safe to call before scripts/org/load-sample-data.apex exists; it just prints a note
+# and exits successfully so callers (create-scratch-org.sh) do not fail.
 
 set -euo pipefail
 
@@ -14,11 +24,66 @@ if [[ -z "$ALIAS" ]]; then
   exit 1
 fi
 
-PLAN_FILE="data/sample/plan.json"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+APEX_FILE="$REPO_ROOT/scripts/org/load-sample-data.apex"
+SAMPLE_JSON="$REPO_ROOT/packages/core/main/default/staticresources/SampleData.json"
+POLL_INTERVAL_SECONDS=5
+MAX_WAIT_SECONDS=300
 
-if [[ -f "$PLAN_FILE" ]]; then
-  echo "Loading sample data from ${PLAN_FILE} into ${ALIAS}..."
-  sf data import tree --plan "$PLAN_FILE" --target-org "$ALIAS"
-else
+if [[ ! -f "$APEX_FILE" ]]; then
   echo "sample data not yet available (C-10)"
+  exit 0
 fi
+
+# The expected contact count is the number of household members in the generated
+# resource, so it never drifts from the data the loader actually inserts.
+EXPECTED_CONTACTS="$(node -e "
+  const fs = require('fs');
+  const data = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+  const total = data.households.reduce((sum, h) => sum + h.members.length, 0);
+  console.log(total);
+" "$SAMPLE_JSON")"
+
+# Reads a COUNT() query result from the sf CLI JSON envelope, 0 if anything went wrong.
+count_query() {
+  sf data query --target-org "$ALIAS" --query "$1" --json | node -e "
+    let data = '';
+    process.stdin.on('data', (chunk) => { data += chunk; });
+    process.stdin.on('end', () => {
+      try {
+        console.log(JSON.parse(data).result.totalSize);
+      } catch (e) {
+        console.log(0);
+      }
+    });
+  "
+}
+
+echo "Starting the sample data load in ${ALIAS} (runs in the background as a queueable chain)..."
+sf apex run --target-org "$ALIAS" --file "$APEX_FILE"
+
+echo "Waiting for ${EXPECTED_CONTACTS} sample contacts and for the load jobs to finish (up to ${MAX_WAIT_SECONDS}s)..."
+
+RUNNING_JOB_QUERY="SELECT COUNT() FROM AsyncApexJob WHERE ApexClass.Name IN ('SampleDataLoadQueueable', 'SampleDataContactQueueable') AND Status IN ('Queued', 'Preparing', 'Processing', 'Holding')"
+
+ELAPSED=0
+while [[ "$ELAPSED" -lt "$MAX_WAIT_SECONDS" ]]; do
+  CONTACTS="$(count_query "SELECT COUNT() FROM Contact WHERE Sample_Data__c = true")"
+  RUNNING_JOBS="$(count_query "$RUNNING_JOB_QUERY")"
+
+  echo "  ${CONTACTS} / ${EXPECTED_CONTACTS} contacts loaded, ${RUNNING_JOBS} load job(s) still running (${ELAPSED}s elapsed)"
+
+  if [[ "$CONTACTS" -ge "$EXPECTED_CONTACTS" && "$RUNNING_JOBS" -eq 0 ]]; then
+    HOUSEHOLDS="$(count_query "SELECT COUNT() FROM Account WHERE Sample_Data__c = true AND RecordType.DeveloperName = 'Household'")"
+    ORGANIZATIONS="$(count_query "SELECT COUNT() FROM Account WHERE Sample_Data__c = true AND RecordType.DeveloperName = 'Organization'")"
+    echo "Sample data load complete: ${HOUSEHOLDS} households, ${CONTACTS} contacts, ${ORGANIZATIONS} organizations."
+    exit 0
+  fi
+
+  sleep "$POLL_INTERVAL_SECONDS"
+  ELAPSED=$((ELAPSED + POLL_INTERVAL_SECONDS))
+done
+
+echo "Sample data load did not finish within ${MAX_WAIT_SECONDS}s." >&2
+echo "Check Setup > Apex Jobs, or open Nonprofit Settings > Sample Data in the org, for progress." >&2
+exit 1

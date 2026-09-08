@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Person_Account__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>The person this address belongs to, where your organization keeps people as accounts rather than as contacts.</description>
+  <inlineHelpText>The person this address belongs to, where your organization keeps people as accounts rather than as contacts.</inlineHelpText>
+  <label>Person Account</label>
+  <referenceTo>Account</referenceTo>
+  <relationshipLabel>Personal Addresses</relationshipLabel>
+  <relationshipName>Personal_Addresses</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

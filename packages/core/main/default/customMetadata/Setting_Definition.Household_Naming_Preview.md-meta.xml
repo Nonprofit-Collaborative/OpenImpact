@@ -12,10 +12,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">
-      Shows five sample households as you type a pattern, and offers a recompute of every household
-      that is not marked as a custom name.
-    </value>
+    <value xsi:type="xsd:string">Shows five sample households as you type a pattern, and offers a recompute of every household that is not marked as a custom name.</value>
   </values>
   <values>
     <field>Help_Path__c</field>
@@ -27,7 +24,7 @@
   </values>
   <values>
     <field>Section__c</field>
-    <value xsi:type="xsd:string">Household names and greetings</value>
+    <value xsi:type="xsd:string">Households</value>
   </values>
   <values>
     <field>Sort_Order__c</field>

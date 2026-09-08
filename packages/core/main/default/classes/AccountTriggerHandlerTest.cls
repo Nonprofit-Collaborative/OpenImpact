@@ -101,4 +101,50 @@ private class AccountTriggerHandlerTest {
             'The setting is off, so nothing was created'
         );
     }
+
+    @IsTest
+    static void aPersonStoredAsAnAccountGetsAHouseholdWhenTheSettingIsOn() {
+        Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
+            HouseholdTestDataFactory.MODE_JUNCTION
+        );
+        settings.Create_Households_For_Person_Accounts__c = true;
+        HouseholdTestDataFactory.save(settings);
+        HouseholdService.personAccountOverride = true;
+        PersonRecordSelector.personRecordOverride = true;
+        // The org running this test may have no person name fields at all, so the test
+        // declares the person these details belong to.
+        PersonRecordSelector.personOverridesByName = new Map<String, HouseholdService.Person>{
+            'Maria Garcia' => HouseholdTestDataFactory.person('Ms.', 'Maria', 'Garcia', 'Head')
+        };
+
+        Test.startTest();
+        insert new Account(Name = 'Maria Garcia');
+        Test.stopTest();
+
+        List<Household_Member__c> memberships = [
+            SELECT
+                Household__c,
+                Account__c,
+                Role__c,
+                Is_Primary__c,
+                Household__r.Name,
+                Household__r.Member_Count__c,
+                Household__r.RecordTypeId
+            FROM Household_Member__c
+        ];
+        Assert.areEqual(1, memberships.size(), 'Maria was joined to a household');
+        Assert.areEqual(
+            HouseholdService.householdRecordTypeId(),
+            memberships[0].Household__r.RecordTypeId,
+            'The household is a household'
+        );
+        Assert.areEqual(
+            'The Garcia Family',
+            memberships[0].Household__r.Name,
+            'And it is named from her surname'
+        );
+        Assert.areEqual(1, memberships[0].Household__r.Member_Count__c, 'And counts her');
+        Assert.areEqual('Head', memberships[0].Role__c, 'She heads her own household');
+        Assert.isTrue(memberships[0].Is_Primary__c, 'And is its primary member');
+    }
 }

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>One_Donor_Not_Two</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(
+        NOT(ISBLANK(Donor_Contact__c)),
+        NOT(ISBLANK(Donor_Account__c))
+    )</errorConditionFormula>
+    <errorMessage>Choose one donor for this commitment, either a person or an account, not both.</errorMessage>
+</ValidationRule>

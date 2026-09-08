@@ -5,6 +5,7 @@
 deploy-options.json
 
 # Node
+node_modules
 node_modules/
 npm-debug.log*
 

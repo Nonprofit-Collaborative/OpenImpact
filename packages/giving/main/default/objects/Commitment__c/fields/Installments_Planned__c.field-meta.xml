@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Installments_Planned__c</fullName>
+    <description>How many installments the pledge is paid in.</description>
+    <inlineHelpText>Leave empty to divide the expected total by the amount.</inlineHelpText>
+    <label>Installments Planned</label>
+    <precision>4</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

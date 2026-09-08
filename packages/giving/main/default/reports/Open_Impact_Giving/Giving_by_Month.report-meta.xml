@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Report xmlns="http://soap.sforce.com/2006/04/metadata">
+  <columns>
+    <aggregateTypes>Sum</aggregateTypes>
+    <field>Gift__c.Amount__c</field>
+  </columns>
+  <description>
+    Total received in each of the last twelve months, the chart for a board meeting.
+  </description>
+  <filter>
+    <criteriaItems>
+      <column>Gift__c.Status__c</column>
+      <operator>equals</operator>
+      <value>Received</value>
+    </criteriaItems>
+    <criteriaItems>
+      <column>Gift__c.Gift_Date__c</column>
+      <operator>equals</operator>
+      <value>LAST_N_MONTHS:12</value>
+    </criteriaItems>
+  </filter>
+  <format>Summary</format>
+  <groupingsDown>
+    <dateGranularity>Month</dateGranularity>
+    <field>Gift__c.Gift_Date__c</field>
+    <sortOrder>Asc</sortOrder>
+  </groupingsDown>
+  <name>Giving by Month</name>
+  <reportType>Gifts</reportType>
+  <scope>organization</scope>
+  <showDetails>false</showDetails>
+</Report>

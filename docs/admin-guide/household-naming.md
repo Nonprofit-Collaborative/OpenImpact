@@ -28,8 +28,9 @@ change them:
    out of the informal greeting.
 5. Click **Save**.
 6. Saving changes the pattern for households named from then on. To bring existing
-   households up to date, click **Recompute all households** and confirm. It runs in the
-   background and tells you when it is finished.
+   households up to date, click **Recompute all households** and confirm. The page tells you
+   the recompute has started; it then runs in the background, and households are renamed a
+   few hundred at a time. A large org takes a few minutes.
 
 You need the "Manage Nonprofit Settings" permission to change these. Without it the page
 opens read only and says so.

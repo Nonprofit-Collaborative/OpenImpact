@@ -8,9 +8,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">
-      Produces John Smith and Jane Jones. Useful where titles are not collected.
-    </value>
+    <value xsi:type="xsd:string">Produces John Smith and Jane Jones. Useful where titles are not collected.</value>
   </values>
   <values>
     <field>Pattern_Type__c</field>

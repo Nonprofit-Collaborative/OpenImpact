@@ -18,6 +18,11 @@ public with sharing class HouseholdMergeService {
     @NamespaceAccessible
     public static final String KEEP_VICTIM = 'Victim';
 
+    // The two handlers that keep household membership tidy. Named here because a merge
+    // deliberately stands them down while it moves people (see mergeHouseholds).
+    private static final String CONTACT_HANDLER = 'ContactTriggerHandler';
+    private static final String MEMBER_HANDLER = 'HouseholdMemberTriggerHandler';
+
     /**
      * The fields a merge offers a choice about, in the order the comparison shows them.
      * Every one of them is a field a person typed or a person cares about; the computed
@@ -230,14 +235,38 @@ public with sharing class HouseholdMergeService {
         Set<Id> movedPeople = HouseholdService.getMemberPersonIds(new Set<Id>{ victimId })
             .get(victimId);
         if (movedPeople != null && !movedPeople.isEmpty()) {
-            HouseholdService.moveMembers(movedPeople, survivorId);
+            // The move empties the household that is about to go away, and the upkeep the
+            // membership handlers run would tidy an empty household away where the org asks
+            // for that. That would delete the very record the platform merge is about to
+            // fold into the survivor, and everything hanging off it, activities, files,
+            // notes and giving history, would go with it instead of following the merge.
+            // So the handlers are stood down for the move only, and this method settles the
+            // survivor up itself once the merge has happened.
+            withoutMembershipUpkeep(movedPeople, survivorId);
         }
 
         Boolean keepsCustomName = applyChoices(survivor, victim, choices);
 
         // The platform's own merge, so that activities, files, notes, and every lookup
         // another package points at this household follow the record that goes away.
-        Database.merge(new Account(Id = survivorId), victimId, false, AccessLevel.USER_MODE);
+        Database.MergeResult merged = Database.merge(
+            new Account(Id = survivorId),
+            victimId,
+            false,
+            AccessLevel.USER_MODE
+        );
+        if (!merged.isSuccess()) {
+            // The people have already moved. Throwing here rolls the whole transaction
+            // back, so a merge that cannot finish leaves both households as they were
+            // rather than emptying one and keeping it.
+            List<String> reasons = new List<String>();
+            for (Database.Error problem : merged.getErrors()) {
+                reasons.add(problem.getMessage());
+            }
+            throw new HouseholdException(
+                Label.Core_HouseholdMerge_ErrorMergeFailed + ' ' + String.join(reasons, ' ')
+            );
+        }
 
         Set<Id> survivorOnly = new Set<Id>{ survivorId };
         if (keepsCustomName) {
@@ -307,7 +336,17 @@ public with sharing class HouseholdMergeService {
         ) {
             throw new HouseholdException(Label.Core_HouseholdMerge_ErrorNotHousehold);
         }
-        if (!HouseholdSelector.getEditableIds(new Set<Id>{ householdId }).contains(householdId)) {
+        if (targetHouseholdId == householdId) {
+            throw new HouseholdException(Label.Core_HouseholdMerge_ErrorSplitSameHousehold);
+        }
+        // Both ends of the move are edited, so edit access is needed on both. Checking only
+        // the household people leave would let somebody push people into a household they
+        // cannot see the inside of.
+        Set<Id> bothEnds = new Set<Id>{ householdId };
+        if (targetHouseholdId != null) {
+            bothEnds.add(targetHouseholdId);
+        }
+        if (HouseholdSelector.getEditableIds(bothEnds).size() != bothEnds.size()) {
             throw new HouseholdException(Label.Core_HouseholdMerge_ErrorNoEditAccess);
         }
 
@@ -334,12 +373,30 @@ public with sharing class HouseholdMergeService {
 
         Set<Id> affected = HouseholdService.moveMembers(personIds, destination);
         affected.add(householdId);
+        // One settle-up for the whole split, however many people moved: counts, names and
+        // greetings on both households, and the household left empty tidied away when the
+        // org asks for that.
         HouseholdService.afterMembershipChange(affected);
-        HouseholdService.deleteEmptyHouseholds(new Set<Id>{ householdId });
         return destination;
     }
 
     // ------------------------------------------------------------------ helpers
+
+    /**
+     * Moves people with the membership handlers stood down, so that nothing is recounted,
+     * renamed, or tidied away in the middle of a merge. The bypass is per transaction and
+     * is always cleared, including when the move throws.
+     */
+    private static void withoutMembershipUpkeep(Set<Id> personIds, Id survivorId) {
+        AutomationControl.bypass(CONTACT_HANDLER);
+        AutomationControl.bypass(MEMBER_HANDLER);
+        try {
+            HouseholdService.moveMembers(personIds, survivorId);
+        } finally {
+            AutomationControl.clearBypass(CONTACT_HANDLER);
+            AutomationControl.clearBypass(MEMBER_HANDLER);
+        }
+    }
 
     /**
      * Both households, checked to be two different households and not organizations,

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Pledge_Needs_Total_Or_Count</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(
+        ISPICKVAL(Type__c, &quot;Pledge&quot;),
+        ISBLANK(Expected_Total__c),
+        ISBLANK(Installments_Planned__c)
+    )</errorConditionFormula>
+    <errorMessage>A pledge needs an expected total or a number of installments, so the schedule can be worked out.</errorMessage>
+</ValidationRule>

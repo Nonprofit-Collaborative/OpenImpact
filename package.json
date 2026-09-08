@@ -12,7 +12,10 @@
     "test:unit:coverage": "sfdx-lwc-jest --coverage",
     "check:namespace": "bash scripts/ci/check-namespace.sh",
     "check:standard-objects": "bash scripts/ci/check-standard-objects.sh",
-    "precommit": "lint-staged"
+    "check:custom-metadata": "python3 scripts/ci/check-custom-metadata.py",
+    "check:canonical-model": "python3 scripts/ci/check-canonical-model.py",
+    "precommit": "lint-staged",
+    "check:apex": "bash scripts/ci/check-apex-offline.sh"
   },
   "devDependencies": {
     "@lwc/eslint-plugin-lwc": "3.5.0",

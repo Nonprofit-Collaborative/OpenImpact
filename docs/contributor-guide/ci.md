@@ -19,8 +19,15 @@ Salesforce org is needed for this job. Steps:
    appears in source.
 6. `scripts/ci/check-standard-objects.sh`, failing the build if a standard Salesforce
    object is referenced outside `packages/connect`.
-7. A grep check that fails the build if any tracked file contains an em dash character.
-8. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
+7. `scripts/ci/check-custom-metadata.py`, failing the build if a shipped custom metadata
+   record names a field its type does not define. Such a record refuses the whole
+   deployment, and nothing else in the suite sees it: the offline Apex compiler does not
+   read custom metadata records.
+8. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
+   is missing from `docs/architecture/canonical-model.md`. The canonical model is updated
+   before an object or a field is added, so this is the gate that keeps it true.
+9. A grep check that fails the build if any tracked file contains an em dash character.
+10. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
    `sf code-analyzer run --workspace packages --rule-selector Recommended --severity-threshold 2`.
    The results are uploaded as a build artifact (`code-analyzer-results.html` and
    `code-analyzer-results.json`) even if the job fails, so anyone can download and read
@@ -54,6 +61,81 @@ in-flight runs for that shape instead of piling up scratch orgs.
 
 Checks that every commit being merged (or every pushed commit, on a push to `main`) has
 a `Signed-off-by:` trailer. See "Signing off commits" below.
+
+## Offline Apex checking
+
+`scripts/ci/check-apex-offline.sh` gives feature agents compile-level feedback on Apex
+without needing a scratch org or Dev Hub. It is not yet wired into `.github/workflows/ci.yml`.
+
+It runs `CheckForIssues` from `apex-ls` (the nawforce/apex-dev-tools Apex language
+server, `io.github.apex-dev-tools:apex-ls` on Maven Central) against the whole
+`packages/` tree, using the repo's root `sfdx-project.json`. On first run it resolves the
+jar and its dependencies from Maven Central via Maven and caches them under `.tools/`
+(gitignored); later runs reuse the cache and need no network access. Requires Java 21+
+and, for the first run only, Maven, both already present in the standard dev and CI
+environment.
+
+Run it from anywhere in the repo:
+
+```
+scripts/ci/check-apex-offline.sh
+```
+
+It exits non-zero if any errors are found, and prints each error with file, line, and
+column. What it catches:
+
+- Syntax errors.
+- Type errors (incompatible assignment, incompatible return type, wrong argument types,
+  and similar).
+- References to unknown classes, methods, and variables.
+
+What it does not catch:
+
+- Unknown fields in SOQL queries (for example `[SELECT Missing__c FROM Thing__c]` where
+  `Missing__c` does not exist passes with no error). Field-level SOQL validation still
+  needs an org, for example through `sf code-analyzer` at deploy time or an actual
+  deploy to a scratch org.
+- Anything that is only enforced at runtime (CRUD/FLS, governor limits, trigger order of
+  execution, and so on).
+
+## Detection-only exemptions
+
+`scripts/ci/check-standard-objects.sh` fails the build when Core, Giving, Volunteers,
+Programs, or Funders names a standard object the Platform-license floor does not have
+(Opportunity, Campaign, Lead, Case), a Person Account field, or an Industries object
+(ADR-0009, ADR-0013).
+
+Detecting that one of those exists is not the same as depending on it. Core has to tell an
+administrator what is installed in their org: that is the Health Check (plan Section 4.8),
+and it is how the coexistence mode is recommended (plan Section 4.5). Detection is done
+with `Schema.getGlobalDescribe()` and field maps, against names held in String constants,
+so nothing is bound at compile time and Core still deploys on an org where those objects
+are absent. The grep cannot tell the difference, so it is told explicitly.
+
+An Apex line (`*.cls` or `*.trigger`) carrying the comment
+
+```
+// detection-only: <reason>
+```
+
+is exempt from the check. Rules:
+
+- The marker works only in Apex, and only on the line it is written on.
+- Use it on constant declarations. A constant is inert; an expression is not.
+- The reason is written for a reviewer, not for the script. Say what the constant detects
+  and what reads it.
+- Every exempted line is printed on every run, under the heading "Detection-only
+  exemptions", whether the check passes or fails. The list is meant to be read: if it grows,
+  something is wrong.
+- The marker does not make a compile-time reference legal. `Opportunity.Name` with the
+  marker appended still stops Core deploying on a Platform-only org, and no CI check will
+  catch it before the org shape matrix does.
+
+As of v0.1 the marker appears on four constant declarations in `OrgShapeDetector` (the NPSP
+namespace prefix, the Person Account indicator field, the Industries gift object, and the
+standard Sales Cloud object) and nowhere else. Three of the four are printed as exemptions:
+the NPSP prefix is not a name the grep looks for, and carries the marker only so that the
+four detection constants read alike.
 
 ## What happens when `SF_DEVHUB_AUTH_URL` is missing
 

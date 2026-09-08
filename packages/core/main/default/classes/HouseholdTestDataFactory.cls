@@ -81,6 +81,31 @@ public class HouseholdTestDataFactory {
         };
     }
 
+    /**
+     * A user with an ordinary standard profile and no packaged permission set at all: the
+     * shape of user that a household save must still work for.
+     */
+    public static User standardUser(String nickname) {
+        Profile standard = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        String unique = nickname + DateTime.now().getTime();
+        User result = new User(
+            ProfileId = standard.Id,
+            LastName = 'Tester',
+            Alias = 'tstr',
+            Email = unique + '@openimpact.test',
+            Username = unique + '@openimpact.test.invalid',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US',
+            LocaleSidKey = 'en_US',
+            TimeZoneSidKey = 'America/New_York'
+        );
+        // Saved on its own so that creating a user and creating records never mix.
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert result;
+        }
+        return result;
+    }
+
     public static List<Contact> manyContacts(Integer howMany, String lastName) {
         List<Contact> result = new List<Contact>();
         for (Integer i = 0; i < howMany; i++) {

@@ -3,15 +3,12 @@
   <label>Household upkeep when a household changes</label>
   <protected>true</protected>
   <values>
-    <field>Default_Enabled__c</field>
+    <field>Enabled_By_Default__c</field>
     <value xsi:type="xsd:boolean">true</value>
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">
-      Gives a new household a name, rewrites a household's name and greetings when its custom name
-      box is cleared, and creates households for new people in orgs that store people as accounts.
-    </value>
+    <value xsi:type="xsd:string">Gives a new household a name, rewrites a household's name and greetings when its custom name box is cleared, and creates households for new people in orgs that store people as accounts.</value>
   </values>
   <values>
     <field>Handler_Class__c</field>

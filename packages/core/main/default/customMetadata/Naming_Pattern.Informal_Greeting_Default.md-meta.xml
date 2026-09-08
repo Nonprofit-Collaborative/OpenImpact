@@ -8,9 +8,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">
-      Produces John and Jane, using each person's preferred name where they have one.
-    </value>
+    <value xsi:type="xsd:string">Produces John and Jane, using each person's preferred name where they have one.</value>
   </values>
   <values>
     <field>Pattern_Type__c</field>

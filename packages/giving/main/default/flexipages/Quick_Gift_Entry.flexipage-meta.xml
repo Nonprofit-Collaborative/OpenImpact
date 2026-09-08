@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>One screen for entering a gift that has just arrived.</description>
+  <flexiPageRegions>
+    <componentInstances>
+      <componentName>quickGiftEntry</componentName>
+      <identifier>quickGiftEntryPageComponent</identifier>
+    </componentInstances>
+    <mode>Replace</mode>
+    <name>main</name>
+    <type>Region</type>
+  </flexiPageRegions>
+  <masterLabel>Quick Gift Entry</masterLabel>
+  <template>
+    <name>flexipage:defaultAppHomeTemplate</name>
+  </template>
+  <type>AppPage</type>
+</FlexiPage>

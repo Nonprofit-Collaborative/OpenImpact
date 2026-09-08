@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_Address_AddButton</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address panel: button that opens the new address form</shortDescription>
+        <value>Add address</value>
+    </labels>
+    <labels>
+        <fullName>Core_Address_AddFormTitle</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address panel: heading above the new address form</shortDescription>
+        <value>New address</value>
+    </labels>
+    <labels>
+        <fullName>Core_Address_CancelButton</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address panel: button that closes the new address form</shortDescription>
+        <value>Cancel</value>
+    </labels>
+    <labels>
+        <fullName>Core_Address_DefaultBadge</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address panel: badge on the address currently in use</shortDescription>
+        <value>Default</value>
+    </labels>
+    <labels>
+        <fullName>Core_Address_Empty</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address panel: message shown when there are no addresses yet</shortDescription>
+        <value>No addresses yet. Add one so mail reaches this household.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Address_LoadFailed</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address panel: message shown when the addresses cannot be read</shortDescription>
+        <value>We could not load the addresses for this record. Refresh the page, and if it happens again ask your administrator to check the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Address_NotFound</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address service: the requested address no longer exists</shortDescription>
+        <value>That address no longer exists. Refresh the page to see the addresses on file now.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Address_OwnerRequired</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address service: no owner record was supplied</shortDescription>
+        <value>Choose a household, an organization, or a person before asking for their addresses.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Address_PanelTitle</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address panel: card heading</shortDescription>
+        <value>Addresses</value>
+    </labels>
+    <labels>
+        <fullName>Core_Address_PropagationFailed</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address automation: the default address could not be copied to the standard fields</shortDescription>
+        <value>We could not copy this address to the standard address fields, so nothing was saved. Check that you can edit the household and its people, then try again. If it happens again ask your administrator to check the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Address_SaveFailed</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address panel: message shown when a new address could not be saved</shortDescription>
+        <value>The address could not be saved. Check the fields marked in the form and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Address_SaveSuccess</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address panel: confirmation after a new address is saved</shortDescription>
+        <value>Address saved.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Address_SeasonalRange</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address panel: prefix for the dates a seasonal address is used</shortDescription>
+        <value>Used from</value>
+    </labels>
+    <labels>
+        <fullName>Core_Address_SeasonalRangeTo</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address panel: joins the two ends of a seasonal date range</shortDescription>
+        <value>to</value>
+    </labels>
+    <labels>
+        <fullName>Core_Address_SetDefaultButton</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address panel: button that makes an address the one in use</shortDescription>
+        <value>Set as default</value>
+    </labels>
+    <labels>
+        <fullName>Core_Address_SetDefaultFailed</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address panel: message shown when the default could not be changed</shortDescription>
+        <value>We could not make that the default address. Check that you have permission to edit addresses, and if it happens again ask your administrator to check the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Address_SetDefaultSuccess</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address panel: confirmation after the default address changes</shortDescription>
+        <value>This is now the default address, and it has been copied to the standard address fields.</value>
+    </labels>
+</CustomLabels>

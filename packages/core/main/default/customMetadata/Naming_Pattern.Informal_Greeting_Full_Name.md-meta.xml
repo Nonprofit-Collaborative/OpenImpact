@@ -8,9 +8,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">
-      Produces John Smith and Jane Jones for organizations that keep notes formal.
-    </value>
+    <value xsi:type="xsd:string">Produces John Smith and Jane Jones for organizations that keep notes formal.</value>
   </values>
   <values>
     <field>Pattern_Type__c</field>

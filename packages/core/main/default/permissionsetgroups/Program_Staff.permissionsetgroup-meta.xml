@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>
+    For program and services staff. Day to day work with people, households, and organizations, and
+    with program and service records once the Programs module is turned on. Does not include
+    Nonprofit Settings.
+  </description>
+  <hasActivationRequired>false</hasActivationRequired>
+  <label>Program Staff</label>
+  <permissionSets>Nonprofit_Staff</permissionSets>
+</PermissionSetGroup>

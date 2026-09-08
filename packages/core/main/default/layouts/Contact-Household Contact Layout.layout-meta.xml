@@ -100,6 +100,14 @@
     </layoutColumns>
     <style>TwoColumnsTopToBottom</style>
   </layoutSections>
+  <relatedLists>
+    <fields>NAME</fields>
+    <fields>Household__c</fields>
+    <fields>Role__c</fields>
+    <fields>Start_Date__c</fields>
+    <fields>End_Date__c</fields>
+    <relatedList>Household_Member__c.Contact__c</relatedList>
+  </relatedLists>
   <showEmailCheckbox>false</showEmailCheckbox>
   <showHighlightsPanel>false</showHighlightsPanel>
   <showInteractionLogPanel>false</showInteractionLogPanel>

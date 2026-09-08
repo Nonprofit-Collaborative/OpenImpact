@@ -8,10 +8,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">
-      When this is on, a person who has died stays in the household name and appears in the formal
-      greeting as the late. They are always left out of the informal greeting.
-    </value>
+    <value xsi:type="xsd:string">When this is on, a person who has died stays in the household name and appears in the formal greeting as the late. They are always left out of the informal greeting.</value>
   </values>
   <values>
     <field>Help_Path__c</field>
@@ -23,7 +20,7 @@
   </values>
   <values>
     <field>Section__c</field>
-    <value xsi:type="xsd:string">Household names and greetings</value>
+    <value xsi:type="xsd:string">Households</value>
   </values>
   <values>
     <field>Setting_Key__c</field>

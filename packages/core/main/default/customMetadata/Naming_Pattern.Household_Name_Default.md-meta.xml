@@ -8,9 +8,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">
-      Produces The Garcia Family when everyone in the household shares a surname.
-    </value>
+    <value xsi:type="xsd:string">Produces The Garcia Family when everyone in the household shares a surname.</value>
   </values>
   <values>
     <field>Pattern_Type__c</field>

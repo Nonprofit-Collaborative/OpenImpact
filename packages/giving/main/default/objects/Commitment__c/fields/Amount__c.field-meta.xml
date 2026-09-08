@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Amount__c</fullName>
+    <description>The amount expected in each installment.</description>
+    <inlineHelpText>What is expected each time, not the total. A 1,200 pledge paid monthly has an amount of 100.</inlineHelpText>
+    <label>Amount</label>
+    <precision>16</precision>
+    <required>true</required>
+    <scale>2</scale>
+    <trackTrending>false</trackTrending>
+    <type>Currency</type>
+</CustomField>

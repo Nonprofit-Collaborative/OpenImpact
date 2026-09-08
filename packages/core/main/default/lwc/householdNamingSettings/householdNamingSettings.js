@@ -2,6 +2,7 @@ import { LightningElement, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import hasManageSettings from '@salesforce/customPermission/Manage_Nonprofit_Settings';
 import preview from '@salesforce/apex/HouseholdController.preview';
+import getNamingSettings from '@salesforce/apex/HouseholdController.getNamingSettings';
 import recomputeAll from '@salesforce/apex/HouseholdController.recomputeAll';
 import saveSettings from '@salesforce/apex/SettingsController.saveSettings';
 
@@ -25,6 +26,11 @@ import CANCEL from '@salesforce/label/c.Core_HouseholdNamingSettings_Cancel';
 import CONFIRM from '@salesforce/label/c.Core_HouseholdNamingSettings_Confirm';
 
 const DEBOUNCE_MILLISECONDS = 300;
+// What the package ships. Used only until this org's own saved patterns arrive, and where
+// the org has never saved one of the three.
+const SHIPPED_NAME_PATTERN = 'The {LastName} Family';
+const SHIPPED_FORMAL_PATTERN = '{Salutation} {FirstName} {LastName}';
+const SHIPPED_INFORMAL_PATTERN = '{FirstName}';
 const NAME_KEY = 'Household_Name_Pattern__c';
 const FORMAL_KEY = 'Formal_Greeting_Pattern__c';
 const INFORMAL_KEY = 'Informal_Greeting_Pattern__c';
@@ -49,9 +55,9 @@ export default class HouseholdNamingSettings extends LightningElement {
     confirm: CONFIRM
   };
 
-  namePattern = 'The {LastName} Family';
-  formalPattern = '{Salutation} {FirstName} {LastName}';
-  informalPattern = '{FirstName}';
+  namePattern = SHIPPED_NAME_PATTERN;
+  formalPattern = SHIPPED_FORMAL_PATTERN;
+  informalPattern = SHIPPED_INFORMAL_PATTERN;
 
   @track samples = [];
   errorMessage;
@@ -73,7 +79,21 @@ export default class HouseholdNamingSettings extends LightningElement {
   }
 
   connectedCallback() {
-    this.refreshPreview();
+    // The page opens on this org's own wording, not on what the package ships, so that
+    // saving again never writes the shipped patterns over what an admin chose before.
+    return getNamingSettings()
+      .then((saved) => {
+        if (saved) {
+          this.namePattern = saved.namePattern || SHIPPED_NAME_PATTERN;
+          this.formalPattern = saved.formalPattern || SHIPPED_FORMAL_PATTERN;
+          this.informalPattern = saved.informalPattern || SHIPPED_INFORMAL_PATTERN;
+        }
+        return this.refreshPreview();
+      })
+      .catch((error) => {
+        this.errorMessage = this.readError(error);
+        return this.refreshPreview();
+      });
   }
 
   disconnectedCallback() {

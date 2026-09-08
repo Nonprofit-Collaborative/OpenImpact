@@ -8,10 +8,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">
-      Keeps your list of households clean. Turn it off if you would rather keep an empty household
-      and its giving history.
-    </value>
+    <value xsi:type="xsd:string">Keeps your list of households clean. Turn it off if you would rather keep an empty household and its giving history.</value>
   </values>
   <values>
     <field>Help_Path__c</field>

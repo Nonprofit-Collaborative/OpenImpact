@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Setup_Steps_Completed__c</fullName>
+  <description>
+    The comma separated keys of the Setup Assistant steps the administrator has marked done, so the
+    Hub checklist remembers progress across sessions.
+  </description>
+  <externalId>false</externalId>
+  <label>Setup Steps Completed</label>
+  <length>255</length>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Text</type>
+  <unique>false</unique>
+</CustomField>

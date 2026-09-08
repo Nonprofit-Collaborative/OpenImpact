@@ -8,10 +8,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">
-      Produces Mr. and Mrs. John Smith when two people share a surname, and Mr. John Smith and
-      Ms. Jane Jones when they do not.
-    </value>
+    <value xsi:type="xsd:string">Produces Mr. and Mrs. John Smith when two people share a surname, and Mr. John Smith and Ms. Jane Jones when they do not.</value>
   </values>
   <values>
     <field>Pattern_Type__c</field>

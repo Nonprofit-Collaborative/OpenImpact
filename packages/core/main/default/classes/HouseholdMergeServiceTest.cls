@@ -219,6 +219,35 @@ private class HouseholdMergeServiceTest {
         );
     }
 
+    @IsTest
+    static void theOtherHouseholdIsMergedIntoTheSurvivorRatherThanJustDeleted() {
+        // Delete Empty Households is on, which is the case that used to empty the other
+        // household and let the upkeep delete it before the platform merge could run. A
+        // record that is merged away carries the survivor's id; one that is merely deleted
+        // does not, so this is the difference between a merge and a loss.
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        Contact wei = HouseholdTestDataFactory.newContact('Mr.', 'Wei', 'Lee');
+        insert new List<Contact>{ maria, wei };
+        Id survivorId = householdOf(maria.Id);
+        Id victimId = householdOf(wei.Id);
+
+        Test.startTest();
+        HouseholdMergeService.mergeHouseholds(
+            survivorId,
+            victimId,
+            new HouseholdMergeService.MergeChoices(null)
+        );
+        Test.stopTest();
+
+        Account gone = [SELECT MasterRecordId FROM Account WHERE Id = :victimId ALL ROWS];
+        Assert.areEqual(
+            survivorId,
+            gone.MasterRecordId,
+            'Everything hanging off the other household followed the merge to the survivor'
+        );
+    }
+
     // ------------------------------------------------------------------ refusals
 
     @IsTest
@@ -477,6 +506,58 @@ private class HouseholdMergeServiceTest {
             50,
             [SELECT Member_Count__c FROM Account WHERE Id = :destination.Id].Member_Count__c,
             'The destination counts all fifty'
+        );
+    }
+
+    @IsTest
+    static void splittingIntoTheHouseholdPeopleAreAlreadyInIsRefused() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        insert maria;
+        Id householdId = householdOf(maria.Id);
+
+        String message;
+        Test.startTest();
+        try {
+            HouseholdMergeService.split(householdId, new Set<Id>{ maria.Id }, householdId);
+        } catch (HouseholdException e) {
+            message = e.getMessage();
+        }
+        Test.stopTest();
+
+        Assert.areEqual(
+            Label.Core_HouseholdMerge_ErrorSplitSameHousehold,
+            message,
+            'The refusal says what to do instead'
+        );
+    }
+
+    @IsTest
+    static void splittingIntoAHouseholdThisPersonCannotEditIsRefused() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        insert maria;
+        Id householdId = householdOf(maria.Id);
+        Account destination = HouseholdTestDataFactory.newHousehold('The Lee Family');
+        insert destination;
+        User reader = readOnlyUser();
+
+        String message;
+        Test.startTest();
+        System.runAs(reader) {
+            try {
+                HouseholdMergeService.split(householdId, new Set<Id>{ maria.Id }, destination.Id);
+            } catch (Exception e) {
+                message = e.getMessage();
+            }
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(message, 'Both ends of a split need edit access, not just the source');
+        Assert.areEqual(
+            householdId,
+            householdOf(maria.Id),
+            'Nobody was moved into a household the person cannot edit'
         );
     }
 

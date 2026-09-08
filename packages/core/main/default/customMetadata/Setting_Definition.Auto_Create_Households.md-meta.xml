@@ -8,10 +8,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">
-      When you save a new person with no household, one is created for them and named from your
-      patterns.
-    </value>
+    <value xsi:type="xsd:string">When you save a new person with no household, one is created for them and named from your patterns.</value>
   </values>
   <values>
     <field>Help_Path__c</field>

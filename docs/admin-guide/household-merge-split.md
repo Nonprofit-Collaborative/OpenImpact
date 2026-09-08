@@ -97,7 +97,9 @@ with the standard Salesforce account merge instead. The message you see is "Both
 must be households. Choose a household, not an organization."
 
 **"It says I cannot edit one of these households."**
-Merging edits both records, so you need edit access on both. If you have it on one only, ask
+Merging edits both records, so you need edit access on both. A split works the same way when
+you send people to a household you already have: you need edit access on the household they
+leave and on the one they join. If you have it on one only, ask
 whoever manages access to give you edit on the other, or ask them to run the merge. The
 message is "You need edit access to both households to merge them."
 
@@ -127,4 +129,4 @@ For report builders only. Maria never needs this to use the feature.
 |---|---|---|
 | Household | Custom Name | When ticked, the name and greetings are never recalculated |
 | Household | Member Count | Recalculated on both households after a merge or a split |
-| Household | Primary Contact | Cleared if the person named is no longer a member |
+| Household | Primary Contact | One of the values a merge offers a choice about |

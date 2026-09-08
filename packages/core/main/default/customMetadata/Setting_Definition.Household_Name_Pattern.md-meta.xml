@@ -8,10 +8,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">
-      How a household name is written, for example The {LastName} Family. When the people in a
-      household do not share a surname, the surnames are listed instead.
-    </value>
+    <value xsi:type="xsd:string">How a household name is written, for example The {LastName} Family. When the people in a household do not share a surname, the surnames are listed instead.</value>
   </values>
   <values>
     <field>Help_Path__c</field>
@@ -23,7 +20,7 @@
   </values>
   <values>
     <field>Section__c</field>
-    <value xsi:type="xsd:string">Household names and greetings</value>
+    <value xsi:type="xsd:string">Households</value>
   </values>
   <values>
     <field>Setting_Key__c</field>
