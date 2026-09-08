@@ -115,7 +115,33 @@ if [[ "$SHAPE" == "npsp" ]]; then
 fi
 
 echo "== Deploying Core to ${ALIAS} =="
-sf project deploy start --source-dir packages/core --wait 30 --ignore-conflicts --target-org "$ALIAS"
+# A failed deploy prints "Status: Failed" and, in some failure modes, no component detail at
+# all, which leaves nothing to act on. So the output is captured and, on failure, the org is
+# asked again for the component level report before the script gives up.
+DEPLOY_LOG="$(mktemp)"
+set +e
+sf project deploy start --source-dir packages/core --wait 30 --ignore-conflicts --target-org "$ALIAS" 2>&1 | tee "$DEPLOY_LOG"
+DEPLOY_STATUS="${PIPESTATUS[0]}"
+set -e
+
+if [[ "$DEPLOY_STATUS" -ne 0 ]]; then
+  echo ""
+  echo "== Deploy failed. Asking the org for the component level detail =="
+  JOB_ID="$(grep -oE 'Deploy ID: [0-9A-Za-z]+' "$DEPLOY_LOG" | head -1 | awk '{print $3}')"
+  if [[ -n "$JOB_ID" ]]; then
+    sf project deploy report --job-id "$JOB_ID" --target-org "$ALIAS" || true
+  else
+    sf project deploy report --use-most-recent --target-org "$ALIAS" || true
+  fi
+  echo ""
+  echo "== The same failure as JSON, which lists every component error =="
+  if [[ -n "$JOB_ID" ]]; then
+    sf project deploy report --job-id "$JOB_ID" --target-org "$ALIAS" --json || true
+  fi
+  rm -f "$DEPLOY_LOG"
+  exit "$DEPLOY_STATUS"
+fi
+rm -f "$DEPLOY_LOG"
 
 echo "== Assigning Core permission sets to the default (deployment) user =="
 PERMSET_DIR="packages/core/main/default/permissionsets"
