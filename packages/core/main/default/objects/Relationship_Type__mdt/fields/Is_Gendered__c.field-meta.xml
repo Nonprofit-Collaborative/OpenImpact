@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Is_Gendered__c</fullName>
+  <defaultValue>false</defaultValue>
+  <description>Whether the reciprocal depends on a person's gender. False on every shipped row: the package ships no gendered mapping.</description>
+  <fieldManageability>DeveloperControlled</fieldManageability>
+  <label>Is Gendered</label>
+  <type>Checkbox</type>
+</CustomField>

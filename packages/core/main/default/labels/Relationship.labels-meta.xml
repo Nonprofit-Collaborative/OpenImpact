@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_Relationship_AddButton</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Relationship card: button that opens the new relationship form</shortDescription>
+        <value>Add relationship</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_AddFormTitle</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Relationship card: heading above the new relationship form</shortDescription>
+        <value>New relationship</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_CancelButton</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Relationship card: button that closes the form without saving</shortDescription>
+        <value>Cancel</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_Duplicate</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Save refused: this relationship is already on file. Names both people and the record number.</shortDescription>
+        <value>{0} already has this relationship with {1}. Open {2} to change it.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_DuplicateInSave</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Save refused: the same relationship appears twice in one save, so there is no record number to name</shortDescription>
+        <value>The same relationship is in this save twice. Remove one of them and save again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_Empty</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Relationship card: shown when the person has no relationships yet</shortDescription>
+        <value>No relationships on file yet.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_FormerBadge</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Relationship card: badge on a relationship that has ended</shortDescription>
+        <value>Former</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_LoadFailed</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Relationship card: the list of relationships could not be read</shortDescription>
+        <value>Open Impact could not read this person's relationships. The error log has the details.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_PanelTitle</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Relationship card: the card heading</shortDescription>
+        <value>Relationships</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_PersonAmbiguous</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Save refused: both the contact and the account lookup are filled in for one person</shortDescription>
+        <value>A relationship names one record for each person. Fill in either the person or the person account on each side, not both.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_PersonRequired</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Save refused: one of the two people is missing</shortDescription>
+        <value>A relationship needs a person on each side.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_RemoveButton</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Relationship card: button that deletes one relationship and its other side</shortDescription>
+        <value>Remove</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_RemoveFailed</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Relationship card: the relationship could not be deleted</shortDescription>
+        <value>Open Impact could not remove that relationship. The error log has the details.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_RemoveSuccess</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Relationship card: confirmation after a relationship and its other side are deleted</shortDescription>
+        <value>Relationship removed from both people.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_SamePerson</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Save refused: the two sides name the same person</shortDescription>
+        <value>A relationship needs two different people.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_SaveFailed</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Relationship card: the new relationship could not be saved</shortDescription>
+        <value>That relationship could not be saved. Check the message on the form and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_SaveSuccess</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Relationship card: confirmation after a relationship is saved</shortDescription>
+        <value>Relationship saved, and the other person's record now shows it too.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_SyncFailed</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Save refused: the other side of the relationship could not be written</shortDescription>
+        <value>Open Impact could not update the other side of this relationship, so nothing was saved. The error log has the details.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Relationship_UnnamedPerson</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Stands in for a person's name in a message when the name cannot be read</shortDescription>
+        <value>this person</value>
+    </labels>
+</CustomLabels>

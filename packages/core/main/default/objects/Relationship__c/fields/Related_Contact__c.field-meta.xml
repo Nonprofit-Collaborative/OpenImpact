@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Related_Contact__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>The other person in this relationship, where people are held as contacts.</description>
+  <externalId>false</externalId>
+  <inlineHelpText>The other person in this relationship, where people are held as contacts.</inlineHelpText>
+  <label>Related Person</label>
+  <referenceTo>Contact</referenceTo>
+  <relationshipLabel>Related Relationships</relationshipLabel>
+  <relationshipName>Related_Relationships</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>
