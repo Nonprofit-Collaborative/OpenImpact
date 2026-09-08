@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+  <customObject>true</customObject>
+  <description>
+    Each receipt or year end statement generation run, with its counts and its outcome.
+  </description>
+  <label>Receipt Runs</label>
+  <motif>Custom19: Reports</motif>
+</CustomTab>

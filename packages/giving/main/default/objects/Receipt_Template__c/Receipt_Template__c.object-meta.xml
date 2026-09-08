@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+  <deploymentStatus>Deployed</deploymentStatus>
+  <description>
+    The editable letter around a receipt: HTML with merge tokens. The tax sentences are added by code and cannot be edited out of a template (ADR-0016, R-RT3).
+  </description>
+  <enableActivities>false</enableActivities>
+  <enableBulkApi>true</enableBulkApi>
+  <enableFeeds>false</enableFeeds>
+  <enableHistory>false</enableHistory>
+  <enableReports>true</enableReports>
+  <enableSearch>true</enableSearch>
+  <enableSharing>true</enableSharing>
+  <enableStreamingApi>true</enableStreamingApi>
+  <label>Receipt Template</label>
+  <nameField>
+    <label>Template Name</label>
+    <type>Text</type>
+  </nameField>
+  <pluralLabel>Receipt Templates</pluralLabel>
+  <sharingModel>ReadWrite</sharingModel>
+  <visibility>Public</visibility>
+</CustomObject>

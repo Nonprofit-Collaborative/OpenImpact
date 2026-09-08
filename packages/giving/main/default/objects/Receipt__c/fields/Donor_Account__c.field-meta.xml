@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Donor_Account__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    The donor, where the donor is an organization, a household giving in its own name, or a person held as an account.
+  </inlineHelpText>
+  <label>Donor Account</label>
+  <referenceTo>Account</referenceTo>
+  <relationshipLabel>Receipts</relationshipLabel>
+  <relationshipName>Receipts</relationshipName>
+  <required>false</required>
+  <type>Lookup</type>
+  <trackTrending>false</trackTrending>
+</CustomField>

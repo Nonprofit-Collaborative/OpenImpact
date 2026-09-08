@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Series_Key__c</fullName>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    The numbering series this number came from: receipt type plus statement year.
+  </inlineHelpText>
+  <label>Series Key</label>
+  <length>80</length>
+  <required>false</required>
+  <type>Text</type>
+  <unique>false</unique>
+  <trackTrending>false</trackTrending>
+</CustomField>

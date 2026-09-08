@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+  <deploymentStatus>Deployed</deploymentStatus>
+  <description>
+    One generation run: what it generated, when, and what it produced. A chunk that fails is counted and logged and never aborts the run (ADR-0016).
+  </description>
+  <enableActivities>false</enableActivities>
+  <enableBulkApi>true</enableBulkApi>
+  <enableFeeds>false</enableFeeds>
+  <enableHistory>false</enableHistory>
+  <enableReports>true</enableReports>
+  <enableSearch>true</enableSearch>
+  <enableSharing>true</enableSharing>
+  <enableStreamingApi>true</enableStreamingApi>
+  <label>Receipt Run</label>
+  <nameField>
+    <displayFormat>RR-{000000}</displayFormat>
+    <label>Run Number</label>
+    <type>AutoNumber</type>
+  </nameField>
+  <pluralLabel>Receipt Runs</pluralLabel>
+  <sharingModel>ReadWrite</sharingModel>
+  <visibility>Public</visibility>
+</CustomObject>

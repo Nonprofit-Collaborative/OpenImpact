@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Replaces__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    The voided receipt this one was issued to replace.
+  </inlineHelpText>
+  <label>Replaces</label>
+  <referenceTo>Receipt__c</referenceTo>
+  <relationshipLabel>Replacements</relationshipLabel>
+  <relationshipName>Replacements</relationshipName>
+  <required>false</required>
+  <type>Lookup</type>
+  <trackTrending>false</trackTrending>
+</CustomField>

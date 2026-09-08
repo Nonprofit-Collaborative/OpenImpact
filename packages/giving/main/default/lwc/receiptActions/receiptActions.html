@@ -1,0 +1,80 @@
+<template>
+  <lightning-card title="Receipts" icon-name="standard:document">
+    <div class="slds-p-horizontal_medium">
+      <template if:true={loadError}>
+        <p class="slds-text-color_error">{loadError}</p>
+      </template>
+
+      <template if:true={hasReceipts}>
+        <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+          <thead>
+            <tr class="slds-line-height_reset">
+              <th scope="col">Number</th>
+              <th scope="col">Status</th>
+              <th scope="col">Amount</th>
+              <th scope="col">Issued</th>
+              <th scope="col">Void reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template for:each={receipts} for:item="receipt">
+              <tr key={receipt.id}>
+                <td>{receipt.receiptNumber}</td>
+                <td>{receipt.status}</td>
+                <td>
+                  <lightning-formatted-number
+                    value={receipt.amount}
+                    format-style="currency"
+                  ></lightning-formatted-number>
+                </td>
+                <td>
+                  <lightning-formatted-date-time
+                    value={receipt.issueDate}
+                  ></lightning-formatted-date-time>
+                </td>
+                <td>{receipt.voidReason}</td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </template>
+
+      <template if:false={hasReceipts}>
+        <p class="slds-text-body_regular">No receipt has been issued for this gift yet.</p>
+      </template>
+
+      <template if:true={canIssue}>
+        <div class="slds-m-top_medium">
+          <lightning-button
+            label="Issue receipt"
+            variant="brand"
+            disabled={busy}
+            onclick={handleIssue}
+          ></lightning-button>
+        </div>
+      </template>
+
+      <template if:true={canReissue}>
+        <div class="slds-m-top_medium">
+          <lightning-input
+            label="Why is this receipt being voided?"
+            value={reason}
+            onchange={handleReasonChange}
+          ></lightning-input>
+          <div class="slds-m-top_small">
+            <lightning-button
+              label="Void and reissue"
+              variant="destructive-text"
+              disabled={busy}
+              onclick={handleVoidAndReissue}
+            ></lightning-button>
+          </div>
+          <p class="slds-text-body_small slds-m-top_x-small">
+            The receipt the donor already has is never changed or deleted. Voiding records why, and
+            the replacement takes the next number.
+          </p>
+        </div>
+      </template>
+    </div>
+  </lightning-card>
+</template>

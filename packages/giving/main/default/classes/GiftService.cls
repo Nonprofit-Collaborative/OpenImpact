@@ -166,6 +166,36 @@ public with sharing class GiftService {
     }
 
     /**
+     * The one door through the receipt number lock, and the only caller is the receipting feature
+     * (G-13). ADR-0010 makes a correction a void plus a new receipt, so a gift's receipt number
+     * has to be able to change exactly twice: cleared when its receipt is voided, and set again
+     * when the replacement is issued. Everything else about the gift stays locked while this runs,
+     * because `enforceReceiptLock` checks the amount, the date and the donor separately.
+     *
+     * The allowance is opened and closed around one save in a finally block: it is transaction
+     * state, not configuration, and a path that left it open would leave every later save in the
+     * transaction able to renumber a receipted gift.
+     *
+     * A null value in the map clears the number.
+     */
+    public static void recordReceiptNumbers(Map<Id, String> numbersByGiftId) {
+        if (numbersByGiftId == null || numbersByGiftId.isEmpty()) {
+            return;
+        }
+        List<Gift__c> gifts = new List<Gift__c>();
+        for (Id giftId : numbersByGiftId.keySet()) {
+            gifts.add(new Gift__c(Id = giftId, Receipt_Number__c = numbersByGiftId.get(giftId)));
+        }
+        Boolean wasAllowed = allowReceiptNumberChange;
+        try {
+            allowReceiptNumberChange = true;
+            Database.update(gifts, true, AccessLevel.USER_MODE);
+        } finally {
+            allowReceiptNumberChange = wasAllowed;
+        }
+    }
+
+    /**
      * True when the running user holds the override permission. Read once per transaction.
      */
     private static Boolean canOverrideReceiptLock() {

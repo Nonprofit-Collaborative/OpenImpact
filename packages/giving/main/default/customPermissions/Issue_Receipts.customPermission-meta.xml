@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>
+    Lets a user issue a receipt, void one, reissue one, and start a year end statement run
+    (feature G-13). It does not let anyone edit or delete an issued receipt or its file, which
+    nobody can do: issuing is an action the package performs on request, not write access to the
+    record. Granted to Giving Staff and Giving Admin.
+  </description>
+  <isLicensed>false</isLicensed>
+  <label>Issue Receipts</label>
+</CustomPermission>

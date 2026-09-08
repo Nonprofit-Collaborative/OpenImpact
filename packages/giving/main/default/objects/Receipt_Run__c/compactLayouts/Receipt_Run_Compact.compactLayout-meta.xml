@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CompactLayout xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Receipt_Run_Compact</fullName>
+  <fields>Type__c</fields>
+  <fields>Statement_Year__c</fields>
+  <fields>Status__c</fields>
+  <fields>Receipts_Issued__c</fields>
+  <label>Receipt Run Compact Layout</label>
+</CompactLayout>
