@@ -699,7 +699,8 @@ must be able to read them with no Giving package installed.
 |---|---|---|---|
 | `Contact_Address_Change_Behavior__c` | picklist(Update household, Create personal address) | Update household | What happens when a person's address is edited: the household moves, or that person gets an address of their own (R-AD5). |
 | `Relationship_Auto_Reciprocal__c` | boolean | true | Whether the package creates and maintains the other side of every relationship (R-RL1). |
-| `Seasonal_Address_Last_Run__c` | datetime | empty | When the seasonal address swap job last completed, shown on the Hub; written by the v0.4 job (C-18, R-AD4). |
+| `Seasonal_Address_Last_Run__c` | datetime | empty | When the seasonal address swap job last completed, shown on the Hub; written by the job (C-18, R-AD4, R-AD8). |
+| `Seasonal_Address_Last_Run_Summary__c` | text | empty | What the last seasonal swap run did, in one sentence: how many addresses moved in, how many moved back, and how many failed (R-AD8). |
 
 The four commitment keys (`Installment_Generation_Horizon_Months__c`,
 `Installment_Overdue_Grace_Days__c`, `Auto_Apply_Gifts_To_Installments__c`, and
@@ -2522,6 +2523,7 @@ history is not lost when someone moves.
 | Is Default | boolean | yes (defaults false) | Marks the address currently written to the standard address fields. |
 | Verification Status | picklist(Unverified, Verified, Failed) | yes (defaults Unverified) | Whether an address verification service has confirmed this address. |
 | Latest Verified Date | date | no | When verification last succeeded. |
+| Replaced By Seasonal | boolean | yes (defaults false) | Marks the address the seasonal swap displaced, so the job knows which address to put back when the season ends. |
 
 ### Relationships
 
@@ -2548,8 +2550,36 @@ fields are never the place a change is made.
 **R-AD4 Seasonal swap.** A daily scheduled job makes the seasonal address the default
 while today falls inside its range, and restores the previous default when the range ends.
 Ranges may wrap the end of the year, so a November to March range is one range and not two.
-The job's last run is visible on the Hub. The job itself is C-18 in v0.4; the attributes it
-reads are defined here in v0.3 so the data is right before the job exists.
+A range is inclusive at both ends: an address used from November 1 to March 31 is in use on
+November 1 and on March 31, and out of use on April 1.
+
+The job works one owner at a time and does exactly one of four things for each:
+
+1. A seasonal address is in season and is not the default: the current default is marked
+   Replaced By Seasonal, its default flag is cleared, and the seasonal address becomes the
+   default.
+2. The default is a seasonal address whose season has ended: the address marked Replaced By
+   Seasonal becomes the default again and that mark is cleared. If no address carries the
+   mark, the most recently created address that is not seasonal is promoted instead, and if
+   the owner has no other address the seasonal one stays in place rather than leaving the
+   owner with no address at all.
+3. Two seasonal addresses are in season on the same day, which is a data entry mistake: the
+   oldest wins so the outcome does not change from night to night, and the run records the
+   collision in the Error Log rather than choosing silently.
+4. Nothing to do: the right address is already the default.
+
+Nothing else on the address is touched, and the propagation to the standard address fields
+(R-AD3) is the address automation's work rather than the job's, so switching that automation
+off stops the copy without stopping the swap.
+
+**R-AD8 The run is visible.** Every run records when it finished and what it did (how many
+addresses moved in, how many moved back, how many failed), and both are shown on the Hub
+home page and on the Addresses page of the settings console, where the schedule is also
+started and stopped. A failure on one owner is written to the Error Log and the run
+continues: one household with an unreachable address never stops the rest of the org
+swapping. The job reads and writes in system mode, because a nightly reconciliation of
+package owned data must not depend on what the person who happened to schedule it can see
+(ADR-0025).
 
 **R-AD5 Contact address change behavior.** When a person's address is edited, the org's
 contact address change behavior setting decides what happens: update the household's
@@ -2588,13 +2618,17 @@ be explained.
 | Is Default | `Is_Default__c` | Checkbox |
 | Verification Status | `Verification_Status__c` | Picklist: Unverified, Verified, Failed |
 | Latest Verified Date | `Latest_Verified_Date__c` | Date |
+| Replaced By Seasonal | `Replaced_By_Seasonal__c` | Checkbox |
 
 - **Standard fields written:** `Account.BillingStreet`, `BillingCity`, `BillingState`,
   `BillingPostalCode`, `BillingCountry`; `Contact.MailingStreet`, `MailingCity`,
   `MailingState`, `MailingPostalCode`, `MailingCountry`.
-- **Settings keys:** `Contact_Address_Change_Behavior__c`, `Seasonal_Address_Last_Run__c`
-  (Section 12).
-- **Service:** `AddressService`, `AddressDomain`, `SeasonalAddressBatch` (v0.4).
+- **Settings keys:** `Contact_Address_Change_Behavior__c`, `Seasonal_Address_Last_Run__c`,
+  `Seasonal_Address_Last_Run_Summary__c` (Section 12).
+- **Service:** `AddressService`, `AddressTriggerHandler`, `AddressSelector`,
+  `AddressController`; and for the seasonal swap `SeasonalAddressService`,
+  `SeasonalAddressSelector`, `SeasonalAddressWriter`, `SeasonalAddressBatch`,
+  `SeasonalAddressScheduler`, `SeasonalAddressController`.
 
 ---
 
@@ -2652,6 +2686,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.3 | 2026-09-08 | G-02 defect fix (ADR-0022). No object or field added. Section 26's base filter changes from `Status equals Received` to `Status` in `Received`, `Refunded`, `Written off`, because R-G3 moves a fully refunded gift's status while leaving the negative gifts that reverse it at Received, so the old filter kept the negatives, dropped the positive, and subtracted a refunded gift twice. The count rows, largest gift, and the two date rows additionally require `Amount__c` greater than 0, so a gift given once and refunded in full reads as one gift and a total of zero. All 38 gift sourced, Gift Allocation sourced and Soft Credit sourced `Rollup_Definition_Default__mdt` rows updated; the three Pledge Balance rows filter on Commitment status and are unaffected. R-R9 gains the sentence that makes this a consequence of the rule rather than an exception to it. |
 | v0.3 | 2026-09-08 | G-08 rule collision resolved (ADR-0023). No object, field, or rollup row changed. R-SC5 and R-SC6 collided on a full refund: R-SC5 creates a negative automatic credit on the negative gift while R-SC6 removed the original gift's automatic credits once its status became Refunded or Written off, so a fully refunded gift of 250 left a recognition total of minus 250 rather than zero. R-SC6 no longer removes credits on refund; removal is now only for a deleted gift. R-SC5 states the resulting pair explicitly and R-SC3 states that a gift keeps its household credits after its status is reversed. Section 26's soft credit rows already read gift status through the widened set from ADR-0022, so they need no further change and now carry both halves of the pair. |
 | v0.3 | 2026-09-08 | G-04 receipt lock (ADR-0024). `Automation_Registry__mdt` and `Automation_Setting__c` each gain `Always_Runs__c` (Checkbox, default false): an automation marked that way enforces a rule rather than providing a convenience, so the dispatcher ignores the bypass, the pause and the switch for it, and the console shows its switch off and disabled with a reason (new rule R-A4). Giving ships the `Gift_Receipt_Lock` automation (order 5, `GiftReceiptLockHandler`) carrying the two enforcement calls that used to run inside `Gift_Core_Rules`, and the custom permission `Override_Receipt_Lock`, which is on no permission set and in no permission set group. R-G4 restated: the lock survives the automation switch, the override is a deliberate act in Setup, and every use of it is written to the Error Log at Warning severity. No object added. |
+| v0.4 | 2026-09-08 | C-18 seasonal address swap build. `Address__c` gains `Replaced_By_Seasonal__c` (Checkbox, default false): R-AD4 said the previous default is restored when a season ends but nothing recorded which address that was, so an owner with a home address, a work address and a winter address had no unambiguous address to go back to. `Nonprofit_Settings__c` gains `Seasonal_Address_Last_Run_Summary__c` (Text 255) alongside the `Seasonal_Address_Last_Run__c` timestamp already specified in v0.3: a bare timestamp says the job woke up, not that it did anything, and "visible last run" is the half of C-18 that makes the job trustworthy. R-AD4 restated with the four outcomes per owner and the inclusive boundary days; R-AD8 added for the visible run and the system mode posture (ADR-0025). |
 
 ---
 ## 32. Entity ownership by package

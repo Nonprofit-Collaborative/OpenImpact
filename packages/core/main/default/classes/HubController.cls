@@ -29,6 +29,14 @@ public with sharing class HubController {
         public Datetime rollupsLastCalculated;
         @AuraEnabled
         public Boolean rollupsStale;
+        @AuraEnabled
+        public Datetime seasonalAddressLastRun;
+        @AuraEnabled
+        public String seasonalAddressLastRunSummary;
+        @AuraEnabled
+        public Boolean seasonalAddressScheduled;
+        @AuraEnabled
+        public Boolean seasonalAddressStale;
     }
 
     @AuraEnabled(cacheable=true)
@@ -50,6 +58,7 @@ public with sharing class HubController {
         model.automationPaused = readAutomationPaused();
         model.newErrorCount = readNewErrorCount();
         readRollupFreshness(model);
+        readSeasonalAddressRun(model);
         return model;
     }
 
@@ -74,6 +83,27 @@ public with sharing class HubController {
         } catch (Exception e) {
             ErrorLogger.log(e, ERROR_CONTEXT);
             model.rollupsStale = false;
+        }
+    }
+
+    /**
+     * "Seasonal addresses last swapped", and whether the nightly job has missed its window
+     * (C-18, R-AD8). A nightly job whose last run nobody can see is a job nobody trusts, so this
+     * belongs on the page an administrator opens every morning rather than only on the settings
+     * page they open twice a year.
+     *
+     * Optional like the rest: an org that cannot answer loses a tile, not the page.
+     */
+    private static void readSeasonalAddressRun(HomeModel model) {
+        try {
+            model.seasonalAddressLastRun = SeasonalAddressService.lastRun();
+            model.seasonalAddressLastRunSummary = SeasonalAddressService.lastRunSummary();
+            model.seasonalAddressScheduled = SeasonalAddressScheduler.isScheduled();
+            model.seasonalAddressStale = SeasonalAddressService.isStale();
+        } catch (Exception e) {
+            ErrorLogger.log(e, ERROR_CONTEXT);
+            model.seasonalAddressScheduled = false;
+            model.seasonalAddressStale = false;
         }
     }
 

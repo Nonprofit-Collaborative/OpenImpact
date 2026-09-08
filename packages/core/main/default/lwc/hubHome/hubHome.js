@@ -18,6 +18,11 @@ import ROLLUPS_HEADING from '@salesforce/label/c.Core_Rollups_FreshnessTitle';
 import ROLLUPS_NEVER from '@salesforce/label/c.Core_Rollups_FreshnessNever';
 import ROLLUPS_STALE from '@salesforce/label/c.Core_Rollups_FreshnessStale';
 import ROLLUPS_LINK from '@salesforce/label/c.Core_Rollups_FreshnessLink';
+import SEASONAL_HEADING from '@salesforce/label/c.Core_SeasonalAddress_HubTitle';
+import SEASONAL_NEVER from '@salesforce/label/c.Core_SeasonalAddress_NeverRun';
+import SEASONAL_NOT_SCHEDULED from '@salesforce/label/c.Core_SeasonalAddress_NotScheduled';
+import SEASONAL_STALE from '@salesforce/label/c.Core_SeasonalAddress_Stale';
+import SEASONAL_LINK from '@salesforce/label/c.Core_SeasonalAddress_HubLink';
 
 export default class HubHome extends LightningElement {
   labels = {
@@ -34,7 +39,12 @@ export default class HubHome extends LightningElement {
     rollupsHeading: ROLLUPS_HEADING,
     rollupsNever: ROLLUPS_NEVER,
     rollupsStale: ROLLUPS_STALE,
-    rollupsLink: ROLLUPS_LINK
+    rollupsLink: ROLLUPS_LINK,
+    seasonalHeading: SEASONAL_HEADING,
+    seasonalNever: SEASONAL_NEVER,
+    seasonalNotScheduled: SEASONAL_NOT_SCHEDULED,
+    seasonalStale: SEASONAL_STALE,
+    seasonalLink: SEASONAL_LINK
   };
 
   quickLinks = [
@@ -49,9 +59,15 @@ export default class HubHome extends LightningElement {
 
   errorLogUrl = '/lightning/o/Error_Log__c/list';
   rollupsUrl = '/lightning/n/Nonprofit_Settings';
+  addressSettingsUrl = '/lightning/n/Nonprofit_Settings';
 
   rollupsLastCalculated;
   rollupsStale = false;
+
+  seasonalAddressLastRun;
+  seasonalAddressLastRunSummary;
+  seasonalAddressScheduled = false;
+  seasonalAddressStale = false;
 
   stepsCompleted = 0;
   stepsTotal = 0;
@@ -71,6 +87,19 @@ export default class HubHome extends LightningElement {
 
   get hasRollupTime() {
     return !!this.rollupsLastCalculated;
+  }
+
+  get hasSeasonalRun() {
+    return !!this.seasonalAddressLastRun;
+  }
+
+  /**
+   * The tile says one of two things when the swap is not running: not scheduled at all, which
+   * is a choice somebody can make, or scheduled and overdue, which is a fault. Saying both at
+   * once would be noise, so the missing schedule is only shown when there is no fault to show.
+   */
+  get seasonalNotScheduled() {
+    return !this.seasonalAddressScheduled && !this.seasonalAddressStale;
   }
 
   /** The assistant is the home page until it is finished, and one click away after that. */
@@ -107,6 +136,10 @@ export default class HubHome extends LightningElement {
     this.canEdit = Boolean(model.canEdit);
     this.rollupsLastCalculated = model.rollupsLastCalculated;
     this.rollupsStale = Boolean(model.rollupsStale);
+    this.seasonalAddressLastRun = model.seasonalAddressLastRun;
+    this.seasonalAddressLastRunSummary = model.seasonalAddressLastRunSummary;
+    this.seasonalAddressScheduled = Boolean(model.seasonalAddressScheduled);
+    this.seasonalAddressStale = Boolean(model.seasonalAddressStale);
   }
 
   /** The assistant reports its own progress, so the page collapses without reloading. */
