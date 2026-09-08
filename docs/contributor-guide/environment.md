@@ -44,6 +44,33 @@ All five should pass with a clean checkout, even before any package has real met
 and `test:unit` pass with zero LWC components, and the two `check:*` scripts pass on an empty
 `packages/` tree.
 
+## Namespace registration
+
+The namespace is deferred (ADR-0001): `sfdx-project.json` ships an empty namespace and no
+source may contain a prefix literal. The mirror image of that rule matters just as much, and
+`scripts/ci/check-namespace.sh` cannot catch it: a name written without a prefix is equally
+wrong, because it works in the unmanaged scratch orgs and silently stops resolving the day the
+namespace exists.
+
+The rule, for anything whose API name gains a prefix when a package is namespaced (custom tabs,
+Visualforce and Lightning pages, custom objects and fields, and Lightning page state keys):
+
+- A Lightning web component never writes such a name itself, neither prefixed nor bare. No
+  `apiName: 'Nonprofit_Settings'`, no `state: { c__section: ... }`.
+- It obtains the name from Apex, on the response it already reads, and uses it verbatim.
+- Apex builds it through `NamespaceUtil`, which asks the running package what its namespace is:
+  `NamespaceUtil.prefix()` returns `mynamespace__` or an empty string, `qualify(apiName)` puts
+  it in front of a packaged API name, and `stateKey(name)` returns the page state key, which is
+  `c__name` when there is no namespace and `mynamespace__name` when there is.
+
+Worked example: `HealthCheckService.Report` carries `settingsTabApiName` and `sectionStateKey`,
+both computed in its constructor, and `healthCheckPanel` navigates with the two values the
+report gave it. Nothing has to change in either place when the namespace is registered.
+
+Apex referring to its own packaged metadata does not need any of this: the compiler resolves
+`Nonprofit_Settings__c` inside the package regardless of namespace. Only names that cross into
+strings, URLs, page state, or metadata lookups do.
+
 ## A note on `config/scratch-defs/person-accounts.json`
 
 The product plan's repository layout (Section 4.3) lists this file as `npc.json`. Per Brandon's

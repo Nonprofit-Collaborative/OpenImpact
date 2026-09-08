@@ -1,0 +1,187 @@
+<template>
+    <lightning-card title={labels.pageTitle} icon-name="standard:user_role">
+        <div class="slds-var-p-horizontal_medium slds-var-p-bottom_medium">
+            <p class="slds-var-m-bottom_small">{labels.pageDescription}</p>
+
+            <template if:true={showSpinner}>
+                <lightning-spinner alternative-text={labels.loadingRoles} size="small"></lightning-spinner>
+            </template>
+
+            <template if:true={loadError}>
+                <div class="slds-var-m-bottom_small" role="alert" data-id="load-error">
+                    <lightning-formatted-text value={loadError}></lightning-formatted-text>
+                </div>
+            </template>
+
+            <template if:true={isReadOnly}>
+                <div class="slds-var-m-bottom_small" role="status" data-id="read-only-notice">
+                    <lightning-formatted-text value={labels.readOnlyNotice}></lightning-formatted-text>
+                </div>
+            </template>
+
+            <template if:false={isReadOnly}>
+                <div class="slds-grid slds-wrap slds-gutters slds-var-m-bottom_medium">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <div
+                            class="slds-combobox_container"
+                            role="combobox"
+                            aria-haspopup="listbox"
+                            aria-expanded={listboxExpanded}
+                            aria-owns="access-user-listbox"
+                        >
+                            <lightning-input
+                                type="search"
+                                data-id="user-search"
+                                label={labels.searchLabel}
+                                placeholder={labels.searchPlaceholder}
+                                value={searchTerm}
+                                autocomplete="off"
+                                aria-controls="access-user-listbox"
+                                aria-activedescendant={activeOptionId}
+                                onchange={handleSearchChange}
+                                onkeydown={handleSearchKeyDown}
+                            ></lightning-input>
+
+                            <template if:true={hasSearchResults}>
+                                <ul
+                                    id="access-user-listbox"
+                                    class="slds-listbox slds-listbox_vertical slds-dropdown slds-dropdown_fluid"
+                                    role="listbox"
+                                    aria-label={labels.searchLabel}
+                                >
+                                    <template for:each={searchOptions} for:item="person">
+                                        <li
+                                            key={person.userId}
+                                            id={person.optionId}
+                                            class={person.optionClass}
+                                            role="option"
+                                            aria-selected="false"
+                                        >
+                                            <button
+                                                type="button"
+                                                class="slds-button slds-button_reset slds-truncate"
+                                                data-id="user-option"
+                                                data-user-id={person.userId}
+                                                onclick={handleUserSelect}
+                                            >
+                                                <span class="slds-truncate">{person.name}</span>
+                                                <span class="slds-text-body_small slds-truncate">{person.email}</span>
+                                            </button>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </template>
+                        </div>
+
+                        <template if:true={showNoResults}>
+                            <p class="slds-var-m-top_x-small slds-text-body_small" role="status" data-id="no-results">
+                                {labels.searchNoResults}
+                            </p>
+                        </template>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <lightning-combobox
+                            data-id="role-picker"
+                            label={labels.roleLabel}
+                            placeholder={labels.rolePickerPlaceholder}
+                            value={selectedRole}
+                            options={roleOptions}
+                            onchange={handleRoleChange}
+                        ></lightning-combobox>
+                    </div>
+                </div>
+
+                <lightning-button
+                    variant="brand"
+                    data-id="add-button"
+                    label={labels.addButton}
+                    disabled={canSubmitDisabled}
+                    onclick={handleAddClick}
+                ></lightning-button>
+
+                <p class="slds-var-m-top_small slds-text-body_small">
+                    {labels.createUserHelp}
+                    <a href={setupUsersPage} target="_blank" data-id="setup-link">{labels.createUserLink}</a>
+                </p>
+            </template>
+
+            <template if:true={showConfirmation}>
+                <section
+                    class="slds-box slds-var-m-top_medium"
+                    role="alertdialog"
+                    aria-label={confirmationTitle}
+                    data-id="confirmation"
+                >
+                    <h2 class="slds-text-heading_small">{confirmationTitle}</h2>
+                    <p class="slds-var-m-vertical_x-small">{confirmationMessage}</p>
+                    <template if:true={showSelfRemovalWarning}>
+                        <p class="slds-var-m-bottom_x-small" data-id="self-removal-warning">
+                            {labels.selfRemovalWarning}
+                        </p>
+                    </template>
+                    <lightning-button
+                        variant="brand"
+                        data-id="confirm-button"
+                        label={confirmationButtonLabel}
+                        onclick={handleConfirm}
+                    ></lightning-button>
+                    <lightning-button
+                        class="slds-var-m-left_x-small"
+                        data-id="cancel-button"
+                        label={labels.cancelButton}
+                        onclick={handleCancel}
+                    ></lightning-button>
+                </section>
+            </template>
+
+            <div class="slds-grid slds-wrap slds-gutters slds-var-m-top_medium">
+                <template for:each={roleCards} for:item="role">
+                    <div
+                        key={role.developerName}
+                        class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-var-m-bottom_small"
+                    >
+                        <article class="slds-box slds-box_small" data-id="role-card">
+                            <h2 class="slds-text-heading_small" data-id="role-heading">{role.heading}</h2>
+                            <p
+                                class="slds-text-body_small slds-var-m-bottom_x-small"
+                                data-id="role-description"
+                            >
+                                {role.description}
+                            </p>
+                            <h3 class="slds-assistive-text">{labels.usersInRole}</h3>
+                            <template if:false={role.hasUsers}>
+                                <p class="slds-text-body_small" data-id="empty-role">{labels.noOneInRole}</p>
+                            </template>
+                            <template if:true={role.hasUsers}>
+                                <ul class="slds-has-dividers_bottom-space">
+                                    <template for:each={role.users} for:item="person">
+                                        <li
+                                            key={person.userId}
+                                            class="slds-item slds-grid slds-grid_align-spread"
+                                            data-id="role-member"
+                                        >
+                                            <span class="slds-truncate" title={person.email}>{person.name}</span>
+                                            <template if:false={isReadOnly}>
+                                                <lightning-button
+                                                    variant="base"
+                                                    data-id="remove-button"
+                                                    data-user-id={person.userId}
+                                                    data-user-name={person.name}
+                                                    data-role={role.developerName}
+                                                    label={labels.removeButton}
+                                                    title={person.removeLabel}
+                                                    onclick={handleRemoveClick}
+                                                ></lightning-button>
+                                            </template>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </template>
+                        </article>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </lightning-card>
+</template>

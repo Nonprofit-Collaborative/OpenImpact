@@ -122,6 +122,7 @@ does.
 | Member Count | integer | computed | The number of current (not ended, not deceased-excluded) members of the household. |
 | Anniversary | date | no | A household-level date the nonprofit stewards, most often a wedding anniversary. |
 | Record Type | picklist(Household, Organization) | yes | Distinguishes a household from an organization; a Household always carries Household. |
+| Sample Data | boolean | yes (defaults false) | True when the record was created by the sample data loader so it can be removed in one action. |
 
 ### Relationships
 
@@ -240,6 +241,15 @@ Custom Name set.
 | Primary Contact | `Primary_Contact__c` | Lookup to Contact |
 | Member Count | `Member_Count__c` | Number |
 | Anniversary | `Anniversary__c` | Date |
+| Sample Data | `Sample_Data__c` | Checkbox |
+
+- **Person attributes on Account.** The five person attributes listed under Contact
+  (Section 7) are present on Account as well, with the same API names and the same
+  definitions: `Deceased__c`, `Household_Role__c`, `Exclude_From_Household_Name__c`,
+  `Exclude_From_Greetings__c`, `Preferred_Name__c`. They belong to the person, not to the
+  household, and they exist on both objects so that an org that stores people as accounts
+  carries them on the person's own record. They are not shown on Household or Organization
+  layouts.
 
 - **Service:** `HouseholdService` (membership abstraction), `HouseholdNamingService`
   (R-H4 to R-H9), `HouseholdSelector` (all SOQL).
@@ -259,7 +269,8 @@ history of who was in a household when.
 | Attribute | Type | Required | Definition |
 |---|---|---|---|
 | Contact | reference(Contact) | conditional | The person, when the person is represented as a Contact. |
-| Account | reference(Household) | conditional | The household, and in Person Account orgs also the person's own Person Account. |
+| Account | reference(Household) | conditional | The person, where the person is represented as an account rather than as a Contact. |
+| Household | reference(Household) | yes | The household the person belongs to. |
 | Role | picklist(Head, Spouse or Partner, Child, Other) | no | The person's role in this household, used for greeting order and reporting. |
 | Is Primary | boolean | yes (defaults false) | Marks the member who receives correspondence when only one person can be named. |
 | Start Date | date | no | The date the person joined the household. |
@@ -294,8 +305,17 @@ code never branches on membership mode.
 
 - **Object:** `Household_Member__c` (junction).
 - **Fields:** `Contact__c` (Lookup to Contact), `Account__c` (Lookup to Account),
-  `Role__c` (Picklist: Head, Spouse or Partner, Child, Other), `Is_Primary__c`
-  (Checkbox), `Start_Date__c` (Date), `End_Date__c` (Date).
+  `Household__c` (Lookup to Account), `Role__c` (Picklist: Head, Spouse or Partner, Child,
+  Other), `Is_Primary__c` (Checkbox), `Start_Date__c` (Date), `End_Date__c` (Date).
+- `Household__c` is the household side of the junction and `Contact__c` or `Account__c` is
+  the person side. `Household__c` is a required lookup with a cascade delete, matching the
+  attribute table above: a membership row with no household says nothing, and a household
+  that is deleted takes its own membership rows with it rather than leaving rows pointing at
+  a record that is gone. Membership history survives everything except the deletion of the
+  household it is history of.
+- A lookup rather than a master-detail relationship is used so that membership rows are not
+  owned by the household record for sharing and roll-up purposes, and so that the same
+  object shape works in both membership modes.
 
 ---
 
@@ -323,6 +343,7 @@ address fields are used as the platform provides them.
 | Exclude From Household Name | boolean | yes (defaults false) | Leaves this person out of the computed household name. |
 | Exclude From Greetings | boolean | yes (defaults false) | Leaves this person out of both computed greetings. |
 | Household | reference(Household) | conditional | The household this person belongs to; in contact mode this is the person's Account. |
+| Sample Data | boolean | yes (defaults false) | True when the record was created by the sample data loader so it can be removed in one action. |
 
 ### Relationships
 
@@ -368,6 +389,11 @@ no feature code branches on it.
 | Exclude From Household Name | `Exclude_From_Household_Name__c` | Checkbox |
 | Exclude From Greetings | `Exclude_From_Greetings__c` | Checkbox |
 | Preferred Name | `Preferred_Name__c` | Text |
+| Sample Data | `Sample_Data__c` | Checkbox |
+
+These five are person attributes, present on both Contact and Account with the same API
+names so that Person Accounts carry them (Section 5). `HouseholdService.Person` is the
+shape naming and greetings read, so no naming code knows which object a person came from.
 
 ---
 
@@ -386,6 +412,7 @@ partner. Organizations are not households and never carry household naming or gr
 | Name | text | yes | The organization's legal or commonly used name, entered by staff and never computed. |
 | Record Type | picklist(Household, Organization) | yes | Always Organization for this entity. |
 | Primary Contact | reference(Contact) | no | The person the nonprofit deals with at this organization. |
+| Sample Data | boolean | yes (defaults false) | True when the record was created by the sample data loader so it can be removed in one action. |
 
 ### Relationships
 
@@ -411,7 +438,8 @@ not shown on Organization layouts.
 ### Salesforce implementation
 
 - **Object:** Account, record type `Organization`.
-- **Fields:** standard `Name`; `Primary_Contact__c` (shared with Household, above).
+- **Fields:** standard `Name`; `Primary_Contact__c` (shared with Household, above);
+  `Sample_Data__c` (Checkbox, shared field definition with Household, above).
 
 ---
 
@@ -436,6 +464,7 @@ the app rather than in debug logs (plan Sections 2.3 and 4.8).
 | User | reference(User) | no | The user whose action produced the error, where there was one. |
 | Context | text | yes | The feature or source that produced the error, in plain language, for example "Household naming". |
 | Record Reference | text | no | The identifier of the record involved, so the admin can open it. |
+| Object Name | text | no | The kind of record involved, in the platform's name for it, so an admin can group errors by what they affect. |
 | Message | long text | yes | A human-readable explanation of what went wrong and what to do about it. |
 | Technical Detail | long text | no | Exception type, stack trace, and query or DML detail, for a developer or a support request. |
 | Severity | picklist(Info, Warning, Error, Critical) | yes | How badly the failure affects the org's data or operations. |
@@ -449,15 +478,33 @@ message an administrator can act on. A silent catch is a review failure.
 than masking the original error.
 **R-E3** The Hub shows a tile of unresolved errors, and an optional daily digest email
 goes to the admin (feature C-23, v0.6).
+**R-E4 The entry outlives the transaction it documents.** Most failures worth recording
+end in a rollback: the save is refused and everything written in that transaction is
+undone, an Error Log row included. So an entry is not written directly. It is published as
+an **Error Log Event**, which the platform delivers whether or not the transaction commits,
+and a subscriber writes the row. A direct write remains only as the fallback for when
+publishing itself fails. Publishing is governed by Create on the event, so all three
+packaged permission sets grant Read and Create on **Error Log Event**, Read Only
+included. A user holding none of them falls back to the direct write, and for that user
+the entry survives only when the transaction commits.
 
 ### Salesforce implementation
 
-- **Object:** `Error_Log__c`, surfaced as an admin-only tab in the Nonprofit Hub app.
+- **Object:** `Error_Log__c`, surfaced as an admin-only tab in the Nonprofit Hub app. The
+  record name is the auto number `ERR-{000000}`.
 - **Fields:** `Timestamp__c` (DateTime), `User__c` (Lookup to User), `Context__c` (Text),
-  `Record_Reference__c` (Text), `Message__c` (Long Text Area), `Technical_Detail__c`
-  (Long Text Area), `Severity__c` (Picklist: Info, Warning, Error, Critical),
-  `Status__c` (Picklist: New, Acknowledged, Resolved, Ignored).
-- **Service:** `ErrorLogger`.
+  `Record_Reference__c` (Text), `Object_Name__c` (Text), `Message__c` (Long Text Area),
+  `Technical_Detail__c` (Long Text Area), `Severity__c` (Picklist: Info, Warning, Error,
+  Critical), `Status__c` (Picklist: New, Acknowledged, Resolved, Ignored).
+- **Event:** `Error_Log_Event__e`, a platform event with publish behavior Publish
+  Immediately, carrying the same values so that they survive a rollback (rule R-E4):
+  `Message__c`, `Technical_Detail__c` (Long Text Area), `Context__c`,
+  `Record_Reference__c`, `Object_Name__c`, `Severity__c`, `User_Id__c` (Text). The event
+  has no Status: every entry is written as New.
+- **Service:** `ErrorLogger`, with `ErrorLogWriter` (publishes the event, and is the only
+  class allowed to write the object directly, in system mode, so that a failure is recorded
+  even for a user without create access), `ErrorLogEventHandler` (the subscriber that
+  writes the rows) and `ErrorLogSelector`.
 
 ---
 
@@ -477,6 +524,10 @@ calling anyone.
 | Automation Name | text | yes | The stable identifier of the automation, matching its entry in the shipped registry. |
 | Description | long text | yes | What this automation does, in the language a nonprofit administrator uses. |
 | Enabled | boolean | yes (defaults true) | Whether the automation runs; unchecking it bypasses the handler. |
+| Handler Class | text | no | The packaged code the dispatcher runs for this automation, copied from the shipped registry. |
+| Object Name | text | no | The kind of record this automation runs on, copied from the shipped registry. |
+| Execution Order | integer | no | The order in which this automation runs relative to others on the same kind of record. |
+| Package Default | boolean | yes (defaults false) | Whether this record was materialized from the shipped registry rather than created by hand, so that "Restore defaults" knows what it owns. |
 
 ### Related org-level control
 
@@ -498,8 +549,11 @@ logging.
 
 ### Salesforce implementation
 
-- **Object:** `Automation_Setting__c` with `Automation_Name__c` (Text, external id),
-  `Description__c` (Long Text Area), `Enabled__c` (Checkbox).
+- **Object:** `Automation_Setting__c` with `Automation_Name__c` (Text, external id,
+  unique), `Description__c` (Long Text Area), `Enabled__c` (Checkbox),
+  `Handler_Class__c` (Text), `Object_Name__c` (Text), `Execution_Order__c` (Number),
+  `Is_Package_Default__c` (Checkbox). The record name holds the automation's label as the
+  admin reads it.
 - **Shipped defaults:** `Automation_Registry__mdt` (Section 13).
 - **Org-level pause:** `Nonprofit_Settings__c.Automation_Paused_Until__c`.
 - **Service:** `AutomationControl`, `TriggerDispatcher`.
@@ -535,7 +589,8 @@ nothing.
 ### Salesforce implementation
 
 - **Object:** `Setting_Change__c` with `Setting_Name__c`, `Old_Value__c`, `New_Value__c`
-  (Long Text Area), `Changed_By__c` (Lookup to User), `Changed_At__c` (DateTime).
+  (Long Text Area), `Changed_By__c` (Lookup to User), `Changed_At__c` (DateTime). The
+  record name is the auto number `SC-{000000}`.
 - **Service:** `SettingsService`.
 
 ---
@@ -566,24 +621,36 @@ may add keys, and must add them here first.
 | `Informal_Greeting_Pattern__c` | text | {FirstName} | The pattern used to compute the informal greeting. |
 | `Include_Deceased_In_Name__c` | boolean | false | Whether a deceased member remains in the computed household name. |
 | `Automation_Paused_Until__c` | datetime | empty | While in the future, all packaged automation is paused; it resumes by itself at this time. |
+| `Setup_Steps_Completed__c` | text (255) | empty | The comma separated keys of the Setup Assistant steps the administrator has marked done, so the Hub checklist remembers progress across sessions. |
+| `Setup_Steps_Skipped__c` | text (255) | empty | The comma separated keys of the Setup Assistant steps the administrator chose to skip for now, so a skipped step moves out of the way without counting as done. |
+| `Setup_Started_At__c` | datetime | empty | When the administrator first changed something in the Setup Assistant, so the completion screen can say how long setup took. |
+| `Organization_Legal_Name__c` | text (255) | empty | The organization's legal name as it appears on its tax filings, printed on receipts and year-end statements. |
+| `Organization_EIN__c` | text (20) | empty | The organization's tax identification number (the EIN in the United States), printed on receipts. |
+| `Organization_Address__c` | text (255) | empty | The organization's mailing address as one line, as it is printed on a receipt. Custom settings have no long text field, so a single 255 character line is the format. |
+| `Receipt_Logo_Document_Id__c` | text (18) | empty | The Salesforce file identifier of the logo printed on receipts and letters. |
+| `Receipt_Signature_Document_Id__c` | text (18) | empty | The Salesforce file identifier of the scanned signature printed on receipt letters. |
+| `Receipt_Signer_Name__c` | text (80) | empty | The name of the person who signs receipt letters. |
+| `Receipt_Signer_Title__c` | text (80) | empty | The job title of the person who signs receipt letters. |
+| `Default_Fund__c` | text (18) | empty | The record identifier of the fund a gift is allocated to when nobody says otherwise. Written by the Setup Assistant only when the Giving module is present; Core never names the Giving objects statically (R-F4, ADR-0014). |
+| `Default_Appeal__c` | text (18) | empty | The record identifier of the appeal a gift is credited to when nobody says otherwise, on the same terms as the default fund. |
 
 ### v0.2 keys
 
-Added by the v0.2 features: the Setup Assistant (C-12), the rollup engine (C-13), and the
-import framework (C-14).
+Added by the v0.2 features: the rollup engine (C-13) and the import framework (C-14). The
+Setup Assistant (C-12) keys arrived early and are listed in the table above, where
+`Setup_Steps_Completed__c` and `Setup_Steps_Skipped__c` are what was planned here as
+`Setup_Assistant_Steps_Complete__c`, and the two default record identifiers ship with the
+assistant that writes them.
 
 | Key | Type | Default | Definition |
 |---|---|---|---|
 | `Fiscal_Year_Start_Month__c` | picklist(1 to 12) | 1 | The month the organization's fiscal year begins, used by every fiscal-year-aware rollup window (R-R3). |
-| `Default_Fund__c` | text | empty | The fund a gift is allocated to when no allocation is given, held as a record identifier because Core cannot hold a reference to a Giving object (R-F4, ADR-0014). |
-| `Default_Appeal__c` | text | empty | The appeal proposed on a new gift when the entry form does not name one, held as a record identifier for the same reason. |
 | `Rollup_Mode_Default__c` | picklist(Real-time, Scheduled, Both) | Both | The mode a new rollup definition takes unless the admin changes it. |
 | `Import_Chunk_Size__c` | integer | 200 | How many rows an import processes per chunk; lower it on an org with heavy custom automation. |
-| `Setup_Assistant_Steps_Complete__c` | text | empty | The keys of the Setup Assistant steps already completed, comma separated, so the checklist is resumable and can be re-run (plan Section 4.8, C-12). |
 
-Custom settings do not support a long text attribute, so
-`Setup_Assistant_Steps_Complete__c` holds a comma-separated list within 255 characters,
-which the eight-step checklist fits with room to spare.
+Custom settings do not support a long text attribute, so each step list holds a comma
+separated set of keys within 255 characters, which the eight step checklist fits with
+room to spare.
 
 ### v0.3 keys
 
@@ -617,6 +684,11 @@ definition.
 ### Salesforce implementation
 
 - **Custom setting:** `Nonprofit_Settings__c`, hierarchy, protected.
+- **Picklist keys are stored as text.** Custom settings do not support picklist fields on
+  the platform, so `Coexistence_Mode__c` and `Household_Membership_Mode__c` are Text
+  fields holding one of the values listed above, validated by `SettingsService` rather
+  than by the field. The console renders them as a choice list, so Maria never types a
+  value. Recorded as ADR-0019.
 - **Service:** `SettingsService`, with the console LWCs `settingsConsole`,
   `settingsSearch`, `householdNamingSettings`.
 - **Permission:** editing requires the `Manage_Nonprofit_Settings` custom permission;
@@ -646,6 +718,28 @@ something to restore to.
 | Pattern Type | picklist(Household Name, Formal Greeting, Informal Greeting) | Which of the three computed values this pattern produces. |
 | Pattern | text | The pattern string itself, using the tokens the naming service understands. |
 
+### Setting Definition
+
+`Setting_Definition__mdt`: the catalog of everything the Nonprofit Settings console shows,
+one row per setting or per section that a component renders, so that a feature adds its
+settings to the console by shipping rows rather than by editing the console.
+
+| Field | Type | Definition |
+|---|---|---|
+| DeveloperName | text | The stable identifier of this console row. |
+| Label | text | The setting's name as the admin sees it in the console. |
+| `Setting_Key__c` | text (80) | The API name of the settings field this row edits; blank for rows that render a component instead of a single value. |
+| `Settings_Object__c` | text (80), default `Nonprofit_Settings__c` | The protected hierarchy custom setting this row reads and writes, so a module can ship rows against its own settings object (Decision ADR-0017). |
+| `Section__c` | text (80) | The left navigation group this row belongs to, for example Households, Automation, Access, Health. |
+| `Module__c` | text (40) | The package that ships this row, for example Core or Giving. |
+| `Data_Type__c` | picklist(Checkbox, Text, Number, Picklist, DateTime, Component) | How the console renders and validates this row. |
+| `Picklist_Values__c` | long text | The choices for a picklist row, as semicolon separated `value:label` pairs. |
+| `Component__c` | text (80) | The Lightning web component rendered when the data type is Component. Core components only: the console imports them by name at compile time (Decision ADR-0020). |
+| `Navigation_Target__c` | text (80) | The Lightning tab a module's own settings page lives on, used when the data type is Component and no component is named, because Core cannot import a component from a package that depends on it (Decision ADR-0020). |
+| `Description__c` | long text | The plain-language help shown under the control. |
+| `Help_Path__c` | text (255) | The admin guide path, relative to `docs/admin-guide/`, behind the row's Learn more link. |
+| `Sort_Order__c` | number | The order of this row inside its section. |
+
 ### Automation Registry
 
 `Automation_Registry__mdt`: the catalog of packaged automations, materialized into
@@ -655,11 +749,17 @@ Automation Setting records (Section 10) on install and on upgrade.
 |---|---|---|
 | DeveloperName | text | The stable identifier of the automation, matched to Automation Setting. |
 | Label | text | The automation's name as the admin sees it. |
-| Description | long text | What the automation does, in nonprofit language. |
-| Default Enabled | boolean | Whether the automation is on when it is first materialized. |
-| Handler Class | text | The Apex handler the trigger dispatcher invokes. |
-| Object | text | The object whose trigger this automation runs on. |
-| Order | integer | The order in which handlers run for that object. |
+| Description__c | long text | What the automation does, in nonprofit language. |
+| Enabled_By_Default__c | boolean | Whether the automation is on when it is first materialized. |
+| Handler_Class__c | text | The Apex handler the trigger dispatcher invokes. |
+| Object_Name__c | text | The object whose trigger this automation runs on. |
+| Execution_Order__c | integer | The order in which handlers run for that object. |
+
+The custom field API names are given here because two of the plain names in the original
+draft ("Object" and "Order") are platform reserved words, and because the materialized
+`Automation_Setting__c` fields carry the same names (Section 10). v0.1 ships the type with
+no records: the first records arrive with feature C-01, which ships the first two trigger
+handlers.
 
 ### Rollup Definition Default
 
@@ -2302,19 +2402,23 @@ Fair Market Value for G-18 (R-G9).
 | Version | Date | Change |
 |---|---|---|
 | v0.1 | 2026-09-06 | Initial model: Household, Household Member, Contact, Organization, plus the platform configuration entities Error Log, Automation Setting, Setting Change, Nonprofit Settings, and the shipped-defaults custom metadata Naming Pattern and Automation Registry. |
+| v0.1 | 2026-09-07 | C-05 review fix: Error Log entries are published as `Error_Log_Event__e` (Publish Immediately) and written by a subscriber, so an entry survives the rollback it documents (new rule R-E4). |
+| v0.1 | 2026-09-08 | C-05 review fix: all three packaged permission sets grant Read and Create on `Error_Log_Event__e`, because publishing is governed by Create on the event (rule R-E4). |
+| v0.1 | 2026-09-07 | C-04 and C-05 build. Error Log gains Object Name. Automation Setting gains Handler Class, Object Name, Execution Order, and Package Default, all copied from the shipped registry when a record is materialized. Automation Registry field API names fixed ("Object" and "Order" are reserved words). Error Log and Setting Change record names recorded as auto numbers. Nonprofit Settings picklist keys recorded as text, per ADR-0019. |
+| v0.1 | 2026-09-07 | C-01 and C-02 build. Added `Household__c` (Lookup to Account) to Household Member: the original field list named the household side and the person side with the same attribute, so junction mode had no way to say which household a membership belonged to. `Account__c` is now defined as the person side only, matching R-M4. Recorded the naming service's token forms: `{FirstName}`, `{LastName}`, and `{Salutation}`, with the `{!Token}` spelling accepted as an alias so patterns copied from formula fields keep working. |
+| v0.1 | 2026-09-07 | Junction membership made a first-class v0.1 path for orgs that store people as accounts (product owner priority change). The five Contact person attributes (`Deceased__c`, `Household_Role__c`, `Exclude_From_Household_Name__c`, `Exclude_From_Greetings__c`, `Preferred_Name__c`) are now present on Account with the same API names and definitions, because a person stored as an account carries them on that record. Naming and greetings read a person through the `HouseholdService.Person` shape rather than through Contact, so one set of rules serves both. |
+| v0.1 | 2026-09-08 | C-01 and C-02 review round. `Household__c` on Household Member is now a required lookup with a cascade delete, matching the "Required: yes" already in the attribute table. The Salesforce note that a household could be deleted without touching membership history was written before the field was required and is corrected: a deleted household now takes its own membership rows with it, which is the only case where history is lost.
 | v0.2 | 2026-09-07 | Core: Rollup Definition (Section 14) with the filter document format and the mode-resolved path notation; Import Template, Import Batch, and Import Row (Sections 15 to 17) with the Created By Import Batch tag on Household, Contact, Organization, and Gift. Giving: Gift, Gift Allocation, Fund, and Appeal (Sections 18 to 21), and the packaged default giving rollups (Section 26). Nonprofit Settings gains `Fiscal_Year_Start_Month__c`, `Default_Fund__c`, `Default_Appeal__c`, `Rollup_Mode_Default__c`, `Import_Chunk_Size__c`, and `Setup_Assistant_Steps_Complete__c`. Shipped defaults gain `Rollup_Definition_Default__mdt` and `Import_Template_Default__mdt`. Published for build, objects not yet created. |
 | v0.3 | 2026-09-07 | Giving: Commitment, Installment, Soft Credit, and Tribute (Sections 22 to 25) with their rollup targets. Core: Relationship, Affiliation, and Address (Sections 27 to 29), the Primary Affiliation reference on Contact, and the shipped defaults `Relationship_Type__mdt`. Nonprofit Settings gains `Automatic_Household_Soft_Credits__c`, `Installment_Generation_Horizon_Months__c`, `Installment_Overdue_Grace_Days__c`, `Contact_Address_Change_Behavior__c`, `Relationship_Auto_Reciprocal__c`, and `Seasonal_Address_Last_Run__c`. Published for build, objects not yet created. |
 | v0.3 | 2026-09-07 | Convention added: person references are a Contact and Account pair with exactly one set (Section 4), following the change of first customer to Nonprofit Cloud and Agentforce Nonprofit orgs where individuals are person Accounts. Import Row and Import Template carry the person-mode attributes this requires. |
 | v0.3 | 2026-09-07 | Sections renumbered to keep the document in reading order: the former Section 14 "Deferred to later iterations" is now Section 30 and the former Section 15 "Change log" is now Section 31. Section 32 "Entity ownership by package" is new. |
+| v0.3 | 2026-09-07 | C-10 sample data loader: added `Sample Data` (`Sample_Data__c`, Checkbox, default false) to Household, Contact, and Organization so the sample data set can be removed in one action. |
 
 ---
-
 ## 32. Entity ownership by package
-
 One row per entity in the model, so a contributor or an agent can tell at a glance which
 package owns a thing and which iteration creates it. Package configuration entities are
 included; standard objects the packages extend are named by the entity that governs them.
-
 | Entity | Package | Iteration | Section |
 |---|---|---|---|
 | Household (Account, record type Household) | Core | v0.1 | 5 |
@@ -2358,8 +2462,12 @@ included; standard objects the packages extend are named by the entity that gove
 | Programs entities | Programs | v0.8 | 30 |
 | Funders entities | Funders | v0.9 | 30 |
 | NPSP household adoption | Connect | v0.9 | 30 |
-
 Two rows differ from plan Section 6 because the first customers are now Nonprofit Cloud
 and Agentforce Nonprofit orgs: the Gift Transaction mirror is v0.6, brought forward from
 v0.9, and NPSP household adoption is v0.9, moved back from v0.6. The plan's roadmap table
 is the place that reprioritization is recorded permanently; this table follows it.
+| v0.1 | 2026-09-07 | C-03: added the shipped-defaults type Setting Definition (Section 13), which drives the Nonprofit Settings console, and the Nonprofit Settings key `Setup_Steps_Completed__c` (Section 12), which records Setup Assistant progress. |
+| v0.1 | 2026-09-07 | C-03, following ADR-0017: added `Settings_Object__c` to Setting Definition, so each package owns its own protected hierarchy custom setting and the console reads and writes any registered one. |
+| v0.1 | 2026-09-07 | C-03, following ADR-0020: added `Navigation_Target__c` to Setting Definition, so a module's settings page is reached by navigation while Core's own panels are imported by name. |
+| v0.2 | 2026-09-07 | C-12: added the Nonprofit Settings keys that the full Setup Assistant fills in (Section 12): the organization identity keys used on receipts (`Organization_Legal_Name__c`, `Organization_EIN__c`, `Organization_Address__c`, `Receipt_Logo_Document_Id__c`, `Receipt_Signature_Document_Id__c`, `Receipt_Signer_Name__c`, `Receipt_Signer_Title__c`), the giving defaults written only when the Giving module is present (`Default_Fund__c`, `Default_Appeal__c`), and the assistant's own progress keys `Setup_Steps_Skipped__c` and `Setup_Started_At__c`. The v0.2 key planned as `Setup_Assistant_Steps_Complete__c` shipped as `Setup_Steps_Completed__c` plus `Setup_Steps_Skipped__c`. |
+

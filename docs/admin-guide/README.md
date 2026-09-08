@@ -88,5 +88,16 @@ Each feature adds its row here when its page is written.
 
 | Feature | Page | Package | Iteration |
 |---|---|---|---|
+| C-04 | [Automation control](automation-control.md) | Core | v0.1 |
+| C-05 | [Error Log](error-log.md) | Core | v0.1 |
+| C-06 | [Access](access.md) | Core | v0.1 |
+| C-01 Household model | [households.md](households.md) | Core | v0.1 |
+| C-02 Household names and greetings | [household-naming.md](household-naming.md) | Core | v0.1 |
+| C-07 | [Coexistence mode](coexistence-mode.md) | Core | v0.1 |
+| C-10 Sample data loader | [sample-data.md](sample-data.md) | Core | v0.1 |
+| C-11 | [Health Check](health-check.md) | Core | v0.1 |
+| C-03 Nonprofit Hub app and setup checklist | [nonprofit-hub.md](nonprofit-hub.md) | Core | v0.1 |
+| C-03 Nonprofit Settings console | [nonprofit-settings.md](nonprofit-settings.md) | Core | v0.1 |
+| C-12 Setup Assistant | [setup-assistant.md](setup-assistant.md) | Core | v0.2 |
 | G-03 Quick gift entry | [quick-gift-entry.md](quick-gift-entry.md) | Giving | v0.2 |
 | G-06 Giving dashboard | [giving-dashboard.md](giving-dashboard.md) | Giving | v0.2 |

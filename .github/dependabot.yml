@@ -4,6 +4,10 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    ignore:
+      # ESLint 10 is not yet supported by the LWC lint plugins (peer dependency on ESLint 9).
+      - dependency-name: 'eslint'
+        versions: ['>=10']
 
   - package-ecosystem: 'github-actions'
     directory: '/'

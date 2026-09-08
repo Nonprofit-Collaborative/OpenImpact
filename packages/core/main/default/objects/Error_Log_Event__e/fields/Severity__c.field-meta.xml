@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Severity__c</fullName>
+    <description>Info, Warning, Error or Critical. Text rather than a picklist, because a platform event field cannot be a picklist; the subscriber writes it to the Error Log picklist.</description>
+    <label>Severity</label>
+    <length>40</length>
+    <required>false</required>
+    <type>Text</type>
+</CustomField>

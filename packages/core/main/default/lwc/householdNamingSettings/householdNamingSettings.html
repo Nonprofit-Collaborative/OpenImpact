@@ -1,0 +1,95 @@
+<template>
+    <lightning-card title={label.title} icon-name="standard:household">
+        <div class="slds-var-m-around_medium">
+            <template if:true={isReadOnly}>
+                <div class="slds-box slds-box_x-small slds-text-color_weak slds-var-m-bottom_small">
+                    {label.readOnly}
+                </div>
+            </template>
+
+            <p class="slds-text-body_small slds-var-m-bottom_small">{label.tokenHelp}</p>
+
+            <lightning-input
+                label={label.nameLabel}
+                value={namePattern}
+                disabled={isReadOnly}
+                onchange={handleNameChange}
+            ></lightning-input>
+            <lightning-input
+                label={label.formalLabel}
+                value={formalPattern}
+                disabled={isReadOnly}
+                onchange={handleFormalChange}
+            ></lightning-input>
+            <lightning-input
+                label={label.informalLabel}
+                value={informalPattern}
+                disabled={isReadOnly}
+                onchange={handleInformalChange}
+            ></lightning-input>
+
+            <h2 class="slds-text-heading_small slds-var-m-top_medium">{label.previewHeading}</h2>
+            <template if:true={hasSamples}>
+                <table class="slds-table slds-table_bordered slds-var-m-top_x-small">
+                    <thead>
+                        <tr class="slds-line-height_reset">
+                            <th scope="col">{label.columnMembers}</th>
+                            <th scope="col">{label.columnName}</th>
+                            <th scope="col">{label.columnFormal}</th>
+                            <th scope="col">{label.columnInformal}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={samples} for:item="sample">
+                            <tr key={sample.key} class="sample-row">
+                                <td>{sample.members}</td>
+                                <td>{sample.name}</td>
+                                <td>{sample.formalGreeting}</td>
+                                <td>{sample.informalGreeting}</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </template>
+
+            <template if:true={errorMessage}>
+                <div class="slds-text-color_error slds-var-m-top_small" role="alert">{errorMessage}</div>
+            </template>
+
+            <div class="slds-var-m-top_medium">
+                <lightning-button
+                    variant="brand"
+                    label={label.save}
+                    disabled={isReadOnly}
+                    onclick={handleSave}
+                    class="slds-var-m-right_x-small save-button"
+                ></lightning-button>
+                <lightning-button
+                    label={label.recompute}
+                    disabled={isReadOnly}
+                    onclick={handleRecomputeClick}
+                    class="recompute-button"
+                ></lightning-button>
+            </div>
+
+            <template if:true={isConfirmingRecompute}>
+                <div class="slds-box slds-var-m-top_small confirm-box">
+                    <p>{label.recomputeConfirm}</p>
+                    <div class="slds-var-m-top_x-small">
+                        <lightning-button
+                            variant="brand"
+                            label={label.confirm}
+                            onclick={handleRecomputeConfirm}
+                            class="slds-var-m-right_x-small confirm-button"
+                        ></lightning-button>
+                        <lightning-button
+                            label={label.cancel}
+                            onclick={handleRecomputeCancel}
+                            class="cancel-button"
+                        ></lightning-button>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>
