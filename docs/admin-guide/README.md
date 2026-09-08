@@ -103,3 +103,4 @@ Each feature adds its row here when its page is written.
 | G-04 Funds | [funds.md](funds.md) | Giving | v0.2 |
 | G-05 Appeals | [appeals.md](appeals.md) | Giving | v0.2 |
 | G-01 Refunds and write-offs | [refunds.md](refunds.md) | Giving | v0.2 |
+| C-17 Addresses | [addresses.md](addresses.md) | Core | v0.3 |

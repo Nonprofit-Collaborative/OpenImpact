@@ -35,7 +35,12 @@
       }
     },
     {
-      "files": "*.field-meta.xml",
+      "files": [
+        "*.field-meta.xml",
+        "*.validationRule-meta.xml",
+        "*.object-meta.xml",
+        "*.js-meta.xml"
+      ],
       "options": {
         "xmlWhitespaceSensitivity": "strict",
         "printWidth": 400
