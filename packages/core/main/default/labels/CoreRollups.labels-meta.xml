@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_Rollups_PageTitle</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the Rollups page in the Nonprofit Settings console.</shortDescription>
+        <value>Rollups</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_PageIntro</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Intro line on the Rollups page.</shortDescription>
+        <value>Every total Open Impact keeps up to date for you, and when each one was last calculated.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_GroupHousehold</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading for the group of rollups written on household records.</shortDescription>
+        <value>Households</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_GroupPerson</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading for the group of rollups written on person records.</shortDescription>
+        <value>People</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_GroupOrganization</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading for the group of rollups written on organization records.</shortDescription>
+        <value>Organizations</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ColumnRollup</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Column heading for the rollup name and description.</shortDescription>
+        <value>Rollup</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ColumnCounts</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Column heading for the source of a rollup.</shortDescription>
+        <value>What it counts</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ColumnCalculation</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Column heading for the aggregate a rollup applies.</shortDescription>
+        <value>Calculation</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ColumnMode</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Column heading for when a rollup is recalculated.</shortDescription>
+        <value>Mode</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ColumnActive</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Column heading for the active toggle.</shortDescription>
+        <value>Active</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ColumnLastCalculated</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Column heading for the time a rollup last completed.</shortDescription>
+        <value>Last calculated</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_RecalculateAll</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that recalculates every rollup for one kind of record.</shortDescription>
+        <value>Recalculate all</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_Recalculating</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Status shown while a recalculation is running.</shortDescription>
+        <value>Recalculating</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_RecalculateStarted</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Message shown when a recalculation is started.</shortDescription>
+        <value>Recalculation started. This page updates as it finishes.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_RecalculateFinished</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Message shown when a recalculation completes.</shortDescription>
+        <value>Recalculation finished.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ScheduleNightly</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that creates the nightly recalculation schedule.</shortDescription>
+        <value>Schedule nightly recalculation</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ScheduleActive</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Status shown when the nightly schedule exists.</shortDescription>
+        <value>Nightly recalculation is scheduled for 2:00 AM.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ScheduleMissing</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Status shown when the nightly schedule does not exist.</shortDescription>
+        <value>Nightly recalculation is not scheduled yet.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_FreshnessTitle</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the rollup freshness tile on the Hub home page.</shortDescription>
+        <value>Rollups last completed</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_FreshnessNever</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Freshness tile text when nothing has been calculated.</shortDescription>
+        <value>Rollups have not been calculated yet.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_FreshnessStale</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Freshness tile warning text.</shortDescription>
+        <value>Rollups have not been calculated in more than 36 hours. Open the Rollups page to start them.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_FreshnessLink</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Link from the freshness tile to the Rollups page.</shortDescription>
+        <value>Open the Rollups page</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ReadOnly</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Message shown to a user without the settings permission.</shortDescription>
+        <value>You can see these totals but not change them. Ask an administrator for the Manage Nonprofit Settings permission.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ErrorNoPermission</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error returned when a user without the permission tries to change a rollup.</shortDescription>
+        <value>You do not have permission to change rollups.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ErrorUnknownDefinition</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error returned when a rollup id does not resolve.</shortDescription>
+        <value>That rollup no longer exists. Refresh the page and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ErrorInvalidMode</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error returned when a mode value is not one of the three.</shortDescription>
+        <value>That is not a rollup mode. Choose Real time, Scheduled, or Both.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ErrorInvalidOperator</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error returned when a filter document names an unsupported operator.</shortDescription>
+        <value>That filter uses a comparison Open Impact does not understand. Rebuild the filter on the Rollups page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ErrorInvalidFilter</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error returned when a filter document cannot be parsed.</shortDescription>
+        <value>That filter could not be read. Rebuild the filter on the Rollups page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ErrorUnknownObject</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Info logged when a rollup names an object the org does not have.</shortDescription>
+        <value>The records this rollup counts are not in this org, so it was skipped.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ErrorRecalculateFailed</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error returned when a recalculation cannot start.</shortDescription>
+        <value>The recalculation could not be started. The Error Log has the details.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_BatchIncomplete</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Rollup batch finished with failures</shortDescription>
+        <value>{0} rollup(s) could not be recalculated and {1} completed. The Error Log has the details.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_Recalculate</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Recalculate one rollup</shortDescription>
+        <value>Recalculate</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_RunNightlyNow</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Run the nightly rollups now</shortDescription>
+        <value>Run the nightly recalculation now</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_StopSchedule</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Stop the nightly schedule</shortDescription>
+        <value>Stop the nightly recalculation</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_RestoreDefaults</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Restore the shipped rollups</shortDescription>
+        <value>Restore shipped rollups</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_EmptyList</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>No rollups yet</shortDescription>
+        <value>No rollups are set up yet. Restore the shipped rollups to start with the ones Open Impact provides.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_ColumnTarget</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Target column heading</shortDescription>
+        <value>Where it shows</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_NeverCalculated</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Never calculated</shortDescription>
+        <value>Not calculated yet</value>
+    </labels>
+    <labels>
+        <fullName>Core_Rollups_UnexpectedError</fullName>
+        <categories>Rollups</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Unexpected rollup error</shortDescription>
+        <value>Something went wrong on the Rollups page. The Error Log has the details.</value>
+    </labels>
+</CustomLabels>

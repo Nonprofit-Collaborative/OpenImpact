@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Filter_JSON__c</fullName>
+    <description>The source filter document.</description>
+    <externalId>false</externalId>
+    <fieldManageability>Locked</fieldManageability>
+    <label>Filter JSON</label>
+    <length>32768</length>
+    <required>false</required>
+    <type>LongTextArea</type>
+    <visibleLines>6</visibleLines>
+</CustomField>

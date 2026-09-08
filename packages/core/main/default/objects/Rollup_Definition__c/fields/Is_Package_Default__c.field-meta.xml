@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Is_Package_Default__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Marks a rollup created from a shipped default rather than by an administrator.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Shipped rollups are never overwritten once you edit them, and are never deleted by an upgrade.</inlineHelpText>
+    <label>Is Package Default</label>
+    <trackHistory>true</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

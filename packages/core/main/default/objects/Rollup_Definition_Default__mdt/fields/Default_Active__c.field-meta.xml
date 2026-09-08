@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Default_Active__c</fullName>
+    <defaultValue>true</defaultValue>
+    <description>Whether the definition is active when it is first materialized.</description>
+    <externalId>false</externalId>
+    <fieldManageability>Locked</fieldManageability>
+    <label>Default Active</label>
+    <type>Checkbox</type>
+</CustomField>

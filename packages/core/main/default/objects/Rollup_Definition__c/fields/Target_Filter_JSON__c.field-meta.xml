@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Target_Filter_JSON__c</fullName>
+    <description>Which target records this rollup maintains, in the same format. Empty means all of them.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Built by the filter builder on the Rollups page. Editing it by hand is not supported.</inlineHelpText>
+    <label>Target Filter</label>
+    <length>32768</length>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>LongTextArea</type>
+    <visibleLines>6</visibleLines>
+</CustomField>
