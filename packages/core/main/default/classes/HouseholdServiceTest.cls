@@ -596,4 +596,31 @@ private class HouseholdServiceTest {
         Assert.areEqual(1, saved.Member_Count__c, 'The household counts John again');
         Assert.areEqual('The Smith Family', saved.Name, 'And is named from him');
     }
+    @IsTest
+    static void aScreenNeverShowsAFieldTheUserCannotRead() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        User staff = HouseholdTestDataFactory.standardUser('fls');
+        Contact john = HouseholdTestDataFactory.newContact('Mr.', 'John', 'Smith');
+        john.Deceased__c = true;
+        insert john;
+        Id householdId = [SELECT AccountId FROM Contact WHERE Id = :john.Id].AccountId;
+        Assert.isTrue(
+            HouseholdService.getMembers(new Set<Id>{ householdId }).get(householdId)[0].isDeceased,
+            'Upkeep sees the whole record, which is how the greetings stay right'
+        );
+
+        List<HouseholdController.MemberView> shown;
+        Test.startTest();
+        System.runAs(staff) {
+            shown = HouseholdController.getMembers(householdId);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, shown.size(), 'The panel still lists John');
+        Assert.areEqual('John Smith', shown[0].name, 'By the name this user can read');
+        Assert.isFalse(
+            shown[0].isDeceased,
+            'A user with no access to the deceased field is not told that he died'
+        );
+    }
 }

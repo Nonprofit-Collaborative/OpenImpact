@@ -1,27 +1,29 @@
 /**
  * The one place package owned household bookkeeping is saved.
  *
- * DOCUMENTED EXCEPTION to the user mode rule (plan Sections 4.13 and 7.2, and the review
- * of C-01). The household name, the two greetings and the member count are computed by
- * the package: no person types them, and no screen offers them for editing. A staff user
- * saving a contact must not need edit access on them, and an org's own profile, an
- * integration user or a data loader user cannot be given that access by a packaged
- * permission set at all. Writing them with the running user's access therefore turns an
- * ordinary contact save into a raw DML error, which is the failure this class exists to
- * prevent, so these writes run in system mode.
+ * ADR-0021 (system mode writes for package owned data) is the authority for this class and
+ * names it as one of its writers. The household name, the two greetings and the member
+ * count are computed by the package: no person types them, and no screen offers them for
+ * editing. A staff user saving a contact must not need edit access on them, and an org's
+ * own profile, an integration user or a data loader user cannot be given that access by a
+ * packaged permission set at all. Writing them with the running user's access therefore
+ * turns an ordinary contact save into a raw DML error, which is the failure this class
+ * exists to prevent, so these writes run in `AccessLevel.SYSTEM_MODE`.
  *
- * The exception is kept narrow:
+ * This class is deliberately `with sharing` where ADR-0021 says `without sharing`, and the
+ * ADR allows a writer to narrow it: household upkeep never needs to cross sharing, and it
+ * must not create, rename or delete a household the running user cannot see, so the
+ * narrower declaration is the correct one here.
+ *
+ * The exception is kept narrow in every other way too:
  *
  * - Only these fields are written here, and only on the Household record type.
  * - No value written here comes from user input: every one is computed by
  *   HouseholdNamingService or counted by HouseholdService.
- * - The classes that call this one are `with sharing`, so which records a user can reach
- *   is unchanged. Only field level access on the package's own computed fields is
- *   bypassed.
  * - Deleting an emptied household is NOT done here: that removes a record, so it runs
  *   with the user's own access and is logged rather than thrown when it is refused.
  * - Everything a person types (a contact, a membership row, a move) is saved elsewhere in
- *   user mode.
+ *   user mode, and everything a screen reads is read in user mode.
  */
 public with sharing class HouseholdWriter {
     /**

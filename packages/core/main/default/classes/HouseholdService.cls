@@ -87,6 +87,30 @@ public with sharing class HouseholdService {
             this.sourceObject = SOURCE_CONTACT;
         }
 
+        /**
+         * A person built from whatever values the record actually carries. Used on the
+         * display path, where a field the running user cannot read has been stripped out
+         * and naming it would throw, so every value is read from the record's own
+         * populated values and a missing one simply stays empty.
+         */
+        @NamespaceAccessible
+        public Person(SObject record, String source) {
+            Map<String, Object> values = record.getPopulatedFieldsAsMap();
+            this.id = record.Id;
+            this.sourceObject = source;
+            this.firstName = textValue(values, 'FirstName');
+            this.lastName = textValue(values, 'LastName');
+            this.preferredName = textValue(values, 'Preferred_Name__c');
+            this.salutation = textValue(values, 'Salutation');
+            this.role = textValue(values, 'Household_Role__c');
+            this.isDeceased = flagValue(values, 'Deceased__c');
+            this.excludeFromName = flagValue(values, 'Exclude_From_Household_Name__c');
+            this.excludeFromGreetings = flagValue(values, 'Exclude_From_Greetings__c');
+            this.createdDate = values.get('CreatedDate') instanceof Datetime
+                ? (Datetime) values.get('CreatedDate')
+                : null;
+        }
+
         @NamespaceAccessible
         public Person copy() {
             Person result = new Person();
@@ -209,6 +233,20 @@ public with sharing class HouseholdService {
      */
     @NamespaceAccessible
     public static Map<Id, List<Person>> getMembers(Set<Id> householdIds) {
+        return getMembers(householdIds, false);
+    }
+
+    /**
+     * The same members, read with the running user's own access, for a screen. Object
+     * access is checked and any field the user cannot read is left empty rather than
+     * shown (ADR-0021).
+     */
+    @NamespaceAccessible
+    public static Map<Id, List<Person>> getMembersAsUser(Set<Id> householdIds) {
+        return getMembers(householdIds, true);
+    }
+
+    private static Map<Id, List<Person>> getMembers(Set<Id> householdIds, Boolean asUser) {
         Map<Id, List<Person>> result = new Map<Id, List<Person>>();
         if (householdIds == null || householdIds.isEmpty()) {
             return result;
@@ -217,7 +255,17 @@ public with sharing class HouseholdService {
             result.put(householdId, new List<Person>());
         }
         if (isJunctionMode()) {
-            addJunctionMembers(householdIds, result);
+            addJunctionMembers(householdIds, result, asUser);
+        } else if (asUser) {
+            for (
+                Contact record : HouseholdSelector.getContactsByHouseholdIdsForDisplay(householdIds)
+            ) {
+                Id householdId = idValue(record.getPopulatedFieldsAsMap(), 'AccountId');
+                List<Person> bucket = householdId == null ? null : result.get(householdId);
+                if (bucket != null) {
+                    bucket.add(new Person(record, SOURCE_CONTACT));
+                }
+            }
         } else {
             for (Contact record : HouseholdSelector.getContactsByHouseholdIds(householdIds)) {
                 List<Person> bucket = result.get(record.AccountId);
@@ -229,20 +277,37 @@ public with sharing class HouseholdService {
         return result;
     }
 
-    private static void addJunctionMembers(Set<Id> householdIds, Map<Id, List<Person>> result) {
-        List<Household_Member__c> memberships = HouseholdSelector.getMemberships(householdIds);
+    private static void addJunctionMembers(
+        Set<Id> householdIds,
+        Map<Id, List<Person>> result,
+        Boolean asUser
+    ) {
+        List<Household_Member__c> memberships = asUser
+            ? HouseholdSelector.getMembershipsForDisplay(householdIds)
+            : HouseholdSelector.getMemberships(householdIds);
         Set<Id> contactIds = new Set<Id>();
         Set<Id> personRecordIds = new Set<Id>();
         for (Household_Member__c membership : memberships) {
-            if (membership.Contact__c != null) {
-                contactIds.add(membership.Contact__c);
-            } else if (membership.Account__c != null) {
-                personRecordIds.add(membership.Account__c);
+            // Read from the values the row actually carries: on the display path a field
+            // the user cannot read has been stripped, and naming it would throw.
+            Map<String, Object> values = membership.getPopulatedFieldsAsMap();
+            Id contactId = idValue(values, 'Contact__c');
+            Id personRecordId = idValue(values, 'Account__c');
+            if (contactId != null) {
+                contactIds.add(contactId);
+            } else if (personRecordId != null) {
+                personRecordIds.add(personRecordId);
             }
         }
         Map<Id, Person> peopleById = new Map<Id, Person>();
-        for (Contact record : HouseholdSelector.getContactsByIds(contactIds)) {
-            peopleById.put(record.Id, new Person(record));
+        if (asUser) {
+            for (Contact record : HouseholdSelector.getContactsByIdsForDisplay(contactIds)) {
+                peopleById.put(record.Id, new Person(record, SOURCE_CONTACT));
+            }
+        } else {
+            for (Contact record : HouseholdSelector.getContactsByIds(contactIds)) {
+                peopleById.put(record.Id, new Person(record));
+            }
         }
         if (!personRecordIds.isEmpty() && isPersonAccountOrg()) {
             for (Person person : PersonRecordSelector.getPersons(personRecordIds)) {
@@ -250,19 +315,21 @@ public with sharing class HouseholdService {
             }
         }
         for (Household_Member__c membership : memberships) {
-            Id personId = membership.Contact__c != null
-                ? membership.Contact__c
-                : membership.Account__c;
+            Map<String, Object> values = membership.getPopulatedFieldsAsMap();
+            Id contactId = idValue(values, 'Contact__c');
+            Id personId = contactId != null ? contactId : idValue(values, 'Account__c');
+            Id householdId = idValue(values, 'Household__c');
             Person source = peopleById.get(personId);
-            List<Person> bucket = result.get(membership.Household__c);
+            List<Person> bucket = householdId == null ? null : result.get(householdId);
             if (source == null || bucket == null) {
                 continue;
             }
             Person member = source.copy();
-            if (String.isNotBlank(membership.Role__c)) {
-                member.role = membership.Role__c;
+            String role = textValue(values, 'Role__c');
+            if (String.isNotBlank(role)) {
+                member.role = role;
             }
-            member.isPrimary = membership.Is_Primary__c == true;
+            member.isPrimary = flagValue(values, 'Is_Primary__c');
             bucket.add(member);
         }
     }
@@ -420,6 +487,26 @@ public with sharing class HouseholdService {
                 }
             }
         }
+    }
+
+    /**
+     * Values read from a record's own populated values, so that a field the running user
+     * cannot read, which has been stripped out before the record got here, reads as empty
+     * instead of throwing.
+     */
+    private static String textValue(Map<String, Object> values, String fieldName) {
+        Object value = values.get(fieldName);
+        return value == null ? null : String.valueOf(value);
+    }
+
+    private static Boolean flagValue(Map<String, Object> values, String fieldName) {
+        Object value = values.get(fieldName);
+        return value instanceof Boolean ? (Boolean) value : false;
+    }
+
+    private static Id idValue(Map<String, Object> values, String fieldName) {
+        Object value = values.get(fieldName);
+        return value instanceof Id ? (Id) value : null;
     }
 
     private static Set<Id> idsOfType(Set<Id> ids, Schema.SObjectType wanted) {
@@ -604,10 +691,9 @@ public with sharing class HouseholdService {
             person.AccountId = targetHouseholdId;
             Database.update(new List<Contact>{ person }, AccessLevel.USER_MODE);
         }
-        HOUSEHOLD_ID_BY_PERSON.clear();
-        recalculateMemberCounts(affected);
-        HouseholdNamingService.applyNaming(affected);
-        deleteEmptyHouseholds(affected);
+        // One upkeep path, the same one the membership trigger uses, so the work is not
+        // done twice when the trigger has already run for this move.
+        afterMembershipChange(affected);
     }
 
     private static void moveJunctionMember(

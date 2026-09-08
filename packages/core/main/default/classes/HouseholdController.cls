@@ -153,7 +153,9 @@ public with sharing class HouseholdController {
                 throw new HouseholdException(Label.Core_Households_ErrorNotAHousehold);
             }
             List<MemberView> result = new List<MemberView>();
-            Map<Id, List<HouseholdService.Person>> membersByHousehold = HouseholdService.getMembers(
+            // What a screen shows is read with the running user's own access (ADR-0021),
+            // so a field this user cannot read on the record does not reach the panel.
+            Map<Id, List<HouseholdService.Person>> membersByHousehold = HouseholdService.getMembersAsUser(
                 new Set<Id>{ householdId }
             );
             List<HouseholdService.Person> members = membersByHousehold.get(householdId);
