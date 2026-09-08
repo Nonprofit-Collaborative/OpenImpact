@@ -45,6 +45,12 @@
         "xmlWhitespaceSensitivity": "strict",
         "printWidth": 400
       }
+    },
+    {
+      "files": "**/lwc/**/*.html",
+      "options": {
+        "parser": "lwc"
+      }
     }
   ]
 }

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Commitment__c</fullName>
+    <description>The commitment this installment belongs to.</description>
+    <label>Commitment</label>
+    <referenceTo>Commitment__c</referenceTo>
+    <relationshipLabel>Installments</relationshipLabel>
+    <relationshipName>Installments</relationshipName>
+    <relationshipOrder>0</relationshipOrder>
+    <reparentableMasterDetail>false</reparentableMasterDetail>
+    <trackTrending>false</trackTrending>
+    <type>MasterDetail</type>
+    <writeRequiresMasterRead>false</writeRequiresMasterRead>
+</CustomField>
