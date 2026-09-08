@@ -111,11 +111,17 @@ jobs:
     needs: static
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    # One long lived org, so two runs must not deploy into it at the same time. The newer
-    # run wins: an older deploy that is about to be superseded is not worth waiting for.
+    # Only on main. There is one test org, so running a pull request's code in it would
+    # leave main's org holding unmerged code, and every run would contend for the same org.
+    # Pull requests get the static checks, which is where most of the signal is anyway.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # One org means one deploy at a time, so the group is global rather than per ref.
+    # cancel-in-progress is false on purpose: killing a deploy partway through would leave
+    # the org holding half a package, and a persistent org keeps that state. Runs queue
+    # instead, and GitHub keeps only the newest waiting run, which is the one worth having.
     concurrency:
       group: org-tests-persistent
-      cancel-in-progress: true
+      cancel-in-progress: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4

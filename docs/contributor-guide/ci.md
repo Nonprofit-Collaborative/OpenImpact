@@ -154,8 +154,20 @@ An `UNKNOWN_EXCEPTION` with zero component errors is a Salesforce side failure r
 something wrong with a component. Quote the ErrorId to Salesforce support, and note that it is
 sometimes transient, so one re-run is worth trying before digging.
 
-The job carries a single concurrency group, `org-tests-persistent`, because two runs must not
-deploy into the same org at once. The newer run wins.
+Two things constrain when it runs, both because there is one org rather than one per run.
+
+It runs **only on a push to `main`**. Deploying a pull request's code into the test org would
+leave that org holding unmerged work, and the next run against main would inherit it. Pull
+requests get the static checks, which is where most of the signal is.
+
+It carries a **single global concurrency group**, `org-tests-persistent`, so two runs never
+deploy at once, and `cancel-in-progress` is **false**. Cancelling a deploy partway through
+would leave the org holding half a package, and unlike a scratch org that is thrown away, that
+state persists into the next run. Runs queue instead; GitHub keeps only the newest waiting one.
+
+The first version of this got the second point wrong: a global group with cancel-in-progress
+set to true meant an unrelated Dependabot run cancelled main's job after every step had
+already passed, which showed up as a cancelled build on a commit that was fine.
 
 ### `dco`
 
