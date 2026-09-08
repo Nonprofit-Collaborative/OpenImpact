@@ -28,6 +28,10 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>AffiliationController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>AutomationControlController</apexClass>
     <enabled>true</enabled>
   </classAccesses>
@@ -89,6 +93,10 @@
   </classAccesses>
   <classAccesses>
     <apexClass>PermissionSetGroupSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>RelationshipController</apexClass>
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
@@ -191,6 +199,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
+    <field>Account.Primary_Affiliation__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
     <field>Account.Primary_Contact__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -271,6 +284,46 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
+    <field>Affiliation__c.Contact__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Affiliation__c.Description__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Affiliation__c.End_Date__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Affiliation__c.Is_Primary__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Affiliation__c.Organization__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Affiliation__c.Person_Account__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Affiliation__c.Role__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Affiliation__c.Start_Date__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
     <field>Automation_Setting__c.Description__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -322,6 +375,11 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Contact.Preferred_Name__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Contact.Primary_Affiliation__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -406,6 +464,56 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
+    <field>Relationship__c.Contact__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Relationship__c.Description__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Relationship__c.End_Date__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Relationship__c.Is_Reciprocal_Managed__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Relationship__c.Person_Account__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Relationship__c.Reciprocal_Relationship__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Relationship__c.Reciprocal_Type__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Relationship__c.Related_Contact__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Relationship__c.Related_Person_Account__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Relationship__c.Start_Date__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
     <field>Setting_Change__c.Changed_At__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -445,6 +553,15 @@
     <allowRead>true</allowRead>
     <modifyAllRecords>false</modifyAllRecords>
     <object>Address__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>false</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>false</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Affiliation__c</object>
     <viewAllRecords>false</viewAllRecords>
   </objectPermissions>
   <objectPermissions>
@@ -498,6 +615,15 @@
     <allowEdit>false</allowEdit>
     <allowRead>true</allowRead>
     <modifyAllRecords>false</modifyAllRecords>
+    <object>Relationship__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>false</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>false</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
     <object>Setting_Change__c</object>
     <viewAllRecords>true</viewAllRecords>
   </objectPermissions>
@@ -521,6 +647,10 @@
     <visibility>Visible</visibility>
   </tabSettings>
   <tabSettings>
+    <tab>Affiliation__c</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
     <tab>Error_Log__c</tab>
     <visibility>Available</visibility>
   </tabSettings>
@@ -538,6 +668,10 @@
   </tabSettings>
   <tabSettings>
     <tab>Organizations</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Relationship__c</tab>
     <visibility>Visible</visibility>
   </tabSettings>
   <userPermissions>

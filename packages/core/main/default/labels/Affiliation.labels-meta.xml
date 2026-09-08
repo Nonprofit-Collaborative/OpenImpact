@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_Affiliation_AddButton</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Affiliation card: button that opens the new affiliation form</shortDescription>
+        <value>Add affiliation</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_AddFormTitle</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Affiliation card: heading above the new affiliation form</shortDescription>
+        <value>New affiliation</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_CancelButton</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Affiliation card: button that closes the form without saving</shortDescription>
+        <value>Cancel</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_Empty</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Affiliation card: shown when there are no affiliations yet</shortDescription>
+        <value>No affiliations on file yet.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_FormerBadge</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Affiliation card: badge on an affiliation that has ended</shortDescription>
+        <value>Former</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_LoadFailed</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Affiliation card: the list of affiliations could not be read</shortDescription>
+        <value>Open Impact could not read these affiliations. The error log has the details.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_MakePrimaryButton</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Affiliation card: button that makes one affiliation the primary one</shortDescription>
+        <value>Make primary</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_MakePrimaryFailed</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Affiliation card: the primary organization could not be changed</shortDescription>
+        <value>Open Impact could not make that the primary affiliation. The error log has the details.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_MakePrimarySuccess</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Affiliation card: confirmation after the primary organization changes</shortDescription>
+        <value>Primary affiliation updated.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_NoRole</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Stands in for the role in a message when the affiliation has none</shortDescription>
+        <value>no role</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_NotFound</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Affiliation card: the affiliation asked for is not there any more</shortDescription>
+        <value>That affiliation is no longer on file. Refresh the page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_OrganizationRequired</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Save refused: no organization named</shortDescription>
+        <value>An affiliation needs an organization.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_Overlap</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Save refused: the dates overlap an affiliation already on file. Names the person, the organization, the role, and the record number.</shortDescription>
+        <value>{0} already has an affiliation with {1} as {2} covering those dates. Open {3} to change it.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_OverlapInSave</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Save refused: two affiliations in the same save cover the same dates, so there is no record number to name</shortDescription>
+        <value>Two affiliations in this save cover the same dates for the same person, organization, and role. Give them dates that do not overlap.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_PanelTitle</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Affiliation card: the card heading</shortDescription>
+        <value>Affiliations</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_PersonAmbiguous</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Save refused: both the contact and the account lookup are filled in for the person</shortDescription>
+        <value>An affiliation names one record for the person. Fill in either the person or the person account, not both.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_PersonRequired</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Save refused: no person named</shortDescription>
+        <value>An affiliation needs a person.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_PrimaryBadge</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Affiliation card: badge on the organization the person is chiefly associated with</shortDescription>
+        <value>Primary</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_PrimaryFailed</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Save refused: the primary affiliation could not be settled</shortDescription>
+        <value>Open Impact could not settle this person's primary affiliation, so nothing was saved. The error log has the details.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_SaveFailed</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Affiliation card: the new affiliation could not be saved</shortDescription>
+        <value>That affiliation could not be saved. Check the message on the form and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_SaveSuccess</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Affiliation card: confirmation after an affiliation is saved</shortDescription>
+        <value>Affiliation saved.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_SelfAffiliation</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Save refused: the person and the organization are the same record</shortDescription>
+        <value>An affiliation connects a person to an organization, not a record to itself.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Affiliation_UnnamedPerson</fullName>
+        <categories>Relationships</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Stands in for a person's name in a message when the name cannot be read</shortDescription>
+        <value>this person</value>
+    </labels>
+</CustomLabels>

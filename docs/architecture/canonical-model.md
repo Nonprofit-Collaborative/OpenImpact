@@ -852,15 +852,19 @@ mirror the template's own attributes.
 read by the relationship service when it maintains the other side of a connection
 (Section 27, R-RL3).
 
-| Field | Type | Definition |
-|---|---|---|
-| DeveloperName | text | The stable identifier of the shipped type. |
-| Label | text | The type as the admin sees it, for example Parent. |
-| Type | text | The type as it appears in the Type picklist. |
-| Reciprocal Type | text | The type the other side takes, for example Child for Parent. |
-| Is Gendered | boolean | Whether the reciprocal depends on a person's gender; false on every shipped row, and the package ships no gendered mapping. |
-| Active | boolean | Whether this mapping is applied. |
-| Description | long text | What this relationship means, in nonprofit language. |
+| Field | API name | Type | Definition |
+|---|---|---|---|
+| DeveloperName | `DeveloperName` | text | The stable identifier of the shipped type. |
+| Label | `MasterLabel` | text | The type as the admin sees it, for example Parent. |
+| Type | `Type__c` | text | The type as it appears in the Type picklist. |
+| Reciprocal Type | `Reciprocal_Type__c` | text | The type the other side takes, for example Child for Parent. |
+| Is Gendered | `Is_Gendered__c` | boolean | Whether the reciprocal depends on a person's gender; false on every shipped row, and the package ships no gendered mapping. |
+| Active | `Active__c` | boolean | Whether this mapping is applied. |
+| Description | `Description__c` | long text | What this relationship means, in nonprofit language. |
+
+The API names are given here, as they are for Automation Registry above, because the
+shipped records name fields and a record that names a field its type does not define
+refuses the whole deployment.
 
 ### Rule
 
@@ -2288,7 +2292,19 @@ a person's gender from a relationship.
 
 **R-RL4 A person is not related to themselves.** The two sides must be different people,
 and a duplicate relationship of the same type between the same two people is rejected with
-a message naming the existing record.
+a message naming the existing record. A duplicate is counted in one direction: the same
+person on this side, the same person on the other side, and the same type. A to B as
+Parent and B to A as Parent are two different relationships and both are allowed, which is
+what makes the mirrored record of A to B as Parent (B to A as Child) legal rather than a
+duplicate of anything.
+
+**R-RL4a Pairing prefers a record that is already there.** Before the package creates the
+other side it looks for a relationship that is already the other side and is not paired
+with anything: the two people the other way round, of exactly the reciprocal type, with no
+Reciprocal Relationship set. Finding one, it pairs the two records instead of creating a
+third. This is what makes an import that already carried both sides, and a restore from
+the recycle bin that brought both sides back, settle into one pair rather than into
+duplicates.
 
 **R-RL5 Status follows the dates.** Setting End Date sets Status to Former on both sides.
 Clearing it returns both to Current. Status is never left disagreeing with the dates.
@@ -2319,6 +2335,10 @@ a Spouse relationship, and the two mechanisms do not read each other.
 - **Shipped defaults:** `Relationship_Type__mdt` (Section 13).
 - **Settings key:** `Relationship_Auto_Reciprocal__c` (Section 12).
 - **Service:** `RelationshipService`, `RelationshipDomain`, `RelationshipSelector`.
+- **Automation:** one registry row, `Relationship_Reciprocal`, handler
+  `RelationshipTriggerHandler` on `Relationship__c`, execution order 30. The service stands
+  that automation down by name while it writes the other side, which is how a mirrored
+  write does not re-enter the trigger that made it.
 
 ---
 
@@ -2395,7 +2415,12 @@ matches an affiliation (R-IR1), which is how most affiliations in a converted or
 - **Field on Contact:** `Primary_Affiliation__c`, a Lookup to Account, maintained by the
   package (R-AF2). In Person Account orgs the same attribute exists on Account as
   `Primary_Affiliation__c`, added there with the other person attributes (Section 4
-  "Person references").
+  "Person references"). It holds the **organization**, not the Affiliation record: the
+  point of the field is that a list view or a mail merge can show an employer without a
+  subquery, and an Affiliation id would not do that. The label an admin sees is Primary
+  Affiliation because that is the nonprofit's word for it.
+- **Automation:** one registry row, `Affiliation_Primary`, handler
+  `AffiliationTriggerHandler` on `Affiliation__c`, execution order 30.
 - **Service:** `AffiliationService`, `AffiliationDomain`.
 
 ---

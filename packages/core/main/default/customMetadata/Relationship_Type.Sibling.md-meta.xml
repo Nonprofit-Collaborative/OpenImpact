@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <label>Sibling</label>
+  <protected>true</protected>
+  <values>
+    <field>Active__c</field>
+    <value xsi:type="xsd:boolean">true</value>
+  </values>
+  <values>
+    <field>Description__c</field>
+    <value xsi:type="xsd:string">Two people who share a parent. The other side is Sibling as well, and it says nothing about anyone being a brother or a sister.</value>
+  </values>
+  <values>
+    <field>Is_Gendered__c</field>
+    <value xsi:type="xsd:boolean">false</value>
+  </values>
+  <values>
+    <field>Reciprocal_Type__c</field>
+    <value xsi:type="xsd:string">Sibling</value>
+  </values>
+  <values>
+    <field>Type__c</field>
+    <value xsi:type="xsd:string">Sibling</value>
+  </values>
+</CustomMetadata>

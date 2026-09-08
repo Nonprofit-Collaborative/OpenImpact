@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <label>Other</label>
+  <protected>true</protected>
+  <values>
+    <field>Active__c</field>
+    <value xsi:type="xsd:boolean">true</value>
+  </values>
+  <values>
+    <field>Description__c</field>
+    <value xsi:type="xsd:string">A connection that none of the shipped types describes. The other side is Other as well, and anything a type does not carry belongs in the description.</value>
+  </values>
+  <values>
+    <field>Is_Gendered__c</field>
+    <value xsi:type="xsd:boolean">false</value>
+  </values>
+  <values>
+    <field>Reciprocal_Type__c</field>
+    <value xsi:type="xsd:string">Other</value>
+  </values>
+  <values>
+    <field>Type__c</field>
+    <value xsi:type="xsd:string">Other</value>
+  </values>
+</CustomMetadata>
