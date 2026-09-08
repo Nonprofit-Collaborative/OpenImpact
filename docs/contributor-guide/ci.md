@@ -139,9 +139,20 @@ authenticates from `SF_TEST_ORG_AUTH_URL`, prints how many days that org has lef
 `packages/core` and then `packages/giving`, runs the Apex tests, and uploads the results. It
 creates nothing and deletes nothing.
 
-A failed deploy asks the org for the component level report, by job id, in human form and
-then as JSON, because a deploy can report only "Status: Failed" with no detail at all, and
-guessing at that is how an afternoon disappears.
+The deploy goes in stages through `scripts/org/deploy-packages.sh`: the vendored rollup
+engine, then Core, then Giving. A failed stage asks the org for the component level report,
+by job id, in human form and then as JSON.
+
+That is not tidiness. The first deploy this project ever attempted sent all 982 components in
+one request and came back with `UNKNOWN_EXCEPTION`, zero components deployed, zero component
+errors, and a Salesforce ErrorId. A failure with nothing attached to it tells you nothing
+about which of 982 things caused it. In stages, the same failure names a stage. The order also
+matches how the packages depend on each other: the vendored engine is self contained, Core
+does not call it yet, and Giving depends on Core.
+
+An `UNKNOWN_EXCEPTION` with zero component errors is a Salesforce side failure rather than
+something wrong with a component. Quote the ErrorId to Salesforce support, and note that it is
+sometimes transient, so one re-run is worth trying before digging.
 
 The job carries a single concurrency group, `org-tests-persistent`, because two runs must not
 deploy into the same org at once. The newer run wins.

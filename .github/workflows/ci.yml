@@ -157,29 +157,9 @@ jobs:
         if: steps.check.outputs.enabled == 'true'
         run: bash scripts/org/check-org-expiry.sh testorg
 
-      - name: Deploy Core
+      - name: Deploy the packages, in stages
         if: steps.check.outputs.enabled == 'true'
-        run: |
-          DEPLOY_LOG=$(mktemp)
-          set +e
-          sf project deploy start --source-dir packages/core --wait 30 --ignore-conflicts --target-org testorg 2>&1 | tee "$DEPLOY_LOG"
-          STATUS=${PIPESTATUS[0]}
-          set -e
-          if [ "$STATUS" -ne 0 ]; then
-            echo "== Deploy failed. Asking the org for the component level detail =="
-            JOB_ID=$(grep -oE 'Deploy ID: [0-9A-Za-z]+' "$DEPLOY_LOG" | head -1 | awk '{print $3}')
-            if [ -n "$JOB_ID" ]; then
-              sf project deploy report --job-id "$JOB_ID" --target-org testorg || true
-              sf project deploy report --job-id "$JOB_ID" --target-org testorg --json || true
-            else
-              sf project deploy report --use-most-recent --target-org testorg || true
-            fi
-            exit "$STATUS"
-          fi
-
-      - name: Deploy Giving
-        if: steps.check.outputs.enabled == 'true'
-        run: sf project deploy start --source-dir packages/giving --wait 30 --ignore-conflicts --target-org testorg
+        run: bash scripts/org/deploy-packages.sh testorg
 
       - name: Run Apex tests
         if: steps.check.outputs.enabled == 'true'
