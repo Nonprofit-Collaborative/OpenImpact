@@ -1025,7 +1025,11 @@ settings console refuses a save that would overlap.
 
 **R-R9 Idempotency and negative amounts.** Recalculating any set of records produces the
 same result as calculating it the first time, and every aggregate is correct in the
-presence of the negative gifts that refunds and write-offs create (ADR-0010, ADR-0011).
+presence of the negative gifts that refunds and write-offs create (ADR-0010, ADR-0011). A
+definition that sums money therefore has to admit both sides of a reversal: the negative
+gift and the original whose status the reversal changed. A status filter that admits only
+Received breaks this rule rather than serving it, which is what ADR-0022 corrects in the
+packaged defaults of Section 26.
 
 **R-R10 Validation on save.** The target attribute must exist and be writable, the
 aggregate must suit the source attribute type, and FIRST and LAST must have an Order By
@@ -2126,16 +2130,26 @@ Definition keys follow the scope: `Household_Total_Giving`, `Account_Total_Givin
 
 ### Giving totals on Account and Contact
 
-Every definition here uses source entity Gift with the base filter `Status equals
-Received`, and mode Both.
+Every definition here uses source entity Gift with the base filter `Status` in
+`Received`, `Refunded`, `Written off`, and mode Both. The set, rather than `Status equals
+Received`, is what makes R-R9 true: a refund is a negative gift whose own status is
+Received while the original it reverses is moved to Refunded, so a filter that admitted
+only Received would keep the negative rows and drop the positive one, and a fully refunded
+gift would subtract itself twice (ADR-0022). Pending, Failed, and any other status that
+does not represent money the organization holds stay outside the filter.
+
+The rows that count, rather than add, carry `Amount__c` greater than 0 on top of that
+status set, so that a gift given once and refunded in full reads as one gift and a total
+of zero. A count and a sum here answer different questions on purpose: how many gifts this
+donor gave, and what the organization is left holding.
 
 | Target attribute | Aggregate | Source attribute | Extra filter | Definition |
 |---|---|---|---|---|
-| `Total_Giving__c` | SUM | `Amount__c` | none | The total of all gifts ever received from this donor. |
-| `Gift_Count__c` | COUNT | none | none | How many gifts have been received from this donor. |
+| `Total_Giving__c` | SUM | `Amount__c` | none | The total of all gifts ever received from this donor, net of anything given back. |
+| `Gift_Count__c` | COUNT | none | `Amount__c` greater than 0 | How many gifts this donor has given, counting a gift once whether or not it was later refunded. |
 | `First_Gift_Date__c` | MIN | `Gift_Date__c` | `Amount__c` greater than 0 | The date of this donor's first gift, which is what "new donor" reporting counts from. |
 | `Last_Gift_Date__c` | MAX | `Gift_Date__c` | `Amount__c` greater than 0 | The date of this donor's most recent gift, which is what lapsed-donor reporting counts from. |
-| `Largest_Gift__c` | MAX | `Amount__c` | none | The largest single gift this donor has given. |
+| `Largest_Gift__c` | MAX | `Amount__c` | `Amount__c` greater than 0 | The largest single gift this donor has given. Without the amount condition a donor whose whole history was refunded would have a negative gift as their largest. |
 | `Giving_This_Year__c` | SUM | `Amount__c` | fiscal year offset 0 | Total given in the current fiscal year. |
 | `Giving_Last_Year__c` | SUM | `Amount__c` | fiscal year offset -1 | Total given in the previous fiscal year, which is the "LY" in LYBUNT. |
 | `Giving_Two_Years_Ago__c` | SUM | `Amount__c` | fiscal year offset -2 | Total given two fiscal years ago, used by SYBUNT and retention reporting. |
@@ -2145,8 +2159,8 @@ Two further definitions on the same targets use different sources:
 | Target attribute | Source | Aggregate | Source attribute | Filter | Definition |
 |---|---|---|---|---|---|
 | `Pledge_Balance__c` | Commitment | SUM | `Balance__c` | Type is Pledge and Status is Active or Paused | What this donor has promised and not yet paid. |
-| `Total_Soft_Credits__c` | Soft Credit | SUM | `Amount__c` | gift status is Received | The total this donor is recognized for without being hard credited. |
-| `Soft_Credit_Count__c` | Soft Credit | COUNT | none | gift status is Received | How many gifts this donor is recognized on. |
+| `Total_Soft_Credits__c` | Soft Credit | SUM | `Amount__c` | gift status in the set above | The total this donor is recognized for without being hard credited. |
+| `Soft_Credit_Count__c` | Soft Credit | COUNT | none | gift status in the set above, `Amount__c` greater than 0 | How many gifts this donor is recognized on. |
 
 Relationship paths for the two non-Gift sources follow the same scope table, reading
 `Household__c`, `Donor_Account__c`, or `Donor_Contact__c` on Commitment and `Account__c`
@@ -2156,14 +2170,14 @@ or `Contact__c` on Soft Credit.
 
 | Target entity | Target attribute | Source | Aggregate | Source attribute | Filter | Definition |
 |---|---|---|---|---|---|---|
-| Fund | `Total_Raised__c` | Gift Allocation | SUM | `Amount__c` | gift status is Received | Everything ever designated to this fund. |
-| Fund | `Total_Raised_This_Year__c` | Gift Allocation | SUM | `Amount__c` | gift status is Received, fiscal year offset 0 | Designated to this fund in the current fiscal year. |
-| Fund | `Gift_Count__c` | Gift Allocation | COUNT | none | gift status is Received | How many gifts have been designated to this fund. |
-| Fund | `Last_Gift_Date__c` | Gift Allocation | MAX | `Gift__r.Gift_Date__c` | gift status is Received | The most recent gift to this fund. |
-| Appeal | `Total_Raised__c` | Gift | SUM | `Amount__c` | status is Received | What this appeal brought in. |
-| Appeal | `Gift_Count__c` | Gift | COUNT | none | status is Received | How many gifts responded to this appeal. |
-| Commitment | `Paid_To_Date__c` | Gift | SUM | `Amount__c` | status is Received | What has been paid against this commitment. |
-| Installment | `Paid_Amount__c` | Gift | SUM | `Amount__c` | status is Received | What has been paid against this scheduled installment. |
+| Fund | `Total_Raised__c` | Gift Allocation | SUM | `Amount__c` | gift status in the set above | Everything ever designated to this fund. |
+| Fund | `Total_Raised_This_Year__c` | Gift Allocation | SUM | `Amount__c` | gift status in the set above, fiscal year offset 0 | Designated to this fund in the current fiscal year. |
+| Fund | `Gift_Count__c` | Gift Allocation | COUNT | none | gift status in the set above, `Amount__c` greater than 0 | How many gifts have been designated to this fund. |
+| Fund | `Last_Gift_Date__c` | Gift Allocation | MAX | `Gift__r.Gift_Date__c` | gift status in the set above, `Amount__c` greater than 0 | The most recent gift to this fund. |
+| Appeal | `Total_Raised__c` | Gift | SUM | `Amount__c` | status in the set above | What this appeal brought in. |
+| Appeal | `Gift_Count__c` | Gift | COUNT | none | status in the set above, `Amount__c` greater than 0 | How many gifts responded to this appeal. |
+| Commitment | `Paid_To_Date__c` | Gift | SUM | `Amount__c` | status in the set above | What has been paid against this commitment. |
+| Installment | `Paid_Amount__c` | Gift | SUM | `Amount__c` | status in the set above | What has been paid against this scheduled installment. |
 
 The fund definitions aggregate Gift Allocation but filter and read attributes on the
 parent gift, written with a relationship-qualified name such as `Gift__r.Status__c`. That
@@ -2610,6 +2624,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.3 | 2026-09-08 | C-15 and C-16 automation split (product owner decision). No object or field added. Relationships and affiliations each ship two `Automation_Registry__mdt` rows instead of one: `Relationship_Validation` (order 10, `RelationshipValidationHandler`) with `Relationship_Reciprocal` (order 30, `RelationshipMaintenanceHandler`), and `Affiliation_Validation` (order 10, `AffiliationValidationHandler`) with `Affiliation_Primary` (order 30, `AffiliationMaintenanceHandler`). Switching the maintenance automation off no longer switches off that object's validation, which is what an administrator pausing automation before a bulk import needs. `applyDefaults` sits with the validation handler because the status and date rules (R-RL5, R-AF4) have to survive the upkeep being off. Both services now bypass the validation row alongside their own while they write. |
 | v0.3 | 2026-09-08 | C-13 rollup adapter build. `Rollup_Definition__c` and `Rollup_Definition_Default__mdt` created as Sections 14 and 13 specify, with one correction: both gain `Fiscal_Date_Field__c`. R-R3 said the fiscal window is computed from the start month and the offset but never said which date attribute it is measured on, and every fiscal definition in Section 26 sums an amount rather than a date, so the window had nothing to bound. The attribute is optional and falls back to the attribute being aggregated, which is right for a rollup that aggregates a date. `Mode__c` on the definition ships with Both as its default value, matching R-R4 and the shipped Giving rows. |
 | v0.3 | 2026-09-08 | C-17 Addresses build. `Address__c` and its fields, list views, compact layout, and validation rules created as specified in Section 29, with two recorded deviations: `Street__c` ships as Text Area (255) because the platform has no long text field that a list view or a validation rule can read, and `Contact_Address_Change_Behavior__c` ships as Text(40) on `Nonprofit_Settings__c` per ADR-0019 rather than as a picklist. `Verification_Status__c` defaults to Unverified and is left writable for a third party verification app (R-AD6); no packaged code writes it. |
+| v0.3 | 2026-09-08 | G-02 defect fix (ADR-0022). No object or field added. Section 26's base filter changes from `Status equals Received` to `Status` in `Received`, `Refunded`, `Written off`, because R-G3 moves a fully refunded gift's status while leaving the negative gifts that reverse it at Received, so the old filter kept the negatives, dropped the positive, and subtracted a refunded gift twice. The count rows, largest gift, and the two date rows additionally require `Amount__c` greater than 0, so a gift given once and refunded in full reads as one gift and a total of zero. All 38 gift sourced, Gift Allocation sourced and Soft Credit sourced `Rollup_Definition_Default__mdt` rows updated; the three Pledge Balance rows filter on Commitment status and are unaffected. R-R9 gains the sentence that makes this a consequence of the rule rather than an exception to it. |
 
 ---
 ## 32. Entity ownership by package

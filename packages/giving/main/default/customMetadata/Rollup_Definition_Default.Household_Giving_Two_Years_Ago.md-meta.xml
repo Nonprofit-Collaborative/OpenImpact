@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <label>Account soft credit count</label>
+    <label>Household giving two years ago</label>
     <protected>true</protected>
     <values>
         <field>Description__c</field>
-        <value xsi:type="xsd:string">How many gifts this donor is recognized on without being hard credited.</value>
+        <value xsi:type="xsd:string">Total given by this household two fiscal years ago, used by SYBUNT and retention reporting. The fiscal year runs from the fiscal year start month in Nonprofit Settings, and a gift falls in it by its gift date.</value>
     </values>
     <values>
         <field>Definition_Key__c</field>
-        <value xsi:type="xsd:string">Account_Soft_Credit_Count</value>
+        <value xsi:type="xsd:string">Household_Giving_Two_Years_Ago</value>
     </values>
     <values>
         <field>Source_Object__c</field>
-        <value xsi:type="xsd:string">Soft_Credit__c</value>
+        <value xsi:type="xsd:string">Gift__c</value>
     </values>
     <values>
         <field>Target_Object__c</field>
@@ -20,15 +20,15 @@
     </values>
     <values>
         <field>Relationship_Path__c</field>
-        <value xsi:type="xsd:string">Account__c</value>
+        <value xsi:type="xsd:string">Household__c</value>
     </values>
     <values>
         <field>Aggregate__c</field>
-        <value xsi:type="xsd:string">COUNT</value>
+        <value xsi:type="xsd:string">SUM</value>
     </values>
     <values>
         <field>Source_Field__c</field>
-        <value xsi:nil="true" />
+        <value xsi:type="xsd:string">Amount__c</value>
     </values>
     <values>
         <field>Order_By_Field__c</field>
@@ -36,23 +36,27 @@
     </values>
     <values>
         <field>Target_Field__c</field>
-        <value xsi:type="xsd:string">Soft_Credit_Count__c</value>
+        <value xsi:type="xsd:string">Giving_Two_Years_Ago__c</value>
     </values>
     <values>
         <field>Filter_JSON__c</field>
-        <value xsi:type="xsd:string">{"version": 1, "conditions": [{"id": 1, "field": "Gift__r.Status__c", "operator": "in", "value": ["Received", "Refunded", "Written off"]}, {"id": 2, "field": "Amount__c", "operator": "greater than", "value": 0}]}</value>
+        <value xsi:type="xsd:string">{"version": 1, "conditions": [{"id": 1, "field": "Status__c", "operator": "in", "value": ["Received", "Refunded", "Written off"]}]}</value>
     </values>
     <values>
         <field>Target_Filter_JSON__c</field>
-        <value xsi:type="xsd:string">{"version": 1, "conditions": [{"id": 1, "field": "RecordType.DeveloperName", "operator": "not equals", "value": "Household"}]}</value>
+        <value xsi:type="xsd:string">{"version": 1, "conditions": [{"id": 1, "field": "RecordType.DeveloperName", "operator": "equals", "value": "Household"}]}</value>
     </values>
     <values>
         <field>Fiscal_Year_Aware__c</field>
-        <value xsi:type="xsd:boolean">false</value>
+        <value xsi:type="xsd:boolean">true</value>
     </values>
     <values>
         <field>Fiscal_Year_Offset__c</field>
-        <value xsi:nil="true" />
+        <value xsi:type="xsd:double">-2</value>
+    </values>
+    <values>
+        <field>Fiscal_Date_Field__c</field>
+        <value xsi:type="xsd:string">Gift_Date__c</value>
     </values>
     <values>
         <field>Mode__c</field>

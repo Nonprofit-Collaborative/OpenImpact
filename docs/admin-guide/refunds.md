@@ -11,6 +11,28 @@ the reason on it.
 That keeps three things true at once: the bank reconciles, fund and donor totals correct
 themselves automatically, and anyone looking at the original gift can see what became of it.
 
+## What a refund does to the donor's totals
+
+The negative gift and the gift it reverses cancel each other, so nothing has to be adjusted
+by hand. Ana gave 250 and asked for 100 back:
+
+| After | Total giving | Gift count |
+|---|---|---|
+| The 250 gift | 250 | 1 |
+| 100 refunded | 150 | 1 |
+| The other 150 refunded as well | 0 | 1 |
+
+**A fully refunded gift leaves the donor's total at zero and still counts as one gift.**
+That is deliberate. Ana did give, once, and it is part of her history with you; the
+organization is simply holding none of it. A write-off behaves the same way. The same
+arithmetic runs on the fund's and the appeal's total raised, on a pledge's paid to date,
+and on Ana's giving for the fiscal year the gifts fall in.
+
+Two things follow from it that surprise people. Total giving divided by gift count is not a
+useful average gift for a donor with refunds, because the two numbers deliberately answer
+different questions. And Ana's **Last gift date** stays on the day of the original gift
+rather than moving to the day of the refund, because the date totals ignore negative gifts.
+
 ## How to turn it on
 
 Refunds and write-offs arrive with the Giving module. There is nothing to configure.

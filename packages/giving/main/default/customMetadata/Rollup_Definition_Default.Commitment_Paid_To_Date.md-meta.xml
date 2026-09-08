@@ -40,7 +40,7 @@
     </values>
     <values>
         <field>Filter_JSON__c</field>
-        <value xsi:type="xsd:string">{&quot;version&quot;: 1, &quot;conditions&quot;: [{&quot;id&quot;: 1, &quot;field&quot;: &quot;Status__c&quot;, &quot;operator&quot;: &quot;equals&quot;, &quot;value&quot;: &quot;Received&quot;}]}</value>
+        <value xsi:type="xsd:string">{&quot;version&quot;: 1, &quot;conditions&quot;: [{&quot;id&quot;: 1, &quot;field&quot;: &quot;Status__c&quot;, &quot;operator&quot;: &quot;in&quot;, &quot;value&quot;: [&quot;Received&quot;, &quot;Refunded&quot;, &quot;Written off&quot;]}]}</value>
     </values>
     <values>
         <field>Target_Filter_JSON__c</field>
