@@ -1,5 +1,19 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+  <hasActivationRequired>false</hasActivationRequired>
+  <label>Nonprofit Staff</label>
+  <description>
+    David, Priya, and everyone else doing the day job. Reads the Error Log so that a problem can be
+    described accurately, and changes nothing about how Open Impact is configured.
+  </description>
+  <classAccesses>
+    <apexClass>AccessController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>AccessService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
   <classAccesses>
     <apexClass>AutomationControlController</apexClass>
     <enabled>true</enabled>
@@ -8,12 +22,18 @@
     <apexClass>ErrorLogController</apexClass>
     <enabled>true</enabled>
   </classAccesses>
-  <description>
-    David, Priya, and everyone else doing the day job. Reads the Error Log so that a problem can be
-    described accurately, and changes nothing about how Open Impact is configured.
-  </description>
-  <hasActivationRequired>false</hasActivationRequired>
-  <label>Nonprofit Staff</label>
+  <classAccesses>
+    <apexClass>PermissionSetAssignmentSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>PermissionSetGroupSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>UserSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
   <fieldPermissions>
     <editable>false</editable>
     <field>Automation_Setting__c.Description__c</field>
@@ -120,4 +140,8 @@
     <tab>Error_Log__c</tab>
     <visibility>Visible</visibility>
   </tabSettings>
+  <userPermissions>
+    <enabled>true</enabled>
+    <name>ViewSetup</name>
+  </userPermissions>
 </PermissionSet>

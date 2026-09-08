@@ -1,267 +1,531 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
-  <labels>
-    <fullName>Core_Automation_UnexpectedError</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Automation unexpected error</shortDescription>
-    <value>Something went wrong while Open Impact was updating this record, so the record was not saved. The details are in the Error Log. Try again, and if it keeps happening, send the newest Error Log entry to whoever supports your Salesforce.</value>
-  </labels>
-  <labels>
-    <fullName>Core_Automation_PauseHoursInvalid</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Pause length not allowed</shortDescription>
-    <value>Choose how long to pause automation: 1, 2, 4, 8, or 24 hours.</value>
-  </labels>
-  <labels>
-    <fullName>Core_Automation_NameRequired</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Automation name required</shortDescription>
-    <value>Pick an automation before switching it on or off.</value>
-  </labels>
-  <labels>
-    <fullName>Core_Automation_NotFound</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Automation not found</shortDescription>
-    <value>That automation is not in this org's list. Refresh the Automation page and try again.</value>
-  </labels>
-  <labels>
-    <fullName>Core_ErrorLog_UnexpectedFailure</fullName>
-    <categories>Core, Error Log</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Error log default message</shortDescription>
-    <value>Open Impact hit a problem it did not expect. The technical detail on this entry is what a support contact needs to work out why.</value>
-  </labels>
-  <labels>
-    <fullName>Core_Settings_ModeValueInvalid</fullName>
-    <categories>Core, Settings</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Settings mode value not allowed</shortDescription>
-    <value>That is not one of the choices for this setting. Pick a value from the list on the settings page.</value>
-  </labels>
-  <labels>
-    <fullName>Core_Automation_HandlerUnavailable</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Automation handler unavailable</shortDescription>
-    <value>Open Impact could not start one of its automations ({0}), so it was skipped. Everything else ran as usual. Send this entry to whoever supports your Salesforce.</value>
-  </labels>
-  <labels>
-    <fullName>Core_Automation_NoPermission</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Automation change not permitted</shortDescription>
-    <value>You do not have permission to change automation. Ask your administrator for the Manage Nonprofit Settings permission.</value>
-  </labels>
-  <labels>
-    <fullName>Core_ErrorLog_EntryNotFound</fullName>
-    <categories>Core, Error Log</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Error log entry not found</shortDescription>
-    <value>That entry is no longer in the Error Log. Refresh the page.</value>
-  </labels>
-  <labels>
-    <fullName>Core_ErrorLog_ActionFailed</fullName>
-    <categories>Core, Error Log</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Error log action failed</shortDescription>
-    <value>That did not work. Refresh the page and try again.</value>
-  </labels>
-  <labels>
-    <fullName>Core_AutomationControl_Title</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Automation page title</shortDescription>
-    <value>Automation</value>
-  </labels>
-  <labels>
-    <fullName>Core_AutomationControl_Intro</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Automation page introduction</shortDescription>
-    <value>Everything Open Impact does for you in the background. Switch one off if it is getting in your way, or pause all of it while you load a spreadsheet.</value>
-  </labels>
-  <labels>
-    <fullName>Core_AutomationControl_PauseButton</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Pause button</shortDescription>
-    <value>Pause all automation</value>
-  </labels>
-  <labels>
-    <fullName>Core_AutomationControl_ResumeButton</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Resume button</shortDescription>
-    <value>Resume automation</value>
-  </labels>
-  <labels>
-    <fullName>Core_AutomationControl_PauseLength</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Pause length field label</shortDescription>
-    <value>How long</value>
-  </labels>
-  <labels>
-    <fullName>Core_AutomationControl_PausedBanner</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Paused banner</shortDescription>
-    <value>Automation is paused until</value>
-  </labels>
-  <labels>
-    <fullName>Core_AutomationControl_ReadOnly</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Automation page read only notice</shortDescription>
-    <value>You can read this page but not change it. Ask your administrator for the Manage Nonprofit Settings permission.</value>
-  </labels>
-  <labels>
-    <fullName>Core_AutomationControl_Empty</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Automation page empty state</shortDescription>
-    <value>Open Impact has not added any automation to this org yet.</value>
-  </labels>
-  <labels>
-    <fullName>Core_AutomationControl_OneHour</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>One hour option</shortDescription>
-    <value>1 hour</value>
-  </labels>
-  <labels>
-    <fullName>Core_AutomationControl_TwoHours</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Two hours option</shortDescription>
-    <value>2 hours</value>
-  </labels>
-  <labels>
-    <fullName>Core_AutomationControl_FourHours</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Four hours option</shortDescription>
-    <value>4 hours</value>
-  </labels>
-  <labels>
-    <fullName>Core_AutomationControl_EightHours</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Eight hours option</shortDescription>
-    <value>8 hours</value>
-  </labels>
-  <labels>
-    <fullName>Core_AutomationControl_TwentyFourHours</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Twenty four hours option</shortDescription>
-    <value>24 hours</value>
-  </labels>
-  <labels>
-    <fullName>Core_AutomationControl_RunsOn</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Automation object column</shortDescription>
-    <value>Runs on</value>
-  </labels>
-  <labels>
-    <fullName>Core_ErrorLogTile_Title</fullName>
-    <categories>Core, Error Log</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Error log tile title</shortDescription>
-    <value>Error Log</value>
-  </labels>
-  <labels>
-    <fullName>Core_ErrorLogTile_NewCount</fullName>
-    <categories>Core, Error Log</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Error log tile new count</shortDescription>
-    <value>new</value>
-  </labels>
-  <labels>
-    <fullName>Core_ErrorLogTile_Empty</fullName>
-    <categories>Core, Error Log</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Error log tile empty state</shortDescription>
-    <value>Nothing has gone wrong. There is nothing to read here.</value>
-  </labels>
-  <labels>
-    <fullName>Core_ErrorLogTile_Acknowledge</fullName>
-    <categories>Core, Error Log</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Acknowledge action</shortDescription>
-    <value>Mark acknowledged</value>
-  </labels>
-  <labels>
-    <fullName>Core_ErrorLogTile_ViewAll</fullName>
-    <categories>Core, Error Log</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Open the error log</shortDescription>
-    <value>Open the Error Log</value>
-  </labels>
-  <labels>
-    <fullName>Core_ErrorLogTile_ReadOnly</fullName>
-    <categories>Core, Error Log</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Error log tile read only notice</shortDescription>
-    <value>You can read these entries but not change them.</value>
-  </labels>
-  <labels>
-    <fullName>Core_ErrorLogTile_OpenEntry</fullName>
-    <categories>Core, Error Log</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Open an error log entry</shortDescription>
-    <value>Open this entry</value>
-  </labels>
-  <labels>
-    <fullName>Core_AutomationControl_ErrorPrefix</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Automation page error icon</shortDescription>
-    <value>Something went wrong</value>
-  </labels>
-  <labels>
-    <fullName>Core_AutomationControl_PausedPrefix</fullName>
-    <categories>Core, Automation</categories>
-    <language>en_US</language>
-    <protected>false</protected>
-    <shortDescription>Automation paused icon</shortDescription>
-    <value>Paused</value>
-  </labels>
+    <labels>
+        <fullName>Core_Access_AddButton</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: button that gives the chosen person the chosen role</shortDescription>
+        <value>Give access</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_AssignSuccess</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: confirmation shown after a role is given</shortDescription>
+        <value>{0} now has the {1} role.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_CancelButton</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: button that closes a confirmation without changing anything</shortDescription>
+        <value>Cancel</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_ConfirmAddMessage</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: question asked before a role is given</shortDescription>
+        <value>Give {0} the {1} role?</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_ConfirmAddTitle</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: heading of the confirmation shown before a role is given</shortDescription>
+        <value>Give access</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_ConfirmRemoveMessage</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: question asked before a role is removed</shortDescription>
+        <value>Remove the {1} role from {0}? Any other role they hold stays in place.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_ConfirmRemoveTitle</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: heading of the confirmation shown before a role is removed</shortDescription>
+        <value>Remove access</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_CreateUserHelp</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: explains why creating a user happens in Setup</shortDescription>
+        <value>Open Impact cannot create a person or hand out a Salesforce license. Create the user in Setup first, then come back here and give them a role.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_CreateUserLink</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: link that opens the Users page in Setup</shortDescription>
+        <value>Create a user in Setup</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_ErrorGroupNotReady</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: shown when the role is still being rebuilt by the platform</shortDescription>
+        <value>This role is still being prepared. Wait a moment, reload the page, and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_ErrorInvalidInput</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: shown when a person or a role was not chosen</shortDescription>
+        <value>Choose a person and a role before you continue.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_ErrorLastAdmin</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: shown when removing the only remaining Nonprofit Admin</shortDescription>
+        <value>You cannot remove the last person from the Nonprofit Admin role. Give the role to someone else first.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_ErrorNoPermission</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: shown when the user may not change roles</shortDescription>
+        <value>You do not have permission to change roles. The Manage Nonprofit Settings permission is required, and it comes with the Nonprofit Admin role.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_ErrorRoleNotFound</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: shown when the chosen role is missing from the org</shortDescription>
+        <value>That role was not found. Reload the page, and if it still does not appear, upgrade or reinstall Open Impact Core.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_ErrorRolesNotVisible</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: shown when the person is not allowed to read the roles at all</shortDescription>
+        <value>You can see this page but you cannot see who holds each role. Ask someone with the Nonprofit Admin role to tell you, or to give you that role.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_ErrorUnexpected</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: shown when a role change fails for an unexpected reason</shortDescription>
+        <value>Something went wrong while changing this role. What happened is recorded in the Error Log on the Hub home page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_ErrorUserNotFound</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: shown when the chosen person is missing or inactive</shortDescription>
+        <value>That person was not found, or their account is no longer active. Search for them again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_LoadingRoles</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: message shown while the roles are loading</shortDescription>
+        <value>Loading roles</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_NoOneInRole</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: shown on a role card that nobody holds</shortDescription>
+        <value>No one holds this role yet.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_PageDescription</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: one line explaining what the page is for</shortDescription>
+        <value>Give a colleague access by picking their name and a role, and see who holds each role today.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_PageTitle</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: page heading</shortDescription>
+        <value>Access</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_ReadOnlyNotice</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: notice shown to a user who may look but not change roles</shortDescription>
+        <value>You can see this page but you cannot change roles. Ask someone with the Nonprofit Admin role to make the change, or to give you that role.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_RemoveButton</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: button that takes a role away from a person</shortDescription>
+        <value>Remove</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_RemoveSuccess</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: confirmation shown after a role is removed</shortDescription>
+        <value>{0} no longer has the {1} role.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_RoleLabel</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: label of the role picker</shortDescription>
+        <value>Role</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_RolePickerPlaceholder</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: placeholder text of the role picker</shortDescription>
+        <value>Choose a role</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_SearchLabel</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: label of the person search box</shortDescription>
+        <value>Find a person</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_SearchNoResults</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: shown when a search matches nobody</shortDescription>
+        <value>No active users match that search. Check the spelling, or create the user in Setup first.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_SearchPlaceholder</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: placeholder text of the person search box</shortDescription>
+        <value>Type a name or an email address</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_SelfRemovalWarning</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: warning shown before someone removes their own admin role</shortDescription>
+        <value>You are about to remove your own Nonprofit Admin role. You will lose access to Nonprofit Settings.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_ToastErrorTitle</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: heading of the message shown when something fails</shortDescription>
+        <value>That did not work</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_ToastSuccessTitle</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: heading of the message shown when a change succeeds</shortDescription>
+        <value>Done</value>
+    </labels>
+    <labels>
+        <fullName>Core_Access_UsersInRole</fullName>
+        <categories>Access</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Access page: heading above the list of people who hold a role</shortDescription>
+        <value>People in this role</value>
+    </labels>
+    <labels>
+        <fullName>Core_AutomationControl_EightHours</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Eight hours option</shortDescription>
+        <value>8 hours</value>
+    </labels>
+    <labels>
+        <fullName>Core_AutomationControl_Empty</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation page empty state</shortDescription>
+        <value>Open Impact has not added any automation to this org yet.</value>
+    </labels>
+    <labels>
+        <fullName>Core_AutomationControl_ErrorPrefix</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation page error icon</shortDescription>
+        <value>Something went wrong</value>
+    </labels>
+    <labels>
+        <fullName>Core_AutomationControl_FourHours</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Four hours option</shortDescription>
+        <value>4 hours</value>
+    </labels>
+    <labels>
+        <fullName>Core_AutomationControl_Intro</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation page introduction</shortDescription>
+        <value>Everything Open Impact does for you in the background. Switch one off if it is getting in your way, or pause all of it while you load a spreadsheet.</value>
+    </labels>
+    <labels>
+        <fullName>Core_AutomationControl_OneHour</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>One hour option</shortDescription>
+        <value>1 hour</value>
+    </labels>
+    <labels>
+        <fullName>Core_AutomationControl_PauseButton</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Pause button</shortDescription>
+        <value>Pause all automation</value>
+    </labels>
+    <labels>
+        <fullName>Core_AutomationControl_PauseLength</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Pause length field label</shortDescription>
+        <value>How long</value>
+    </labels>
+    <labels>
+        <fullName>Core_AutomationControl_PausedBanner</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Paused banner</shortDescription>
+        <value>Automation is paused until</value>
+    </labels>
+    <labels>
+        <fullName>Core_AutomationControl_PausedPrefix</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation paused icon</shortDescription>
+        <value>Paused</value>
+    </labels>
+    <labels>
+        <fullName>Core_AutomationControl_ReadOnly</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation page read only notice</shortDescription>
+        <value>You can read this page but not change it. Ask your administrator for the Manage Nonprofit Settings permission.</value>
+    </labels>
+    <labels>
+        <fullName>Core_AutomationControl_ResumeButton</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Resume button</shortDescription>
+        <value>Resume automation</value>
+    </labels>
+    <labels>
+        <fullName>Core_AutomationControl_RunsOn</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation object column</shortDescription>
+        <value>Runs on</value>
+    </labels>
+    <labels>
+        <fullName>Core_AutomationControl_Title</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation page title</shortDescription>
+        <value>Automation</value>
+    </labels>
+    <labels>
+        <fullName>Core_AutomationControl_TwentyFourHours</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Twenty four hours option</shortDescription>
+        <value>24 hours</value>
+    </labels>
+    <labels>
+        <fullName>Core_AutomationControl_TwoHours</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Two hours option</shortDescription>
+        <value>2 hours</value>
+    </labels>
+    <labels>
+        <fullName>Core_Automation_HandlerUnavailable</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation handler unavailable</shortDescription>
+        <value>Open Impact could not start one of its automations ({0}), so it was skipped. Everything else ran as usual. Send this entry to whoever supports your Salesforce.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Automation_NameRequired</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation name required</shortDescription>
+        <value>Pick an automation before switching it on or off.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Automation_NoPermission</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation change not permitted</shortDescription>
+        <value>You do not have permission to change automation. Ask your administrator for the Manage Nonprofit Settings permission.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Automation_NotFound</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation not found</shortDescription>
+        <value>That automation is not in this org's list. Refresh the Automation page and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Automation_PauseHoursInvalid</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Pause length not allowed</shortDescription>
+        <value>Choose how long to pause automation: 1, 2, 4, 8, or 24 hours.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Automation_UnexpectedError</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation unexpected error</shortDescription>
+        <value>Something went wrong while Open Impact was updating this record, so the record was not saved. The details are in the Error Log. Try again, and if it keeps happening, send the newest Error Log entry to whoever supports your Salesforce.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLogTile_Acknowledge</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Acknowledge action</shortDescription>
+        <value>Mark acknowledged</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLogTile_Empty</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error log tile empty state</shortDescription>
+        <value>Nothing has gone wrong. There is nothing to read here.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLogTile_NewCount</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error log tile new count</shortDescription>
+        <value>new</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLogTile_OpenEntry</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Open an error log entry</shortDescription>
+        <value>Open this entry</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLogTile_ReadOnly</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error log tile read only notice</shortDescription>
+        <value>You can read these entries but not change them.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLogTile_Title</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error log tile title</shortDescription>
+        <value>Error Log</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLogTile_ViewAll</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Open the error log</shortDescription>
+        <value>Open the Error Log</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLog_ActionFailed</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error log action failed</shortDescription>
+        <value>That did not work. Refresh the page and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLog_EntryNotFound</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error log entry not found</shortDescription>
+        <value>That entry is no longer in the Error Log. Refresh the page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLog_UnexpectedFailure</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error log default message</shortDescription>
+        <value>Open Impact hit a problem it did not expect. The technical detail on this entry is what a support contact needs to work out why.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Settings_ModeValueInvalid</fullName>
+        <categories>Core, Settings</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Settings mode value not allowed</shortDescription>
+        <value>That is not one of the choices for this setting. Pick a value from the list on the settings page.</value>
+    </labels>
 </CustomLabels>

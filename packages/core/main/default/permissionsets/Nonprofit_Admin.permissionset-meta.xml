@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+  <hasActivationRequired>false</hasActivationRequired>
+  <label>Nonprofit Admin</label>
+  <description>
+    Maria, the operations manager who configures Open Impact. Grants the settings
+    console, automation control, and the Error Log. Later features add to this set: it is never
+    meant to be cloned.
+  </description>
+  <classAccesses>
+    <apexClass>AccessController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>AccessService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
   <classAccesses>
     <apexClass>AutomationControlController</apexClass>
     <enabled>true</enabled>
@@ -8,13 +23,18 @@
     <apexClass>ErrorLogController</apexClass>
     <enabled>true</enabled>
   </classAccesses>
-  <description>
-    Maria, the operations manager who configures Open Impact. Grants the settings
-    console, automation control, and the Error Log. Later features add to this set: it is never
-    meant to be cloned.
-  </description>
-  <hasActivationRequired>false</hasActivationRequired>
-  <label>Nonprofit Admin</label>
+  <classAccesses>
+    <apexClass>PermissionSetAssignmentSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>PermissionSetGroupSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>UserSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
   <customPermissions>
     <enabled>true</enabled>
     <name>Manage_Nonprofit_Settings</name>
@@ -159,4 +179,16 @@
     <tab>Error_Log__c</tab>
     <visibility>Visible</visibility>
   </tabSettings>
+  <userPermissions>
+    <enabled>true</enabled>
+    <name>AssignPermissionSets</name>
+  </userPermissions>
+  <userPermissions>
+    <enabled>true</enabled>
+    <name>ViewAllUsers</name>
+  </userPermissions>
+  <userPermissions>
+    <enabled>true</enabled>
+    <name>ViewSetup</name>
+  </userPermissions>
 </PermissionSet>

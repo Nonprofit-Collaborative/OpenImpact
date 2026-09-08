@@ -124,6 +124,43 @@ from `Automation_Registry__mdt` and never touches a row the administrator alread
 **v0.1 ships the framework with no triggers and an empty registry.** Feature C-01 adds the first
 two handlers, their triggers, and their `Automation_Registry__mdt` records in one change.
 
+## Post-install script
+
+`CorePostInstall` implements `InstallHandler`. It runs after the package is installed and
+after every upgrade, and it makes sure the installing user can open Nonprofit Settings.
+Without it, a fresh install leaves the console read only for everybody, including the
+System Administrator who installed it, because a custom permission is not implied by Modify
+All Data.
+
+It does that in two steps, because the platform makes the obvious one unreliable:
+
+1. **Assign the `Nonprofit_Admin` permission set.** A permission set has no calculation
+   status, so this works the moment the install finishes. This is the step that matters:
+   after it, the installer can use the app.
+2. **Assign the `Nonprofit_Admin_Group` permission set group**, which is the role the
+   Access page shows. Salesforce recalculates packaged groups in the background after an
+   install and refuses to assign one while that is running, which is the usual state in the
+   first minutes, so this is attempted and, if the group is not ready,
+   `CorePostInstallRetryQueueable` waits and looks again up to five times, one chained job
+   at a time. If it runs out of attempts it writes a warning to the Error Log naming the
+   one manual step left, and stops.
+
+Both steps are safe to run twice: a person who already holds a permission set or a role is
+left alone, so an upgrade is a no-op for an org that is already set up. Nothing throws: an
+install must never fail because of a bootstrap step, so every failure goes to the Error Log
+instead.
+
+Once package versions exist, `sfdx-project.json` names it for the Core package directory:
+
+```json
+"postInstallScript": "CorePostInstall"
+```
+
+That line is not in `sfdx-project.json` yet, because no package version has been created
+(the namespace is deferred, plan Section 4.3). Whoever creates the first Core package
+version adds it then. Until then the same effect is achieved by the scratch org script,
+which assigns the permission sets after deploying.
+
 ## Iteration
 
 Core first ships in **v0.1** and is required by every later iteration; it is the only package
