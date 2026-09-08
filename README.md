@@ -72,7 +72,9 @@ Start with [docs/contributor-guide/environment.md](docs/contributor-guide/enviro
 
 Governance is BDFL (the project owner decides) for v0.x, with a maintainers group and a documented decision process by v1.0. Contributions are accepted under the Developer Certificate of Origin: sign your commits with `git commit -s`. There is no contributor license agreement.
 
-The license is recorded in [LICENSE](LICENSE). Apache-2.0 is the recommendation in the product plan (Decision D-08) and BSD-3-Clause is the alternative under consideration; until that file carries the full license text, no license is granted.
+The license is recorded in [LICENSE](LICENSE). Apache-2.0 is the recommendation in the product plan (Decision D-08) and BSD-3-Clause is the alternative under consideration; until that file carries the full license text, no license is granted over Open Impact's own code.
+
+That last sentence covers Open Impact's own code only. Third party code carried in this repository is licensed separately by its authors and those grants are already in force. There is one such component today: [apex-rollup](https://github.com/jamessimone/apex-rollup) (Copyright (c) 2019 James Simone, MIT), vendored under [`packages/core/vendor/apex-rollup/`](packages/core/vendor/apex-rollup/) with its license text alongside it.
 
 "Open Impact" is the project name. The name and any associated logo are the project's marks, and the fallback name if a conflict appears is OpenCause. Distinctiveness rests on the pair of words and a consistent visual identity, so please do not use the name or marks for a fork, a derivative product, or a service in a way that suggests it is the official project.
 

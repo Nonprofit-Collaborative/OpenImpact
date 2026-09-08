@@ -1,3 +1,9 @@
 License: to be confirmed by the project owner. The product plan (docs/product-plan.md, Decision D-08) recommends Apache-2.0; BSD-3-Clause is the alternative under consideration. Until this file is replaced with the full license text, no license is granted.
 
-Maintainers: replace this file with the full text of the chosen license, then update README.md, CONTRIBUTING.md and docs/architecture/decisions/0008-license.md to match.
+Third party components: the sentence above covers Open Impact's own code only. This repository also carries third party code that is licensed separately by its own authors, and those grants are already in force and are not withheld or altered by anything in this file. Currently there is one such component:
+
+  packages/core/vendor/apex-rollup/ : apex-rollup, Copyright (c) 2019 James Simone, MIT License.
+  The full license text is packages/core/vendor/apex-rollup/LICENSE, and what was taken and what
+  Open Impact changed is recorded in packages/core/vendor/apex-rollup/VENDOR.md.
+
+Maintainers: replace the first paragraph of this file with the full text of the chosen license, keep the third party paragraph, then update README.md, CONTRIBUTING.md and docs/architecture/decisions/0008-license.md to match.
