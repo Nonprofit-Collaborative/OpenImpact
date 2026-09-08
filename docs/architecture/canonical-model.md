@@ -241,6 +241,14 @@ Custom Name set.
 | Member Count | `Member_Count__c` | Number |
 | Anniversary | `Anniversary__c` | Date |
 
+- **Person attributes on Account.** The five person attributes listed under Contact
+  (Section 7) are present on Account as well, with the same API names and the same
+  definitions: `Deceased__c`, `Household_Role__c`, `Exclude_From_Household_Name__c`,
+  `Exclude_From_Greetings__c`, `Preferred_Name__c`. They belong to the person, not to the
+  household, and they exist on both objects so that an org that stores people as accounts
+  carries them on the person's own record. They are not shown on Household or Organization
+  layouts.
+
 - **Service:** `HouseholdService` (membership abstraction), `HouseholdNamingService`
   (R-H4 to R-H9), `HouseholdSelector` (all SOQL).
 
@@ -259,7 +267,8 @@ history of who was in a household when.
 | Attribute | Type | Required | Definition |
 |---|---|---|---|
 | Contact | reference(Contact) | conditional | The person, when the person is represented as a Contact. |
-| Account | reference(Household) | conditional | The household, and in Person Account orgs also the person's own Person Account. |
+| Account | reference(Household) | conditional | The person, where the person is represented as an account rather than as a Contact. |
+| Household | reference(Household) | yes | The household the person belongs to. |
 | Role | picklist(Head, Spouse or Partner, Child, Other) | no | The person's role in this household, used for greeting order and reporting. |
 | Is Primary | boolean | yes (defaults false) | Marks the member who receives correspondence when only one person can be named. |
 | Start Date | date | no | The date the person joined the household. |
@@ -294,8 +303,17 @@ code never branches on membership mode.
 
 - **Object:** `Household_Member__c` (junction).
 - **Fields:** `Contact__c` (Lookup to Contact), `Account__c` (Lookup to Account),
-  `Role__c` (Picklist: Head, Spouse or Partner, Child, Other), `Is_Primary__c`
-  (Checkbox), `Start_Date__c` (Date), `End_Date__c` (Date).
+  `Household__c` (Lookup to Account), `Role__c` (Picklist: Head, Spouse or Partner, Child,
+  Other), `Is_Primary__c` (Checkbox), `Start_Date__c` (Date), `End_Date__c` (Date).
+- `Household__c` is the household side of the junction and `Contact__c` or `Account__c` is
+  the person side. `Household__c` is a required lookup with a cascade delete, matching the
+  attribute table above: a membership row with no household says nothing, and a household
+  that is deleted takes its own membership rows with it rather than leaving rows pointing at
+  a record that is gone. Membership history survives everything except the deletion of the
+  household it is history of.
+- A lookup rather than a master-detail relationship is used so that membership rows are not
+  owned by the household record for sharing and roll-up purposes, and so that the same
+  object shape works in both membership modes.
 
 ---
 
@@ -368,6 +386,10 @@ no feature code branches on it.
 | Exclude From Household Name | `Exclude_From_Household_Name__c` | Checkbox |
 | Exclude From Greetings | `Exclude_From_Greetings__c` | Checkbox |
 | Preferred Name | `Preferred_Name__c` | Text |
+
+These five are person attributes, present on both Contact and Account with the same API
+names so that Person Accounts carry them (Section 5). `HouseholdService.Person` is the
+shape naming and greetings read, so no naming code knows which object a person came from.
 
 ---
 
@@ -2343,6 +2365,9 @@ Fair Market Value for G-18 (R-G9).
 | v0.1 | 2026-09-07 | C-05 review fix: Error Log entries are published as `Error_Log_Event__e` (Publish Immediately) and written by a subscriber, so an entry survives the rollback it documents (new rule R-E4). |
 | v0.1 | 2026-09-08 | C-05 review fix: all three packaged permission sets grant Read and Create on `Error_Log_Event__e`, because publishing is governed by Create on the event (rule R-E4). |
 | v0.1 | 2026-09-07 | C-04 and C-05 build. Error Log gains Object Name. Automation Setting gains Handler Class, Object Name, Execution Order, and Package Default, all copied from the shipped registry when a record is materialized. Automation Registry field API names fixed ("Object" and "Order" are reserved words). Error Log and Setting Change record names recorded as auto numbers. Nonprofit Settings picklist keys recorded as text, per ADR-0019. |
+| v0.1 | 2026-09-07 | C-01 and C-02 build. Added `Household__c` (Lookup to Account) to Household Member: the original field list named the household side and the person side with the same attribute, so junction mode had no way to say which household a membership belonged to. `Account__c` is now defined as the person side only, matching R-M4. Recorded the naming service's token forms: `{FirstName}`, `{LastName}`, and `{Salutation}`, with the `{!Token}` spelling accepted as an alias so patterns copied from formula fields keep working. |
+| v0.1 | 2026-09-07 | Junction membership made a first-class v0.1 path for orgs that store people as accounts (product owner priority change). The five Contact person attributes (`Deceased__c`, `Household_Role__c`, `Exclude_From_Household_Name__c`, `Exclude_From_Greetings__c`, `Preferred_Name__c`) are now present on Account with the same API names and definitions, because a person stored as an account carries them on that record. Naming and greetings read a person through the `HouseholdService.Person` shape rather than through Contact, so one set of rules serves both. |
+| v0.1 | 2026-09-08 | C-01 and C-02 review round. `Household__c` on Household Member is now a required lookup with a cascade delete, matching the "Required: yes" already in the attribute table. The Salesforce note that a household could be deleted without touching membership history was written before the field was required and is corrected: a deleted household now takes its own membership rows with it, which is the only case where history is lost.
 | v0.2 | 2026-09-07 | Core: Rollup Definition (Section 14) with the filter document format and the mode-resolved path notation; Import Template, Import Batch, and Import Row (Sections 15 to 17) with the Created By Import Batch tag on Household, Contact, Organization, and Gift. Giving: Gift, Gift Allocation, Fund, and Appeal (Sections 18 to 21), and the packaged default giving rollups (Section 26). Nonprofit Settings gains `Fiscal_Year_Start_Month__c`, `Default_Fund__c`, `Default_Appeal__c`, `Rollup_Mode_Default__c`, `Import_Chunk_Size__c`, and `Setup_Assistant_Steps_Complete__c`. Shipped defaults gain `Rollup_Definition_Default__mdt` and `Import_Template_Default__mdt`. Published for build, objects not yet created. |
 | v0.3 | 2026-09-07 | Giving: Commitment, Installment, Soft Credit, and Tribute (Sections 22 to 25) with their rollup targets. Core: Relationship, Affiliation, and Address (Sections 27 to 29), the Primary Affiliation reference on Contact, and the shipped defaults `Relationship_Type__mdt`. Nonprofit Settings gains `Automatic_Household_Soft_Credits__c`, `Installment_Generation_Horizon_Months__c`, `Installment_Overdue_Grace_Days__c`, `Contact_Address_Change_Behavior__c`, `Relationship_Auto_Reciprocal__c`, and `Seasonal_Address_Last_Run__c`. Published for build, objects not yet created. |
 | v0.3 | 2026-09-07 | Convention added: person references are a Contact and Account pair with exactly one set (Section 4), following the change of first customer to Nonprofit Cloud and Agentforce Nonprofit orgs where individuals are person Accounts. Import Row and Import Template carry the person-mode attributes this requires. |

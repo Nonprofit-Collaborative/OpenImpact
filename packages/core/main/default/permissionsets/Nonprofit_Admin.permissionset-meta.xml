@@ -35,6 +35,34 @@
     <apexClass>UserSelector</apexClass>
     <enabled>true</enabled>
   </classAccesses>
+  <classAccesses>
+    <apexClass>HouseholdController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>HouseholdService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>HouseholdNamingService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>HouseholdNamingBatch</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>HouseholdSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>PersonRecordSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>HouseholdWriter</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
   <customPermissions>
     <enabled>true</enabled>
     <name>Manage_Nonprofit_Settings</name>
@@ -139,6 +167,136 @@
     <field>Setting_Change__c.Setting_Name__c</field>
     <readable>true</readable>
   </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Account.Household_Formal_Greeting__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Account.Household_Informal_Greeting__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Account.Custom_Name__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Account.Primary_Contact__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Account.Member_Count__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Account.Anniversary__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Account.Deceased__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Account.Household_Role__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Account.Exclude_From_Household_Name__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Account.Exclude_From_Greetings__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Account.Preferred_Name__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Contact.Deceased__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Contact.Household_Role__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Contact.Exclude_From_Household_Name__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Contact.Exclude_From_Greetings__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Contact.Preferred_Name__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Household_Member__c.Household__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Household_Member__c.Contact__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Household_Member__c.Account__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Household_Member__c.Role__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Household_Member__c.Is_Primary__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Household_Member__c.Start_Date__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Household_Member__c.End_Date__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <layoutAssignments>
+    <layout>Account-Household Layout</layout>
+    <recordType>Account.Household</recordType>
+  </layoutAssignments>
+  <layoutAssignments>
+    <layout>Account-Organization Layout</layout>
+    <recordType>Account.Organization</recordType>
+  </layoutAssignments>
+  <layoutAssignments>
+    <layout>Contact-Household Contact Layout</layout>
+    <recordType>Contact.Household_Contact</recordType>
+  </layoutAssignments>
+  <layoutAssignments>
+    <layout>Household_Member__c-Household Member Layout</layout>
+  </layoutAssignments>
   <objectPermissions>
     <allowCreate>true</allowCreate>
     <allowDelete>false</allowDelete>
@@ -175,9 +333,55 @@
     <object>Setting_Change__c</object>
     <viewAllRecords>true</viewAllRecords>
   </objectPermissions>
+  <objectPermissions>
+    <allowCreate>true</allowCreate>
+    <allowDelete>true</allowDelete>
+    <allowEdit>true</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>true</modifyAllRecords>
+    <viewAllRecords>true</viewAllRecords>
+    <object>Account</object>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>true</allowCreate>
+    <allowDelete>true</allowDelete>
+    <allowEdit>true</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>true</modifyAllRecords>
+    <viewAllRecords>true</viewAllRecords>
+    <object>Contact</object>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>true</allowCreate>
+    <allowDelete>true</allowDelete>
+    <allowEdit>true</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>true</modifyAllRecords>
+    <viewAllRecords>true</viewAllRecords>
+    <object>Household_Member__c</object>
+  </objectPermissions>
+  <recordTypeVisibilities>
+    <default>false</default>
+    <recordType>Account.Household</recordType>
+    <visible>true</visible>
+  </recordTypeVisibilities>
+  <recordTypeVisibilities>
+    <default>false</default>
+    <recordType>Account.Organization</recordType>
+    <visible>true</visible>
+  </recordTypeVisibilities>
+  <recordTypeVisibilities>
+    <default>false</default>
+    <recordType>Contact.Household_Contact</recordType>
+    <visible>true</visible>
+  </recordTypeVisibilities>
   <tabSettings>
     <tab>Error_Log__c</tab>
     <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Household_Member__c</tab>
+    <visibility>Available</visibility>
   </tabSettings>
   <userPermissions>
     <enabled>true</enabled>

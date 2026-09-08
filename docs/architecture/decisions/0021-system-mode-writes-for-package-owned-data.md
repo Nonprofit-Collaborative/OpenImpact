@@ -36,11 +36,17 @@ meets all of these conditions:
   computed household values produced by package code, log fields from exceptions the package
   caught) and no user-typed text reaches a query or a dynamic field name.
 - It writes only fields the package owns; nothing else in the transaction is elevated.
-- Reads and the audit trail (`Setting_Change__c`) stay in user mode.
+- Reads that reach a user, and the audit trail (`Setting_Change__c`), stay in user mode. A
+  read whose only purpose is to compute one of these package-owned values may run in system
+  mode for the same reason as the write it feeds, provided the class says plainly which of
+  its reads are upkeep and which are shown to somebody (`HouseholdSelector` does).
 
 The writer classes in v0.1 and v0.2: `SettingsWriter`, `AutomationSettingsWriter`,
 `HouseholdWriter`, `ErrorLogWriter` and `ErrorLogEventHandler`, and the vendored rollup
-engine's updater classes (documented in `packages/core/vendor/apex-rollup/VENDOR.md`).
+engine's updater classes (documented in `packages/core/vendor/apex-rollup/VENDOR.md`). A writer
+may narrow `without sharing` to `with sharing` where its work must never cross sharing, and
+must say so in its header: `HouseholdWriter` does, because household upkeep must not create,
+rename or delete a household the running user cannot see.
 
 ## Alternatives considered
 
