@@ -4,7 +4,7 @@
   <protected>true</protected>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">Makes sure at most one current affiliation per person is marked primary, copies that organization to the person Primary Affiliation field, and clears the primary flag from an affiliation that has ended. Also checks that an affiliation names a person and an organization and does not overlap another affiliation for the same role.</value>
+    <value xsi:type="xsd:string">Makes sure at most one current affiliation per person is marked primary and copies that organization to the person Primary Affiliation field. Switch this off and two affiliations can both claim to be primary and the Primary Affiliation field on a person stops being maintained. The checks on an affiliation are a separate automation and keep running.</value>
   </values>
   <values>
     <field>Enabled_By_Default__c</field>
@@ -12,7 +12,7 @@
   </values>
   <values>
     <field>Handler_Class__c</field>
-    <value xsi:type="xsd:string">AffiliationTriggerHandler</value>
+    <value xsi:type="xsd:string">AffiliationMaintenanceHandler</value>
   </values>
   <values>
     <field>Object_Name__c</field>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <label>Check affiliations before they are saved</label>
+  <protected>true</protected>
+  <values>
+    <field>Description__c</field>
+    <value
+      xsi:type="xsd:string"
+    >Checks that an affiliation names one person and one organization, that a person is not affiliated with themselves, and that it does not cover dates another affiliation for the same person, organization, and role already covers, and settles the status against the dates. Switch this off and none of those checks run: a bulk import can create overlapping affiliations, affiliations with no organization, and records whose status disagrees with their end date.</value>
+  </values>
+  <values>
+    <field>Enabled_By_Default__c</field>
+    <value xsi:type="xsd:boolean">true</value>
+  </values>
+  <values>
+    <field>Handler_Class__c</field>
+    <value xsi:type="xsd:string">AffiliationValidationHandler</value>
+  </values>
+  <values>
+    <field>Object_Name__c</field>
+    <value xsi:type="xsd:string">Affiliation__c</value>
+  </values>
+  <values>
+    <field>Execution_Order__c</field>
+    <value xsi:type="xsd:double">10</value>
+  </values>
+</CustomMetadata>

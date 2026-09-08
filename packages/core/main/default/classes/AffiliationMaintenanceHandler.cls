@@ -1,60 +1,54 @@
 /**
- * Affiliation__c trigger handler, registered as "Keep one primary affiliation per person" in
- * the automation registry and dispatched by TriggerDispatcher, so an administrator can switch
- * it off from Nonprofit Settings without touching Setup.
+ * Maintenance of the primary affiliation, registered as "Keep one primary affiliation per
+ * person" in the automation registry at execution order 30, so it runs after the validation
+ * handler has settled the record and refused anything that should not be saved.
  *
- * Before insert and before update it settles the status against the dates, takes the primary
- * flag off anything that has ended, and refuses an affiliation that does not name one person
- * and one organization or that covers dates another one already covers. After every context
- * that can change who is primary, including delete and undelete, it settles the primary
- * affiliation of every person involved.
+ * After every context that can change who is primary, including delete and undelete, it settles
+ * the primary affiliation of every person involved. It touches no before context: everything a
+ * record needs done to itself is done by AffiliationValidationHandler.
+ *
+ * The service stands this automation down by name, together with the validation one, while it
+ * clears the primary flag from a person's other affiliations, so nothing here runs against the
+ * package's own writes.
+ *
+ * Switching this one off leaves the Primary Affiliation field on a person unattended, and lets
+ * two affiliations both claim to be primary. It does not switch off any rule: the checks live in
+ * their own registry row.
  *
  * Every context method takes no arguments and reads the trigger collections through the
  * accessors on TriggerHandler, which is the contract every packaged handler is written to.
  */
-public with sharing class AffiliationTriggerHandler extends TriggerHandler {
-    public override void beforeInsert() {
-        applyAndValidate((List<Affiliation__c>) newRecords(), null);
-    }
-
-    public override void beforeUpdate() {
-        applyAndValidate((List<Affiliation__c>) newRecords(), oldRecordsById());
-    }
-
+public with sharing class AffiliationMaintenanceHandler extends TriggerHandler {
     public override void afterInsert() {
-        refresh((List<Affiliation__c>) newRecords(), null, 'AffiliationTriggerHandler.afterInsert');
+        refresh(
+            (List<Affiliation__c>) newRecords(),
+            null,
+            'AffiliationMaintenanceHandler.afterInsert'
+        );
     }
 
     public override void afterUpdate() {
         refresh(
             (List<Affiliation__c>) newRecords(),
             (List<Affiliation__c>) oldRecords(),
-            'AffiliationTriggerHandler.afterUpdate'
+            'AffiliationMaintenanceHandler.afterUpdate'
         );
     }
 
     public override void afterDelete() {
-        refresh(null, (List<Affiliation__c>) oldRecords(), 'AffiliationTriggerHandler.afterDelete');
+        refresh(
+            null,
+            (List<Affiliation__c>) oldRecords(),
+            'AffiliationMaintenanceHandler.afterDelete'
+        );
     }
 
     public override void afterUndelete() {
         refresh(
             (List<Affiliation__c>) newRecords(),
             null,
-            'AffiliationTriggerHandler.afterUndelete'
+            'AffiliationMaintenanceHandler.afterUndelete'
         );
-    }
-
-    private void applyAndValidate(List<Affiliation__c> records, Map<Id, SObject> previousById) {
-        if (records == null || records.isEmpty()) {
-            return;
-        }
-        try {
-            AffiliationDomain.applyDefaults(records, previousById);
-            AffiliationDomain.validate(records, previousById);
-        } catch (Exception thrown) {
-            report(thrown, records, 'AffiliationTriggerHandler.applyAndValidate');
-        }
     }
 
     private void refresh(
