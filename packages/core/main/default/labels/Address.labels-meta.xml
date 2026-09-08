@@ -81,6 +81,14 @@
         <value>We could not copy this address to the standard address fields, so nothing was saved. Check that you can edit the household and its people, then try again. If it happens again ask your administrator to check the Error Log.</value>
     </labels>
     <labels>
+        <fullName>Core_Address_SaveFailed</fullName>
+        <categories>Addresses</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Address panel: message shown when a new address could not be saved</shortDescription>
+        <value>The address could not be saved. Check the fields marked in the form and try again.</value>
+    </labels>
+    <labels>
         <fullName>Core_Address_SaveSuccess</fullName>
         <categories>Addresses</categories>
         <language>en_US</language>

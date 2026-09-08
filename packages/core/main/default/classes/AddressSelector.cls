@@ -121,21 +121,4 @@ public with sharing class AddressSelector {
             LIMIT 10000
         ];
     }
-
-    /** The owners that already have at least one address on file. */
-    public static Set<Id> selectOwnerIdsWithAddresses(Set<Id> ownerIds) {
-        Set<Id> found = new Set<Id>();
-        for (Address__c address : selectByOwnerIds(ownerIds)) {
-            if (address.Account__c != null) {
-                found.add(address.Account__c);
-            }
-            if (address.Contact__c != null) {
-                found.add(address.Contact__c);
-            }
-            if (address.Person_Account__c != null) {
-                found.add(address.Person_Account__c);
-            }
-        }
-        return found;
-    }
 }

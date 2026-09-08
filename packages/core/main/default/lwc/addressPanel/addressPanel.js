@@ -12,6 +12,7 @@ import CANCEL_BUTTON from '@salesforce/label/c.Core_Address_CancelButton';
 import DEFAULT_BADGE from '@salesforce/label/c.Core_Address_DefaultBadge';
 import EMPTY_MESSAGE from '@salesforce/label/c.Core_Address_Empty';
 import LOAD_FAILED from '@salesforce/label/c.Core_Address_LoadFailed';
+import SAVE_FAILED from '@salesforce/label/c.Core_Address_SaveFailed';
 import SAVE_SUCCESS from '@salesforce/label/c.Core_Address_SaveSuccess';
 import SEASONAL_RANGE from '@salesforce/label/c.Core_Address_SeasonalRange';
 import SEASONAL_RANGE_TO from '@salesforce/label/c.Core_Address_SeasonalRangeTo';
@@ -118,7 +119,7 @@ export default class AddressPanel extends LightningElement {
   }
 
   handleFormError() {
-    this.errorMessage = SET_DEFAULT_FAILED;
+    this.errorMessage = SAVE_FAILED;
   }
 
   async handleSetDefault(event) {

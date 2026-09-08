@@ -6,45 +6,23 @@
  * A household or organization created with its billing address already filled in, by
  * staff or by an import, gets that address kept as its first address record, marked
  * default, so the records are the truth from the first save (canonical model R-AD3).
+ *
+ * Every context method takes no arguments and reads the trigger collections through the
+ * accessors on TriggerHandler.
  */
-public with sharing class AccountAddressHandler implements TriggerHandler {
-    public void beforeInsert(List<SObject> newRecords) {
-        // Nothing to do before insert.
-    }
-
-    public void beforeUpdate(List<SObject> newRecords, Map<Id, SObject> oldMap) {
-        // Nothing to do before update: the address panel, not the billing fields, is
-        // where a household's address is changed once it has an address on file.
-    }
-
-    public void beforeDelete(List<SObject> oldRecords) {
-        // Nothing to do before delete.
-    }
-
-    public void afterInsert(List<SObject> newRecords) {
-        List<Account> accounts = (List<Account>) newRecords;
-        if (accounts.isEmpty()) {
+public with sharing class AccountAddressHandler extends TriggerHandler {
+    public override void afterInsert() {
+        List<Account> accounts = (List<Account>) newRecords();
+        if (accounts == null || accounts.isEmpty()) {
             return;
         }
         try {
             AddressService.captureFromStandardFields(accounts, null);
-        } catch (Exception e) {
-            ErrorLogger.log(e, 'AccountAddressHandler.afterInsert');
+        } catch (Exception thrown) {
+            ErrorLogger.log(thrown, 'AccountAddressHandler.afterInsert');
             for (Account account : accounts) {
                 account.addError(Label.Core_Address_PropagationFailed);
             }
         }
-    }
-
-    public void afterUpdate(List<SObject> newRecords, Map<Id, SObject> oldMap) {
-        // Nothing to do after update.
-    }
-
-    public void afterDelete(List<SObject> oldRecords) {
-        // Nothing to do after delete.
-    }
-
-    public void afterUndelete(List<SObject> newRecords) {
-        // Nothing to do after undelete.
     }
 }

@@ -114,11 +114,15 @@ public with sharing class AddressService {
         }
         List<Address__c> promoted = new List<Address__c>();
         for (Address__c address : newestByOwner.values()) {
+            address.Is_Default__c = true;
             promoted.add(new Address__c(Id = address.Id, Is_Default__c = true));
         }
-        Database.update(promoted, AccessLevel.USER_MODE);
+        // The flag is raised before the promotion is saved, so the address trigger this
+        // update fires does not propagate a second time: the propagation below is the one
+        // that runs, and the standard fields are written once for the whole batch.
         isPropagating = true;
         try {
+            Database.update(promoted, AccessLevel.USER_MODE);
             applyToStandardFields(new List<Address__c>(newestByOwner.values()));
         } finally {
             isPropagating = false;
@@ -484,19 +488,17 @@ public with sharing class AddressService {
         List<Address__c> toUpdate
     ) {
         Set<Id> contactIds = new Map<Id, Contact>(contacts).keySet();
-        Map<Id, Set<Id>> householdsByPerson = HouseholdService.getHouseholdIdsFor(contactIds);
-        if (householdsByPerson == null || householdsByPerson.isEmpty()) {
+        Map<Id, Id> householdByPerson = HouseholdService.getHouseholdIdsFor(contactIds);
+        if (householdByPerson == null || householdByPerson.isEmpty()) {
             return;
         }
         Map<Id, Contact> sourceByHousehold = new Map<Id, Contact>();
         for (Contact contact : contacts) {
-            Set<Id> householdIds = householdsByPerson.get(contact.Id);
-            if (householdIds == null) {
+            Id householdId = householdByPerson.get(contact.Id);
+            if (householdId == null) {
                 continue;
             }
-            for (Id householdId : householdIds) {
-                sourceByHousehold.put(householdId, contact);
-            }
+            sourceByHousehold.put(householdId, contact);
         }
         if (sourceByHousehold.isEmpty()) {
             return;

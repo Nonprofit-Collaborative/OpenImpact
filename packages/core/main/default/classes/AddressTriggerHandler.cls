@@ -7,49 +7,55 @@
  * fields. After delete it promotes the most recently created remaining address for that
  * owner: deleting the default is allowed rather than blocked, because refusing the delete
  * would leave a household holding an address it does not use and no way out of the app.
+ *
+ * Every context method takes no arguments and reads the trigger collections through the
+ * accessors on TriggerHandler, which is the contract every packaged handler is written to.
  */
-public with sharing class AddressTriggerHandler implements TriggerHandler {
-    public void beforeInsert(List<SObject> newRecords) {
-        // Nothing to do before insert: an address has no id to propagate from yet.
+public with sharing class AddressTriggerHandler extends TriggerHandler {
+    public override void afterInsert() {
+        sync((List<Address__c>) newRecords());
     }
 
-    public void beforeUpdate(List<SObject> newRecords, Map<Id, SObject> oldMap) {
-        // Nothing to do before update.
+    public override void afterUpdate() {
+        sync(changedAddresses((List<Address__c>) newRecords(), oldRecordsById()));
     }
 
-    public void beforeDelete(List<SObject> oldRecords) {
-        // Nothing to do before delete: the promotion runs after the row is gone.
-    }
-
-    public void afterInsert(List<SObject> newRecords) {
-        sync((List<Address__c>) newRecords);
-    }
-
-    public void afterUpdate(List<SObject> newRecords, Map<Id, SObject> oldMap) {
-        sync(changedAddresses((List<Address__c>) newRecords, oldMap));
-    }
-
-    public void afterDelete(List<SObject> oldRecords) {
-        List<Address__c> deleted = (List<Address__c>) oldRecords;
+    public override void afterDelete() {
+        List<Address__c> deleted = (List<Address__c>) oldRecords();
+        if (deleted == null || deleted.isEmpty()) {
+            return;
+        }
         try {
             AddressService.promoteDefaultAfterDelete(deleted);
-        } catch (Exception e) {
-            report(e, deleted, 'AddressTriggerHandler.afterDelete');
+        } catch (Exception thrown) {
+            report(thrown, deleted, 'AddressTriggerHandler.afterDelete');
         }
     }
 
-    public void afterUndelete(List<SObject> newRecords) {
-        sync((List<Address__c>) newRecords);
+    public override void afterUndelete() {
+        sync((List<Address__c>) newRecords());
     }
 
     private void sync(List<Address__c> addresses) {
-        if (addresses.isEmpty()) {
+        if (addresses == null || addresses.isEmpty()) {
             return;
         }
         try {
             AddressService.syncDefaultToStandardFields(addresses);
-        } catch (Exception e) {
-            report(e, addresses, 'AddressTriggerHandler.sync');
+        } catch (Exception thrown) {
+            report(thrown, addresses, 'AddressTriggerHandler.sync');
+        }
+    }
+
+    /**
+     * The address specific message, rather than the dispatcher's general one, so a person
+     * reading the error knows which part of the save failed. The exception is recorded in
+     * the Error Log first (R-E1).
+     */
+    private void report(Exception thrown, List<Address__c> records, String context) {
+        ErrorLogger.log(thrown, context);
+        for (Address__c address : records) {
+            address.addError(Label.Core_Address_PropagationFailed);
         }
     }
 
@@ -59,37 +65,33 @@ public with sharing class AddressTriggerHandler implements TriggerHandler {
      * member's mailing address.
      */
     private List<Address__c> changedAddresses(
-        List<Address__c> newRecords,
-        Map<Id, SObject> oldMap
+        List<Address__c> records,
+        Map<Id, SObject> previousById
     ) {
         List<Address__c> changed = new List<Address__c>();
-        for (Address__c address : newRecords) {
-            Address__c old = (Address__c) oldMap.get(address.Id);
-            if (old == null) {
-                changed.add(address);
-                continue;
-            }
-            Boolean moved =
-                address.Is_Default__c != old.Is_Default__c ||
-                address.Street__c != old.Street__c ||
-                address.City__c != old.City__c ||
-                address.State__c != old.State__c ||
-                address.Postal_Code__c != old.Postal_Code__c ||
-                address.Country__c != old.Country__c ||
-                address.Account__c != old.Account__c ||
-                address.Contact__c != old.Contact__c ||
-                address.Person_Account__c != old.Person_Account__c;
-            if (moved) {
+        if (records == null) {
+            return changed;
+        }
+        for (Address__c address : records) {
+            Address__c old = previousById == null
+                ? null
+                : (Address__c) previousById.get(address.Id);
+            if (old == null || moved(address, old)) {
                 changed.add(address);
             }
         }
         return changed;
     }
 
-    private void report(Exception e, List<Address__c> records, String context) {
-        ErrorLogger.log(e, context);
-        for (Address__c address : records) {
-            address.addError(Label.Core_Address_PropagationFailed);
-        }
+    private Boolean moved(Address__c address, Address__c old) {
+        return address.Is_Default__c != old.Is_Default__c ||
+            address.Street__c != old.Street__c ||
+            address.City__c != old.City__c ||
+            address.State__c != old.State__c ||
+            address.Postal_Code__c != old.Postal_Code__c ||
+            address.Country__c != old.Country__c ||
+            address.Account__c != old.Account__c ||
+            address.Contact__c != old.Contact__c ||
+            address.Person_Account__c != old.Person_Account__c;
     }
 }

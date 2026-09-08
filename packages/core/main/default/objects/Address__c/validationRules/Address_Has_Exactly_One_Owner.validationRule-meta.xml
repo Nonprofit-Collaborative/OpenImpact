@@ -3,6 +3,6 @@
   <fullName>Address_Has_Exactly_One_Owner</fullName>
   <active>true</active>
   <description>An address belongs to exactly one owner: a household or organization account, a contact, or a person account (canonical model R-AD1).</description>
-  <errorConditionFormula>(IF(NOT(ISBLANK(Account__c)), 1, 0) + IF(NOT(ISBLANK(Contact__c)), 1, 0) + IF(NOT(ISBLANK(Person_Account__c)), 1, 0)) &lt; &gt; 1</errorConditionFormula>
+  <errorConditionFormula>(IF(NOT(ISBLANK(Account__c)), 1, 0) + IF(NOT(ISBLANK(Contact__c)), 1, 0) + IF(NOT(ISBLANK(Person_Account__c)), 1, 0)) != 1</errorConditionFormula>
   <errorMessage>An address belongs to one household, one organization, or one person. Choose only one.</errorMessage>
 </ValidationRule>

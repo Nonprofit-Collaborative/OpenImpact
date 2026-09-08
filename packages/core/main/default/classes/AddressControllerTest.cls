@@ -5,7 +5,7 @@ private class AddressControllerTest {
     private static final String WINTER_STREET = '4120 East Camelback Road';
 
     private static Account garciaHousehold() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         garcia.BillingStreet = HOME_STREET;
         garcia.BillingCity = 'Springfield';
         insert garcia;
@@ -125,7 +125,7 @@ private class AddressControllerTest {
     @IsTest
     static void aPersonsOwnAddressesAreReadableFromTheirRecord() {
         Account garcia = garciaHousehold();
-        Contact ana = TestDataFactory.newContact('Ana', 'Garcia', garcia.Id);
+        Contact ana = AddressTestDataFactory.newContact('Ana', 'Garcia', garcia.Id);
         insert ana;
         insert new Address__c(
             Contact__c = ana.Id,
@@ -168,27 +168,6 @@ private class AddressControllerTest {
             'No owners, no defaults.'
         );
         Assert.areEqual(0, AddressSelector.selectByIds(null).size(), 'No ids, no addresses.');
-        Assert.areEqual(
-            0,
-            AddressSelector.selectOwnerIdsWithAddresses(new Set<Id>()).size(),
-            'No owners, no owners with addresses.'
-        );
         Test.stopTest();
-    }
-
-    @IsTest
-    static void selectorFindsTheOwnersThatAlreadyHaveAnAddress() {
-        Account garcia = garciaHousehold();
-        Account empty = TestDataFactory.newHousehold('The Nowak Family');
-        insert empty;
-
-        Test.startTest();
-        Set<Id> withAddresses = AddressSelector.selectOwnerIdsWithAddresses(
-            new Set<Id>{ garcia.Id, empty.Id }
-        );
-        Test.stopTest();
-
-        Assert.isTrue(withAddresses.contains(garcia.Id), 'The Garcia household has an address.');
-        Assert.isFalse(withAddresses.contains(empty.Id), 'The Nowak household does not yet.');
     }
 }

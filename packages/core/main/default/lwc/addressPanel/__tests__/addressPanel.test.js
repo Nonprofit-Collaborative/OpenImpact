@@ -6,7 +6,6 @@ import setDefault from '@salesforce/apex/AddressController.setDefault';
 jest.mock(
   '@salesforce/apex/AddressController.getAddresses',
   () => {
-    // eslint-disable-next-line no-undef
     const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
     return { default: createApexTestWireAdapter(jest.fn()) };
   },

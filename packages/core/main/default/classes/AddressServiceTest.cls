@@ -14,7 +14,7 @@ private class AddressServiceTest {
 
     @IsTest
     static void capturesAddressWhenHouseholdIsCreatedWithOne() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         garcia.BillingStreet = HOME_STREET;
         garcia.BillingCity = HOME_CITY;
         garcia.BillingState = 'IL';
@@ -42,7 +42,7 @@ private class AddressServiceTest {
 
     @IsTest
     static void capturesWorkAddressWhenOrganizationIsCreatedWithOne() {
-        Account funder = TestDataFactory.newOrganization('Springfield Community Foundation');
+        Account funder = AddressTestDataFactory.newOrganization('Springfield Community Foundation');
         funder.BillingStreet = '55 Foundation Way';
         funder.BillingCity = HOME_CITY;
 
@@ -62,7 +62,7 @@ private class AddressServiceTest {
 
     @IsTest
     static void capturesNothingWhenNoAddressWasEntered() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
 
         Test.startTest();
         insert garcia;
@@ -77,9 +77,9 @@ private class AddressServiceTest {
 
     @IsTest
     static void capturesPersonalAddressWhenAContactIsCreatedWithOne() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         insert garcia;
-        Contact ana = TestDataFactory.newContact('Ana', 'Garcia', garcia.Id);
+        Contact ana = AddressTestDataFactory.newContact('Ana', 'Garcia', garcia.Id);
         ana.MailingStreet = HOME_STREET;
         ana.MailingCity = HOME_CITY;
 
@@ -102,11 +102,11 @@ private class AddressServiceTest {
 
     @IsTest
     static void updatingAMemberMovesTheWholeHouseholdInContactMode() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         insert garcia;
         List<Contact> members = new List<Contact>{
-            TestDataFactory.newContact('Ana', 'Garcia', garcia.Id),
-            TestDataFactory.newContact('Luis', 'Garcia', garcia.Id)
+            AddressTestDataFactory.newContact('Ana', 'Garcia', garcia.Id),
+            AddressTestDataFactory.newContact('Luis', 'Garcia', garcia.Id)
         };
         insert members;
 
@@ -139,12 +139,12 @@ private class AddressServiceTest {
         settings.Contact_Address_Change_Behavior__c = 'Create personal address';
         upsert settings;
 
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         garcia.BillingStreet = HOME_STREET;
         insert garcia;
         List<Contact> members = new List<Contact>{
-            TestDataFactory.newContact('Ana', 'Garcia', garcia.Id),
-            TestDataFactory.newContact('Luis', 'Garcia', garcia.Id)
+            AddressTestDataFactory.newContact('Ana', 'Garcia', garcia.Id),
+            AddressTestDataFactory.newContact('Luis', 'Garcia', garcia.Id)
         };
         insert members;
 
@@ -177,7 +177,7 @@ private class AddressServiceTest {
 
     @IsTest
     static void settingADefaultClearsThePreviousOne() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         garcia.BillingStreet = HOME_STREET;
         garcia.BillingCity = HOME_CITY;
         insert garcia;
@@ -210,7 +210,7 @@ private class AddressServiceTest {
 
     @IsTest
     static void deletingTheDefaultPromotesTheMostRecentRemainingAddress() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         garcia.BillingStreet = HOME_STREET;
         garcia.BillingCity = HOME_CITY;
         insert garcia;
@@ -244,9 +244,9 @@ private class AddressServiceTest {
 
     @IsTest
     static void loopGuardStopsTheTwoDirectionsCallingEachOther() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         insert garcia;
-        Contact ana = TestDataFactory.newContact('Ana', 'Garcia', garcia.Id);
+        Contact ana = AddressTestDataFactory.newContact('Ana', 'Garcia', garcia.Id);
         ana.MailingStreet = HOME_STREET;
 
         Test.startTest();
@@ -267,7 +267,7 @@ private class AddressServiceTest {
 
     @IsTest
     static void loopGuardSkipsWorkWhilePropagationIsInFlight() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         insert garcia;
 
         Test.startTest();
@@ -293,7 +293,7 @@ private class AddressServiceTest {
     static void twoHundredHouseholdsAreCapturedInOneInsert() {
         List<Account> households = new List<Account>();
         for (Integer i = 0; i < 200; i++) {
-            Account household = TestDataFactory.newHousehold('Household ' + i);
+            Account household = AddressTestDataFactory.newHousehold('Household ' + i);
             household.BillingStreet = i + ' Willow Lane';
             household.BillingCity = HOME_CITY;
             households.add(household);
@@ -314,12 +314,14 @@ private class AddressServiceTest {
     static void twoHundredContactsMoveTheirHouseholdsInOneUpdate() {
         List<Account> households = new List<Account>();
         for (Integer i = 0; i < 200; i++) {
-            households.add(TestDataFactory.newHousehold('Household ' + i));
+            households.add(AddressTestDataFactory.newHousehold('Household ' + i));
         }
         insert households;
         List<Contact> people = new List<Contact>();
         for (Integer i = 0; i < 200; i++) {
-            people.add(TestDataFactory.newContact('Person', 'Number ' + i, households[i].Id));
+            people.add(
+                AddressTestDataFactory.newContact('Person', 'Number ' + i, households[i].Id)
+            );
         }
         insert people;
         for (Integer i = 0; i < 200; i++) {
@@ -345,7 +347,7 @@ private class AddressServiceTest {
 
     @IsTest
     static void personAccountOwnerPathIsGuardedWhereThereAreNoPersonAccounts() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         insert garcia;
         Address__c personal = new Address__c(
             Person_Account__c = garcia.Id,

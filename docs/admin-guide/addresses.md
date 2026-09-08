@@ -84,7 +84,7 @@ just different organizations.
 the address records as the truth and copies the default into the standard address boxes. If
 a third party app, a data loader, or an integration writes straight into the standard
 boxes, Open Impact will put the default address back the next time that address record is
-saved or the seasonal swap runs, and the edit will look like it vanished. Make the change
+saved, and the edit will look like it vanished. Make the change
 on the address card instead, or mark a new address as the default. This is also why address
 verification apps should be pointed at the address records.
 

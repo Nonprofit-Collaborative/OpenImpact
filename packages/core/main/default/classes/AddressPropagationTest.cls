@@ -15,12 +15,12 @@ private class AddressPropagationTest {
 
     @IsTest
     static void contactModeMembersGetTheHouseholdAddress() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         insert garcia;
         List<Contact> members = new List<Contact>{
-            TestDataFactory.newContact('Ana', 'Garcia', garcia.Id),
-            TestDataFactory.newContact('Luis', 'Garcia', garcia.Id),
-            TestDataFactory.newContact('Sofia', 'Garcia', garcia.Id)
+            AddressTestDataFactory.newContact('Ana', 'Garcia', garcia.Id),
+            AddressTestDataFactory.newContact('Luis', 'Garcia', garcia.Id),
+            AddressTestDataFactory.newContact('Sofia', 'Garcia', garcia.Id)
         };
         insert members;
 
@@ -56,10 +56,10 @@ private class AddressPropagationTest {
 
     @IsTest
     static void junctionModeMembershipOverridesWhatContactModeWouldSay() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
-        Account otherHousehold = TestDataFactory.newHousehold('The Nowak Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
+        Account otherHousehold = AddressTestDataFactory.newHousehold('The Nowak Family');
         insert new List<Account>{ garcia, otherHousehold };
-        Contact ana = TestDataFactory.newContact('Ana', 'Garcia', otherHousehold.Id);
+        Contact ana = AddressTestDataFactory.newContact('Ana', 'Garcia', otherHousehold.Id);
         insert ana;
 
         Test.startTest();
@@ -89,8 +89,8 @@ private class AddressPropagationTest {
 
     @IsTest
     static void aPersonAccountMemberIsWrittenOnlyWherePersonAccountsExist() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
-        Account personLikeAccount = TestDataFactory.newHousehold('Ana Garcia');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
+        Account personLikeAccount = AddressTestDataFactory.newHousehold('Ana Garcia');
         insert new List<Account>{ garcia, personLikeAccount };
 
         Test.startTest();
@@ -126,7 +126,7 @@ private class AddressPropagationTest {
 
     @IsTest
     static void addressHandlerIgnoresASaveThatChangedNothingAboutTheAddress() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         insert garcia;
         Address__c home = new Address__c(
             Account__c = garcia.Id,
@@ -136,12 +136,11 @@ private class AddressPropagationTest {
             Is_Default__c = true
         );
         insert home;
-        Contact ana = TestDataFactory.newContact('Ana', 'Garcia', garcia.Id);
+        Contact ana = AddressTestDataFactory.newContact('Ana', 'Garcia', garcia.Id);
         insert ana;
         update new Contact(Id = ana.Id, MailingStreet = null, MailingCity = null);
 
         Test.startTest();
-        AddressTriggerHandler handler = new AddressTriggerHandler();
         Address__c unchanged = [
             SELECT
                 Id,
@@ -158,8 +157,9 @@ private class AddressPropagationTest {
             FROM Address__c
             WHERE Id = :home.Id
         ];
-        handler.afterUpdate(
-            new List<Address__c>{ unchanged },
+        driveAfterUpdate(
+            new AddressTriggerHandler(),
+            new List<SObject>{ unchanged },
             new Map<Id, SObject>{ unchanged.Id => unchanged }
         );
         Test.stopTest();
@@ -174,40 +174,32 @@ private class AddressPropagationTest {
 
     @IsTest
     static void handlerContextsThatDoNothingAreSafeToCall() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         insert garcia;
-        Contact ana = TestDataFactory.newContact('Ana', 'Garcia', garcia.Id);
+        Contact ana = AddressTestDataFactory.newContact('Ana', 'Garcia', garcia.Id);
         insert ana;
-        List<SObject> none = new List<SObject>();
-        Map<Id, SObject> noneById = new Map<Id, SObject>();
 
         Test.startTest();
-        AddressTriggerHandler addressHandler = new AddressTriggerHandler();
-        addressHandler.beforeInsert(none);
-        addressHandler.beforeUpdate(none, noneById);
-        addressHandler.beforeDelete(none);
-        addressHandler.afterInsert(none);
-        addressHandler.afterUpdate(none, noneById);
-        addressHandler.afterDelete(none);
-        addressHandler.afterUndelete(none);
-
-        ContactAddressHandler contactHandler = new ContactAddressHandler();
-        contactHandler.beforeInsert(none);
-        contactHandler.beforeUpdate(none, noneById);
-        contactHandler.beforeDelete(none);
-        contactHandler.afterInsert(none);
-        contactHandler.afterUpdate(none, noneById);
-        contactHandler.afterDelete(none);
-        contactHandler.afterUndelete(none);
-
-        AccountAddressHandler accountHandler = new AccountAddressHandler();
-        accountHandler.beforeInsert(none);
-        accountHandler.beforeUpdate(none, noneById);
-        accountHandler.beforeDelete(none);
-        accountHandler.afterInsert(none);
-        accountHandler.afterUpdate(none, noneById);
-        accountHandler.afterDelete(none);
-        accountHandler.afterUndelete(none);
+        for (
+            TriggerHandler handler : new List<TriggerHandler>{
+                new AddressTriggerHandler(),
+                new ContactAddressHandler(),
+                new AccountAddressHandler()
+            }
+        ) {
+            TriggerHandler.testNew = new List<SObject>();
+            TriggerHandler.testNewMap = new Map<Id, SObject>();
+            TriggerHandler.testOld = new List<SObject>();
+            TriggerHandler.testOldMap = new Map<Id, SObject>();
+            handler.beforeInsert();
+            handler.beforeUpdate();
+            handler.beforeDelete();
+            handler.afterInsert();
+            handler.afterUpdate();
+            handler.afterDelete();
+            handler.afterUndelete();
+        }
+        clearHandlerContext();
         Test.stopTest();
 
         Assert.areEqual(
@@ -219,7 +211,7 @@ private class AddressPropagationTest {
 
     @IsTest
     static void handlersCalledDirectlyDoTheirWork() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         garcia.BillingStreet = WINTER_STREET;
         garcia.BillingCity = WINTER_CITY;
         insert garcia;
@@ -238,7 +230,7 @@ private class AddressPropagationTest {
         delete [SELECT Id FROM Address__c];
 
         Test.startTest();
-        new AccountAddressHandler().afterInsert(new List<Account>{ reloaded });
+        driveAfterInsert(new AccountAddressHandler(), new List<SObject>{ reloaded });
         Test.stopTest();
 
         Assert.areEqual(
@@ -250,11 +242,11 @@ private class AddressPropagationTest {
 
     @IsTest
     static void contactHandlerCapturesOnlyThePeopleWhoActuallyMoved() {
-        Account garcia = TestDataFactory.newHousehold('The Garcia Family');
+        Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         insert garcia;
         List<Contact> members = new List<Contact>{
-            TestDataFactory.newContact('Ana', 'Garcia', garcia.Id),
-            TestDataFactory.newContact('Luis', 'Garcia', garcia.Id)
+            AddressTestDataFactory.newContact('Ana', 'Garcia', garcia.Id),
+            AddressTestDataFactory.newContact('Luis', 'Garcia', garcia.Id)
         };
         insert members;
         Contact ana = new Contact(Id = members[0].Id, MailingStreet = WINTER_STREET);
@@ -265,7 +257,7 @@ private class AddressPropagationTest {
         };
 
         Test.startTest();
-        new ContactAddressHandler().afterUpdate(new List<Contact>{ ana, luis }, oldMap);
+        driveAfterUpdate(new ContactAddressHandler(), new List<SObject>{ ana, luis }, oldMap);
         Test.stopTest();
 
         Assert.areEqual(
@@ -273,5 +265,44 @@ private class AddressPropagationTest {
             [SELECT COUNT() FROM Address__c WHERE Account__c = :garcia.Id],
             'One household address, created once, from the one person who moved.'
         );
+    }
+
+    /**
+     * Drives one handler context outside a trigger. `TriggerHandler` reads the records
+     * through its own accessors, which return these overrides when they are set, so a test
+     * can exercise a handler without arranging a real DML that would fire every other
+     * automation as well.
+     */
+    private static void driveAfterInsert(TriggerHandler handler, List<SObject> records) {
+        TriggerHandler.testNew = records;
+        TriggerHandler.testNewMap = new Map<Id, SObject>(records);
+        try {
+            handler.afterInsert();
+        } finally {
+            clearHandlerContext();
+        }
+    }
+
+    private static void driveAfterUpdate(
+        TriggerHandler handler,
+        List<SObject> records,
+        Map<Id, SObject> previousById
+    ) {
+        TriggerHandler.testNew = records;
+        TriggerHandler.testNewMap = new Map<Id, SObject>(records);
+        TriggerHandler.testOld = previousById.values();
+        TriggerHandler.testOldMap = previousById;
+        try {
+            handler.afterUpdate();
+        } finally {
+            clearHandlerContext();
+        }
+    }
+
+    private static void clearHandlerContext() {
+        TriggerHandler.testNew = null;
+        TriggerHandler.testNewMap = null;
+        TriggerHandler.testOld = null;
+        TriggerHandler.testOldMap = null;
     }
 }

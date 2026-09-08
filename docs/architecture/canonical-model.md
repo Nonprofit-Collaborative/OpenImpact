@@ -2413,6 +2413,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.3 | 2026-09-07 | Convention added: person references are a Contact and Account pair with exactly one set (Section 4), following the change of first customer to Nonprofit Cloud and Agentforce Nonprofit orgs where individuals are person Accounts. Import Row and Import Template carry the person-mode attributes this requires. |
 | v0.3 | 2026-09-07 | Sections renumbered to keep the document in reading order: the former Section 14 "Deferred to later iterations" is now Section 30 and the former Section 15 "Change log" is now Section 31. Section 32 "Entity ownership by package" is new. |
 | v0.3 | 2026-09-07 | C-10 sample data loader: added `Sample Data` (`Sample_Data__c`, Checkbox, default false) to Household, Contact, and Organization so the sample data set can be removed in one action. |
+| v0.3 | 2026-09-08 | C-17 Addresses build. `Address__c` and its fields, list views, compact layout, and validation rules created as specified in Section 29, with two recorded deviations: `Street__c` ships as Text Area (255) because the platform has no long text field that a list view or a validation rule can read, and `Contact_Address_Change_Behavior__c` ships as Text(40) on `Nonprofit_Settings__c` per ADR-0019 rather than as a picklist. `Verification_Status__c` defaults to Unverified and is left writable for a third party verification app (R-AD6); no packaged code writes it. |
 
 ---
 ## 32. Entity ownership by package
