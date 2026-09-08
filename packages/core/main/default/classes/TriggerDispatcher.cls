@@ -16,6 +16,10 @@
  * bypassed for this transaction, is all automation paused for the org, and is this automation
  * switched on. Any "no" and the handler simply does not run.
  *
+ * It asks none of them for an automation whose registry row carries `Always_Runs__c`. That row
+ * enforces a rule rather than providing a convenience, so there is nothing an administrator, a
+ * pause or a bypass can say that should stop it (ADR-0024).
+ *
  * Failure handling is a deliberate choice. Whatever a handler throws is logged to the Error Log
  * first, so R-E1 holds even when the user never sees the failure. Then:
  *
@@ -100,7 +104,7 @@ public with sharing class TriggerDispatcher {
         ) {
             TriggerHandler handler = instantiate(entry, objectApiName);
             if (handler != null) {
-                run(handler, context, entry.DeveloperName);
+                run(handler, context, entry.DeveloperName, entry.Always_Runs__c == true);
             }
         }
     }
@@ -118,7 +122,9 @@ public with sharing class TriggerDispatcher {
         if (handler == null) {
             return;
         }
-        run(handler, context, handler.getName());
+        // A handler run directly, without a registry row, is an ordinary switchable automation:
+        // only a shipped registry record can say that an automation always runs.
+        run(handler, context, handler.getName(), false);
     }
 
     private static Context currentContext() {
@@ -131,19 +137,32 @@ public with sharing class TriggerDispatcher {
         );
     }
 
-    private static void run(TriggerHandler handler, Context context, String registeredName) {
+    /**
+     * `alwaysRuns` is carried here from the registry row the same way `registeredName` is,
+     * because it is a property of the automation the row declares and not of the handler class:
+     * a rule enforcing automation (ADR-0024) is not bypassed, not paused, and not switched off.
+     * Nothing else changes: it is dispatched and its failures are logged like any other.
+     */
+    private static void run(
+        TriggerHandler handler,
+        Context context,
+        String registeredName,
+        Boolean alwaysRuns
+    ) {
         if (handler == null || context == null || context.operation == null) {
             return;
         }
         String automationName = String.isBlank(registeredName) ? handler.getName() : registeredName;
-        if (AutomationControl.isBypassed(automationName)) {
-            return;
-        }
-        if (AutomationControl.isPaused()) {
-            return;
-        }
-        if (!AutomationControl.isEnabled(automationName)) {
-            return;
+        if (alwaysRuns != true) {
+            if (AutomationControl.isBypassed(automationName)) {
+                return;
+            }
+            if (AutomationControl.isPaused()) {
+                return;
+            }
+            if (!AutomationControl.isEnabled(automationName)) {
+                return;
+            }
         }
         try {
             dispatch(handler, context);

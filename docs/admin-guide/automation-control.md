@@ -11,6 +11,12 @@ It also gives you one big switch: pause everything for a couple of hours while y
 spreadsheet, then let it turn itself back on. You never have to call anyone to get
 unstuck.
 
+A small number of automations are not switches at all. They enforce a rule rather than
+doing something for you, and Open Impact runs them whatever this page says: the receipt
+lock on gifts is the first of them. They are still listed here, so you can find them and
+read what they do, but their switch is off, greyed out, and carries a line explaining that
+the automation always runs. See "Automations that always run" below.
+
 ## What you will see in v0.1
 
 This page describes the finished feature. Two parts of it arrive with the next pieces of
@@ -71,12 +77,39 @@ the records in first and the automatic housekeeping to happen afterwards, so not
 That is the whole feature: one switch per automation, one switch for all of them, and it
 expires by itself.
 
+## Automations that always run
+
+Pause stops Open Impact filling things in for you. It never stops Open Impact refusing
+something. An automation whose job is to refuse a change, rather than to save you typing,
+is marked as always running, and neither the pause nor its own switch turns it off.
+
+In the list you can tell one at a glance: its switch sits at **Off** and is greyed out even
+when you hold the Manage Nonprofit Settings permission, and underneath the description is
+the line "This automation enforces a rule, so it always runs. It cannot be switched off
+here and a pause does not suspend it." Clicking the switch does nothing, and if a change
+somehow reaches the server it is refused with the same explanation.
+
+The one shipped today is **Gift: receipt lock**. It refuses a change to the amount, the
+date, the donor or the receipt number of a gift that carries a receipt number, and it
+refuses to delete such a gift. That rule is what a receipt in a donor's hands means: see
+the [Gifts page](gifts.md).
+
+If you genuinely have to change a receipted gift, there is a way, and it is deliberately
+not on this page. It is the Override Receipt Lock permission, described under "Lifting the
+receipt lock" on the [Gifts page](gifts.md). Every change made with it is written to the
+[Error Log](error-log.md).
+
 ## Common mistakes
 
 - **Pausing and forgetting, then wondering why names are wrong.** While automation is
   paused, new people do not get households and names are not recomputed. The records are
   fine, they are just not finished. Resume automation and then re-save the records, or run
   the recompute action on the Households page.
+- **Expecting the pause to suspend everything.** It does not, and it never did what its
+  name suggests for the rules that refuse a change. The pause stops the housekeeping:
+  households, names, greetings, default allocations. An automation marked as always running
+  keeps running through the pause, so a receipted gift stays locked while everything else is
+  paused for your import.
 - **Expecting pause to undo work already done.** Pause stops future automation. It does
   not roll back anything that already ran. If something ran that you did not want, fix the
   records themselves.

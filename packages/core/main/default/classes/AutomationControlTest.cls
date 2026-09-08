@@ -10,6 +10,7 @@
 private class AutomationControlTest {
     private static final String NAMING = 'Household_Naming';
     private static final String HOUSEHOLDS = 'Household_Creation';
+    private static final String LOCK = 'Gift_Receipt_Lock';
 
     private static User nonprofitAdmin() {
         return TestDataFactory.createUser('Maria', new List<String>{ 'Nonprofit_Admin' });
@@ -226,6 +227,76 @@ private class AutomationControlTest {
             }
         }
         Test.stopTest();
+    }
+
+    @IsTest
+    static void anAlwaysRunsAutomationCannotBeSwitched() {
+        Automation_Setting__c lockRow = new Automation_Setting__c(
+            Name = 'Gift: receipt lock',
+            Automation_Name__c = LOCK,
+            Description__c = 'Protects the receipt a donor is holding.',
+            Enabled__c = true,
+            Always_Runs__c = true,
+            Is_Package_Default__c = true
+        );
+        insert lockRow;
+        AutomationControl.clearCache();
+        User maria = nonprofitAdmin();
+
+        Test.startTest();
+        System.runAs(maria) {
+            try {
+                AutomationControl.setEnabled(LOCK, false);
+                Assert.fail('An automation that enforces a rule must not be switchable.');
+            } catch (AutomationControl.AutomationControlException expected) {
+                Assert.areEqual(
+                    Label.Core_Automation_AlwaysRuns,
+                    expected.getMessage(),
+                    'Maria is told why the switch will not move.'
+                );
+            }
+        }
+        Test.stopTest();
+
+        Assert.isTrue(
+            [SELECT Enabled__c FROM Automation_Setting__c WHERE Id = :lockRow.Id].Enabled__c,
+            'And the row was not changed.'
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Setting_Change__c],
+            'A refused change is not an audited change.'
+        );
+    }
+
+    @IsTest
+    static void materializingCarriesAlwaysRunsFromTheShippedRegistry() {
+        Automation_Registry__mdt lockEntry = TestDataFactory.registryEntry(LOCK, true);
+        lockEntry.Always_Runs__c = true;
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>{
+            lockEntry,
+            TestDataFactory.registryEntry(NAMING, true)
+        };
+
+        Test.startTest();
+        AutomationControl.ensureDefaults();
+        Test.stopTest();
+
+        Map<String, Automation_Setting__c> byName = new Map<String, Automation_Setting__c>();
+        for (Automation_Setting__c setting : [
+            SELECT Automation_Name__c, Always_Runs__c
+            FROM Automation_Setting__c
+        ]) {
+            byName.put(setting.Automation_Name__c, setting);
+        }
+        Assert.isTrue(
+            byName.get(LOCK).Always_Runs__c,
+            'The console can only say why a switch will not move if the flag reaches the row.'
+        );
+        Assert.isFalse(
+            byName.get(NAMING).Always_Runs__c,
+            'And an ordinary automation is still an ordinary automation.'
+        );
     }
 
     @IsTest

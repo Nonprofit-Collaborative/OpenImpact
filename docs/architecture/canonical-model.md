@@ -549,6 +549,7 @@ calling anyone.
 | Automation Name | text | yes | The stable identifier of the automation, matching its entry in the shipped registry. |
 | Description | long text | yes | What this automation does, in the language a nonprofit administrator uses. |
 | Enabled | boolean | yes (defaults true) | Whether the automation runs; unchecking it bypasses the handler. |
+| Always Runs | boolean | yes (defaults false) | Whether this automation enforces a rule rather than providing a convenience. An automation marked this way runs whatever the switch, the pause and the bypass say, and its switch is shown off and disabled in the console (ADR-0024). |
 | Handler Class | text | no | The packaged code the dispatcher runs for this automation, copied from the shipped registry. |
 | Object Name | text | no | The kind of record this automation runs on, copied from the shipped registry. |
 | Execution Order | integer | no | The order in which this automation runs relative to others on the same kind of record. |
@@ -571,12 +572,17 @@ and new automations added by an upgrade are materialized without touching the ad
 existing on and off choices (Decision D-06).
 **R-A3** Turning an automation off never deletes data and never suppresses error
 logging.
+**R-A4** An automation marked Always Runs enforces a rule rather than providing a
+convenience, so the dispatcher does not consult the bypass, the pause or the switch for it.
+The console still lists it, with its switch off and disabled and a line saying why, and a
+request to switch it on or off is refused (ADR-0024).
 
 ### Salesforce implementation
 
 - **Object:** `Automation_Setting__c` with `Automation_Name__c` (Text, external id,
   unique), `Description__c` (Long Text Area), `Enabled__c` (Checkbox),
-  `Handler_Class__c` (Text), `Object_Name__c` (Text), `Execution_Order__c` (Number),
+  `Always_Runs__c` (Checkbox, default false), `Handler_Class__c` (Text),
+  `Object_Name__c` (Text), `Execution_Order__c` (Number),
   `Is_Package_Default__c` (Checkbox). The record name holds the automation's label as the
   admin reads it.
 - **Shipped defaults:** `Automation_Registry__mdt` (Section 13).
@@ -790,6 +796,7 @@ Automation Setting records (Section 10) on install and on upgrade.
 | Label | text | The automation's name as the admin sees it. |
 | Description__c | long text | What the automation does, in nonprofit language. |
 | Enabled_By_Default__c | boolean | Whether the automation is on when it is first materialized. |
+| `Always_Runs__c` | boolean, default false | Whether this automation enforces a rule rather than providing a convenience, so it cannot be switched off from the console or suppressed by a pause (ADR-0024). Copied to `Automation_Setting__c.Always_Runs__c` when the record is materialized. |
 | Handler_Class__c | text | The Apex handler the trigger dispatcher invokes. |
 | Object_Name__c | text | The object whose trigger this automation runs on. |
 | Execution_Order__c | integer | The order in which handlers run for that object. |
@@ -1446,9 +1453,15 @@ prevent. A partial refund leaves the original at Received, because part of it is
 gift the organization holds.
 
 **R-G4 Amount immutability.** Once a Receipt Number is present, Amount, Gift Date, and
-the donor references do not change. A correction voids the receipt and reissues
-(ADR-0010). This is enforced in the domain layer from v0.2, before the receipting feature
-exists in v0.4, so no early data escapes the rule.
+the donor references do not change, and the gift is not deleted. A correction voids the
+receipt and reissues (ADR-0010). This is enforced in the domain layer from v0.2, before
+the receipting feature exists in v0.4, so no early data escapes the rule. The enforcement
+runs from its own automation, `Gift_Receipt_Lock`, which is marked Always Runs (R-A4), so
+switching an automation off or pausing all automation does not lift the lock. The one way
+past it is the `Override_Receipt_Lock` custom permission, which ships on no permission set
+and in no permission set group: an administrator assigns it in Setup, makes the change, and
+removes it again. Every change made under the override writes an Error Log entry at Warning
+severity naming the gift, its receipt number, and what changed (ADR-0024).
 
 **R-G5 Allocation totals.** Every gift's allocations total its Amount (R-GA1). A gift
 saved with no allocation gets one allocation for the whole amount to the org's default
@@ -1516,6 +1529,9 @@ the organization gave back.
 | Created By Import Batch | `Created_By_Import_Batch__c` | Lookup to `Import_Batch__c` |
 
 - **Service:** `GiftService`, `GiftDomain`, `GiftSelector`, LWC `quickGiftEntry` (G-03).
+- **Receipt lock:** handler `GiftReceiptLockHandler`, registry record
+  `Automation_Registry.Gift_Receipt_Lock` (execution order 5, Always Runs), custom
+  permission `Override_Receipt_Lock` (granted to nobody by the package).
 
 ---
 
@@ -2635,6 +2651,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.3 | 2026-09-08 | C-17 Addresses build. `Address__c` and its fields, list views, compact layout, and validation rules created as specified in Section 29, with two recorded deviations: `Street__c` ships as Text Area (255) because the platform has no long text field that a list view or a validation rule can read, and `Contact_Address_Change_Behavior__c` ships as Text(40) on `Nonprofit_Settings__c` per ADR-0019 rather than as a picklist. `Verification_Status__c` defaults to Unverified and is left writable for a third party verification app (R-AD6); no packaged code writes it. |
 | v0.3 | 2026-09-08 | G-02 defect fix (ADR-0022). No object or field added. Section 26's base filter changes from `Status equals Received` to `Status` in `Received`, `Refunded`, `Written off`, because R-G3 moves a fully refunded gift's status while leaving the negative gifts that reverse it at Received, so the old filter kept the negatives, dropped the positive, and subtracted a refunded gift twice. The count rows, largest gift, and the two date rows additionally require `Amount__c` greater than 0, so a gift given once and refunded in full reads as one gift and a total of zero. All 38 gift sourced, Gift Allocation sourced and Soft Credit sourced `Rollup_Definition_Default__mdt` rows updated; the three Pledge Balance rows filter on Commitment status and are unaffected. R-R9 gains the sentence that makes this a consequence of the rule rather than an exception to it. |
 | v0.3 | 2026-09-08 | G-08 rule collision resolved (ADR-0023). No object, field, or rollup row changed. R-SC5 and R-SC6 collided on a full refund: R-SC5 creates a negative automatic credit on the negative gift while R-SC6 removed the original gift's automatic credits once its status became Refunded or Written off, so a fully refunded gift of 250 left a recognition total of minus 250 rather than zero. R-SC6 no longer removes credits on refund; removal is now only for a deleted gift. R-SC5 states the resulting pair explicitly and R-SC3 states that a gift keeps its household credits after its status is reversed. Section 26's soft credit rows already read gift status through the widened set from ADR-0022, so they need no further change and now carry both halves of the pair. |
+| v0.3 | 2026-09-08 | G-04 receipt lock (ADR-0024). `Automation_Registry__mdt` and `Automation_Setting__c` each gain `Always_Runs__c` (Checkbox, default false): an automation marked that way enforces a rule rather than providing a convenience, so the dispatcher ignores the bypass, the pause and the switch for it, and the console shows its switch off and disabled with a reason (new rule R-A4). Giving ships the `Gift_Receipt_Lock` automation (order 5, `GiftReceiptLockHandler`) carrying the two enforcement calls that used to run inside `Gift_Core_Rules`, and the custom permission `Override_Receipt_Lock`, which is on no permission set and in no permission set group. R-G4 restated: the lock survives the automation switch, the override is a deliberate act in Setup, and every use of it is written to the Error Log at Warning severity. No object added. |
 
 ---
 ## 32. Entity ownership by package

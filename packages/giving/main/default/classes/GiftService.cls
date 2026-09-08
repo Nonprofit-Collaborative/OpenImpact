@@ -22,6 +22,24 @@ public with sharing class GiftService {
     @TestVisible
     private static Boolean allowReceiptNumberChange = false;
 
+    /**
+     * The one way past the receipt lock: a custom permission the package grants to nobody, so
+     * lifting the lock means an administrator assigning it in Setup, making the change, and
+     * removing it again (ADR-0024). Bare, and correctly so: a custom permission defined in the
+     * same package resolves without a namespace prefix.
+     */
+    public static final String OVERRIDE_RECEIPT_LOCK_PERMISSION = 'Override_Receipt_Lock';
+
+    private static final String OVERRIDE_LOG_CONTEXT = 'Receipt lock override';
+
+    /**
+     * The permission is read once per transaction rather than once per record: a 200 record save
+     * asks the platform the same question 200 times otherwise, and the answer cannot change
+     * inside a transaction.
+     */
+    @TestVisible
+    private static Boolean receiptLockOverride = null;
+
     private static final String STATUS_RECEIVED = 'Received';
     private static final String STATUS_REFUNDED = 'Refunded';
     private static final String STATUS_WRITTEN_OFF = 'Written off';
@@ -92,8 +110,15 @@ public with sharing class GiftService {
     /**
      * R-G4: once a receipt number is present the amount, the date and the donor are facts a
      * donor already holds on paper. A correction voids the receipt and reissues it (ADR-0010).
+     *
+     * This runs from `GiftReceiptLockHandler`, whose registry row always runs, so no switch and
+     * no pause reaches it (ADR-0024). The single way past it is the `Override_Receipt_Lock`
+     * custom permission, which the package grants to nobody, and every change made with it is
+     * written to the Error Log at Warning severity.
      */
     public static void enforceReceiptLock(List<Gift__c> gifts, Map<Id, Gift__c> oldGifts) {
+        Boolean overridden = canOverrideReceiptLock();
+        List<String> overrides = new List<String>();
         for (Gift__c gift : gifts) {
             Gift__c previous = oldGifts.get(gift.Id);
             if (previous == null) {
@@ -107,6 +132,10 @@ public with sharing class GiftService {
             // first time stays allowed, and voiding and reissuing is the receipting feature's
             // job (G-13), which sets the allowance below when it lands.
             if (hadReceipt && receiptNumberChanged && !allowReceiptNumberChange) {
+                if (overridden) {
+                    overrides.add(describeOverride(previous, gift));
+                    continue;
+                }
                 gift.addError(Label.Giving_Gift_ReceiptNumberLocked);
                 continue;
             }
@@ -122,10 +151,87 @@ public with sharing class GiftService {
                 gift.Gift_Date__c != previous.Gift_Date__c ||
                 gift.Donor_Contact__c != previous.Donor_Contact__c ||
                 gift.Donor_Account__c != previous.Donor_Account__c;
-            if (locked) {
-                gift.addError(Label.Giving_Gift_ReceiptLocked);
+            if (!locked) {
+                continue;
             }
+            if (overridden) {
+                overrides.add(describeOverride(previous, gift));
+                continue;
+            }
+            gift.addError(Label.Giving_Gift_ReceiptLocked);
         }
+        // One call, whatever the size of the save: an override that nobody recorded is the thing
+        // an auditor cannot reconstruct (ADR-0024).
+        ErrorLogger.logMessages(overrides, OVERRIDE_LOG_CONTEXT, ErrorLogger.SEVERITY_WARNING);
+    }
+
+    /**
+     * True when the running user holds the override permission. Read once per transaction.
+     */
+    private static Boolean canOverrideReceiptLock() {
+        if (receiptLockOverride == null) {
+            receiptLockOverride = FeatureManagement.checkPermission(
+                OVERRIDE_RECEIPT_LOCK_PERMISSION
+            );
+        }
+        return receiptLockOverride;
+    }
+
+    /**
+     * What the Error Log says about one overridden save: the gift, the receipt a donor is
+     * holding, and every value that moved, each with what it was and what it became.
+     */
+    private static String describeOverride(Gift__c previous, Gift__c gift) {
+        List<String> changes = new List<String>();
+        if (gift.Amount__c != previous.Amount__c) {
+            changes.add(
+                'amount ' + valueOrNone(previous.Amount__c) + ' to ' + valueOrNone(gift.Amount__c)
+            );
+        }
+        if (gift.Gift_Date__c != previous.Gift_Date__c) {
+            changes.add(
+                'gift date ' +
+                    valueOrNone(previous.Gift_Date__c) +
+                    ' to ' +
+                    valueOrNone(gift.Gift_Date__c)
+            );
+        }
+        if (gift.Donor_Contact__c != previous.Donor_Contact__c) {
+            changes.add(
+                'donor contact ' +
+                    valueOrNone(previous.Donor_Contact__c) +
+                    ' to ' +
+                    valueOrNone(gift.Donor_Contact__c)
+            );
+        }
+        if (gift.Donor_Account__c != previous.Donor_Account__c) {
+            changes.add(
+                'donor account ' +
+                    valueOrNone(previous.Donor_Account__c) +
+                    ' to ' +
+                    valueOrNone(gift.Donor_Account__c)
+            );
+        }
+        if (gift.Receipt_Number__c != previous.Receipt_Number__c) {
+            changes.add(
+                'receipt number ' +
+                    valueOrNone(previous.Receipt_Number__c) +
+                    ' to ' +
+                    valueOrNone(gift.Receipt_Number__c)
+            );
+        }
+        return String.format(
+            Label.Giving_Gift_ReceiptLockOverridden,
+            new List<String>{
+                String.valueOf(previous.Id),
+                valueOrNone(previous.Receipt_Number__c),
+                String.join(changes, ', ')
+            }
+        );
+    }
+
+    private static String valueOrNone(Object value) {
+        return value == null ? 'none' : String.valueOf(value);
     }
 
     /**
@@ -133,6 +239,9 @@ public with sharing class GiftService {
      * that something else already points at is corrected by a reversal rather than deleted. A
      * plain mistyped gift with neither is still deletable, because a mistake made a minute ago
      * is not history.
+     *
+     * A user holding `Override_Receipt_Lock` deletes it anyway, and the deletion is written to
+     * the Error Log the same way an overridden edit is (ADR-0024).
      */
     public static void preventLossOfHistory(List<Gift__c> gifts) {
         Map<Id, Gift__c> byId = new Map<Id, Gift__c>(gifts);
@@ -140,13 +249,38 @@ public with sharing class GiftService {
         for (Gift__c reversal : GiftSelector.selectReversalsFor(byId.keySet())) {
             withReversals.add(reversal.Original_Gift__c);
         }
+        Boolean overridden = canOverrideReceiptLock();
+        List<String> overrides = new List<String>();
         for (Gift__c gift : gifts) {
-            if (String.isNotBlank(gift.Receipt_Number__c)) {
-                gift.addError(Label.Giving_Gift_ReceiptedGiftNotDeletable);
-            } else if (withReversals.contains(gift.Id)) {
+            // The reversal refusal is not the receipt lock and the override does not reach it.
+            // R-G3 keeps a refund as a negative gift linked back to its original, and
+            // Original_Gift__c is a lookup with SetNull, so deleting the original would leave a
+            // negative gift standing with nothing to say what it reverses: a wrong total with no
+            // trace of why. Receipt immutability is what ADR-0024 decided to make liftable, and
+            // this is a different rule that happens to be enforced next door.
+            if (withReversals.contains(gift.Id)) {
                 gift.addError(Label.Giving_Gift_ReversedGiftNotDeletable);
+                continue;
             }
+            if (String.isBlank(gift.Receipt_Number__c)) {
+                continue;
+            }
+            if (!overridden) {
+                gift.addError(Label.Giving_Gift_ReceiptedGiftNotDeletable);
+                continue;
+            }
+            overrides.add(
+                String.format(
+                    Label.Giving_Gift_ReceiptLockOverridden,
+                    new List<String>{
+                        String.valueOf(gift.Id),
+                        valueOrNone(gift.Receipt_Number__c),
+                        'the gift was deleted'
+                    }
+                )
+            );
         }
+        ErrorLogger.logMessages(overrides, OVERRIDE_LOG_CONTEXT, ErrorLogger.SEVERITY_WARNING);
     }
 
     /**
