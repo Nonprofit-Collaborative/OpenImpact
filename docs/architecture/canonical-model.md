@@ -1414,6 +1414,9 @@ refund is another gift rather than an edit (ADR-0010).
 | Refund Reason | text | no | Why the money went back or the gift was written off, typed by the person recording it and carried on the negative gift (R-G3). |
 | In-kind Description | long text | no | What was given, when the gift is goods or services rather than money (v0.4, G-18). |
 | Fair Market Value | decimal | no | The value placed on an in-kind gift, which is what the receipt language must refer to (v0.4, G-18). |
+| Benefit Description | long text | no | What the donor received in return for the gift, described as it must be printed on the receipt (v0.4, G-13, R-RC7). |
+| Benefit Value | decimal | no | The organization's good faith estimate of what the benefit was worth, which the receipt subtracts to state the deductible amount (v0.4, G-13, R-RC7). |
+| Intangible Religious Benefits | boolean | yes (defaults false) | Whether the only thing the donor received in return was an intangible religious benefit, which is a sentence the receipt must carry instead of a value (v0.4, G-13, R-RC7). |
 | Created By Import Batch | reference(Import Batch) | no | The import that created this gift, so it can be found and, from v0.5, undone. |
 
 ### Relationships
@@ -1526,6 +1529,9 @@ the organization gave back.
 | Refund Reason | `Refund_Reason__c` | Text |
 | In-kind Description | `In_Kind_Description__c` | Long Text Area (v0.4) |
 | Fair Market Value | `Fair_Market_Value__c` | Currency (v0.4) |
+| Benefit Description | `Benefit_Description__c` | Long Text Area (v0.4) |
+| Benefit Value | `Benefit_Value__c` | Currency (v0.4) |
+| Intangible Religious Benefits | `Intangible_Religious_Benefits__c` | Checkbox (v0.4) |
 | Created By Import Batch | `Created_By_Import_Batch__c` | Lookup to `Import_Batch__c` |
 
 - **Service:** `GiftService`, `GiftDomain`, `GiftSelector`, LWC `quickGiftEntry` (G-03).
@@ -1751,6 +1757,21 @@ Moved here from Section 12 by ADR-0017, with their definitions unchanged.
 | `Installment_Generation_Horizon_Months__c` | integer | 12 | How far ahead installments are generated for an open-ended recurring commitment, so the schedule does not generate rows forever (R-CM2). |
 | `Installment_Overdue_Grace_Days__c` | integer | 5 | How many days after its due date an unpaid installment waits before it is marked Overdue (R-IN2). |
 
+### v0.4 keys
+
+Added by receipting (G-13). The organization's identity keys that a receipt prints, the
+legal name, the tax identification number, the address, the logo, the signature, and the
+signer's name and title, are Core keys and stay on `Nonprofit_Settings__c` (Section 12):
+the Setup Assistant writes them and letters other than receipts print them too.
+
+| Key | Type | Default | Definition |
+|---|---|---|---|
+| `Receipt_Number_Prefix__c` | text | R | The prefix printed before the year and the counter in a receipt number (R-RS2). |
+| `Receipt_Next_Counter__c` | integer | 1 | The counter a new numbering series starts at, so an organization moving from another system continues its own sequence. |
+| `Receipt_Statement_Year__c` | integer | empty | The tax year the year end run reports on, which an administrator sets in January and leaves alone. |
+| `Receipt_Place_Of_Issue__c` | text | empty | The city and region the receipt is issued from, printed on the document. |
+| `Receipt_Renderer__c` | text | empty | Which `ReceiptRenderer` implementation produces the PDF; empty means the shipped one. It exists because ADR-0016 names a fallback implementation and the spike that would settle the question needs an org (ADR-0016, "Consequences"). |
+
 ### Rules
 
 **R-GS1 Same contract as Core settings.** Protected, hierarchical, written synchronously
@@ -1769,6 +1790,20 @@ these keys, which is what makes a module that is off leave nothing behind.
 ### Salesforce implementation
 
 - **Custom setting:** `Giving_Settings__c`, hierarchy, protected.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Automatic Household Soft Credits | `Automatic_Household_Soft_Credits__c` | Checkbox |
+| Installment Generation Horizon Months | `Installment_Generation_Horizon_Months__c` | Number(18, 0) |
+| Installment Overdue Grace Days | `Installment_Overdue_Grace_Days__c` | Number(18, 0) |
+| Auto Apply Gifts To Installments | `Auto_Apply_Gifts_To_Installments__c` | Checkbox |
+| Installment Top Up Last Run | `Installment_Top_Up_Last_Run__c` | Date/Time |
+| Receipt Number Prefix | `Receipt_Number_Prefix__c` | Text(10) |
+| Receipt Next Counter | `Receipt_Next_Counter__c` | Number(18, 0) |
+| Receipt Statement Year | `Receipt_Statement_Year__c` | Number(4, 0) |
+| Receipt Place Of Issue | `Receipt_Place_Of_Issue__c` | Text(80) |
+| Receipt Renderer | `Receipt_Renderer__c` | Text(60) |
+
 - **Service:** Core `SettingsService`, reading and writing this object through the
   `Settings_Object__c` field on `Setting_Definition__mdt` (ADR-0017).
 
@@ -2121,6 +2156,312 @@ cause is picking the wrong name from a list.
 | Message | `Message__c` | Long Text Area |
 
 - **Service:** `TributeService`.
+
+---
+
+## 25A. Receipt
+
+### Definition
+
+The record of a document a donor is holding (feature G-13, v0.4, ADR-0010 and ADR-0016). A
+receipt is not an internal note: in the United States it is what a donor files with a tax
+return, so once it is issued its number, its amount, its date and its stored PDF are facts
+about the world and none of them change. A correction is a void and a new receipt, never an
+edit.
+
+Two kinds exist. A **per gift** receipt covers one gift. A **consolidated statement** covers
+every qualifying gift a donor gave in one statement year, which is what most organizations
+send in January.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | computed | The receipt record's identifier, assigned automatically. It is not the receipt number. |
+| Receipt Number | text | yes | The number printed on the document, allocated once by the package sequence and never reused. |
+| Type | picklist(Per gift, Consolidated statement) | yes | Whether this document covers one gift or a donor's whole year. |
+| Status | picklist(Issued, Void) | yes (defaults Issued) | Whether the document still stands. |
+| Statement Year | integer | yes | The tax year the document reports on. |
+| Gift | reference(Gift) | conditional | The gift receipted; present on a per gift receipt and empty on a consolidated statement. |
+| Donor Contact | reference(Contact) | conditional | The donor, where people are Contacts. |
+| Donor Account | reference(Organization) | conditional | The donor, where the donor is an organization, a household giving in its own name, or a person Account. |
+| Household | reference(Household) | no | The household credited, derived from the donor the same way a gift's household is (R-G2). |
+| Total Amount | decimal | yes on an issued receipt | The amount the document states: the gift's amount, or the sum of the lines on a statement. A receipt reconciled from a consumed number carries zero, because no document was produced. |
+| Issue Date | date | yes on an issued receipt | The date printed on the document. A reconciled receipt carries the date it was accounted for. |
+| Content Document Id | text | no | The Salesforce file identifier of the stored PDF, so the record and its document find each other without a query on the link table. |
+| Void Reason | text | conditional | Why the document was voided; required when Status is Void. |
+| Voided On | datetime | conditional | When the document was voided; required when Status is Void. |
+| Replaces | reference(Receipt) | no | The voided receipt this one was issued to replace. |
+| Replaced By | reference(Receipt) | no | The receipt issued to replace this one, written on the original when it is voided and reissued. |
+| Receipt Run | reference(Receipt Run) | no | The batch run that issued this receipt, empty when a person issued it one at a time. |
+| Series Key | text | yes | The numbering series this number came from: receipt type plus statement year. |
+| Donor Year Key | text | no | Donor, statement year and type as one value, unique, so a retried batch chunk reissues nothing. |
+
+### Relationships
+
+- **Receipt to Gift**, many to one, on a per gift receipt only. Deleting a gift does not
+  delete its receipt: the receipt lock refuses the delete while a receipt exists (R-G4).
+- **Receipt to Donor**, many to one, to exactly one of Donor Contact or Donor Account
+  (Section 4 "Person references").
+- **Receipt to Receipt**, through Replaces and Replaced By, which point at each other.
+- **Receipt to Receipt Run**, many to one.
+- **Receipt to its stored file**, one to one, as a `ContentVersion` linked to the receipt
+  and, per type, to the gift and to the donor.
+
+### Rules
+
+**R-RC1 Issued means immutable.** A receipt's number, type, statement year, donor, total
+amount, issue date and stored file do not change after it is issued. The only writes an
+issued receipt accepts are the void fields and Replaced By (ADR-0010).
+
+**R-RC2 A number is consumed once and never reused.** Numbers come from the sequence in
+Section 25B. Gaplessness is not attempted at the database level, because a rolled back
+transaction cannot un-consume a number that another transaction has already moved past.
+
+**R-RC3 Every consumed number is accounted for.** A number whose generation failed is
+reconciled into a receipt with Status Void and Void Reason `Generation failed`, so an
+auditor asking what happened to number N gets a record rather than silence. Reconciliation
+runs at the end of every batch run and on demand.
+
+**R-RC4 Voiding never touches the stored file.** A void writes Void Reason and Voided On
+and leaves the document exactly as the donor received it. Deleting the file is not a void.
+
+**R-RC5 Regeneration is a void plus a new receipt.** The replacement takes the next number
+from the same series and carries Replaces; the original carries Replaced By. Nothing
+regenerates a receipt in place.
+
+**R-RC6 One donor, and a gift only on a per gift receipt.** Exactly one of Donor Contact
+and Donor Account is set. Gift is required on a per gift receipt and empty on a
+consolidated statement.
+
+**R-RC7 The tax content is code, not template prose.** The renderer emits, per gift: the
+no goods or services sentence by default; for a quid pro quo benefit, the benefit
+description, the good faith estimate of its value, and the deductible amount; and the
+intangible religious benefits sentence when the gift carries that flag. An in-kind gift
+prints the donor supplied description and never a value the organization asserts. An
+administrator edits wording and tokens around these sentences and never the sentences
+themselves (ADR-0016, IRS Publication 1771).
+
+**R-RC8 A statement states the status of every line.** A consolidated statement prints
+each gift's status on that gift's line, not once in a footer, so a reader cannot mistake
+which of a year's gifts was refunded.
+
+**R-RC9 One receipt per donor, year and type, per run.** Donor Year Key is unique, so a
+batch chunk that is retried after a failure resumes the run rather than issuing a second
+document to the same donor. The key is cleared when the receipt is voided, so a reissue is
+possible.
+
+**R-RC10 Read only to everyone.** No packaged permission set grants Edit or Delete on
+Receipt to any role, including the administrator's, and the fields above are read only in
+every packaged permission set. The package writes them; a person never does.
+
+### Salesforce implementation
+
+- **Object:** `Receipt__c`, auto-number Name with format `RC-{000000}`, private
+  organization-wide default recommended (plan Section 4.13).
+
+| Attribute | API name | Type |
+|---|---|---|
+| Receipt Number | `Receipt_Number__c` | Text(50), External Id, unique |
+| Type | `Type__c` | Picklist: Per gift, Consolidated statement |
+| Status | `Status__c` | Picklist: Issued, Void |
+| Statement Year | `Statement_Year__c` | Number(4, 0) |
+| Gift | `Gift__c` | Lookup to `Gift__c` |
+| Donor Contact | `Donor_Contact__c` | Lookup to Contact |
+| Donor Account | `Donor_Account__c` | Lookup to Account |
+| Household | `Household__c` | Lookup to Account |
+| Total Amount | `Total_Amount__c` | Currency, not universally required, see the attribute table |
+| Issue Date | `Issue_Date__c` | Date, not universally required, see the attribute table |
+| Content Document Id | `Content_Document_Id__c` | Text(18) |
+| Void Reason | `Void_Reason__c` | Text(255) |
+| Voided On | `Voided_On__c` | Date/Time |
+| Replaces | `Replaces__c` | Lookup to `Receipt__c` |
+| Replaced By | `Replaced_By__c` | Lookup to `Receipt__c` |
+| Receipt Run | `Receipt_Run__c` | Lookup to `Receipt_Run__c` |
+| Series Key | `Series_Key__c` | Text(80) |
+| Donor Year Key | `Donor_Year_Key__c` | Text(120), External Id, unique |
+
+- **Service:** `ReceiptService`, `ReceiptSelector`, `ReceiptNumberSequence`,
+  `ReceiptContentBuilder`, `ReceiptRenderer` and `BlobToPdfReceiptRenderer`,
+  `ReceiptFileWriter` (ADR-0021), batch `ReceiptStatementBatch`, LWC `receiptTemplates`
+  and `receiptRunConsole`.
+
+---
+
+## 25B. Receipt Number Sequence
+
+### Definition
+
+The package owned counter that hands out receipt numbers, one row per series, where a
+series is a receipt type plus a statement year (ADR-0016). It is not a Salesforce
+auto-number: an auto-number cannot be prefixed per organization, cannot be restarted per
+year, and cannot be read back so that a consumed number can be accounted for.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | yes | The series key, so the row reads for itself in a list view. |
+| Series Key | text | yes | Receipt type plus statement year, unique. |
+| Receipt Type | text | yes | The receipt type this series numbers. |
+| Statement Year | integer | yes | The statement year this series numbers. |
+| Prefix | text | yes | The prefix printed before the year and the counter, copied from settings when the series is created. |
+| First Counter | integer | yes | The counter the series started at, so the consumed range has a lower bound. |
+| Next Counter | integer | yes | The next counter to hand out. |
+
+### Relationships
+
+- **Receipt Number Sequence to Receipt**, one to many, by Series Key rather than by a
+  lookup: a receipt keeps its number after the series row is archived.
+
+### Rules
+
+**R-RS1 One locked row per series.** An allocation selects the series row `FOR UPDATE`,
+reads Next Counter, advances it by the size of the block requested, and commits. A batch
+chunk allocates its whole block in one update rather than one number at a time.
+
+**R-RS2 The number format is fixed.** `{prefix}-{statement year}-{counter zero padded to
+six digits}`. Prefix and starting counter come from settings; nothing else about the format
+is configurable, because a receipt number that changes shape mid-year is a number an
+auditor cannot follow.
+
+**R-RS3 Consumed is consumed.** Next Counter never moves backward, and no code path
+rewrites it to fill a gap. The reconciliation in R-RC3, not the sequence, is what answers
+for a missing number.
+
+### Salesforce implementation
+
+- **Object:** `Receipt_Number_Sequence__c`, Text Name.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Series Key | `Series_Key__c` | Text(80), External Id, unique |
+| Receipt Type | `Receipt_Type__c` | Text(40) |
+| Statement Year | `Statement_Year__c` | Number(4, 0) |
+| Prefix | `Prefix__c` | Text(10) |
+| First Counter | `First_Counter__c` | Number(18, 0) |
+| Next Counter | `Next_Counter__c` | Number(18, 0) |
+
+- **Service:** `ReceiptNumberSequence`, a writer class under ADR-0021.
+
+---
+
+## 25C. Receipt Run
+
+### Definition
+
+One generation run: which type, which statement year, when it started and finished, and
+what it produced (ADR-0016). It exists so that a run can be watched while it is going and
+reconstructed afterward, and because a year end run over tens of thousands of donors is
+long enough that "did it finish" is a real question.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | computed | The run's identifier, assigned automatically. |
+| Type | picklist(Per gift, Consolidated statement) | yes | What the run generates. |
+| Statement Year | integer | yes | The year the run reports on. |
+| Status | picklist(Queued, Running, Completed, Completed with errors, Failed) | yes | Where the run stands. |
+| Started | datetime | no | When the batch began. |
+| Finished | datetime | no | When the batch ended. |
+| Donors Processed | integer | yes (defaults 0) | How many donor records the run examined. |
+| Receipts Issued | integer | yes (defaults 0) | How many documents the run produced. |
+| Errors | integer | yes (defaults 0) | How many chunks failed, each of which is also in the Error Log. |
+| Async Job Id | text | no | The platform job identifier, so a stuck run can be found. |
+
+### Relationships
+
+- **Receipt Run to Receipt**, one to many.
+
+### Rules
+
+**R-RR1 A chunk failure never aborts the run.** A failed chunk is counted, written to the
+Error Log with the donors it covered, and the run continues. A run that ends with any
+failed chunk is Completed with errors, never Completed.
+
+**R-RR2 A run is resumed, not restarted.** Re-running the same type and statement year
+skips donors that already hold an issued receipt for that year, because Donor Year Key is
+unique (R-RC9).
+
+**R-RR3 Counts are the run's own.** Donors Processed, Receipts Issued and Errors are
+written by the batch as it goes, so a run that is still going shows real progress.
+
+### Salesforce implementation
+
+- **Object:** `Receipt_Run__c`, auto-number Name with format `RR-{000000}`.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Type | `Type__c` | Picklist: Per gift, Consolidated statement |
+| Statement Year | `Statement_Year__c` | Number(4, 0) |
+| Status | `Status__c` | Picklist: Queued, Running, Completed, Completed with errors, Failed |
+| Started | `Started__c` | Date/Time |
+| Finished | `Finished__c` | Date/Time |
+| Donors Processed | `Donors_Processed__c` | Number(18, 0) |
+| Receipts Issued | `Receipts_Issued__c` | Number(18, 0) |
+| Errors | `Errors__c` | Number(18, 0) |
+| Async Job Id | `Async_Job_Id__c` | Text(18) |
+
+- **Service:** `ReceiptRunService`, batch `ReceiptStatementBatch`.
+
+---
+
+## 25D. Receipt Template
+
+### Definition
+
+The editable wording around a receipt: the letter an administrator writes, with merge
+tokens for the organization, the donor, the amounts and the dates (ADR-0006 puts structured
+configuration an admin manages as a list in a packaged custom object, and ADR-0016 puts the
+template bodies there).
+
+The template is HTML restricted to what the Visualforce PDF rendering service supports: no
+web fonts, no JavaScript, no `data:` URI images, and page headers and footers only through
+`@page` margin boxes. The tax sentences in R-RC7 are not in the template and cannot be
+edited out of it.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | yes | What the administrator calls this template. |
+| Type | picklist(Per gift, Consolidated statement) | yes | Which kind of document this template lays out. |
+| Body | long text | yes | The HTML with merge tokens. |
+| Active | boolean | yes (defaults false) | Whether this is the template the package uses for its type. |
+
+### Relationships
+
+- **Receipt Template to Receipt**, none. A receipt records the document it produced, not
+  the template it came from, because the stored PDF is the document of record and the
+  template will have changed by the time anyone asks.
+
+### Rules
+
+**R-RT1 One active template per type.** Activating a template deactivates the other
+templates of the same type. Generating with no active template of the required type is an
+error with a readable message, not a blank document.
+
+**R-RT2 Tokens are a closed set.** Only the tokens the package documents are merged; an
+unknown token is left as typed rather than silently emptied, so a typo is visible on the
+proof rather than invisible on the donor's copy.
+
+**R-RT3 The tax sentences are appended by code.** Whatever the body says, the renderer adds
+the sentences R-RC7 requires. A template that also types them produces them twice, which is
+the administrator's to fix, and a template that omits them still produces a valid receipt.
+
+### Salesforce implementation
+
+- **Object:** `Receipt_Template__c`, Text Name.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Type | `Type__c` | Picklist: Per gift, Consolidated statement |
+| Body | `Body__c` | Long Text Area (32768) |
+| Active | `Active__c` | Checkbox |
+
+- **Service:** `ReceiptTemplateService`, LWC `receiptTemplates`, reached from the Nonprofit
+  Settings console as a Component row.
 
 ---
 
@@ -2608,7 +2949,6 @@ that builds it, before its metadata is created.
 | Entity | Package | Iteration | Plan reference |
 |---|---|---|---|
 | Acknowledgment Rule | Giving | v0.4 (G-12) | Section 4.11 |
-| Receipt | Giving | v0.4 (G-13) | Section 4.11, ADR-0010 |
 | Donor Level | Giving | v0.4 (G-14) | Section 5.2 |
 | Stewardship Plan | Giving | v0.4 (G-15) | Section 5.2 |
 | Gift Batch | Giving | v0.5 (G-17) | Section 4.11 |
@@ -2616,6 +2956,9 @@ that builds it, before its metadata is created.
 | Program, Service, Enrollment, Attendance, Service Delivery, Outcome | Programs | v0.8 | Section 5.4 |
 | Funder pipeline entities (grant, reporting deadline, award compliance) | Funders | v0.9 | Section 5.5 |
 | Connect adapter entities and mirror mappings | Connect | v0.6 onward | Section 4.12 |
+
+Receipt left this table in v0.4 and is specified in Sections 25A to 25D, together with
+Receipt Number Sequence, Receipt Run and Receipt Template.
 
 Two v0.4 entities have attributes that already exist on `Gift__c` from v0.2, because the
 object is not worth altering later for fields this cheap: Acknowledgment Status,
@@ -2652,6 +2995,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.3 | 2026-09-08 | G-02 defect fix (ADR-0022). No object or field added. Section 26's base filter changes from `Status equals Received` to `Status` in `Received`, `Refunded`, `Written off`, because R-G3 moves a fully refunded gift's status while leaving the negative gifts that reverse it at Received, so the old filter kept the negatives, dropped the positive, and subtracted a refunded gift twice. The count rows, largest gift, and the two date rows additionally require `Amount__c` greater than 0, so a gift given once and refunded in full reads as one gift and a total of zero. All 38 gift sourced, Gift Allocation sourced and Soft Credit sourced `Rollup_Definition_Default__mdt` rows updated; the three Pledge Balance rows filter on Commitment status and are unaffected. R-R9 gains the sentence that makes this a consequence of the rule rather than an exception to it. |
 | v0.3 | 2026-09-08 | G-08 rule collision resolved (ADR-0023). No object, field, or rollup row changed. R-SC5 and R-SC6 collided on a full refund: R-SC5 creates a negative automatic credit on the negative gift while R-SC6 removed the original gift's automatic credits once its status became Refunded or Written off, so a fully refunded gift of 250 left a recognition total of minus 250 rather than zero. R-SC6 no longer removes credits on refund; removal is now only for a deleted gift. R-SC5 states the resulting pair explicitly and R-SC3 states that a gift keeps its household credits after its status is reversed. Section 26's soft credit rows already read gift status through the widened set from ADR-0022, so they need no further change and now carry both halves of the pair. |
 | v0.3 | 2026-09-08 | G-04 receipt lock (ADR-0024). `Automation_Registry__mdt` and `Automation_Setting__c` each gain `Always_Runs__c` (Checkbox, default false): an automation marked that way enforces a rule rather than providing a convenience, so the dispatcher ignores the bypass, the pause and the switch for it, and the console shows its switch off and disabled with a reason (new rule R-A4). Giving ships the `Gift_Receipt_Lock` automation (order 5, `GiftReceiptLockHandler`) carrying the two enforcement calls that used to run inside `Gift_Core_Rules`, and the custom permission `Override_Receipt_Lock`, which is on no permission set and in no permission set group. R-G4 restated: the lock survives the automation switch, the override is a deliberate act in Setup, and every use of it is written to the Error Log at Warning severity. No object added. |
+| v0.4 | 2026-09-08 | G-13 receipting (ADR-0016). Four objects added: `Receipt__c` (Section 25A), `Receipt_Number_Sequence__c` (25B), `Receipt_Run__c` (25C) and `Receipt_Template__c` (25D), with rules R-RC1 to R-RC10, R-RS1 to R-RS3, R-RR1 to R-RR3 and R-RT1 to R-RT3. Gift gains `Benefit_Description__c`, `Benefit_Value__c` and `Intangible_Religious_Benefits__c`, which is what a receipt needs to state a quid pro quo disclosure and the intangible religious benefits sentence; the deductible amount is computed by the renderer rather than stored, because a stored copy of a subtraction is a second place for it to be wrong. Giving Settings gains `Receipt_Number_Prefix__c`, `Receipt_Next_Counter__c`, `Receipt_Statement_Year__c`, `Receipt_Place_Of_Issue__c` and `Receipt_Renderer__c`, and its implementation subsection now lists every key it holds. Receipt leaves Section 30. |
 
 ---
 ## 32. Entity ownership by package
@@ -2680,7 +3024,7 @@ included; standard objects the packages extend are named by the entity that gove
 | Gift Allocation | Giving | v0.2 | 19 |
 | Fund | Giving | v0.2 | 20 |
 | Appeal | Giving | v0.2 | 21 |
-| Giving Settings | Giving | v0.2, keys from v0.3 | 21A |
+| Giving Settings | Giving | v0.2, keys from v0.3 and v0.4 | 21A |
 | Giving rollup target attributes on Account and Contact | Giving | v0.2 | 26 |
 | Commitment | Giving | v0.3 | 22 |
 | Installment | Giving | v0.3 | 23 |
@@ -2691,7 +3035,10 @@ included; standard objects the packages extend are named by the entity that gove
 | Affiliation | Core | v0.3 | 28 |
 | Address | Core | v0.3 | 29 |
 | Acknowledgment Rule | Giving | v0.4 | 30 |
-| Receipt | Giving | v0.4 | 30 |
+| Receipt | Giving | v0.4 | 25A |
+| Receipt Number Sequence | Giving | v0.4 | 25B |
+| Receipt Run | Giving | v0.4 | 25C |
+| Receipt Template | Giving | v0.4 | 25D |
 | Donor Level | Giving | v0.4 | 30 |
 | Stewardship Plan | Giving | v0.4 | 30 |
 | Gift Batch | Giving | v0.5 | 30 |
