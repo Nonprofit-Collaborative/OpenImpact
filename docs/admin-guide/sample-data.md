@@ -28,6 +28,13 @@ other step.
 You need the **Manage Nonprofit Settings** permission to load or remove sample data.
 Without it, the card is read only and tells you who to ask.
 
+Sample data needs household members to be stored as contacts, which is how Open Impact
+works unless you chose otherwise. If your org tracks household membership with household
+member records (the Agentforce Nonprofit coexistence mode, which Nonprofit Cloud orgs get),
+the card says so and the **Load Sample Data** button stays unavailable: the sample
+households would arrive with nobody in them. Import your own data instead, or change the
+household membership mode in **Nonprofit Settings** first.
+
 ## 3. A five-minute walkthrough (as Maria)
 
 1. Open **Nonprofit Settings**, go to **Sample Data**, and select **Load Sample Data**.
@@ -63,6 +70,9 @@ Without it, the card is read only and tells you who to ask.
   attaching people to.
 - **Assuming removal is instant.** Removal deletes several hundred records and takes a
   few seconds; wait for the card to confirm **Not loaded** before assuming it is done.
+- **Expecting it in an Agentforce Nonprofit org.** In junction membership mode the loader
+  is unavailable, and the card says why. This is not a fault to work around: the sample
+  people would have no way to join their households.
 - **Not having the permission.** If the **Load Sample Data** button does not appear, you
   are missing **Manage Nonprofit Settings**. Ask an administrator to grant it from the
   **Access** page, not from Setup.

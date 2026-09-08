@@ -98,8 +98,9 @@ describe('c-hub-home', () => {
     await settle();
 
     expect(element.shadowRoot.querySelector('c-setup-assistant')).toBeNull();
+    // The wording is a Custom Label with numbered slots, which jest renders as its API name.
     expect(element.shadowRoot.querySelector('[data-id="setup-progress"]').textContent).toContain(
-      '2 of 2'
+      'Core_SetupAssistant_ProgressFormat'
     );
 
     element.shadowRoot.querySelector('[data-id="reopen-setup"]').click();

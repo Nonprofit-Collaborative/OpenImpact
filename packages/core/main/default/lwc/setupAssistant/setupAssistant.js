@@ -44,6 +44,7 @@ import SAMPLE_UNAVAILABLE from '@salesforce/label/c.Core_SetupAssistant_SampleDa
 import ENTER_GIFT from '@salesforce/label/c.Core_SetupAssistant_EnterFirstGiftButton';
 import START_AGAIN from '@salesforce/label/c.Core_SetupAssistant_StartAgainButton';
 import OPEN_SECTION from '@salesforce/label/c.Core_SetupAssistant_OpenSectionButton';
+import PROGRESS_FORMAT from '@salesforce/label/c.Core_SetupAssistant_ProgressFormat';
 
 const CREATE_USER_URL = '/lightning/setup/ManageUsers/home';
 // The tabs the assistant links to. Both are unprefixed today; they are revisited when a
@@ -65,6 +66,9 @@ export default class SetupAssistant extends NavigationMixin(LightningElement) {
   @api reopened = false;
 
   reopenedHere = false;
+  // Set when Maria clicks Finish on the last step, so a setup she reopened collapses back
+  // to the completion screen rather than sitting on step eight with nowhere to go.
+  finishedHere = false;
   state;
   activeIndex = 0;
   errorMessage;
@@ -135,6 +139,7 @@ export default class SetupAssistant extends NavigationMixin(LightningElement) {
     this.state = state;
     if (moveToFirstUnfinished) {
       this.activeIndex = this.firstUnfinishedIndex(state);
+      this.finishedHere = false;
     }
     this.importComponents();
     this.dispatchEvent(
@@ -150,10 +155,12 @@ export default class SetupAssistant extends NavigationMixin(LightningElement) {
 
   // A skipped step is not a finished step, so a later visit opens on it again, which is what
   // the admin guide promises. Skipping only moves past it for the rest of this sitting.
+  // With nothing left unfinished the assistant is being reopened, and the admin guide says
+  // that opens on the first step, not on the last one.
   firstUnfinishedIndex(state) {
     const steps = state.steps || [];
     const index = steps.findIndex((step) => !step.completed);
-    return index < 0 ? Math.max(steps.length - 1, 0) : index;
+    return index < 0 ? 0 : index;
   }
 
   // The two panels Core itself ships are imported by name, written out literally so the
@@ -205,8 +212,14 @@ export default class SetupAssistant extends NavigationMixin(LightningElement) {
     return this.activeStep.completionRule === 'Setting' ? RULE_SETTING : RULE_ACTION;
   }
 
+  // "{0} of {1}" is a translatable sentence, not punctuation, so the wording is a label.
   get progressText() {
-    return this.state ? `${this.state.stepsCompleted} of ${this.state.stepsTotal}` : '';
+    return this.state
+      ? PROGRESS_FORMAT.replace('{0}', this.state.stepsCompleted).replace(
+          '{1}',
+          this.state.stepsTotal
+        )
+      : '';
   }
 
   get counterText() {
@@ -214,7 +227,10 @@ export default class SetupAssistant extends NavigationMixin(LightningElement) {
   }
 
   get showCompletionScreen() {
-    return Boolean(this.state && this.state.isComplete && !this.reopened && !this.reopenedHere);
+    if (!this.state || !this.state.isComplete) {
+      return false;
+    }
+    return this.finishedHere || (!this.reopened && !this.reopenedHere);
   }
 
   get showPanels() {
@@ -363,12 +379,14 @@ export default class SetupAssistant extends NavigationMixin(LightningElement) {
       this.moveTo(this.activeIndex + 1);
     } else {
       this.reopenedHere = false;
+      this.finishedHere = true;
     }
   }
 
   moveTo(index) {
     this.activeIndex = index;
     this.focusStepHeading = true;
+    this.finishedHere = false;
   }
 
   /** Start setup again: the recorded progress is forgotten, the settings are not. */
@@ -439,6 +457,12 @@ export default class SetupAssistant extends NavigationMixin(LightningElement) {
       () => {
         this.accessGranted = true;
         this.chosenUserId = undefined;
+        // The picker holds its own selection, so clearing the property is not enough:
+        // the admin guide promises the person box empties for the next colleague.
+        const picker = this.template.querySelector('[data-id="user-picker"]');
+        if (picker && typeof picker.clearSelection === 'function') {
+          picker.clearSelection();
+        }
       }
     );
   }

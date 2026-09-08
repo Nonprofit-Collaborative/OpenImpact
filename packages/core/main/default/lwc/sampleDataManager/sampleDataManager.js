@@ -27,6 +27,7 @@ import loadError from '@salesforce/label/c.Core_SampleData_LoadError';
 import removeError from '@salesforce/label/c.Core_SampleData_RemoveError';
 import cancelButtonLabel from '@salesforce/label/c.Core_SampleData_CancelButton';
 import confirmButtonLabel from '@salesforce/label/c.Core_SampleData_ConfirmButton';
+import contactModeOnly from '@salesforce/label/c.Core_SampleData_ContactModeOnly';
 
 /** How often the status card polls while a load is running (C-10). */
 const POLL_INTERVAL_MS = 3000;
@@ -57,6 +58,7 @@ export default class SampleDataManager extends LightningElement {
     readOnlyMessage,
     cancelButtonLabel,
     confirmButtonLabel,
+    contactModeOnly,
     loadSuccess,
     removeSuccess,
     loadError,
@@ -68,6 +70,9 @@ export default class SampleDataManager extends LightningElement {
   organizationCount = 0;
   loaded = false;
   loading = false;
+  // Undefined until the first status call answers, so the notice never flashes before the
+  // org has been asked. Only an explicit false means junction membership.
+  contactMembership;
   canManage = false;
   isLoadingStatus = true;
   isBusy = false;
@@ -112,6 +117,7 @@ export default class SampleDataManager extends LightningElement {
     this.organizationCount = result.organizationCount;
     this.loaded = result.loaded;
     this.loading = result.loading;
+    this.contactMembership = result.contactMembership;
 
     if (this.loading) {
       this.startPolling();
@@ -169,8 +175,13 @@ export default class SampleDataManager extends LightningElement {
       : this.labels.removeConfirmBody;
   }
 
+  /** True only when the org has answered that it keeps household membership in junctions. */
+  get junctionMembership() {
+    return this.contactMembership === false;
+  }
+
   get loadDisabled() {
-    return !this.canManage || this.loaded || this.loading || this.isBusy;
+    return !this.canManage || this.loaded || this.loading || this.isBusy || this.junctionMembership;
   }
 
   get removeDisabled() {

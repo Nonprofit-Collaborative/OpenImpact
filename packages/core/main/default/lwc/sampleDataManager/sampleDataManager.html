@@ -32,6 +32,12 @@
                     </div>
                 </div>
 
+                <template if:true={junctionMembership}>
+                    <p class="slds-text-color_weak slds-m-bottom_small" data-id="contact-mode-only">
+                        {labels.contactModeOnly}
+                    </p>
+                </template>
+
                 <template if:false={canManage}>
                     <p class="slds-text-color_weak">{labels.readOnlyMessage}</p>
                 </template>

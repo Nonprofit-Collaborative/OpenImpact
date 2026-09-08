@@ -1537,6 +1537,14 @@
     <value>The sample data file is missing information the loader needs, so nothing was loaded. Reinstall the package or restore the Sample Data resource, then try again.</value>
   </labels>
   <labels>
+    <fullName>Core_SampleData_ContactModeOnly</fullName>
+    <categories>Sample Data</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Sample data needs contact household membership</shortDescription>
+    <value>Sample data can only be loaded while household members are stored as contacts. This org tracks membership with household member records (Agentforce Nonprofit coexistence), so the sample households would arrive with nobody in them. Import your own data instead, or change the household membership mode on the Nonprofit Settings page first.</value>
+  </labels>
+  <labels>
     <fullName>Core_SampleData_HouseholdsLabel</fullName>
     <categories>Sample Data</categories>
     <language>en_US</language>
@@ -2271,6 +2279,14 @@
     <protected>true</protected>
     <shortDescription>Setup assistant: link from a step to where its answers live in Nonprofit Settings</shortDescription>
     <value>Where this lives in Settings</value>
+  </labels>
+  <labels>
+    <fullName>Core_SetupAssistant_ProgressFormat</fullName>
+    <categories>Setup Assistant</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Setup progress, finished steps out of the total</shortDescription>
+    <value>{0} of {1}</value>
   </labels>
   <labels>
     <fullName>Core_SetupAssistant_ProgressLabel</fullName>
