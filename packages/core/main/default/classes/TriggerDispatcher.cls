@@ -26,6 +26,11 @@
  *     rethrows with the same friendly message, which rolls the transaction back.
  *
  * Either way the original exception is already recorded, so nothing is swallowed.
+ *
+ * A handler method takes no arguments. The dispatcher works out the context and calls the method
+ * that matches; the handler reads `Trigger.new`, `Trigger.old`, `Trigger.newMap`, and
+ * `Trigger.oldMap` itself. `Context` therefore says which method to call and gives the dispatcher
+ * something to hang an error on, and is not passed to the handler.
  */
 @NamespaceAccessible
 public with sharing class TriggerDispatcher {
@@ -148,38 +153,33 @@ public with sharing class TriggerDispatcher {
         }
     }
 
+    /**
+     * Calls the one method this context names. Every handler method takes no arguments: the
+     * handler reads `Trigger.new` and its companions itself (see `TriggerHandler`), so the
+     * context is only used here to decide which method to call.
+     */
     private static void dispatch(TriggerHandler handler, Context context) {
         switch on context.operation {
             when BEFORE_INSERT {
-                handler.beforeInsert(context.newRecords);
+                handler.beforeInsert();
             }
             when AFTER_INSERT {
-                handler.afterInsert(context.newRecords, context.newRecordsById);
+                handler.afterInsert();
             }
             when BEFORE_UPDATE {
-                handler.beforeUpdate(
-                    context.newRecords,
-                    context.newRecordsById,
-                    context.oldRecords,
-                    context.oldRecordsById
-                );
+                handler.beforeUpdate();
             }
             when AFTER_UPDATE {
-                handler.afterUpdate(
-                    context.newRecords,
-                    context.newRecordsById,
-                    context.oldRecords,
-                    context.oldRecordsById
-                );
+                handler.afterUpdate();
             }
             when BEFORE_DELETE {
-                handler.beforeDelete(context.oldRecords, context.oldRecordsById);
+                handler.beforeDelete();
             }
             when AFTER_DELETE {
-                handler.afterDelete(context.oldRecords, context.oldRecordsById);
+                handler.afterDelete();
             }
             when AFTER_UNDELETE {
-                handler.afterUndelete(context.newRecords, context.newRecordsById);
+                handler.afterUndelete();
             }
             when else {
                 return;

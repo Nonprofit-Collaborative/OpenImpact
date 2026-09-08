@@ -5,6 +5,24 @@
  * `TriggerDispatcher`. Nothing else calls a handler directly, so every packaged automation is
  * bypassable and pausable (plan Section 7.2, canonical model rule R-A1).
  *
+ * THE CONTRACT. Every context method takes no arguments, and a handler body reads the records
+ * from the trigger context itself: `Trigger.new`, `Trigger.old`, `Trigger.newMap`,
+ * `Trigger.oldMap`. That is what every feature module is written against, so it is fixed here.
+ *
+ *     public class ContactTriggerHandler extends TriggerHandler {
+ *         public override void beforeInsert() {
+ *             for (Contact person : (List<Contact>) Trigger.new) {
+ *                 person.Description = 'Seen by Open Impact';
+ *             }
+ *         }
+ *     }
+ *
+ * Outside a trigger there is no `Trigger.new` to read, so a unit test that wants to drive a
+ * handler without inserting records sets the `testNew`, `testNewMap`, `testOld`, and `testOldMap`
+ * overrides below and has the handler read them through `newRecords()`, `newRecordsById()`,
+ * `oldRecords()`, and `oldRecordsById()`, which return the override when there is one and the
+ * trigger collection otherwise.
+ *
  * The recursion guard is per transaction, per handler, per phase, and per record: `claimRunFor`
  * takes the record ids in front of it and hands back the ones this handler has not already
  * processed, so a handler that causes its own object to be updated again does its work once per
@@ -14,49 +32,77 @@
 public virtual with sharing class TriggerHandler {
     private static final Map<String, Set<Id>> CLAIMED_RECORDS = new Map<String, Set<Id>>();
 
+    /**
+     * Stand-ins for the four trigger context collections, for a unit test driving a handler
+     * outside a trigger. Nothing in production ever sets them.
+     */
+    @TestVisible
+    private static List<SObject> testNew;
+    @TestVisible
+    private static Map<Id, SObject> testNewMap;
+    @TestVisible
+    private static List<SObject> testOld;
+    @TestVisible
+    private static Map<Id, SObject> testOldMap;
+
     @NamespaceAccessible
-    public virtual void beforeInsert(List<SObject> newRecords) {
+    public virtual void beforeInsert() {
         return;
     }
 
     @NamespaceAccessible
-    public virtual void afterInsert(List<SObject> newRecords, Map<Id, SObject> newRecordsById) {
+    public virtual void afterInsert() {
         return;
     }
 
     @NamespaceAccessible
-    public virtual void beforeUpdate(
-        List<SObject> newRecords,
-        Map<Id, SObject> newRecordsById,
-        List<SObject> oldRecords,
-        Map<Id, SObject> oldRecordsById
-    ) {
+    public virtual void beforeUpdate() {
         return;
     }
 
     @NamespaceAccessible
-    public virtual void afterUpdate(
-        List<SObject> newRecords,
-        Map<Id, SObject> newRecordsById,
-        List<SObject> oldRecords,
-        Map<Id, SObject> oldRecordsById
-    ) {
+    public virtual void afterUpdate() {
         return;
     }
 
     @NamespaceAccessible
-    public virtual void beforeDelete(List<SObject> oldRecords, Map<Id, SObject> oldRecordsById) {
+    public virtual void beforeDelete() {
         return;
     }
 
     @NamespaceAccessible
-    public virtual void afterDelete(List<SObject> oldRecords, Map<Id, SObject> oldRecordsById) {
+    public virtual void afterDelete() {
         return;
     }
 
     @NamespaceAccessible
-    public virtual void afterUndelete(List<SObject> newRecords, Map<Id, SObject> newRecordsById) {
+    public virtual void afterUndelete() {
         return;
+    }
+
+    /**
+     * The records in front of this handler. Identical to `Trigger.new` and its companions inside
+     * a trigger, and equal to the test overrides outside one, so the same handler body works in
+     * both places.
+     */
+    @NamespaceAccessible
+    public List<SObject> newRecords() {
+        return testNew != null ? testNew : Trigger.new;
+    }
+
+    @NamespaceAccessible
+    public Map<Id, SObject> newRecordsById() {
+        return testNewMap != null ? testNewMap : Trigger.newMap;
+    }
+
+    @NamespaceAccessible
+    public List<SObject> oldRecords() {
+        return testOld != null ? testOld : Trigger.old;
+    }
+
+    @NamespaceAccessible
+    public Map<Id, SObject> oldRecordsById() {
+        return testOldMap != null ? testOldMap : Trigger.oldMap;
     }
 
     /**

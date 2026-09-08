@@ -18,53 +18,31 @@ private class TriggerDispatcherTest {
             return HANDLER_NAME;
         }
 
-        public override void beforeInsert(List<SObject> newRecords) {
+        public override void beforeInsert() {
             note('beforeInsert');
         }
 
-        public override void afterInsert(
-            List<SObject> newRecords,
-            Map<Id, SObject> newRecordsById
-        ) {
+        public override void afterInsert() {
             note('afterInsert');
         }
 
-        public override void beforeUpdate(
-            List<SObject> newRecords,
-            Map<Id, SObject> newRecordsById,
-            List<SObject> oldRecords,
-            Map<Id, SObject> oldRecordsById
-        ) {
+        public override void beforeUpdate() {
             note('beforeUpdate');
         }
 
-        public override void afterUpdate(
-            List<SObject> newRecords,
-            Map<Id, SObject> newRecordsById,
-            List<SObject> oldRecords,
-            Map<Id, SObject> oldRecordsById
-        ) {
+        public override void afterUpdate() {
             note('afterUpdate');
         }
 
-        public override void beforeDelete(
-            List<SObject> oldRecords,
-            Map<Id, SObject> oldRecordsById
-        ) {
+        public override void beforeDelete() {
             note('beforeDelete');
         }
 
-        public override void afterDelete(
-            List<SObject> oldRecords,
-            Map<Id, SObject> oldRecordsById
-        ) {
+        public override void afterDelete() {
             note('afterDelete');
         }
 
-        public override void afterUndelete(
-            List<SObject> newRecords,
-            Map<Id, SObject> newRecordsById
-        ) {
+        public override void afterUndelete() {
             note('afterUndelete');
         }
 
@@ -77,18 +55,28 @@ private class TriggerDispatcherTest {
         }
     }
 
+    /**
+     * A context to dispatch, plus the records a handler will read. A handler method takes no
+     * arguments and reads `Trigger.new` and its companions itself, so outside a trigger the same
+     * records are put on the `TriggerHandler` test overrides, which is how a unit test drives a
+     * handler without inserting records to fire a real trigger.
+     */
     private static TriggerDispatcher.Context contextFor(System.TriggerOperation operation) {
         List<Error_Log__c> records = TestDataFactory.insertErrorLogs(2, ErrorLogger.STATUS_NEW);
         Map<Id, SObject> byId = new Map<Id, SObject>((List<SObject>) records);
         Boolean isDelete =
             operation == System.TriggerOperation.BEFORE_DELETE ||
             operation == System.TriggerOperation.AFTER_DELETE;
+        TriggerHandler.testNew = isDelete ? null : (List<SObject>) records;
+        TriggerHandler.testNewMap = isDelete ? null : byId;
+        TriggerHandler.testOld = isDelete ? (List<SObject>) records : null;
+        TriggerHandler.testOldMap = isDelete ? byId : null;
         return new TriggerDispatcher.Context(
             operation,
-            isDelete ? null : (List<SObject>) records,
-            isDelete ? null : byId,
-            isDelete ? (List<SObject>) records : null,
-            isDelete ? byId : null
+            TriggerHandler.testNew,
+            TriggerHandler.testNewMap,
+            TriggerHandler.testOld,
+            TriggerHandler.testOldMap
         );
     }
 
@@ -402,6 +390,8 @@ private class TriggerDispatcherTest {
 
         Test.startTest();
         for (Map<Id, SObject> chunk : new List<Map<Id, SObject>>{ firstChunk, secondChunk }) {
+            TriggerHandler.testNew = chunk.values();
+            TriggerHandler.testNewMap = chunk;
             TriggerDispatcher.run(
                 'Error_Log__c',
                 new TriggerDispatcher.Context(
@@ -449,17 +439,39 @@ private class TriggerDispatcherTest {
     @IsTest
     static void theBaseHandlerDoesNothingInEveryContext() {
         TriggerHandler handler = new TriggerHandler();
-        List<SObject> records = new List<SObject>();
-        Map<Id, SObject> byId = new Map<Id, SObject>();
 
-        handler.beforeInsert(records);
-        handler.afterInsert(records, byId);
-        handler.beforeUpdate(records, byId, records, byId);
-        handler.afterUpdate(records, byId, records, byId);
-        handler.beforeDelete(records, byId);
-        handler.afterDelete(records, byId);
-        handler.afterUndelete(records, byId);
+        handler.beforeInsert();
+        handler.afterInsert();
+        handler.beforeUpdate();
+        handler.afterUpdate();
+        handler.beforeDelete();
+        handler.afterDelete();
+        handler.afterUndelete();
 
         Assert.areEqual(0, [SELECT COUNT() FROM Error_Log__c], 'The base handler does nothing.');
+    }
+
+    @IsTest
+    static void aHandlerReadsItsRecordsFromTheTriggerContext() {
+        // The contract every feature module is written to: a no-argument method that reads its
+        // own records. Outside a trigger the overrides stand in for Trigger.new and its
+        // companions, and with nothing set the accessors are simply empty.
+        TriggerHandler handler = new TriggerHandler();
+        Assert.isNull(handler.newRecords(), 'Outside a trigger there is nothing to read.');
+        Assert.isNull(handler.newRecordsById(), 'For any of the four collections.');
+        Assert.isNull(handler.oldRecords(), 'Old records included.');
+        Assert.isNull(handler.oldRecordsById(), 'And the map of them.');
+
+        List<Error_Log__c> records = TestDataFactory.insertErrorLogs(2, ErrorLogger.STATUS_NEW);
+        Map<Id, SObject> byId = new Map<Id, SObject>((List<SObject>) records);
+        TriggerHandler.testNew = (List<SObject>) records;
+        TriggerHandler.testNewMap = byId;
+        TriggerHandler.testOld = (List<SObject>) records;
+        TriggerHandler.testOldMap = byId;
+
+        Assert.areEqual(2, handler.newRecords().size(), 'A test can hand a handler its records.');
+        Assert.areEqual(byId.keySet(), handler.newRecordsById().keySet(), 'Keyed by id.');
+        Assert.areEqual(2, handler.oldRecords().size(), 'The same for the old records.');
+        Assert.areEqual(byId.keySet(), handler.oldRecordsById().keySet(), 'And their map.');
     }
 }

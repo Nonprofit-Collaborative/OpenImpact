@@ -54,8 +54,45 @@ Error Log: one broken automation does not stop a person saving a record.
 `TriggerDispatcher.run(new ContactTriggerHandler())` remains, for tests and for an object with
 exactly one handler.
 
-A handler extends `TriggerHandler` and overrides only the contexts it needs. The dispatcher works
-out which context it is in, then checks three things before it invokes anything: a per transaction
+A handler extends `TriggerHandler` and overrides only the contexts it needs. **Every context
+method takes no arguments, and the handler reads its own records from the trigger context.** That
+is the contract every feature module is written against:
+
+```apex
+public class ContactTriggerHandler extends TriggerHandler {
+    public override void beforeInsert() {
+        for (Contact person : (List<Contact>) Trigger.new) {
+            person.LastName = person.LastName.trim();
+        }
+    }
+
+    public override void afterUpdate() {
+        HouseholdNamingService.rename(Trigger.newMap.keySet());
+    }
+}
+```
+
+The seven overridable methods are `beforeInsert()`, `afterInsert()`, `beforeUpdate()`,
+`afterUpdate()`, `beforeDelete()`, `afterDelete()`, and `afterUndelete()`, plus `getName()`, which
+returns the automation's stable name and defaults to the class name with any namespace stripped.
+The bodies read `Trigger.new`, `Trigger.old`, `Trigger.newMap`, and `Trigger.oldMap`.
+
+Outside a trigger those collections are null, so a unit test that wants to drive a handler without
+inserting records sets the `TriggerHandler` test overrides and the handler reads them through the
+matching accessor:
+
+```apex
+TriggerHandler.testNew = (List<SObject>) records;
+TriggerHandler.testNewMap = new Map<Id, SObject>(records);
+TriggerDispatcher.run(new ContactTriggerHandler(), context);
+```
+
+`newRecords()`, `newRecordsById()`, `oldRecords()`, and `oldRecordsById()` return the override when
+a test has set one and the trigger collection otherwise, so a handler written against them behaves
+the same in both places.
+
+The dispatcher works out which context it is in, then checks three things before it invokes
+anything: a per transaction
 bypass (`AutomationControl.bypass(name)`), the org wide pause
 (`Nonprofit_Settings__c.Automation_Paused_Until__c`), and the automation's own switch (a row on
 `Automation_Setting__c`, keyed by the registry's developer name). Anything a handler throws is
