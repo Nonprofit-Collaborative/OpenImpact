@@ -2,7 +2,8 @@
 """Checks that every permission set grants access to metadata that exists.
 
 A permission set naming a class, tab, application, object, field or custom permission that
-the packages do not ship fails the whole deployment with a component error. Nothing else in
+the packages do not ship fails the whole deployment with a component error, and so does a
+permission set group naming a set that is not there. Nothing else in
 the check suite sees it: the offline Apex compiler does not read permission sets, and the
 canonical model check reads objects and fields rather than who is granted them.
 
@@ -87,11 +88,38 @@ def check(path):
     return problems
 
 
+def check_group(path):
+    """Every permission set a group names that no package ships.
+
+    A permission set group is deployed with the sets it contains, and the packages deploy in
+    stages: the vendored engine, then Core, then Giving. A Core group naming a Giving
+    permission set would therefore be undeployable at the moment Core goes in, whatever the
+    final org looks like once both packages are installed.
+    """
+    name = os.path.basename(path).replace(".permissionsetgroup-meta.xml", "")
+    root = ET.parse(path).getroot()
+    problems = []
+    for entry in root.findall(q("permissionSets")):
+        value = (entry.text or "").strip()
+        if value and not exists(
+            f"packages/*/main/default/permissionsets/{value}.permissionset-meta.xml"
+        ):
+            problems.append(
+                f"{name}: contains permission set {value}, which no package ships"
+            )
+    return problems
+
+
 def main():
     paths = sorted(glob.glob("packages/*/main/default/permissionsets/*.permissionset-meta.xml"))
+    group_paths = sorted(
+        glob.glob("packages/*/main/default/permissionsetgroups/*.permissionsetgroup-meta.xml")
+    )
     problems = []
     for path in paths:
         problems.extend(check(path))
+    for path in group_paths:
+        problems.extend(check_group(path))
 
     for problem in problems:
         print(problem, file=sys.stderr)
@@ -102,7 +130,10 @@ def main():
         )
         return 1
 
-    print(f"check-permission-sets.py: OK, {len(paths)} permission sets grant only what exists")
+    print(
+        f"check-permission-sets.py: OK, {len(paths)} permission sets grant only what exists, "
+        f"and {len(group_paths)} groups contain only sets that ship"
+    )
     return 0
 
 

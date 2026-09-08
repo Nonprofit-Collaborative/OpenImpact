@@ -34,7 +34,7 @@ Salesforce org is needed for this job. Steps:
    in by `git add -A`, broke the offline Apex compile check on `main`.
 9. `scripts/ci/check-permission-sets.py`, failing the build if a packaged permission set
    grants access to a class, tab, app, custom permission, object, record type or field that
-   the repository does not ship. A dangling grant refuses the whole deployment, and the
+   the repository does not ship, or a permission set group contains a set that is not there. A dangling grant refuses the whole deployment, and the
    permission sets are assembled by hand at every merge from each branch's integration
    file, so the reference and the metadata can drift apart silently. This ran because
    `Nonprofit_Admin` granted a `Household_Member__c` tab that was never created.
