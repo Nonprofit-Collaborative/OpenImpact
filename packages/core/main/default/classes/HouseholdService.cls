@@ -35,6 +35,7 @@ public with sharing class HouseholdService {
      * same people twice does not query twice. Cleared whenever membership changes here.
      */
     private static final Map<Id, Id> HOUSEHOLD_ID_BY_PERSON = new Map<Id, Id>();
+    private static Boolean upkeepRunning = false;
 
     /**
      * One member of a household, whichever object the person is stored on.
@@ -333,6 +334,44 @@ public with sharing class HouseholdService {
         return result;
     }
 
+    /**
+     * Everything a household needs once its membership has changed: the member count, the
+     * name and the two greetings, and the tidying away of a household that has been left
+     * with nobody in it.
+     *
+     * This is the one place that upkeep is spelled out. The trigger handlers call it, and
+     * so may another package that has changed membership itself (ADR-0017). The guard stops
+     * the saves it makes from coming back round through another trigger and starting again.
+     */
+    @NamespaceAccessible
+    public static void afterMembershipChange(Set<Id> householdIds) {
+        afterMembershipChange(householdIds, true);
+    }
+
+    /**
+     * The same, saying whether a household left with nobody in it may be tidied away. It
+     * may not on a path where people are still being added to a household that has only
+     * just been created.
+     */
+    @NamespaceAccessible
+    public static void afterMembershipChange(Set<Id> householdIds, Boolean mayTidyAway) {
+        if (upkeepRunning || householdIds == null || householdIds.isEmpty()) {
+            return;
+        }
+        upkeepRunning = true;
+        try {
+            // Who belongs to what has just changed, so any answer already given is stale.
+            HOUSEHOLD_ID_BY_PERSON.clear();
+            recalculateMemberCounts(householdIds);
+            HouseholdNamingService.applyNaming(householdIds);
+            if (mayTidyAway == true) {
+                deleteEmptyHouseholds(householdIds);
+            }
+        } finally {
+            upkeepRunning = false;
+        }
+    }
+
     private static void resolveThroughContacts(Set<Id> personIds, Map<Id, Id> result) {
         Set<Id> contactIds = idsOfType(personIds, Contact.SObjectType);
         if (contactIds.isEmpty()) {
@@ -429,13 +468,13 @@ public with sharing class HouseholdService {
         if (households.isEmpty()) {
             return;
         }
-        // User mode: creating a contact is a user action, so the household is created with
-        // the saving user's own access rather than with more.
-        List<Database.SaveResult> results = Database.insert(households, AccessLevel.USER_MODE);
+        // The household is the package's own bookkeeping, so it is saved by HouseholdWriter,
+        // which explains why that one write does not run with the saving user's access.
+        List<Id> created = HouseholdWriter.createHouseholds(households);
         HOUSEHOLD_ID_BY_PERSON.clear();
-        for (Integer i = 0; i < results.size(); i++) {
-            if (results[i].isSuccess()) {
-                waiting[i].AccountId = results[i].getId();
+        for (Integer i = 0; i < created.size(); i++) {
+            if (created[i] != null) {
+                waiting[i].AccountId = created[i];
             }
         }
     }
@@ -469,15 +508,15 @@ public with sharing class HouseholdService {
             for (Person person : people) {
                 households.add(newHousehold(new List<Person>{ person }, recordTypeId, settings));
             }
-            List<Database.SaveResult> results = Database.insert(households, AccessLevel.USER_MODE);
+            List<Id> created = HouseholdWriter.createHouseholds(households);
             List<Household_Member__c> memberships = new List<Household_Member__c>();
-            for (Integer i = 0; i < results.size(); i++) {
-                if (!results[i].isSuccess()) {
+            for (Integer i = 0; i < created.size(); i++) {
+                if (created[i] == null) {
                     continue;
                 }
                 memberships.add(
                     new Household_Member__c(
-                        Household__c = results[i].getId(),
+                        Household__c = created[i],
                         Account__c = people[i].id,
                         Role__c = ROLE_HEAD,
                         Is_Primary__c = true,
@@ -486,7 +525,7 @@ public with sharing class HouseholdService {
                 );
             }
             if (!memberships.isEmpty()) {
-                Database.insert(memberships, AccessLevel.USER_MODE);
+                HouseholdWriter.createMemberships(memberships);
                 HOUSEHOLD_ID_BY_PERSON.clear();
             }
         } finally {
@@ -529,19 +568,34 @@ public with sharing class HouseholdService {
         if (contactId == null || targetHouseholdId == null) {
             throw new HouseholdException(Label.Core_Households_ErrorMoveMissingInput);
         }
-        List<Contact> people = HouseholdSelector.getContactsByIds(new Set<Id>{ contactId });
+        Boolean storedAsAccount = contactId.getSObjectType() == Account.SObjectType;
+        List<Contact> people = storedAsAccount
+            ? new List<Contact>()
+            : HouseholdSelector.getContactsByIds(new Set<Id>{ contactId });
         List<Account> targets = HouseholdSelector.getHouseholdsByIds(
             new Set<Id>{ targetHouseholdId }
         );
-        if (people.isEmpty() || targets.isEmpty()) {
+        if (targets.isEmpty()) {
             throw new HouseholdException(Label.Core_Households_ErrorMoveNotFound);
         }
         if (targets[0].RecordTypeId != householdRecordTypeId()) {
             throw new HouseholdException(Label.Core_Households_ErrorNotAHousehold);
         }
+        Boolean personMissing =
+            storedAsAccount && PersonRecordSelector.getPersons(new Set<Id>{ contactId }).isEmpty();
+        if (personMissing) {
+            throw new HouseholdException(Label.Core_Households_ErrorMoveNotFound);
+        }
+        if (!storedAsAccount && people.isEmpty()) {
+            throw new HouseholdException(Label.Core_Households_ErrorMoveNotFound);
+        }
         Set<Id> affected = new Set<Id>{ targetHouseholdId };
         if (isJunctionMode()) {
-            moveJunctionMember(contactId, targetHouseholdId, affected);
+            moveJunctionMember(contactId, targetHouseholdId, storedAsAccount, affected);
+        } else if (storedAsAccount) {
+            // A person stored as an account has no account reference of their own to move,
+            // so this org has to be in the flexible membership mode to move them at all.
+            throw new HouseholdException(Label.Core_Households_ErrorMoveNeedsJunction);
         } else {
             Contact person = people[0];
             if (person.AccountId != null) {
@@ -556,31 +610,46 @@ public with sharing class HouseholdService {
         deleteEmptyHouseholds(affected);
     }
 
-    private static void moveJunctionMember(Id personId, Id targetHouseholdId, Set<Id> affected) {
+    private static void moveJunctionMember(
+        Id personId,
+        Id targetHouseholdId,
+        Boolean storedAsAccount,
+        Set<Id> affected
+    ) {
         List<Household_Member__c> current = HouseholdSelector.getMembershipsForPeople(
             new Set<Id>{ personId }
         );
         List<Household_Member__c> ended = new List<Household_Member__c>();
+        String role;
+        Boolean isPrimary = false;
         for (Household_Member__c membership : current) {
             if (membership.Household__c == targetHouseholdId) {
                 continue;
             }
             affected.add(membership.Household__c);
+            if (String.isBlank(role) && String.isNotBlank(membership.Role__c)) {
+                role = membership.Role__c;
+            }
+            isPrimary = isPrimary || membership.Is_Primary__c == true;
+            // Ended today, and the current-membership filter counts only a membership that
+            // ends after today, so the person leaves the old household straight away.
             ended.add(new Household_Member__c(Id = membership.Id, End_Date__c = Date.today()));
         }
         if (!ended.isEmpty()) {
             Database.update(ended, AccessLevel.USER_MODE);
         }
-        Database.insert(
-            new List<Household_Member__c>{
-                new Household_Member__c(
-                    Household__c = targetHouseholdId,
-                    Contact__c = personId,
-                    Start_Date__c = Date.today()
-                )
-            },
-            AccessLevel.USER_MODE
+        Household_Member__c joined = new Household_Member__c(
+            Household__c = targetHouseholdId,
+            Role__c = role,
+            Is_Primary__c = isPrimary,
+            Start_Date__c = Date.today()
         );
+        if (storedAsAccount) {
+            joined.Account__c = personId;
+        } else {
+            joined.Contact__c = personId;
+        }
+        Database.insert(new List<Household_Member__c>{ joined }, AccessLevel.USER_MODE);
     }
 
     /**
@@ -591,9 +660,15 @@ public with sharing class HouseholdService {
         if (householdIds == null || householdIds.isEmpty()) {
             return;
         }
+        Id recordTypeId = householdRecordTypeId();
         Map<Id, List<Person>> membersByHousehold = getMembers(householdIds);
         List<Account> updates = new List<Account>();
         for (Account household : HouseholdSelector.getHouseholdsByIds(householdIds)) {
+            // Only a household is counted. An organization a contact happens to belong to
+            // never gets a member count stamped on it.
+            if (recordTypeId != null && household.RecordTypeId != recordTypeId) {
+                continue;
+            }
             List<Person> members = membersByHousehold.get(household.Id);
             Decimal count = members == null ? 0 : members.size();
             if (household.Member_Count__c != count) {
@@ -601,7 +676,7 @@ public with sharing class HouseholdService {
             }
         }
         if (!updates.isEmpty()) {
-            Database.update(updates, AccessLevel.USER_MODE);
+            HouseholdWriter.updateHouseholds(updates);
         }
     }
 
@@ -629,7 +704,7 @@ public with sharing class HouseholdService {
             }
         }
         if (!empties.isEmpty()) {
-            Database.delete(empties, AccessLevel.USER_MODE);
+            HouseholdWriter.deleteHouseholds(empties);
         }
     }
 }

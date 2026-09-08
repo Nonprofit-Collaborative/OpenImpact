@@ -1,5 +1,14 @@
 /**
  * Every query the household feature makes. No other household class contains SOQL.
+ *
+ * DOCUMENTED EXCEPTION to the user mode rule (plan Sections 4.13 and 7.2), the read side
+ * of the one HouseholdWriter records for saving. These queries read the package's own
+ * computed bookkeeping (the member count, the name, the two greetings, the membership
+ * rows) so that household upkeep works for any user who can save a contact, including an
+ * org's own profile or an integration user that a packaged permission set cannot reach.
+ * Every calling class is `with sharing`, so which records a user can see is unchanged;
+ * only field level access on the package's own fields is bypassed. Nothing read here is
+ * shown to a user except a member's name and role on their own household.
  */
 @NamespaceAccessible
 public with sharing class HouseholdSelector {
@@ -23,7 +32,7 @@ public with sharing class HouseholdSelector {
                 Exclude_From_Greetings__c
             FROM Contact
             WHERE AccountId IN :householdIds
-            WITH USER_MODE
+            WITH SYSTEM_MODE
             ORDER BY CreatedDate
             LIMIT 10000
         ];
@@ -49,7 +58,7 @@ public with sharing class HouseholdSelector {
                 Exclude_From_Greetings__c
             FROM Contact
             WHERE Id IN :contactIds
-            WITH USER_MODE
+            WITH SYSTEM_MODE
             ORDER BY CreatedDate
             LIMIT 10000
         ];
@@ -68,7 +77,7 @@ public with sharing class HouseholdSelector {
             SELECT Id, AccountId, Account.RecordTypeId
             FROM Contact
             WHERE Id IN :contactIds
-            WITH USER_MODE
+            WITH SYSTEM_MODE
             LIMIT 10000
         ];
     }
@@ -90,7 +99,7 @@ public with sharing class HouseholdSelector {
                 Household_Informal_Greeting__c
             FROM Account
             WHERE Id IN :householdIds
-            WITH USER_MODE
+            WITH SYSTEM_MODE
             LIMIT 10000
         ];
     }
@@ -112,8 +121,8 @@ public with sharing class HouseholdSelector {
                 Start_Date__c,
                 End_Date__c
             FROM Household_Member__c
-            WHERE Household__c IN :householdIds AND (End_Date__c = NULL OR End_Date__c >= :today)
-            WITH USER_MODE
+            WHERE Household__c IN :householdIds AND (End_Date__c = NULL OR End_Date__c > :today)
+            WITH SYSTEM_MODE
             ORDER BY CreatedDate
             LIMIT 10000
         ];
@@ -140,8 +149,8 @@ public with sharing class HouseholdSelector {
                 (Contact__c IN :personIds
                 OR Account__c IN :personIds)
                 AND (End_Date__c = NULL
-                OR End_Date__c >= :today)
-            WITH USER_MODE
+                OR End_Date__c > :today)
+            WITH SYSTEM_MODE
             ORDER BY CreatedDate
             LIMIT 10000
         ];
@@ -159,7 +168,7 @@ public with sharing class HouseholdSelector {
                 SELECT Id
                 FROM Account
                 WHERE RecordTypeId = :recordTypeId AND Custom_Name__c = FALSE
-                WITH USER_MODE
+                WITH SYSTEM_MODE
             ]
         );
     }

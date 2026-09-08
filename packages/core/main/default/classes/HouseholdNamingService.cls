@@ -110,7 +110,7 @@ public with sharing class HouseholdNamingService {
         }
         List<String> parts = new List<String>();
         for (HouseholdService.Person person : eligible) {
-            String part = substitute(usable, person);
+            String part = substituteFormal(usable, person);
             if (String.isBlank(part)) {
                 continue;
             }
@@ -158,7 +158,8 @@ public with sharing class HouseholdNamingService {
             Label.Core_Households_Conjunction +
             ' ' +
             second.salutation;
-        return squeeze(salutations + ' ' + displayFirstName(first) + ' ' + first.lastName);
+        // A formal greeting uses the name on the record, not the name a person prefers.
+        return squeeze(salutations + ' ' + blankToEmpty(first.firstName) + ' ' + first.lastName);
     }
 
     // ------------------------------------------------------------------ saving
@@ -224,7 +225,9 @@ public with sharing class HouseholdNamingService {
                 }
             }
             if (!updates.isEmpty()) {
-                Database.update(updates, AccessLevel.USER_MODE);
+                // The name and the two greetings are computed by the package, so they are
+                // saved by HouseholdWriter rather than with the saving user's own access.
+                HouseholdWriter.updateHouseholds(updates);
                 changed = updates.size();
             }
         } catch (Exception e) {
@@ -292,10 +295,16 @@ public with sharing class HouseholdNamingService {
         List<String> result = new List<String>();
         Set<String> seen = new Set<String>();
         for (HouseholdService.Person person : members) {
-            if (String.isBlank(person.lastName) || seen.contains(person.lastName)) {
+            if (String.isBlank(person.lastName)) {
                 continue;
             }
-            seen.add(person.lastName);
+            // Two spellings of one surname are one surname, so "smith" and "Smith" never
+            // produce "smith and Smith Household".
+            String key = person.lastName.toLowerCase();
+            if (seen.contains(key)) {
+                continue;
+            }
+            seen.add(key);
             result.add(person.lastName);
         }
         return result;
@@ -330,6 +339,16 @@ public with sharing class HouseholdNamingService {
         result = result.replace(TOKEN_LAST_NAME, blankToEmpty(person.lastName));
         result = result.replace(TOKEN_SALUTATION, blankToEmpty(person.salutation));
         return squeeze(result);
+    }
+
+    /**
+     * The same substitution, with the name on the record rather than the preferred name,
+     * which is what a letter uses.
+     */
+    private static String substituteFormal(String pattern, HouseholdService.Person person) {
+        HouseholdService.Person formal = person.copy();
+        formal.preferredName = null;
+        return substitute(pattern, formal);
     }
 
     private static String displayFirstName(HouseholdService.Person person) {

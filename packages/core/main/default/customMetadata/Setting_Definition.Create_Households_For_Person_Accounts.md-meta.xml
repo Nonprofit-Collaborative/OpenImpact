@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<CustomMetadata
-  xmlns="http://soap.sforce.com/2006/04/metadata"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
->
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <label>Create households for people stored as accounts</label>
   <protected>true</protected>
   <values>
@@ -11,10 +8,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">
-      Only matters when your org stores people as accounts rather than as contacts. When it is
-      on, saving a new person also creates their household and their membership of it.
-    </value>
+    <value xsi:type="xsd:string">Only matters when your org stores people as accounts rather than as contacts. When it is on, saving a new person also creates their household and their membership of it.</value>
   </values>
   <values>
     <field>Help_Path__c</field>

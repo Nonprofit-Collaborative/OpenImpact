@@ -65,6 +65,13 @@
     </layoutColumns>
     <style>TwoColumnsTopToBottom</style>
   </layoutSections>
+  <relatedLists>
+    <fields>NAME</fields>
+    <fields>TITLE</fields>
+    <fields>EMAIL</fields>
+    <fields>PHONE</fields>
+    <relatedList>CONTACT</relatedList>
+  </relatedLists>
   <showEmailCheckbox>false</showEmailCheckbox>
   <showHighlightsPanel>false</showHighlightsPanel>
   <showInteractionLogPanel>false</showInteractionLogPanel>

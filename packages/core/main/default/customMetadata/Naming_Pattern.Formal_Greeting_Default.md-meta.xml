@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<CustomMetadata
-  xmlns="http://soap.sforce.com/2006/04/metadata"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
->
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <label>Formal greeting: title, first name, surname</label>
   <protected>true</protected>
   <values>
@@ -11,10 +8,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">
-      Produces Mr. and Mrs. John Smith when two people share a surname, and Mr. John Smith and
-      Ms. Jane Jones when they do not.
-    </value>
+    <value xsi:type="xsd:string">Produces Mr. and Mrs. John Smith when two people share a surname, and Mr. John Smith and Ms. Jane Jones when they do not.</value>
   </values>
   <values>
     <field>Pattern_Type__c</field>

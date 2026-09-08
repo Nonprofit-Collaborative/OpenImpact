@@ -18,6 +18,22 @@ public with sharing class HouseholdController {
     }
 
     /**
+     * The naming patterns as this org has them saved.
+     */
+    public class NamingSettings {
+        @AuraEnabled
+        public String namePattern;
+        @AuraEnabled
+        public String formalPattern;
+        @AuraEnabled
+        public String informalPattern;
+        @AuraEnabled
+        public Boolean includeDeceasedInName;
+        @AuraEnabled
+        public Boolean canEdit;
+    }
+
+    /**
      * One member of a household, as the members panel shows them.
      */
     public class MemberView {
@@ -77,17 +93,57 @@ public with sharing class HouseholdController {
     }
 
     /**
+     * The patterns this org has saved, so that the settings page opens on the admin's own
+     * wording rather than on the shipped defaults.
+     */
+    @AuraEnabled(cacheable=true)
+    public static NamingSettings getNamingSettings() {
+        try {
+            Nonprofit_Settings__c settings = SettingsService.getSettings();
+            NamingSettings result = new NamingSettings();
+            result.namePattern = settings == null ? null : settings.Household_Name_Pattern__c;
+            result.formalPattern = settings == null ? null : settings.Formal_Greeting_Pattern__c;
+            result.informalPattern = settings == null
+                ? null
+                : settings.Informal_Greeting_Pattern__c;
+            result.includeDeceasedInName =
+                settings != null &&
+                settings.Include_Deceased_In_Name__c == true;
+            result.canEdit = canManageSettings();
+            return result;
+        } catch (Exception e) {
+            throw asUserError(e);
+        }
+    }
+
+    /**
      * Starts the batch that rewrites every household that is not marked as a custom name,
-     * and gives the screen the job id so it can report progress.
+     * and gives the screen the job id so it can report progress. Rewriting every household
+     * in the org is an administrator's action, so the permission is checked here and not
+     * only on the screen.
      */
     @AuraEnabled
     public static String recomputeAll() {
         try {
+            if (!canManageSettings()) {
+                throw new HouseholdException(Label.Core_Households_ErrorNoSettingsPermission);
+            }
             return String.valueOf(Database.executeBatch(new HouseholdNamingBatch(), 200));
         } catch (Exception e) {
             ErrorLogger.log(e, Label.Core_Households_ErrorContextNaming);
             throw asUserError(e);
         }
+    }
+
+    /**
+     * How this org says people belong to a household, so that a screen can offer the
+     * actions that make sense here and no other code has to know the answer.
+     */
+    @AuraEnabled(cacheable=true)
+    public static String getMembershipMode() {
+        return HouseholdService.isJunctionMode()
+            ? HouseholdService.MODE_JUNCTION
+            : HouseholdService.SOURCE_CONTACT;
     }
 
     @AuraEnabled(cacheable=true)
@@ -131,6 +187,10 @@ public with sharing class HouseholdController {
     }
 
     // ------------------------------------------------------------------ helpers
+
+    private static Boolean canManageSettings() {
+        return FeatureManagement.checkPermission('Manage_Nonprofit_Settings');
+    }
 
     private static AuraHandledException asUserError(Exception e) {
         AuraHandledException error = new AuraHandledException(e.getMessage());

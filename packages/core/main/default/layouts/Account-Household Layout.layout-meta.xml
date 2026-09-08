@@ -88,6 +88,22 @@
     </layoutColumns>
     <style>TwoColumnsTopToBottom</style>
   </layoutSections>
+  <relatedLists>
+    <fields>NAME</fields>
+    <fields>Household_Role__c</fields>
+    <fields>EMAIL</fields>
+    <fields>PHONE</fields>
+    <relatedList>CONTACT</relatedList>
+  </relatedLists>
+  <relatedLists>
+    <fields>NAME</fields>
+    <fields>Contact__c</fields>
+    <fields>Role__c</fields>
+    <fields>Is_Primary__c</fields>
+    <fields>Start_Date__c</fields>
+    <fields>End_Date__c</fields>
+    <relatedList>Household_Member__c.Household__c</relatedList>
+  </relatedLists>
   <showEmailCheckbox>false</showEmailCheckbox>
   <showHighlightsPanel>false</showHighlightsPanel>
   <showInteractionLogPanel>false</showInteractionLogPanel>

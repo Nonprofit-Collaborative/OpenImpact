@@ -141,4 +141,55 @@ private class HouseholdControllerTest {
 
         Assert.isNotNull(jobId, 'Maria gets a job to watch');
     }
+
+    @IsTest
+    static void thePageOpensOnTheSavedPatterns() {
+        Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
+            HouseholdTestDataFactory.MODE_CONTACT
+        );
+        settings.Household_Name_Pattern__c = '{LastName} Household';
+        HouseholdTestDataFactory.save(settings);
+
+        Test.startTest();
+        HouseholdController.NamingSettings saved = HouseholdController.getNamingSettings();
+        Test.stopTest();
+
+        Assert.areEqual('{LastName} Household', saved.namePattern, 'Maria sees what she saved');
+        Assert.areEqual(
+            '{Salutation} {FirstName} {LastName}',
+            saved.formalPattern,
+            'And the formal greeting pattern'
+        );
+        Assert.areEqual('{FirstName}', saved.informalPattern, 'And the informal one');
+    }
+
+    @IsTest
+    static void recomputingEveryHouseholdNeedsThePermission() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        User staff = HouseholdTestDataFactory.standardUser('recomp');
+        Boolean refused = false;
+
+        Test.startTest();
+        System.runAs(staff) {
+            try {
+                HouseholdController.recomputeAll();
+            } catch (Exception e) {
+                refused = true;
+            }
+        }
+        Test.stopTest();
+
+        Assert.isTrue(refused, 'A user without the settings permission is refused');
+    }
+
+    @IsTest
+    static void theScreenIsToldHowPeopleBelongToAHousehold() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+
+        Test.startTest();
+        String mode = HouseholdController.getMembershipMode();
+        Test.stopTest();
+
+        Assert.areEqual('Junction', mode, 'The panel is told this org uses the flexible mode');
+    }
 }

@@ -6,8 +6,6 @@
  * and the org asks for it, deleted.
  */
 public with sharing class ContactTriggerHandler extends TriggerHandler {
-    private static Boolean running = false;
-
     public override void beforeInsert() {
         HouseholdService.ensureHouseholds((List<Contact>) Trigger.new);
     }
@@ -66,22 +64,9 @@ public with sharing class ContactTriggerHandler extends TriggerHandler {
     }
 
     /**
-     * One pass over the affected households. The guard stops the saves this makes from
-     * coming back round through another trigger and starting again.
+     * One pass over the affected households, done in the one place that upkeep lives.
      */
     private static void refresh(Set<Id> householdIds, Boolean mayDelete) {
-        if (running || householdIds.isEmpty()) {
-            return;
-        }
-        running = true;
-        try {
-            HouseholdService.recalculateMemberCounts(householdIds);
-            HouseholdNamingService.applyNaming(householdIds);
-            if (mayDelete) {
-                HouseholdService.deleteEmptyHouseholds(householdIds);
-            }
-        } finally {
-            running = false;
-        }
+        HouseholdService.afterMembershipChange(householdIds, mayDelete);
     }
 }

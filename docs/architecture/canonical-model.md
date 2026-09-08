@@ -266,8 +266,13 @@ code never branches on membership mode.
   `Household__c` (Lookup to Account), `Role__c` (Picklist: Head, Spouse or Partner, Child,
   Other), `Is_Primary__c` (Checkbox), `Start_Date__c` (Date), `End_Date__c` (Date).
 - `Household__c` is the household side of the junction and `Contact__c` or `Account__c` is
-  the person side. A lookup rather than a master-detail relationship is used so that a
-  household can be deleted without cascading away membership history, and so that the same
+  the person side. `Household__c` is a required lookup with a cascade delete, matching the
+  attribute table above: a membership row with no household says nothing, and a household
+  that is deleted takes its own membership rows with it rather than leaving rows pointing at
+  a record that is gone. Membership history survives everything except the deletion of the
+  household it is history of.
+- A lookup rather than a master-detail relationship is used so that membership rows are not
+  owned by the household record for sharing and roll-up purposes, and so that the same
   object shape works in both membership modes.
 
 ---
@@ -645,3 +650,4 @@ entity.
 | v0.1 | 2026-09-06 | Initial model: Household, Household Member, Contact, Organization, plus the platform configuration entities Error Log, Automation Setting, Setting Change, Nonprofit Settings, and the shipped-defaults custom metadata Naming Pattern and Automation Registry. |
 | v0.1 | 2026-09-07 | C-01 and C-02 build. Added `Household__c` (Lookup to Account) to Household Member: the original field list named the household side and the person side with the same attribute, so junction mode had no way to say which household a membership belonged to. `Account__c` is now defined as the person side only, matching R-M4. Recorded the naming service's token forms: `{FirstName}`, `{LastName}`, and `{Salutation}`, with the `{!Token}` spelling accepted as an alias so patterns copied from formula fields keep working. |
 | v0.1 | 2026-09-07 | Junction membership made a first-class v0.1 path for orgs that store people as accounts (product owner priority change). The five Contact person attributes (`Deceased__c`, `Household_Role__c`, `Exclude_From_Household_Name__c`, `Exclude_From_Greetings__c`, `Preferred_Name__c`) are now present on Account with the same API names and definitions, because a person stored as an account carries them on that record. Naming and greetings read a person through the `HouseholdService.Person` shape rather than through Contact, so one set of rules serves both. |
+| v0.1 | 2026-09-08 | C-01 and C-02 review round. `Household__c` on Household Member is now a required lookup with a cascade delete, matching the "Required: yes" already in the attribute table. The Salesforce note that a household could be deleted without touching membership history was written before the field was required and is corrected: a deleted household now takes its own membership rows with it, which is the only case where history is lost.

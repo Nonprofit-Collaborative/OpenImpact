@@ -184,6 +184,29 @@ private class HouseholdServiceTest {
                 .size(),
             'John belongs to the household he moved to'
         );
+        Assert.areEqual(
+            0,
+            HouseholdService.getMembers(new Set<Id>{ households[0].Id })
+                .get(households[0].Id)
+                .size(),
+            'A membership ended today is over today, not tomorrow'
+        );
+        HouseholdService.recalculateMemberCounts(new Set<Id>{ households[0].Id, households[1].Id });
+        Assert.areEqual(
+            0,
+            [SELECT Member_Count__c FROM Account WHERE Id = :households[0].Id].Member_Count__c,
+            'The household John left counts nobody'
+        );
+        Assert.areEqual(
+            1,
+            [SELECT Member_Count__c FROM Account WHERE Id = :households[1].Id].Member_Count__c,
+            'The household John joined counts him'
+        );
+        Assert.areEqual(
+            households[1].Id,
+            HouseholdService.getHouseholdIdsFor(new Set<Id>{ john.Id }).get(john.Id),
+            'The household a caller is told about is the one he moved to'
+        );
     }
 
     @IsTest
@@ -439,5 +462,138 @@ private class HouseholdServiceTest {
             HouseholdService.getMemberPersonIds(null).size(),
             'No households asked about, nothing answered'
         );
+    }
+
+    @IsTest
+    static void aPersonStoredAsAnAccountIsMovedThroughTheJunction() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdService.personAccountOverride = true;
+        PersonRecordSelector.personRecordOverride = true;
+        Account person = new Account(Name = 'Maria Garcia');
+        insert person;
+        List<Account> households = new List<Account>{
+            HouseholdTestDataFactory.newHousehold('The Garcia Family'),
+            HouseholdTestDataFactory.newHousehold('The Lee Family')
+        };
+        insert households;
+        insert new Household_Member__c(
+            Household__c = households[0].Id,
+            Account__c = person.Id,
+            Role__c = 'Head',
+            Is_Primary__c = true,
+            Start_Date__c = Date.today()
+        );
+
+        Test.startTest();
+        HouseholdService.moveContact(person.Id, households[1].Id);
+        Test.stopTest();
+
+        List<Household_Member__c> current = [
+            SELECT Household__c, Account__c, Contact__c, Role__c, Is_Primary__c
+            FROM Household_Member__c
+            WHERE Account__c = :person.Id AND End_Date__c = NULL
+        ];
+        Assert.areEqual(1, current.size(), 'Maria has one current membership');
+        Assert.areEqual(
+            households[1].Id,
+            current[0].Household__c,
+            'It is the household she moved to'
+        );
+        Assert.areEqual(null, current[0].Contact__c, 'She is not recorded as a contact');
+        Assert.areEqual('Head', current[0].Role__c, 'Her role came with her');
+        Assert.isTrue(current[0].Is_Primary__c, 'So did the primary flag');
+    }
+
+    @IsTest
+    static void aPersonStoredAsAnAccountCannotBeMovedInTheSimpleMode() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        HouseholdService.personAccountOverride = true;
+        PersonRecordSelector.personRecordOverride = true;
+        Account person = new Account(Name = 'Maria Garcia');
+        insert person;
+        Account household = HouseholdTestDataFactory.newHousehold('The Lee Family');
+        insert household;
+        String message = '';
+
+        Test.startTest();
+        try {
+            HouseholdService.moveContact(person.Id, household.Id);
+        } catch (HouseholdException e) {
+            message = e.getMessage();
+        }
+        Test.stopTest();
+
+        Assert.areEqual(
+            Label.Core_Households_ErrorMoveNeedsJunction,
+            message,
+            'Maria is told which setting has to change first'
+        );
+    }
+
+    @IsTest
+    static void anOrganizationNeverGetsAMemberCount() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Account organization = new Account(Name = 'Riverside Community Trust');
+        insert organization;
+        insert new Contact(
+            Salutation = 'Mr.',
+            FirstName = 'Tom',
+            LastName = 'Rivera',
+            AccountId = organization.Id
+        );
+
+        Test.startTest();
+        HouseholdService.recalculateMemberCounts(new Set<Id>{ organization.Id });
+        Test.stopTest();
+
+        Assert.areEqual(
+            null,
+            [SELECT Member_Count__c FROM Account WHERE Id = :organization.Id].Member_Count__c,
+            'A member count is never stamped on an organization'
+        );
+    }
+
+    @IsTest
+    static void aStandardUserWithNoPackagedAccessCanStillSaveAPerson() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        User staff = HouseholdTestDataFactory.standardUser('house');
+
+        Test.startTest();
+        System.runAs(staff) {
+            insert HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        }
+        Test.stopTest();
+
+        Contact saved = [
+            SELECT AccountId, Account.Name, Account.Member_Count__c
+            FROM Contact
+            WHERE LastName = 'Garcia'
+            LIMIT 1
+        ];
+        Assert.isNotNull(
+            saved.AccountId,
+            'The household was created for a user with no packaged access'
+        );
+        Assert.areEqual('The Garcia Family', saved.Account.Name, 'And it was named');
+        Assert.areEqual(1, saved.Account.Member_Count__c, 'And counted');
+    }
+    @IsTest
+    static void upkeepAfterAMembershipChangeIsOnePlaceAnyCallerCanUse() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Account household = HouseholdTestDataFactory.newHousehold('Placeholder');
+        insert household;
+        // Saved without the trigger noticing, the way another package would leave it.
+        Contact john = HouseholdTestDataFactory.newContact('Mr.', 'John', 'Smith');
+        john.AccountId = household.Id;
+        insert john;
+        update new Account(Id = household.Id, Name = 'Placeholder', Member_Count__c = 0);
+
+        Test.startTest();
+        HouseholdService.afterMembershipChange(new Set<Id>{ household.Id });
+        Test.stopTest();
+
+        Account saved = [SELECT Name, Member_Count__c FROM Account WHERE Id = :household.Id];
+        Assert.areEqual(1, saved.Member_Count__c, 'The household counts John again');
+        Assert.areEqual('The Smith Family', saved.Name, 'And is named from him');
     }
 }

@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<CustomMetadata
-  xmlns="http://soap.sforce.com/2006/04/metadata"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
->
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <label>Informal greeting: first name and surname</label>
   <protected>true</protected>
   <values>
@@ -11,9 +8,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">
-      Produces John Smith and Jane Jones for organizations that keep notes formal.
-    </value>
+    <value xsi:type="xsd:string">Produces John Smith and Jane Jones for organizations that keep notes formal.</value>
   </values>
   <values>
     <field>Pattern_Type__c</field>

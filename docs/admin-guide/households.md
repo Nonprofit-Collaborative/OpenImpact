@@ -89,8 +89,8 @@ and turn the setting on if you want it done for you next time.
 
 **"The member count looks wrong."**
 The count includes current members only. In the flexible membership mode, a person whose
-end date has passed has left the household and is not counted. Check the end dates on the
-Members panel.
+membership has an end date of today or earlier has left the household and is not counted.
+Check the end dates on the Members panel.
 
 **"I moved someone and their gifts stayed behind."**
 That is deliberate. Moving a person moves the person, not the giving history of the
