@@ -166,6 +166,10 @@ jobs:
         if: steps.check.outputs.enabled == 'true'
         run: bash scripts/org/check-org-expiry.sh testorg
 
+      - name: Report which shape the org actually is
+        if: steps.check.outputs.enabled == 'true'
+        run: bash scripts/org/report-org-shape.sh testorg
+
       - name: Deploy the packages, in stages
         if: steps.check.outputs.enabled == 'true'
         run: bash scripts/org/deploy-packages.sh testorg

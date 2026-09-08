@@ -137,6 +137,10 @@ Do this on your own machine, after the Dev Hub steps above.
    `sfdxAuthUrl` field. This is a credential, exactly like the Dev Hub one.
 3. **Store it** as the repository secret `SF_TEST_ORG_AUTH_URL`.
 4. **Push anything.** `org-tests` deploys both packages into that org and runs the Apex tests.
+5. **Check the shape it reports.** The run prints what shape the org actually is, read from
+   the org itself, before it deploys anything. Confirm it says the shape you meant to create.
+   Nothing else in this repository records which definition the org came from, so that line
+   in the build log is the record.
 
 Refreshing it monthly is the same three commands: re-run step 1 with `--replace`, then redo
 steps 2 and 3 with the new auth URL. Anything typed into the org by hand is lost at that
@@ -146,7 +150,10 @@ repository.
 ### `org-tests`
 
 Runs after `static` succeeds, against the one long lived org described above. It
-authenticates from `SF_TEST_ORG_AUTH_URL`, prints how many days that org has left, deploys
+authenticates from `SF_TEST_ORG_AUTH_URL`, prints how many days that org has left, prints
+which shape the org actually is (`scripts/org/report-org-shape.sh`, which asks the org for
+the same five facts `OrgShapeDetector` reads, through the Tooling API so it works before the
+packages deploy), deploys
 `packages/core` and then `packages/giving`, runs the Apex tests, and uploads the results. It
 creates nothing and deletes nothing.
 
@@ -162,8 +169,14 @@ matches how the packages depend on each other: the vendored engine is self conta
 does not call it yet, and Giving depends on Core.
 
 An `UNKNOWN_EXCEPTION` with zero component errors is a Salesforce side failure rather than
-something wrong with a component. Quote the ErrorId to Salesforce support, and note that it is
-sometimes transient, so one re-run is worth trying before digging.
+something wrong with a component. Quote the ErrorId to Salesforce support.
+
+**It is not transient here, whatever the general advice says.** This failure has now come back
+four times across four separate runs, always on the Core stage, always with zero components
+deployed and zero component errors, and always with the same trailing code in the ErrorId
+(`-315522575`) behind a different leading number each time. Four identical failures is a
+deterministic fault, so re-running costs a build and proves nothing. `scripts/org/deploy-packages.sh`
+still prints the "sometimes transient" line; that advice was written before the fourth run.
 
 Two things constrain when it runs, both because there is one org rather than one per run.
 
