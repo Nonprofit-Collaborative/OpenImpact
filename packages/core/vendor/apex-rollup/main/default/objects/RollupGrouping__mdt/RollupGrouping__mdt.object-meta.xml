@@ -3,5 +3,5 @@
     <description>Rollup records can be set up to point to a related parent-level grouping, which can then define its own rollup operation to perform on the results of each individual rollup before writing the result to the given parent-level field</description>
     <label>Rollup Grouping</label>
     <pluralLabel>Rollup Groupings</pluralLabel>
-    <visibility>Public</visibility>
+    <visibility>Protected</visibility>
 </CustomObject>

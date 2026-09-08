@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Honoree_Name__c</fullName>
+  <description>
+    The name of the person honored, as the donor gave it. It stands alone when the person honored
+    is not in the database, which is the common case for a memorial (R-TR2).
+  </description>
+  <externalId>false</externalId>
+  <inlineHelpText>The name as the donor wrote it. You do not have to create a record for them.</inlineHelpText>
+  <label>Honoree Name</label>
+  <length>255</length>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Text</type>
+  <unique>false</unique>
+</CustomField>

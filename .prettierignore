@@ -9,6 +9,15 @@ LICENSE
 # Prose is hand-formatted; Prettier formats source and configuration only.
 *.md
 
+# LWC HTML templates are compiled by the LWC compiler, not formatted by Prettier.
+# Prettier's html parser quotes {expr} attribute bindings (title="{labels.x}"), which the
+# LWC compiler rejects as ambiguous (LWC1034).
+packages/**/lwc/**/*.html
+
+# Generated data, kept minified by scripts/data/generate-sample-data.py to control file
+# size (see data/sample/README.md); not hand-authored source.
+packages/core/main/default/staticresources/SampleData.json
+
 # Vendored third party source: apex-rollup, see packages/core/vendor/apex-rollup/VENDOR.md.
 # Upstream formats with its own Prettier configuration. Running ours over the vendored tree
 # rewrites about 25,000 lines, which turns every future upstream diff into noise and makes

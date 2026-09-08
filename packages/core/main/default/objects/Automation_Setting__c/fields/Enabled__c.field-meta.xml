@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Enabled__c</fullName>
+  <defaultValue>true</defaultValue>
+  <description>Whether the automation runs; unchecking it bypasses the handler.</description>
+  <inlineHelpText>Uncheck to stop this automation running.</inlineHelpText>
+  <label>Enabled</label>
+  <trackTrending>false</trackTrending>
+  <type>Checkbox</type>
+</CustomField>

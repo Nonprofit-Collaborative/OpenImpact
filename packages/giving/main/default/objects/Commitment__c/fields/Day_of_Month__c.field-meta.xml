@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Day_of_Month__c</fullName>
+    <description>The day an installment falls due for monthly and less frequent schedules; a day past the end of a short month falls on that month's last day.</description>
+    <inlineHelpText>Leave empty to use the day of the start date. A 31 falls on the last day of a shorter month.</inlineHelpText>
+    <label>Day of Month</label>
+    <precision>2</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

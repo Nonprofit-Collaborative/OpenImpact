@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Tribute__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>
+    The honor or memorial this gift was given under. The tribute's own gift reference is the
+    authoritative link; this one is a mirror Open Impact maintains so that gift list views,
+    reports, and the receipt merge see the tribute without a subquery (R-G8).
+  </description>
+  <externalId>false</externalId>
+  <inlineHelpText>Filled in for you when a tribute is added to this gift.</inlineHelpText>
+  <label>Tribute</label>
+  <referenceTo>Tribute__c</referenceTo>
+  <relationshipLabel>Gifts</relationshipLabel>
+  <relationshipName>Gifts</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

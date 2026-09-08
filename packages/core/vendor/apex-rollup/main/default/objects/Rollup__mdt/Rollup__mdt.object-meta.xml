@@ -2,5 +2,5 @@
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
     <label>Rollup</label>
     <pluralLabel>Rollups</pluralLabel>
-    <visibility>Public</visibility>
+    <visibility>Protected</visibility>
 </CustomObject>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Report xmlns="http://soap.sforce.com/2006/04/metadata">
+  <columns>
+    <field>Gift__c.Name</field>
+  </columns>
+  <columns>
+    <field>Gift__c.Gift_Date__c</field>
+  </columns>
+  <columns>
+    <aggregateTypes>Sum</aggregateTypes>
+    <field>Gift__c.Amount__c</field>
+  </columns>
+  <columns>
+    <field>Gift__c.Type__c</field>
+  </columns>
+  <columns>
+    <field>Gift__c.Status__c</field>
+  </columns>
+  <columns>
+    <field>Gift__c.Donor_Contact__c</field>
+  </columns>
+  <columns>
+    <field>Gift__c.Donor_Account__c</field>
+  </columns>
+  <columns>
+    <field>Gift__c.Appeal__c</field>
+  </columns>
+  <description>
+    Every gift from the last thirty days, newest first, for answering "did that gift arrive?".
+  </description>
+  <filter>
+    <criteriaItems>
+      <column>Gift__c.Gift_Date__c</column>
+      <operator>equals</operator>
+      <value>LAST_N_DAYS:30</value>
+    </criteriaItems>
+  </filter>
+  <format>Tabular</format>
+  <name>Recent Gifts</name>
+  <reportType>Gifts</reportType>
+  <scope>organization</scope>
+  <showDetails>true</showDetails>
+  <sortColumn>Gift__c.Gift_Date__c</sortColumn>
+  <sortOrder>Desc</sortOrder>
+</Report>

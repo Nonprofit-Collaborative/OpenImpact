@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+  <compactLayoutAssignment>Commitment_Overview</compactLayoutAssignment>
+  <deploymentStatus>Deployed</deploymentStatus>
+  <description>A promise to give: a pledge or an open-ended recurring gift.</description>
+  <enableActivities>true</enableActivities>
+  <enableBulkApi>true</enableBulkApi>
+  <enableFeeds>true</enableFeeds>
+  <enableReports>true</enableReports>
+  <enableSearch>true</enableSearch>
+  <enableSharing>true</enableSharing>
+  <enableStreamingApi>true</enableStreamingApi>
+  <label>Commitment</label>
+  <nameField>
+    <displayFormat>CM-{000000}</displayFormat>
+    <label>Commitment Number</label>
+    <type>AutoNumber</type>
+  </nameField>
+  <pluralLabel>Commitments</pluralLabel>
+  <sharingModel>Private</sharingModel>
+  <visibility>Public</visibility>
+</CustomObject>

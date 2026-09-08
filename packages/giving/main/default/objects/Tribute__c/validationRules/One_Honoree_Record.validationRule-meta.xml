@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>One_Honoree_Record</fullName>
+  <active>true</active>
+  <description>
+    An honoree is one person, so at most one of the two honoree references is set (canonical
+    model Section 4, person references).
+  </description>
+  <errorConditionFormula>
+    AND( NOT(ISBLANK(Honoree_Contact__c)), NOT(ISBLANK(Honoree_Account__c)) )
+  </errorConditionFormula>
+  <errorMessage>Choose one honoree record, not two.</errorMessage>
+</ValidationRule>

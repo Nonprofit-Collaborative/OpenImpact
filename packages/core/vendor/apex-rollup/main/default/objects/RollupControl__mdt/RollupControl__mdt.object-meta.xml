@@ -3,5 +3,5 @@
     <description>Can be used to throttle / control individual Rollup rules. Use &quot;Org_Defaults&quot; to control the defaults.</description>
     <label>Rollup Control</label>
     <pluralLabel>Rollup Controls</pluralLabel>
-    <visibility>Public</visibility>
+    <visibility>Protected</visibility>
 </CustomObject>

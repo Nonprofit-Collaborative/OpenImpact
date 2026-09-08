@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+  <apiVersion>67.0</apiVersion>
+  <description>
+    Records a refund or a write-off from a gift's page, as a linked negative gift.
+  </description>
+  <isExposed>true</isExposed>
+  <masterLabel>Refund or Write Off</masterLabel>
+  <targets>
+    <target>lightning__RecordAction</target>
+  </targets>
+  <targetConfigs>
+    <targetConfig targets="lightning__RecordAction">
+      <actionType>ScreenAction</actionType>
+      <objects>
+        <object>Gift__c</object>
+      </objects>
+    </targetConfig>
+  </targetConfigs>
+</LightningComponentBundle>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Matched_Gift__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>
+    The other gift in a matching gift pair: on an employer's gift it names the employee's gift
+    that earned the match, and on the employee's gift it names the employer's gift that matched
+    it. Both sides are maintained together (R-G11).
+  </description>
+  <externalId>false</externalId>
+  <inlineHelpText>The employer's gift, or the employee's gift it matches.</inlineHelpText>
+  <label>Matched Gift</label>
+  <referenceTo>Gift__c</referenceTo>
+  <relationshipLabel>Matched Gifts</relationshipLabel>
+  <relationshipName>Matched_Gifts</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

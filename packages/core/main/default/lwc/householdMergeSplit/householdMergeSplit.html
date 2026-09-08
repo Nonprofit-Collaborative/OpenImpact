@@ -1,0 +1,266 @@
+<template>
+    <lightning-card title={label.title} icon-name="standard:merge">
+        <div class="slds-var-m-around_medium">
+            <template if:false={isHousehold}>
+                <p class="slds-text-color_weak not-a-household">{label.notAHousehold}</p>
+            </template>
+
+            <template if:true={showReadOnlyNotice}>
+                <p class="slds-text-color_weak read-only-notice" role="status">{label.readOnly}</p>
+            </template>
+
+            <template if:true={isUsable}>
+                <lightning-tabset>
+                    <lightning-tab label={label.tabMerge} value="merge" class="merge-tab">
+                        <div class="slds-var-m-top_small">
+                            <lightning-input
+                                type="search"
+                                label={label.searchLabel}
+                                placeholder={label.searchPlaceholder}
+                                value={searchTerm}
+                                onchange={handleSearchChange}
+                                onkeyup={handleSearchChange}
+                                class="search-input"
+                            ></lightning-input>
+                            <lightning-button
+                                label={label.searchLabel}
+                                onclick={handleSearch}
+                                class="slds-var-m-top_x-small search-button"
+                            ></lightning-button>
+                        </div>
+
+                        <template if:true={showNoResults}>
+                            <p class="slds-text-color_weak slds-var-m-top_small no-results">
+                                {label.noResults}
+                            </p>
+                        </template>
+
+                        <template if:true={hasSearchResults}>
+                            <ul class="slds-has-dividers_bottom-space slds-var-m-top_small search-results">
+                                <template for:each={searchResults} for:item="option">
+                                    <li key={option.id} class="slds-item search-result">
+                                        <lightning-button
+                                            variant="base"
+                                            label={option.name}
+                                            data-household-id={option.id}
+                                            onclick={handlePickHousehold}
+                                            class="pick-button"
+                                        ></lightning-button>
+                                        <span class="slds-text-body_small slds-var-m-left_x-small">
+                                            {option.location}
+                                        </span>
+                                    </li>
+                                </template>
+                            </ul>
+                        </template>
+
+                        <template if:false={hasComparison}>
+                            <p class="slds-text-color_weak slds-var-m-top_small select-other">
+                                {label.selectOther}
+                            </p>
+                        </template>
+
+                        <template if:true={hasComparison}>
+                            <div class="slds-scrollable_x slds-var-m-top_medium">
+                                <table class="slds-table slds-table_bordered comparison-table">
+                                    <thead>
+                                        <tr class="slds-line-height_reset">
+                                            <th scope="col">{label.columnField}</th>
+                                            <th scope="col">{label.columnThis}</th>
+                                            <th scope="col">{label.columnOther}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={comparison} for:item="field">
+                                            <tr key={field.fieldName} class="comparison-row">
+                                                <th scope="row">{field.label}</th>
+                                                <td>{field.survivorValue}</td>
+                                                <td>
+                                                    {field.victimValue}
+                                                    <template if:true={field.inConflict}>
+                                                        <lightning-radio-group
+                                                            name={field.fieldName}
+                                                            data-field-name={field.fieldName}
+                                                            label={field.label}
+                                                            variant="label-hidden"
+                                                            type="button"
+                                                            options={field.options}
+                                                            value={field.selected}
+                                                            onchange={handleChoiceChange}
+                                                            class="field-choice"
+                                                        ></lightning-radio-group>
+                                                    </template>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3 class="slds-text-heading_small slds-var-m-top_medium members-heading">
+                                {label.membersHeading}
+                            </h3>
+                            <ul class="slds-has-dividers_bottom-space merge-members">
+                                <template for:each={mergeMembers} for:item="member">
+                                    <li key={member.personId} class="slds-item merge-member">
+                                        <span>{member.name}</span>
+                                        <lightning-badge label={member.origin}></lightning-badge>
+                                    </li>
+                                </template>
+                            </ul>
+
+                            <div class="slds-var-m-top_medium">
+                                <lightning-button
+                                    variant="brand"
+                                    label={label.mergeButton}
+                                    disabled={busy}
+                                    onclick={handleMergeClick}
+                                    class="merge-button"
+                                ></lightning-button>
+                            </div>
+                        </template>
+
+                        <template if:true={confirmingMerge}>
+                            <div class="slds-box slds-theme_warning slds-var-m-top_medium merge-confirm" role="alertdialog">
+                                <h3 class="slds-text-heading_small">{label.confirmHeading}</h3>
+                                <p class="slds-var-m-top_x-small confirm-body">{confirmBody}</p>
+                                <p class="slds-var-m-top_x-small confirm-names">
+                                    <span class="confirm-victim">{otherHouseholdName}</span>
+                                    <span class="confirm-survivor">{survivorName}</span>
+                                </p>
+                                <div class="slds-var-m-top_small">
+                                    <lightning-button
+                                        variant="destructive"
+                                        label={label.confirmButton}
+                                        disabled={busy}
+                                        onclick={handleMergeConfirm}
+                                        class="slds-var-m-right_x-small merge-confirm-button"
+                                    ></lightning-button>
+                                    <lightning-button
+                                        label={label.cancel}
+                                        onclick={handleMergeCancel}
+                                        class="merge-cancel-button"
+                                    ></lightning-button>
+                                </div>
+                            </div>
+                        </template>
+                    </lightning-tab>
+
+                    <lightning-tab label={label.tabSplit} value="split" class="split-tab">
+                        <h3 class="slds-text-heading_small slds-var-m-top_small split-heading">
+                            {label.splitHeading}
+                        </h3>
+                        <ul class="slds-has-dividers_bottom-space split-members">
+                            <template for:each={splitMembers} for:item="member">
+                                <li key={member.personId} class="slds-item split-member">
+                                    <lightning-input
+                                        type="checkbox"
+                                        label={member.name}
+                                        checked={member.selected}
+                                        data-person-id={member.personId}
+                                        onchange={handleMemberToggle}
+                                        class="member-checkbox"
+                                    ></lightning-input>
+                                </li>
+                            </template>
+                        </ul>
+
+                        <lightning-radio-group
+                            name="splitDestination"
+                            label={label.splitHeading}
+                            variant="label-hidden"
+                            options={destinationOptions}
+                            value={splitDestination}
+                            onchange={handleDestinationChange}
+                            class="slds-var-m-top_small destination-choice"
+                        ></lightning-radio-group>
+
+                        <template if:true={isSplittingToExisting}>
+                            <div class="slds-var-m-top_small split-target">
+                                <lightning-input
+                                    type="search"
+                                    label={label.searchLabel}
+                                    placeholder={label.searchPlaceholder}
+                                    value={splitSearchTerm}
+                                    onchange={handleSplitSearchChange}
+                                    onkeyup={handleSplitSearchChange}
+                                    class="split-search-input"
+                                ></lightning-input>
+                                <lightning-button
+                                    label={label.searchLabel}
+                                    onclick={handleSplitSearch}
+                                    class="slds-var-m-top_x-small split-search-button"
+                                ></lightning-button>
+
+                                <template if:true={showSplitNoResults}>
+                                    <p class="slds-text-color_weak slds-var-m-top_small split-no-results">
+                                        {label.noResults}
+                                    </p>
+                                </template>
+
+                                <template if:true={hasSplitSearchResults}>
+                                    <ul class="slds-has-dividers_bottom-space slds-var-m-top_small split-search-results">
+                                        <template for:each={splitSearchResults} for:item="option">
+                                            <li key={option.id} class="slds-item split-search-result">
+                                                <lightning-button
+                                                    variant="base"
+                                                    label={option.name}
+                                                    data-household-id={option.id}
+                                                    onclick={handlePickSplitTarget}
+                                                    class="split-pick-button"
+                                                ></lightning-button>
+                                                <span class="slds-text-body_small slds-var-m-left_x-small">
+                                                    {option.location}
+                                                </span>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </template>
+
+                                <template if:true={splitTargetName}>
+                                    <p class="slds-var-m-top_x-small split-target-name">
+                                        {splitTargetName}
+                                    </p>
+                                </template>
+                            </div>
+                        </template>
+
+                        <div class="slds-var-m-top_medium">
+                            <lightning-button
+                                variant="brand"
+                                label={label.splitButton}
+                                disabled={cannotSplit}
+                                onclick={handleSplitClick}
+                                class="split-button"
+                            ></lightning-button>
+                        </div>
+
+                        <template if:true={confirmingSplit}>
+                            <div class="slds-box slds-var-m-top_medium split-confirm" role="alertdialog">
+                                <p class="split-confirm-body">{label.splitConfirmBody}</p>
+                                <div class="slds-var-m-top_small">
+                                    <lightning-button
+                                        variant="brand"
+                                        label={label.splitButton}
+                                        disabled={busy}
+                                        onclick={handleSplitConfirm}
+                                        class="slds-var-m-right_x-small split-confirm-button"
+                                    ></lightning-button>
+                                    <lightning-button
+                                        label={label.cancel}
+                                        onclick={handleSplitCancel}
+                                        class="split-cancel-button"
+                                    ></lightning-button>
+                                </div>
+                            </div>
+                        </template>
+                    </lightning-tab>
+                </lightning-tabset>
+            </template>
+
+            <template if:true={errorMessage}>
+                <div class="slds-text-color_error slds-var-m-top_small" role="alert">{errorMessage}</div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

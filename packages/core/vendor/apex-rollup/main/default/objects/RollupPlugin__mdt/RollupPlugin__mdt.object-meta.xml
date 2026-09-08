@@ -3,5 +3,5 @@
     <description>Looks up to RollupControl__mdt and allows users to use/create custom rollup plugins</description>
     <label>Rollup Plugin</label>
     <pluralLabel>Rollup Plugins</pluralLabel>
-    <visibility>Public</visibility>
+    <visibility>Protected</visibility>
 </CustomObject>

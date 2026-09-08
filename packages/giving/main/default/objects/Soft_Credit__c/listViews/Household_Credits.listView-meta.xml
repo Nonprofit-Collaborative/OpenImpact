@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Household_Credits</fullName>
+  <columns>NAME</columns>
+  <columns>Gift__c</columns>
+  <columns>Contact__c</columns>
+  <columns>Account__c</columns>
+  <columns>Amount__c</columns>
+  <filterScope>Everything</filterScope>
+  <filters>
+    <field>Role__c</field>
+    <operation>equals</operation>
+    <value>Household Member</value>
+  </filters>
+  <label>Household members</label>
+</ListView>

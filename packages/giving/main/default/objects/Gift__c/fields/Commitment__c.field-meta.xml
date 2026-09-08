@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Commitment__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>The pledge or recurring commitment this gift pays toward.</description>
+    <label>Commitment</label>
+    <referenceTo>Commitment__c</referenceTo>
+    <relationshipLabel>Gifts</relationshipLabel>
+    <relationshipName>Gifts</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

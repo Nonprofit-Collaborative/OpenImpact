@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Notification_Sent_Date__c</fullName>
+  <description>The date the notification was sent, written when Notification Sent is set (R-TR4).</description>
+  <externalId>false</externalId>
+  <inlineHelpText>Filled in for you when the notification is marked sent.</inlineHelpText>
+  <label>Notification Sent Date</label>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Date</type>
+</CustomField>

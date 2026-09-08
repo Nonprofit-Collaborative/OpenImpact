@@ -6,23 +6,33 @@
  * exists. This class is one of the exceptions, and this block is that documentation. Nothing about
  * its behavior was changed: it stays "without sharing" and it keeps its system-mode DML.
  *
- * The reason: a rollup total is a property of an entire set of child records, not of the records
- * one user happens to be able to see. Computing it under the running user's sharing would produce
- * a total that is silently wrong for anyone who cannot see every child, and that wrong total would
+ * The exception, stated exactly: the engine writes rollup targets in system mode by design,
+ * because computed totals must be correct regardless of the running user's sharing, and no user
+ * input reaches these writes.
+ *
+ * What that means in this class: every DML statement here passes System.AccessLevel.SYSTEM_MODE,
+ * unconditionally, and no setting changes that. A total computed under the running user's sharing
+ * would be silently wrong for anyone who cannot see every child record, and the wrong total would
  * then be written to a field every other user reads. A partial total is worse than no total,
  * because nothing on the page says it is partial.
  *
- * Why this is safe: no user-supplied string reaches these writes. The object and field names come
- * from Rollup_Definition__c rows that an administrator created and that the Open Impact console
- * validated; the values are aggregates this engine computed from records it queried. There is no
- * path from a user-entered value to a dynamic SOQL string or to a field name here.
+ * Why no user input reaches these writes: the values written are aggregates this engine computed
+ * from records it queried, and the object and field names come from configuration, not from a
+ * user-entered value. Under the planned Open Impact integration they will come from
+ * Rollup_Definition__c rows an administrator created and the console validated (RollupAdapter and
+ * Rollup_Definition__c are C-14 work and do not exist yet). There is no path from a user-entered
+ * value to a dynamic SOQL string or to a field name here.
  *
- * What remains available: RollupControl__mdt.ShouldRunAs__c and Rollup__mdt.SharingMode__c let a
- * specific rollup run in user mode instead, and RollupAdapter sets both. This class is the floor,
- * not the only option.
+ * The two upstream settings are not a mitigation for this, and neither is a way to make these
+ * writes respect sharing. RollupControl__mdt.ShouldRunAs__c selects the execution context only
+ * (Queueable, Batchable or Synchronous Rollup); it has no sharing meaning and has no value named
+ * User. Rollup__mdt.SharingMode__c affects queries only: RollupMetaPicklists maps it to a
+ * RollupRepository.RunAsMode, which becomes the System.AccessLevel on the SOQL that
+ * RollupRepository issues. Neither setting moves any write out of system mode.
  *
- * Every remaining system-mode write in the vendored tree is in scope for the v0.10 security
- * review.
+ * VENDOR.md patch C states this exception once for the whole vendored tree, where 29 of the 32
+ * engine classes are "without sharing". This block marks a class that also writes.
+ * Every remaining system-mode write is in scope for the v0.10 security review.
  */
 public without sharing virtual class RollupState implements System.Queueable, System.Finalizer, RollupLogger.ToStringObject {
   protected transient String key;

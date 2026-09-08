@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+  <labels>
+    <fullName>Giving_MatchingGift_AlreadyLinked</fullName>
+    <categories>Giving, Matching Gifts</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Matching gift already linked</shortDescription>
+    <value>One of these gifts is already linked to a different gift. Unlink it first, then link it here.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_MatchingGift_EmployeeMustBePerson</fullName>
+    <categories>Giving, Matching Gifts</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Employee gift must be from a person</shortDescription>
+    <value>The gift being matched has to come from a person. Choose the employee's own gift, not another organization's.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_MatchingGift_EmployerMismatch</fullName>
+    <categories>Giving, Matching Gifts</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Employer does not match</shortDescription>
+    <value>That gift is from someone whose employer is a different organization. Check the employer on the person's record, or clear it if you are not sure.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_MatchingGift_EmployerMustBeOrganization</fullName>
+    <categories>Giving, Matching Gifts</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Matching gift must be from an organization</shortDescription>
+    <value>The matching gift must come from an organization. Open the company's gift and link the employee's gift to it.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_MatchingGift_GiftNotFound</fullName>
+    <categories>Giving, Matching Gifts</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift not found</shortDescription>
+    <value>One of these gifts is no longer here, or you do not have access to it. Refresh the page and try again.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_MatchingGift_SameGift</fullName>
+    <categories>Giving, Matching Gifts</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>A gift cannot match itself</shortDescription>
+    <value>A gift cannot match itself. Choose the other gift in the pair.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredit_AmountOrPercent</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Amount and percent disagree</shortDescription>
+    <value>Enter an amount or a percent, not both. Open Impact works the other one out from the gift.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredit_CustomRoleRequired</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Custom role required</shortDescription>
+    <value>Type your own wording in Custom Role, or choose one of the roles in the list.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredit_Duplicate</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Duplicate automatic credit</shortDescription>
+    <value>This person already has an automatic credit for this gift in this role.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredit_GiftRequired</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift required</shortDescription>
+    <value>A soft credit belongs to a gift. Open the gift and add the credit there.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredit_OneCreditedParty</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>One credited party</shortDescription>
+    <value>Choose one person or one organization to recognize, not both and not neither.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredits_ActionFailed</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Soft credit action failed</shortDescription>
+    <value>That did not work. Try again, and if it keeps happening, send the newest Error Log entry to whoever supports your Salesforce.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredits_Add</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Add credit button</shortDescription>
+    <value>Add credit</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredits_AmountLabel</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Amount field label</shortDescription>
+    <value>Amount</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredits_AutomaticBadge</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automatic badge</shortDescription>
+    <value>Automatic</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredits_AutomaticHelp</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automatic credit explanation</shortDescription>
+    <value>Open Impact created this credit from the household and keeps it up to date. Change the gift, or who is in the household, and it follows.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredits_Cancel</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Cancel button</shortDescription>
+    <value>Cancel</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredits_CustomRoleLabel</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Custom role field label</shortDescription>
+    <value>Your own wording</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredits_Empty</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>No soft credits yet</shortDescription>
+    <value>Nobody else is recognized for this gift yet.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredits_PersonLabel</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Person picker label</shortDescription>
+    <value>Person to recognize</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredits_Remove</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Remove credit button</shortDescription>
+    <value>Remove</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredits_RoleLabel</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Role field label</shortDescription>
+    <value>Why they are recognized</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredits_Save</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Save credit button</shortDescription>
+    <value>Save</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredits_Title</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Soft credits panel title</shortDescription>
+    <value>Soft credits</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Tribute_DeceasedHonoreeNotified</fullName>
+    <categories>Giving, Tributes</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Memorial notifies the honoree</shortDescription>
+    <value>This gift is in memory of the person you have chosen to notify. Choose a family member or friend as the notification recipient.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Tribute_HonoreeRequired</fullName>
+    <categories>Giving, Tributes</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Honoree required</shortDescription>
+    <value>Say who this gift honors: type the name the donor gave, or choose a person already in your database.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Tribute_OnePerGift</fullName>
+    <categories>Giving, Tributes</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>One tribute per gift</shortDescription>
+    <value>This gift already has a tribute. Edit the one that is there, or split the gift.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_TributeNotification_ActionFailed</fullName>
+    <categories>Giving, Tributes</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Tribute action failed</shortDescription>
+    <value>That did not work. Try again, and if it keeps happening, send the newest Error Log entry to whoever supports your Salesforce.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_TributeNotification_MarkSent</fullName>
+    <categories>Giving, Tributes</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Mark notification sent button</shortDescription>
+    <value>Mark notification sent</value>
+  </labels>
+  <labels>
+    <fullName>Giving_TributeNotification_None</fullName>
+    <categories>Giving, Tributes</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>No tribute on this gift</shortDescription>
+    <value>This gift was not given in honor of or in memory of anyone.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_TributeNotification_NotFound</fullName>
+    <categories>Giving, Tributes</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Tribute not found</shortDescription>
+    <value>That tribute is no longer here, or you do not have access to it. Refresh the page and try again.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_TributeNotification_NotifyPrefix</fullName>
+    <categories>Giving, Tributes</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Notification recipient prefix</shortDescription>
+    <value>Notify</value>
+  </labels>
+  <labels>
+    <fullName>Giving_TributeNotification_NotSent</fullName>
+    <categories>Giving, Tributes</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Notification not sent yet</shortDescription>
+    <value>Not sent yet</value>
+  </labels>
+  <labels>
+    <fullName>Giving_TributeNotification_Sent</fullName>
+    <categories>Giving, Tributes</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Notification sent</shortDescription>
+    <value>Notification sent</value>
+  </labels>
+  <labels>
+    <fullName>Giving_TributeNotification_Title</fullName>
+    <categories>Giving, Tributes</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Tribute panel title</shortDescription>
+    <value>Tribute</value>
+  </labels>
+  <labels>
+    <fullName>Giving_SoftCredits_RecomputeDeferred</fullName>
+    <categories>Giving, Soft Credits</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Household recompute deferred</shortDescription>
+    <value>Household soft credits for {0} household(s) could not be recomputed now, because this operation has no asynchronous capacity left. The credits are corrected the next time each gift is saved.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_MatchingGift_GiftNotReceived</fullName>
+    <categories>Giving, Matching Gifts</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Matching gift on a refunded gift</shortDescription>
+    <value>A gift that has been refunded or written off cannot be part of a matching gift pair. Unlink the match before recording the refund, or link the replacement gift instead.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_TributeNotification_NoRecipient</fullName>
+    <categories>Giving, Tributes</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>No notification recipient</shortDescription>
+    <value>Nobody is recorded as the person to notify, so there is no letter to send. Add a notification recipient, or a name and address, on the tribute.</value>
+  </labels>
+</CustomLabels>

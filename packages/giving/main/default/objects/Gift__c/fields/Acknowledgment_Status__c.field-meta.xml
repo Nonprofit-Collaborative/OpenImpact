@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Acknowledgment_Status__c</fullName>
+  <externalId>false</externalId>
+  <inlineHelpText>Whether this gift still needs a thank you.</inlineHelpText>
+  <label>Acknowledgment Status</label>
+  <required>true</required>
+  <trackTrending>false</trackTrending>
+  <type>Picklist</type>
+  <valueSet>
+    <restricted>true</restricted>
+    <valueSetDefinition>
+      <sorted>false</sorted>
+      <value>
+        <fullName>Not required</fullName>
+        <default>false</default>
+        <label>Not required</label>
+      </value>
+      <value>
+        <fullName>To acknowledge</fullName>
+        <default>true</default>
+        <label>To acknowledge</label>
+      </value>
+      <value>
+        <fullName>Acknowledged</fullName>
+        <default>false</default>
+        <label>Acknowledged</label>
+      </value>
+      <value>
+        <fullName>Do not acknowledge</fullName>
+        <default>false</default>
+        <label>Do not acknowledge</label>
+      </value>
+    </valueSetDefinition>
+  </valueSet>
+</CustomField>

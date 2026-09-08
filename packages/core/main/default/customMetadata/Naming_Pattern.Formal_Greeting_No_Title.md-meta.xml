@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <label>Formal greeting: first name and surname</label>
+  <protected>true</protected>
+  <values>
+    <field>Default_Enabled__c</field>
+    <value xsi:type="xsd:boolean">false</value>
+  </values>
+  <values>
+    <field>Description__c</field>
+    <value xsi:type="xsd:string">Produces John Smith and Jane Jones. Useful where titles are not collected.</value>
+  </values>
+  <values>
+    <field>Pattern_Type__c</field>
+    <value xsi:type="xsd:string">Formal Greeting</value>
+  </values>
+  <values>
+    <field>Pattern__c</field>
+    <value xsi:type="xsd:string">{FirstName} {LastName}</value>
+  </values>
+</CustomMetadata>
