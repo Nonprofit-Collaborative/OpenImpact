@@ -995,10 +995,6 @@
     <tab>Relationship__c</tab>
     <visibility>Visible</visibility>
   </tabSettings>
-  <userPermissions>
-    <enabled>true</enabled>
-    <name>ViewSetup</name>
-  </userPermissions>
   <layoutAssignments>
     <layout>Account-Household Layout</layout>
     <recordType>Account.Household</recordType>
