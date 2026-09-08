@@ -17,7 +17,9 @@
  *     comparison, changed, or removed. A credit David entered is his (R-SC6).
  *   - **Negative gifts produce negative credits.** A refund is a gift with a negative amount, so
  *     its automatic credits are negative too and recognition totals correct themselves the same
- *     way giving totals do (R-SC5).
+ *     way giving totals do (R-SC5). That is the only reversal: the gift being refunded keeps the
+ *     credits it earned, so a fully refunded gift leaves a visible pair that nets to zero rather
+ *     than nothing at all (ADR-0023).
  */
 public with sharing class SoftCreditService {
     public static final String ROLE_HOUSEHOLD_MEMBER = 'Household Member';
@@ -62,9 +64,10 @@ public with sharing class SoftCreditService {
      * Brings the automatic household member credits for these gifts into line with the gifts as
      * they now stand. Safe to call on insert, on update, and twice in a row.
      *
-     * A gift that is refunded or written off, or whose donor is not a person in a household, ends
-     * up with no automatic household credits, which is how removal happens: nothing is special
-     * cased.
+     * A gift whose donor is not a person in a household ends up with no automatic household
+     * credits, which is how removal happens: nothing is special cased. A gift that has been
+     * refunded or written off keeps its credits, because the negative gift recording the reversal
+     * carries the negative credit that cancels them (ADR-0023).
      */
     public static void createHouseholdMemberCredits(List<Gift__c> gifts) {
         if (gifts == null || gifts.isEmpty()) {
@@ -85,8 +88,12 @@ public with sharing class SoftCreditService {
 
         Map<Id, Id> donorPersonByGift = new Map<Id, Id>();
         Set<Id> personIds = new Set<Id>();
+        // Every gift earns recognition, a refunded or written off one included (ADR-0023). The
+        // reversal is the negative gift's own negative credit, not the removal of this one:
+        // doing both would take a fully refunded gift's recognition to minus its own amount
+        // instead of to zero.
         for (Gift__c gift : giftById.values()) {
-            if (wantCredits && isRecognizable(gift)) {
+            if (wantCredits) {
                 Id donorPersonId = donorPersonOf(gift);
                 if (donorPersonId != null) {
                     donorPersonByGift.put(gift.Id, donorPersonId);
@@ -277,16 +284,6 @@ public with sharing class SoftCreditService {
             credit.Account__c = personId;
         }
         return credit;
-    }
-
-    /**
-     * A gift earns recognition unless it has been refunded or written off. The negative gift that
-     * records the refund earns recognition of its own, negative, which is the point (R-SC5).
-     */
-    private static Boolean isRecognizable(Gift__c gift) {
-        return gift != null &&
-            gift.Status__c != STATUS_REFUNDED &&
-            gift.Status__c != STATUS_WRITTEN_OFF;
     }
 
     private static Id donorPersonOf(Gift__c gift) {

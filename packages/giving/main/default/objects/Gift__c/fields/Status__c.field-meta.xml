@@ -3,7 +3,9 @@
   <fullName>Status__c</fullName>
   <externalId>false</externalId>
   <inlineHelpText>
-    Where the gift stands. Only gifts that are Received count in giving totals.
+    Where the gift stands. Giving totals count Received, and count Refunded and Written off
+    so that a reversed gift and the negative gift reversing it cancel. Pending is never
+    counted.
   </inlineHelpText>
   <label>Status</label>
   <required>true</required>

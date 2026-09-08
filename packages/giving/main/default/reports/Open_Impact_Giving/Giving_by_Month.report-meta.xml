@@ -11,7 +11,7 @@
     <criteriaItems>
       <column>Gift__c.Status__c</column>
       <operator>equals</operator>
-      <value>Received</value>
+      <value>Received,Refunded,Written off</value>
     </criteriaItems>
     <criteriaItems>
       <column>Gift__c.Gift_Date__c</column>
