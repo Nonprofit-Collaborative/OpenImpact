@@ -429,6 +429,7 @@ public with sharing class HouseholdService {
         try {
             // Who belongs to what has just changed, so any answer already given is stale.
             HOUSEHOLD_ID_BY_PERSON.clear();
+            clearDepartedPrimaryContacts(householdIds);
             recalculateMemberCounts(householdIds);
             HouseholdNamingService.applyNaming(householdIds);
             if (mayTidyAway == true) {
@@ -872,6 +873,68 @@ public with sharing class HouseholdService {
             throw new HouseholdException(Label.Core_Households_ErrorCreateFailed);
         }
         return householdId;
+    }
+
+    /**
+     * Clears Primary Contact on any household whose primary contact is no longer one of
+     * its current members. R-H10.
+     *
+     * The reference is cleared and nothing is promoted in its place: the canonical model
+     * says the next member by ordering is proposed, not silently assigned, so choosing a
+     * new primary contact stays a decision somebody makes. A split that moves the primary
+     * contact out therefore leaves the household with no primary contact rather than with
+     * a reference to somebody who has left.
+     *
+     * Both membership modes are covered by asking the one question "is this person still a
+     * current member", which getMembers answers whichever way the org stores membership. A
+     * person held as an account cannot be a household's Primary Contact at all (the field
+     * is a lookup to Contact), so in junction mode a household whose members are all held
+     * as accounts simply has no primary contact to keep.
+     */
+    private static void clearDepartedPrimaryContacts(Set<Id> householdIds) {
+        Id recordTypeId = householdRecordTypeId();
+        List<Account> households = HouseholdSelector.getHouseholdsByIds(householdIds);
+        Set<Id> withPrimary = new Set<Id>();
+        for (Account household : households) {
+            // Only a household. An organization shares the Primary Contact field (R-O3),
+            // where it names the person the nonprofit deals with rather than a member, and
+            // household upkeep never touches it.
+            Boolean isHousehold = recordTypeId != null && household.RecordTypeId == recordTypeId;
+            if (isHousehold && household.Primary_Contact__c != null) {
+                withPrimary.add(household.Id);
+            }
+        }
+        if (withPrimary.isEmpty()) {
+            return;
+        }
+        // One read of the members of every household that has a primary contact, so a
+        // split of fifty households still asks once.
+        Map<Id, List<Person>> membersByHousehold = getMembers(withPrimary);
+        List<Account> updates = new List<Account>();
+        for (Account household : households) {
+            if (!withPrimary.contains(household.Id)) {
+                continue;
+            }
+            Boolean stillAMember = false;
+            List<Person> members = membersByHousehold.get(household.Id);
+            if (members != null) {
+                for (Person member : members) {
+                    if (member.id == household.Primary_Contact__c) {
+                        stillAMember = true;
+                        break;
+                    }
+                }
+            }
+            if (!stillAMember) {
+                updates.add(new Account(Id = household.Id, Primary_Contact__c = null));
+            }
+        }
+        if (!updates.isEmpty()) {
+            // Package upkeep of a household, saved the way every other piece of household
+            // upkeep is saved, for the reason ADR-0021 gives: an ordinary contact save
+            // must not fail because the saving user cannot edit the household.
+            HouseholdWriter.updateHouseholds(updates);
+        }
     }
 
     /**

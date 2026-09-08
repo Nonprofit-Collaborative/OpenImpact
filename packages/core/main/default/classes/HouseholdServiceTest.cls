@@ -836,4 +836,141 @@ private class HouseholdServiceTest {
             'It is the person who was already there'
         );
     }
+
+    @IsTest
+    static void thePrimaryContactIsClearedWhenThatPersonLeavesInContactMode() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Account household = HouseholdTestDataFactory.newHousehold('The Smith Family');
+        Account target = HouseholdTestDataFactory.newHousehold('The Garcia Family');
+        insert new List<Account>{ household, target };
+        Contact john = HouseholdTestDataFactory.newContact('Mr.', 'John', 'Smith');
+        Contact jane = HouseholdTestDataFactory.newContact('Mrs.', 'Jane', 'Smith');
+        john.AccountId = household.Id;
+        jane.AccountId = household.Id;
+        insert new List<Contact>{ john, jane };
+        update new Account(Id = household.Id, Primary_Contact__c = john.Id);
+
+        Test.startTest();
+        HouseholdService.moveContact(john.Id, target.Id);
+        Test.stopTest();
+
+        Assert.areEqual(
+            null,
+            [SELECT Primary_Contact__c FROM Account WHERE Id = :household.Id].Primary_Contact__c,
+            'The reference to the person who left was cleared (R-H10)'
+        );
+    }
+
+    @IsTest
+    static void thePrimaryContactIsClearedWhenThatPersonLeavesInJunctionMode() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        Account household = HouseholdTestDataFactory.newHousehold('The Smith Family');
+        Account target = HouseholdTestDataFactory.newHousehold('The Garcia Family');
+        insert new List<Account>{ household, target };
+        Contact john = HouseholdTestDataFactory.newContact('Mr.', 'John', 'Smith');
+        Contact jane = HouseholdTestDataFactory.newContact('Mrs.', 'Jane', 'Smith');
+        insert new List<Contact>{ john, jane };
+        insert new List<Household_Member__c>{
+            new Household_Member__c(
+                Household__c = household.Id,
+                Contact__c = john.Id,
+                Role__c = 'Head',
+                Is_Primary__c = true,
+                Start_Date__c = Date.today()
+            ),
+            new Household_Member__c(
+                Household__c = household.Id,
+                Contact__c = jane.Id,
+                Role__c = 'Spouse or Partner',
+                Start_Date__c = Date.today()
+            )
+        };
+        update new Account(Id = household.Id, Primary_Contact__c = john.Id);
+
+        Test.startTest();
+        HouseholdService.moveContact(john.Id, target.Id);
+        Test.stopTest();
+
+        Assert.areEqual(
+            null,
+            [SELECT Primary_Contact__c FROM Account WHERE Id = :household.Id].Primary_Contact__c,
+            'The reference to the person who left was cleared (R-H10)'
+        );
+    }
+
+    @IsTest
+    static void nobodyIsPromotedIntoThePrimaryContactTheLeaverGaveUp() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Account household = HouseholdTestDataFactory.newHousehold('The Smith Family');
+        Account target = HouseholdTestDataFactory.newHousehold('The Garcia Family');
+        insert new List<Account>{ household, target };
+        Contact john = HouseholdTestDataFactory.newContact('Mr.', 'John', 'Smith');
+        Contact jane = HouseholdTestDataFactory.newContact('Mrs.', 'Jane', 'Smith');
+        john.AccountId = household.Id;
+        jane.AccountId = household.Id;
+        insert new List<Contact>{ john, jane };
+        update new Account(Id = household.Id, Primary_Contact__c = john.Id);
+
+        Test.startTest();
+        HouseholdService.moveContact(john.Id, target.Id);
+        Test.stopTest();
+
+        Account saved = [
+            SELECT Primary_Contact__c, Member_Count__c
+            FROM Account
+            WHERE Id = :household.Id
+        ];
+        Assert.areEqual(1, saved.Member_Count__c, 'Jane is still a member');
+        Assert.areEqual(
+            null,
+            saved.Primary_Contact__c,
+            'Jane was not silently promoted: the next member is proposed, not assigned (R-H10)'
+        );
+    }
+
+    @IsTest
+    static void aPrimaryContactWhoStaysIsLeftAlone() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Account household = HouseholdTestDataFactory.newHousehold('The Smith Family');
+        Account target = HouseholdTestDataFactory.newHousehold('The Garcia Family');
+        insert new List<Account>{ household, target };
+        Contact john = HouseholdTestDataFactory.newContact('Mr.', 'John', 'Smith');
+        Contact jane = HouseholdTestDataFactory.newContact('Mrs.', 'Jane', 'Smith');
+        john.AccountId = household.Id;
+        jane.AccountId = household.Id;
+        insert new List<Contact>{ john, jane };
+        update new Account(Id = household.Id, Primary_Contact__c = jane.Id);
+
+        Test.startTest();
+        HouseholdService.moveContact(john.Id, target.Id);
+        Test.stopTest();
+
+        Assert.areEqual(
+            jane.Id,
+            [SELECT Primary_Contact__c FROM Account WHERE Id = :household.Id].Primary_Contact__c,
+            'The primary contact who is still a member is untouched'
+        );
+    }
+
+    @IsTest
+    static void anOrganizationKeepsItsPrimaryContactWhenSomebodyLeaves() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Account organization = new Account(Name = 'Riverside Shelter');
+        Account household = HouseholdTestDataFactory.newHousehold('The Garcia Family');
+        insert new List<Account>{ organization, household };
+        Contact staff = HouseholdTestDataFactory.newContact('Ms.', 'Ada', 'Nkosi');
+        staff.AccountId = organization.Id;
+        insert staff;
+        update new Account(Id = organization.Id, Primary_Contact__c = staff.Id);
+
+        Test.startTest();
+        HouseholdService.moveContact(staff.Id, household.Id);
+        Test.stopTest();
+
+        Assert.areEqual(
+            staff.Id,
+            [SELECT Primary_Contact__c FROM Account WHERE Id = :organization.Id].Primary_Contact__c,
+            'An organization shares the field but not the rule (R-O3), so it is left alone'
+        );
+    }
 }
