@@ -156,7 +156,8 @@ sometimes transient, so one re-run is worth trying before digging.
 
 Two things constrain when it runs, both because there is one org rather than one per run.
 
-It runs **only on a push to `main`**. Deploying a pull request's code into the test org would
+It runs **on a push to `main`, or on a manual run** from the Actions tab (Run workflow), which
+is how to retry after changing a secret without inventing a commit to do it. Deploying a pull request's code into the test org would
 leave that org holding unmerged work, and the next run against main would inherit it. Pull
 requests get the static checks, which is where most of the signal is.
 

@@ -114,7 +114,7 @@ jobs:
     # Only on main. There is one test org, so running a pull request's code in it would
     # leave main's org holding unmerged code, and every run would contend for the same org.
     # Pull requests get the static checks, which is where most of the signal is anyway.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     # One org means one deploy at a time, so the group is global rather than per ref.
     # cancel-in-progress is false on purpose: killing a deploy partway through would leave
     # the org holding half a package, and a persistent org keeps that state. Runs queue
