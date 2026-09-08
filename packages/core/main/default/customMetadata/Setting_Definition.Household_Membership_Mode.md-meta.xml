@@ -8,7 +8,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">Choose the simple way, where each person belongs to one household, or the flexible way, where a person can belong to more than one household and you keep the history of who belonged when. Orgs that store people as accounts need the flexible way.</value>
+    <value xsi:type="xsd:string">Choose the simple way, where each person belongs to one household, or the flexible way, where a person can belong to more than one household and you keep the history of who belonged when. Orgs that store people as accounts need the flexible way, and Health Check will tell you so.</value>
   </values>
   <values>
     <field>Help_Path__c</field>

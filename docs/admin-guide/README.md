@@ -93,3 +93,5 @@ Each feature adds its row here when its page is written.
 | C-06 | [Access](access.md) | Core | v0.1 |
 | C-01 Household model | [households.md](households.md) | Core | v0.1 |
 | C-02 Household names and greetings | [household-naming.md](household-naming.md) | Core | v0.1 |
+| C-07 | [Coexistence mode](coexistence-mode.md) | Core | v0.1 |
+| C-11 | [Health Check](health-check.md) | Core | v0.1 |

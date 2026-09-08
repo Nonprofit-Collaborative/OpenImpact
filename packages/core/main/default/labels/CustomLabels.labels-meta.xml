@@ -441,6 +441,46 @@
         <value>Something went wrong while Open Impact was updating this record, so the record was not saved. The details are in the Error Log. Try again, and if it keeps happening, send the newest Error Log entry to whoever supports your Salesforce.</value>
     </labels>
     <labels>
+        <fullName>Core_CoexistenceMode_AgentforceNonprofit</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>The name of the Agentforce Nonprofit coexistence mode.</shortDescription>
+        <value>Agentforce Nonprofit coexistence</value>
+    </labels>
+    <labels>
+        <fullName>Core_CoexistenceMode_InvalidMode</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when a coexistence mode value is not one of the three.</shortDescription>
+        <value>{0} is not a coexistence mode. Choose Standalone, NPSP coexistence, or Agentforce Nonprofit coexistence.</value>
+    </labels>
+    <labels>
+        <fullName>Core_CoexistenceMode_Npsp</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>The name of the NPSP coexistence mode.</shortDescription>
+        <value>NPSP coexistence</value>
+    </labels>
+    <labels>
+        <fullName>Core_CoexistenceMode_Standalone</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>The name of the Standalone coexistence mode.</shortDescription>
+        <value>Standalone</value>
+    </labels>
+    <labels>
+        <fullName>Core_CoexistenceMode_Unset</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown where a coexistence mode is expected and none has been confirmed.</shortDescription>
+        <value>not confirmed yet</value>
+    </labels>
+    <labels>
         <fullName>Core_ErrorLogTile_Acknowledge</fullName>
         <categories>Core, Error Log</categories>
         <language>en_US</language>
@@ -519,6 +559,478 @@
         <protected>false</protected>
         <shortDescription>Error log default message</shortDescription>
         <value>Open Impact hit a problem it did not expect. The technical detail on this entry is what a support contact needs to work out why.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_AccessFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that opens the Access page from a finding.</shortDescription>
+        <value>Open the Access page</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_AccessNeedsAdminDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown to a viewer who cannot see who else is in the org.</shortDescription>
+        <value>Who can get into the app, and how many errors nobody has read, can only be counted by an administrator. Everything else in this report is accurate for everyone.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_AccessNeedsAdminTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the finding shown when the viewer cannot run the access checks.</shortDescription>
+        <value>Sign in as a Nonprofit Admin to see the access checks</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_AutomationFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that opens the automation settings from a finding.</shortDescription>
+        <value>Open automation settings</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_AutomationPausedDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Explains that packaged automation is paused.</shortDescription>
+        <value>Automation is paused until {0}. While it is paused, households are not created and names are not recomputed. That is right during a bulk load and wrong the rest of the time.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_AutomationPausedTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the paused automation finding.</shortDescription>
+        <value>Open Impact automation is paused</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_AutomationRunningDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when no automation is paused.</shortDescription>
+        <value>Nothing is paused. Households are created and names are recomputed as people work.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_AutomationRunningTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the finding shown when automation is running.</shortDescription>
+        <value>Automation is running normally</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_CategoryAccess</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading for the access findings.</shortDescription>
+        <value>Access</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_CategoryLicenses</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading for the license findings.</shortDescription>
+        <value>Licenses</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_CategoryOrgShape</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading for the org shape findings.</shortDescription>
+        <value>Your org</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_CategorySettings</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading for the settings findings.</shortDescription>
+        <value>Settings</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_CheckFailedDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Explains that one check could not run.</shortDescription>
+        <value>Health Check could not finish the check named {0}. The rest of this report is still accurate. The details are in the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_CheckFailedTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the finding shown when one check throws.</shortDescription>
+        <value>One check could not run</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ConnectMissingDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Explains that the gift mirror lives in the Connect module.</shortDescription>
+        <value>This org has Agentforce Nonprofit gift objects and the Connect module is not installed. Nothing is broken. If you want Nonprofit Cloud's own donor summaries to keep working alongside Open Impact, the mirror arrives with Connect in version 0.6.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ConnectMissingTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the Connect module finding.</shortDescription>
+        <value>The Gift Transaction mirror is in the Connect module</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_CurrentModeLabel</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Label of the current mode on the org shape card.</shortDescription>
+        <value>Coexistence mode</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ErrorContext</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error Log context for Health Check failures.</shortDescription>
+        <value>Health Check</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ErrorLogDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Explains that there are unread Error Log entries.</shortDescription>
+        <value>The Error Log has {0} new entries. Each one says what went wrong and what to do about it. Work through them, then mark them resolved.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ErrorLogFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that opens the Error Log from a finding.</shortDescription>
+        <value>Open the Error Log</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ErrorLogTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the unread errors finding.</shortDescription>
+        <value>{0} errors nobody has looked at</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_FixFailed</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when a fix button could not do what it says.</shortDescription>
+        <value>That did not work, and nothing was changed. The details are in the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_IndustriesDetected</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when Agentforce Nonprofit objects are present.</shortDescription>
+        <value>Agentforce Nonprofit objects detected</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_Intro</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sentence under the Health Check heading.</shortDescription>
+        <value>What Open Impact found in your org, and what to do about it.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_LoadFailed</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when the whole report could not be built.</shortDescription>
+        <value>Health Check could not read your org. The details are in the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_Loading</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown while the report is being built.</shortDescription>
+        <value>Reading your org</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MembershipDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Explains why contact membership does not work with Person Accounts.</shortDescription>
+        <value>Person Accounts are enabled, but household membership is still set to use the person's account. In a Person Accounts org the person is an account, so households built that way do not work. Switching to junction membership fixes it, and the households you already have are not changed.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MembershipFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that switches household membership to the junction.</shortDescription>
+        <value>Switch to junction membership</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MembershipTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the household membership finding.</shortDescription>
+        <value>Household membership does not fit Person Accounts</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ModeMatchDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Explains that the coexistence mode matches the org.</shortDescription>
+        <value>This org is set to {0}, which is what Open Impact recommends for what is installed here.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ModeMatchTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the finding shown when the mode matches.</shortDescription>
+        <value>Coexistence mode matches your org</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ModeMismatchDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Explains that the coexistence mode does not match the org.</shortDescription>
+        <value>This org is set to {0}, but what is installed points to {1}. If that is deliberate, leave it. If it is not, switch: households and imports behave differently in each mode.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ModeMismatchTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the mode mismatch finding.</shortDescription>
+        <value>Coexistence mode does not match your org</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ModeUnsetDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Explains that nobody has confirmed a coexistence mode.</shortDescription>
+        <value>Open Impact is running as {0} because nobody has confirmed a mode yet. This org looks like {1}. Confirm it before you create households or load data.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ModeUnsetTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the finding shown when no mode is confirmed.</shortDescription>
+        <value>Coexistence mode is not confirmed yet</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MultiCurrencyDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Explains that multiple currencies are not supported yet.</shortDescription>
+        <value>Open Impact does not convert between currencies yet. Nothing will break, but totals add up amounts as they were entered. Keep gift amounts in one currency until currency support ships.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MultiCurrencyTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the multi-currency finding.</shortDescription>
+        <value>This org uses more than one currency</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_NoAdminDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Explains that nobody holds the Nonprofit Admin role.</shortDescription>
+        <value>Nobody in this org has the Nonprofit Admin role, so nobody can change settings and parts of Open Impact will refuse to run. Assign it to yourself on the Access page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_NoAdminTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the missing administrator finding.</shortDescription>
+        <value>No one is assigned the Nonprofit Admin role</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_NoFindings</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when there is nothing to report.</shortDescription>
+        <value>Nothing to report. Open Impact is set up correctly.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_NothingDetected</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when nothing else is installed in the org.</shortDescription>
+        <value>Nothing else is installed: this is a fresh org</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_NpspDetected</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when the Nonprofit Success Pack is installed.</shortDescription>
+        <value>NPSP detected</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_OrgShapeCardTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading of the org shape card.</shortDescription>
+        <value>What we found in your org</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_OrgShapeDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>The org shape sentence, with what was detected and the recommended mode.</shortDescription>
+        <value>{0} Open Impact supports this org shape directly. The coexistence mode it recommends is {1}. Shield Platform Encryption cannot be detected from inside the app: if your org uses it, say so before you load data.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_OrgShapeTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the org shape finding, which sits under the card of the same subject.</shortDescription>
+        <value>Your org at a glance</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_PermissionRequired</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when someone without the permission tries to change a setting.</shortDescription>
+        <value>You need the Manage Nonprofit Settings permission to change this. Ask an administrator for the Nonprofit Admin role.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_PersonAccountsDetected</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when Person Accounts are enabled.</shortDescription>
+        <value>Person Accounts enabled</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ReadOnlyNotice</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown to someone who can read the report but not act on it.</shortDescription>
+        <value>You can read this report but not change anything. Ask an administrator for the Manage Nonprofit Settings permission.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_RecommendedModeLabel</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Label of the recommended mode on the org shape card.</shortDescription>
+        <value>Recommended</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_RerunButton</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that runs Health Check again.</shortDescription>
+        <value>Re-run</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_SalesObjectsDetected</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when standard Sales and Service Cloud objects are available.</shortDescription>
+        <value>Sales and Service Cloud objects available</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_SeverityError</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Screen reader text for a finding that needs fixing.</shortDescription>
+        <value>Needs fixing</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_SeverityInfo</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Screen reader text for an informational finding.</shortDescription>
+        <value>Information</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_SeverityWarning</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Screen reader text for a finding worth knowing about.</shortDescription>
+        <value>Worth knowing</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_Title</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading of the Health Check panel.</shortDescription>
+        <value>Health Check</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_UseRecommendedButton</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that applies the recommended coexistence mode.</shortDescription>
+        <value>Use recommended mode</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_UseRecommendedFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Fix button on a coexistence mode finding.</shortDescription>
+        <value>Use recommended mode</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_UsersWithoutAccessDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Explains that active users hold no Open Impact role.</shortDescription>
+        <value>{0} active users have a Salesforce license but none of the Open Impact roles, so the Nonprofit Hub is invisible to them. Assign roles on the Access page, or ignore this if those people are not meant to use Open Impact.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_UsersWithoutAccessTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the users without access finding.</shortDescription>
+        <value>{0} users cannot see the app</value>
     </labels>
     <labels>
         <fullName>Core_HouseholdMembersPanel_AddMember</fullName>

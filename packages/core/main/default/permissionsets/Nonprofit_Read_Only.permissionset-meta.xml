@@ -16,7 +16,39 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>CoexistenceService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>ErrorLogController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>ErrorLogCountSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>HealthCheckController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>HealthCheckService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>HouseholdController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>NamespaceUtil</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>OrgShapeDetector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>OrgShapeSelector</apexClass>
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
@@ -28,13 +60,68 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
-    <apexClass>UserSelector</apexClass>
+    <apexClass>UserAccessSelector</apexClass>
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
-    <apexClass>HouseholdController</apexClass>
+    <apexClass>UserSelector</apexClass>
     <enabled>true</enabled>
   </classAccesses>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.Anniversary__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.Custom_Name__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.Deceased__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.Exclude_From_Greetings__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.Exclude_From_Household_Name__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.Household_Formal_Greeting__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.Household_Informal_Greeting__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.Household_Role__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.Member_Count__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.Preferred_Name__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.Primary_Contact__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
     <field>Automation_Setting__c.Description__c</field>
@@ -63,6 +150,31 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Automation_Setting__c.Object_Name__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Contact.Deceased__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Contact.Exclude_From_Greetings__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Contact.Exclude_From_Household_Name__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Contact.Household_Role__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Contact.Preferred_Name__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -112,87 +224,7 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
-    <field>Account.Household_Formal_Greeting__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Account.Household_Informal_Greeting__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Account.Custom_Name__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Account.Primary_Contact__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Account.Member_Count__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Account.Anniversary__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Account.Deceased__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Account.Household_Role__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Account.Exclude_From_Household_Name__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Account.Exclude_From_Greetings__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Account.Preferred_Name__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Contact.Deceased__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Contact.Household_Role__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Contact.Exclude_From_Household_Name__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Contact.Exclude_From_Greetings__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Contact.Preferred_Name__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Household_Member__c.Household__c</field>
+    <field>Household_Member__c.Account__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -202,12 +234,12 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
-    <field>Household_Member__c.Account__c</field>
+    <field>Household_Member__c.End_Date__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
-    <field>Household_Member__c.Role__c</field>
+    <field>Household_Member__c.Household__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -217,12 +249,12 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
-    <field>Household_Member__c.Start_Date__c</field>
+    <field>Household_Member__c.Role__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
-    <field>Household_Member__c.End_Date__c</field>
+    <field>Household_Member__c.Start_Date__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <layoutAssignments>
@@ -246,8 +278,26 @@
     <allowEdit>false</allowEdit>
     <allowRead>true</allowRead>
     <modifyAllRecords>false</modifyAllRecords>
+    <viewAllRecords>false</viewAllRecords>
+    <object>Account</object>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>false</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>false</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
     <object>Automation_Setting__c</object>
     <viewAllRecords>true</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>false</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>false</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <viewAllRecords>false</viewAllRecords>
+    <object>Contact</object>
   </objectPermissions>
   <objectPermissions>
     <allowCreate>true</allowCreate>
@@ -266,24 +316,6 @@
     <modifyAllRecords>false</modifyAllRecords>
     <object>Error_Log__c</object>
     <viewAllRecords>true</viewAllRecords>
-  </objectPermissions>
-  <objectPermissions>
-    <allowCreate>false</allowCreate>
-    <allowDelete>false</allowDelete>
-    <allowEdit>false</allowEdit>
-    <allowRead>true</allowRead>
-    <modifyAllRecords>false</modifyAllRecords>
-    <viewAllRecords>false</viewAllRecords>
-    <object>Account</object>
-  </objectPermissions>
-  <objectPermissions>
-    <allowCreate>false</allowCreate>
-    <allowDelete>false</allowDelete>
-    <allowEdit>false</allowEdit>
-    <allowRead>true</allowRead>
-    <modifyAllRecords>false</modifyAllRecords>
-    <viewAllRecords>false</viewAllRecords>
-    <object>Contact</object>
   </objectPermissions>
   <objectPermissions>
     <allowCreate>false</allowCreate>
