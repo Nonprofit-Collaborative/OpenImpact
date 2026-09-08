@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Custom_Role_Required</fullName>
+  <active>true</active>
+  <description>
+    Role Other means the organization has its own word for this recognition, so the word is
+    required (canonical model Section 24).
+  </description>
+  <errorConditionFormula>
+    AND( ISPICKVAL(Role__c, &quot;Other&quot;), ISBLANK(Custom_Role__c) )
+  </errorConditionFormula>
+  <errorMessage>
+    Type your own wording in Custom Role, or choose one of the roles in the list.
+  </errorMessage>
+</ValidationRule>

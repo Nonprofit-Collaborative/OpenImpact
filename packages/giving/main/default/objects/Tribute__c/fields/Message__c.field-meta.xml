@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Message__c</fullName>
+  <description>What the donor asked to be conveyed, quoted in the notification.</description>
+  <externalId>false</externalId>
+  <inlineHelpText>What the donor asked you to pass on, in their words.</inlineHelpText>
+  <label>Message</label>
+  <length>32768</length>
+  <trackTrending>false</trackTrending>
+  <type>LongTextArea</type>
+  <visibleLines>4</visibleLines>
+</CustomField>

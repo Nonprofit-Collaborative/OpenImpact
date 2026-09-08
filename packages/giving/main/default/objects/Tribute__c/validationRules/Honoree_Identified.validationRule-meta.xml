@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Honoree_Identified</fullName>
+  <active>true</active>
+  <description>
+    At least one of Honoree Name, Honoree Contact, or Honoree Account is present, because a
+    tribute with no honoree cannot be written up (canonical model R-TR2).
+  </description>
+  <errorConditionFormula>
+    AND( ISBLANK(Honoree_Name__c), ISBLANK(Honoree_Contact__c), ISBLANK(Honoree_Account__c) )
+  </errorConditionFormula>
+  <errorMessage>
+    Say who this gift honors: type the name the donor gave, or choose a person already in your
+    database.
+  </errorMessage>
+</ValidationRule>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Is_Automatic__c</fullName>
+  <defaultValue>false</defaultValue>
+  <description>
+    Marks a credit Open Impact created and maintains, as opposed to one a person entered. The
+    package recomputes and removes its own credits and never touches a manual one (R-SC6).
+  </description>
+  <externalId>false</externalId>
+  <inlineHelpText>Open Impact created this credit and keeps it up to date.</inlineHelpText>
+  <label>Is Automatic</label>
+  <trackTrending>false</trackTrending>
+  <type>Checkbox</type>
+</CustomField>

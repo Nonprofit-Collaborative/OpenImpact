@@ -60,6 +60,11 @@
   </classAccesses>
   <fieldPermissions>
     <editable>false</editable>
+    <field>Account.Employer__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
     <field>Account.First_Gift_Date__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -240,6 +245,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
+    <field>Contact.Employer__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
     <field>Contact.First_Gift_Date__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -410,6 +420,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
+    <field>Gift__c.Matched_Gift__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
     <field>Gift__c.Original_Gift__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -430,12 +445,92 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
+    <field>Gift__c.Tribute__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
     <field>Installment__c.Paid_Amount__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
     <field>Installment__c.Rollups_Last_Calculated__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Soft_Credit__c.Account__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Soft_Credit__c.Amount__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Soft_Credit__c.Contact__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Soft_Credit__c.Custom_Role__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Soft_Credit__c.Is_Automatic__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Soft_Credit__c.Percent__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Tribute__c.Honoree_Account__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Tribute__c.Honoree_Contact__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Tribute__c.Honoree_Name__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Tribute__c.Message__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Tribute__c.Notification_Recipient_Account__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Tribute__c.Notification_Recipient_Contact__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Tribute__c.Notification_Recipient_Name__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Tribute__c.Notification_Sent_Date__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Tribute__c.Notification_Sent__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <objectPermissions>
@@ -492,6 +587,24 @@
     <object>Installment__c</object>
     <viewAllRecords>false</viewAllRecords>
   </objectPermissions>
+  <objectPermissions>
+    <allowCreate>false</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>false</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Soft_Credit__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>false</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>false</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Tribute__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
   <tabSettings>
     <tab>Appeal__c</tab>
     <visibility>Visible</visibility>
@@ -515,5 +628,13 @@
   <tabSettings>
     <tab>Installment__c</tab>
     <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Soft_Credit__c</tab>
+    <visibility>Available</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Tribute__c</tab>
+    <visibility>Available</visibility>
   </tabSettings>
 </PermissionSet>

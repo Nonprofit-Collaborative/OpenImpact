@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Type__c</fullName>
+  <description>Whether the person honored is living or has died, which changes the letter.</description>
+  <inlineHelpText>In honor of a living person, or in memory of someone who has died.</inlineHelpText>
+  <label>Type</label>
+  <required>true</required>
+  <trackTrending>false</trackTrending>
+  <type>Picklist</type>
+  <valueSet>
+    <restricted>true</restricted>
+    <valueSetDefinition>
+      <sorted>false</sorted>
+      <value>
+        <fullName>In honor of</fullName>
+        <default>true</default>
+        <label>In honor of</label>
+      </value>
+      <value>
+        <fullName>In memory of</fullName>
+        <default>false</default>
+        <label>In memory of</label>
+      </value>
+    </valueSetDefinition>
+  </valueSet>
+</CustomField>

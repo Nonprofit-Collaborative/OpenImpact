@@ -1,0 +1,96 @@
+/**
+ * The asynchronous half of R-SC3: it brings the automatic household soft credits on a
+ * household's gifts back into line after its membership changed.
+ *
+ * Queueable rather than inline, because a household's giving history has no bound and moving one
+ * person between households must not fail on the size of it. One household per job, chained, so
+ * that a change touching several households cannot blow a single job's limits and so that a
+ * failure names the household it happened on.
+ *
+ * A job that cannot be queued at all (an org already at its chaining limit, a trigger context
+ * that forbids it) is reported to the Error Log rather than swallowed: recognition that quietly
+ * stopped being maintained is the failure mode this rule exists to prevent.
+ */
+public with sharing class HouseholdSoftCreditRecompute implements Queueable {
+    private static final String CONTEXT = 'Household soft credit recompute';
+
+    /**
+     * How many households one save may queue a recompute for. One save that moves one person
+     * touches two households; a data load that moves five thousand people is what this bounds,
+     * because a job chained per household would run for as long as the load did.
+     */
+    public static final Integer HOUSEHOLDS_PER_TRANSACTION_CAP = 50;
+
+    private final List<Id> pending;
+
+    private HouseholdSoftCreditRecompute(List<Id> pending) {
+        this.pending = pending;
+    }
+
+    /**
+     * Queues the recompute for these households. Does nothing when the org has turned automatic
+     * household credits off and there is therefore nothing to keep in line, and nothing in a
+     * context that cannot queue work, which is what a test doing its own DML inside
+     * `Test.startTest` looks like.
+     */
+    public static void enqueue(Set<Id> householdIds) {
+        if (householdIds == null || householdIds.isEmpty()) {
+            return;
+        }
+        List<Id> pending = new List<Id>(householdIds);
+        if (pending.size() > HOUSEHOLDS_PER_TRANSACTION_CAP) {
+            // A bulk load of people is the case this bounds. Recrediting every household it
+            // touches would chain a job per household for as long as the load ran, so past this
+            // point the work is left to the next save of each gift and the fact is recorded.
+            ErrorLogger.logMessage(
+                String.format(
+                    Label.Giving_SoftCredits_RecomputeDeferred,
+                    new List<String>{
+                        String.valueOf(pending.size() - HOUSEHOLDS_PER_TRANSACTION_CAP)
+                    }
+                ),
+                CONTEXT,
+                'Warning'
+            );
+            List<Id> capped = new List<Id>();
+            for (Integer index = 0; index < HOUSEHOLDS_PER_TRANSACTION_CAP; index++) {
+                capped.add(pending[index]);
+            }
+            pending = capped;
+        }
+        if (System.isFuture() || Limits.getQueueableJobs() >= Limits.getLimitQueueableJobs()) {
+            // No async slot to take. The credits are corrected the next time each gift is saved.
+            ErrorLogger.logMessage(
+                String.format(
+                    Label.Giving_SoftCredits_RecomputeDeferred,
+                    new List<String>{ String.valueOf(pending.size()) }
+                ),
+                CONTEXT,
+                'Warning'
+            );
+            return;
+        }
+        System.enqueueJob(new HouseholdSoftCreditRecompute(pending));
+    }
+
+    public void execute(QueueableContext jobContext) {
+        if (pending == null || pending.isEmpty()) {
+            return;
+        }
+        Id householdId = pending[0];
+        List<Id> remaining = new List<Id>(pending);
+        remaining.remove(0);
+        try {
+            SoftCreditService.recomputeForHouseholds(new Set<Id>{ householdId });
+        } catch (Exception failure) {
+            ErrorLogger.log(failure, CONTEXT, householdId);
+        }
+        if (
+            !remaining.isEmpty() &&
+            !Test.isRunningTest() &&
+            Limits.getQueueableJobs() < Limits.getLimitQueueableJobs()
+        ) {
+            System.enqueueJob(new HouseholdSoftCreditRecompute(remaining));
+        }
+    }
+}
