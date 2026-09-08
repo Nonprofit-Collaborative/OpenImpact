@@ -28,7 +28,7 @@ public with sharing class HealthCheckController {
     public static HealthCheckService.Report applyRecommendedMode() {
         requireManageSettings();
         try {
-            CoexistenceService.setMode(OrgShapeDetector.recommendedCoexistenceMode());
+            CoexistenceService.applyMode(OrgShapeDetector.recommendedCoexistenceMode());
             return HealthCheckService.buildReport();
         } catch (AuraHandledException e) {
             throw e;

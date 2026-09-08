@@ -2,7 +2,8 @@
  * Tests for CoexistenceService (feature C-07).
  *
  * Maria's org decides the mode; the package only proposes one. These tests cover the
- * proposal, the confirmation, and the refusal to overwrite a choice already made.
+ * proposal, the confirmation, the refusal to overwrite a choice already made, and who is
+ * allowed to make one.
  */
 @IsTest
 private class CoexistenceServiceTest {
@@ -134,6 +135,104 @@ private class CoexistenceServiceTest {
             refused = true;
         }
         System.assert(refused, 'An empty mode is refused.');
+    }
+
+    @IsTest
+    static void applyModeAcceptsEveryValidMode() {
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
+
+        System.runAs(maria) {
+            CoexistenceService.applyMode(CoexistenceService.MODE_STANDALONE);
+            System.assertEquals(
+                CoexistenceService.MODE_STANDALONE,
+                CoexistenceService.getCurrentMode(),
+                'Standalone can be applied by an administrator.'
+            );
+
+            CoexistenceService.applyMode(CoexistenceService.MODE_NPSP);
+            System.assertEquals(
+                CoexistenceService.MODE_NPSP,
+                CoexistenceService.getCurrentMode(),
+                'NPSP coexistence can be applied by an administrator.'
+            );
+
+            CoexistenceService.applyMode(CoexistenceService.MODE_AGENTFORCE_NONPROFIT);
+            System.assertEquals(
+                CoexistenceService.MODE_AGENTFORCE_NONPROFIT,
+                CoexistenceService.getCurrentMode(),
+                'Agentforce Nonprofit coexistence can be applied by an administrator.'
+            );
+        }
+    }
+
+    @IsTest
+    static void applyModeBringsJunctionMembershipWithAgentforceNonprofit() {
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
+
+        System.runAs(maria) {
+            System.assertEquals(
+                CoexistenceService.MEMBERSHIP_CONTACT,
+                CoexistenceService.getMembershipMode(),
+                'Membership starts in contact mode.'
+            );
+
+            CoexistenceService.applyMode(CoexistenceService.MODE_AGENTFORCE_NONPROFIT);
+
+            System.assertEquals(
+                CoexistenceService.MEMBERSHIP_JUNCTION,
+                CoexistenceService.getMembershipMode(),
+                'Person Accounts require junction membership, applied in the same save.'
+            );
+        }
+    }
+
+    @IsTest
+    static void applyModeRejectsAnythingElse() {
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
+
+        System.runAs(maria) {
+            Boolean refused = false;
+            try {
+                CoexistenceService.applyMode('Whatever');
+            } catch (CoexistenceService.CoexistenceException e) {
+                refused = true;
+                System.assert(
+                    e.getMessage().contains('Whatever'),
+                    'The message names the value that was refused.'
+                );
+            }
+            System.assert(refused, 'An unknown mode is refused rather than saved.');
+            System.assertEquals(
+                null,
+                CoexistenceService.getCurrentMode(),
+                'A refused value leaves the org without a mode rather than with a wrong one.'
+            );
+        }
+    }
+
+    @IsTest
+    static void applyModeRefusesSomeoneWithoutThePermission() {
+        User priya = HealthCheckTestHelper.priyaWithoutManageSettings();
+
+        System.runAs(priya) {
+            Boolean refused = false;
+            try {
+                CoexistenceService.applyMode(CoexistenceService.MODE_NPSP);
+            } catch (CoexistenceService.CoexistenceException e) {
+                refused = true;
+                System.assertEquals(
+                    System.Label.Core_HealthCheck_PermissionRequired,
+                    e.getMessage(),
+                    'Priya is told what permission she needs and who to ask for it.'
+                );
+            }
+            System.assert(refused, 'Changing how the whole package behaves needs the permission.');
+            System.assertEquals(
+                null,
+                CoexistenceService.getCurrentMode(),
+                'Nothing was written on the way to being refused.'
+            );
+        }
     }
 
     @IsTest

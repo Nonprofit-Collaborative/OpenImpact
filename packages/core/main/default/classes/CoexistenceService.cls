@@ -6,6 +6,7 @@
  * Every write goes through SettingsService so that it is cached, invalidated, and audited
  * the same way as every other setting (canonical model Section 12).
  */
+@NamespaceAccessible
 public with sharing class CoexistenceService {
     public static final String MODE_STANDALONE = 'Standalone';
     public static final String MODE_NPSP = 'NPSP';
@@ -16,6 +17,9 @@ public with sharing class CoexistenceService {
 
     public static final String KEY_COEXISTENCE_MODE = 'Coexistence_Mode__c';
     public static final String KEY_MEMBERSHIP_MODE = 'Household_Membership_Mode__c';
+
+    /** The custom permission that gates changing the mode. */
+    public static final String MANAGE_SETTINGS = 'Manage_Nonprofit_Settings';
 
     private static final Set<String> VALID_MODES = new Set<String>{
         MODE_STANDALONE,
@@ -92,6 +96,24 @@ public with sharing class CoexistenceService {
         SettingsService.saveValues(
             new Map<String, Object>{ KEY_MEMBERSHIP_MODE => MEMBERSHIP_JUNCTION }
         );
+    }
+
+    /**
+     * Change the mode on behalf of the person asking, which is what the settings console and
+     * Health Check do. Unlike setMode, this refuses anyone without the Manage Nonprofit
+     * Settings permission: the coexistence mode governs how the whole package behaves, so it
+     * is an administrator's decision even where the calling code forgot to say so.
+     *
+     * Agentforce Nonprofit brings junction household membership with it, in the same audited
+     * save, because in a Person Accounts org the person is an account and contact membership
+     * cannot express a household.
+     */
+    @NamespaceAccessible
+    public static void applyMode(String mode) {
+        if (!FeatureManagement.checkPermission(MANAGE_SETTINGS)) {
+            throw new CoexistenceException(System.Label.Core_HealthCheck_PermissionRequired);
+        }
+        setMode(mode);
     }
 
     /** Raised when a value that is not a coexistence mode is offered as one. */

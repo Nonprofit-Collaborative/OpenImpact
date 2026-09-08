@@ -28,6 +28,12 @@ public with sharing class HealthCheckService {
     public static final String FIX_APPLY_RECOMMENDED_MODE = 'action:applyRecommendedMode';
     public static final String FIX_APPLY_JUNCTION_MEMBERSHIP = 'action:applyJunctionMembership';
 
+    /** The settings console tab that hosts every section a fix can point at. */
+    public static final String SETTINGS_TAB = 'Nonprofit_Settings';
+
+    /** The page state parameter that tells the console which section to open. */
+    public static final String SECTION_STATE_PARAMETER = 'section';
+
     public static final String SECTION_GENERAL = 'General';
     public static final String SECTION_HOUSEHOLDS = 'Households';
     public static final String SECTION_ACCESS = 'Access';
@@ -64,8 +70,11 @@ public with sharing class HealthCheckService {
      */
     private static final String CONNECT_MARKER_CLASS = 'ConnectService';
 
-    /** The custom permission that gates changing settings and reading who else is in the org. */
-    public static final String MANAGE_SETTINGS = 'Manage_Nonprofit_Settings';
+    /**
+     * The custom permission that gates changing settings and reading who else is in the org.
+     * Declared once, next to the setting it protects.
+     */
+    public static final String MANAGE_SETTINGS = CoexistenceService.MANAGE_SETTINGS;
 
     /**
      * Test injection points, null in every real transaction: a check that always throws, and
@@ -77,6 +86,14 @@ public with sharing class HealthCheckService {
 
     @TestVisible
     private static Exception loggerFault;
+
+    /**
+     * Where the two access counts come from. Injected in tests so that the findings are
+     * asserted against numbers the test chose, not against whichever people and permission
+     * sets happen to exist in the org the tests run in.
+     */
+    @TestVisible
+    private static AccessCounts accessCountsOverride;
 
     /** One thing Health Check has to say about this org. */
     public class Finding {
@@ -131,10 +148,23 @@ public with sharing class HealthCheckService {
         @AuraEnabled
         public Boolean canManageSettings;
 
+        /**
+         * The API name of the settings console tab, and the page state key a section fix has
+         * to use, both carrying whatever namespace this org runs under. The component never
+         * builds these itself (see docs/contributor-guide/environment.md, "Namespace
+         * registration").
+         */
+        @AuraEnabled
+        public String settingsTabApiName;
+        @AuraEnabled
+        public String sectionStateKey;
+
         public Report() {
             this.findings = new List<Finding>();
             this.modeNeedsAttention = false;
             this.canManageSettings = false;
+            this.settingsTabApiName = NamespaceUtil.qualify(SETTINGS_TAB);
+            this.sectionStateKey = NamespaceUtil.stateKey(SECTION_STATE_PARAMETER);
         }
     }
 
@@ -144,6 +174,38 @@ public with sharing class HealthCheckService {
      */
     public interface Check {
         Finding run();
+    }
+
+    /**
+     * How many people administer Open Impact, and how many active people cannot see it at
+     * all. Both are questions about the whole org, which is why only an administrator is
+     * allowed to ask them.
+     */
+    public interface AccessCounts {
+        Integer administrators();
+        Integer usersWithoutAccess();
+    }
+
+    /** The real counts, read from the org. */
+    private class OrgAccessCounts implements AccessCounts {
+        public Integer administrators() {
+            return UserAccessSelector.countActiveAssignees(new Set<String>{ GROUP_ADMIN }) +
+                UserAccessSelector.countActiveDirectAssignees(
+                    new Set<String>{ PERMISSION_SET_ADMIN }
+                );
+        }
+
+        public Integer usersWithoutAccess() {
+            Set<Id> assigned = UserAccessSelector.getAssignedUserIds(NONPROFIT_GROUPS);
+            assigned.addAll(
+                UserAccessSelector.getPermissionSetAssigneeIds(NONPROFIT_PERMISSION_SETS)
+            );
+            return UserAccessSelector.countActiveStandardUsersExcluding(assigned);
+        }
+    }
+
+    private static AccessCounts accessCounts() {
+        return accessCountsOverride == null ? new OrgAccessCounts() : accessCountsOverride;
     }
 
     /** A check and the key its failure is reported under. */
@@ -467,9 +529,7 @@ public with sharing class HealthCheckService {
     }
 
     private static Finding noAdminFinding() {
-        Integer admins =
-            UserAccessSelector.countActiveAssignees(new Set<String>{ GROUP_ADMIN }) +
-            UserAccessSelector.countActiveDirectAssignees(new Set<String>{ PERMISSION_SET_ADMIN });
+        Integer admins = accessCounts().administrators();
         if (admins > 0) {
             return null;
         }
@@ -485,9 +545,7 @@ public with sharing class HealthCheckService {
     }
 
     private static Finding usersWithoutAccessFinding() {
-        Set<Id> assigned = UserAccessSelector.getAssignedUserIds(NONPROFIT_GROUPS);
-        assigned.addAll(UserAccessSelector.getPermissionSetAssigneeIds(NONPROFIT_PERMISSION_SETS));
-        Integer without = UserAccessSelector.countActiveStandardUsersExcluding(assigned);
+        Integer without = accessCounts().usersWithoutAccess();
         if (without <= 0) {
             return null;
         }

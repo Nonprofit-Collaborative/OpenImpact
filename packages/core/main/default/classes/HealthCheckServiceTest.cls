@@ -2,7 +2,9 @@
  * Tests for HealthCheckService (feature C-11), one per finding path.
  *
  * Org shape is forced through the detector's test override so that every path runs on every
- * org shape in the CI matrix. The access and Error Log checks read the org they run in.
+ * org shape in the CI matrix, and the two access counts through the service's own override,
+ * so that a finding is asserted against numbers the test chose rather than against whoever
+ * happens to hold a permission set in the org the tests run in.
  */
 @IsTest
 private class HealthCheckServiceTest {
@@ -206,6 +208,7 @@ private class HealthCheckServiceTest {
 
         System.runAs(maria) {
             OrgShapeDetector.overrideShape = shape(false, false, false, false);
+            HealthCheckService.accessCountsOverride = new FixedAccessCounts(0, 0);
 
             HealthCheckService.Finding finding = find(
                 HealthCheckService.run(),
@@ -215,7 +218,7 @@ private class HealthCheckServiceTest {
             System.assertNotEquals(
                 null,
                 finding,
-                'No packaged role has been assigned in a test org, so this is reported.'
+                'An org where nobody can administer Open Impact is told so.'
             );
             System.assertEquals(
                 HealthCheckService.SEVERITY_ERROR,
@@ -226,6 +229,29 @@ private class HealthCheckServiceTest {
                 HealthCheckService.SECTION_ACCESS,
                 finding.fixTarget,
                 'The fix opens the Access page.'
+            );
+        }
+    }
+
+    @IsTest
+    static void anOrgThatIsSetUpProperlyIsToldNothingAboutAccess() {
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
+
+        System.runAs(maria) {
+            OrgShapeDetector.overrideShape = shape(false, false, false, false);
+            HealthCheckService.accessCountsOverride = new FixedAccessCounts(1, 0);
+
+            List<HealthCheckService.Finding> findings = HealthCheckService.run();
+
+            System.assertEquals(
+                null,
+                find(findings, 'no_nonprofit_admin'),
+                'One administrator is enough: there is nothing to say about it.'
+            );
+            System.assertEquals(
+                null,
+                find(findings, 'users_without_access'),
+                'Everyone can see the app, so nobody is reported as locked out.'
             );
         }
     }
@@ -269,6 +295,7 @@ private class HealthCheckServiceTest {
 
         System.runAs(maria) {
             OrgShapeDetector.overrideShape = shape(false, false, false, false);
+            HealthCheckService.accessCountsOverride = new FixedAccessCounts(1, 3);
 
             HealthCheckService.Finding finding = find(
                 HealthCheckService.run(),
@@ -278,12 +305,16 @@ private class HealthCheckServiceTest {
             System.assertNotEquals(
                 null,
                 finding,
-                'Nobody in a test org holds a packaged role, so people are counted.'
+                'Active people holding no packaged role are counted and reported.'
             );
             System.assertEquals(
                 HealthCheckService.SEVERITY_WARNING,
                 finding.severity,
                 'People who cannot see the app is a warning, not an error.'
+            );
+            System.assert(
+                finding.detail.contains('3'),
+                'The finding reports the number of people that were counted: ' + finding.detail
             );
         }
     }
@@ -573,6 +604,29 @@ private class HealthCheckServiceTest {
             HealthCheckService.detectedSummary(null),
             'A shape that could not be read still produces a sentence.'
         );
+    }
+
+    /**
+     * Access counts the test chose. The real counts are questions about every user and
+     * permission set in the org, so a finding asserted against them is really an assertion
+     * about the org the tests happen to run in. These are the numbers the test asked for.
+     */
+    private class FixedAccessCounts implements HealthCheckService.AccessCounts {
+        private final Integer admins;
+        private final Integer without;
+
+        private FixedAccessCounts(Integer admins, Integer without) {
+            this.admins = admins;
+            this.without = without;
+        }
+
+        public Integer administrators() {
+            return admins;
+        }
+
+        public Integer usersWithoutAccess() {
+            return without;
+        }
     }
 
     private static OrgShapeDetector.OrgShape shape(

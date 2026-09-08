@@ -49,6 +49,10 @@ function agentforceReport(overrides = {}) {
     recommendedModeLabel: 'Agentforce Nonprofit coexistence',
     orgShapeSummary: 'Person Accounts enabled. Agentforce Nonprofit objects detected.',
     orgShape: { hasPersonAccounts: true, hasIndustriesNonprofit: true },
+    // Both come from Apex, which computes them from the running namespace. Unmanaged, which
+    // is what the scratch orgs are, they look like this.
+    settingsTabApiName: 'Nonprofit_Settings',
+    sectionStateKey: 'c__section',
     findings: [
       {
         key: 'org_shape',
@@ -95,6 +99,13 @@ function createPanel() {
   const element = createElement('c-health-check-panel', { is: HealthCheckPanel });
   document.body.appendChild(element);
   return element;
+}
+
+function clickSectionFix(element) {
+  const fixes = element.shadowRoot.querySelectorAll('[data-id="fix"]');
+  Array.from(fixes)
+    .find((button) => button.dataset.target === 'Access')
+    .click();
 }
 
 function flush() {
@@ -174,16 +185,14 @@ describe('c-health-check-panel', () => {
     });
   });
 
-  it('dispatches navigatetosection for a settings section fix', async () => {
+  it('navigates to the settings console when no host handles the section fix', async () => {
     getReport.mockResolvedValue(agentforceReport());
     const element = createPanel();
     const handler = jest.fn();
     element.addEventListener('navigatetosection', handler);
     await flush();
 
-    const fixes = element.shadowRoot.querySelectorAll('[data-id="fix"]');
-    const access = Array.from(fixes).find((button) => button.dataset.target === 'Access');
-    access.click();
+    clickSectionFix(element);
     await flush();
 
     expect(handler).toHaveBeenCalled();
@@ -192,6 +201,40 @@ describe('c-health-check-panel', () => {
       type: 'standard__navItemPage',
       attributes: { apiName: 'Nonprofit_Settings' },
       state: { c__section: 'Access' }
+    });
+  });
+
+  it('leaves the section fix to a host that handles it, and does not also navigate', async () => {
+    getReport.mockResolvedValue(agentforceReport());
+    const element = createPanel();
+    const handler = jest.fn((event) => event.preventDefault());
+    element.addEventListener('navigatetosection', handler);
+    await flush();
+
+    clickSectionFix(element);
+    await flush();
+
+    expect(handler).toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('uses the namespaced tab and state key the report supplies', async () => {
+    getReport.mockResolvedValue(
+      agentforceReport({
+        settingsTabApiName: 'example__Nonprofit_Settings',
+        sectionStateKey: 'example__section'
+      })
+    );
+    const element = createPanel();
+    await flush();
+
+    clickSectionFix(element);
+    await flush();
+
+    expect(mockNavigate).toHaveBeenCalledWith({
+      type: 'standard__navItemPage',
+      attributes: { apiName: 'example__Nonprofit_Settings' },
+      state: { example__section: 'Access' }
     });
   });
 
