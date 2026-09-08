@@ -19,8 +19,15 @@ Salesforce org is needed for this job. Steps:
    appears in source.
 6. `scripts/ci/check-standard-objects.sh`, failing the build if a standard Salesforce
    object is referenced outside `packages/connect`.
-7. A grep check that fails the build if any tracked file contains an em dash character.
-8. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
+7. `scripts/ci/check-custom-metadata.py`, failing the build if a shipped custom metadata
+   record names a field its type does not define. Such a record refuses the whole
+   deployment, and nothing else in the suite sees it: the offline Apex compiler does not
+   read custom metadata records.
+8. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
+   is missing from `docs/architecture/canonical-model.md`. The canonical model is updated
+   before an object or a field is added, so this is the gate that keeps it true.
+9. A grep check that fails the build if any tracked file contains an em dash character.
+10. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
    `sf code-analyzer run --workspace packages --rule-selector Recommended --severity-threshold 2`.
    The results are uploaded as a build artifact (`code-analyzer-results.html` and
    `code-analyzer-results.json`) even if the job fails, so anyone can download and read

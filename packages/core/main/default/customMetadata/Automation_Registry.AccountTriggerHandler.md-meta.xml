@@ -3,7 +3,7 @@
   <label>Household upkeep when a household changes</label>
   <protected>true</protected>
   <values>
-    <field>Default_Enabled__c</field>
+    <field>Enabled_By_Default__c</field>
     <value xsi:type="xsd:boolean">true</value>
   </values>
   <values>
