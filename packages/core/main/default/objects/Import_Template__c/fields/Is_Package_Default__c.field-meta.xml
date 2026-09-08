@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Is_Package_Default__c</fullName>
+  <defaultValue>false</defaultValue>
+  <description>Marks a template materialized from a shipped default rather than built by the administrator.</description>
+  <label>Is Package Default</label>
+  <type>Checkbox</type>
+</CustomField>

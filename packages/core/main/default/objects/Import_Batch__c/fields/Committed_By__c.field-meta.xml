@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Committed_By__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>The user who committed the import, empty while it is a dry run.</description>
+  <externalId>false</externalId>
+  <label>Committed By</label>
+  <referenceTo>User</referenceTo>
+  <relationshipLabel>Imports Committed</relationshipLabel>
+  <relationshipName>Imports_Committed</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

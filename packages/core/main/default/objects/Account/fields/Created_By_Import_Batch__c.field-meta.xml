@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Created_By_Import_Batch__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>The import that created this household or organization, so records loaded together can be found again (canonical model R-IB3).</description>
+  <externalId>false</externalId>
+  <inlineHelpText>The import this record came from.</inlineHelpText>
+  <label>Created By Import Batch</label>
+  <referenceTo>Import_Batch__c</referenceTo>
+  <relationshipLabel>Households and Organizations</relationshipLabel>
+  <relationshipName>Households_And_Organizations</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>
