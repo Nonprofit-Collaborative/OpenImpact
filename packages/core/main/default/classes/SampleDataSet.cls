@@ -23,17 +23,31 @@ public with sharing class SampleDataSet {
      */
     public final List<Map<String, Object>> members;
 
+    /**
+     * The connections between people in different households (C-15), in file order. Empty
+     * when the payload has none, which is what a payload written before connections shipped,
+     * and every test payload that does not care about them, looks like.
+     */
+    public final List<Map<String, Object>> relationships;
+
+    /** The affiliations joining people to organizations (C-16), in file order. */
+    public final List<Map<String, Object>> affiliations;
+
     /** Household key to inserted Account Id, filled in by the household stage. */
     public Map<String, Id> householdIdsByKey = new Map<String, Id>();
 
     private SampleDataSet(
         List<Map<String, Object>> households,
         List<Map<String, Object>> organizations,
-        List<Map<String, Object>> members
+        List<Map<String, Object>> members,
+        List<Map<String, Object>> relationships,
+        List<Map<String, Object>> affiliations
     ) {
         this.households = households;
         this.organizations = organizations;
         this.members = members;
+        this.relationships = relationships;
+        this.affiliations = affiliations;
     }
 
     /**
@@ -45,7 +59,16 @@ public with sharing class SampleDataSet {
         List<Map<String, Object>> households = asMapList(root.get('households'));
         List<Map<String, Object>> organizations = asMapList(root.get('organizations'));
         validateOrganizations(organizations);
-        return new SampleDataSet(households, organizations, flattenMembers(households));
+        List<Map<String, Object>> relationships = optionalMapList(root.get('relationships'));
+        List<Map<String, Object>> affiliations = optionalMapList(root.get('affiliations'));
+        validateConnections(relationships, affiliations);
+        return new SampleDataSet(
+            households,
+            organizations,
+            flattenMembers(households),
+            relationships,
+            affiliations
+        );
     }
 
     /** The JSON body as a map, or invalid data when it is blank, unparseable, or not an object. */
@@ -93,6 +116,34 @@ public with sharing class SampleDataSet {
             }
         }
         return members;
+    }
+
+    /**
+     * A relationship needs both people and a type, and an affiliation needs a person and an
+     * organization: without them the loader would insert a row that points at nothing, which
+     * the remove action would then have to delete and the panels would show as blank.
+     */
+    private static void validateConnections(
+        List<Map<String, Object>> relationships,
+        List<Map<String, Object>> affiliations
+    ) {
+        for (Map<String, Object> relationship : relationships) {
+            if (
+                String.isBlank(asString(relationship.get('person'))) ||
+                String.isBlank(asString(relationship.get('relatedPerson'))) ||
+                String.isBlank(asString(relationship.get('type')))
+            ) {
+                throw invalidData();
+            }
+        }
+        for (Map<String, Object> affiliation : affiliations) {
+            if (
+                String.isBlank(asString(affiliation.get('person'))) ||
+                String.isBlank(asString(affiliation.get('organization')))
+            ) {
+                throw invalidData();
+            }
+        }
     }
 
     /** Every organization needs a name; the loader has nothing else to insert one by. */
@@ -144,6 +195,15 @@ public with sharing class SampleDataSet {
             result.add((Map<String, Object>) entry);
         }
         return result;
+    }
+
+    /**
+     * An optional JSON array as a list of maps: absent or null reads as none at all, so a
+     * payload written before this list existed still loads, while a value of the wrong shape
+     * is still invalid data rather than a silent skip.
+     */
+    private static List<Map<String, Object>> optionalMapList(Object value) {
+        return value == null ? new List<Map<String, Object>>() : asMapList(value);
     }
 
     private static String asString(Object value) {

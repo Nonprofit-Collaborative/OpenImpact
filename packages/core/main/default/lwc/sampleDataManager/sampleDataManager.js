@@ -20,6 +20,8 @@ import loadingAltText from '@salesforce/label/c.Core_SampleData_LoadingAltText';
 import householdsLabel from '@salesforce/label/c.Core_SampleData_HouseholdsLabel';
 import contactsLabel from '@salesforce/label/c.Core_SampleData_ContactsLabel';
 import organizationsLabel from '@salesforce/label/c.Core_SampleData_OrganizationsLabel';
+import relationshipsLabel from '@salesforce/label/c.Core_SampleData_RelationshipsLabel';
+import affiliationsLabel from '@salesforce/label/c.Core_SampleData_AffiliationsLabel';
 import readOnlyMessage from '@salesforce/label/c.Core_SampleData_ReadOnlyMessage';
 import loadSuccess from '@salesforce/label/c.Core_SampleData_LoadSuccess';
 import removeSuccess from '@salesforce/label/c.Core_SampleData_RemoveSuccess';
@@ -55,6 +57,8 @@ export default class SampleDataManager extends LightningElement {
     householdsLabel,
     contactsLabel,
     organizationsLabel,
+    relationshipsLabel,
+    affiliationsLabel,
     readOnlyMessage,
     cancelButtonLabel,
     confirmButtonLabel,
@@ -68,6 +72,11 @@ export default class SampleDataManager extends LightningElement {
   householdCount = 0;
   contactCount = 0;
   organizationCount = 0;
+  relationshipCount = 0;
+  affiliationCount = 0;
+  // One entry per installed module sample set, each carrying its own label, so a module
+  // that ships sample data adds a count here without this component changing (C-10).
+  moduleCounts = [];
   loaded = false;
   loading = false;
   // Undefined until the first status call answers, so the notice never flashes before the
@@ -115,6 +124,9 @@ export default class SampleDataManager extends LightningElement {
     this.householdCount = result.householdCount;
     this.contactCount = result.contactCount;
     this.organizationCount = result.organizationCount;
+    this.relationshipCount = result.relationshipCount || 0;
+    this.affiliationCount = result.affiliationCount || 0;
+    this.moduleCounts = result.moduleCounts || [];
     this.loaded = result.loaded;
     this.loading = result.loading;
     this.junctionMembership = result.junctionMembership;
@@ -143,6 +155,36 @@ export default class SampleDataManager extends LightningElement {
       clearInterval(this.pollTimer);
       this.pollTimer = undefined;
     }
+  }
+
+  /**
+   * The numbers the card shows, in reading order: Core's own records first, then one tile
+   * per installed module sample set, labelled by the module itself.
+   */
+  get tiles() {
+    const tiles = [
+      { key: 'households', label: this.labels.householdsLabel, value: this.householdCount },
+      { key: 'contacts', label: this.labels.contactsLabel, value: this.contactCount },
+      {
+        key: 'organizations',
+        label: this.labels.organizationsLabel,
+        value: this.organizationCount
+      },
+      {
+        key: 'relationships',
+        label: this.labels.relationshipsLabel,
+        value: this.relationshipCount
+      },
+      { key: 'affiliations', label: this.labels.affiliationsLabel, value: this.affiliationCount }
+    ];
+    this.moduleCounts.forEach((module) => {
+      tiles.push({
+        key: `module-${module.name}`,
+        label: module.label,
+        value: module.recordCount
+      });
+    });
+    return tiles;
   }
 
   get statusLabel() {

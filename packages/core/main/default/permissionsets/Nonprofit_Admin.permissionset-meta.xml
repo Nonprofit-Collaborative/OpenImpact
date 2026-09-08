@@ -334,6 +334,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
+    <field>Account.Sample_Data_Key__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
     <field>Account.Sample_Data__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -449,6 +454,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
+    <field>Affiliation__c.Sample_Data__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
     <field>Affiliation__c.Start_Date__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -520,6 +530,11 @@
   <fieldPermissions>
     <editable>true</editable>
     <field>Contact.Primary_Affiliation__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Contact.Sample_Data_Key__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -845,6 +860,11 @@
   <fieldPermissions>
     <editable>true</editable>
     <field>Relationship__c.Related_Person_Account__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Relationship__c.Sample_Data__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>

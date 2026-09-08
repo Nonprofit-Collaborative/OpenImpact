@@ -1,7 +1,9 @@
 /**
- * Loads and removes the C-10 sample data set: 200 households, 440 contacts, and 25
- * organizations, read from the SampleData static resource. See data/sample/README.md for
- * the JSON format and docs/admin-guide/sample-data.md for the admin-facing behavior.
+ * Loads and removes the C-10 sample data set: 200 households, 440 contacts, 25
+ * organizations, 60 connections between people and 80 affiliations, read from the
+ * SampleData static resource, plus whatever a module sample set adds to it (the Giving
+ * gifts, appeals, funds, pledges and tributes). See data/sample/README.md for the JSON
+ * format and docs/admin-guide/sample-data.md for the admin-facing behavior.
  *
  * The set loads in either membership mode. People are joined to their households through
  * HouseholdService, which knows what joining means in the mode the org is in, so this
@@ -35,6 +37,18 @@ public with sharing class SampleDataLoader {
     @TestVisible
     private static Boolean runningJobOverride;
 
+    /** One module sample set's own number, as the status card shows it. */
+    public class ModuleCount {
+        /** The module's stable name, for example 'Giving'. */
+        @AuraEnabled
+        public String name;
+        /** The module's own wording for what the number counts, for example 'Gifts'. */
+        @AuraEnabled
+        public String label;
+        @AuraEnabled
+        public Integer recordCount;
+    }
+
     public class Counts {
         @AuraEnabled
         public Integer householdCount;
@@ -42,6 +56,17 @@ public with sharing class SampleDataLoader {
         public Integer organizationCount;
         @AuraEnabled
         public Integer contactCount;
+        @AuraEnabled
+        public Integer relationshipCount;
+        @AuraEnabled
+        public Integer affiliationCount;
+        /**
+         * One entry per installed module sample set, empty in an org that has only Core.
+         * The card renders whatever is here, so a module shipping its own sample data does
+         * not need a change in this component (C-10, ADR-0017).
+         */
+        @AuraEnabled
+        public List<ModuleCount> moduleCounts = new List<ModuleCount>();
         @AuraEnabled
         public Boolean loaded;
         @AuraEnabled
@@ -87,9 +112,14 @@ public with sharing class SampleDataLoader {
     }
 
     /**
-     * Deletes every household, organization, and contact flagged Sample_Data__c, and
-     * returns the counts that were removed. Contacts are deleted first so no household is
-     * ever left with a dangling AccountId reference mid-transaction.
+     * Deletes every record flagged Sample_Data__c, and returns the counts that were
+     * removed: each installed module's own records first (a gift points at a person and a
+     * household), then connections and affiliations, then contacts, then the accounts, so
+     * nothing is ever left pointing at a record that has just gone.
+     *
+     * Everything the loader creates is either flagged itself or a detail of something that
+     * is, which is what keeps this to "delete only what the loader created". Records an
+     * administrator entered have the box clear and are never in these lists.
      *
      * In junction mode the membership rows the load created go with the households: the
      * Household field on a household member record is a required lookup that cascades, so
@@ -106,7 +136,22 @@ public with sharing class SampleDataLoader {
         result.contactCount = selector.countSampleContacts();
         result.householdCount = selector.countSampleHouseholds();
         result.organizationCount = selector.countSampleOrganizations();
+        result.relationshipCount = selector.countSampleRelationships();
+        result.affiliationCount = selector.countSampleAffiliations();
+        result.moduleCounts = SampleDataModules.counts();
 
+        // Modules first: a gift points at a household and a person, and a lookup that is
+        // cleared by a deleted parent would leave the gift behind with nothing on it.
+        SampleDataModules.removeAll();
+
+        List<Id> relationshipIds = selector.getSampleRelationshipIds();
+        if (!relationshipIds.isEmpty()) {
+            Database.delete(relationshipIds, AccessLevel.USER_MODE);
+        }
+        List<Id> affiliationIds = selector.getSampleAffiliationIds();
+        if (!affiliationIds.isEmpty()) {
+            Database.delete(affiliationIds, AccessLevel.USER_MODE);
+        }
         List<Id> contactIds = selector.getSampleContactIds();
         if (!contactIds.isEmpty()) {
             Database.delete(contactIds, AccessLevel.USER_MODE);
@@ -133,6 +178,8 @@ public with sharing class SampleDataLoader {
             result.householdCount = 0;
             result.organizationCount = 0;
             result.contactCount = 0;
+            result.relationshipCount = 0;
+            result.affiliationCount = 0;
             result.loading = false;
             result.loaded = false;
             result.junctionMembership = HouseholdService.isJunctionMode();
@@ -143,6 +190,9 @@ public with sharing class SampleDataLoader {
         result.householdCount = selector.countSampleHouseholds();
         result.organizationCount = selector.countSampleOrganizations();
         result.contactCount = selector.countSampleContacts();
+        result.relationshipCount = selector.countSampleRelationships();
+        result.affiliationCount = selector.countSampleAffiliations();
+        result.moduleCounts = SampleDataModules.counts();
         result.loading = hasRunningLoadJob();
         result.loaded =
             !result.loading && (result.householdCount > 0 || result.organizationCount > 0);

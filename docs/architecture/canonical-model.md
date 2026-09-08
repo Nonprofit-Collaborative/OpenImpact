@@ -251,6 +251,7 @@ Custom Name set.
 | Member Count | `Member_Count__c` | Number |
 | Anniversary | `Anniversary__c` | Date |
 | Sample Data | `Sample_Data__c` | Checkbox |
+| Sample Data Key | `Sample_Data_Key__c` | Text(20) (v0.4) |
 
 - **Person attributes on Account.** The five person attributes listed under Contact
   (Section 7) are present on Account as well, with the same API names and the same
@@ -408,6 +409,7 @@ no feature code branches on it.
 | Exclude From Greetings | `Exclude_From_Greetings__c` | Checkbox |
 | Preferred Name | `Preferred_Name__c` | Text |
 | Sample Data | `Sample_Data__c` | Checkbox |
+| Sample Data Key | `Sample_Data_Key__c` | Text(20) (v0.4) |
 | Employer | `Employer__c` | Lookup to Account |
 
 The seven above are person attributes, present on both Contact and Account with the same
@@ -464,7 +466,9 @@ not shown on Organization layouts.
 
 - **Object:** Account, record type `Organization`.
 - **Fields:** standard `Name`; `Primary_Contact__c` (shared with Household, above);
-  `Sample_Data__c` (Checkbox, shared field definition with Household, above).
+  `Sample_Data__c` (Checkbox, shared field definition with Household, above);
+  `Sample_Data_Key__c` (Text(20), shared with Household, holding the key the generated
+  sample set knows this organization by).
 
 ---
 
@@ -1527,6 +1531,7 @@ the organization gave back.
 | In-kind Description | `In_Kind_Description__c` | Long Text Area (v0.4) |
 | Fair Market Value | `Fair_Market_Value__c` | Currency (v0.4) |
 | Created By Import Batch | `Created_By_Import_Batch__c` | Lookup to `Import_Batch__c` |
+| Sample Data | `Sample_Data__c` | Checkbox (v0.4) |
 
 - **Service:** `GiftService`, `GiftDomain`, `GiftSelector`, LWC `quickGiftEntry` (G-03).
 - **Receipt lock:** handler `GiftReceiptLockHandler`, registry record
@@ -1649,6 +1654,7 @@ identifier.
 | Restricted | `Restricted__c` | Checkbox |
 | Accounting Code | `Accounting_Code__c` | Text, unique |
 | Is Default | `Is_Default__c` | Checkbox |
+| Sample Data | `Sample_Data__c` | Checkbox (v0.4) |
 
 Rollup target attributes on `Fund__c` are listed in Section 26.
 
@@ -1721,6 +1727,7 @@ Connect (plan Section 4.12).
 | Active | `Active__c` | Checkbox |
 | Net Raised | `Net_Raised__c` | Formula (Currency) |
 | Percent To Goal | `Percent_To_Goal__c` | Formula (Percent) |
+| Sample Data | `Sample_Data__c` | Checkbox (v0.4) |
 
 Rollup target attributes on `Appeal__c` are listed in Section 26.
 
@@ -1866,6 +1873,7 @@ rewritten, because a gift already refers to them.
 | Fund | `Fund__c` | Lookup to `Fund__c` |
 | Appeal | `Appeal__c` | Lookup to `Appeal__c` |
 | Balance | `Balance__c` | Formula (Currency) |
+| Sample Data | `Sample_Data__c` | Checkbox (v0.4) |
 
 Rollup target attributes on `Commitment__c`, including Paid To Date, are listed in
 Section 26.
@@ -2390,6 +2398,7 @@ a Spouse relationship, and the two mechanisms do not read each other.
 | Description | `Description__c` | Long Text Area |
 | Reciprocal Relationship | `Reciprocal_Relationship__c` | Lookup to `Relationship__c` |
 | Is Reciprocal Managed | `Is_Reciprocal_Managed__c` | Checkbox |
+| Sample Data | `Sample_Data__c` | Checkbox (v0.4) |
 
 - **Shipped defaults:** `Relationship_Type__mdt` (Section 13).
 - **Settings key:** `Relationship_Auto_Reciprocal__c` (Section 12).
@@ -2474,6 +2483,7 @@ matches an affiliation (R-IR1), which is how most affiliations in a converted or
 | Start Date | `Start_Date__c` | Date |
 | End Date | `End_Date__c` | Date |
 | Description | `Description__c` | Long Text Area |
+| Sample Data | `Sample_Data__c` | Checkbox (v0.4) |
 
 - **Field on Contact:** `Primary_Affiliation__c`, a Lookup to Account, maintained by the
   package (R-AF2). In Person Account orgs the same attribute exists on Account as
@@ -2652,6 +2662,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.3 | 2026-09-08 | G-02 defect fix (ADR-0022). No object or field added. Section 26's base filter changes from `Status equals Received` to `Status` in `Received`, `Refunded`, `Written off`, because R-G3 moves a fully refunded gift's status while leaving the negative gifts that reverse it at Received, so the old filter kept the negatives, dropped the positive, and subtracted a refunded gift twice. The count rows, largest gift, and the two date rows additionally require `Amount__c` greater than 0, so a gift given once and refunded in full reads as one gift and a total of zero. All 38 gift sourced, Gift Allocation sourced and Soft Credit sourced `Rollup_Definition_Default__mdt` rows updated; the three Pledge Balance rows filter on Commitment status and are unaffected. R-R9 gains the sentence that makes this a consequence of the rule rather than an exception to it. |
 | v0.3 | 2026-09-08 | G-08 rule collision resolved (ADR-0023). No object, field, or rollup row changed. R-SC5 and R-SC6 collided on a full refund: R-SC5 creates a negative automatic credit on the negative gift while R-SC6 removed the original gift's automatic credits once its status became Refunded or Written off, so a fully refunded gift of 250 left a recognition total of minus 250 rather than zero. R-SC6 no longer removes credits on refund; removal is now only for a deleted gift. R-SC5 states the resulting pair explicitly and R-SC3 states that a gift keeps its household credits after its status is reversed. Section 26's soft credit rows already read gift status through the widened set from ADR-0022, so they need no further change and now carry both halves of the pair. |
 | v0.3 | 2026-09-08 | G-04 receipt lock (ADR-0024). `Automation_Registry__mdt` and `Automation_Setting__c` each gain `Always_Runs__c` (Checkbox, default false): an automation marked that way enforces a rule rather than providing a convenience, so the dispatcher ignores the bypass, the pause and the switch for it, and the console shows its switch off and disabled with a reason (new rule R-A4). Giving ships the `Gift_Receipt_Lock` automation (order 5, `GiftReceiptLockHandler`) carrying the two enforcement calls that used to run inside `Gift_Core_Rules`, and the custom permission `Override_Receipt_Lock`, which is on no permission set and in no permission set group. R-G4 restated: the lock survives the automation switch, the override is a deliberate act in Setup, and every use of it is written to the Error Log at Warning severity. No object added. |
+| v0.4 | 2026-09-08 | C-10 sample data extended to the Giving module and to connections. `Sample Data` (`Sample_Data__c`, Checkbox, default false) added to `Gift__c`, `Fund__c`, `Appeal__c`, `Commitment__c`, `Relationship__c` and `Affiliation__c`, so every record the sample loader creates can be found and removed in one action; a gift's allocations, soft credits and tributes, and a commitment's installments, are details of a flagged record and go with it. `Sample Data Key` (`Sample_Data_Key__c`, Text(20)) added to Account and Contact: it holds the key the generated file gives a household, an organization or a person, which is how the Giving sample gifts find the donor they belong to across the asynchronous chain. No object added. |
 
 ---
 ## 32. Entity ownership by package

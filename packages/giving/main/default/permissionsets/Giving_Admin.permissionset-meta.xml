@@ -231,6 +231,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
+    <field>Appeal__c.Sample_Data__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
     <field>Appeal__c.Start_Date__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -297,6 +302,11 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Commitment__c.Rollups_Last_Calculated__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Commitment__c.Sample_Data__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -405,6 +415,11 @@
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
+    <editable>true</editable>
+    <field>Fund__c.Sample_Data__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
     <editable>false</editable>
     <field>Fund__c.Total_Raised_This_Year__c</field>
     <readable>true</readable>
@@ -502,6 +517,11 @@
   <fieldPermissions>
     <editable>true</editable>
     <field>Gift__c.Refund_Reason__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Gift__c.Sample_Data__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>

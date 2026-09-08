@@ -3,10 +3,16 @@
  * query directly (plan Section 9.3).
  */
 public with sharing class SampleDataSelector {
-    /** The two queueable classes that make up the sample data load chain. */
+    /**
+     * The queueable classes that make up the sample data load chain. The Giving stages are
+     * named as strings like the rest: Core cannot compile against a module package
+     * (ADR-0009), and a name that resolves to nothing simply never matches a running job.
+     */
     private static final Set<String> LOAD_JOB_CLASS_NAMES = new Set<String>{
         'SampleDataLoadQueueable',
-        'SampleDataContactQueueable'
+        'SampleDataContactQueueable',
+        'SampleDataConnectionQueueable',
+        'GivingSampleDataQueueable'
     };
 
     /** AsyncApexJob statuses that mean a job has not finished yet. */
@@ -68,6 +74,88 @@ public with sharing class SampleDataSelector {
             ids.add(con.Id);
         }
         return ids;
+    }
+
+    public Integer countSampleRelationships() {
+        return [SELECT COUNT() FROM Relationship__c WHERE Sample_Data__c = TRUE WITH USER_MODE];
+    }
+
+    public Integer countSampleAffiliations() {
+        return [SELECT COUNT() FROM Affiliation__c WHERE Sample_Data__c = TRUE WITH USER_MODE];
+    }
+
+    public List<Id> getSampleRelationshipIds() {
+        List<Id> ids = new List<Id>();
+        for (Relationship__c row : [
+            SELECT Id
+            FROM Relationship__c
+            WHERE Sample_Data__c = TRUE
+            WITH USER_MODE
+        ]) {
+            ids.add(row.Id);
+        }
+        return ids;
+    }
+
+    public List<Id> getSampleAffiliationIds() {
+        List<Id> ids = new List<Id>();
+        for (Affiliation__c row : [
+            SELECT Id
+            FROM Affiliation__c
+            WHERE Sample_Data__c = TRUE
+            WITH USER_MODE
+        ]) {
+            ids.add(row.Id);
+        }
+        return ids;
+    }
+
+    /**
+     * The other side of each of these relationships, where the relationship automation built
+     * it and it is not flagged as sample data yet.
+     */
+    public List<Id> getMirrorRelationshipIds(Set<Id> relationshipIds) {
+        List<Id> ids = new List<Id>();
+        for (Relationship__c row : [
+            SELECT Id
+            FROM Relationship__c
+            WHERE Reciprocal_Relationship__c IN :relationshipIds AND Sample_Data__c = FALSE
+            WITH USER_MODE
+        ]) {
+            ids.add(row.Id);
+        }
+        return ids;
+    }
+
+    /**
+     * Every sample person by the key the generator gave them, which is how a module sample
+     * set (Giving) and the connection stage find the person a record belongs to.
+     */
+    public Map<String, Id> getSampleContactIdsByKey() {
+        Map<String, Id> byKey = new Map<String, Id>();
+        for (Contact person : [
+            SELECT Id, Sample_Data_Key__c
+            FROM Contact
+            WHERE Sample_Data__c = TRUE AND Sample_Data_Key__c != NULL
+            WITH USER_MODE
+        ]) {
+            byKey.put(person.Sample_Data_Key__c, person.Id);
+        }
+        return byKey;
+    }
+
+    /** Every sample household and organization by its generator key. */
+    public Map<String, Id> getSampleAccountIdsByKey() {
+        Map<String, Id> byKey = new Map<String, Id>();
+        for (Account account : [
+            SELECT Id, Sample_Data_Key__c
+            FROM Account
+            WHERE Sample_Data__c = TRUE AND Sample_Data_Key__c != NULL
+            WITH USER_MODE
+        ]) {
+            byKey.put(account.Sample_Data_Key__c, account.Id);
+        }
+        return byKey;
     }
 
     /**

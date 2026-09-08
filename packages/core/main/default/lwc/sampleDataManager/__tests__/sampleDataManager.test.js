@@ -26,15 +26,23 @@ const NOT_LOADED_STATUS = {
   householdCount: 0,
   contactCount: 0,
   organizationCount: 0,
+  relationshipCount: 0,
+  affiliationCount: 0,
+  moduleCounts: [],
   loaded: false,
   loading: false,
   junctionMembership: false
 };
 
+// An org with Giving installed: Core's own five numbers, then the module's own tile,
+// labelled by the module rather than by this component.
 const LOADED_STATUS = {
   householdCount: 200,
   contactCount: 440,
   organizationCount: 25,
+  relationshipCount: 60,
+  affiliationCount: 80,
+  moduleCounts: [{ name: 'Giving', label: 'Gifts', recordCount: 709 }],
   loaded: true,
   loading: false,
   junctionMembership: false
@@ -165,7 +173,37 @@ describe('c-sample-data-manager', () => {
 
     const headings = element.shadowRoot.querySelectorAll('.slds-text-heading_medium');
     const values = Array.from(headings).map((el) => el.textContent);
-    expect(values).toEqual(['200', '440', '25']);
+    expect(values).toEqual(['200', '440', '25', '60', '80', '709']);
+  });
+
+  it('shows a tile for each module sample set, labelled by the module', async () => {
+    canManageSampleData.mockResolvedValue(true);
+    getStatus.mockResolvedValue(LOADED_STATUS);
+
+    const element = createManager();
+    await flushPromises();
+
+    const captions = Array.from(element.shadowRoot.querySelectorAll('.slds-text-body_small')).map(
+      (el) => el.textContent
+    );
+    expect(captions[captions.length - 1]).toBe('Gifts');
+  });
+
+  it('shows only the Core numbers in an org with no module sample data', async () => {
+    canManageSampleData.mockResolvedValue(true);
+    getStatus.mockResolvedValue({ ...LOADED_STATUS, moduleCounts: [] });
+
+    const element = createManager();
+    await flushPromises();
+
+    const headings = element.shadowRoot.querySelectorAll('.slds-text-heading_medium');
+    expect(Array.from(headings).map((el) => el.textContent)).toEqual([
+      '200',
+      '440',
+      '25',
+      '60',
+      '80'
+    ]);
   });
 
   it('asks for confirmation before loading, then calls the Apex load method', async () => {
