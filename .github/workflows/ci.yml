@@ -48,6 +48,9 @@ jobs:
       - name: Check custom metadata records against their types
         run: python3 scripts/ci/check-custom-metadata.py
 
+      - name: Check no tracked symlink leaves the repository
+        run: bash scripts/ci/check-symlinks.sh
+
       - name: Check the canonical model lists every shipped API name
         run: python3 scripts/ci/check-canonical-model.py
 

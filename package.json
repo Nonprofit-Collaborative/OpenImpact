@@ -13,6 +13,7 @@
     "check:namespace": "bash scripts/ci/check-namespace.sh",
     "check:standard-objects": "bash scripts/ci/check-standard-objects.sh",
     "check:custom-metadata": "python3 scripts/ci/check-custom-metadata.py",
+    "check:symlinks": "bash scripts/ci/check-symlinks.sh",
     "check:canonical-model": "python3 scripts/ci/check-canonical-model.py",
     "precommit": "lint-staged",
     "check:apex": "bash scripts/ci/check-apex-offline.sh"

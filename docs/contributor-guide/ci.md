@@ -23,11 +23,16 @@ Salesforce org is needed for this job. Steps:
    record names a field its type does not define. Such a record refuses the whole
    deployment, and nothing else in the suite sees it: the offline Apex compiler does not
    read custom metadata records.
-8. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
+8. `scripts/ci/check-symlinks.sh`, failing the build if a tracked file is a symlink
+   pointing outside the repository or at an absolute path. Such a link resolves on the
+   machine that committed it and dangles everywhere else, so every local check passes and
+   CI fails. This ran because a stray `.tools` symlink, left in an agent worktree and swept
+   in by `git add -A`, broke the offline Apex compile check on `main`.
+9. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
    is missing from `docs/architecture/canonical-model.md`. The canonical model is updated
    before an object or a field is added, so this is the gate that keeps it true.
-9. A grep check that fails the build if any tracked file contains an em dash character.
-10. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
+10. A grep check that fails the build if any tracked file contains an em dash character.
+11. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
    `sf code-analyzer run --workspace packages --rule-selector Recommended --severity-threshold 2`.
    The results are uploaded as a build artifact (`code-analyzer-results.html` and
    `code-analyzer-results.json`) even if the job fails, so anyone can download and read
