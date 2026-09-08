@@ -20,6 +20,10 @@ received.
 
 Nothing to turn on. Linking is available on every gift.
 
+You link a match by opening the company's gift and setting **Matched gift** to the
+employee's gift. Open Impact fills in the other side of the link for you, so the employee's
+gift shows the match too, and it refuses a link that cannot be right.
+
 One piece of setup makes it safer and faster: fill in **Employer** on the people who work
 for companies that match. Open a Contact and set **Employer** to the organization. When
 the employer's check arrives, Open Impact checks the link you are making against it and
@@ -35,7 +39,7 @@ Riverbend Manufacturing.
    dated last month, status **Received**. Save. This is the employee's gift.
 3. Press **New** again. Enter a gift from **Riverbend Manufacturing** for **500**, dated
    today, status **Received**. Save. This is the employer's match.
-4. On the employer's gift, press **Link matching gift** and choose Ana's gift. Save.
+4. On the employer's gift, set **Matched gift** to Ana's gift. Save.
 5. Look at what happened on the employer's gift: it now shows **Matches: Ana Garcia's gift
    of 500**, and in **Soft credits** Ana Garcia appears with the role **Matched donor** and
    the amount 500, marked automatic.
@@ -44,24 +48,25 @@ Riverbend Manufacturing.
 7. Open **Ana Garcia**. Her **Total giving** is 500, the gift she actually made. Her
    **Total soft credits** is 500, the match she caused. Neither number has been inflated by
    the other.
-8. Try a link that should fail. Go back to the employer's gift, press **Unlink**, then try
-   to link it to a gift from a donor who works somewhere else. Open Impact refuses with:
-   **That gift is from someone whose employer is a different organization. Check the
+8. Try a link that should fail. Go back to the employer's gift, clear **Matched gift**, save,
+   then set it to a gift from a donor who works somewhere else. Open Impact refuses the save
+   with: **That gift is from someone whose employer is a different organization. Check the
    employer on the person's record, or clear it if you are not sure.**
 
 ## Common mistakes
 
-- **Linking two gifts the wrong way round.** The link is entered on the employer's gift
-  and points at the employee's gift. If the button refuses with **The matching gift must
-  come from an organization**, you are standing on the employee's gift, not the company's.
+- **Linking two gifts that are both from people.** One gift of the pair has to come from an
+  organization, because a match is what a company pays. If the save is refused with **The
+  matching gift must come from an organization. Open the company's gift and link the
+  employee's gift to it.**, neither of the two gifts you chose is the company's.
 - **Entering the match as a second gift from the employee.** The company gave the money, so
   the company is the donor. Recording it under the employee inflates their giving total and
   makes your receipts wrong.
 - **Leaving Employer blank and linking anyway.** That is allowed: Open Impact only compares
   when an employer is set. Filling it in is what turns a silent mistake into a warning.
-- **Expecting the soft credit to survive an unlink.** Unlinking removes the matched donor
-  credit that the link created, because it exists only to record the link. A credit you
-  entered by hand stays.
+- **Expecting the soft credit to survive an unlink.** Clearing Matched gift removes the
+  matched donor credit that the link created, because it exists only to record the link. A
+  credit you entered by hand stays.
 
 ## Fields, for report builders
 

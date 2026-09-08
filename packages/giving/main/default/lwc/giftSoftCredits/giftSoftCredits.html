@@ -1,0 +1,104 @@
+<template>
+  <lightning-card title={labels.title} icon-name="custom:custom19">
+    <lightning-button
+      slot="actions"
+      data-id="add-button"
+      label={labels.add}
+      disabled={addDisabled}
+      onclick={handleShowForm}
+    ></lightning-button>
+
+    <div class="slds-var-p-horizontal_medium">
+      <template if:true={hasError}>
+        <p data-id="error-message" class="slds-text-color_error slds-var-m-bottom_small">
+          {errorMessage}
+        </p>
+      </template>
+
+      <template if:true={isEmpty}>
+        <p data-id="empty-state" class="slds-text-body_regular">{labels.empty}</p>
+      </template>
+
+      <template if:true={hasCredits}>
+        <ul data-id="credit-list" class="slds-has-dividers_bottom-space">
+          <template for:each={credits} for:item="credit">
+            <li key={credit.recordId} class="slds-item">
+              <span class="slds-text-body_regular">{credit.personName}</span>
+              <span class="slds-var-m-horizontal_x-small">{credit.roleText}</span>
+              <lightning-formatted-number
+                value={credit.amount}
+                format-style="currency"
+              ></lightning-formatted-number>
+              <template if:true={credit.isAutomatic}>
+                <lightning-badge
+                  class="automatic-badge"
+                  label={labels.automaticBadge}
+                ></lightning-badge>
+                <lightning-helptext content={labels.automaticHelp}></lightning-helptext>
+              </template>
+              <template if:true={credit.showRemove}>
+                <lightning-button
+                  class="remove-button"
+                  data-credit={credit.recordId}
+                  label={labels.remove}
+                  variant="base"
+                  disabled={busy}
+                  onclick={handleRemove}
+                ></lightning-button>
+              </template>
+            </li>
+          </template>
+        </ul>
+      </template>
+
+      <template if:true={showForm}>
+        <div data-id="add-form" class="slds-box slds-var-m-top_small">
+          <lightning-record-picker
+            data-id="person-picker"
+            label={labels.personLabel}
+            object-api-name="Contact"
+            onchange={handlePersonChange}
+          ></lightning-record-picker>
+          <lightning-combobox
+            data-id="role-input"
+            label={labels.roleLabel}
+            value={draftRole}
+            options={roleOptions}
+            onchange={handleRoleChange}
+          ></lightning-combobox>
+          <template if:true={isCustomRole}>
+            <lightning-input
+              data-id="custom-role-input"
+              label={labels.customRoleLabel}
+              value={draftCustomRole}
+              onchange={handleCustomRoleChange}
+            ></lightning-input>
+          </template>
+          <lightning-input
+            data-id="amount-input"
+            type="number"
+            formatter="currency"
+            label={labels.amountLabel}
+            value={draftAmount}
+            onchange={handleAmountChange}
+          ></lightning-input>
+          <div class="slds-var-m-top_small">
+            <lightning-button
+              data-id="save-button"
+              variant="brand"
+              label={labels.save}
+              disabled={saveDisabled}
+              onclick={handleSave}
+            ></lightning-button>
+            <lightning-button
+              data-id="cancel-button"
+              class="slds-var-m-left_x-small"
+              label={labels.cancel}
+              onclick={handleCancel}
+            ></lightning-button>
+          </div>
+        </div>
+      </template>
+    </div>
+  </lightning-card>
+</template>

@@ -89,7 +89,7 @@ public with sharing class TributeController {
         view.notificationSent = tribute.Notification_Sent__c == true;
         view.notificationSentDate = tribute.Notification_Sent_Date__c;
         view.canMarkSent =
-            Tribute__c.SObjectType.getDescribe().isUpdateable() &&
+            Tribute__c.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).isUpdateable() &&
             view.notificationSent == false &&
             String.isNotBlank(view.recipientName);
         return view;

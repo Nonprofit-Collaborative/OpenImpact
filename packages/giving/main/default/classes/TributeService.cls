@@ -74,9 +74,7 @@ public with sharing class TributeService {
         }
         Set<Id> honoreeContactIds = new Set<Id>();
         for (Tribute__c tribute : tributes) {
-            if (
-                TYPE_IN_MEMORY_OF.equals(tribute.Type__c) && tribute.Honoree_Contact__c != null
-            ) {
+            if (TYPE_IN_MEMORY_OF.equals(tribute.Type__c) && tribute.Honoree_Contact__c != null) {
                 honoreeContactIds.add(tribute.Honoree_Contact__c);
             }
         }
@@ -153,10 +151,7 @@ public with sharing class TributeService {
             }
             giftsToUpdate.put(
                 tribute.Gift__c,
-                new Gift__c(
-                    Id = tribute.Gift__c,
-                    Tribute__c = linking == true ? tribute.Id : null
-                )
+                new Gift__c(Id = tribute.Gift__c, Tribute__c = linking == true ? tribute.Id : null)
             );
         }
         if (giftsToUpdate.isEmpty()) {

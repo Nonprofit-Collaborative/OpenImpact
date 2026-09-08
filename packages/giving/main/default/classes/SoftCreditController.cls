@@ -127,7 +127,9 @@ public with sharing class SoftCreditController {
 
     private static SoftCreditPanel panelFor(Id giftId) {
         SoftCreditPanel panel = new SoftCreditPanel();
-        Schema.DescribeSObjectResult describe = Soft_Credit__c.SObjectType.getDescribe();
+        Schema.DescribeSObjectResult describe = Soft_Credit__c.SObjectType.getDescribe(
+            SObjectDescribeOptions.DEFERRED
+        );
         panel.canAdd = describe.isCreateable();
         panel.canRemove = describe.isDeletable();
         for (Soft_Credit__c credit : SoftCreditSelector.selectForGifts(new Set<Id>{ giftId })) {

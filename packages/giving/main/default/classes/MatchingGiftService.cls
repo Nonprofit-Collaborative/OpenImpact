@@ -139,7 +139,10 @@ public with sharing class MatchingGiftService {
             creditsToRemoveFor.add(oldPartnerId);
             Gift__c oldPartner = giftById.get(oldPartnerId);
             if (oldPartner != null && oldPartner.Matched_Gift__c == giftId) {
-                updateById.put(oldPartnerId, new Gift__c(Id = oldPartnerId, Matched_Gift__c = null));
+                updateById.put(
+                    oldPartnerId,
+                    new Gift__c(Id = oldPartnerId, Matched_Gift__c = null)
+                );
             }
         }
 
@@ -157,7 +160,7 @@ public with sharing class MatchingGiftService {
                 continue;
             }
             Gift__c employerGift = isOrganizationGift(edited) ? edited : partner;
-            Gift__c employeeGift = employerGift === edited ? partner : edited;
+            Gift__c employeeGift = employerGift.Id == edited.Id ? partner : edited;
             if (!isOrganizationGift(employerGift)) {
                 record.addError(Label.Giving_MatchingGift_EmployerMustBeOrganization);
                 continue;
@@ -216,10 +219,12 @@ public with sharing class MatchingGiftService {
         if (employeePersonId == null) {
             return credits;
         }
-        for (Soft_Credit__c existing : SoftCreditSelector.selectAutomaticForGifts(
-            new Set<Id>{ employerGift.Id },
-            SoftCreditService.ROLE_MATCHED_DONOR
-        )) {
+        for (
+            Soft_Credit__c existing : SoftCreditSelector.selectAutomaticForGifts(
+                new Set<Id>{ employerGift.Id },
+                SoftCreditService.ROLE_MATCHED_DONOR
+            )
+        ) {
             Id creditedId = existing.Contact__c != null ? existing.Contact__c : existing.Account__c;
             if (creditedId == employeePersonId) {
                 return credits;
