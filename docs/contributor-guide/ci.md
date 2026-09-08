@@ -84,54 +84,91 @@ whatever org it names.
 5. **Prove it can create a scratch org before involving continuous integration.** `scripts/org/create-scratch-org.sh platform-only smoke --days 1` creates the org, deploys Core and assigns the permission sets. If that fails, fix it here rather than in a build log. Delete it with `scripts/org/delete-scratch-org.sh smoke`.
 6. **Read out the authentication URL.** `sf org display --target-org devhub --verbose --json` prints a `sfdxAuthUrl` field. **That string is a credential**: it carries a refresh token and anyone holding it has API access to the org. Do not paste it into a commit, an issue, or a chat window.
 7. **Store it as a repository secret.** In GitHub: Settings, then Secrets and variables, then Actions, then New repository secret. Name it exactly `SF_DEVHUB_AUTH_URL` and paste the value from step 6.
-8. **Push anything, or re-run the last workflow.** The `org-tests` job stops skipping and runs the four shapes it can. Expect failures on the first run: several hundred Apex tests have been written and none has ever executed.
+8. **Create the test org and store its secret**, which is the next section. The Dev Hub alone does not run any test: it is what lets you create the org that does. Expect failures on the first run that reaches the Apex tests: several hundred have been written and none has ever executed.
 
 To rotate or revoke, re-run steps 3 and 6 and replace the secret, or revoke the connected app
 session in the org under Setup, Connected Apps OAuth Usage.
 
-### Choosing which shapes run
+### The test org is one long lived org, not a new one per run
 
-The `org-tests` job knows five shapes and runs only those named in the `SF_ORG_TEST_SHAPES`
-repository variable (Settings, then Secrets and variables, then Actions, then the Variables
-tab). Unset means `person-accounts` alone.
+`org-tests` deploys into a single org named by the `SF_TEST_ORG_AUTH_URL` secret. It does not
+create or delete anything. If the secret is unset the job skips with a warning and no Apex
+test runs.
 
-That default is deliberate. The first customers are Nonprofit Cloud and Agentforce Nonprofit
-orgs, where people are stored as person Accounts, and `person-accounts` is the closest shape
-an ordinary Dev Hub can create. Running one shape per push also keeps the scratch org
-allowance from being the reason a build fails.
+That is a deliberate trade, and it is worth being clear about what it costs. A fresh scratch
+org per run is a clean room: what passes, passes against exactly what this repository
+contains. A long lived org accumulates. Deleted metadata is not removed by a deploy, so a
+class or field you deleted here still exists there; a test can pass because of something left
+behind by an earlier run. When a result looks surprising, recreating the org is the first
+thing to try, not the last.
 
-Widen it when there is a reason to, for example `platform-only,person-accounts` to guard the
-platform only floor as well. Add `nonprofit-cloud` only once the Dev Hub carries that
-entitlement: without it, org creation fails, which is a red build rather than a reported gap.
+Two consequences follow.
 
-### Scratch org limits are the thing that bites next
+**It expires, and then every run fails at login.** The org is a scratch org, and Salesforce
+caps those at 30 days. Every run prints the days remaining and warns from a week out;
+`scripts/org/check-org-expiry.sh` does that and never fails a build on its own. Refreshing the
+org means replacing the secret, because a new org has new credentials.
 
-Every push runs one scratch org per shape. A Developer Edition Dev Hub has a low daily
-allowance, so a busy day can exhaust it and later builds fail for want of an org rather than
-for anything wrong with the code. Check the allowance in Setup under Company Information on
-the Dev Hub org. If it becomes a problem, the fix is to run the full matrix on a schedule and
-keep only `platform-only` and `person-accounts` on every push.
+**One org means one shape.** The four shape definitions still exist and still matter, but this
+job exercises whichever shape the org was created from. Use `person-accounts` unless you have
+a reason not to: it is the closest an ordinary Dev Hub gets to the Agentforce Nonprofit orgs
+the first customers run. Testing a second shape means a second org and a second secret.
+
+### Creating the test org and connecting it
+
+Do this on your own machine, after the Dev Hub steps above.
+
+1. **Create it**, 30 days, from the shape you want to test:
+   `scripts/org/create-scratch-org.sh person-accounts dev --days 30 --replace`
+   This deploys Core, assigns the permission sets and seeds the sample data. Note the expiry
+   date it prints.
+2. **Read out its auth URL:** `sf org display --target-org dev --verbose --json`, and take the
+   `sfdxAuthUrl` field. This is a credential, exactly like the Dev Hub one.
+3. **Store it** as the repository secret `SF_TEST_ORG_AUTH_URL`.
+4. **Push anything.** `org-tests` deploys both packages into that org and runs the Apex tests.
+
+Refreshing it monthly is the same three commands: re-run step 1 with `--replace`, then redo
+steps 2 and 3 with the new auth URL. Anything typed into the org by hand is lost at that
+point, which is the discipline the package needs anyway: what matters belongs in this
+repository.
 
 ### `org-tests`
 
-Runs after `static` succeeds, as a matrix over four org shapes:
+Runs after `static` succeeds, against the one long lived org described above. It
+authenticates from `SF_TEST_ORG_AUTH_URL`, prints how many days that org has left, deploys
+`packages/core` and then `packages/giving`, runs the Apex tests, and uploads the results. It
+creates nothing and deletes nothing.
 
-- **platform-only**: no Sales Cloud or Service Cloud license features, no NPSP. Proves
-  Core (and Connect's dynamic Apex) work with nothing else installed.
-- **sales-cloud**: standard Sales Cloud objects available (Account, Opportunity, and so
-  on), no NPSP.
-- **npsp**: Sales Cloud plus NPSP installed, simulating an org migrating from NPSP.
-- **person-accounts**: Person Accounts enabled, simulating the Agentforce Nonprofit /
-  Nonprofit Cloud shape.
+The deploy goes in stages through `scripts/org/deploy-packages.sh`: the vendored rollup
+engine, then Core, then Giving. A failed stage asks the org for the component level report,
+by job id, in human form and then as JSON.
 
-For each shape, the job authenticates to the Dev Hub, runs
-`scripts/org/create-scratch-org.sh <shape> ci-<shape>-<run id> --days 1 --no-sample-data`,
-runs Apex tests if any `@IsTest` classes exist under `packages/core`, uploads the test
-results, and always deletes the scratch org afterward.
+That is not tidiness. The first deploy this project ever attempted sent all 982 components in
+one request and came back with `UNKNOWN_EXCEPTION`, zero components deployed, zero component
+errors, and a Salesforce ErrorId. A failure with nothing attached to it tells you nothing
+about which of 982 things caused it. In stages, the same failure names a stage. The order also
+matches how the packages depend on each other: the vendored engine is self contained, Core
+does not call it yet, and Giving depends on Core.
 
-Each shape's job also carries its own concurrency group
-(`org-tests-<shape>-<ref>`), so pushing new commits to the same branch cancels
-in-flight runs for that shape instead of piling up scratch orgs.
+An `UNKNOWN_EXCEPTION` with zero component errors is a Salesforce side failure rather than
+something wrong with a component. Quote the ErrorId to Salesforce support, and note that it is
+sometimes transient, so one re-run is worth trying before digging.
+
+Two things constrain when it runs, both because there is one org rather than one per run.
+
+It runs **on a push to `main`, or on a manual run** from the Actions tab (Run workflow), which
+is how to retry after changing a secret without inventing a commit to do it. Deploying a pull request's code into the test org would
+leave that org holding unmerged work, and the next run against main would inherit it. Pull
+requests get the static checks, which is where most of the signal is.
+
+It carries a **single global concurrency group**, `org-tests-persistent`, so two runs never
+deploy at once, and `cancel-in-progress` is **false**. Cancelling a deploy partway through
+would leave the org holding half a package, and unlike a scratch org that is thrown away, that
+state persists into the next run. Runs queue instead; GitHub keeps only the newest waiting one.
+
+The first version of this got the second point wrong: a global group with cancel-in-progress
+set to true meant an unrelated Dependabot run cancelled main's job after every step had
+already passed, which showed up as a cancelled build on a commit that was fine.
 
 ### `dco`
 
@@ -213,14 +250,20 @@ standard Sales Cloud object) and nowhere else. Three of the four are printed as 
 the NPSP prefix is not a name the grep looks for, and carries the marker only so that the
 four detection constants read alike.
 
-## What happens when `SF_DEVHUB_AUTH_URL` is missing
+## What happens when the secrets are missing
 
 The `org-tests` job checks for the secret first. If it is empty, every org-dependent
 step is skipped and the job posts a `::warning::` explaining why, instead of failing.
 `static` (lint, unit tests, Code Analyzer, namespace and standard-object checks) still
 runs and still gates merges regardless of whether the secret is set. This means a fork
-without access to the Dev Hub secret can still open a pull request and get useful
-signal; only the live-org matrix is skipped.
+without access to the secret can still open a pull request and get useful signal; only the
+live org work is skipped.
+
+Two secrets are involved and they do different jobs. `SF_DEVHUB_AUTH_URL` lets a machine
+create scratch orgs; nothing in continuous integration uses it now that the test org is long
+lived, and it is kept because creating and refreshing that org needs it.
+`SF_TEST_ORG_AUTH_URL` names the org the tests actually run in, and is the one `org-tests`
+requires.
 
 ## Setting the `SF_DEVHUB_AUTH_URL` secret
 

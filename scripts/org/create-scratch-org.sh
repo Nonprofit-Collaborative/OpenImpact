@@ -114,8 +114,9 @@ if [[ "$SHAPE" == "npsp" ]]; then
   scripts/org/install-npsp.sh "$ALIAS"
 fi
 
-echo "== Deploying Core to ${ALIAS} =="
-sf project deploy start --source-dir packages/core --wait 30 --ignore-conflicts --target-org "$ALIAS"
+# Deployed in stages by one script, shared with continuous integration, so a failure names
+# a stage instead of leaving 982 components as suspects. See scripts/org/deploy-packages.sh.
+scripts/org/deploy-packages.sh "$ALIAS" --core-only
 
 echo "== Assigning Core permission sets to the default (deployment) user =="
 PERMSET_DIR="packages/core/main/default/permissionsets"
