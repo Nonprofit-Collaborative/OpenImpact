@@ -13,7 +13,7 @@ LICENSE
 # size (see data/sample/README.md); not hand-authored source.
 packages/core/main/default/staticresources/SampleData.json
 
-# LWC templates: Prettier's html parser quotes {expr} attribute bindings
-# (title="{labels.x}"), which the LWC compiler rejects as ambiguous
-# (LWC1034). Hand-format these instead.
-**/lwc/**/*.html
+# LWC template: Prettier's html parser quotes {expr} attribute bindings
+# (title="{labels.x}"), which the LWC compiler rejects as ambiguous (LWC1034).
+# Scoped to this one bundle so other packages keep template formatting.
+packages/core/main/default/lwc/sampleDataManager/sampleDataManager.html

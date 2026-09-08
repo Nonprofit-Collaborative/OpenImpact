@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # seed-sample-data.sh <alias>
 #
-# Loads the C-10 sample data set (about 200 households, roughly 430 contacts, and 25
-# organizations) into the target org and waits for it to finish.
+# Loads the C-10 sample data set (200 households, 440 contacts, and 25 organizations)
+# into the target org and waits for it to actually finish.
 #
-# SampleDataLoader.load() runs as a chain of queueable jobs (see
-# packages/core/main/default/classes/SampleDataLoadQueueable.cls), so it returns as soon
-# as the first job is queued, not once loading is done. There is no way to poll Apex
-# state (SampleDataLoader.status()) from a shell script, so instead this polls the
-# number of Household Accounts flagged Sample_Data__c until it reaches the expected
-# count or 3 minutes pass, printing progress along the way. See
-# docs/admin-guide/sample-data.md and data/sample/README.md.
+# SampleDataLoader.load() runs as a chain of queueable jobs (SampleDataLoadQueueable for
+# the accounts, then SampleDataContactQueueable once per chunk of contacts), so the Apex
+# call returns as soon as the first job is queued, not once loading is done. Stage one
+# inserts all 200 households in a single DML, so counting households proves nothing about
+# the contacts. This polls both the contact count (target read from the generated JSON)
+# and AsyncApexJob, and reports success only when every contact is in and no load job is
+# still queued or running. See docs/admin-guide/sample-data.md and data/sample/README.md.
 #
 # Safe to call before scripts/org/load-sample-data.apex exists; it just prints a note
 # and exits successfully so callers (create-scratch-org.sh) do not fail.
@@ -24,28 +24,29 @@ if [[ -z "$ALIAS" ]]; then
   exit 1
 fi
 
-APEX_FILE="scripts/org/load-sample-data.apex"
-EXPECTED_HOUSEHOLDS=200
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+APEX_FILE="$REPO_ROOT/scripts/org/load-sample-data.apex"
+SAMPLE_JSON="$REPO_ROOT/packages/core/main/default/staticresources/SampleData.json"
 POLL_INTERVAL_SECONDS=5
-MAX_WAIT_SECONDS=180
+MAX_WAIT_SECONDS=300
 
 if [[ ! -f "$APEX_FILE" ]]; then
   echo "sample data not yet available (C-10)"
   exit 0
 fi
 
-echo "Starting the sample data load in ${ALIAS} (runs in the background as a queueable chain)..."
-sf apex run --target-org "$ALIAS" --file "$APEX_FILE"
+# The expected contact count is the number of household members in the generated
+# resource, so it never drifts from the data the loader actually inserts.
+EXPECTED_CONTACTS="$(node -e "
+  const fs = require('fs');
+  const data = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+  const total = data.households.reduce((sum, h) => sum + h.members.length, 0);
+  console.log(total);
+" "$SAMPLE_JSON")"
 
-echo "Waiting for households flagged Sample_Data__c to reach ${EXPECTED_HOUSEHOLDS} (up to ${MAX_WAIT_SECONDS}s)..."
-
-ELAPSED=0
-while [[ "$ELAPSED" -lt "$MAX_WAIT_SECONDS" ]]; do
-  COUNT_JSON="$(sf data query \
-    --target-org "$ALIAS" \
-    --query "SELECT COUNT() FROM Account WHERE Sample_Data__c = true AND RecordType.DeveloperName = 'Household'" \
-    --json)"
-  COUNT="$(echo "$COUNT_JSON" | node -e "
+# Reads a COUNT() query result from the sf CLI JSON envelope, 0 if anything went wrong.
+count_query() {
+  sf data query --target-org "$ALIAS" --query "$1" --json | node -e "
     let data = '';
     process.stdin.on('data', (chunk) => { data += chunk; });
     process.stdin.on('end', () => {
@@ -55,12 +56,27 @@ while [[ "$ELAPSED" -lt "$MAX_WAIT_SECONDS" ]]; do
         console.log(0);
       }
     });
-  ")"
+  "
+}
 
-  echo "  ${COUNT} / ${EXPECTED_HOUSEHOLDS} households loaded (${ELAPSED}s elapsed)"
+echo "Starting the sample data load in ${ALIAS} (runs in the background as a queueable chain)..."
+sf apex run --target-org "$ALIAS" --file "$APEX_FILE"
 
-  if [[ "$COUNT" -ge "$EXPECTED_HOUSEHOLDS" ]]; then
-    echo "Sample data load complete."
+echo "Waiting for ${EXPECTED_CONTACTS} sample contacts and for the load jobs to finish (up to ${MAX_WAIT_SECONDS}s)..."
+
+RUNNING_JOB_QUERY="SELECT COUNT() FROM AsyncApexJob WHERE ApexClass.Name IN ('SampleDataLoadQueueable', 'SampleDataContactQueueable') AND Status IN ('Queued', 'Preparing', 'Processing', 'Holding')"
+
+ELAPSED=0
+while [[ "$ELAPSED" -lt "$MAX_WAIT_SECONDS" ]]; do
+  CONTACTS="$(count_query "SELECT COUNT() FROM Contact WHERE Sample_Data__c = true")"
+  RUNNING_JOBS="$(count_query "$RUNNING_JOB_QUERY")"
+
+  echo "  ${CONTACTS} / ${EXPECTED_CONTACTS} contacts loaded, ${RUNNING_JOBS} load job(s) still running (${ELAPSED}s elapsed)"
+
+  if [[ "$CONTACTS" -ge "$EXPECTED_CONTACTS" && "$RUNNING_JOBS" -eq 0 ]]; then
+    HOUSEHOLDS="$(count_query "SELECT COUNT() FROM Account WHERE Sample_Data__c = true AND RecordType.DeveloperName = 'Household'")"
+    ORGANIZATIONS="$(count_query "SELECT COUNT() FROM Account WHERE Sample_Data__c = true AND RecordType.DeveloperName = 'Organization'")"
+    echo "Sample data load complete: ${HOUSEHOLDS} households, ${CONTACTS} contacts, ${ORGANIZATIONS} organizations."
     exit 0
   fi
 
