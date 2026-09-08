@@ -1,23 +1,34 @@
 /**
- * Loads and removes the C-10 sample data set: about 200 households, roughly 430 contacts,
- * and 25 organizations, read from the SampleData static resource. See
- * data/sample/README.md for the JSON format and docs/admin-guide/sample-data.md for the
- * admin-facing behavior.
+ * Loads and removes the C-10 sample data set: 200 households, 440 contacts, and 25
+ * organizations, read from the SampleData static resource. See data/sample/README.md for
+ * the JSON format and docs/admin-guide/sample-data.md for the admin-facing behavior.
  *
  * load() is idempotent: it throws SampleDataException when sample data is already
- * present. Because a synchronous transaction cannot safely insert every household,
- * organization, and contact (the household naming and greeting triggers run on every
- * contact insert), load() only starts a SampleDataLoadQueueable chain and returns
- * immediately; call status() to track progress. remove() runs synchronously; a few
- * hundred deletes are well within limits for one transaction.
+ * present, and refuses to start while a load is still running. Because a synchronous
+ * transaction cannot safely insert every household, organization, and contact (the
+ * household naming and greeting triggers run on every contact insert), load() only
+ * starts the queueable chain and returns immediately; call status() to track progress.
+ * remove() runs synchronously; a few hundred deletes are well within limits for one
+ * transaction, and it too refuses while a load is running so the chain cannot insert
+ * contacts against households that have just been deleted.
+ *
+ * Errors are thrown, not logged here: SampleDataController logs once at the LWC
+ * boundary, and the queueables log their own async failures.
  */
 public with sharing class SampleDataLoader {
-    /** Contacts inserted per SampleDataLoadQueueable chunk (see that class). */
+    /** Contacts inserted per contact-stage chunk (see SampleDataContactQueueable). */
     public static final Integer CONTACT_CHUNK_SIZE = 100;
 
-    /** Injected by SampleDataLoaderTest in place of the static resource body. */
+    /** Injected by the tests in place of the static resource body. */
     @TestVisible
     private static String jsonOverride;
+
+    /**
+     * Injected by the tests in place of the AsyncApexJob query, so the refusal paths can
+     * be asserted without an org that can hold a queued job. Null in production.
+     */
+    @TestVisible
+    private static Boolean runningJobOverride;
 
     public class Counts {
         @AuraEnabled
@@ -33,21 +44,22 @@ public with sharing class SampleDataLoader {
     }
 
     /**
-     * Starts loading the sample data set. Throws SampleDataException, logged first, when
-     * sample data is already present or the static resource cannot be read.
+     * Starts loading the sample data set. Throws SampleDataException when a load is
+     * already running, when sample data is already present, or when the static resource
+     * is missing or does not hold a usable payload.
      */
     public static void load() {
-        try {
-            SampleDataSelector selector = new SampleDataSelector();
-            if (selector.countSampleHouseholds() > 0 || selector.countSampleOrganizations() > 0) {
-                throw new SampleDataException(Label.Core_SampleData_AlreadyLoaded);
-            }
-            String jsonBody = getSampleDataJson();
-            System.enqueueJob(new SampleDataLoadQueueable(jsonBody));
-        } catch (Exception e) {
-            ErrorLogger.log(e, 'SampleDataLoader.load');
-            throw e;
+        if (hasRunningLoadJob()) {
+            throw new SampleDataException(Label.Core_SampleData_LoadInProgress);
         }
+        SampleDataSelector selector = new SampleDataSelector();
+        if (selector.countSampleHouseholds() > 0 || selector.countSampleOrganizations() > 0) {
+            throw new SampleDataException(Label.Core_SampleData_AlreadyLoaded);
+        }
+        // Parsed here so a malformed payload fails in front of the admin, with a readable
+        // message, instead of inside a queueable the card can only report as "not loaded".
+        SampleDataSet.parse(getSampleDataJson());
+        System.enqueueJob(new SampleDataLoadQueueable());
     }
 
     /**
@@ -56,50 +68,65 @@ public with sharing class SampleDataLoader {
      * ever left with a dangling AccountId reference mid-transaction.
      */
     public static Counts remove() {
-        try {
-            SampleDataSelector selector = new SampleDataSelector();
-            Counts result = new Counts();
-            result.contactCount = selector.countSampleContacts();
-            result.householdCount = selector.countSampleHouseholds();
-            result.organizationCount = selector.countSampleOrganizations();
-
-            List<Id> contactIds = selector.getSampleContactIds();
-            if (!contactIds.isEmpty()) {
-                Database.delete(contactIds, AccessLevel.USER_MODE);
-            }
-            List<Id> accountIds = selector.getSampleAccountIds();
-            if (!accountIds.isEmpty()) {
-                Database.delete(accountIds, AccessLevel.USER_MODE);
-            }
-
-            result.loaded = false;
-            result.loading = false;
-            return result;
-        } catch (Exception e) {
-            ErrorLogger.log(e, 'SampleDataLoader.remove');
-            throw e;
+        if (hasRunningLoadJob()) {
+            throw new SampleDataException(Label.Core_SampleData_LoadInProgress);
         }
+        SampleDataSelector selector = new SampleDataSelector();
+        Counts result = new Counts();
+        result.contactCount = selector.countSampleContacts();
+        result.householdCount = selector.countSampleHouseholds();
+        result.organizationCount = selector.countSampleOrganizations();
+
+        List<Id> contactIds = selector.getSampleContactIds();
+        if (!contactIds.isEmpty()) {
+            Database.delete(contactIds, AccessLevel.USER_MODE);
+        }
+        List<Id> accountIds = selector.getSampleAccountIds();
+        if (!accountIds.isEmpty()) {
+            Database.delete(accountIds, AccessLevel.USER_MODE);
+        }
+
+        result.loaded = false;
+        result.loading = false;
+        return result;
     }
 
-    /** Current counts of flagged records, and whether a load is still in progress. */
+    /**
+     * Current counts of flagged records, and whether a load is still in progress. A user
+     * who cannot read the Sample Data field gets zeros rather than an error, so the
+     * read-only card still renders for them.
+     */
     public static Counts status() {
-        try {
-            SampleDataSelector selector = new SampleDataSelector();
-            Counts result = new Counts();
-            result.householdCount = selector.countSampleHouseholds();
-            result.organizationCount = selector.countSampleOrganizations();
-            result.contactCount = selector.countSampleContacts();
-            result.loading = selector.hasRunningLoadJob();
-            result.loaded =
-                !result.loading && (result.householdCount > 0 || result.organizationCount > 0);
+        Counts result = new Counts();
+        if (!canReadSampleDataFields()) {
+            result.householdCount = 0;
+            result.organizationCount = 0;
+            result.contactCount = 0;
+            result.loading = false;
+            result.loaded = false;
             return result;
-        } catch (Exception e) {
-            ErrorLogger.log(e, 'SampleDataLoader.status');
-            throw e;
         }
+
+        SampleDataSelector selector = new SampleDataSelector();
+        result.householdCount = selector.countSampleHouseholds();
+        result.organizationCount = selector.countSampleOrganizations();
+        result.contactCount = selector.countSampleContacts();
+        result.loading = hasRunningLoadJob();
+        result.loaded =
+            !result.loading && (result.householdCount > 0 || result.organizationCount > 0);
+        return result;
     }
 
-    private static String getSampleDataJson() {
+    /** True while any stage of the sample data load chain is queued or running. */
+    public static Boolean hasRunningLoadJob() {
+        if (runningJobOverride != null) {
+            return runningJobOverride;
+        }
+        return new SampleDataSelector().hasRunningLoadJob();
+    }
+
+    /** The sample data JSON body, from the injected override or the static resource. */
+    public static String getSampleDataJson() {
         if (jsonOverride != null) {
             return jsonOverride;
         }
@@ -108,5 +135,10 @@ public with sharing class SampleDataLoader {
             throw new SampleDataException(Label.Core_SampleData_ResourceMissing);
         }
         return resource.Body.toString();
+    }
+
+    private static Boolean canReadSampleDataFields() {
+        return Schema.SObjectType.Account.fields.Sample_Data__c.isAccessible() &&
+            Schema.SObjectType.Contact.fields.Sample_Data__c.isAccessible();
     }
 }

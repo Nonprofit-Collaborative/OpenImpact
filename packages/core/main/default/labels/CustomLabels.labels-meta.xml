@@ -41,6 +41,14 @@
     <value>Contacts</value>
   </labels>
   <labels>
+    <fullName>Core_SampleData_ErrorInvalidData</fullName>
+    <categories>Sample Data</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Sample data file is not valid error</shortDescription>
+    <value>The sample data file is missing information the loader needs, so nothing was loaded. Reinstall the package or restore the Sample Data resource, then try again.</value>
+  </labels>
+  <labels>
     <fullName>Core_SampleData_HouseholdsLabel</fullName>
     <categories>Sample Data</categories>
     <language>en_US</language>
@@ -62,9 +70,7 @@
     <language>en_US</language>
     <protected>false</protected>
     <shortDescription>Load confirmation dialog body</shortDescription>
-    <value
-      xml:space="preserve"
-    >This adds about 200 households, 430 contacts, and 25 organizations to this org. Only load sample data into a scratch org, sandbox, or demo org, never into production.</value>
+    <value xml:space="preserve">This adds 200 households, 440 contacts, and 25 organizations to this org. Only load sample data into a scratch org, sandbox, or demo org, never into production.</value>
   </labels>
   <labels>
     <fullName>Core_SampleData_LoadConfirmTitle</fullName>
@@ -81,6 +87,22 @@
     <protected>false</protected>
     <shortDescription>Load failure toast</shortDescription>
     <value>Sample data could not be loaded.</value>
+  </labels>
+  <labels>
+    <fullName>Core_SampleData_LoadingAltText</fullName>
+    <categories>Sample Data</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Spinner alternative text</shortDescription>
+    <value>Loading</value>
+  </labels>
+  <labels>
+    <fullName>Core_SampleData_LoadInProgress</fullName>
+    <categories>Sample Data</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Load already running error</shortDescription>
+    <value>A sample data load is already running. Wait for it to finish before loading or removing sample data.</value>
   </labels>
   <labels>
     <fullName>Core_SampleData_LoadSuccess</fullName>
@@ -112,9 +134,7 @@
     <language>en_US</language>
     <protected>false</protected>
     <shortDescription>Production org warning banner</shortDescription>
-    <value
-      xml:space="preserve"
-    >Sample data is for scratch orgs, sandboxes, and demos. Never load it into a production org.</value>
+    <value xml:space="preserve">Sample data is for scratch orgs, sandboxes, and demos. Never load it into a production org.</value>
   </labels>
   <labels>
     <fullName>Core_SampleData_ReadOnlyMessage</fullName>
@@ -146,9 +166,7 @@
     <language>en_US</language>
     <protected>false</protected>
     <shortDescription>Remove confirmation dialog body</shortDescription>
-    <value
-      xml:space="preserve"
-    >This permanently deletes every household, contact, and organization created by the sample data loader. Records you entered yourself are not affected.</value>
+    <value xml:space="preserve">This permanently deletes every household, contact, and organization created by the sample data loader. Records you entered yourself are not affected.</value>
   </labels>
   <labels>
     <fullName>Core_SampleData_RemoveConfirmTitle</fullName>

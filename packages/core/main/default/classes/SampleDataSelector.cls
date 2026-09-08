@@ -3,6 +3,20 @@
  * query directly (plan Section 9.3).
  */
 public with sharing class SampleDataSelector {
+    /** The two queueable classes that make up the sample data load chain. */
+    private static final Set<String> LOAD_JOB_CLASS_NAMES = new Set<String>{
+        'SampleDataLoadQueueable',
+        'SampleDataContactQueueable'
+    };
+
+    /** AsyncApexJob statuses that mean a job has not finished yet. */
+    private static final Set<String> RUNNING_JOB_STATUSES = new Set<String>{
+        'Queued',
+        'Preparing',
+        'Processing',
+        'Holding'
+    };
+
     /**
      * The SampleData static resource, or null when it has not been deployed. Callers use
      * the Body field's toString() to get the JSON text.
@@ -57,16 +71,17 @@ public with sharing class SampleDataSelector {
     }
 
     /**
-     * True while a SampleDataLoadQueueable chain is still queued or running, so the
-     * status card can keep polling instead of reporting a partial load as finished.
+     * True while any stage of the sample data load chain is still queued or running, so
+     * the status card can keep polling instead of reporting a partial load as finished,
+     * and load and remove can refuse to run against an in-flight chain.
      */
     public Boolean hasRunningLoadJob() {
+        Set<String> classNames = LOAD_JOB_CLASS_NAMES;
+        Set<String> runningStatuses = RUNNING_JOB_STATUSES;
         return ![
                 SELECT Id
                 FROM AsyncApexJob
-                WHERE
-                    ApexClass.Name = 'SampleDataLoadQueueable'
-                    AND Status IN ('Queued', 'Preparing', 'Processing', 'Holding')
+                WHERE ApexClass.Name IN :classNames AND Status IN :runningStatuses
                 WITH USER_MODE
                 LIMIT 1
             ]
