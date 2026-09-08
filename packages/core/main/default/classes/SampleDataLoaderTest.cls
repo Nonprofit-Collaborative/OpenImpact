@@ -205,28 +205,93 @@ private class SampleDataLoaderTest {
     }
 
     @IsTest
-    static void testLoadRefusesWhenHouseholdMembershipIsJunction() {
+    static void testJunctionModeJoinsEveryPersonWithAMembershipRow() {
         HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
         SettingsService.clearCaches();
-        SampleDataLoader.jsonOverride = buildJson(1, 1, false);
 
-        Boolean threw = false;
-        try {
-            SampleDataLoader.load();
-        } catch (SampleDataException e) {
-            threw = true;
+        loadEverything(buildJson(2, 2, false));
+
+        SampleDataLoader.Counts status = SampleDataLoader.status();
+        System.assertEquals(2, status.householdCount, 'both households should be inserted');
+        System.assertEquals(4, status.contactCount, 'both households of two people should load');
+        System.assertEquals(
+            4,
+            [SELECT COUNT() FROM Household_Member__c WHERE End_Date__c = NULL],
+            'every sample person should be joined by a household member record'
+        );
+        System.assertEquals(
+            0,
+            [SELECT COUNT() FROM Contact WHERE Sample_Data__c = TRUE AND AccountId != NULL],
+            'in junction mode the membership row is the join, not the contact household field'
+        );
+        for (Account household : [
+            SELECT Member_Count__c
+            FROM Account
+            WHERE Sample_Data__c = TRUE AND RecordType.DeveloperName = 'Household'
+        ]) {
             System.assertEquals(
-                Label.Core_SampleData_ContactModeOnly,
-                e.getMessage(),
-                'a junction membership org should be told why sample data cannot load'
+                2,
+                household.Member_Count__c,
+                'the household counts the people the membership rows joined to it'
             );
         }
-        System.assertEquals(true, threw, 'loading in junction mode should throw');
+    }
+
+    @IsTest
+    static void testJunctionModeIsReportedToTheCard() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        SettingsService.clearCaches();
+
+        System.assertEquals(
+            true,
+            SampleDataLoader.status().junctionMembership,
+            'the card is told the org keeps membership in household member records'
+        );
+    }
+
+    @IsTest
+    static void testContactModeIsStillJoinedThroughTheContactHousehold() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        SettingsService.clearCaches();
+
+        loadEverything(buildJson(2, 2, false));
+
+        System.assertEquals(
+            0,
+            [SELECT COUNT() FROM Household_Member__c],
+            'contact membership writes no membership rows (R-M1)'
+        );
+        System.assertEquals(
+            4,
+            [SELECT COUNT() FROM Contact WHERE Sample_Data__c = TRUE AND AccountId != NULL],
+            'every sample person is on their household'
+        );
         System.assertEquals(
             false,
-            SampleDataLoader.status().contactMembership,
-            'the card is told the org keeps membership in junction records'
+            SampleDataLoader.status().junctionMembership,
+            'the card is told this org keeps membership on the contact'
         );
+    }
+
+    @IsTest
+    static void testRemoveInJunctionModeTakesTheMembershipRowsWithIt() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        SettingsService.clearCaches();
+        loadEverything(buildJson(2, 2, false));
+
+        SampleDataLoader.Counts removed = SampleDataLoader.remove();
+
+        System.assertEquals(2, removed.householdCount, 'both sample households are removed');
+        System.assertEquals(4, removed.contactCount, 'every sample person is removed');
+        System.assertEquals(
+            0,
+            [SELECT COUNT() FROM Household_Member__c],
+            'the membership rows go with the households they belonged to'
+        );
+        SampleDataLoader.Counts afterStatus = SampleDataLoader.status();
+        System.assertEquals(0, afterStatus.householdCount);
+        System.assertEquals(0, afterStatus.contactCount);
+        System.assertEquals(false, afterStatus.loaded);
     }
 
     @IsTest

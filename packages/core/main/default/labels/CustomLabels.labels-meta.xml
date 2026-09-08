@@ -1857,12 +1857,12 @@
     <value>The sample data file is missing information the loader needs, so nothing was loaded. Reinstall the package or restore the Sample Data resource, then try again.</value>
   </labels>
   <labels>
-    <fullName>Core_SampleData_ContactModeOnly</fullName>
+    <fullName>Core_SampleData_JunctionModeNote</fullName>
     <categories>Sample Data</categories>
     <language>en_US</language>
     <protected>false</protected>
-    <shortDescription>Sample data needs contact household membership</shortDescription>
-    <value>Sample data can only be loaded while household members are stored as contacts. This org tracks membership with household member records (Agentforce Nonprofit coexistence), so the sample households would arrive with nobody in them. Import your own data instead, or change the household membership mode on the Nonprofit Settings page first.</value>
+    <shortDescription>How sample data arrives in the flexible membership mode</shortDescription>
+    <value>This org uses the flexible way of belonging to a household, so each sample person is joined to their household by a household member record, exactly as your own people are. The sample people themselves are loaded as contacts: Open Impact never creates person accounts, so if your org stores people as accounts the sample set shows you households of contacts.</value>
   </labels>
   <labels>
     <fullName>Core_SampleData_HouseholdsLabel</fullName>

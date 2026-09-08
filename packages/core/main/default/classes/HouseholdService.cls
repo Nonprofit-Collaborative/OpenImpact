@@ -825,6 +825,154 @@ public with sharing class HouseholdService {
     }
 
     /**
+     * Joins people to households, whichever way the org stores membership, and answers with
+     * every household the join touched.
+     *
+     * The counterpart of `moveMembers` for a caller that is building people and households
+     * together (a sample data set, an import) rather than moving somebody who already
+     * belongs somewhere. Each entry names one household and the people joining it, so a
+     * caller with two hundred households joins them in one pass.
+     *
+     * What "joining" means is the mode's business, not the caller's (R-M5). In contact mode
+     * a person's household is the account their contact points at, so joining reparents
+     * them and the household they left is in the answer. In junction mode a membership row
+     * is added and the person keeps any other household they belong to, which is what that
+     * mode is for. Somebody who is already a current member of the household they are being
+     * joined to is left alone, so calling twice does not make two memberships.
+     *
+     * A person is joined as an ordinary member with no role and no primary flag on the
+     * membership row: the role the person carries on their own record is the one that
+     * naming and greetings read, and a household's primary member (R-M3) is a decision
+     * somebody makes rather than a side effect of a join.
+     *
+     * Nothing is recounted or renamed here. The write fires the trigger that settles the
+     * households up, exactly as it does when a person is saved by hand; a caller that has
+     * suppressed that automation settles by passing the answer to `afterMembershipChange`.
+     */
+    @NamespaceAccessible
+    public static Set<Id> addMembers(Map<Id, Set<Id>> personIdsByHouseholdId) {
+        Set<Id> affected = new Set<Id>();
+        if (personIdsByHouseholdId == null || personIdsByHouseholdId.isEmpty()) {
+            return affected;
+        }
+        Set<Id> householdIds = new Set<Id>(personIdsByHouseholdId.keySet());
+        Set<Id> everybody = new Set<Id>();
+        for (Id householdId : householdIds) {
+            Set<Id> people = personIdsByHouseholdId.get(householdId);
+            if (people != null) {
+                everybody.addAll(people);
+            }
+        }
+        if (everybody.isEmpty()) {
+            return affected;
+        }
+        Id recordTypeId = householdRecordTypeId();
+        Set<Id> found = new Set<Id>();
+        for (Account household : HouseholdSelector.getHouseholdsByIds(householdIds)) {
+            if (recordTypeId != null && household.RecordTypeId != recordTypeId) {
+                throw new HouseholdException(Label.Core_Households_ErrorNotAHousehold);
+            }
+            found.add(household.Id);
+        }
+        if (found.size() != householdIds.size()) {
+            throw new HouseholdException(Label.Core_Households_ErrorMoveNotFound);
+        }
+        Set<Id> contactPeople = idsOfType(everybody, Contact.SObjectType);
+        Set<Id> accountPeople = idsOfType(everybody, Account.SObjectType);
+        if (contactPeople.size() + accountPeople.size() != everybody.size()) {
+            // An id of any other object is not a person this service can join.
+            throw new HouseholdException(Label.Core_Households_ErrorMoveNotFound);
+        }
+        if (!accountPeople.isEmpty() && !isJunctionMode()) {
+            // A person stored as an account has no account reference of their own, so only
+            // the flexible membership mode can hold them.
+            throw new HouseholdException(Label.Core_Households_ErrorMoveNeedsJunction);
+        }
+        affected.addAll(householdIds);
+        if (isJunctionMode()) {
+            joinThroughJunction(personIdsByHouseholdId, everybody);
+        } else {
+            joinThroughContacts(personIdsByHouseholdId, contactPeople, affected);
+        }
+        HOUSEHOLD_ID_BY_PERSON.clear();
+        return affected;
+    }
+
+    /**
+     * One membership row per person who is not already a current member of the household
+     * they are joining. Read once for everybody, written once.
+     */
+    private static void joinThroughJunction(
+        Map<Id, Set<Id>> personIdsByHouseholdId,
+        Set<Id> everybody
+    ) {
+        Set<String> alreadyMembers = new Set<String>();
+        for (
+            Household_Member__c membership : HouseholdSelector.getMembershipsForPeople(everybody)
+        ) {
+            Id personId = membership.Contact__c != null
+                ? membership.Contact__c
+                : membership.Account__c;
+            if (personId != null) {
+                alreadyMembers.add(membership.Household__c + ':' + personId);
+            }
+        }
+        List<Household_Member__c> joined = new List<Household_Member__c>();
+        for (Id householdId : personIdsByHouseholdId.keySet()) {
+            Set<Id> people = personIdsByHouseholdId.get(householdId);
+            if (people == null) {
+                continue;
+            }
+            for (Id personId : people) {
+                if (alreadyMembers.contains(householdId + ':' + personId)) {
+                    continue;
+                }
+                joined.add(newMembership(personId, householdId, null, false));
+            }
+        }
+        if (!joined.isEmpty()) {
+            Database.insert(joined, AccessLevel.USER_MODE);
+        }
+    }
+
+    /**
+     * In contact mode joining is the person's own account reference, so everybody moves in
+     * one update and every household somebody left is added to the answer.
+     */
+    private static void joinThroughContacts(
+        Map<Id, Set<Id>> personIdsByHouseholdId,
+        Set<Id> contactPeople,
+        Set<Id> affected
+    ) {
+        Map<Id, Contact> people = new Map<Id, Contact>(
+            HouseholdSelector.getContactsByIds(contactPeople)
+        );
+        if (people.size() != contactPeople.size()) {
+            throw new HouseholdException(Label.Core_Households_ErrorMoveNotFound);
+        }
+        List<Contact> updates = new List<Contact>();
+        for (Id householdId : personIdsByHouseholdId.keySet()) {
+            Set<Id> joining = personIdsByHouseholdId.get(householdId);
+            if (joining == null) {
+                continue;
+            }
+            for (Id personId : joining) {
+                Contact person = people.get(personId);
+                if (person == null || person.AccountId == householdId) {
+                    continue;
+                }
+                if (person.AccountId != null) {
+                    affected.add(person.AccountId);
+                }
+                updates.add(new Contact(Id = personId, AccountId = householdId));
+            }
+        }
+        if (!updates.isEmpty()) {
+            Database.update(updates, AccessLevel.USER_MODE);
+        }
+    }
+
+    /**
      * A membership row that points at the person through whichever object holds them, so
      * that an org storing people as accounts is joined up the same way as any other.
      */
