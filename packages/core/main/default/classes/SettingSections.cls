@@ -23,15 +23,24 @@ public with sharing class SettingSections {
     public static final String ORGANIZATION = 'Organization';
     @NamespaceAccessible
     public static final String GIVING = 'Giving';
+    @NamespaceAccessible
+    public static final String ROLLUPS = 'Rollups';
+    @NamespaceAccessible
+    public static final String ADDRESSES = 'Addresses';
+    @NamespaceAccessible
+    public static final String RELATIONSHIPS = 'Relationships';
 
-    /** Every shipped section name, in the order the console lists them. */
+    /** Every section name a package may use, in the order the console lists them. */
     @NamespaceAccessible
     public static List<String> all() {
         return new List<String>{
             GENERAL,
             ORGANIZATION,
             HOUSEHOLDS,
+            RELATIONSHIPS,
+            ADDRESSES,
             GIVING,
+            ROLLUPS,
             AUTOMATION,
             ACCESS,
             IMPORTING,

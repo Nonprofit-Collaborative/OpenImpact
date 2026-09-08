@@ -34,8 +34,9 @@ Start with the sample data loaded. Steps 1 to 6 are Maria. Step 7 is David.
    opens with the **Setup checklist**.
 2. Click the **Nonprofit Settings** tab. The console opens with the section list on the
    left and the first section showing on the right. The sections are General, Organization,
-   Households, Giving, Automation, Access, Import, and Health. You only see the ones that
-   have something in them, so a fresh install with no modules shows fewer.
+   Households, Relationships, Addresses, Giving, Rollups, Automation, Access, Import, and
+   Health. You only see the ones that have something in them, so a fresh install with no
+   modules shows fewer.
 3. Click in the **Search settings** box and type `greeting`. Results appear as you type.
    Every setting whose name, description, or section mentions greeting is listed, which
    includes the household formal and informal greeting settings.

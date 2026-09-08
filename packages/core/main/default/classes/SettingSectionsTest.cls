@@ -7,7 +7,7 @@ private class SettingSectionsTest {
         List<String> sections = SettingSections.all();
         Test.stopTest();
 
-        Assert.areEqual(8, sections.size(), 'Eight sections ship in v0.1');
+        Assert.areEqual(11, sections.size(), 'Eleven section names are agreed across the suite');
         Assert.areEqual(
             SettingSections.GENERAL,
             sections[0],
@@ -15,6 +15,10 @@ private class SettingSectionsTest {
         );
         Assert.isTrue(SettingSections.isKnown('households'), 'The check ignores case');
         Assert.isTrue(SettingSections.isKnown('  Health '), 'The check ignores spacing');
+        Assert.isTrue(
+            SettingSections.isKnown('Relationships'),
+            'A module that has not shipped yet still has its section name reserved'
+        );
         Assert.isFalse(
             SettingSections.isKnown('Household names and greetings'),
             'A section name nobody agreed on is not one of ours'
