@@ -17,13 +17,112 @@ object references: those live only in the Connect module, behind dynamic Apex.
   Metadata Types for package-shipped defaults.
 - **Trigger framework**: one trigger per object, bypassable handlers, a pause-all switch.
 - **Error Log** (`Error_Log__c`): every caught exception with context, user, record, and a
-  plain-language message.
+  plain-language message, published as a platform event so the entry survives the rollback it
+  documents.
 - **Rollup engine**: `Rollup_Definition__c` and the governor-limit-safe engine used by every
   module for household, contact, organization, fund, appeal, and commitment rollups.
 - **Import framework**: `Import_Template__c`, `Import_Batch__c`, `Import_Row__c`, and the
   wizard that lets an admin load a spreadsheet without a consultant.
 - **Health Check**: org shape and license detection, missing permission assignments, rollup
   schedule staleness, orphaned records, coexistence conflicts.
+
+## Trigger framework
+
+One trigger per object, one line in it, and every automation switchable from the app.
+
+```apex
+trigger ContactTrigger on Contact(
+    before insert,
+    after insert,
+    before update,
+    after update,
+    before delete,
+    after delete,
+    after undelete
+) {
+    TriggerDispatcher.run('Contact');
+}
+```
+
+That is the whole trigger. The dispatcher reads `Automation_Registry__mdt` for that object, in
+`Execution_Order__c` order, builds each `Handler_Class__c` with `Type.forName` (qualified with the
+running package's namespace, falling back to the bare name when there is none), and runs each one
+(ADR-0017). A module ships its handler class and its registry record and never edits another
+feature's trigger or handler. A handler that cannot be built is skipped with a warning in the
+Error Log: one broken automation does not stop a person saving a record.
+
+`TriggerDispatcher.run(new ContactTriggerHandler())` remains, for tests and for an object with
+exactly one handler.
+
+A handler extends `TriggerHandler` and overrides only the contexts it needs. **Every context
+method takes no arguments, and the handler reads its own records from the trigger context.** That
+is the contract every feature module is written against:
+
+```apex
+public class ContactTriggerHandler extends TriggerHandler {
+    public override void beforeInsert() {
+        for (Contact person : (List<Contact>) Trigger.new) {
+            person.LastName = person.LastName.trim();
+        }
+    }
+
+    public override void afterUpdate() {
+        HouseholdNamingService.rename(Trigger.newMap.keySet());
+    }
+}
+```
+
+The seven overridable methods are `beforeInsert()`, `afterInsert()`, `beforeUpdate()`,
+`afterUpdate()`, `beforeDelete()`, `afterDelete()`, and `afterUndelete()`, plus `getName()`, which
+returns the automation's stable name and defaults to the class name with any namespace stripped.
+The bodies read `Trigger.new`, `Trigger.old`, `Trigger.newMap`, and `Trigger.oldMap`.
+
+Outside a trigger those collections are null, so a unit test that wants to drive a handler without
+inserting records sets the `TriggerHandler` test overrides and the handler reads them through the
+matching accessor:
+
+```apex
+TriggerHandler.testNew = (List<SObject>) records;
+TriggerHandler.testNewMap = new Map<Id, SObject>(records);
+TriggerDispatcher.run(new ContactTriggerHandler(), context);
+```
+
+`newRecords()`, `newRecordsById()`, `oldRecords()`, and `oldRecordsById()` return the override when
+a test has set one and the trigger collection otherwise, so a handler written against them behaves
+the same in both places.
+
+The dispatcher works out which context it is in, then checks three things before it invokes
+anything: a per transaction
+bypass (`AutomationControl.bypass(name)`), the org wide pause
+(`Nonprofit_Settings__c.Automation_Paused_Until__c`), and the automation's own switch (a row on
+`Automation_Setting__c`, keyed by the registry's developer name). Anything a handler throws is
+written to the Error Log first, then reported to the person saving the record: `addError` with a
+plain language message in a before context, a rethrow in an after context.
+
+A handler guards itself against recursion with `claimRunFor(phase, recordIds)`, which hands back
+the records this handler has not already processed in this transaction. The guard is per record on
+purpose: one DML of 400 records fires the trigger twice with statics preserved, so a guard that
+claimed the whole phase would process 200 records and silently skip the rest.
+
+Whatever a handler throws reaches the Error Log through an `Error_Log_Event__e` platform event
+published immediately, not through an insert. Almost every failure worth recording ends in a
+rollback, and an insert in that transaction would be rolled back with it: the entry that says what
+went wrong would disappear exactly when it is needed. `ErrorLogWriter` publishes,
+`ErrorLogEventTrigger` and `ErrorLogEventHandler` write the row, and a direct system mode insert
+remains only as the fallback for when publishing itself fails.
+
+A handler another package ships must be `public`, annotated `@NamespaceAccessible`, and have a
+no-argument constructor, so that `Type.forName` can build it. Core's own shared classes
+(`TriggerDispatcher`, `TriggerHandler`, `AutomationControl`, `ErrorLogger`, `SettingsService`,
+`TestDataFactory`) are `public` and `@NamespaceAccessible` for the same reason, and never `global`
+(ADR-0017): `global` is a permanent API commitment, and this is internal plumbing.
+
+An automation with no `Automation_Setting__c` row still runs, so a newly shipped automation works
+the moment it is installed. `AutomationControl.ensureDefaults()` materializes the missing rows
+from `Automation_Registry__mdt` and never touches a row the administrator already has.
+
+**v0.1 ships the framework with no triggers and an empty registry.** Feature C-01 adds the first
+two handlers, their triggers, and their `Automation_Registry__mdt` records in one change.
 
 ## Iteration
 

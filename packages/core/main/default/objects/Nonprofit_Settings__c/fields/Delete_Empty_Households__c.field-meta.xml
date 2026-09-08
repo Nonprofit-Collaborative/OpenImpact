@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Delete_Empty_Households__c</fullName>
+  <defaultValue>true</defaultValue>
+  <description>Whether a household left with no members is deleted.</description>
+  <inlineHelpText>Remove a household once its last member leaves.</inlineHelpText>
+  <label>Delete Empty Households</label>
+  <type>Checkbox</type>
+</CustomField>

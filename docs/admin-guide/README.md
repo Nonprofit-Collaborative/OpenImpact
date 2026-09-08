@@ -88,3 +88,5 @@ Each feature adds its row here when its page is written.
 
 | Feature | Page | Package | Iteration |
 |---|---|---|---|
+| C-04 | [Automation control](automation-control.md) | Core | v0.1 |
+| C-05 | [Error Log](error-log.md) | Core | v0.1 |

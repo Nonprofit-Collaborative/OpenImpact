@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+  <labels>
+    <fullName>Core_Automation_UnexpectedError</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation unexpected error</shortDescription>
+    <value>Something went wrong while Open Impact was updating this record, so the record was not saved. The details are in the Error Log. Try again, and if it keeps happening, send the newest Error Log entry to whoever supports your Salesforce.</value>
+  </labels>
+  <labels>
+    <fullName>Core_Automation_PauseHoursInvalid</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Pause length not allowed</shortDescription>
+    <value>Choose how long to pause automation: 1, 2, 4, 8, or 24 hours.</value>
+  </labels>
+  <labels>
+    <fullName>Core_Automation_NameRequired</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation name required</shortDescription>
+    <value>Pick an automation before switching it on or off.</value>
+  </labels>
+  <labels>
+    <fullName>Core_Automation_NotFound</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation not found</shortDescription>
+    <value>That automation is not in this org's list. Refresh the Automation page and try again.</value>
+  </labels>
+  <labels>
+    <fullName>Core_ErrorLog_UnexpectedFailure</fullName>
+    <categories>Core, Error Log</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Error log default message</shortDescription>
+    <value>Open Impact hit a problem it did not expect. The technical detail on this entry is what a support contact needs to work out why.</value>
+  </labels>
+  <labels>
+    <fullName>Core_Settings_ModeValueInvalid</fullName>
+    <categories>Core, Settings</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Settings mode value not allowed</shortDescription>
+    <value>That is not one of the choices for this setting. Pick a value from the list on the settings page.</value>
+  </labels>
+  <labels>
+    <fullName>Core_Automation_HandlerUnavailable</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation handler unavailable</shortDescription>
+    <value>Open Impact could not start one of its automations ({0}), so it was skipped. Everything else ran as usual. Send this entry to whoever supports your Salesforce.</value>
+  </labels>
+  <labels>
+    <fullName>Core_Automation_NoPermission</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation change not permitted</shortDescription>
+    <value>You do not have permission to change automation. Ask your administrator for the Manage Nonprofit Settings permission.</value>
+  </labels>
+  <labels>
+    <fullName>Core_ErrorLog_EntryNotFound</fullName>
+    <categories>Core, Error Log</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Error log entry not found</shortDescription>
+    <value>That entry is no longer in the Error Log. Refresh the page.</value>
+  </labels>
+  <labels>
+    <fullName>Core_ErrorLog_ActionFailed</fullName>
+    <categories>Core, Error Log</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Error log action failed</shortDescription>
+    <value>That did not work. Refresh the page and try again.</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_Title</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation page title</shortDescription>
+    <value>Automation</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_Intro</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation page introduction</shortDescription>
+    <value>Everything Open Impact does for you in the background. Switch one off if it is getting in your way, or pause all of it while you load a spreadsheet.</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_PauseButton</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Pause button</shortDescription>
+    <value>Pause all automation</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_ResumeButton</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Resume button</shortDescription>
+    <value>Resume automation</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_PauseLength</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Pause length field label</shortDescription>
+    <value>How long</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_PausedBanner</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Paused banner</shortDescription>
+    <value>Automation is paused until</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_ReadOnly</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation page read only notice</shortDescription>
+    <value>You can read this page but not change it. Ask your administrator for the Manage Nonprofit Settings permission.</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_Empty</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation page empty state</shortDescription>
+    <value>Open Impact has not added any automation to this org yet.</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_OneHour</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>One hour option</shortDescription>
+    <value>1 hour</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_TwoHours</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Two hours option</shortDescription>
+    <value>2 hours</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_FourHours</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Four hours option</shortDescription>
+    <value>4 hours</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_EightHours</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Eight hours option</shortDescription>
+    <value>8 hours</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_TwentyFourHours</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Twenty four hours option</shortDescription>
+    <value>24 hours</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_RunsOn</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation object column</shortDescription>
+    <value>Runs on</value>
+  </labels>
+  <labels>
+    <fullName>Core_ErrorLogTile_Title</fullName>
+    <categories>Core, Error Log</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Error log tile title</shortDescription>
+    <value>Error Log</value>
+  </labels>
+  <labels>
+    <fullName>Core_ErrorLogTile_NewCount</fullName>
+    <categories>Core, Error Log</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Error log tile new count</shortDescription>
+    <value>new</value>
+  </labels>
+  <labels>
+    <fullName>Core_ErrorLogTile_Empty</fullName>
+    <categories>Core, Error Log</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Error log tile empty state</shortDescription>
+    <value>Nothing has gone wrong. There is nothing to read here.</value>
+  </labels>
+  <labels>
+    <fullName>Core_ErrorLogTile_Acknowledge</fullName>
+    <categories>Core, Error Log</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledge action</shortDescription>
+    <value>Mark acknowledged</value>
+  </labels>
+  <labels>
+    <fullName>Core_ErrorLogTile_ViewAll</fullName>
+    <categories>Core, Error Log</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Open the error log</shortDescription>
+    <value>Open the Error Log</value>
+  </labels>
+  <labels>
+    <fullName>Core_ErrorLogTile_ReadOnly</fullName>
+    <categories>Core, Error Log</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Error log tile read only notice</shortDescription>
+    <value>You can read these entries but not change them.</value>
+  </labels>
+  <labels>
+    <fullName>Core_ErrorLogTile_OpenEntry</fullName>
+    <categories>Core, Error Log</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Open an error log entry</shortDescription>
+    <value>Open this entry</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_ErrorPrefix</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation page error icon</shortDescription>
+    <value>Something went wrong</value>
+  </labels>
+  <labels>
+    <fullName>Core_AutomationControl_PausedPrefix</fullName>
+    <categories>Core, Automation</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Automation paused icon</shortDescription>
+    <value>Paused</value>
+  </labels>
+</CustomLabels>
