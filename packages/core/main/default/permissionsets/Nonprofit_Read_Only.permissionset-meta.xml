@@ -333,6 +333,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
+    <field>Automation_Setting__c.Always_Runs__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
     <field>Automation_Setting__c.Description__c</field>
     <readable>true</readable>
   </fieldPermissions>

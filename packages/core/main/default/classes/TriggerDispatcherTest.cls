@@ -286,6 +286,63 @@ private class TriggerDispatcherTest {
     }
 
     @IsTest
+    static void anAlwaysRunsAutomationIgnoresTheBypassThePauseAndTheSwitch() {
+        TestRegisteredHandler.reset();
+        // Everything an administrator or a bulk operation could do to stop an automation, all at
+        // once: the row is switched off, the org is paused, and the name is bypassed.
+        TestDataFactory.pausedSettings(2);
+        TestDataFactory.insertAutomationSettings(
+            new Map<String, Boolean>{ 'Registered_Test' => false }
+        );
+        AutomationControl.bypass('Registered_Test');
+        Automation_Registry__mdt registered = TestDataFactory.registryEntry(
+            'Registered_Test',
+            true
+        );
+        registered.Handler_Class__c = 'TestRegisteredHandler';
+        registered.Always_Runs__c = true;
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>{
+            registered
+        };
+
+        Test.startTest();
+        TriggerDispatcher.run('Error_Log__c', contextFor(System.TriggerOperation.AFTER_INSERT));
+        Test.stopTest();
+
+        AutomationControl.clearAllBypasses();
+        Assert.areEqual(
+            1,
+            TestRegisteredHandler.runCount,
+            'A rule enforcing automation runs through a bypass, a pause and its own switch being off.'
+        );
+    }
+
+    @IsTest
+    static void anOrdinaryAutomationIsStillStoppedByThePause() {
+        TestRegisteredHandler.reset();
+        TestDataFactory.pausedSettings(2);
+        Automation_Registry__mdt registered = TestDataFactory.registryEntry(
+            'Registered_Test',
+            true
+        );
+        registered.Handler_Class__c = 'TestRegisteredHandler';
+        registered.Always_Runs__c = false;
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>{
+            registered
+        };
+
+        Test.startTest();
+        TriggerDispatcher.run('Error_Log__c', contextFor(System.TriggerOperation.AFTER_INSERT));
+        Test.stopTest();
+
+        Assert.areEqual(
+            0,
+            TestRegisteredHandler.runCount,
+            'Always Runs is what makes the difference: without it the pause still stops the handler.'
+        );
+    }
+
+    @IsTest
     static void aHandlerThatCannotBeStartedIsSkippedWithAWarning() {
         Automation_Registry__mdt missing = TestDataFactory.registryEntry('Missing_Test', true);
         missing.Handler_Class__c = 'NoSuchHandlerClass';

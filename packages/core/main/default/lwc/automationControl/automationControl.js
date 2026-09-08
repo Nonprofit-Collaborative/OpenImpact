@@ -25,6 +25,7 @@ import TWENTY_FOUR_HOURS from '@salesforce/label/c.Core_AutomationControl_Twenty
 import ERROR_PREFIX from '@salesforce/label/c.Core_AutomationControl_ErrorPrefix';
 import PAUSED_PREFIX from '@salesforce/label/c.Core_AutomationControl_PausedPrefix';
 import UNEXPECTED_ERROR from '@salesforce/label/c.Core_Automation_UnexpectedError';
+import ALWAYS_RUNS from '@salesforce/label/c.Core_Automation_AlwaysRuns';
 
 const HOUR_OPTIONS = [
   { label: ONE_HOUR, value: '1' },
@@ -48,7 +49,8 @@ export default class AutomationControl extends LightningElement {
     empty: EMPTY,
     runsOn: RUNS_ON,
     errorPrefix: ERROR_PREFIX,
-    pausedPrefix: PAUSED_PREFIX
+    pausedPrefix: PAUSED_PREFIX,
+    alwaysRuns: ALWAYS_RUNS
   };
 
   page;
@@ -90,8 +92,20 @@ export default class AutomationControl extends LightningElement {
     return this.page ? this.page.pausedUntil : undefined;
   }
 
+  /**
+   * The rows the list renders. Each carries its own disabled state, because an automation that
+   * enforces a rule is never switchable, whoever is looking and whatever else is going on
+   * (ADR-0024), and a template cannot work that out per row.
+   */
   get automations() {
-    return this.page && this.page.automations ? this.page.automations : [];
+    const rows = this.page && this.page.automations ? this.page.automations : [];
+    return rows.map((automation) => {
+      return {
+        ...automation,
+        alwaysRuns: automation.alwaysRuns === true,
+        toggleDisabled: this.controlsDisabled || automation.alwaysRuns === true
+      };
+    });
   }
 
   get hasAutomations() {
@@ -124,6 +138,13 @@ export default class AutomationControl extends LightningElement {
 
   handleToggle(event) {
     const automationName = event.target.dataset.automation;
+    const row = this.automations.find((automation) => automation.automationName === automationName);
+    if (row && row.alwaysRuns) {
+      // The switch is disabled, so this is unreachable from a click; it is here so that a
+      // change arriving any other way cannot send the server a request it is going to refuse.
+      event.target.checked = false;
+      return;
+    }
     const enabled = event.target.checked;
     // The switch has already moved in the browser, so the row moves with it before the call. The
     // two have to agree first: LWC pushes a property to a child only when the value it rendered

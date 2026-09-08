@@ -91,6 +91,14 @@
                                 <p class="slds-text-body_small">
                                     {labels.runsOn} {automation.objectName}
                                 </p>
+                                <template if:true={automation.alwaysRuns}>
+                                    <p
+                                        class="slds-text-body_small slds-text-color_weak"
+                                        data-id="always-runs-reason"
+                                    >
+                                        {labels.alwaysRuns}
+                                    </p>
+                                </template>
                             </div>
                             <div class="slds-col slds-size_1-of-3">
                                 <lightning-input
@@ -100,7 +108,7 @@
                                     label={automation.label}
                                     variant="label-hidden"
                                     checked={automation.enabled}
-                                    disabled={controlsDisabled}
+                                    disabled={automation.toggleDisabled}
                                     onchange={handleToggle}
                                 ></lightning-input>
                             </div>

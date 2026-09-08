@@ -392,6 +392,14 @@
         <value>2 hours</value>
     </labels>
     <labels>
+        <fullName>Core_Automation_AlwaysRuns</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation that always runs</shortDescription>
+        <value>This automation enforces a rule, so it always runs. It cannot be switched off here and a pause does not suspend it.</value>
+    </labels>
+    <labels>
         <fullName>Core_Automation_HandlerUnavailable</fullName>
         <categories>Core, Automation</categories>
         <language>en_US</language>

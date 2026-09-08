@@ -52,6 +52,47 @@ You are David, and a check from Maria's neighbour arrived this morning.
    in your fund reports is never more or less than the money you received.
 10. Now refund part of the gift: follow the Refunds page from step 1.
 
+## Lifting the receipt lock
+
+Sooner or later an organization holds a receipted gift that is wrong in a way that voiding
+and reissuing cannot reach, for example a receipt number issued against the wrong donor.
+There is one way past the lock. It is deliberately awkward, it lives in Salesforce Setup
+rather than in Open Impact, and every use of it is recorded.
+
+**What it is.** A custom permission called **Override Receipt Lock**. Open Impact ships it
+assigned to nobody: it is on no permission set and in no permission set group, so no role,
+including Nonprofit Admin, carries it. A user who holds it can save a change to a receipted
+gift's amount, date, donor or receipt number, and can delete a receipted gift. Nobody else
+can, whatever else they are allowed to do.
+
+**How to grant it.** There is no screen for this inside Open Impact, on purpose.
+
+1. In Salesforce, click the gear icon and choose **Setup**.
+2. Enter `Permission Sets` in the Quick Find box and click **Permission Sets**.
+3. Click **New**. Give it a label such as `Receipt Lock Override (temporary)` and save.
+   Make a fresh set for this rather than adding the permission to a set people already
+   hold: it is the set you are going to delete afterwards.
+4. On the new permission set, click **Custom Permissions**, then **Edit**, move **Override
+   Receipt Lock** into the Enabled list, and save.
+5. Click **Manage Assignments**, then **Add Assignment**, tick the one person who is going
+   to make the correction, and save.
+
+**How to remove it.** As soon as the correction is saved, come back to the permission set,
+click **Manage Assignments**, tick the person, and click **Remove Assignment**. Deleting
+the whole permission set afterwards is better still: a set that exists is a set somebody
+can be added to later without anyone noticing.
+
+**Every use is logged.** Whenever a change is saved that the lock would otherwise have
+refused, Open Impact writes an entry to the [Error Log](error-log.md) at **Warning**
+severity, naming the gift, its receipt number, and exactly which values changed (or that
+the gift was deleted). Nobody has to remember to record it. Filter the Error Log on
+Severity `Warning` to see every override an org has ever made.
+
+**Before you use it, check that you need to.** A refund or a write-off is the right answer
+when money went back (see [Refunds](refunds.md)), and correcting a receipt is the right
+answer when the document itself is wrong. The override is for the case where neither
+reaches the problem.
+
 ## Common mistakes
 
 - **Filling in both Donor Contact and Donor Account.** The save is refused with "Enter a
@@ -64,7 +105,12 @@ You are David, and a check from Maria's neighbour arrived this morning.
 - **Editing the amount after a receipt has been issued.** The save is refused with "This
   gift has a receipt number, so its amount, date and donor cannot change. Void the receipt
   and reissue it, or record a refund." That rule protects the document already in the
-  donor's hands.
+  donor's hands. Deleting the gift is refused for the same reason, and so is changing or
+  clearing the receipt number itself.
+- **Pausing automation to get around the lock.** It does not work, and that is deliberate.
+  The receipt lock is one of the few automations that always run: it is listed on the
+  Automation page with its switch off and greyed out, and a pause does not suspend it. See
+  [Automation control](automation-control.md).
 - **Splitting a gift one row at a time.** Allocations always total the gift, so a change that
   leaves the gift over-allocated or under-allocated is refused, even halfway through a split
   you meant to finish. Enter a split in one go on the gift entry screen, which sends the whole

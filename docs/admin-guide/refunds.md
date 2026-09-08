@@ -79,7 +79,13 @@ was meant for another organization, and the donor has asked for it back.
 
 - **Editing the gift amount instead of refunding.** If a receipt has been issued the save is
   refused outright, and if it has not, you have quietly restated a period Tom already
-  reported to the board. Record a refund: it is one click and it leaves a trail.
+  reported to the board. Record a refund: it is one click and it leaves a trail. The refusal
+  on a receipted gift is not something you can switch off: the receipt lock is one of the
+  automations that always run, and pausing automation does not suspend it. In the rare case
+  where a receipted gift really has to change, an administrator grants the Override Receipt
+  Lock permission in Setup for the length of the correction, and every change made that way
+  is written to the Error Log. The procedure is on the [Gifts page](gifts.md), under
+  "Lifting the receipt lock".
 - **Refunding more than is left.** The action is refused with "This refund is larger than
   the amount left on the gift." Check the gift's **Refunds** related list: part of it may
   have gone back already.

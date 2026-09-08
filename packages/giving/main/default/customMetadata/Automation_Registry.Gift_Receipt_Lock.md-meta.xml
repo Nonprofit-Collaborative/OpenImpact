@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <label>Gift: receipt lock</label>
+    <protected>true</protected>
+    <values>
+        <field>Object_Name__c</field>
+        <value xsi:type="xsd:string">Gift__c</value>
+    </values>
+    <values>
+        <field>Handler_Class__c</field>
+        <value xsi:type="xsd:string">GiftReceiptLockHandler</value>
+    </values>
+    <values>
+        <field>Execution_Order__c</field>
+        <value xsi:type="xsd:double">5</value>
+    </values>
+    <values>
+        <field>Enabled_By_Default__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>Always_Runs__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>Description__c</field>
+        <value
+      xsi:type="xsd:string"
+    >Protects the receipt a donor is holding: once a gift has a receipt number, its amount, date, donor and receipt number cannot change and the gift cannot be deleted. Correct a receipted gift by voiding the receipt and reissuing it, or record a refund. This automation enforces a rule rather than doing work for you, so it cannot be switched off here and pausing automation does not suspend it. The one way past it is the Override Receipt Lock permission, which an administrator grants in Setup and every use of which is written to the Error Log.</value>
+    </values>
+</CustomMetadata>

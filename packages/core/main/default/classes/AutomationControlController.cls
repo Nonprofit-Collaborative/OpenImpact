@@ -22,6 +22,9 @@ public with sharing class AutomationControlController {
         public String objectName { get; set; }
         @AuraEnabled
         public Boolean enabled { get; set; }
+        /** True when this automation enforces a rule, so its switch is shown off and disabled. */
+        @AuraEnabled
+        public Boolean alwaysRuns { get; set; }
     }
 
     /**
@@ -102,7 +105,10 @@ public with sharing class AutomationControlController {
             view.label = setting.Name;
             view.description = setting.Description__c;
             view.objectName = setting.Object_Name__c;
-            view.enabled = setting.Enabled__c;
+            view.alwaysRuns = setting.Always_Runs__c == true;
+            // A rule enforcing automation is never running "on" a switch: it is shown off, and
+            // disabled, so nobody reads the page as saying it can be turned on (ADR-0024).
+            view.enabled = view.alwaysRuns ? false : setting.Enabled__c;
             page.automations.add(view);
         }
         return page;

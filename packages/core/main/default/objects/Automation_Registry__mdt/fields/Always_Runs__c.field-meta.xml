@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Always_Runs__c</fullName>
+  <defaultValue>false</defaultValue>
+  <description>Whether this automation enforces a rule rather than providing a convenience. An automation marked this way cannot be switched off from the console or suppressed by a pause: the trigger dispatcher ignores the bypass, the pause and the enabled switch for it (ADR-0024).</description>
+  <fieldManageability>DeveloperControlled</fieldManageability>
+  <inlineHelpText>Check this when the automation enforces a rule rather than providing a convenience. It then cannot be switched off from the console or suppressed by a pause.</inlineHelpText>
+  <label>Always Runs</label>
+  <type>Checkbox</type>
+</CustomField>

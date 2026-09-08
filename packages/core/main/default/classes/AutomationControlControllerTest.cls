@@ -46,6 +46,44 @@ private class AutomationControlControllerTest {
     }
 
     @IsTest
+    static void anAlwaysRunsAutomationIsListedOffDisabledAndRefused() {
+        insert new Automation_Setting__c(
+            Name = 'Gift: receipt lock',
+            Automation_Name__c = 'Gift_Receipt_Lock',
+            Description__c = 'Protects the receipt a donor is holding.',
+            Enabled__c = true,
+            Always_Runs__c = true,
+            Is_Package_Default__c = true
+        );
+        AutomationControl.clearCache();
+        User maria = nonprofitAdmin();
+
+        Test.startTest();
+        AutomationControlController.AutomationPageView page;
+        System.runAs(maria) {
+            page = AutomationControlController.getPage();
+            try {
+                AutomationControlController.setEnabled('Gift_Receipt_Lock', false);
+                Assert.fail('The page must not be able to switch a rule off.');
+            } catch (AuraHandledException expected) {
+                Assert.areEqual(
+                    Label.Core_Automation_AlwaysRuns,
+                    expected.getMessage(),
+                    'The page shows Maria why the switch will not move.'
+                );
+            }
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, page.automations.size(), 'The lock is still listed, not hidden.');
+        Assert.isTrue(page.automations[0].alwaysRuns, 'Marked as one that always runs.');
+        Assert.isFalse(
+            page.automations[0].enabled,
+            'Shown off, so nobody reads the page as saying it could be turned on.'
+        );
+    }
+
+    @IsTest
     static void mariaPausesResumesAndSwitchesOneAutomationOff() {
         TestDataFactory.insertAutomationSettings(new Map<String, Boolean>{ NAMING => true });
         TestDataFactory.defaultSettings();
