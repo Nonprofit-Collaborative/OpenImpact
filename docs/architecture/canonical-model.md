@@ -706,10 +706,10 @@ must be able to read them with no Giving package installed.
 | `Seasonal_Address_Last_Run__c` | datetime | empty | When the seasonal address swap job last completed, shown on the Hub; written by the job (C-18, R-AD4, R-AD8). |
 | `Seasonal_Address_Last_Run_Summary__c` | text | empty | What the last seasonal swap run did, in one sentence: how many addresses moved in, how many moved back, and how many failed (R-AD8). |
 
-The four commitment keys (`Installment_Generation_Horizon_Months__c`,
-`Installment_Overdue_Grace_Days__c`, `Auto_Apply_Gifts_To_Installments__c`, and
-`Installment_Top_Up_Last_Run__c`) and `Automatic_Household_Soft_Credits__c` are Giving
-keys and live on `Giving_Settings__c`, the Giving package's own protected hierarchy
+The commitment keys (`Installment_Generation_Horizon_Months__c`,
+`Installment_Overdue_Grace_Days__c`, `Auto_Apply_Gifts_To_Installments__c`, and the
+nightly run stamps listed in Section 21A) and `Automatic_Household_Soft_Credits__c` are
+Giving keys and live on `Giving_Settings__c`, the Giving package's own protected hierarchy
 custom setting, not on `Nonprofit_Settings__c`: a dependent package cannot add fields to
 an object Core owns (ADR-0017). They are listed here because this section is the whole
 settings inventory, and the settings console reads every registered settings object
@@ -1789,6 +1789,9 @@ Moved here from Section 12 by ADR-0017, with their definitions unchanged.
 | `Donor_Levels_Enabled__c` | boolean | false | Whether donor levels are assigned at all. Off until the organization has built its ladder, because a wrong ladder is worse than none (R-DL7). |
 | `Donor_Level_Source_Field__c` | text | `Total_Giving__c` | Which giving total the ladder is measured on, named as one of the packaged rollup attributes of Section 26 (R-DL1). Stored as text under ADR-0019. |
 | `Donor_Levels_Last_Recalculated__c` | datetime | empty | When the nightly or on demand level pass last completed, shown read only on the Donor Levels page, the same freshness promise the rollups make (Principle 2). |
+| `Installment_Top_Up_Last_Run_Summary__c` | text | empty | What the last top up run did, in one sentence: how many recurring commitments were extended, and how many chunks failed. A timestamp on its own says the job woke up, not that it did anything (R-IN5). |
+| `Installment_Overdue_Last_Run__c` | datetime | empty | When the overdue pass last completed, whether or not it marked anything. Empty means the pass has never run in this org, which is a different thing from a pass that ran and found nothing overdue (R-IN2, R-IN5). |
+| `Installment_Overdue_Last_Run_Summary__c` | text | empty | What the last overdue pass did, in one sentence: how many payments it marked Overdue, or that it found none (R-IN5). |
 Added by receipting (G-13). The organization's identity keys that a receipt prints, the
 legal name, the tax identification number, the address, the logo, the signature, and the
 signer's name and title, are Core keys and stay on `Nonprofit_Settings__c` (Section 12):
@@ -1828,6 +1831,9 @@ these keys, which is what makes a module that is off leave nothing behind.
 | Installment Overdue Grace Days | `Installment_Overdue_Grace_Days__c` | Number(18, 0) |
 | Auto Apply Gifts To Installments | `Auto_Apply_Gifts_To_Installments__c` | Checkbox |
 | Installment Top Up Last Run | `Installment_Top_Up_Last_Run__c` | Date/Time |
+| Installment Top Up Last Run Summary | `Installment_Top_Up_Last_Run_Summary__c` | Text(255) |
+| Installment Overdue Last Run | `Installment_Overdue_Last_Run__c` | Date/Time |
+| Installment Overdue Last Run Summary | `Installment_Overdue_Last_Run_Summary__c` | Text(255) |
 | Receipt Number Prefix | `Receipt_Number_Prefix__c` | Text(10) |
 | Receipt Next Counter | `Receipt_Next_Counter__c` | Number(18, 0) |
 | Receipt Statement Year | `Receipt_Statement_Year__c` | Number(4, 0) |
@@ -1938,9 +1944,10 @@ Section 26.
 
 - **Settings keys** (on `Giving_Settings__c`, Section 12):
   `Installment_Generation_Horizon_Months__c`, `Auto_Apply_Gifts_To_Installments__c`,
-  `Installment_Top_Up_Last_Run__c`.
+  `Installment_Top_Up_Last_Run__c`, `Installment_Top_Up_Last_Run_Summary__c`.
 - **Service:** `CommitmentService`, `CommitmentSelector`, `CommitmentTriggerHandler`,
-  `GiftCommitmentHandler`, `InstallmentTopUpSchedulable`, `InstallmentTopUpBatch`.
+  `GiftCommitmentHandler`, `InstallmentTopUpSchedulable`, `InstallmentTopUpBatch`,
+  `GivingScheduler`, `GivingJobsController`.
 
 ---
 
@@ -1992,6 +1999,17 @@ entering a cheque against a pledge know the pledge and not the row number.
 **R-IN4 Sequence is stable.** Sequence is assigned at generation and does not change when
 an installment is skipped or paid late, so an installment can be named the same way in a
 report a year later.
+
+**R-IN5 The nightly passes are switched on in the console and visible there.** Nothing in
+the Giving module marks an installment Overdue or extends a recurring schedule until an
+administrator schedules the nightly jobs from the Nightly Jobs page of the Nonprofit
+Settings console, and the same page stops them (ADR-0031). Each pass records when it last
+finished and one sentence saying what it did, whether or not it changed anything, so a
+pass that ran and found nothing overdue reads differently from a pass that never ran. The
+console warns that a pass is stale only when the jobs are scheduled: an org that has not
+switched them on is told that instead, because it has not missed a run that was never
+going to happen. A failure inside a pass goes to the Error Log and the rest of the run
+carries on (R-E1).
 
 ### Salesforce implementation
 
@@ -3220,6 +3238,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.4 | 2026-09-08 | G-13 receipting (ADR-0016). Four objects added: `Receipt__c` (Section 25B), `Receipt_Number_Sequence__c` (25C), `Receipt_Run__c` (25D) and `Receipt_Template__c` (25E), with rules R-RC1 to R-RC10, R-RS1 to R-RS3, R-RR1 to R-RR3 and R-RT1 to R-RT3. Gift gains `Benefit_Description__c`, `Benefit_Value__c` and `Intangible_Religious_Benefits__c`, which is what a receipt needs to state a quid pro quo disclosure and the intangible religious benefits sentence; the deductible amount is computed by the renderer rather than stored, because a stored copy of a subtraction is a second place for it to be wrong. Giving Settings gains `Receipt_Number_Prefix__c`, `Receipt_Next_Counter__c`, `Receipt_Statement_Year__c`, `Receipt_Place_Of_Issue__c` and `Receipt_Renderer__c`, and its implementation subsection now lists every key it holds. Receipt leaves Section 30. |
 | v0.4 | 2026-09-09 | G-18 in-kind gifts (ADR-0030). No object added. Two attributes added on both Account and Contact, `In_Kind_Value__c` (Currency) and `In_Kind_Gift_Count__c` (Number), filled by six new `Rollup_Definition_Default__mdt` rows across the three scopes of Section 26, filtered to `Type__c` equals `In-kind` on top of the ADR-0022 status set. Rule R-G12 records what an in-kind gift is: a Gift of Type In-kind whose Amount is zero, whose worth is on `Fair_Market_Value__c`, which is never printed on a receipt, and whose description is required and is printed. R-G4 gains `In_Kind_Description__c`, because it appears on the document the donor holds. The `Amount_Cannot_Be_Zero` validation rule is narrowed to gifts that are not in-kind, and `In_Kind_Needs_Description`, `In_Kind_Has_No_Amount`, `In_Kind_Fields_Need_In_Kind_Type` and `Fair_Market_Value_Not_Negative` are added. |
 | v0.4 | 2026-09-08 | C-10 sample data extended to the Giving module and to connections. `Sample Data` (`Sample_Data__c`, Checkbox, default false) added to `Gift__c`, `Fund__c`, `Appeal__c`, `Commitment__c`, `Relationship__c` and `Affiliation__c`, so every record the sample loader creates can be found and removed in one action; a gift's allocations, soft credits and tributes, and a commitment's installments, are details of a flagged record and go with it. `Sample Data Key` (`Sample_Data_Key__c`, Text(20)) added to Account and Contact: it holds the key the generated file gives a household, an organization or a person, which is how the Giving sample gifts find the donor they belong to across the asynchronous chain. No object added. |
+| v0.4 | 2026-09-09 | G-07 defect fix: nothing in a real org scheduled the Giving nightly jobs, so no installment was ever marked Overdue. `Giving_Settings__c` gains `Installment_Overdue_Last_Run__c` (Date/Time), `Installment_Overdue_Last_Run_Summary__c` (Text 255) and `Installment_Top_Up_Last_Run_Summary__c` (Text 255): the overdue pass recorded nothing at all, so "it has never run" and "it ran and found nothing overdue" were the same blank, and the top up carried a bare timestamp that said the job woke up rather than what it did. New rule R-IN5: the nightly passes are scheduled and stopped from the Nightly Jobs page of the settings console (ADR-0031), each records what it did, and a stale warning is shown only when the jobs are actually scheduled. No object added. |
 
 ---
 ## 32. Entity ownership by package

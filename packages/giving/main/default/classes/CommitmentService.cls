@@ -534,11 +534,30 @@ public with sharing class CommitmentService {
     }
 
     /**
-     * Records when the top up job last finished, which is what the Hub shows.
+     * Records when the top up job last finished and what it did, which is what the Nightly Jobs
+     * page and the Hub show. The sentence is written whether or not the run changed anything: a
+     * bare timestamp says the job woke up, not that it did any work (R-IN5).
      */
-    public static void recordTopUpRun(Datetime completedAt) {
+    public static void recordTopUpRun(Datetime completedAt, String summary) {
         Giving_Settings__c settings = Giving_Settings__c.getOrgDefaults();
         settings.Installment_Top_Up_Last_Run__c = completedAt;
+        settings.Installment_Top_Up_Last_Run_Summary__c = summary;
+        saveSettings(settings);
+    }
+
+    /**
+     * Records when the overdue pass last finished and what it marked. Without this an
+     * administrator cannot tell a pass that ran and found nothing overdue from a pass that never
+     * ran at all, which is the state every org was in before ADR-0031 (R-IN5).
+     */
+    public static void recordOverdueRun(Datetime completedAt, String summary) {
+        Giving_Settings__c settings = Giving_Settings__c.getOrgDefaults();
+        settings.Installment_Overdue_Last_Run__c = completedAt;
+        settings.Installment_Overdue_Last_Run_Summary__c = summary;
+        saveSettings(settings);
+    }
+
+    private static void saveSettings(Giving_Settings__c settings) {
         List<Giving_Settings__c> records = new List<Giving_Settings__c>{ settings };
         if (settings.Id == null) {
             settings.SetupOwnerId = UserInfo.getOrganizationId();

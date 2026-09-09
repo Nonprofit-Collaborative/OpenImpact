@@ -111,6 +111,10 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>GivingJobsController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>GivingScheduler</apexClass>
     <enabled>true</enabled>
   </classAccesses>
@@ -1063,6 +1067,10 @@
   </tabSettings>
   <tabSettings>
     <tab>Gift__c</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Giving_Nightly_Jobs</tab>
     <visibility>Visible</visibility>
   </tabSettings>
   <tabSettings>

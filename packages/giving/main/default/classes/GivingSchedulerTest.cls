@@ -1,11 +1,11 @@
 /**
- * Tests for the two daily jobs and for the helper that schedules them when the Giving
- * module is turned on.
+ * Tests for the three nightly jobs and for the schedule an administrator starts from the
+ * Nightly Jobs page of the settings console (ADR-0031).
  */
 @IsTest
 private class GivingSchedulerTest {
     @IsTest
-    static void schedulesBothDailyJobs() {
+    static void schedulesAllThreeNightlyJobs() {
         Test.startTest();
         GivingScheduler.scheduleAll();
         Test.stopTest();
@@ -13,7 +13,86 @@ private class GivingSchedulerTest {
         Assert.areEqual(
             3,
             [SELECT COUNT() FROM CronTrigger WHERE CronJobDetail.Name LIKE 'Open Impact Giving%'],
-            'Turning the module on schedules the top up, the overdue pass and the donor levels pass.'
+            'Switching the jobs on schedules the top up, the overdue pass and the donor levels pass.'
+        );
+        Assert.isTrue(
+            GivingScheduler.isScheduled(),
+            'All three jobs are scheduled, which is what the page reports as switched on.'
+        );
+        Assert.areNotEqual(
+            null,
+            GivingScheduler.nextRunAt(),
+            'A scheduled job has a next run, which is what the page shows under the button.'
+        );
+    }
+
+    @IsTest
+    static void schedulingTwiceDoesNotCreateASecondSetOfJobs() {
+        Test.startTest();
+        GivingScheduler.scheduleAll();
+        List<Id> second = GivingScheduler.scheduleAll();
+        Test.stopTest();
+
+        Assert.areEqual(
+            3,
+            [SELECT COUNT() FROM CronTrigger WHERE CronJobDetail.Name LIKE 'Open Impact Giving%'],
+            'An administrator pressing Schedule twice gets three jobs, not six.'
+        );
+        Assert.areEqual(
+            0,
+            second.size(),
+            'The second call scheduled nothing, because all three jobs were already there.'
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Error_Log__c WHERE Context__c LIKE 'GivingScheduler%'],
+            'Pressing the button twice is ordinary and must not write a duplicate name failure to the Error Log.'
+        );
+    }
+
+    @IsTest
+    static void stopUnschedulesEveryJob() {
+        Test.startTest();
+        GivingScheduler.scheduleAll();
+        GivingScheduler.stopAll();
+        Test.stopTest();
+
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM CronTrigger WHERE CronJobDetail.Name LIKE 'Open Impact Giving%'],
+            'Stopping the nightly jobs leaves none of the three scheduled.'
+        );
+        Assert.isFalse(
+            GivingScheduler.isScheduled(),
+            'With nothing scheduled the page offers Schedule rather than Stop.'
+        );
+        Assert.areEqual(
+            null,
+            GivingScheduler.nextRunAt(),
+            'There is no next run to show once the jobs are stopped.'
+        );
+    }
+
+    @IsTest
+    static void aPartlyScheduledOrgIsNotReportedAsSwitchedOn() {
+        Test.startTest();
+        System.schedule(
+            GivingScheduler.OVERDUE_JOB_NAME,
+            '0 45 1 * * ?',
+            new InstallmentSchedulable()
+        );
+        Boolean scheduledWithOnlyOneJob = GivingScheduler.isScheduled();
+        GivingScheduler.scheduleAll();
+        Test.stopTest();
+
+        Assert.isFalse(
+            scheduledWithOnlyOneJob,
+            'The overdue pass without the top up is not "on": it marks payments overdue on a schedule nothing is extending.'
+        );
+        Assert.areEqual(
+            3,
+            [SELECT COUNT() FROM CronTrigger WHERE CronJobDetail.Name LIKE 'Open Impact Giving%'],
+            'Scheduling fills in the two jobs that were missing and leaves the one already there alone.'
         );
     }
 
@@ -54,6 +133,20 @@ private class GivingSchedulerTest {
             ],
             'The daily pass marks a payment forty days late Overdue.'
         );
+        Giving_Settings__c settings = Giving_Settings__c.getOrgDefaults();
+        Assert.areNotEqual(
+            null,
+            settings.Installment_Overdue_Last_Run__c,
+            'The pass records when it finished, which is what the Nightly Jobs page shows.'
+        );
+        Assert.areEqual(
+            String.format(
+                System.Label.Giving_NightlyJobs_OverdueSummaryFormat,
+                new List<String>{ '1' }
+            ),
+            settings.Installment_Overdue_Last_Run_Summary__c,
+            'The pass says how many payments it marked, not just that it woke up.'
+        );
     }
 
     @IsTest
@@ -93,10 +186,21 @@ private class GivingSchedulerTest {
             ],
             'A payment one day late is inside the five day grace period, so it stays Scheduled.'
         );
+        Giving_Settings__c settings = Giving_Settings__c.getOrgDefaults();
+        Assert.areNotEqual(
+            null,
+            settings.Installment_Overdue_Last_Run__c,
+            'A pass that found nothing still records that it ran, so a blank stamp means it has never run.'
+        );
+        Assert.areEqual(
+            System.Label.Giving_NightlyJobs_OverdueNoneFound,
+            settings.Installment_Overdue_Last_Run_Summary__c,
+            'The page says the pass found nothing overdue rather than leaving the reader to guess.'
+        );
     }
 
     @IsTest
-    static void theTopUpJobRunsAndRecordsWhenItFinished() {
+    static void theTopUpJobRunsAndRecordsWhatItDid() {
         Contact person = new Contact(FirstName = 'Sarah', LastName = 'Nguyen');
         insert person;
         insert new Commitment__c(
@@ -113,10 +217,19 @@ private class GivingSchedulerTest {
         Test.stopTest();
         // Test.stopTest() runs the batch the schedulable started, so its work is done here.
 
+        Giving_Settings__c settings = Giving_Settings__c.getOrgDefaults();
         Assert.areNotEqual(
             null,
-            Giving_Settings__c.getOrgDefaults().Installment_Top_Up_Last_Run__c,
+            settings.Installment_Top_Up_Last_Run__c,
             'The job says when it last finished, so Maria can see it is running.'
+        );
+        Assert.areEqual(
+            String.format(
+                System.Label.Giving_NightlyJobs_TopUpSummaryFormat,
+                new List<String>{ '1', '0' }
+            ),
+            settings.Installment_Top_Up_Last_Run_Summary__c,
+            'The job says it extended one schedule and failed nowhere, which a timestamp alone cannot.'
         );
         Assert.isTrue(
             [SELECT COUNT() FROM Installment__c] > 0,

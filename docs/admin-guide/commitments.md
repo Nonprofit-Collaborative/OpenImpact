@@ -31,16 +31,58 @@ Three settings control how the schedules behave. Open **Nonprofit Settings** and
 Change a value and choose **Save**. The new value applies to the next commitment you
 create or change; existing schedules are left alone until you edit them.
 
-**The two nightly jobs are not running yet.** One extends recurring schedules up to the
-horizon (01:15), the other marks payments overdue (01:45). Both are built, and both are
-scheduled by the module turn on action, which arrives with the Module Manager in version
-0.7. Until then nothing schedules them, and there is no button in the app that does: a
-recurring commitment is topped up only when somebody saves it, and an unpaid payment stays
-Pending rather than turning Overdue on its own. A Salesforce administrator can schedule
-`InstallmentTopUpSchedulable` and `InstallmentSchedulable` from Setup in the meantime.
-The job stamps **Installments last topped up** in the Giving settings when it finishes,
-which is how you will tell it is running once it is. That value is not on the settings
-console today, so it is read from the Giving Settings custom setting.
+## Switching the nightly jobs on
+
+Commitments need three jobs to run overnight, and until you switch them on none of them
+runs. This is the step that makes a payment turn Overdue on its own.
+
+Open **Nonprofit Settings**, choose **Giving**, and choose **Open** on **Nightly jobs**.
+The page opens with a line for each job, then one button.
+
+Choose **Schedule the nightly jobs**. Three jobs are scheduled at once:
+
+| Job | Runs at | What it does |
+|---|---|---|
+| Installment top up | 01:15 | Extends every active recurring commitment up to the generation horizon, so an open ended schedule always has the next year of payments in front of it |
+| Overdue pass | 01:45 | Marks every unpaid payment Overdue once it is further past its due date than the grace period |
+| Donor levels | 03:00 | Places every donor on the rung their giving now reaches |
+
+The times are fixed and are chosen to keep out of the way of the two other nightly jobs
+Open Impact ships: the seasonal address swap at 00:30 and the rollups at 02:00. The top up
+runs before the overdue pass so that the overdue pass sees every payment, and the donor
+levels run an hour after the rollups start so that the totals the ladder reads have
+settled.
+
+Nothing else has to be done. If you have just switched the jobs on and do not want to wait
+for tonight, choose **Run the jobs now**: the top up and the overdue pass start
+immediately, and the page shows what they did once they finish. (Donor levels have their
+own **Recalculate now** button on the Donor Levels page.)
+
+### Checking they are running
+
+The same page is where you check on them afterwards. Each job shows when it last finished
+and what it did, for example "Marked 4 payments overdue." A job that ran and had nothing to
+do says so ("No payments were overdue.") rather than staying blank, so a blank line means
+the job has not run at all.
+
+Three things the page can tell you:
+
+- **Not scheduled.** Nobody has switched the jobs on in this org. Nothing is late, because
+  nothing was ever going to run. The button under the line says **Schedule the nightly
+  jobs**.
+- **Scheduled, with a last run and a next run.** This is the normal state.
+- **Scheduled but has not run in more than 36 hours.** Something stopped the job. Open the
+  **Error Log** in Nonprofit Settings: a job that fails writes there and carries on with
+  the rest of its work rather than stopping, so the log tells you which commitment or which
+  payment is the problem.
+
+**Stop the nightly jobs** unschedules all three. Nothing already generated or already
+marked Overdue is changed; the schedules simply stop being extended and payments stop
+turning Overdue.
+
+Scheduling and stopping need the **Manage Nonprofit Settings** permission, which comes with
+the Nonprofit Admin permission set. Somebody who has the Giving Admin permission set without
+it can open the page and see whether the jobs are running; the buttons are disabled.
 
 ## A five-minute walkthrough
 
@@ -93,9 +135,10 @@ and deletes nothing.
 
 14. Open the **Installments** tab and choose the **Overdue** list view. Every payment
     already marked Overdue is here, with its commitment, its donor, and what was expected.
-    A payment is marked Overdue by the nightly job, so until that job is scheduled (see
-    "How to turn it on") this list stays empty and **Upcoming 30 days** with a due date in
-    the past is what to read instead.
+    A payment is marked Overdue by the overdue pass, so this list fills up the first night
+    after you schedule the nightly jobs (see "Switching the nightly jobs on"). If the list
+    is empty and you have just switched the jobs on, choose **Run the jobs now** on the
+    Nightly jobs page rather than waiting.
 15. Switch to **Upcoming 30 days** to see what should arrive next, which is the list Jen
     uses when she reconciles the bank statement.
 
