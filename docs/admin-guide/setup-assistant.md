@@ -65,8 +65,9 @@ Open Impact looks at your org and tells you what it found, in plain words:
   a membership record for each person, so a person can belong to more than one household
   and nothing you already have is disturbed. Your existing records keep working exactly as
   they do today.
-- **"NPSP is installed in this org."** Open Impact recommends **NPSP coexistence**: it
-  adopts your NPSP household accounts rather than building new ones.
+- **"NPSP is installed in this org."** Open Impact recommends **NPSP coexistence**, which
+  records that NPSP is here. In this version it changes no behaviour: Open Impact builds its
+  own households and leaves NPSP's alone.
 - **"This looks like a fresh org."** Open Impact recommends **Standalone**, the simplest
   arrangement.
 
@@ -82,7 +83,7 @@ selected, and one button. She clicks it. Two seconds.
 
 The assistant opens the household naming settings inside the step, with the live preview.
 Choose the pattern for the household name, the formal greeting, and the informal greeting,
-and watch five real households from your own data change as you type.
+and watch five sample households, which ship with the product, change as you type.
 
 Click **Save**, and the step completes itself. If your org does not have the household
 naming screen yet, the step says so and tells you that Open Impact will name households
