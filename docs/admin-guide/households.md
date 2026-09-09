@@ -90,7 +90,8 @@ and turn the setting on if you want it done for you next time.
 **"The member count looks wrong."**
 The count includes current members only. In the flexible membership mode, a person whose
 membership has an end date of today or earlier has left the household and is not counted.
-Check the end dates on the Members panel.
+The Members panel lists current members only and shows no dates, so somebody who has left
+is simply absent from it.
 
 **"The primary contact went blank when I moved someone out."**
 That is deliberate. The primary contact has to be somebody who is still in the household,

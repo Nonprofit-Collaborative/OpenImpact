@@ -237,9 +237,12 @@ was the last to leave, and the survivor of a merge is the record the merge exist
 so two empty households merge into one empty household rather than into nothing.
 
 **R-H14 Recompute action.** Changing a naming pattern in the settings console shows a
-preview against five sample households and offers a "Recompute all households" batch
-with progress and a completion notice. Recomputation never touches households with
-Custom Name set.
+preview against five fixed sample households, computed in memory from the patterns being
+typed: nothing is read from or written to the org's own households. The console also
+offers a "Recompute all households" batch. Starting it confirms that the batch has been
+queued; the batch runs in the background and reports neither progress nor completion to
+the console, and its counts are written to the debug log only. Recomputation never touches
+households with Custom Name set.
 
 ### Salesforce implementation
 
@@ -267,14 +270,6 @@ Custom Name set.
   carries them on the person's own record. They are not shown on Household or Organization
   layouts.
 
-- **Person attributes on Account.** The five person attributes listed under Contact
-  (Section 7) are present on Account as well, with the same API names and the same
-  definitions: `Deceased__c`, `Household_Role__c`, `Exclude_From_Household_Name__c`,
-  `Exclude_From_Greetings__c`, `Preferred_Name__c`. They belong to the person, not to the
-  household, and they exist on both objects so that an org that stores people as accounts
-  carries them on the person's own record. They are not shown on Household or Organization
-  layouts.
-
 - **Service:** `HouseholdService` (membership abstraction), `HouseholdNamingService`
   (R-H4 to R-H9), `HouseholdSelector` (all SOQL).
 
@@ -293,7 +288,7 @@ history of who was in a household when.
 | Attribute | Type | Required | Definition |
 |---|---|---|---|
 | Contact | reference(Contact) | conditional | The person, when the person is represented as a Contact. |
-| Account | reference(Household) | conditional | The person, where the person is represented as an account rather than as a Contact. |
+| Account | reference(Account) | conditional | The person's own account, where the person is represented as an account rather than as a Contact (a Person Account). Never a household: the household side is the Household attribute below. |
 | Household | reference(Household) | yes | The household the person belongs to. |
 | Role | picklist(Head, Spouse or Partner, Child, Other) | no | The person's role in this household, used for greeting order and reporting. |
 | Is Primary | boolean | yes (defaults false) | Marks the member who receives correspondence when only one person can be named. |
@@ -315,8 +310,16 @@ and no automation writes to it.
 **R-M2 Current membership.** A member is current when End Date is empty or in the
 future. Only current members count toward Member Count, naming, and greetings.
 
-**R-M3 One primary.** At most one current member of a household has Is Primary true, and
-that member is mirrored to the household's Primary Contact.
+**R-M3 One primary.** At most one current member of a household has Is Primary true.
+
+The second half of this rule, that the primary member is mirrored to the household's
+Primary Contact, is **not implemented and is not implementable as written**:
+`Primary_Contact__c` is a lookup to Contact, so it cannot hold a person who is stored as a
+Person Account, which is exactly the org shape junction membership exists for. No
+automation derives the field from Is Primary; the only value household upkeep writes to it
+is null, when the person it names is no longer a current member (R-H10). A merge can carry
+an existing value to the survivor, but it never derives one. Recorded as a known gap in
+Section 30.
 
 **R-M4 Person representation.** Exactly one of Contact or Account identifies the person:
 Contact where the person is a Contact, the person's own Person Account where Person
@@ -3740,6 +3743,16 @@ object is not worth altering later for fields this cheap: Acknowledgment Status,
 Acknowledgment Date, and Receipt Number for G-12 and G-13, and In-kind Description and
 Fair Market Value for G-18 (R-G9).
 
+### Known gaps in shipped rules
+
+Rules this document states that the shipped code does not implement. They are listed here
+so that a reader is not told the product does something it does not, and so that the gap
+is closed deliberately rather than discovered.
+
+| Rule | Gap | Why it is open |
+|---|---|---|
+| R-M3 (Section 6) | The primary member is not mirrored to the household's Primary Contact. | `Primary_Contact__c` is a lookup to Contact, so it cannot name a person stored as a Person Account, which is the org shape junction membership serves. Closing the gap means changing the field (a Contact and Account pair, per Section 4) or dropping the second half of the rule. Needs an ADR either way. |
+
 ---
 
 ## 31. Change log
@@ -3750,6 +3763,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.1 | 2026-09-07 | C-05 review fix: Error Log entries are published as `Error_Log_Event__e` (Publish Immediately) and written by a subscriber, so an entry survives the rollback it documents (new rule R-E4). |
 | v0.1 | 2026-09-08 | C-05 review fix: all three packaged permission sets grant Read and Create on `Error_Log_Event__e`, because publishing is governed by Create on the event (rule R-E4). |
 | v0.1 | 2026-09-08 | C-01 follow-up, R-H10 enforced in code. No object or field added. Household upkeep now clears Primary Contact when the person it names is no longer a current member, in both membership modes, and promotes nobody in their place: R-H10 already said the next member is proposed and not silently assigned, so the code follows the rule rather than the rule following the code. An organization shares the Primary Contact field (R-O3) and is never touched by this upkeep. |
+| v0.1 | 2026-09-09 | C-01 documentation corrections. No object, field, or code changed. The duplicated "Person attributes on Account" bullet in Section 5 is removed. Household Member's `Account` attribute is retyped `reference(Account)` and defined as the person's own account only, because `reference(Household)` read as a second household reference and invited the confusion R-M4 exists to prevent. R-M3's Primary Contact mirror is recorded as unimplemented and unimplementable as written, and listed in Section 30 as a known gap. R-H14 now says what the console does: a preview over fixed sample households rather than the org's own, and a recompute batch that confirms it was queued and then reports nothing further. |
 | v0.1 | 2026-09-08 | C-09 merge and split build. No object or field added. R-H13 gains the paragraph above on what a merge does, in what order, and what audits it. Recorded against R-M3: a move carries a person's role and primary flag with them, but never gives a household a second primary, so a merge or a split of people who were each primary in their own household leaves the survivor with one. |
 | v0.1 | 2026-09-07 | C-04 and C-05 build. Error Log gains Object Name. Automation Setting gains Handler Class, Object Name, Execution Order, and Package Default, all copied from the shipped registry when a record is materialized. Automation Registry field API names fixed ("Object" and "Order" are reserved words). Error Log and Setting Change record names recorded as auto numbers. Nonprofit Settings picklist keys recorded as text, per ADR-0019. |
 | v0.1 | 2026-09-07 | C-01 and C-02 build. Added `Household__c` (Lookup to Account) to Household Member: the original field list named the household side and the person side with the same attribute, so junction mode had no way to say which household a membership belonged to. `Account__c` is now defined as the person side only, matching R-M4. Recorded the naming service's token forms: `{FirstName}`, `{LastName}`, and `{Salutation}`, with the `{!Token}` spelling accepted as an alias so patterns copied from formula fields keep working. |
