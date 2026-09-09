@@ -37,6 +37,14 @@ In the Receipts section:
 - **Statement year.** The tax year the year-end run covers. Set it in January to last year.
 - **Place of issue.** The city and region you issue from. Optional in the United States.
 
+One piece of first-time setup needs Salesforce Setup: the **Receipts** panel, which is where
+you issue, void and reissue, lives on a gift's record page, and Open Impact ships a page
+called **Gift Record Page** with the panel already on it. Assign it once, as your org default
+for Gift, and every gift shows the panel from then on. If your organization has built a gift
+record page of its own, add the **Receipts** component to that page instead. This is the same
+one-time assignment the soft credits and tributes panels need, so if you have already done it
+for those, the Receipts panel is there too.
+
 ### 3. Write your two letters
 
 Also in the Receipts section, **Receipt letters and year end statements** opens the Receipts
@@ -72,7 +80,8 @@ Start from the sample data.
 2. Open **Receipt letters and year end statements**, and on the **Receipt templates** tab
    check that a letter of each kind is in use. If one is not, pick it and click **Use this
    letter**.
-3. Open any gift from the sample data. Click **Issue receipt**. You will see a receipt
+3. Open any gift from the sample data. Click **Issue receipt** on the **Receipts** panel.
+   You will see a receipt
    number appear on the gift, and a PDF in the Files list on the gift and on the donor.
 4. Open the PDF. It states your organization's name, the amount, the date, and the sentence
    "No goods or services were provided in exchange for this contribution."

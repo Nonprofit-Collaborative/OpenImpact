@@ -60,6 +60,9 @@ jobs:
       - name: Check the decision records are numbered and indexed consistently
         run: python3 scripts/ci/check-adrs.py
 
+      - name: Check every exposed component is reachable from something
+        run: python3 scripts/ci/check-components-reachable.py
+
       - name: Check the canonical model lists every shipped API name
         run: python3 scripts/ci/check-canonical-model.py
 

@@ -53,11 +53,20 @@ Salesforce org is needed for this job. Steps:
    leaves a document that argues with itself. This ran because two branches both claimed
    0025 in one afternoon, and because ADR-0024 was written and never indexed, which is how
    the next author picks a number that is already taken.
-12. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
+12. `scripts/ci/check-components-reachable.py`, failing the build if a Lightning web
+   component marked `isExposed` is on no flexipage, in no quick action, nested in no other
+   component, and not named in the settings console import switch. Exposed means an
+   administrator *could* place it, never that the package ships anywhere that does, and an
+   unreachable component is a feature that does not exist however green its tests are. This
+   ran because it has happened four times: the three C-15 to C-17 panels while their guides
+   said "scroll to the card", `receiptSettings` named across a package boundary the console
+   cannot cross, `receiptActions` while the receipts walkthrough said "click Issue receipt",
+   and `commitmentSchedulePreview`, which no guide ever mentioned at all.
+13. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
    is missing from `docs/architecture/canonical-model.md`. The canonical model is updated
    before an object or a field is added, so this is the gate that keeps it true.
-13. A grep check that fails the build if any tracked file contains an em dash character.
-14. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
+14. A grep check that fails the build if any tracked file contains an em dash character.
+15. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
    `sf code-analyzer run --workspace packages --rule-selector Recommended --severity-threshold 2`.
    The results are uploaded as a build artifact (`code-analyzer-results.html` and
    `code-analyzer-results.json`) even if the job fails, so anyone can download and read
@@ -81,6 +90,7 @@ npm run check:symlinks
 npm run check:permission-sets
 npm run check:help-links
 npm run check:adrs
+npm run check:components-reachable
 npm run check:canonical-model
 npm run check:apex
 npm run check:analyzer
