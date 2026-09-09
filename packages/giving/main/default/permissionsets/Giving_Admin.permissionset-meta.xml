@@ -237,6 +237,16 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
+    <field>Account.In_Kind_Gift_Count__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.In_Kind_Value__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
     <field>Account.Largest_Gift__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -448,6 +458,16 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Contact.Giving_Two_Years_Ago__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Contact.In_Kind_Gift_Count__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Contact.In_Kind_Value__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>

@@ -13,6 +13,7 @@
  */
 public with sharing class QuickGiftEntryController {
     private static final String STATUS_RECEIVED = 'Received';
+    private static final String TYPE_IN_KIND = 'In-kind';
     private static final String CONTEXT = 'QuickGiftEntryController';
 
     /**
@@ -278,15 +279,15 @@ public with sharing class QuickGiftEntryController {
         public String fundId;
         @AuraEnabled
         public String paymentReference;
+        @AuraEnabled
+        public String inKindDescription;
+        @AuraEnabled
+        public Decimal fairMarketValue;
 
         public List<FieldError> validate() {
             List<FieldError> errors = new List<FieldError>();
             validateDonor(errors);
-            if (this.amount == null || this.amount <= 0) {
-                errors.add(
-                    new FieldError('amount', Label.Giving_QuickGiftEntry_ErrorAmountRequired)
-                );
-            }
+            validateAmountOrGoods(errors);
             if (this.giftDate == null) {
                 errors.add(
                     new FieldError('giftDate', Label.Giving_QuickGiftEntry_ErrorDateRequired)
@@ -307,6 +308,44 @@ public with sharing class QuickGiftEntryController {
                 );
             }
             return errors;
+        }
+
+        /**
+         * A gift is money or goods, never both (R-G12, ADR-0030). A gift of money needs an amount
+         * above zero; a gift of goods has no amount at all and needs the description that its
+         * receipt will print. The fair market value is optional, because a donor can hand over a
+         * carload of furniture before anybody has put a figure on it, but it is never negative.
+         */
+        private void validateAmountOrGoods(List<FieldError> errors) {
+            if (isInKind()) {
+                if (String.isBlank(this.inKindDescription)) {
+                    errors.add(
+                        new FieldError(
+                            'inKindDescription',
+                            Label.Giving_QuickGiftEntry_ErrorInKindDescriptionRequired
+                        )
+                    );
+                }
+                if (this.fairMarketValue != null && this.fairMarketValue < 0) {
+                    errors.add(
+                        new FieldError(
+                            'fairMarketValue',
+                            Label.Giving_QuickGiftEntry_ErrorFairMarketValueNegative
+                        )
+                    );
+                }
+                return;
+            }
+            if (this.amount == null || this.amount <= 0) {
+                errors.add(
+                    new FieldError('amount', Label.Giving_QuickGiftEntry_ErrorAmountRequired)
+                );
+            }
+        }
+
+        @TestVisible
+        private Boolean isInKind() {
+            return TYPE_IN_KIND.equalsIgnoreCase(this.giftType);
         }
 
         private void validateDonor(List<FieldError> errors) {
@@ -337,16 +376,25 @@ public with sharing class QuickGiftEntryController {
             }
         }
 
+        /**
+         * An in-kind gift is saved with an amount of zero and its worth on Fair Market Value, and
+         * a gift that is not in-kind carries neither of the in-kind attributes, whatever the
+         * browser sent: a description left behind by somebody switching the type back and forth
+         * would otherwise read later as a gift of goods (R-G12).
+         */
         public Gift__c toGift() {
+            Boolean inKind = isInKind();
             return new Gift__c(
                 Donor_Contact__c = asId(this.donorContactId, Contact.SObjectType),
                 Donor_Account__c = asId(this.donorAccountId, Account.SObjectType),
                 Gift_Date__c = this.giftDate,
-                Amount__c = this.amount,
+                Amount__c = inKind ? 0 : this.amount,
                 Type__c = this.giftType,
                 Status__c = STATUS_RECEIVED,
                 Appeal__c = asId(this.appealId, Appeal__c.SObjectType),
-                Payment_Reference__c = this.paymentReference
+                Payment_Reference__c = this.paymentReference,
+                In_Kind_Description__c = inKind ? this.inKindDescription : null,
+                Fair_Market_Value__c = inKind ? this.fairMarketValue : null
             );
         }
     }

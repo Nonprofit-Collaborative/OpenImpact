@@ -24,7 +24,7 @@ With the **Giving** package installed, the same action also loads:
 |---|---|---|
 | Funds | 8 | General Fund plus seven restricted funds, each with an accounting code. None of them is made your default fund |
 | Appeals | 7 | An Annual Fund with three appeals under it, a gala, an emergency appeal, a legacy circle, each with a goal and a cost |
-| Gifts | About 700 | Three years of giving: checks, cards, ACH, cash, stock, grants and a few in-kind gifts, weighted the way a real list is (most under 500, a few above 10,000) |
+| Gifts | About 700 | Three years of giving: checks, cards, ACH, cash, stock, grants and about twenty in-kind gifts, weighted the way a real list is (most under 500, a few above 10,000). The in-kind gifts carry no amount, as every in-kind gift does, so they are in the In-kind value total on their donor and in none of the cash totals ([In-kind gifts](in-kind-gifts.md)) |
 | Gift allocations | About 750 | One fund for most gifts, two for the gifts a donor designated twice |
 | Commitments | 24 | 14 monthly recurring gifts and 10 pledges, with the installments the schedule implies and the gifts that have paid them |
 | Soft credits | 30 entered by hand | Solicitors and influencers on the larger gifts, on top of the household member credits the automatic rule writes for every gift |

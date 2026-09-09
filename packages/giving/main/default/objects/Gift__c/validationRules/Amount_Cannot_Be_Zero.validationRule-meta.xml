@@ -3,12 +3,17 @@
   <fullName>Amount_Cannot_Be_Zero</fullName>
   <active>true</active>
   <description>
-    A gift of zero is not a transaction. Refunds and write-offs are negative, which is allowed.
+    A gift of money that is zero is not a transaction. Refunds and write-offs are negative, which
+    is allowed. An in-kind gift is exempt: it is goods rather than money, so its amount is always
+    zero and its worth is on Fair Market Value (R-G12, ADR-0030).
   </description>
-  <errorConditionFormula>Amount__c = 0</errorConditionFormula>
+  <errorConditionFormula>
+    AND(Amount__c = 0, NOT(ISPICKVAL(Type__c, "In-kind")))
+  </errorConditionFormula>
   <errorDisplayField>Amount__c</errorDisplayField>
   <errorMessage>
     A gift amount cannot be zero. Enter what was received, or enter a negative amount to record a
-    refund.
+    refund. If you are recording goods or services, set Type to In-kind: an in-kind gift has no
+    amount and its worth goes in Fair Market Value.
   </errorMessage>
 </ValidationRule>

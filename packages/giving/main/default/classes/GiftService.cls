@@ -108,8 +108,8 @@ public with sharing class GiftService {
     }
 
     /**
-     * R-G4: once a receipt number is present the amount, the date and the donor are facts a
-     * donor already holds on paper. A correction voids the receipt and reissues it (ADR-0010).
+     * R-G4: once a receipt number is present the amount, the date, the donor and, on a gift of
+     * goods, the description of what was given are facts a donor already holds on paper. A correction voids the receipt and reissues it (ADR-0010).
      *
      * This runs from `GiftReceiptLockHandler`, whose registry row always runs, so no switch and
      * no pause reaches it (ADR-0024). The single way past it is the `Override_Receipt_Lock`
@@ -146,11 +146,17 @@ public with sharing class GiftService {
             if (!hadReceipt && String.isBlank(gift.Receipt_Number__c)) {
                 continue;
             }
+            // The in-kind description is in this list because it is printed on the document the
+            // donor holds (R-G12, ADR-0030). Fair Market Value is deliberately not: it appears on
+            // no receipt, so correcting it later cannot make the record disagree with the
+            // document, and locking it would mean voiding a valid receipt to fix a reporting
+            // figure.
             Boolean locked =
                 gift.Amount__c != previous.Amount__c ||
                 gift.Gift_Date__c != previous.Gift_Date__c ||
                 gift.Donor_Contact__c != previous.Donor_Contact__c ||
-                gift.Donor_Account__c != previous.Donor_Account__c;
+                gift.Donor_Account__c != previous.Donor_Account__c ||
+                gift.In_Kind_Description__c != previous.In_Kind_Description__c;
             if (!locked) {
                 continue;
             }
@@ -240,6 +246,14 @@ public with sharing class GiftService {
                     valueOrNone(previous.Donor_Account__c) +
                     ' to ' +
                     valueOrNone(gift.Donor_Account__c)
+            );
+        }
+        if (gift.In_Kind_Description__c != previous.In_Kind_Description__c) {
+            changes.add(
+                'in-kind description ' +
+                    valueOrNone(previous.In_Kind_Description__c) +
+                    ' to ' +
+                    valueOrNone(gift.In_Kind_Description__c)
             );
         }
         if (gift.Receipt_Number__c != previous.Receipt_Number__c) {
