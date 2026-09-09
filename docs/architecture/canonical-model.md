@@ -209,7 +209,10 @@ household, the reference is cleared and the next member by ordering is proposed,
 silently assigned.
 
 **R-H11 Member count.** Member Count is recomputed on every membership change (insert,
-update, delete, undelete, reparent, merge) and counts current members only.
+update, delete, undelete, reparent, merge) and counts current members only. The field
+carries no default value: it is written by household upkeep and only ever onto a household,
+so an organization, which upkeep skips by record type, is left with an empty Member Count
+rather than a count of zero it never earned.
 
 **R-H12 Reparenting and empty households.** Moving a contact to a different household
 recalculates both households' member counts and, once Giving is installed, their giving
@@ -228,7 +231,10 @@ so that activities, files, notes, and every lookup from another entity follow th
 that goes away. A merge is not reversible and is audited by the platform's own record
 history rather than by a log this model defines. Membership changes made by a merge or a
 split settle through one hook (member count and naming in v0.1, giving rollups from v0.2)
-so that no caller has to know what settling involves.
+so that no caller has to know what settling involves. That settle-up never tidies the
+surviving household away: the empty household rule (R-H12) is about the household somebody
+was the last to leave, and the survivor of a merge is the record the merge exists to keep,
+so two empty households merge into one empty household rather than into nothing.
 
 **R-H14 Recompute action.** Changing a naming pattern in the settings console shows a
 preview against five sample households and offers a "Recompute all households" batch
