@@ -57,6 +57,12 @@ public with sharing class ImportRowProcessor {
         /** Anything the run log should say once, not once per row. */
         @NamespaceAccessible
         public Set<String> notes = new Set<String>();
+        /**
+         * What happened to each row, for the journal that outlives the staged rows
+         * (canonical model Section 17A). Written by the caller, one page per chunk.
+         */
+        @NamespaceAccessible
+        public List<ImportJournalService.Entry> journal = new List<ImportJournalService.Entry>();
     }
 
     /** One row's working state while the chunk is resolved. */
@@ -73,6 +79,8 @@ public with sharing class ImportRowProcessor {
         Boolean createdAnything = false;
         Boolean updatedAnything = false;
         String error;
+        /** The attributes this row changed on a matched record, and what was there before. */
+        List<String> overwritten = new List<String>();
     }
 
     /**
@@ -740,6 +748,7 @@ public with sharing class ImportRowProcessor {
                     toUpdate.put(personId, change);
                 }
                 applyChanges(change, existing, type, held, outcome);
+                item.overwritten.add(previousValues(existing, held));
                 if (!ownersByRecord.containsKey(personId)) {
                     ownersByRecord.put(personId, new List<Working>());
                 }
@@ -852,6 +861,26 @@ public with sharing class ImportRowProcessor {
             }
         }
         return result;
+    }
+
+    /**
+     * The values this row is about to overwrite, as one readable line for the journal
+     * (R-IJ3). The overwritten value is the one nobody can recover from anywhere else once
+     * the save has happened, which is why it is written down before it happens.
+     */
+    private static String previousValues(SObject stored, Map<String, String> held) {
+        List<String> parts = new List<String>();
+        Map<String, Object> populated = stored.getPopulatedFieldsAsMap();
+        for (String attributeName : differences(stored, held).keySet()) {
+            Object was = null;
+            for (String name : populated.keySet()) {
+                if (name.equalsIgnoreCase(attributeName)) {
+                    was = populated.get(name);
+                }
+            }
+            parts.add(attributeName + ': ' + (was == null ? '' : String.valueOf(was)));
+        }
+        return String.join(parts, '; ');
     }
 
     private static void applyChanges(
@@ -967,6 +996,13 @@ public with sharing class ImportRowProcessor {
                 row.Status__c = STATUS_REJECTED;
                 row.Error_Message__c = item.error.abbreviate(4000);
                 outcome.rejected++;
+                outcome.journal.add(
+                    new ImportJournalService.Entry(
+                            rowNumber(row),
+                            ImportJournalService.ACTION_REJECTED
+                        )
+                        .because(item.error)
+                );
             } else {
                 row.Error_Message__c = null;
                 if (personAccountRow) {
@@ -987,6 +1023,7 @@ public with sharing class ImportRowProcessor {
                     row.Status__c = STATUS_MATCHED;
                     outcome.matched++;
                 }
+                journalRow(outcome, item, personAccountRow);
             }
             rows.add(row);
         }
@@ -996,6 +1033,65 @@ public with sharing class ImportRowProcessor {
         // The staged rows are the package's own bookkeeping and must record what happened even
         // where the running user cannot edit them, for the reason ADR-0021 gives.
         Database.update(rows, false, AccessLevel.SYSTEM_MODE);
+    }
+
+    /**
+     * One journal entry per record this row resolved (Section 17A). The row's own status says
+     * what the row did; each entry says which record it did it to, so an undo, or a person
+     * reading a year later, can name the records rather than count them.
+     */
+    private static void journalRow(Outcome outcome, Working item, Boolean personAccountRow) {
+        String personObject = personAccountRow ? 'Account' : 'Contact';
+        String action = item.createdAnything
+            ? ImportJournalService.ACTION_CREATED
+            : (item.updatedAnything
+                  ? ImportJournalService.ACTION_UPDATED
+                  : ImportJournalService.ACTION_MATCHED);
+        String was = item.overwritten.isEmpty()
+            ? null
+            : String.join(item.overwritten, ' | ');
+        Integer number = rowNumber(item.row);
+        if (item.person1Id != null) {
+            outcome.journal.add(
+                new ImportJournalService.Entry(number, action)
+                    .on(
+                        personObject,
+                        item.person1Id,
+                        label(item, ImportMapping.ENTITY_CONTACT_1)
+                    )
+                    .previously(was)
+            );
+        }
+        if (item.person2Id != null) {
+            outcome.journal.add(
+                new ImportJournalService.Entry(number, action)
+                    .on(personObject, item.person2Id, label(item, ImportMapping.ENTITY_CONTACT_2))
+            );
+        }
+        if (item.organizationId != null) {
+            outcome.journal.add(
+                new ImportJournalService.Entry(number, action)
+                    .on(
+                        'Account',
+                        item.organizationId,
+                        attribute(item.byEntity, ImportMapping.ENTITY_ORGANIZATION, 'Name')
+                    )
+            );
+        }
+    }
+
+    /** A person's name as the file gave it, for a journal entry a human reads. */
+    private static String label(Working item, String entity) {
+        String first = attribute(item.byEntity, entity, 'FirstName');
+        String last = attribute(item.byEntity, entity, 'LastName');
+        return String.join(
+            new List<String>{ first == null ? '' : first, last == null ? '' : last },
+            ' '
+        ).trim();
+    }
+
+    private static Integer rowNumber(Import_Row__c row) {
+        return row.Row_Number__c == null ? null : row.Row_Number__c.intValue();
     }
 
     // -------------------------------------------------------------------------------------

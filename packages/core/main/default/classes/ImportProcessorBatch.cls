@@ -76,6 +76,15 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
                 dryRun
             );
             notes.addAll(outcome.notes);
+            if (!dryRun) {
+                // One journal page per chunk, and only on a commit: a dry run wrote nothing,
+                // so there is nothing about it that has to outlive the staged rows (R-IJ1).
+                ImportJournalService.writePage(
+                    batchId,
+                    ImportJournalService.PHASE_COMMIT,
+                    outcome.journal
+                );
+            }
         } catch (Exception e) {
             // The chunk is lost, not the run. Every row in it is marked with the reason so
             // that nothing disappears without an explanation an administrator can read.

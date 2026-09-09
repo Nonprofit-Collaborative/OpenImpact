@@ -35,6 +35,14 @@ public with sharing class ImportController {
         public Boolean isPackageDefault;
         @AuraEnabled
         public String lastImportDate;
+        @AuraEnabled
+        public Boolean isRecurring;
+        @AuraEnabled
+        public String sourceName;
+        @AuraEnabled
+        public String recurringLastRun;
+        @AuraEnabled
+        public String recurringLastResult;
     }
 
     /** One import as the wizard and the results screen show it. */
@@ -65,6 +73,56 @@ public with sharing class ImportController {
         public String runLog;
     }
 
+    /** What an undo of one import would do, or why it cannot be done. */
+    public class UndoView {
+        @AuraEnabled
+        public Boolean allowed;
+        @AuraEnabled
+        public String reason;
+        @AuraEnabled
+        public String batchId;
+        @AuraEnabled
+        public String batchName;
+        @AuraEnabled
+        public String fileName;
+        @AuraEnabled
+        public Integer people;
+        @AuraEnabled
+        public Integer accounts;
+        @AuraEnabled
+        public Integer total;
+        @AuraEnabled
+        public String deadline;
+        @AuraEnabled
+        public String notReversed;
+    }
+
+    /** One page of the journal, as the results screen reads it. */
+    public class JournalView {
+        @AuraEnabled
+        public String id;
+        @AuraEnabled
+        public String phase;
+        @AuraEnabled
+        public Integer pageNumber;
+        @AuraEnabled
+        public Integer entryCount;
+        @AuraEnabled
+        public String entries;
+    }
+
+    /** The state of the recurring source job, for the panel that turns it on and off. */
+    public class RecurringView {
+        @AuraEnabled
+        public Boolean enabled;
+        @AuraEnabled
+        public Boolean scheduled;
+        @AuraEnabled
+        public String nextRunAt;
+        @AuraEnabled
+        public List<TemplateView> sources;
+    }
+
     /** One staged row as the exceptions table shows it. */
     public class RowView {
         @AuraEnabled
@@ -92,18 +150,7 @@ public with sharing class ImportController {
             enforcePermission();
             List<TemplateView> result = new List<TemplateView>();
             for (Import_Template__c template : ImportTemplateService.listActive()) {
-                TemplateView view = new TemplateView();
-                view.id = template.Id;
-                view.name = template.Name;
-                view.description = template.Description__c;
-                view.matchingRule = template.Matching_Rule__c;
-                view.personMode = template.Person_Mode__c;
-                view.mapping = template.Column_Mapping_JSON__c;
-                view.isPackageDefault = template.Is_Package_Default__c;
-                view.lastImportDate = template.Last_Import_Date__c == null
-                    ? null
-                    : String.valueOf(template.Last_Import_Date__c);
-                result.add(view);
+                result.add(toView(template));
             }
             return result;
         } catch (Exception e) {

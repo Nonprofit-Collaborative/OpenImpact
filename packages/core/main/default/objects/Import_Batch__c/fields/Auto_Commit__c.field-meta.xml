@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Auto_Commit__c</fullName>
+  <defaultValue>false</defaultValue>
+  <description>Whether this import commits itself when its dry run finishes. Set only by the recurring source job (canonical model R-IT6); an import a person made is committed by that person.</description>
+  <label>Auto Commit</label>
+  <type>Checkbox</type>
+</CustomField>

@@ -24,7 +24,11 @@ public with sharing class ImportBatchService {
     @NamespaceAccessible
     public static final String STATUS_FAILED = 'Failed';
     @NamespaceAccessible
+    public static final String STATUS_UNDOING = 'Undoing';
+    @NamespaceAccessible
     public static final String STATUS_UNDONE = 'Undone';
+    @NamespaceAccessible
+    public static final String STATUS_UNDO_FAILED = 'Undo failed';
 
     /** The chunk size used when the setting is missing or nonsensical. */
     @NamespaceAccessible
@@ -34,9 +38,12 @@ public with sharing class ImportBatchService {
     private static final Integer MIN_CHUNK_SIZE = 1;
     private static final Integer MAX_CHUNK_SIZE = 2000;
 
-    /** How long after a commit a batch may still be undone (R-IB6). */
+    /** How long after a commit a batch may still be undone, when nobody has said (R-IB7). */
     @NamespaceAccessible
     public static final Integer UNDO_WINDOW_DAYS = 30;
+
+    /** The longest undo window an org may set, so a typed zero or 90000 cannot stand. */
+    private static final Integer MAX_UNDO_WINDOW_DAYS = 365;
 
     /**
      * Creates the batch record for one upload. The file has already been stored as a
@@ -45,6 +52,20 @@ public with sharing class ImportBatchService {
      */
     @NamespaceAccessible
     public static Import_Batch__c create(Id templateId, String fileId, String fileName) {
+        return create(templateId, fileId, fileName, false);
+    }
+
+    /**
+     * The same, for the recurring source job, which asks for a batch that commits itself once
+     * its dry run has finished (R-IT6). Nothing a person creates ever sets this.
+     */
+    @NamespaceAccessible
+    public static Import_Batch__c create(
+        Id templateId,
+        String fileId,
+        String fileName,
+        Boolean autoCommit
+    ) {
         Import_Template__c template = ImportTemplateSelector.selectById(templateId);
         if (template == null) {
             throw new ImportException(Label.Core_Import_ErrorTemplateGone);
@@ -60,7 +81,8 @@ public with sharing class ImportBatchService {
             Rows_Updated__c = 0,
             Rows_Matched__c = 0,
             Rows_Rejected__c = 0,
-            Chunk_Size__c = chunkSize()
+            Chunk_Size__c = chunkSize(),
+            Auto_Commit__c = autoCommit == true
         );
         Database.insert(batch, AccessLevel.USER_MODE);
         return batch;
@@ -233,13 +255,69 @@ public with sharing class ImportBatchService {
         } else {
             batch.Status__c = STATUS_COMPLETE;
             batch.Committed_By__c = UserInfo.getUserId();
-            batch.Undo_Deadline__c = Datetime.now().addDays(UNDO_WINDOW_DAYS);
+            // The window is stamped here rather than computed at undo, so changing the
+            // retention setting never moves the deadline of an import already run (R-IB7).
+            batch.Undo_Deadline__c = Datetime.now().addDays(undoWindowDays());
         }
         Database.update(batch, AccessLevel.SYSTEM_MODE);
         if (failed != true && dryRun != true) {
             ImportTemplateService.recordImport(batch.Import_Template__c, Date.today());
         }
+        if (failed != true && dryRun == true) {
+            autoCommit(batch);
+        }
         return batch;
+    }
+
+    /**
+     * Commits a batch the recurring source job created, now that its dry run has finished
+     * (R-IT6). The dry run is what makes this legal under R-IB1: the same file, the same
+     * mapping, the same resolution decisions, seen before anything is written.
+     *
+     * A dry run that resolved nothing is left alone rather than committed. There is nothing
+     * to load, and a batch left at "Dry run complete" is a question an administrator can
+     * answer, where a committed batch that did nothing is one nobody asks.
+     */
+    private static void autoCommit(Import_Batch__c batch) {
+        if (batch.Auto_Commit__c != true || !STATUS_DRY_RUN_COMPLETE.equals(batch.Status__c)) {
+            return;
+        }
+        Integer resolved =
+            (batch.Rows_Created__c == null ? 0 : batch.Rows_Created__c.intValue()) +
+            (batch.Rows_Updated__c == null ? 0 : batch.Rows_Updated__c.intValue()) +
+            (batch.Rows_Matched__c == null ? 0 : batch.Rows_Matched__c.intValue());
+        if (resolved <= 0) {
+            return;
+        }
+        try {
+            startCommit(batch.Id);
+        } catch (Exception e) {
+            ErrorLogger.log(e, 'ImportBatchService.autoCommit', batch.Id);
+        }
+    }
+
+    /**
+     * The org's undo window in days, clamped to something defensible. A zero or a negative
+     * number would mean an import is never undoable, which is a setting nobody means to
+     * choose, so it falls back to the shipped thirty days.
+     */
+    @NamespaceAccessible
+    public static Integer undoWindowDays() {
+        Object configured = SettingsService.hasKey('Import_Undo_Retention_Days__c')
+            ? SettingsService.getValue('Import_Undo_Retention_Days__c')
+            : null;
+        if (configured == null) {
+            return UNDO_WINDOW_DAYS;
+        }
+        try {
+            Integer days = Decimal.valueOf(String.valueOf(configured)).intValue();
+            if (days < 1) {
+                return UNDO_WINDOW_DAYS;
+            }
+            return Math.min(days, MAX_UNDO_WINDOW_DAYS);
+        } catch (Exception ignored) {
+            return UNDO_WINDOW_DAYS;
+        }
     }
 
     /** The org's chunk size, clamped to something the platform will accept. */

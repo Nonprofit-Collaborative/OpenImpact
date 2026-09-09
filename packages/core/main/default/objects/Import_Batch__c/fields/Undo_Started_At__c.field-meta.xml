@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Undo_Started_At__c</fullName>
+  <description>When an undo of this import began. Written once, and it is what makes a second undo refuse rather than run (canonical model R-IB8).</description>
+  <label>Undo Started At</label>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>DateTime</type>
+</CustomField>

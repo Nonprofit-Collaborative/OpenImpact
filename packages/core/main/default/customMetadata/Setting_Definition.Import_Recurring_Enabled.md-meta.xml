@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <label>Load recurring sources</label>
+  <protected>true</protected>
+  <values>
+    <field>Setting_Key__c</field>
+    <value xsi:type="xsd:string">Import_Recurring_Enabled__c</value>
+  </values>
+  <values>
+    <field>Section__c</field>
+    <value xsi:type="xsd:string">Import</value>
+  </values>
+  <values>
+    <field>Module__c</field>
+    <value xsi:type="xsd:string">Core</value>
+  </values>
+  <values>
+    <field>Data_Type__c</field>
+    <value xsi:type="xsd:string">Checkbox</value>
+  </values>
+  <values>
+    <field>Picklist_Values__c</field>
+    <value xsi:nil="true" />
+  </values>
+  <values>
+    <field>Description__c</field>
+    <value xsi:type="xsd:string">Let a mapping marked as a recurring source load new files on its own, once a day, without anyone uploading them. Off until you turn it on. Turn it on only after you have run that mapping by hand at least once and the results were right, because these imports run with nobody watching. Each one is still undoable.</value>
+  </values>
+  <values>
+    <field>Help_Path__c</field>
+    <value xsi:type="xsd:string">importing.md</value>
+  </values>
+  <values>
+    <field>Sort_Order__c</field>
+    <value xsi:type="xsd:double">40.0</value>
+  </values>
+</CustomMetadata>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Entries_JSON__c</fullName>
+  <description>The entries themselves, held as one document per page (canonical model R-IJ2). Never a copy of the uploaded values, which is why keeping the journal is cheap.</description>
+  <label>Entries</label>
+  <length>131072</length>
+  <trackTrending>false</trackTrending>
+  <type>LongTextArea</type>
+  <visibleLines>10</visibleLines>
+</CustomField>

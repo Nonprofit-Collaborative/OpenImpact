@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Recurring_Last_Result__c</fullName>
+  <description>What the last recurring run did, in one sentence, so a feed that has quietly stopped loading is visible without reading a log.</description>
+  <externalId>false</externalId>
+  <label>Recurring Last Result</label>
+  <length>255</length>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Text</type>
+  <unique>false</unique>
+</CustomField>

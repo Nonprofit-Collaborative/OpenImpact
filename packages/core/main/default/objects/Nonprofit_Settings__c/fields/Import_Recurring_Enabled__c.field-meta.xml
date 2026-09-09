@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Import_Recurring_Enabled__c</fullName>
+  <defaultValue>false</defaultValue>
+  <description>Whether the recurring source job may load a file and commit it with nobody watching. Off until an administrator turns it on.</description>
+  <inlineHelpText>Let named sources load on a schedule.</inlineHelpText>
+  <label>Load Recurring Sources</label>
+  <type>Checkbox</type>
+</CustomField>

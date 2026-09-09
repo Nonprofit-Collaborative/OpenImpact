@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Undone_By__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>The user who ran the undo, empty until one is run.</description>
+  <externalId>false</externalId>
+  <label>Undone By</label>
+  <referenceTo>User</referenceTo>
+  <relationshipLabel>Imports Undone</relationshipLabel>
+  <relationshipName>Imports_Undone</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

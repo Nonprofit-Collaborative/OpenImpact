@@ -32,6 +32,36 @@ public with sharing class ImportTemplateSelector {
         ];
     }
 
+    /**
+     * The active recurring mappings, for the job that loads their sources (R-IT6). Read in
+     * system mode because the job runs on a schedule, where the running user is whoever
+     * happened to schedule it and the answer must not depend on that.
+     */
+    @NamespaceAccessible
+    public static List<Import_Template__c> selectRecurring() {
+        return [
+            SELECT
+                Id,
+                Name,
+                Template_Key__c,
+                Column_Mapping_JSON__c,
+                Default_Values_JSON__c,
+                Matching_Rule__c,
+                Person_Mode__c,
+                Is_Recurring__c,
+                Source_Name__c,
+                Last_Import_Date__c,
+                Recurring_Last_Run__c,
+                Recurring_Last_Result__c,
+                Active__c
+            FROM Import_Template__c
+            WHERE Active__c = TRUE AND Is_Recurring__c = TRUE
+            WITH SYSTEM_MODE
+            ORDER BY Name ASC
+            LIMIT 50
+        ];
+    }
+
     /** One template, or null when it is gone or the user cannot see it. */
     @NamespaceAccessible
     public static Import_Template__c selectById(Id templateId) {
