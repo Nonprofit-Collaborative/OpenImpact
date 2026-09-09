@@ -45,6 +45,9 @@ jobs:
       - name: Check standard object references
         run: bash scripts/ci/check-standard-objects.sh
 
+      - name: Check every object named in packages is on the allowlist
+        run: python3 scripts/ci/check-object-allowlist.py
+
       - name: Check custom metadata records against their types
         run: python3 scripts/ci/check-custom-metadata.py
 
