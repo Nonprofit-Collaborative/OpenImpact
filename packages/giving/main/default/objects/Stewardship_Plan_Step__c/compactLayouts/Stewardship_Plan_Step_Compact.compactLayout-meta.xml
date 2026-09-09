@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CompactLayout xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Stewardship_Plan_Step_Compact</fullName>
+  <fields>NAME</fields>
+  <fields>Order__c</fields>
+  <fields>Subject__c</fields>
+  <fields>Days_After_Start__c</fields>
+  <label>Stewardship Plan Step Compact Layout</label>
+</CompactLayout>

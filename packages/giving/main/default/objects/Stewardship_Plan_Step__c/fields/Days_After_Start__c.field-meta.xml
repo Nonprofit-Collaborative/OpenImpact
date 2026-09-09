@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Days_After_Start__c</fullName>
+  <defaultValue>0</defaultValue>
+  <description>
+    Counted from the day the plan starts, so a step at day zero is due the day the plan starts
+    (canonical model R-SP5).
+  </description>
+  <externalId>false</externalId>
+  <inlineHelpText>How many days after the plan starts this task is due. Zero means the same day.</inlineHelpText>
+  <label>Days After Start</label>
+  <precision>4</precision>
+  <required>true</required>
+  <scale>0</scale>
+  <trackTrending>false</trackTrending>
+  <type>Number</type>
+  <unique>false</unique>
+</CustomField>

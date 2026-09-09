@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+  <compactLayoutAssignment>Stewardship_Plan_Compact</compactLayoutAssignment>
+  <deploymentStatus>Deployed</deploymentStatus>
+  <description>
+    One running copy of a stewardship plan template on one donor: what started it, when, and
+    whether it is still going. Activities are enabled because the tasks a plan creates hang off it
+    (canonical model Section 25H).
+  </description>
+  <enableActivities>true</enableActivities>
+  <enableBulkApi>true</enableBulkApi>
+  <enableFeeds>false</enableFeeds>
+  <enableHistory>false</enableHistory>
+  <enableReports>true</enableReports>
+  <enableSearch>true</enableSearch>
+  <enableSharing>true</enableSharing>
+  <enableStreamingApi>true</enableStreamingApi>
+  <label>Stewardship Plan</label>
+  <nameField>
+    <displayFormat>SP-{00000000}</displayFormat>
+    <label>Plan Number</label>
+    <type>AutoNumber</type>
+  </nameField>
+  <pluralLabel>Stewardship Plans</pluralLabel>
+  <sharingModel>ReadWrite</sharingModel>
+  <visibility>Public</visibility>
+</CustomObject>

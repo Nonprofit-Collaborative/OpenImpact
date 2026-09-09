@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Trigger_Event__c</fullName>
+  <externalId>false</externalId>
+  <inlineHelpText>What starts a plan from this template. Manual means a person starts it and nothing starts it automatically.</inlineHelpText>
+  <label>Trigger Event</label>
+  <required>true</required>
+  <trackTrending>false</trackTrending>
+  <type>Picklist</type>
+  <valueSet>
+    <restricted>true</restricted>
+    <valueSetDefinition>
+      <sorted>false</sorted>
+      <value>
+        <fullName>Manual</fullName>
+        <default>true</default>
+        <label>Manual</label>
+      </value>
+      <value>
+        <fullName>First gift</fullName>
+        <default>false</default>
+        <label>First gift</label>
+      </value>
+      <value>
+        <fullName>Gift received</fullName>
+        <default>false</default>
+        <label>Gift received</label>
+      </value>
+      <value>
+        <fullName>Commitment started</fullName>
+        <default>false</default>
+        <label>Commitment started</label>
+      </value>
+    </valueSetDefinition>
+  </valueSet>
+</CustomField>

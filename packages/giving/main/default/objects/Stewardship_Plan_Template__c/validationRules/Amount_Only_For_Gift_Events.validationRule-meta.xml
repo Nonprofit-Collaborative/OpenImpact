@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Amount_Only_For_Gift_Events</fullName>
+  <active>true</active>
+  <description>
+    A minimum amount only means something for the two gift events. Left on a manual or commitment
+    plan it reads as a condition that is silently never applied.
+  </description>
+  <errorConditionFormula>
+    AND( NOT(ISBLANK(Minimum_Amount__c)), NOT(ISPICKVAL(Trigger_Event__c, &quot;First
+    gift&quot;)), NOT(ISPICKVAL(Trigger_Event__c, &quot;Gift received&quot;)) )
+  </errorConditionFormula>
+  <errorDisplayField>Minimum_Amount__c</errorDisplayField>
+  <errorMessage>
+    A minimum amount applies only to the First gift and Gift received events. Clear it, or choose
+    one of those events.
+  </errorMessage>
+</ValidationRule>
