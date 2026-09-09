@@ -101,13 +101,25 @@ public class ReceiptTestDataFactory {
         return gift;
     }
 
-    /** A gift of goods, whose receipt describes and never values them. */
+    /**
+     * A gift of goods, whose receipt describes and never values them. The amount and the fair
+     * market value are the same number, which is what R-G12 requires of a real one.
+     */
     public static Gift__c inKindGift(Id donorContactId, String description, Date giftDate) {
-        Gift__c gift = GivingTestDataFactory.buildGift(donorContactId, 0);
+        return inKindGift(donorContactId, description, 900, giftDate);
+    }
+
+    public static Gift__c inKindGift(
+        Id donorContactId,
+        String description,
+        Decimal value,
+        Date giftDate
+    ) {
+        Gift__c gift = GivingTestDataFactory.buildGift(donorContactId, value);
         gift.Type__c = 'In-kind';
         gift.Gift_Date__c = giftDate;
         gift.In_Kind_Description__c = description;
-        gift.Fair_Market_Value__c = 900;
+        gift.Fair_Market_Value__c = value;
         return gift;
     }
 }

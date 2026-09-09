@@ -11,6 +11,12 @@
  * Nothing here renders a PDF. It produces HTML restricted to what the Visualforce PDF rendering
  * service supports: no web fonts, no JavaScript, no `data:` URI images, and page furniture only
  * through `@page` margin boxes.
+ *
+ * The organization's branding is printed the same way, and for the same reason (R-RC12): the legal
+ * name and the address go above the letter when the template did not place them itself, so an
+ * administrator cannot produce a document with no organization on it. The logo is optional and
+ * comes from `ReceiptLogoSource`, whose delivery route is **unverified in an org**: ADR-0016's
+ * second spike is open, and a receipt with no images at all is a valid receipt.
  */
 public with sharing class ReceiptContentBuilder {
     /**
@@ -26,6 +32,19 @@ public with sharing class ReceiptContentBuilder {
 
     public static final String SENTENCE_NO_GOODS = 'No goods or services were provided in exchange for this contribution.';
     public static final String SENTENCE_INTANGIBLE_RELIGIOUS = 'The only goods or services provided in exchange for this contribution were intangible religious benefits.';
+
+    /**
+     * What an in-kind gift puts where the template asked for an amount (R-RC11). A currency figure
+     * there reads as a cash contribution of that amount, which is the one thing a document for
+     * donated property must not say.
+     */
+    public static final String IN_KIND_AMOUNT_PHRASE = 'the goods or services described below';
+
+    /** What an in-kind gift puts in the amount column of a statement (R-RC11). */
+    public static final String IN_KIND_LINE_AMOUNT = 'Not valued';
+
+    /** Why a statement's total is smaller than the sum of the lines above it (R-RC11). */
+    public static final String SENTENCE_IN_KIND_NOT_IN_TOTAL = 'Gifts of goods or services are listed above without a value and are not part of the total, because determining the value of donated property is the donor\'s responsibility.';
 
     private static final String IN_KIND = 'In-kind';
     private static final String TOKEN_OPEN = '{{';
@@ -154,7 +173,7 @@ public with sharing class ReceiptContentBuilder {
         Map<String, String> tokens = baseTokens(details, donorName, receiptNumber, issueDate);
         Date giftDate = gift.Gift_Date__c == null ? issueDate : gift.Gift_Date__c;
         tokens.put('StatementYear', String.valueOf(giftDate.year()));
-        tokens.put('Amount', money(gift.Amount__c));
+        tokens.put('Amount', isInKind(gift) ? IN_KIND_AMOUNT_PHRASE : money(gift.Amount__c));
         tokens.put('GiftDate', formatDate(giftDate));
         tokens.put('GiftType', String.isBlank(gift.Type__c) ? '' : gift.Type__c);
         tokens.put('GiftLines', '');
@@ -162,7 +181,10 @@ public with sharing class ReceiptContentBuilder {
         String body = mergeTokens(templateBody, tokens);
         return document(
             'Receipt ' + receiptNumber,
-            body + taxBlock(taxSentencesFor(gift)) + signatureBlock(details)
+            brandingBlock(details, templateBody) +
+                body +
+                taxBlock(taxSentencesFor(gift)) +
+                signatureBlock(details)
         );
     }
 
@@ -183,19 +205,24 @@ public with sharing class ReceiptContentBuilder {
         OrganizationDetails details = organizationDetails();
         Map<String, String> tokens = baseTokens(details, donorName, receiptNumber, issueDate);
         tokens.put('StatementYear', String.valueOf(statementYear));
-        tokens.put('Amount', money(totalOf(gifts)));
+        tokens.put('Amount', money(cashTotalOf(gifts)));
         tokens.put('GiftDate', '');
         tokens.put('GiftType', '');
         tokens.put('GiftLines', giftLines(gifts));
 
         Set<String> sentences = new Set<String>();
         List<String> ordered = new List<String>();
+        Boolean anyInKind = false;
         for (Gift__c gift : gifts) {
+            anyInKind = anyInKind || isInKind(gift);
             for (String sentence : taxSentencesFor(gift)) {
                 if (sentences.add(sentence)) {
                     ordered.add(sentence);
                 }
             }
+        }
+        if (anyInKind) {
+            ordered.add(SENTENCE_IN_KIND_NOT_IN_TOTAL);
         }
 
         // The lines go where the template asked for them, and after the letter when it did not
@@ -205,20 +232,40 @@ public with sharing class ReceiptContentBuilder {
         String body = mergeTokens(templateBody, tokens);
         return document(
             'Statement ' + receiptNumber,
-            body +
+            brandingBlock(details, templateBody) +
+                body +
                 (templatePlacedLines ? '' : giftLines(gifts)) +
                 taxBlock(ordered) +
                 signatureBlock(details)
         );
     }
 
-    /** The sum a statement states, which is the sum of the lines it prints. */
-    public static Decimal totalOf(List<Gift__c> gifts) {
+    /**
+     * The total a statement states, which is the total of the amounts it actually prints: money
+     * only, because an in-kind gift is listed without a value and left out of the total (R-RC11).
+     * The receipt record carries this same number, so the record and the document agree.
+     */
+    public static Decimal cashTotalOf(List<Gift__c> gifts) {
         Decimal total = 0;
         for (Gift__c gift : gifts) {
-            total += gift.Amount__c == null ? 0 : gift.Amount__c;
+            total += statedAmountOf(gift);
         }
         return total;
+    }
+
+    /**
+     * The amount a document states for one gift: its amount, or nothing at all for a gift of goods
+     * or services (R-RC11). The value the organization recorded stays on the gift (R-G12).
+     */
+    public static Decimal statedAmountOf(Gift__c gift) {
+        if (isInKind(gift) || gift.Amount__c == null) {
+            return 0;
+        }
+        return gift.Amount__c;
+    }
+
+    private static Boolean isInKind(Gift__c gift) {
+        return IN_KIND.equalsIgnoreCase(gift.Type__c);
     }
 
     // ----------------------------------------------------------------------- internals
@@ -278,7 +325,7 @@ public with sharing class ReceiptContentBuilder {
                 escape(blankToEmpty(gift.Status__c)) +
                 '</td>' +
                 '<td class="amount">' +
-                escape(money(gift.Amount__c)) +
+                escape(isInKind(gift) ? IN_KIND_LINE_AMOUNT : money(gift.Amount__c)) +
                 '</td>' +
                 '</tr>';
         }
@@ -286,6 +333,35 @@ public with sharing class ReceiptContentBuilder {
             '<th class="amount">Amount</th></tr></thead><tbody>' +
             rows +
             '</tbody></table>';
+    }
+
+    /**
+     * The letterhead the package prints above the letter (R-RC12): the logo, when the organization
+     * has one and has left it turned on, and the organization's name and address when the template
+     * did not place them itself.
+     *
+     * The template test is the one already used for the gift lines: an administrator who deleted
+     * the letterhead out of their template has not thereby issued a document with no organization
+     * on it, and one that kept it does not get the name twice.
+     */
+    private static String brandingBlock(OrganizationDetails details, String templateBody) {
+        String logo = ReceiptLogoSource.imageTag();
+        Boolean templateNamedOrganization =
+            templateBody != null && templateBody.contains('{{OrganizationName}}');
+        if (String.isBlank(logo) && templateNamedOrganization) {
+            return '';
+        }
+        String block = '<div class="branding">' + logo;
+        if (!templateNamedOrganization) {
+            block += '<p class="orgname">' + escape(details.legalName) + '</p>';
+            if (String.isNotBlank(details.address)) {
+                block +=
+                    '<p class="orgaddress">' +
+                    escape(details.address).replace('\n', '<br/>') +
+                    '</p>';
+            }
+        }
+        return block + '</div>';
     }
 
     private static String taxBlock(List<String> sentences) {
@@ -328,6 +404,10 @@ public with sharing class ReceiptContentBuilder {
             'table.gifts { width: 100%; border-collapse: collapse; margin: 12pt 0; }' +
             'table.gifts th, table.gifts td { border-bottom: 1px solid #999; padding: 4pt; text-align: left; }' +
             'table.gifts .amount { text-align: right; }' +
+            'div.branding { margin-bottom: 12pt; }' +
+            'div.branding img.logo { display: block; margin-bottom: 6pt; }' +
+            'div.branding p.orgname { font-size: 14pt; font-weight: bold; margin: 0; }' +
+            'div.branding p.orgaddress { margin: 2pt 0 0 0; }' +
             'div.tax p { margin: 6pt 0; }' +
             'div.signature { margin-top: 18pt; }' +
             '</style></head><body>' +

@@ -156,6 +156,95 @@ private class ReceiptContentRulesTest {
     }
 
     /**
+     * The template asked for an amount, and an in-kind gift does not give it one (R-RC11). A
+     * currency figure on a receipt for donated property reads as a cash contribution of that
+     * amount, which is the one thing the document must not say, so the token renders as a phrase
+     * whatever the letter asked for.
+     */
+    @IsTest
+    static void anInKindReceiptPrintsNoAmountWhereTheTemplateAskedForOne() {
+        Gift__c gift = ReceiptTestDataFactory.inKindGift(
+            null,
+            'a used upright piano, delivered to the community hall',
+            1200,
+            GIFT_DATE
+        );
+
+        Test.startTest();
+        String html = ReceiptContentBuilder.forGift(
+            gift,
+            'Sam Whitfield',
+            'HFH-2026-000006',
+            Date.newInstance(2027, 1, 15),
+            ReceiptTestDataFactory.perGiftTemplateBody()
+        );
+        Test.stopTest();
+
+        Assert.isFalse(
+            html.contains('$1,200.00'),
+            'No figure for the goods appears anywhere on the document: ' + html
+        );
+        Assert.isTrue(
+            html.contains(ReceiptContentBuilder.IN_KIND_AMOUNT_PHRASE),
+            'The amount token renders as a phrase naming the goods: ' + html
+        );
+        Assert.areEqual(
+            0,
+            ReceiptContentBuilder.statedAmountOf(gift),
+            'The receipt record states what the document states, which is nothing.'
+        );
+    }
+
+    /**
+     * A statement lists a gift of goods without a value and leaves it out of the total, and says
+     * why, because a donor who adds the lines up and gets a different number is owed the sentence
+     * (R-RC11).
+     */
+    @IsTest
+    static void aStatementListsInKindGiftsWithoutAValueAndOutsideTheTotal() {
+        Gift__c cash = ReceiptTestDataFactory.plainCashGift(
+            null,
+            100,
+            Date.newInstance(2026, 2, 1)
+        );
+        Gift__c goods = ReceiptTestDataFactory.inKindGift(
+            null,
+            'Twelve cases of tinned food for the pantry',
+            750,
+            Date.newInstance(2026, 3, 1)
+        );
+
+        Test.startTest();
+        String html = ReceiptContentBuilder.forStatement(
+            'The Reyes Family',
+            new List<Gift__c>{ cash, goods },
+            'HFH-2026-000007',
+            2026,
+            Date.newInstance(2027, 1, 15),
+            ReceiptTestDataFactory.statementTemplateBody()
+        );
+        Test.stopTest();
+
+        Assert.areEqual(
+            100,
+            ReceiptContentBuilder.cashTotalOf(new List<Gift__c>{ cash, goods }),
+            'The stated total is the money, not the money plus a valuation of the goods.'
+        );
+        Assert.isTrue(
+            html.contains('<td class="amount">' + ReceiptContentBuilder.IN_KIND_LINE_AMOUNT),
+            'The in-kind line carries no amount: ' + html
+        );
+        Assert.isFalse(
+            html.contains('$750.00'),
+            'The value of the goods is nowhere on it: ' + html
+        );
+        Assert.isTrue(
+            html.contains(ReceiptContentBuilder.SENTENCE_IN_KIND_NOT_IN_TOTAL),
+            'The statement explains why the lines do not add up to the total: ' + html
+        );
+    }
+
+    /**
      * A consolidated statement carries the status of every gift on that gift's own line (R-RC8).
      * A footer saying that some of the year's gifts were refunded is not something a reader can
      * act on.
