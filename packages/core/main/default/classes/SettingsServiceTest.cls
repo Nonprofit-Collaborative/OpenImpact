@@ -515,4 +515,49 @@ private class SettingsServiceTest {
         Assert.areEqual(UserInfo.getUserId(), audit[0].Changed_By__c, 'Who changed it.');
         Assert.isNotNull(audit[0].Changed_At__c, 'And when.');
     }
+
+    /**
+     * The trap C-15 fell into. A checkbox that ships on declares `defaultValue` true in its
+     * field metadata, but `getOrgDefaults()` on an org that has never saved returns a
+     * materialized record with every checkbox false, so a feature guarded by one did nothing
+     * on a fresh install and said nothing about it (ADR-NEXT).
+     */
+    @IsTest
+    static void aCheckboxThatShipsOnReadsOnBeforeTheOrgHasSavedAnything() {
+        Test.startTest();
+        Nonprofit_Settings__c settings = SettingsService.getSettings();
+        Test.stopTest();
+
+        Assert.isNull(settings.Id, 'This org has never saved its settings');
+        Assert.isTrue(
+            settings.Relationship_Auto_Reciprocal__c,
+            'A setting that ships switched on reads on before anyone has saved anything'
+        );
+    }
+
+    /**
+     * The second half of the same trap: the console writes only the keys it was given, so a
+     * record created by saving something else would carry a false for every checkbox nobody
+     * touched, and would switch a shipped feature off on the way past.
+     */
+    @IsTest
+    static void savingAnUnrelatedSettingKeepsAShippedDefaultOn() {
+        stubDefinitions();
+
+        Test.startTest();
+        SettingsService.saveValues(new Map<String, Object>{ TEXT_KEY => 'The {LastName} Family' });
+        Test.stopTest();
+
+        Nonprofit_Settings__c stored = SettingsService.getSettings();
+        Assert.isNotNull(stored.Id, 'Saving one value creates the org level record');
+        Assert.areEqual(
+            'The {LastName} Family',
+            stored.Household_Name_Pattern__c,
+            'With the value that was saved'
+        );
+        Assert.isTrue(
+            stored.Relationship_Auto_Reciprocal__c,
+            'And the shipped defaults it never asked about, rather than a false nobody chose'
+        );
+    }
 }

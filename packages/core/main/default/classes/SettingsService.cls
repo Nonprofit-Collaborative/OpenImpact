@@ -25,6 +25,30 @@ public with sharing class SettingsService {
     private static final String SETUP_OWNER = 'setupownerid';
     private static final String PICKLIST = 'Picklist';
 
+    /**
+     * The Core checkbox settings that ship switched on, and the reason this map has to exist.
+     *
+     * A checkbox field can declare `<defaultValue>true</defaultValue>`, and that default is what
+     * the platform applies when a record is created through the user interface. It is not what
+     * Apex reads. `Nonprofit_Settings__c.getOrgDefaults()` on an org that has never saved its
+     * settings returns a materialized record with every checkbox false, not null and not the
+     * shipped default, so a feature that ships on reads as switched off on every fresh install
+     * and does nothing at all, silently. That is what happened to the relationship reciprocal
+     * upkeep: C-15 shipped a feature that wrote only the side the person entered.
+     *
+     * The default is applied to the record only while the org has never saved one. From the
+     * first save onwards the stored value governs, including a deliberate false, and the first
+     * save carries these defaults into the record it creates, because `applyValues` clones the
+     * record this method returns. So an administrator who saves some unrelated setting does not
+     * silently switch a shipped feature off.
+     *
+     * A field belongs here when it ships on. `scripts/ci/check-setting-defaults.py` fails the
+     * build when a checkbox that ships on is missing from it (ADR-NEXT).
+     */
+    private static final Map<Schema.SObjectField, Boolean> SHIPPED_DEFAULTS = new Map<Schema.SObjectField, Boolean>{
+        Nonprofit_Settings__c.Relationship_Auto_Reciprocal__c => true
+    };
+
     private static Nonprofit_Settings__c cachedSettings;
     private static Map<String, SObject> cachedOrgDefaults = new Map<String, SObject>();
     private static Map<String, Map<String, Schema.SObjectField>> cachedFields = new Map<String, Map<String, Schema.SObjectField>>();
@@ -36,7 +60,8 @@ public with sharing class SettingsService {
 
     /**
      * The org-level Core settings record, from the static cache, then the org cache, then the
-     * platform. Never null: an org that has never saved gets an empty record.
+     * platform. Never null: an org that has never saved gets an empty record carrying the
+     * shipped defaults (see `SHIPPED_DEFAULTS`).
      */
     @NamespaceAccessible
     public static Nonprofit_Settings__c getSettings() {
@@ -48,9 +73,24 @@ public with sharing class SettingsService {
             cachedSettings = fromCache;
             return cachedSettings;
         }
-        cachedSettings = Nonprofit_Settings__c.getOrgDefaults();
+        cachedSettings = withShippedDefaults(Nonprofit_Settings__c.getOrgDefaults());
         writeCache(cachedSettings);
         return cachedSettings;
+    }
+
+    /**
+     * Puts the shipped defaults on a settings record the org has never saved, and leaves a saved
+     * record exactly as the org left it. An unsaved hierarchy custom setting has no Id, which is
+     * what tells the two apart.
+     */
+    private static Nonprofit_Settings__c withShippedDefaults(Nonprofit_Settings__c record) {
+        if (record == null || record.Id != null) {
+            return record;
+        }
+        for (Schema.SObjectField field : SHIPPED_DEFAULTS.keySet()) {
+            record.put(field, SHIPPED_DEFAULTS.get(field));
+        }
+        return record;
     }
 
     /** True when Core's settings object actually has the given key. */

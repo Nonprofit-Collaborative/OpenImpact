@@ -319,6 +319,24 @@ private class RelationshipServiceTest {
         );
     }
 
+    /**
+     * The setting this whole feature hangs on, on an org that has never saved anything. It read
+     * false there until ADR-NEXT, because a checkbox that ships on reads back false from
+     * `getOrgDefaults()`, and this feature therefore wrote no other side on any fresh install
+     * while reporting no error at all.
+     */
+    @IsTest
+    static void theUpkeepIsOnForAnOrgThatHasNeverSavedItsSettings() {
+        Test.startTest();
+        Boolean upkeepIsOn = RelationshipService.isAutoReciprocalOn();
+        Test.stopTest();
+
+        Assert.isTrue(
+            upkeepIsOn,
+            'The upkeep ships on, so both sides are written before anyone saves a setting'
+        );
+    }
+
     private static Relationship__c otherSideOf(Id personId) {
         for (Relationship__c record : RelationshipTestDataFactory.allRelationships()) {
             if (record.Contact__c == personId || record.Person_Account__c == personId) {

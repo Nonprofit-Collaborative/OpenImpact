@@ -702,7 +702,7 @@ must be able to read them with no Giving package installed.
 | Key | Type | Default | Definition |
 |---|---|---|---|
 | `Contact_Address_Change_Behavior__c` | picklist(Update household, Create personal address) | Update household | What happens when a person's address is edited: the household moves, or that person gets an address of their own (R-AD5). |
-| `Relationship_Auto_Reciprocal__c` | boolean | true | Whether the package creates and maintains the other side of every relationship (R-RL1). |
+| `Relationship_Auto_Reciprocal__c` | boolean | true | Whether the package creates and maintains the other side of every relationship (R-RL1). The default is applied in Apex by `SettingsService`, not by the field's own default value (ADR-NEXT). |
 | `Seasonal_Address_Last_Run__c` | datetime | empty | When the seasonal address swap job last completed, shown on the Hub; written by the job (C-18, R-AD4, R-AD8). |
 | `Seasonal_Address_Last_Run_Summary__c` | text | empty | What the last seasonal swap run did, in one sentence: how many addresses moved in, how many moved back, and how many failed (R-AD8). |
 
@@ -3356,7 +3356,10 @@ connection so that staff never enter it twice.
 record from the other person's side, with the two sides pointing at each other and the
 mirrored record's Type set from the reciprocal mapping. Editing Status, Start Date, End
 Date, or Description on either side updates the other. Deleting either side deletes both.
-This is controlled by the org's automatic reciprocal setting, which is on by default.
+This is controlled by the org's automatic reciprocal setting, which is on by default. On by
+default means on before the org has saved anything: a checkbox on a hierarchy custom setting
+reads back false, not its declared default, until Apex puts the shipped value on the record
+(ADR-NEXT).
 
 **R-RL2 Is Reciprocal Managed is the opt-out.** An org that needs the two sides to differ
 (a relationship described asymmetrically, or one imported from a system that already holds
@@ -3414,7 +3417,8 @@ a Spouse relationship, and the two mechanisms do not read each other.
 | Sample Data | `Sample_Data__c` | Checkbox (v0.4) |
 
 - **Shipped defaults:** `Relationship_Type__mdt` (Section 13).
-- **Settings key:** `Relationship_Auto_Reciprocal__c` (Section 12).
+- **Settings key:** `Relationship_Auto_Reciprocal__c` (Section 12), registered in
+  `SettingsService.SHIPPED_DEFAULTS` so a fresh org gets it switched on (ADR-NEXT).
 - **Service:** `RelationshipService`, `RelationshipDomain`, `RelationshipSelector`.
 - **Automation:** two registry rows on `Relationship__c`. `Relationship_Validation`, handler
   `RelationshipValidationHandler`, execution order 10, holds the defaults and the rules
@@ -3709,6 +3713,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.3 | 2026-09-07 | Sections renumbered to keep the document in reading order: the former Section 14 "Deferred to later iterations" is now Section 30 and the former Section 15 "Change log" is now Section 31. Section 32 "Entity ownership by package" is new. |
 | v0.3 | 2026-09-07 | C-10 sample data loader: added `Sample Data` (`Sample_Data__c`, Checkbox, default false) to Household, Contact, and Organization so the sample data set can be removed in one action. |
 | v0.3 | 2026-09-08 | C-15 and C-16 automation split (product owner decision). No object or field added. Relationships and affiliations each ship two `Automation_Registry__mdt` rows instead of one: `Relationship_Validation` (order 10, `RelationshipValidationHandler`) with `Relationship_Reciprocal` (order 30, `RelationshipMaintenanceHandler`), and `Affiliation_Validation` (order 10, `AffiliationValidationHandler`) with `Affiliation_Primary` (order 30, `AffiliationMaintenanceHandler`). Switching the maintenance automation off no longer switches off that object's validation, which is what an administrator pausing automation before a bulk import needs. `applyDefaults` sits with the validation handler because the status and date rules (R-RL5, R-AF4) have to survive the upkeep being off. Both services now bypass the validation row alongside their own while they write. |
+| v0.3 | 2026-09-09 | C-15 defect found by the first org run: the reciprocal upkeep never ran on a fresh org. `Relationship_Auto_Reciprocal__c` ships on, but a checkbox on a hierarchy custom setting read through `getOrgDefaults()` before the org has saved comes back false rather than carrying its declared default, so `RelationshipService` read the feature as switched off and wrote no other side, silently. No object or field added: the shipped value is now declared in `SettingsService.SHIPPED_DEFAULTS` and applied to the unsaved record, and `scripts/ci/check-setting-defaults.py` fails the build for any checkbox that ships on and is not registered (ADR-NEXT). |
 | v0.3 | 2026-09-08 | C-13 rollup adapter build. `Rollup_Definition__c` and `Rollup_Definition_Default__mdt` created as Sections 14 and 13 specify, with one correction: both gain `Fiscal_Date_Field__c`. R-R3 said the fiscal window is computed from the start month and the offset but never said which date attribute it is measured on, and every fiscal definition in Section 26 sums an amount rather than a date, so the window had nothing to bound. The attribute is optional and falls back to the attribute being aggregated, which is right for a rollup that aggregates a date. `Mode__c` on the definition ships with Both as its default value, matching R-R4 and the shipped Giving rows. |
 | v0.3 | 2026-09-08 | C-17 Addresses build. `Address__c` and its fields, list views, compact layout, and validation rules created as specified in Section 29, with two recorded deviations: `Street__c` ships as Text Area (255) because the platform has no long text field that a list view or a validation rule can read, and `Contact_Address_Change_Behavior__c` ships as Text(40) on `Nonprofit_Settings__c` per ADR-0019 rather than as a picklist. `Verification_Status__c` defaults to Unverified and is left writable for a third party verification app (R-AD6); no packaged code writes it. |
 | v0.3 | 2026-09-08 | G-02 defect fix (ADR-0022). No object or field added. Section 26's base filter changes from `Status equals Received` to `Status` in `Received`, `Refunded`, `Written off`, because R-G3 moves a fully refunded gift's status while leaving the negative gifts that reverse it at Received, so the old filter kept the negatives, dropped the positive, and subtracted a refunded gift twice. The count rows, largest gift, and the two date rows additionally require `Amount__c` greater than 0, so a gift given once and refunded in full reads as one gift and a total of zero. All 38 gift sourced, Gift Allocation sourced and Soft Credit sourced `Rollup_Definition_Default__mdt` rows updated; the three Pledge Balance rows filter on Commitment status and are unaffected. R-R9 gains the sentence that makes this a consequence of the rule rather than an exception to it. |

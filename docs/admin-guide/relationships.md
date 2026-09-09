@@ -132,3 +132,9 @@ duplicates and self relationships are still refused, because the checks are the 
 back on and the next save on a relationship brings its other side back into step. You can
 also stop the mirroring for one relationship only, without changing the setting for everyone:
 clear **Keep both sides in step** on that one record.
+
+**Nothing mirrors and you never touched the setting.** In releases before v0.3 the setting
+could be stored as off without anyone switching it off, if Nonprofit Settings had been saved
+for some other reason. Open Nonprofit Settings, Relationships, and check that **Keep both
+sides of a relationship in step** is on. Relationships entered while it was off stayed one
+sided: re-save one and its other side is written.
