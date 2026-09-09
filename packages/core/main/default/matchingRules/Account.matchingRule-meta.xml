@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<MatchingRules xmlns="http://soap.sforce.com/2006/04/metadata">
+  <matchingRules>
+    <fullName>Open_Impact_Household_Match</fullName>
+    <booleanFilter>1 AND (2 OR 3)</booleanFilter>
+    <description>
+      Two account records are the same household or the same organization when they share a
+      name and either a billing postal code or a billing street. The name on its own is not
+      enough: half the households in a county are called the Smith Household, and a rule that
+      matched on the name alone would propose all of them (canonical model R-DP2). Every
+      comparison is exact and none matches on a blank value.
+    </description>
+    <label>Open Impact household match</label>
+    <matchingRuleItems>
+      <blankValueBehavior>NullNotAllowed</blankValueBehavior>
+      <fieldName>Name</fieldName>
+      <matchingMethod>Exact</matchingMethod>
+    </matchingRuleItems>
+    <matchingRuleItems>
+      <blankValueBehavior>NullNotAllowed</blankValueBehavior>
+      <fieldName>BillingPostalCode</fieldName>
+      <matchingMethod>Exact</matchingMethod>
+    </matchingRuleItems>
+    <matchingRuleItems>
+      <blankValueBehavior>NullNotAllowed</blankValueBehavior>
+      <fieldName>BillingStreet</fieldName>
+      <matchingMethod>Exact</matchingMethod>
+    </matchingRuleItems>
+    <ruleStatus>Inactive</ruleStatus>
+  </matchingRules>
+</MatchingRules>

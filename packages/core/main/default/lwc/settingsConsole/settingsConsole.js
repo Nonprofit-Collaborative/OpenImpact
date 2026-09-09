@@ -48,6 +48,8 @@ function importCoreComponent(name) {
       return import('c/rollupDefinitions');
     case 'seasonalAddressJob':
       return import('c/seasonalAddressJob');
+    case 'duplicateReview':
+      return import('c/duplicateReview');
     default:
       return null;
   }

@@ -1,0 +1,212 @@
+<template>
+    <div class="slds-var-p-around_medium">
+        <h2 class="slds-text-heading_small" data-id="title">{labels.title}</h2>
+
+        <template lwc:if={errorMessage}>
+            <p class="slds-text-color_error slds-var-m-vertical_small" data-id="error" role="alert">
+                {errorMessage}
+            </p>
+        </template>
+
+        <template lwc:if={noticeMessage}>
+            <p class="slds-var-m-vertical_small" data-id="notice" role="status" aria-live="polite">
+                {noticeMessage}
+            </p>
+        </template>
+
+        <div class="slds-box slds-box_x-small slds-var-m-bottom_small">
+            <h3 class="slds-text-title_caps">{labels.rulesHeading}</h3>
+            <template lwc:if={showNoRulesNotice}>
+                <p class="slds-var-m-vertical_x-small" data-id="no-rules" role="status">
+                    {labels.noRulesNotice}
+                </p>
+            </template>
+            <ul class="slds-var-m-vertical_x-small">
+                <template for:each={rules} for:item="rule">
+                    <li key={rule.key} data-id="rule" class="slds-text-body_small">
+                        {rule.objectLabel}: {rule.ruleLabel} ({rule.state})
+                    </li>
+                </template>
+            </ul>
+            <a href={setupUrl} target="_blank" rel="noopener" data-id="setup-link">
+                {labels.activateLink}
+            </a>
+
+            <div class="slds-var-m-top_x-small">
+                <lightning-button
+                    data-id="scan-button"
+                    label={labels.scanButton}
+                    disabled={controlsDisabled}
+                    onclick={handleScan}
+                ></lightning-button>
+            </div>
+
+            <template lwc:if={scanRunning}>
+                <p class="slds-text-body_small slds-var-m-top_x-small" data-id="scan-running">
+                    {labels.scanRunning}
+                </p>
+            </template>
+
+            <template lwc:if={hasLastScan}>
+                <p class="slds-text-body_small slds-var-m-top_x-small" data-id="last-scan">
+                    {labels.lastScan}:
+                    <lightning-formatted-date-time
+                        value={lastScanFinished}
+                        year="numeric"
+                        month="short"
+                        day="2-digit"
+                        hour="2-digit"
+                        minute="2-digit"
+                    ></lightning-formatted-date-time>
+                </p>
+            </template>
+
+            <p class="slds-text-body_small" data-id="dismissed-count">
+                {labels.dismissedCount}: {dismissedCount}
+            </p>
+
+            <template lwc:if={showReadOnlyNote}>
+                <p class="slds-text-body_small slds-var-m-top_x-small" data-id="read-only">
+                    {labels.readOnly}
+                </p>
+            </template>
+        </div>
+
+        <h3 class="slds-text-title_caps">{labels.suggestionsHeading}</h3>
+
+        <template lwc:if={hasSuggestions}>
+            <ul class="slds-var-m-top_x-small">
+                <template for:each={suggestions} for:item="suggestion">
+                    <li
+                        key={suggestion.setId}
+                        data-id="suggestion"
+                        class="slds-box slds-box_x-small slds-var-m-bottom_x-small"
+                    >
+                        <ul>
+                            <template for:each={suggestion.records} for:item="record">
+                                <li key={record.recordId} class="slds-text-body_regular">
+                                    <a href={record.url} data-id="record-link">{record.name}</a>
+                                    <span class="slds-text-body_small">
+                                        {record.objectLabel} {record.detail}
+                                    </span>
+                                </li>
+                            </template>
+                        </ul>
+
+                        <template lwc:if={suggestion.showPeopleNotice}>
+                            <p class="slds-text-body_small slds-var-m-top_x-small">
+                                {labels.peopleMergeNotice}
+                            </p>
+                        </template>
+
+                        <div class="slds-var-m-top_x-small">
+                            <template lwc:if={suggestion.canMerge}>
+                                <lightning-button
+                                    data-id="merge-button"
+                                    data-set-id={suggestion.setId}
+                                    label={labels.merge}
+                                    disabled={busy}
+                                    onclick={handleMergeClick}
+                                ></lightning-button>
+                            </template>
+                            <lightning-button
+                                class="slds-var-m-left_x-small"
+                                data-id="dismiss-button"
+                                data-set-id={suggestion.setId}
+                                label={labels.dismiss}
+                                disabled={controlsDisabled}
+                                onclick={handleDismissClick}
+                            ></lightning-button>
+                        </div>
+                    </li>
+                </template>
+            </ul>
+        </template>
+        <template lwc:else>
+            <p class="slds-var-m-top_x-small" data-id="empty">{labels.empty}</p>
+        </template>
+
+        <template lwc:if={showDismissDialog}>
+            <section
+                role="dialog"
+                aria-modal="true"
+                aria-label={labels.dismissHeading}
+                class="slds-box slds-var-m-top_small"
+                data-id="dismiss-dialog"
+            >
+                <h3 class="slds-text-heading_x-small">{labels.dismissHeading}</h3>
+                <p class="slds-text-body_small">{labels.dismissBody}</p>
+                <lightning-input
+                    data-id="dismiss-reason"
+                    label={labels.dismissReasonLabel}
+                    value={dismissReason}
+                    max-length="255"
+                    onchange={handleReasonChange}
+                ></lightning-input>
+                <div class="slds-var-m-top_x-small">
+                    <lightning-button
+                        data-id="dismiss-confirm"
+                        variant="brand"
+                        label={labels.dismiss}
+                        disabled={busy}
+                        onclick={handleDismissConfirm}
+                    ></lightning-button>
+                    <lightning-button
+                        class="slds-var-m-left_x-small"
+                        label={labels.cancel}
+                        onclick={handleCancel}
+                    ></lightning-button>
+                </div>
+            </section>
+        </template>
+
+        <template lwc:if={showMergeDialog}>
+            <section
+                role="dialog"
+                aria-modal="true"
+                aria-label={labels.mergeHeading}
+                class="slds-box slds-var-m-top_small"
+                data-id="merge-dialog"
+            >
+                <h3 class="slds-text-heading_x-small">{labels.mergeHeading}</h3>
+                <p class="slds-text-body_small">{labels.mergeBody}</p>
+                <lightning-combobox
+                    data-id="keep-choice"
+                    label={labels.mergeKeepLabel}
+                    value={keepId}
+                    options={keepOptions}
+                    onchange={handleKeepChange}
+                ></lightning-combobox>
+
+                <template lwc:if={hasConflictingFields}>
+                    <ul class="slds-var-m-top_x-small">
+                        <template for:each={conflictingFields} for:item="field">
+                            <li key={field.key} class="slds-text-body_small" data-id="conflict">
+                                {field.label}: {field.kept} (keeping), {field.dropped} (dropping)
+                            </li>
+                        </template>
+                    </ul>
+                </template>
+
+                <p class="slds-var-m-top_x-small">
+                    <a href={mergeScreenUrl} data-id="full-merge-link">{labels.mergeFullScreen}</a>
+                </p>
+
+                <div class="slds-var-m-top_x-small">
+                    <lightning-button
+                        data-id="merge-confirm"
+                        variant="brand"
+                        label={labels.mergeConfirm}
+                        disabled={busy}
+                        onclick={handleMergeConfirm}
+                    ></lightning-button>
+                    <lightning-button
+                        class="slds-var-m-left_x-small"
+                        label={labels.cancel}
+                        onclick={handleCancel}
+                    ></lightning-button>
+                </div>
+            </section>
+        </template>
+    </div>
+</template>

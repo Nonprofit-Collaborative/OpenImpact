@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+  <deploymentStatus>Deployed</deploymentStatus>
+  <description>
+    A record that a person looked at two records the duplicate scan proposed and said they are
+    not the same household or the same person, so that the scan does not propose them again
+    (canonical model Section 29A, rules R-DP1 and R-DP5). It is the only thing duplicate
+    detection stores: the suggestions themselves are the platform's own duplicate record sets.
+  </description>
+  <enableActivities>false</enableActivities>
+  <enableBulkApi>true</enableBulkApi>
+  <enableFeeds>false</enableFeeds>
+  <enableHistory>false</enableHistory>
+  <enableReports>true</enableReports>
+  <enableSearch>true</enableSearch>
+  <enableSharing>true</enableSharing>
+  <enableStreamingApi>true</enableStreamingApi>
+  <label>Duplicate Dismissal</label>
+  <nameField>
+    <displayFormat>DD-{000000}</displayFormat>
+    <label>Duplicate Dismissal Number</label>
+    <type>AutoNumber</type>
+  </nameField>
+  <pluralLabel>Duplicate Dismissals</pluralLabel>
+  <sharingModel>ReadWrite</sharingModel>
+  <visibility>Public</visibility>
+</CustomObject>

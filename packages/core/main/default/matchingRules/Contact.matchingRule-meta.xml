@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<MatchingRules xmlns="http://soap.sforce.com/2006/04/metadata">
+  <matchingRules>
+    <fullName>Open_Impact_Contact_Match</fullName>
+    <booleanFilter>1 OR (2 AND 3)</booleanFilter>
+    <description>
+      Two contact records are the same person when they share an email address, or when they
+      share a last name and a mailing postal code. These are the keys the Open Impact import
+      framework already uses to decide that an incoming row is somebody the org has, so an
+      import and a duplicate scan agree about what the same person means (canonical model
+      R-DP2). Both comparisons are exact and neither matches on a blank value.
+    </description>
+    <label>Open Impact contact match</label>
+    <matchingRuleItems>
+      <blankValueBehavior>NullNotAllowed</blankValueBehavior>
+      <fieldName>Email</fieldName>
+      <matchingMethod>Exact</matchingMethod>
+    </matchingRuleItems>
+    <matchingRuleItems>
+      <blankValueBehavior>NullNotAllowed</blankValueBehavior>
+      <fieldName>LastName</fieldName>
+      <matchingMethod>Exact</matchingMethod>
+    </matchingRuleItems>
+    <matchingRuleItems>
+      <blankValueBehavior>NullNotAllowed</blankValueBehavior>
+      <fieldName>MailingPostalCode</fieldName>
+      <matchingMethod>Exact</matchingMethod>
+    </matchingRuleItems>
+    <ruleStatus>Inactive</ruleStatus>
+  </matchingRules>
+</MatchingRules>

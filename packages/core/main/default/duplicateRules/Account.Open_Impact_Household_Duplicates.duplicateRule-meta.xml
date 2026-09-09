@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<DuplicateRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <actionOnInsert>Allow</actionOnInsert>
+  <actionOnUpdate>Allow</actionOnUpdate>
+  <alertText>
+    A household or organization with this name and address may already exist. Look at the records
+    below before you save a second one.
+  </alertText>
+  <description>
+    Warns when a household or an organization being saved looks like one the org already has,
+    and records the pair so it can be reviewed later in Nonprofit Settings, Duplicates. It
+    warns and never blocks (canonical model R-DP1). Ships inactive, because a matching rule is
+    deployed inactive and a duplicate rule cannot be active until the matching rule it names
+    is.
+  </description>
+  <duplicateRuleMatchRules>
+    <matchRuleSObjectType>Account</matchRuleSObjectType>
+    <matchingRule>Open_Impact_Household_Match</matchingRule>
+  </duplicateRuleMatchRules>
+  <isActive>false</isActive>
+  <masterLabel>Open Impact household duplicates</masterLabel>
+  <operationsOnInsert>Alert</operationsOnInsert>
+  <operationsOnInsert>Report</operationsOnInsert>
+  <operationsOnUpdate>Alert</operationsOnUpdate>
+  <operationsOnUpdate>Report</operationsOnUpdate>
+  <securityOption>EnforceSharingRules</securityOption>
+  <sortOrder>1</sortOrder>
+</DuplicateRule>

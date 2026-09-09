@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_Duplicates_ActivateLink</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: link to the Setup page that activates the rules</shortDescription>
+        <value>Activate the rules in Setup</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_Cancel</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: cancel button</shortDescription>
+        <value>Cancel</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_DismissButton</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: button that says two records are not duplicates</shortDescription>
+        <value>Not a duplicate</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_DismissBody</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: what dismissing a suggestion does</shortDescription>
+        <value>These records stay exactly as they are. Open Impact remembers your decision and will not suggest this pair again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_DismissHeading</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: heading of the dismiss dialog</shortDescription>
+        <value>Not a duplicate</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_DismissReasonLabel</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: reason field on the dismiss dialog</shortDescription>
+        <value>Why are they not the same? (optional)</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_DismissSuccess</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: confirmation that a suggestion was dismissed</shortDescription>
+        <value>Noted. This pair will not be suggested again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_DismissedCount</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: how many pairs have been dismissed</shortDescription>
+        <value>Pairs marked as not duplicates</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_Empty</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: nothing to review</shortDescription>
+        <value>Nothing to review. Duplicates found when somebody saves a record show up here on their own, and Scan for duplicates looks through the records you already have.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ErrorNoActiveRule</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates: a scan was asked for while no duplicate rule is active</shortDescription>
+        <value>No duplicate rule is switched on, so there is nothing to scan with. Activate the Open Impact matching rules and duplicate rules in Setup first.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ErrorNoSuggestion</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates: the suggestion being acted on is no longer there</shortDescription>
+        <value>That suggestion is no longer there. Somebody may have dealt with it already. Refresh the page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ErrorPermissionRequired</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates: the person may not scan or dismiss</shortDescription>
+        <value>You need the Manage Nonprofit Settings permission to scan for duplicates or to dismiss a suggestion.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ErrorUnexpected</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates: something unexpected went wrong, written to the Error Log</shortDescription>
+        <value>Something went wrong on the Duplicates page. The details are in the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_LastScan</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: when the last scan finished</shortDescription>
+        <value>Last scan finished</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_MergeBody</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: what the merge will do</shortDescription>
+        <value>The household you keep takes over the members, gifts, activities and files of the other one, and the other household is deleted. This cannot be undone.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_MergeButton</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: button that opens the merge dialog</shortDescription>
+        <value>Compare and merge</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_MergeConfirm</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: the button that performs the merge</shortDescription>
+        <value>Merge these two</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_MergeFullScreen</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: link to the household merge screen for field by field choices</shortDescription>
+        <value>Choose field by field on the household record instead</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_MergeHeading</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: heading of the merge dialog</shortDescription>
+        <value>Merge two households</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_MergeKeepLabel</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: which household survives the merge</shortDescription>
+        <value>Household to keep</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_MergeSuccess</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: confirmation that a merge finished</shortDescription>
+        <value>The two households are now one.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_NoRulesNotice</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: no duplicate rule is active yet</shortDescription>
+        <value>No duplicate rule is switched on yet, so nothing is being checked. Open Impact ships a matching rule and a duplicate rule for people and for households. Activate the matching rules first, then the duplicate rules.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ObjectHousehold</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: the word for an account that is a household</shortDescription>
+        <value>Household</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ObjectOrganization</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: the word for an account that is an organization</shortDescription>
+        <value>Organization</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ObjectPerson</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: the word for a contact</shortDescription>
+        <value>Person</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_OpenButton</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: open one of the records</shortDescription>
+        <value>Open</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_PeopleMergeNotice</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: how two people are merged</shortDescription>
+        <value>Open either person and use the Salesforce merge on their record: it merges people better than we could, and it keeps their gifts, activities and files.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ReadOnlyNotice</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: the person may look but not scan or dismiss</shortDescription>
+        <value>You can look at these suggestions. Scanning and dismissing need the Manage Nonprofit Settings permission.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_RulesHeading</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: heading over the list of duplicate rules</shortDescription>
+        <value>Duplicate rules in this org</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_RuleActive</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: a rule that is switched on</shortDescription>
+        <value>On</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_RuleInactive</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: a rule that is switched off</shortDescription>
+        <value>Off</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ScanButton</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: button that starts a scan</shortDescription>
+        <value>Scan for duplicates</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ScanFinished</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates: the Error Log line a finished scan writes, with object and count</shortDescription>
+        <value>Duplicate scan of {0} finished and recorded {1} new suggestions.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ScanRunning</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: a scan is going on right now</shortDescription>
+        <value>A scan is running. Come back in a few minutes and refresh this page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ScanStarted</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: confirmation that a scan was started</shortDescription>
+        <value>Scan started. It runs in the background and the suggestions appear here as they are found.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_SuggestionsHeading</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: heading over the suggestions</shortDescription>
+        <value>Possible duplicates</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_Title</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates page: title</shortDescription>
+        <value>Duplicates</value>
+    </labels>
+</CustomLabels>

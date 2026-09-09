@@ -118,3 +118,4 @@ Each feature adds its row here when its page is written.
 | G-13 Receipts and year-end statements | [receipts.md](receipts.md) | Giving | v0.4 |
 | G-14 Donor levels | [donor-levels.md](donor-levels.md) | Giving | v0.4 |
 | G-16 Retention reports | [retention-reports.md](retention-reports.md) | Giving | v0.4 |
+| C-20 Duplicates | [duplicates.md](duplicates.md) | Core | v0.5 |
