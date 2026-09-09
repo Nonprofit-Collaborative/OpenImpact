@@ -188,7 +188,10 @@ about one shape and no other.
 
 The deploy goes in stages through `scripts/org/deploy-packages.sh`: the vendored rollup
 engine, then Core, then Giving. A failed stage asks the org for the component level report,
-by job id, in human form and then as JSON.
+by job id, in human form and then as JSON. After the last stage the script runs
+`RollupService.ensureDefaults()` as anonymous Apex, because a source deployment runs no
+post-install script and would otherwise leave the org without the rollup definitions a real
+install creates (ADR-0029).
 
 That is not tidiness. The first deploy this project ever attempted sent all 982 components in
 one request and came back with `UNKNOWN_EXCEPTION`, zero components deployed, zero component

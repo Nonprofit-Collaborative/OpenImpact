@@ -89,6 +89,51 @@ private class RollupServiceTest {
     }
 
     @IsTest
+    static void aDefaultThatCannotBeCreatedIsLoggedRatherThanThrownDuringAnInstall() {
+        // A post-install script has nobody to report to and no way to retry, and an exception
+        // that escapes it can abort the install (ADR-0029). The label here is longer than the
+        // Rollup Name attribute allows, so the insert is refused by the platform.
+        RollupSelector.defaultsOverride = new List<Rollup_Definition_Default__mdt>{
+            new Rollup_Definition_Default__mdt(
+                DeveloperName = 'Core_Household_Member_Count',
+                MasterLabel = 'x'.repeat(100),
+                Definition_Key__c = 'Core_Household_Member_Count',
+                Source_Object__c = 'Household_Member__c',
+                Target_Object__c = 'Account',
+                Relationship_Path__c = 'Household__c',
+                Aggregate__c = 'COUNT',
+                Target_Field__c = 'Member_Count__c',
+                Mode__c = RollupService.MODE_BOTH,
+                Default_Active__c = true,
+                Package__c = 'Core'
+            )
+        };
+
+        Test.startTest();
+        // No try/catch on purpose: an exception escaping this call fails the test, which is the
+        // assertion that an install is never aborted by this step.
+        Integer created = RollupService.ensureDefaultsDuringInstall('TestPostInstall.rollups');
+        Test.stopTest();
+
+        System.Assert.areEqual(0, created, 'The caller is told that nothing was created');
+        System.Assert.areEqual(0, [SELECT COUNT() FROM Rollup_Definition__c], 'And nothing was');
+        List<Error_Log__c> logged = [
+            SELECT Context__c, Technical_Detail__c
+            FROM Error_Log__c
+            WHERE Context__c = 'TestPostInstall.rollups'
+        ];
+        System.Assert.areEqual(
+            1,
+            logged.size(),
+            'The failure is in the Error Log, named after the script that hit it'
+        );
+        System.Assert.isTrue(
+            logged[0].Technical_Detail__c.contains('DmlException'),
+            'And the technical detail names what the platform refused'
+        );
+    }
+
+    @IsTest
     static void aDefaultForAPackageThatIsNotInstalledIsSkipped() {
         RollupSelector.defaultsOverride = new List<Rollup_Definition_Default__mdt>{
             new Rollup_Definition_Default__mdt(

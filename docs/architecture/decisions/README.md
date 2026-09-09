@@ -37,6 +37,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0026](0026-retention-report-definitions.md) | What the retention reports count, and the one attribute they needed | Accepted |
 | [0027](0027-seasonal-address-swap-runs-in-system-mode.md) | The seasonal address swap runs in system mode, gated at the controller | Accepted |
 | [0028](0028-donor-levels-read-a-rollup-and-follow-the-total-down.md) | A donor level labels an existing rollup, and follows that total down | Accepted |
+| [0029](0029-shipped-rollups-are-created-by-each-packages-post-install-script.md) | Shipped rollups are created by each package's post-install script | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions
@@ -48,7 +49,8 @@ reserved to him by name, made after an access review found the receipt lock was 
 from the settings console. ADR-0025 and ADR-0026 are builder decisions made while building
 G-16, the retention reports. ADR-0027 is a builder decision made while building C-18.
 ADR-0028 is a builder decision for G-14, answering the four questions donor levels cannot
-be built without.
+be built without. ADR-0029 is a builder decision on a defect found in C-13 and
+G-02: the shipped rollup definitions were never created at install.
 
 ## Adding a new ADR
 
