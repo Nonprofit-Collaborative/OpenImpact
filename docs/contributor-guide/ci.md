@@ -258,8 +258,10 @@ means a second org and a second secret; until then, treat every green org test a
 about one shape and no other.
 
 The deploy goes in stages through `scripts/org/deploy-packages.sh`: the vendored rollup
-engine, then Core, then Giving. A failed stage asks the org for the component level report,
-by job id, in human form and then as JSON. After the last stage the script runs
+engine, then Core in three stages (data model, then Apex, then everything that wires the two
+together: permission sets and groups, layouts, flexipages, applications, tabs, quick actions,
+Lightning components), then Giving. A failed stage asks the org for the component level
+report, by job id, in human form and then as JSON. After the last stage the script runs
 `RollupService.ensureDefaults()` as anonymous Apex, because a source deployment runs no
 post-install script and would otherwise leave the org without the rollup definitions a real
 install creates (ADR-0029).
@@ -274,12 +276,18 @@ does not call it yet, and Giving depends on Core.
 An `UNKNOWN_EXCEPTION` with zero component errors is a Salesforce side failure rather than
 something wrong with a component. Quote the ErrorId to Salesforce support.
 
-**It is not transient here, whatever the general advice says.** This failure has now come back
-four times across four separate runs, always on the Core stage, always with zero components
-deployed and zero component errors, and always with the same trailing code in the ErrorId
-(`-315522575`) behind a different leading number each time. Four identical failures is a
-deterministic fault, so re-running costs a build and proves nothing. `scripts/org/deploy-packages.sh`
-still prints the "sometimes transient" line; that advice was written before the fourth run.
+**It is not transient here, whatever the general advice says.** This failure came back four
+times across four separate runs before 2026-09-09, always on the Core stage, always with zero
+components deployed and zero component errors, and always with the same trailing code in the
+ErrorId (`-315522575`) behind a different leading number each time. It then hit that same
+undivided Core stage twice more on 2026-09-09, on two separate pushes to main, for six
+occurrences total, none of them resolved by re-running. Six identical failures is a
+deterministic fault, so re-running on its own costs a build and proves nothing.
+`scripts/org/deploy-packages.sh` no longer prints the old "sometimes transient" line; it now
+prints this count and points here. What changed on 2026-09-09 is that Core, which had grown
+to 904 components in one request, was split into the three stages described above, in an
+attempt to narrow the failure to a component or rule it out as a size effect. That split has
+not yet been proven to help: it had not been exercised against the org as of this writing.
 
 Two things constrain when it runs, both because there is one org rather than one per run.
 
