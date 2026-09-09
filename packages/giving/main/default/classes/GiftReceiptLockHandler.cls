@@ -14,6 +14,14 @@ public with sharing class GiftReceiptLockHandler extends TriggerHandler {
         return 'GiftReceiptLockHandler';
     }
 
+    public override void beforeInsert() {
+        GiftService.enforceReceiptNumberOnInsert((List<Gift__c>) Trigger.new);
+    }
+
+    public override void afterInsert() {
+        GiftService.recordReceiptNumberOverridesOnInsert((List<Gift__c>) Trigger.new);
+    }
+
     public override void beforeUpdate() {
         GiftService.enforceReceiptLock(
             (List<Gift__c>) Trigger.new,

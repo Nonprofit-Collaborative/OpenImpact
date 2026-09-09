@@ -72,6 +72,12 @@ including Nonprofit Admin, carries it. A user who holds it can save a change to 
 gift's amount, date, donor or receipt number, and can delete a receipted gift. Nobody else
 can, whatever else they are allowed to do.
 
+**The receipt number needs one more thing.** Receipt Number is read only for everyone in Open
+Impact's permission sets, because a receipt number is issued by Open Impact and never typed in
+(see [Receipts](receipts.md)). To change or clear one, the temporary permission set below has
+to grant Edit on that field as well as the custom permission. Grant it there and nowhere else:
+a permission set people already hold is the one you will forget to take it out of.
+
 **What it does not lift.** A gift that has been refunded or written off still cannot be
 deleted by anyone, override or not. The refund is a separate negative gift linked back to
 the original, so deleting the original would leave that negative gift standing with nothing
@@ -87,7 +93,10 @@ gift by working with the refund (see [Refunds](refunds.md)), never by removing t
    hold: it is the set you are going to delete afterwards.
 4. On the new permission set, click **Custom Permissions**, then **Edit**, move **Override
    Receipt Lock** into the Enabled list, and save.
-5. Click **Manage Assignments**, then **Add Assignment**, tick the one person who is going
+5. Only if you are changing or clearing a receipt number: on the same permission set click
+   **Object Settings**, then **Gifts**, then **Edit**, tick **Edit Access** for **Receipt
+   Number**, and save. Skip this step for a correction to an amount, a date or a donor.
+6. Click **Manage Assignments**, then **Add Assignment**, tick the one person who is going
    to make the correction, and save.
 
 **How to remove it.** As soon as the correction is saved, come back to the permission set,
@@ -123,6 +132,14 @@ reaches the problem.
   because it is printed nowhere. That rule protects the document already in the
   donor's hands. Deleting the gift is refused for the same reason, and so is changing or
   clearing the receipt number itself.
+- **Typing a receipt number onto a gift.** Receipt Number is read only, and a save that fills
+  it in anyway, from a list view, an import or an integration, is refused with "A receipt
+  number is issued by Open Impact when it creates the receipt, and cannot be filled in by
+  hand." A number that Open Impact did not issue belongs to no receipt, locks the gift, can be
+  handed out again later to somebody's year-end statement, and stops that gift ever being
+  receipted. Click **Issue receipt** on the gift instead. Importing historical gifts that
+  carry receipt numbers from an old system is the one real case, and it needs the override
+  below, deliberately.
 - **Pausing automation to get around the lock.** It does not work, and that is deliberate.
   The receipt lock is one of the few automations that always run: it is listed on the
   Automation page with its switch off and greyed out, and a pause does not suspend it. See

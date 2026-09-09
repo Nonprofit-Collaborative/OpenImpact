@@ -27,9 +27,9 @@ private class GiftReceiptLockHandlerTest {
         Gift__c gift = GivingTestDataFactory.buildGift(donor.Id, 250);
         gift.Gift_Date__c = Date.newInstance(2026, 3, 1);
         insert gift;
-        // Issuing a number for the first time is allowed: that is what locks the gift.
-        gift.Receipt_Number__c = RECEIPT_NUMBER;
-        update gift;
+        // The receipting feature's door is the only way a number reaches a gift, and putting one
+        // there is what locks the gift (ADR-NEXT).
+        GiftService.recordReceiptNumbers(new Map<Id, String>{ gift.Id => RECEIPT_NUMBER });
     }
 
     private static Gift__c receiptedGift() {
@@ -311,6 +311,192 @@ private class GiftReceiptLockHandlerTest {
             0,
             [SELECT COUNT() FROM Error_Log__c WHERE Context__c = 'Receipt lock override'],
             'Nothing was overridden, so nothing was recorded as overridden.'
+        );
+    }
+
+    /**
+     * David, who enters the gifts and has no business inventing receipt numbers.
+     */
+    private static User fundraiser() {
+        return TestDataFactory.createUser(
+            'David',
+            new List<String>{ 'Nonprofit_Staff', 'Giving_Staff' }
+        );
+    }
+
+    @IsTest
+    static void staffCannotTypeAReceiptNumberOntoAGift() {
+        Contact person = otherDonor();
+        Gift__c plain = GivingTestDataFactory.buildGift(person.Id, 120);
+        insert plain;
+        User david = fundraiser();
+
+        String refusal;
+        Boolean editable = true;
+        Test.startTest();
+        System.runAs(david) {
+            editable = Schema.SObjectType.Gift__c.fields.Receipt_Number__c.isUpdateable();
+            refusal = refusalFrom(new Gift__c(Id = plain.Id, Receipt_Number__c = 'R-2026-000777'));
+        }
+        Test.stopTest();
+
+        Assert.isFalse(
+            editable,
+            'Giving Staff reads the receipt number and does not write it: the packaged permission ' +
+            'sets make it read only, so the field is not offered for editing anywhere.'
+        );
+        Assert.isTrue(
+            refusal != null && refusal.contains(Label.Giving_Gift_ReceiptNumberNotIssuedByHand),
+            'And the refusal does not depend on that: a number typed onto a gift is refused ' +
+                'whoever was granted the field, because it came from no sequence: ' +
+                refusal
+        );
+        Assert.areEqual(
+            null,
+            [SELECT Receipt_Number__c FROM Gift__c WHERE Id = :plain.Id].Receipt_Number__c,
+            'The gift carries no number, so it is neither locked nor unreceiptable: Issue ' +
+            'Receipt still works on it.'
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Error_Log__c WHERE Context__c = 'Receipt lock override'],
+            'Nothing was overridden, so nothing was recorded as overridden.'
+        );
+    }
+
+    @IsTest
+    static void staffCannotCreateAGiftThatAlreadyCarriesAReceiptNumber() {
+        Contact person = otherDonor();
+        User david = fundraiser();
+        Gift__c minted = GivingTestDataFactory.buildGift(person.Id, 90);
+        minted.Receipt_Number__c = 'R-2026-000778';
+
+        String refusal;
+        Test.startTest();
+        System.runAs(david) {
+            try {
+                insert minted;
+            } catch (DmlException refused) {
+                refusal = refused.getDmlMessage(0);
+            }
+        }
+        Test.stopTest();
+
+        Assert.isTrue(
+            refusal != null && refusal.contains(Label.Giving_Gift_ReceiptNumberNotIssuedByHand),
+            'Creating the gift with the number in place is the same tamper as typing it on ' +
+                'afterwards, so it is refused the same way: ' +
+                refusal
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Gift__c WHERE Receipt_Number__c = 'R-2026-000778'],
+            'And no gift was created holding a number the sequence has never issued.'
+        );
+    }
+
+    @IsTest
+    static void theReceiptingFeatureStillWritesTheNumber() {
+        Contact person = otherDonor();
+        Gift__c plain = GivingTestDataFactory.buildGift(person.Id, 300);
+        insert plain;
+        User david = fundraiser();
+
+        Test.startTest();
+        System.runAs(david) {
+            GiftService.recordReceiptNumbers(new Map<Id, String>{ plain.Id => 'R-2026-000501' });
+        }
+        Test.stopTest();
+
+        Assert.areEqual(
+            'R-2026-000501',
+            [SELECT Receipt_Number__c FROM Gift__c WHERE Id = :plain.Id].Receipt_Number__c,
+            'The one door through the lock still opens, for the same staff user, even though ' +
+                'the field is read only to them: the write goes through GiftReceiptNumberWriter in ' +
+                'system mode (ADR-0021, ADR-NEXT).'
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Error_Log__c WHERE Context__c = 'Receipt lock override'],
+            'Issuing a receipt is not an override, so it is not logged as one.'
+        );
+    }
+
+    @IsTest
+    static void theRenumberAllowanceReachesOnlyTheGiftBeingRenumbered() {
+        Gift__c receipted = receiptedGift();
+        Contact person = otherDonor();
+        Gift__c bystander = GivingTestDataFactory.buildGift(person.Id, 75);
+        insert bystander;
+
+        // The window recordReceiptNumbers opens, held open here so that a second gift can be
+        // saved inside it, which is what a nested update from an after-update handler does.
+        GiftService.giftsBeingRenumbered = new Set<Id>{ receipted.Id };
+
+        Test.startTest();
+        List<Database.SaveResult> results = Database.update(
+            new List<Gift__c>{
+                new Gift__c(Id = receipted.Id, Receipt_Number__c = 'R-2026-000043'),
+                new Gift__c(Id = bystander.Id, Receipt_Number__c = 'R-2026-000044')
+            },
+            false
+        );
+        Test.stopTest();
+
+        Assert.isTrue(results[0].isSuccess(), 'The gift being renumbered was renumbered.');
+        Assert.isFalse(
+            results[1].isSuccess(),
+            'The gift that was not being renumbered was refused, because the allowance names ' +
+            'the gifts it is for rather than lifting the rule for the whole transaction.'
+        );
+        Assert.areEqual(
+            Label.Giving_Gift_ReceiptNumberNotIssuedByHand,
+            results[1].getErrors()[0].getMessage(),
+            'And refused for the right reason: that number came from no sequence.'
+        );
+        Assert.areEqual(
+            'R-2026-000043',
+            [SELECT Receipt_Number__c FROM Gift__c WHERE Id = :receipted.Id].Receipt_Number__c,
+            'The reissued number is on the gift it belongs to.'
+        );
+        Assert.areEqual(
+            null,
+            [SELECT Receipt_Number__c FROM Gift__c WHERE Id = :bystander.Id].Receipt_Number__c,
+            'And the bystander is still an unreceipted gift.'
+        );
+    }
+
+    @IsTest
+    static void theOverrideStillRecoversAGiftNumberedByMistake() {
+        // Test DML runs in system mode, so this exercises the trigger rather than field level
+        // security. In an org the administrator grants Edit on Gift Receipt Number in the same
+        // temporary permission set that carries the override permission (ADR-NEXT, and the
+        // Gifts admin guide says so step by step).
+        Gift__c gift = receiptedGift();
+        User maria = userHoldingTheOverride();
+
+        Test.startTest();
+        System.runAs(maria) {
+            update new Gift__c(Id = gift.Id, Receipt_Number__c = null);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(
+            null,
+            [SELECT Receipt_Number__c FROM Gift__c WHERE Id = :gift.Id].Receipt_Number__c,
+            'The documented override still clears a number, which is what unsticks a gift that ' +
+            'was numbered by mistake: with the number gone, Issue Receipt can receipt it.'
+        );
+        List<Error_Log__c> logged = [
+            SELECT Message__c, Severity__c
+            FROM Error_Log__c
+            WHERE Context__c = 'Receipt lock override'
+        ];
+        Assert.areEqual(1, logged.size(), 'And the recovery was recorded, once.');
+        Assert.isTrue(
+            logged[0].Message__c.contains(RECEIPT_NUMBER),
+            'Naming the number that was on the gift, which is what an auditor asks about: ' +
+            logged[0].Message__c
         );
     }
 

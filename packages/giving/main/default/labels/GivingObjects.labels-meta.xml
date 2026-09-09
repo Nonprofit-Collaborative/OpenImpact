@@ -121,6 +121,14 @@
         <value>This gift's receipt number cannot be changed or cleared, because a donor is holding the receipt that carries it. Void the receipt and reissue it instead.</value>
     </labels>
     <labels>
+        <fullName>Giving_Gift_ReceiptNumberNotIssuedByHand</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Receipt number is issued, not typed</shortDescription>
+        <value>A receipt number is issued by Open Impact when it creates the receipt, and cannot be filled in by hand. Use Issue Receipt on the gift instead. A number typed in here belongs to no receipt, locks the gift, and can end up on a year end statement as well.</value>
+    </labels>
+    <labels>
         <fullName>Giving_Gift_ReceiptedGiftNotDeletable</fullName>
         <categories>Giving</categories>
         <language>en_US</language>
