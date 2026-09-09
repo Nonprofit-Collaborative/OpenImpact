@@ -214,6 +214,15 @@ carries no default value: it is written by household upkeep and only ever onto a
 so an organization, which upkeep skips by record type, is left with an empty Member Count
 rather than a count of zero it never earned.
 
+This holds whichever object the person is stored on. Where people are person accounts, a
+change to the person is a membership change on the same terms as a change to a contact:
+deleting the person, restoring them from the recycle bin, and changing any of the
+attributes R-H4 builds the wording from (first name, surname, salutation, preferred name,
+deceased, household role, and the two exclusion flags) all recount and rewrite every
+household that person belongs to. The delete side of that cannot be done after the fact:
+see the note under R-M4 on what the platform does to a membership row when the person it
+names is deleted.
+
 **R-H12 Reparenting and empty households.** Moving a contact to a different household
 recalculates both households' member counts and, once Giving is installed, their giving
 rollups. The vacated household is deleted when it is empty and
@@ -321,6 +330,17 @@ that member is mirrored to the household's Primary Contact.
 **R-M4 Person representation.** Exactly one of Contact or Account identifies the person:
 Contact where the person is a Contact, the person's own Person Account where Person
 Accounts are enabled. Both empty, or both pointing at people, is invalid.
+
+Deleting the person record is where "both empty" would otherwise come from. Both person
+lookups clear themselves when the record they point at is deleted, which leaves a row that
+identifies nobody, and the platform does not fill the lookup in again when the person is
+restored from the recycle bin. So a membership row is removed with the person it names,
+before the deletion empties it, and brought back when that person is: membership follows
+the person, current rows and ended ones alike. Membership history therefore survives
+everything except the deletion of the household it is history of and the deletion of the
+person it is history of. Rules R-M2 and R-H11 already ignore a row that identifies nobody,
+so a row orphaned before this was so, or by a deletion made with the automation switched
+off, is counted by nothing and named in nothing; it is simply left.
 
 **R-M5 No direct callers.** All reads and writes go through `HouseholdService`. Feature
 code never branches on membership mode.
@@ -3783,6 +3803,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.4 | 2026-09-09 | G-13 receipt number tampering fixed (ADR-0033). No object or field added. `Gift__c.Receipt_Number__c` becomes read only in `Giving_Staff` and `Giving_Admin`, matching `Giving_Read_Only`, and the receipt lock refuses every write to it, including the first one and including an insert, unless the receipting code is renumbering that gift. R-G4 restated: the number comes from the sequence in Section 25C or it does not exist. A number typed on by hand belonged to no receipt, locked the gift irreversibly, could be issued again later by the sequence, and left the gift unreceiptable, which is the collision ADR-0016 says nobody can recover from. The write moves from user mode to `GiftReceiptNumberWriter` in system mode under ADR-0021, because a field nobody may edit cannot be written in user mode, and the renumbering allowance changes from a transaction wide flag to the set of gift Ids being renumbered, so it no longer reaches an unrelated gift saved in the same transaction. |
 | v0.4 | 2026-09-09 | G-13 receipting defects found by security review (ADR-0034). No object or field added. Section 25B gains R-RC11: a receipt's stored file is linked to its receipt and, on a per gift receipt, to its gift, and never to the donor Contact or Account, because a `ContentDocumentLink` grants access to a file through the record it names and every Core role can read a donor. The relationship bullet is corrected to match. Section 25E gains R-RT4: the shipped letters are materialized by the Giving post-install script rather than by a cacheable controller method, which cannot perform DML, and every write to `Receipt_Template__c` checks `Manage_Nonprofit_Settings`. |
 | v0.4 | 2026-09-08 | C-10 sample data extended to the Giving module and to connections. `Sample Data` (`Sample_Data__c`, Checkbox, default false) added to `Gift__c`, `Fund__c`, `Appeal__c`, `Commitment__c`, `Relationship__c` and `Affiliation__c`, so every record the sample loader creates can be found and removed in one action; a gift's allocations, soft credits and tributes, and a commitment's installments, are details of a flagged record and go with it. `Sample Data Key` (`Sample_Data_Key__c`, Text(20)) added to Account and Contact: it holds the key the generated file gives a household, an organization or a person, which is how the Giving sample gifts find the donor they belong to across the asynchronous chain. No object added. |
+| v0.4 | 2026-09-09 | C-01 person account trigger defect. No object or field added. The person account path ran on insert and update only, so deleting a person left their household with a stale Member Count and stale wording and their membership row identifying nobody, undeleting them did nothing, and the only person change that rewrote a household name was the household's own custom name box. R-H11 now says plainly that a person stored as an account is a member on the same terms as a contact, and R-M4 records what happens to a membership row when the person it names is deleted, and why the row is removed with the person rather than left to the platform. |
 | v0.4 | 2026-09-09 | C-17 address propagation defect, found by the first org run on a person accounts org. No object or field added. R-AD3 gains the record type test: the person mailing fields exist on every account in a person accounts org, so `AddressService` asked the org whether it had them and then wrote them on whatever account it was holding. A household member, or an owner named in Person Account, that is a household or an organization was written through fields it cannot carry, the platform refused the update, and the address the user was saving was refused with it, with a message about permissions that named nothing true. The write is now decided by the account's record type, read once per save through `HouseholdSelector.getAccountRecordTypes` as an ADR-0021 upkeep read, and an account that holds no person is left out of the copy. Invisible on the Platform-only shape (ADR-0013), where the fields do not exist and the path returns early. |
 
 ---

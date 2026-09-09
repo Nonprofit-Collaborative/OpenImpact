@@ -74,6 +74,39 @@ public with sharing class PersonRecordSelector {
         return value != null && String.isNotBlank(String.valueOf(value));
     }
 
+    /**
+     * True when the difference between these two versions of a person record is one the
+     * household name or the two greetings are computed from.
+     *
+     * The list is exactly the one `ContactTriggerHandler.namingChanged` watches, held here
+     * as text and compared off the values the records actually carry, so that a field which
+     * exists only where the org stores people as accounts is never named at compile time
+     * (ADR-0009). A field this org does not have is absent on both sides and so reads as
+     * unchanged, which is the right answer: it cannot have changed.
+     */
+    public static Boolean namingChanged(SObject record, SObject previous) {
+        if (record == null || previous == null) {
+            return false;
+        }
+        Map<String, Object> current = record.getPopulatedFieldsAsMap();
+        Map<String, Object> before = previous.getPopulatedFieldsAsMap();
+        for (String fieldName : namingFields()) {
+            if (current.get(fieldName) != before.get(fieldName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Every field a household name or greeting is computed from, name fields first.
+     */
+    private static List<String> namingFields() {
+        List<String> result = new List<String>(NAME_FIELDS);
+        result.addAll(PERSON_FIELDS);
+        return result;
+    }
+
     public static List<SObject> filterPeople(List<SObject> records) {
         List<SObject> result = new List<SObject>();
         if (records == null) {

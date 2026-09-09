@@ -172,4 +172,164 @@ private class AccountTriggerHandlerTest {
         Assert.areEqual('Head', memberships[0].Role__c, 'She heads her own household');
         Assert.isTrue(memberships[0].Is_Primary__c, 'And is its primary member');
     }
+
+    /**
+     * The households a person stored as an account belongs to, when they are deleted,
+     * restored, or changed in a way the wording is built from.
+     *
+     * These four tests set `HouseholdService.personAccountOverride` and
+     * `PersonRecordSelector.personRecordOverride`, because an org without person accounts
+     * cannot hold a real one and the paths under test are the ones that only run there.
+     * They do not use `PersonRecordSelector.personOverridesByName`, which is the stronger
+     * of the two stand-ins: nothing here is asserted from a person's declared first name
+     * or surname. The membership row, the member count, the tidying away and the rewriting
+     * of the household's wording are all real behaviour of the real records.
+     */
+    @IsTest
+    static void deletingAPersonStoredAsAnAccountSettlesTheirHousehold() {
+        Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
+            HouseholdTestDataFactory.MODE_JUNCTION
+        );
+        settings.Delete_Empty_Households__c = false;
+        HouseholdTestDataFactory.save(settings);
+        Account person = personInAHousehold();
+        Decimal whileSheWasThere = [
+            SELECT Member_Count__c
+            FROM Account
+            WHERE RecordTypeId = :HouseholdService.householdRecordTypeId()
+        ]
+        .Member_Count__c;
+
+        Test.startTest();
+        delete person;
+        Test.stopTest();
+
+        Assert.areEqual(1, whileSheWasThere, 'Maria was counted while she was a member');
+        Assert.areEqual(
+            0,
+            [
+                SELECT Member_Count__c
+                FROM Account
+                WHERE RecordTypeId = :HouseholdService.householdRecordTypeId()
+            ]
+            .Member_Count__c,
+            'The household is recounted when she is deleted'
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Household_Member__c],
+            'And her membership goes with her rather than being left naming nobody'
+        );
+    }
+
+    @IsTest
+    static void deletingTheLastPersonStoredAsAnAccountTidiesTheHouseholdAway() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        Account person = personInAHousehold();
+
+        Test.startTest();
+        delete person;
+        Test.stopTest();
+
+        Assert.areEqual(
+            0,
+            [
+                SELECT COUNT()
+                FROM Account
+                WHERE RecordTypeId = :HouseholdService.householdRecordTypeId()
+            ],
+            'The household nobody is left in is tidied away, as it is when a contact leaves'
+        );
+    }
+
+    /**
+     * The half the platform cannot do for us. A membership row left to the platform comes
+     * out of the person's deletion with its person lookup emptied and is never filled in
+     * again, so the row has to be taken away with the person and brought back with them.
+     */
+    @IsTest
+    static void restoringAPersonStoredAsAnAccountPutsThemBackInTheirHousehold() {
+        Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
+            HouseholdTestDataFactory.MODE_JUNCTION
+        );
+        settings.Delete_Empty_Households__c = false;
+        HouseholdTestDataFactory.save(settings);
+        Account person = personInAHousehold();
+        delete person;
+
+        Test.startTest();
+        undelete person;
+        Test.stopTest();
+
+        List<Household_Member__c> back = [SELECT Account__c FROM Household_Member__c];
+        Assert.areEqual(1, back.size(), 'Her membership came back with her');
+        Assert.areEqual(person.Id, back[0].Account__c, 'And it still names her');
+        Assert.areEqual(
+            1,
+            [
+                SELECT Member_Count__c
+                FROM Account
+                WHERE RecordTypeId = :HouseholdService.householdRecordTypeId()
+            ]
+            .Member_Count__c,
+            'And the household counts her again'
+        );
+    }
+
+    /**
+     * R-H11 and R-H4 for a person stored as an account: marking somebody deceased is one of
+     * the things the household's wording is built from, so the wording is rewritten. The
+     * stale name is stamped on first, so that a household left alone would keep it.
+     */
+    @IsTest
+    static void markingAPersonStoredAsAnAccountDeceasedRewritesTheirHouseholdWording() {
+        Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
+            HouseholdTestDataFactory.MODE_JUNCTION
+        );
+        settings.Delete_Empty_Households__c = false;
+        HouseholdTestDataFactory.save(settings);
+        Account person = personInAHousehold();
+        Id householdId = [
+            SELECT Id
+            FROM Account
+            WHERE RecordTypeId = :HouseholdService.householdRecordTypeId()
+        ]
+        .Id;
+        update new Account(Id = householdId, Name = 'Stale Name');
+        String beforeTheChange = [SELECT Name FROM Account WHERE Id = :householdId].Name;
+
+        Test.startTest();
+        update new Account(Id = person.Id, Deceased__c = true);
+        Test.stopTest();
+
+        Assert.areEqual(
+            'Stale Name',
+            beforeTheChange,
+            'Renaming the household itself is not a membership change, so the wording stood'
+        );
+        Assert.areEqual(
+            Label.Core_Households_NamePlaceholder,
+            [SELECT Name FROM Account WHERE Id = :householdId].Name,
+            'Marking her deceased rewrites the household wording from its members again'
+        );
+    }
+
+    /**
+     * One person, held as an account, joined to one household. The two overrides are what
+     * lets an org with no person accounts run the person account path at all.
+     */
+    private static Account personInAHousehold() {
+        HouseholdService.personAccountOverride = true;
+        PersonRecordSelector.personRecordOverride = true;
+        Account household = HouseholdTestDataFactory.newHousehold('The Garcia Family');
+        insert household;
+        Account person = new Account(Name = 'Maria Garcia');
+        insert person;
+        insert new Household_Member__c(
+            Household__c = household.Id,
+            Account__c = person.Id,
+            Is_Primary__c = true
+        );
+        return person;
+    }
 }

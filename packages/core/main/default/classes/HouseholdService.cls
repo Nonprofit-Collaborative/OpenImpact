@@ -376,6 +376,42 @@ public with sharing class HouseholdService {
     }
 
     /**
+     * Every household these people currently belong to, all of them rather than only the
+     * one they are primary in.
+     *
+     * `getHouseholdIdsFor` answers "which household is this person's", which is the right
+     * question when crediting a gift. This answers "which households does a change to this
+     * person show up in", which is the right question when settling up after that person
+     * has been renamed, deleted or restored: somebody in two households is named in two
+     * household names, and both have to be rewritten.
+     *
+     * Junction mode only. In contact mode a person's household is the account their
+     * contact record points at, and the contact trigger reads it from the record itself.
+     */
+    @NamespaceAccessible
+    public static Set<Id> householdIdsForPeople(Set<Id> personIds) {
+        Set<Id> result = new Set<Id>();
+        if (personIds == null || personIds.isEmpty() || !isJunctionMode()) {
+            return result;
+        }
+        for (
+            Household_Member__c membership : HouseholdSelector.getMembershipsForPeople(personIds)
+        ) {
+            Id personId = membership.Contact__c != null
+                ? membership.Contact__c
+                : membership.Account__c;
+            if (
+                personId != null &&
+                personIds.contains(personId) &&
+                membership.Household__c != null
+            ) {
+                result.add(membership.Household__c);
+            }
+        }
+        return result;
+    }
+
+    /**
      * The people who currently belong to each household given, by household id. The
      * counterpart of getHouseholdIdsFor, for callers rolling values up to a household.
      */
@@ -399,6 +435,84 @@ public with sharing class HouseholdService {
             result.put(householdId, personIds);
         }
         return result;
+    }
+
+    /**
+     * Takes the membership rows that join these people to their households out of the way,
+     * for the one caller that needs it: the person records themselves are being deleted.
+     *
+     * Called from a `before delete` context, while the rows still say whose membership
+     * they are. Two things follow from that, and neither works from `after delete`. The
+     * households the deletion affects can still be read off the rows, and they are what
+     * this returns. And the rows go into the recycle bin still naming the person, so that
+     * restoring the person can put the membership back (`restoreMembershipsFor`).
+     *
+     * Ended memberships go too. A membership that has ended is history of a person, and
+     * once that person is gone it is history of nobody: left behind, the platform empties
+     * its person lookup and the row says nothing at all (R-M4).
+     */
+    @NamespaceAccessible
+    public static Set<Id> removeMembershipsFor(Set<Id> personIds) {
+        Set<Id> affected = new Set<Id>();
+        if (personIds == null || personIds.isEmpty() || !isJunctionMode()) {
+            return affected;
+        }
+        List<Household_Member__c> removing = new List<Household_Member__c>();
+        for (
+            Household_Member__c membership : HouseholdSelector.getAllMembershipsForPeople(personIds)
+        ) {
+            Id personId = membership.Contact__c != null
+                ? membership.Contact__c
+                : membership.Account__c;
+            if (personId == null || !personIds.contains(personId)) {
+                continue;
+            }
+            if (membership.Household__c != null) {
+                affected.add(membership.Household__c);
+            }
+            removing.add(new Household_Member__c(Id = membership.Id));
+        }
+        HouseholdWriter.deleteMemberships(removing);
+        HOUSEHOLD_ID_BY_PERSON.clear();
+        return affected;
+    }
+
+    /**
+     * Puts back the membership rows that were removed when these people were deleted, and
+     * answers with the households that has changed.
+     *
+     * The platform cannot do this for us. A lookup that was emptied because the record it
+     * pointed at was deleted is not restored when that record comes back, so a membership
+     * row left to the platform would come out of the deletion naming nobody and stay that
+     * way. Removing the row first, while it still names the person, is what makes the
+     * restore possible at all.
+     */
+    @NamespaceAccessible
+    public static Set<Id> restoreMembershipsFor(Set<Id> personIds) {
+        Set<Id> affected = new Set<Id>();
+        if (personIds == null || personIds.isEmpty() || !isJunctionMode()) {
+            return affected;
+        }
+        List<Household_Member__c> restoring = new List<Household_Member__c>();
+        for (
+            Household_Member__c membership : HouseholdSelector.getDeletedMembershipsForPeople(
+                personIds
+            )
+        ) {
+            Id personId = membership.Contact__c != null
+                ? membership.Contact__c
+                : membership.Account__c;
+            if (personId == null || !personIds.contains(personId)) {
+                continue;
+            }
+            if (membership.Household__c != null) {
+                affected.add(membership.Household__c);
+            }
+            restoring.add(new Household_Member__c(Id = membership.Id));
+        }
+        HouseholdWriter.undeleteMemberships(restoring);
+        HOUSEHOLD_ID_BY_PERSON.clear();
+        return affected;
     }
 
     /**
