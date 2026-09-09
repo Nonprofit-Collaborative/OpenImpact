@@ -1381,6 +1381,22 @@ and `SoftCredit` in the template's mapping document, and they are resolved in de
 order: organization, household, people, membership and affiliation, gift, allocations,
 soft credit. Resolution is idempotent per row (R-IB4).
 
+**R-IR1a What a row means for households.** A row is one household. The row's first
+person is saved first and is given a household by the ordinary creation path (R-H1 in
+contact mode, R-H2 in junction mode), which is the household the row then records. The
+row's second person is joined to that same household rather than being given one of their
+own, through `HouseholdService` (R-M5), so the join is written the way this org holds
+membership: the person's own account reference in contact mode, a Household Member record
+in junction mode, for a person stored as a Contact and for a person stored as an account
+alike. Two people on one row are therefore one household with two members in every
+membership mode and on both person objects. Three consequences follow. A second person who
+is created for a row that has no first person (the row named nobody else, or that person
+failed to save) gets a household of their own, because there is nothing to join. A second
+person who matched somebody the org already has keeps the household they already belong
+to: an import never moves an existing person into another household. And nobody is given a
+household and then taken out of it, because automatic creation is suspended while the
+people who are about to be joined are saved.
+
 **R-IR2 Giving links are identifiers, not references.** Gift and Soft Credit are stored
 as record identifiers rather than lookups. Import Row lives in Core and `Gift__c` and
 `Soft_Credit__c` live in Giving, and a base package cannot hold a reference to an object
@@ -1388,6 +1404,12 @@ in a package that depends on it. The Giving package reads and writes these two a
 by identifier. The cost is that the two links are not clickable in the standard record UI
 and cannot be reported on through a relationship; the results screen resolves and links
 them, and ADR-0014 records the deviation from the literal field list in plan Section 4.9.
+
+**R-IR2a The household is named from the row.** Where a row maps a household name, that
+name is written to the household the row resolved to and the household is marked as
+custom named, so the naming patterns leave it alone from then on (R-H8). This holds
+however the household was made, including the one junction mode creates with a membership
+record.
 
 **R-IR3 Person references.** A row resolves its people to Contacts or to person Accounts
 according to the template's Person Mode, never to both (Section 4 "Person references").
@@ -3842,6 +3864,7 @@ is closed deliberately rather than discovered.
 | v0.4 | 2026-09-08 | C-10 sample data extended to the Giving module and to connections. `Sample Data` (`Sample_Data__c`, Checkbox, default false) added to `Gift__c`, `Fund__c`, `Appeal__c`, `Commitment__c`, `Relationship__c` and `Affiliation__c`, so every record the sample loader creates can be found and removed in one action; a gift's allocations, soft credits and tributes, and a commitment's installments, are details of a flagged record and go with it. `Sample Data Key` (`Sample_Data_Key__c`, Text(20)) added to Account and Contact: it holds the key the generated file gives a household, an organization or a person, which is how the Giving sample gifts find the donor they belong to across the asynchronous chain. No object added. |
 | v0.4 | 2026-09-09 | C-01 person account trigger defect. No object or field added. The person account path ran on insert and update only, so deleting a person left their household with a stale Member Count and stale wording and their membership row identifying nobody, undeleting them did nothing, and the only person change that rewrote a household name was the household's own custom name box. R-H11 now says plainly that a person stored as an account is a member on the same terms as a contact, and R-M4 records what happens to a membership row when the person it names is deleted, and why the row is removed with the person rather than left to the platform. |
 | v0.4 | 2026-09-09 | C-17 address propagation defect, found by the first org run on a person accounts org. No object or field added. R-AD3 gains the record type test: the person mailing fields exist on every account in a person accounts org, so `AddressService` asked the org whether it had them and then wrote them on whatever account it was holding. A household member, or an owner named in Person Account, that is a household or an organization was written through fields it cannot carry, the platform refused the update, and the address the user was saving was refused with it, with a message about permissions that named nothing true. The write is now decided by the account's record type, read once per save through `HouseholdSelector.getAccountRecordTypes` as an ADR-0021 upkeep read, and an account that holds no person is left out of the copy. Invisible on the Platform-only shape (ADR-0013), where the fields do not exist and the path returns early. |
+| v0.4 | 2026-09-09 | C-14 import defect: a row with two people in it. No object or field added. Section 16 gains R-IR1a (what a row means for households) and R-IR2a (the household is named from the row). The importer joined a row's second person to the first person's household by writing the person's account reference, which is contact mode's mechanism, and skipped the join entirely where the org stores people as accounts. In junction mode that reference joined nobody and stopped the automatic path from acting, so a couple imported into the configuration the product recommends became two households or one household and one person with none. The join now goes through `HouseholdService.addMembers`, and automatic creation is suspended while the people about to be joined are saved, so nobody is given a household and then taken out of it. |
 
 ---
 ## 32. Entity ownership by package
