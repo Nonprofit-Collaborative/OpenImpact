@@ -2910,6 +2910,217 @@ happened without finding the run record.
 
 ---
 
+## 25I. Stewardship Plan Template
+
+### Definition
+
+A named sequence of follow-up work an organization repeats: the tasks that should happen
+after a first gift, after a large gift, after a pledge starts. The NPSP Engagement Plans
+successor (plan Section 5.2, feature G-15).
+
+The template is the recipe, not the work. It holds what starts the sequence and the steps
+it lays out; a `Stewardship_Plan__c` is one running copy of it on one donor, and the tasks
+belong to the people who have to do them.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | yes | What the administrator calls the plan, for example "First gift welcome". |
+| Plan Key | text | yes | A stable key, unique, so a shipped default is recognized on upgrade without matching on a name the administrator may have changed. |
+| Active | boolean | yes (defaults false) | Whether the plan can start. An inactive template keeps the plans it already started. |
+| Trigger Event | picklist(Manual, First gift, Gift received, Commitment started) | yes | What starts a plan from this template. Manual means a person starts it and nothing starts it automatically. Commitment started means a pledge or a recurring gift became active (R-SP3a). |
+| Minimum Amount | currency | no | For the two gift events, the smallest gift that starts a plan. Blank means any amount. |
+| Description | long text | no | What this plan is for, in the administrator's words, shown when a person picks a plan to start by hand. |
+
+### Relationships
+
+- **Stewardship Plan Template to Stewardship Plan Step**, one to many, master detail. A
+  template's steps have no meaning apart from it, so deleting a template takes its steps.
+- **Stewardship Plan Template to Stewardship Plan**, one to many, lookup. A running plan
+  keeps working when its template is deleted, because the tasks it created are already real
+  work assigned to real people (R-SP8).
+
+### Rules
+
+**R-SP1 A trigger event does not make a plan mandatory.** Every automatic start goes
+through `TriggerDispatcher` like every other packaged automation, so an administrator can
+switch stewardship off before a bulk import and switch it back on afterwards (rule R-A1).
+Nothing here is exempt from the automation switch.
+
+**R-SP2 Only an active template starts anything.** Deactivating a template stops new plans
+and leaves running ones alone.
+
+**R-SP3 First gift means the donor's first.** The First gift event starts a plan only when
+the gift being saved is the only gift the donor has that counts toward giving totals, using
+the same status set the giving rollups use (Section 26). A refund that arrives later does
+not retroactively unstart the plan, because the welcome has already been sent.
+
+**R-SP3a Commitment started means the commitment became active.** A plan on this event
+starts when a commitment is created already Active, and when an existing commitment moves
+into Active from any other status. Both, because a pledge entered as Active and a pledge
+entered as Paused and turned on a week later are the same event to the donor. A resumed
+commitment therefore starts a plan again only once the earlier plan has been closed, since
+R-SP6 still holds. Nothing starts for a commitment created Paused, Completed or Cancelled,
+and Minimum Amount is not read here: the amount condition belongs to the two gift events,
+which is what the Amount Only For Gift Events rule already enforces at save.
+
+### Salesforce implementation
+
+- **Object:** `Stewardship_Plan_Template__c`, Giving package.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Plan Key | `Plan_Key__c` | Text, unique, external id |
+| Active | `Active__c` | Checkbox |
+| Trigger Event | `Trigger_Event__c` | Picklist: Manual, First gift, Gift received, Commitment started |
+| Minimum Amount | `Minimum_Amount__c` | Currency (18, 2) |
+| Description | `Description__c` | Long Text Area |
+
+- **Service:** `StewardshipService`, with `StewardshipSelector` reading and
+  `StewardshipWriter` writing, following the pattern the rest of Giving uses.
+- **Settings console:** the Stewardship Plans page, component `stewardshipPlans` with
+  `StewardshipPlanController` behind it, on the `Stewardship_Plans` tab and flexipage and
+  registered as a `Setting_Definition__mdt` Component row reached by navigation (ADR-0020).
+  Templates, their steps, their order and their Active state are all administered there, so
+  no part of setting a plan up needs Setup or a raw object tab.
+
+---
+
+## 25J. Stewardship Plan Step
+
+### Definition
+
+One task a template lays out, and when it comes due relative to the day the plan starts.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | computed | The step's identifier, assigned automatically. |
+| Plan Template | reference(Stewardship Plan Template) | yes | The template this step belongs to. |
+| Order | number | yes | The order the steps are listed in and created in. |
+| Subject | text | yes | The task's subject, which is what the assignee sees in their list. |
+| Days After Start | number | yes (defaults 0) | How many days after the plan starts this task is due. |
+| Assign To | picklist(Record owner, Plan starter, Specific user) | yes | Who gets the task. Record owner is the owner of the donor record the plan runs on. |
+| Assigned User | reference(User) | conditional | Required when Assign To is Specific user, ignored otherwise. |
+| Priority | picklist(Low, Normal, High) | yes (defaults Normal) | The task's priority. |
+| Comments | long text | no | The task's description, copied onto every task the step creates. |
+
+### Relationships
+
+- **Stewardship Plan Step to Stewardship Plan Template**, many to one, master detail.
+
+### Rules
+
+**R-SP4 A step with no assignee resolves to the person who started the plan.** Where Assign
+To is Record owner and the donor record has no owner the package can read, or where
+Assigned User names a user who is inactive, the task goes to the person who started the
+plan rather than to nobody. A task nobody owns is a task nobody does.
+
+**R-SP5 A due date never lands in the past.** Days After Start is counted from the day the
+plan starts, so a plan started today with a step at day zero is due today. Negative values
+are refused at save.
+
+### Salesforce implementation
+
+- **Object:** `Stewardship_Plan_Step__c`, Giving package. Name is an auto number, `SPS-{00000000}`.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Plan Template | `Stewardship_Plan_Template__c` | Master-Detail to `Stewardship_Plan_Template__c` |
+| Order | `Order__c` | Number (3, 0) |
+| Subject | `Subject__c` | Text (255) |
+| Days After Start | `Days_After_Start__c` | Number (4, 0) |
+| Assign To | `Assign_To__c` | Picklist: Record owner, Plan starter, Specific user |
+| Assigned User | `Assigned_User__c` | Lookup to User |
+| Priority | `Priority__c` | Picklist: Low, Normal, High |
+| Comments | `Comments__c` | Long Text Area |
+
+---
+
+## 25K. Stewardship Plan
+
+### Definition
+
+One running copy of a template on one donor: what started it, when, and whether it is still
+going. It exists so that a person can see which sequences are open on a donor, and so the
+same sequence does not start twice on the same event.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | computed | The plan's identifier, assigned automatically. |
+| Plan Template | reference(Stewardship Plan Template) | yes | The template this plan was made from. |
+| Contact | reference(Contact) | conditional | The donor, where people are Contacts. |
+| Account | reference(Organization) | conditional | The donor, where the donor is an organization or where people are person Accounts. |
+| Gift | reference(Gift) | no | The gift that started the plan, where a gift event did. |
+| Commitment | reference(Commitment) | no | The commitment that started the plan, where the Commitment started event did. |
+| Status | picklist(Running, Complete, Cancelled) | yes (defaults Running) | Where the sequence stands. |
+| Started Date | date | yes | The day the plan started, which is the day its due dates count from. |
+| Completed Date | date | no | The day the plan was marked complete or cancelled. |
+
+### Relationships
+
+- **Stewardship Plan to Contact or Organization**, many to one. Exactly one of the two is
+  set, following the person reference convention in Section 4.
+- **Stewardship Plan to Task**, one to many. Each task carries the plan on its `WhatId`, so
+  the tasks a plan created are visible from the plan without a package field on Task.
+
+### Rules
+
+**R-SP6 One running plan per template per donor.** Starting a template on a donor that
+already has a Running plan from that template is refused with a readable message rather
+than creating a second set of the same tasks. Completing or cancelling the first one frees
+the donor for another.
+
+**R-SP7 Tasks are created once, when the plan starts.** All of a template's steps become
+tasks at start, dated from Started Date. Editing a template afterwards does not reach back
+into plans already running, because the tasks are already in people's lists and rewriting
+them would move work someone has planned their week around.
+
+**R-SP8 The package never deletes a task it created.** Cancelling a plan sets its status and
+its Completed Date and leaves every task alone. A task is a person's record of their own
+work, and an open task on a cancelled plan is theirs to close. Deleting a template does not
+touch running plans or their tasks for the same reason.
+
+**R-SP9 A failure to start a plan never fails the gift.** The starter runs after the gift is
+saved and logs to Error Log (rule R-E1). A stewardship plan that could not start is a follow
+up that did not happen; a gift that could not save is money the organization lost track of,
+and the second is worse.
+
+**R-SP10 Completion is a person's judgment in v0.4.** A plan is marked Complete by whoever
+decides the sequence is done. The package does not close a plan automatically when its last
+task closes: that needs automation on Task, which the package does not ship, and the plan's
+status is a record of intent rather than a derived count. This is recorded here as a
+deliberate limit rather than an omission, and it is the first thing to revisit if plans are
+found sitting Running long after their work finished.
+
+### Salesforce implementation
+
+- **Object:** `Stewardship_Plan__c`, Giving package. Name is an auto number, `SP-{00000000}`.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Plan Template | `Stewardship_Plan_Template__c` | Lookup to `Stewardship_Plan_Template__c` |
+| Contact | `Contact__c` | Lookup to Contact |
+| Account | `Account__c` | Lookup to Account |
+| Gift | `Gift__c` | Lookup to `Gift__c` |
+| Commitment | `Commitment__c` | Lookup to `Commitment__c` |
+| Status | `Status__c` | Picklist: Running, Complete, Cancelled |
+| Started Date | `Started_Date__c` | Date |
+| Completed Date | `Completed_Date__c` | Date |
+
+- **Automation:** two `Automation_Registry__mdt` rows, both order 60 and neither always
+  running: `Stewardship_Plan_Starter`, handler `StewardshipTriggerHandler`, on `Gift__c`,
+  and `Stewardship_Plan_Starter_Commitment`, handler `StewardshipCommitmentHandler`, on
+  `Commitment__c`. Two rows rather than one because the switch is per row, and an
+  administrator loading a year of gifts has no reason to also stop the commitments she
+  enters by hand from starting their plans.
+
+---
+
 ## 26. Packaged default rollups
 
 ### Definition
@@ -3447,7 +3658,6 @@ that builds it, before its metadata is created.
 |---|---|---|---|
 | Receipt | Giving | v0.4 (G-13) | Section 4.11, ADR-0010 |
 | Donor Level | Giving | v0.4 (G-14) | Section 5.2 |
-| Stewardship Plan | Giving | v0.4 (G-15) | Section 5.2 |
 | Gift Batch | Giving | v0.5 (G-17) | Section 4.11 |
 | Volunteer, Job, Shift, Sign-up, Hours, Skill | Volunteers | v0.7 | Section 5.3 |
 | Program, Service, Enrollment, Attendance, Service Delivery, Outcome | Programs | v0.8 | Section 5.4 |
@@ -3458,6 +3668,9 @@ Receipt left this table in v0.4 and is specified in Sections 25B to 25E, togethe
 Receipt Number Sequence, Receipt Run and Receipt Template. Acknowledgment Rule left it in
 the same iteration and is specified in Section 25F, together with Acknowledgment (25G) and
 Acknowledgment Run (25H).
+
+Stewardship Plan left this table in v0.4 as well and is specified in Sections 25I to 25K,
+as Stewardship Plan Template, Stewardship Plan Step and the running Stewardship Plan.
 
 Two v0.4 entities have attributes that already exist on `Gift__c` from v0.2, because the
 object is not worth altering later for fields this cheap: Acknowledgment Status,
@@ -3494,6 +3707,8 @@ Fair Market Value for G-18 (R-G9).
 | v0.3 | 2026-09-08 | G-02 defect fix (ADR-0022). No object or field added. Section 26's base filter changes from `Status equals Received` to `Status` in `Received`, `Refunded`, `Written off`, because R-G3 moves a fully refunded gift's status while leaving the negative gifts that reverse it at Received, so the old filter kept the negatives, dropped the positive, and subtracted a refunded gift twice. The count rows, largest gift, and the two date rows additionally require `Amount__c` greater than 0, so a gift given once and refunded in full reads as one gift and a total of zero. All 38 gift sourced, Gift Allocation sourced and Soft Credit sourced `Rollup_Definition_Default__mdt` rows updated; the three Pledge Balance rows filter on Commitment status and are unaffected. R-R9 gains the sentence that makes this a consequence of the rule rather than an exception to it. |
 | v0.3 | 2026-09-08 | G-08 rule collision resolved (ADR-0023). No object, field, or rollup row changed. R-SC5 and R-SC6 collided on a full refund: R-SC5 creates a negative automatic credit on the negative gift while R-SC6 removed the original gift's automatic credits once its status became Refunded or Written off, so a fully refunded gift of 250 left a recognition total of minus 250 rather than zero. R-SC6 no longer removes credits on refund; removal is now only for a deleted gift. R-SC5 states the resulting pair explicitly and R-SC3 states that a gift keeps its household credits after its status is reversed. Section 26's soft credit rows already read gift status through the widened set from ADR-0022, so they need no further change and now carry both halves of the pair. |
 | v0.3 | 2026-09-08 | G-04 receipt lock (ADR-0024). `Automation_Registry__mdt` and `Automation_Setting__c` each gain `Always_Runs__c` (Checkbox, default false): an automation marked that way enforces a rule rather than providing a convenience, so the dispatcher ignores the bypass, the pause and the switch for it, and the console shows its switch off and disabled with a reason (new rule R-A4). Giving ships the `Gift_Receipt_Lock` automation (order 5, `GiftReceiptLockHandler`) carrying the two enforcement calls that used to run inside `Gift_Core_Rules`, and the custom permission `Override_Receipt_Lock`, which is on no permission set and in no permission set group. R-G4 restated: the lock survives the automation switch, the override is a deliberate act in Setup, and every use of it is written to the Error Log at Warning severity. No object added. |
+| v0.4 | 2026-09-08 | G-15 stewardship plans. Three objects added: `Stewardship_Plan_Template__c` (Section 25I) with `Plan_Key__c`, `Active__c`, `Trigger_Event__c`, `Minimum_Amount__c` and `Description__c`; `Stewardship_Plan_Step__c` (25J) as its master detail child; and the running `Stewardship_Plan__c` (25K), which carries the person reference pair `Contact__c` and `Account__c` with exactly one set. Rules R-SP1 to R-SP10. Two limits are recorded as decisions rather than gaps: R-SP7 does not reach back into running plans when a template is edited, and R-SP10 leaves completion to a person because closing a plan from its last task would need packaged automation on Task. Tasks hang off the plan through `WhatId`, so no package field is added to a standard object. |
+| v0.4 | 2026-09-08 | G-15 gaps closed. `Stewardship_Plan__c` gains `Commitment__c` (Lookup), because the Commitment started event now starts plans and a plan started that way had nothing recording what started it. New rule R-SP3a says what the event means: a commitment created Active, or an existing commitment moving into Active from any other status. The automation is two registry rows rather than one, `Stewardship_Plan_Starter` on `Gift__c` and `Stewardship_Plan_Starter_Commitment` on `Commitment__c`, so each is switchable on its own. Templates, steps, step order and the Active state are now administered on a Stewardship Plans page in the settings console rather than on raw object tabs, which is what the every setting in the console rule requires. R-SP10 is unchanged: completion is still a person's judgment. |
 | v0.4 | 2026-09-08 | G-16 retention reports. One attribute added: `Gifts_Last_Year__c` (Number) on Account and Contact, filled by three new `Rollup_Definition_Default__mdt` rows (`Household_Gifts_Last_Year`, `Account_Gifts_Last_Year`, `Contact_Gifts_Last_Year`) as a COUNT over Gift with the ADR-0022 count filter and fiscal year offset -1. It is the one retention question no shipped attribute could answer: whether a donor gave last fiscal year, counted rather than summed. Everything else G-16 needs was already here, so LYBUNT, SYBUNT and the conversion report add no fields and read `Last_Gift_Date__c`, `First_Gift_Date__c` and `Gift_Count__c`, which already carry the count filter. No object added (ADR-0025, ADR-0026). |
 | v0.4 | 2026-09-08 | C-18 seasonal address swap build. `Address__c` gains `Replaced_By_Seasonal__c` (Checkbox, default false): R-AD4 said the previous default is restored when a season ends but nothing recorded which address that was, so an owner with a home address, a work address and a winter address had no unambiguous address to go back to. `Nonprofit_Settings__c` gains `Seasonal_Address_Last_Run_Summary__c` (Text 255) alongside the `Seasonal_Address_Last_Run__c` timestamp already specified in v0.3: a bare timestamp says the job woke up, not that it did anything, and "visible last run" is the half of C-18 that makes the job trustworthy. R-AD4 restated with the four outcomes per owner and the inclusive boundary days; R-AD8 added for the visible run and the system mode posture (ADR-0027). |
 | v0.4 | 2026-09-09 | G-10 refund propagation (ADR-0031). No object, field, or rollup row changed. ADR-0023 left one credit unreversed: the Matched Donor credit R-G11 creates sits on the employer's gift, and the negative gift recording a refund is not half of a matching pair, so a refunded match left the employee recognized for the full amount. R-G11 and R-SC5 restated: the negative gift carries a negative Matched Donor credit for the same person, prorated to the amount returned, so an employer gift of 500 with 200 returned leaves the employee recognized for 300. Only the employer's gift reverses the credit, the link survives the refund, and unlinking removes both halves. Section 26's soft credit rows already read gift status through the widened set from ADR-0022 and need no change. |
@@ -3550,7 +3765,9 @@ included; standard objects the packages extend are named by the entity that gove
 | Receipt Run | Giving | v0.4 | 25C |
 | Receipt Template | Giving | v0.4 | 25D |
 | Donor Level | Giving | v0.4 | 30 |
-| Stewardship Plan | Giving | v0.4 | 30 |
+| Stewardship Plan Template | Giving | v0.4 | 25I |
+| Stewardship Plan Step | Giving | v0.4 | 25J |
+| Stewardship Plan | Giving | v0.4 | 25K |
 | Gift Batch | Giving | v0.5 | 30 |
 | Gift Transaction mirror | Connect | v0.6 | 30 |
 | Opportunity mirror | Connect | v0.6 | 30 |

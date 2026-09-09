@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Active__c</fullName>
+  <defaultValue>false</defaultValue>
+  <description>Only an active template starts anything (canonical model R-SP2).</description>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    Whether this plan can start. Turning it off stops new plans and leaves running ones alone.
+  </inlineHelpText>
+  <label>Active</label>
+  <trackTrending>false</trackTrending>
+  <type>Checkbox</type>
+</CustomField>

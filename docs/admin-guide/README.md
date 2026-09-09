@@ -118,5 +118,6 @@ Each feature adds its row here when its page is written.
 | G-12 Acknowledgments | [acknowledgments.md](acknowledgments.md) | Giving | v0.4 |
 | G-13 Receipts and year-end statements | [receipts.md](receipts.md) | Giving | v0.4 |
 | G-14 Donor levels | [donor-levels.md](donor-levels.md) | Giving | v0.4 |
+| G-15 Stewardship plans | [stewardship-plans.md](stewardship-plans.md) | Giving | v0.4 |
 | G-16 Retention reports | [retention-reports.md](retention-reports.md) | Giving | v0.4 |
 | G-18 In-kind gifts | [in-kind-gifts.md](in-kind-gifts.md) | Giving | v0.4 |

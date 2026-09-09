@@ -19,6 +19,7 @@
   <tabs>Fund__c</tabs>
   <tabs>Appeal__c</tabs>
   <tabs>Donor_Level__c</tabs>
+  <tabs>Stewardship_Plan__c</tabs>
   <tabs>standard-Dashboard</tabs>
   <tabs>standard-report</tabs>
   <uiType>Lightning</uiType>
