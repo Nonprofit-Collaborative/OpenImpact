@@ -45,8 +45,10 @@ Salesforce org is needed for this job. Steps:
    so it deploys, and it is only wrong once an administrator clicks it in an org looking for
    help. This ran because twelve of the thirty four shipped rows did exactly that.
 11. `scripts/ci/check-adrs.py`, failing the build if a decision record's number disagrees
-   with its own heading, if two records share a number, or if a record is missing from the
-   index. Parallel branches pick the next free number at the same time and collide, so
+   with its own heading, if two records share a number, if a record is missing from the
+   index, or if an `ADR-NEXT` placeholder survives to `main` (that placeholder is how a
+   parallel branch avoids guessing a number, and the integrator assigns the real one at
+   merge). Parallel branches pick the next free number at the same time and collide, so
    renumbering at merge is routine, and a renumber that renames the file but not the heading
    leaves a document that argues with itself. This ran because two branches both claimed
    0025 in one afternoon, and because ADR-0024 was written and never indexed, which is how

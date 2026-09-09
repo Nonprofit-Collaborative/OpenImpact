@@ -60,8 +60,22 @@ donor credit.
 
 ## Adding a new ADR
 
-1. **Take the next number.** Look at the highest number in this folder and add one. Zero
-   pad to four digits. Numbers are never reused, even if an ADR is superseded.
+1. **Take the next number, unless you are working on a branch alongside others.** Look at
+   the highest number in this folder and add one. Zero pad to four digits. Numbers are never
+   reused, even if an ADR is superseded.
+
+   **On a parallel branch, do not pick a number at all: use `ADR-NEXT`.** Name the file
+   `NEXT-your-kebab-title.md`, head it `# ADR-NEXT: Title`, cite it as `ADR-NEXT` everywhere
+   in the body and in any code comment, and put its index row at the end of the table. The
+   integrator assigns the real number once, at merge, with a single search and replace that
+   cannot hit anything else.
+
+   This exists because the alternative kept going wrong. Three branches in one day each took
+   "the next free number" at the same moment and all landed on the same one. Renumbering at
+   merge is easy; the hazard is the renumber itself, because a file often cites several ADRs
+   and a search and replace for a real number rewrites the ones that were already correct.
+   That happened twice, and once it silently repointed a correct citation at the wrong
+   decision. `ADR-NEXT` is unambiguous by construction, so the replace is safe.
 2. **Copy the template.** `cp 0000-adr-template.md NNNN-your-kebab-title.md` and fill in
    every section. Keep it between roughly 30 and 70 lines.
 3. **Set the Status honestly.** `Proposed` when it awaits Brandon's confirmation,
