@@ -56,11 +56,19 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>CustomPermissionSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>ErrorLogController</apexClass>
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
     <apexClass>ErrorLogCountSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>FiscalYearSelector</apexClass>
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
@@ -193,6 +201,10 @@
   </classAccesses>
   <classAccesses>
     <apexClass>PersonReference</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>ReceiptGapSelector</apexClass>
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
