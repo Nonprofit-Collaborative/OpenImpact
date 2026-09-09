@@ -65,7 +65,7 @@ private class AccessServiceTest {
 
     @IsTest
     static void assignRoleGivesThePersonTheRole() {
-        Test.calculatePermissionSetGroup(FUNDRAISING_ROLE);
+        TestDataFactory.prepareRoleGroup(FUNDRAISING_ROLE);
         User david = insertUser('David', 'Okafor');
 
         Test.startTest();
@@ -81,7 +81,7 @@ private class AccessServiceTest {
 
     @IsTest
     static void assignRoleTwiceChangesNothingTheSecondTime() {
-        Test.calculatePermissionSetGroup(FUNDRAISING_ROLE);
+        TestDataFactory.prepareRoleGroup(FUNDRAISING_ROLE);
         User david = insertUser('David', 'Okafor');
         AccessService.assignRole(david.Id, FUNDRAISING_ROLE);
 
@@ -98,7 +98,7 @@ private class AccessServiceTest {
 
     @IsTest
     static void removeRoleTakesTheRoleAway() {
-        Test.calculatePermissionSetGroup(FUNDRAISING_ROLE);
+        TestDataFactory.prepareRoleGroup(FUNDRAISING_ROLE);
         User david = insertUser('David', 'Okafor');
         AccessService.assignRole(david.Id, FUNDRAISING_ROLE);
 
@@ -115,7 +115,7 @@ private class AccessServiceTest {
 
     @IsTest
     static void removeRoleThePersonDoesNotHoldIsNotAnError() {
-        Test.calculatePermissionSetGroup(FUNDRAISING_ROLE);
+        TestDataFactory.prepareRoleGroup(FUNDRAISING_ROLE);
         User david = insertUser('David', 'Okafor');
 
         Test.startTest();
@@ -179,7 +179,7 @@ private class AccessServiceTest {
 
     @IsTest
     static void assignRoleRefusesSomebodyWhoCanNoLongerSignIn() {
-        Test.calculatePermissionSetGroup(FUNDRAISING_ROLE);
+        TestDataFactory.prepareRoleGroup(FUNDRAISING_ROLE);
         User david = insertUser('David', 'Okafor');
         david.IsActive = false;
         update david;
@@ -208,7 +208,7 @@ private class AccessServiceTest {
 
     @IsTest
     static void removeRoleRefusesToRemoveTheLastNonprofitAdmin() {
-        Test.calculatePermissionSetGroup(AccessService.ADMIN_ROLE);
+        TestDataFactory.prepareRoleGroup(AccessService.ADMIN_ROLE);
         User maria = insertUser('Maria', 'Alvarez');
         AccessService.assignRole(maria.Id, AccessService.ADMIN_ROLE);
         String message;
@@ -257,7 +257,7 @@ private class AccessServiceTest {
 
     @IsTest
     static void getAssignmentsListsThePeopleInEachRole() {
-        Test.calculatePermissionSetGroup(FUNDRAISING_ROLE);
+        TestDataFactory.prepareRoleGroup(FUNDRAISING_ROLE);
         User david = insertUser('David', 'Okafor');
         AccessService.assignRole(david.Id, FUNDRAISING_ROLE);
 
@@ -281,7 +281,7 @@ private class AccessServiceTest {
 
     @IsTest
     static void aPersonWithoutThePermissionCannotChangeRoles() {
-        Test.calculatePermissionSetGroup(FUNDRAISING_ROLE);
+        TestDataFactory.prepareRoleGroup(FUNDRAISING_ROLE);
         User david = insertUser('David', 'Okafor');
         User priya = insertUser('Priya', 'Nair');
         Boolean refused = false;
@@ -329,7 +329,7 @@ private class AccessServiceTest {
         // LICENSE_LIMIT_EXCEEDED rather than on anything this feature does. The
         // collection handling at 200 is proven without DML in
         // theAssignmentListIsBuiltInOneCollectionAtTwoHundred below.
-        Test.calculatePermissionSetGroup(FUNDRAISING_ROLE);
+        TestDataFactory.prepareRoleGroup(FUNDRAISING_ROLE);
         List<User> staff = new List<User>();
         for (Integer i = 0; i < 5; i++) {
             staff.add(
@@ -399,7 +399,7 @@ private class AccessServiceTest {
     @IsTest
     static void severalPeopleHaveARoleTakenAwayInOneOperation() {
         // Five for the same license reason as the assignment test above.
-        Test.calculatePermissionSetGroup(FUNDRAISING_ROLE);
+        TestDataFactory.prepareRoleGroup(FUNDRAISING_ROLE);
         List<User> staff = new List<User>();
         for (Integer i = 0; i < 5; i++) {
             staff.add(

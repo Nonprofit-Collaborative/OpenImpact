@@ -34,14 +34,8 @@ private class PermissionSetAssignmentSelectorTest {
 
     @IsTest
     static void selectByGroupIdsListsThePeopleInTheRole() {
-        Test.calculatePermissionSetGroup(FUNDRAISING_ROLE);
+        PermissionSetGroup groupRecord = TestDataFactory.prepareRoleGroup(FUNDRAISING_ROLE);
         User david = insertUser('David', 'Okafor');
-        PermissionSetGroup groupRecord = [
-            SELECT Id
-            FROM PermissionSetGroup
-            WHERE DeveloperName = :FUNDRAISING_ROLE
-            LIMIT 1
-        ];
         insert new PermissionSetAssignment(
             AssigneeId = david.Id,
             PermissionSetGroupId = groupRecord.Id
@@ -66,14 +60,8 @@ private class PermissionSetAssignmentSelectorTest {
 
     @IsTest
     static void selectByGroupIdsAndUserIdsFindsAnExistingAssignment() {
-        Test.calculatePermissionSetGroup(FUNDRAISING_ROLE);
+        PermissionSetGroup groupRecord = TestDataFactory.prepareRoleGroup(FUNDRAISING_ROLE);
         User david = insertUser('David', 'Okafor');
-        PermissionSetGroup groupRecord = [
-            SELECT Id
-            FROM PermissionSetGroup
-            WHERE DeveloperName = :FUNDRAISING_ROLE
-            LIMIT 1
-        ];
         insert new PermissionSetAssignment(
             AssigneeId = david.Id,
             PermissionSetGroupId = groupRecord.Id
