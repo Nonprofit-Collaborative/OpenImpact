@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>All_Export_Runs</fullName>
+  <columns>NAME</columns>
+  <columns>Start_Date__c</columns>
+  <columns>End_Date__c</columns>
+  <columns>Fund__c</columns>
+  <columns>Payment_Method__c</columns>
+  <columns>Row_Count__c</columns>
+  <columns>Total_Amount__c</columns>
+  <columns>Truncated__c</columns>
+  <columns>CREATED_DATE</columns>
+  <filterScope>Everything</filterScope>
+  <label>All Export Runs</label>
+</ListView>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>
+    The accounting export: choose a period, check the totals, download the file.
+  </description>
+  <flexiPageRegions>
+    <componentInstances>
+      <componentName>accountingExport</componentName>
+      <identifier>accountingExportPageComponent</identifier>
+    </componentInstances>
+    <mode>Replace</mode>
+    <name>main</name>
+    <type>Region</type>
+  </flexiPageRegions>
+  <masterLabel>Accounting Export</masterLabel>
+  <template>
+    <name>flexipage:defaultAppHomeTemplate</name>
+  </template>
+  <type>AppPage</type>
+</FlexiPage>

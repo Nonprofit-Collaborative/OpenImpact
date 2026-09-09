@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Fund__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    The fund this export was narrowed to. Empty means every fund was included.
+  </inlineHelpText>
+  <label>Fund</label>
+  <referenceTo>Fund__c</referenceTo>
+  <relationshipLabel>Accounting Export Runs</relationshipLabel>
+  <relationshipName>Accounting_Export_Runs</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

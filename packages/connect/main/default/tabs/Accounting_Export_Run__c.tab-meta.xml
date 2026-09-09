@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+  <customObject>true</customObject>
+  <description>
+    Every accounting export that has been produced, so you can tell what has already gone to your
+    accountant.
+  </description>
+  <motif>Custom20: Sun</motif>
+</CustomTab>

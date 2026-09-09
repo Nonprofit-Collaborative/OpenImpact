@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+  <labels>
+    <fullName>Connect_Export_Title</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: heading</shortDescription>
+    <value>Accounting export</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_Intro</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: what the page is for</shortDescription>
+    <value>The gifts that arrived in a period, one row per fund, ready to bring into your accounting package. Refunds appear as their own negative rows on the day the money went back, so the Amount column adds up to the net for the period.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_StartDate</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: start date field</shortDescription>
+    <value>From</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_EndDate</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: end date field</shortDescription>
+    <value>To</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_Fund</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: fund filter</shortDescription>
+    <value>Fund</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_PaymentMethod</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: payment method filter</shortDescription>
+    <value>Payment method</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_AllFunds</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: no fund filter</shortDescription>
+    <value>Every fund</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_AllMethods</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: no payment method filter</shortDescription>
+    <value>Every payment method</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_Preview</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: the button that counts the rows first</shortDescription>
+    <value>Check the totals</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_Download</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: the button that produces the file</shortDescription>
+    <value>Download CSV</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_RowCount</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: row count label</shortDescription>
+    <value>Rows</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_GiftCount</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: gift count label</shortDescription>
+    <value>Gifts</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_Total</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: total label</shortDescription>
+    <value>Net total</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_Truncated</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: the range produced more rows than the limit</shortDescription>
+    <value>This range has more rows than one file holds, so the file would be incomplete. Narrow the dates and try again.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_NoRows</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: nothing in the range</shortDescription>
+    <value>No gifts arrived in that range. Check the dates, and check whether the gifts you are looking for are still Pending.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_DatesRequired</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: dates missing</shortDescription>
+    <value>Choose a start date and an end date.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_EndBeforeStart</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: dates the wrong way round</shortDescription>
+    <value>The end date is before the start date.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_RangeTooLong</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: range longer than the limit</shortDescription>
+    <value>Export at most {0} days at a time, so the file stays a size your accounting package can take.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_NoPermission</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: user may not export</shortDescription>
+    <value>You do not have access to the accounting export. Ask your administrator for the Connect Staff or Connect Admin permission set.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_Failed</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: something went wrong</shortDescription>
+    <value>The export could not be produced. Nothing was changed. Your administrator will find the details in the Open Impact error log.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_RunRecorded</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: confirmation that the run was recorded</shortDescription>
+    <value>Export {0} recorded, so you can see later what has already gone to your accountant.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Export_FileName</fullName>
+    <categories>Connect, Accounting Export</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Accounting export page: the downloaded file name</shortDescription>
+    <value>open-impact-gifts-{0}-to-{1}.csv</value>
+  </labels>
+</CustomLabels>

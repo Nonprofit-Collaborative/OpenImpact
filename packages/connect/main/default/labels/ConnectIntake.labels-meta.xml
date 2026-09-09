@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+  <labels>
+    <fullName>Connect_Intake_MissingExternalId</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: no external id was sent</shortDescription>
+    <value>Every gift needs an externalId: the identifier the gift carries in your system. It is what stops the same gift being recorded twice when a retry arrives.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_MissingAmount</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: no amount was sent</shortDescription>
+    <value>A gift needs an amount.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_AmountNotPositive</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: amount is zero or negative</shortDescription>
+    <value>The amount has to be greater than zero. Money going back to a donor is recorded as a refund against the gift it reverses, not as a negative gift posted here.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_AmountTooLarge</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: amount is beyond the accepted range</shortDescription>
+    <value>That amount is outside the range this endpoint accepts. Check the value and the number of decimal places, then send it again.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_MissingPaymentMethod</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: no payment method was sent</shortDescription>
+    <value>A gift needs a paymentMethod, because the accounting export groups by it.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_UnknownPaymentMethod</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: payment method is not one of ours</shortDescription>
+    <value>That paymentMethod is not one Open Impact knows. Use one of: {0}.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_InvalidGiftDate</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: gift date could not be read</shortDescription>
+    <value>The giftDate could not be read. Send it as a date in the form YYYY-MM-DD.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_GiftDateInFuture</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: gift date is in the future</shortDescription>
+    <value>The giftDate is in the future. A gift is recorded on the day the money arrived.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_GiftDateTooOld</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: gift date is implausibly old</shortDescription>
+    <value>The giftDate is further back than this endpoint accepts. Historical gifts are loaded through the import framework, which can check them for duplicates first.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_DonorNotSpecified</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: no donor was named</shortDescription>
+    <value>A gift needs a donor. Send one of donorContactId, donorAccountId, donorEmail or donorOrganizationName.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_DonorNotFound</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: no donor matched</shortDescription>
+    <value>No donor in Open Impact matches what you sent. This endpoint records gifts for donors who are already here: add the donor first, or load the gift through the import framework, which can create the donor and check for duplicates.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_DonorAmbiguous</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: more than one donor matched</shortDescription>
+    <value>What you sent matches {0} donors, so Open Impact cannot tell which one gave. Send donorContactId or donorAccountId instead.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_DonorConflict</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: a person and an organization were both named</shortDescription>
+    <value>A gift comes from one donor: a person or an organization, never both. Send one of donorContactId or donorAccountId, not both.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_FundNotFound</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: no fund matched</shortDescription>
+    <value>No fund matches what you sent. Check the fund code or name, or leave the fund out and the gift goes to the default fund.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_FundAmbiguous</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: more than one fund matched</shortDescription>
+    <value>What you sent matches {0} funds. Send fundAccountingCode, which is unique, or fundId.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_FundInactive</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: fund is not active</shortDescription>
+    <value>That fund is no longer active, so new gifts are not designated to it. Choose an active fund or leave the fund out.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_AppealNotFound</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: no appeal matched</shortDescription>
+    <value>No appeal matches what you sent. Check the appeal name, or leave it out.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_AppealAmbiguous</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: more than one appeal matched</shortDescription>
+    <value>What you sent matches {0} appeals. Send appealId.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_ExternalIdConflict</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: external id already used for different money</shortDescription>
+    <value>A gift with this externalId is already recorded, and it does not carry the same {0}. A gift is a fact about money that arrived, so this endpoint will not rewrite one. If the first gift was wrong, refund it and record a new one. If this is a different gift, send it with its own externalId.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_ValueTooLong</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: a value is longer than the field holds</shortDescription>
+    <value>The value sent for {0} is longer than Open Impact can hold. Shorten it to {1} characters or fewer.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_SaveFailed</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: the save failed for a reason the caller cannot fix</shortDescription>
+    <value>The gift could not be saved. Nothing was recorded. Your administrator will find the details in the Open Impact error log.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_UnreadableBody</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: the request body was not readable JSON</shortDescription>
+    <value>The request body could not be read as JSON. Send a single gift object with a Content-Type of application/json.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_BatchTooLarge</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: too many gifts in one call</shortDescription>
+    <value>That is more gifts than one call accepts. Send at most {0} at a time.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_Intake_NoAccess</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: the calling user may not record gifts</shortDescription>
+    <value>This user is not allowed to record gifts. Assign the Connect Integration User permission set to the account this integration signs in as.</value>
+  </labels>
+</CustomLabels>
