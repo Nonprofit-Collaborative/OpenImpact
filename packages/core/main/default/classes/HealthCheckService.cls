@@ -2,6 +2,17 @@
  * Health Check: what this org looks like, whether Open Impact is set up to match, who can
  * get in, and what is currently in the way (plan Section 4.8, feature C-11).
  *
+ * This class holds the vocabulary every check shares (the Finding, the severities, the
+ * categories, the fix targets), the order the checks are read in, and the report the panel
+ * receives. What each check actually says lives in one of three classes grouped by the
+ * question it asks, so adding a check means reading one of them rather than all of them
+ * (ADR-0031):
+ *
+ * - HealthCheckOrgShapeChecks: what is installed, and whether the mode matches it.
+ * - HealthCheckAccessChecks: who administers the app, who cannot see it, who holds the
+ *   receipt lock override. Only asked of a viewer who may manage settings.
+ * - HealthCheckSettingsChecks: automation, fiscal year, receipt generation, Error Log.
+ *
  * Every check is isolated. A check that throws becomes a finding of its own and is written
  * to the Error Log; the other checks still run, because a report that hides eight answers
  * because the ninth failed is worse than no report.
@@ -65,12 +76,6 @@ public with sharing class HealthCheckService {
     };
 
     /**
-     * An Apex class the Connect package ships, used to tell whether Connect is installed
-     * without referencing it at compile time.
-     */
-    private static final String CONNECT_MARKER_CLASS = 'ConnectService';
-
-    /**
      * The custom permission that lifts the receipt lock (ADR-0024). It ships in the Giving
      * package, assigned to nobody, and is meant to be granted in Setup for one correction and
      * removed again. Core never compiles against Giving: this is a String handed to
@@ -85,13 +90,6 @@ public with sharing class HealthCheckService {
      * the receipt lock out of the console on purpose.
      */
     public static final String FIX_CUSTOM_PERMISSIONS_URL = '/lightning/setup/CustomPermissions/home';
-
-    /**
-     * How many reconciled receipt numbers are ordinary. One number consumed by a failed run
-     * is the mechanism working (R-RC3); more than one is generation failing repeatedly with
-     * nobody watching.
-     */
-    private static final Integer RECEIPT_FAILURES_EXPECTED = 1;
 
     /**
      * The custom permission that gates changing settings and reading who else is in the org.
@@ -242,90 +240,6 @@ public with sharing class HealthCheckService {
         }
     }
 
-    private class OrgShapeCheck implements Check {
-        public Finding run() {
-            return orgShapeFinding(OrgShapeDetector.detect());
-        }
-    }
-
-    private class CoexistenceModeCheck implements Check {
-        public Finding run() {
-            return coexistenceModeFinding();
-        }
-    }
-
-    private class MembershipModeCheck implements Check {
-        public Finding run() {
-            return membershipModeFinding(OrgShapeDetector.detect());
-        }
-    }
-
-    private class ConnectModuleCheck implements Check {
-        public Finding run() {
-            return connectModuleFinding(OrgShapeDetector.detect());
-        }
-    }
-
-    private class MultiCurrencyCheck implements Check {
-        public Finding run() {
-            return multiCurrencyFinding(OrgShapeDetector.detect());
-        }
-    }
-
-    private class NoAdminCheck implements Check {
-        public Finding run() {
-            return noAdminFinding();
-        }
-    }
-
-    private class UsersWithoutAccessCheck implements Check {
-        public Finding run() {
-            return usersWithoutAccessFinding();
-        }
-    }
-
-    private class AutomationCheck implements Check {
-        public Finding run() {
-            return automationFinding();
-        }
-    }
-
-    private class ErrorLogCheck implements Check {
-        public Finding run() {
-            return errorLogFinding();
-        }
-    }
-
-    private class OverrideReceiptLockCheck implements Check {
-        public Finding run() {
-            return overrideReceiptLockFinding();
-        }
-    }
-
-    private class FiscalYearCheck implements Check {
-        public Finding run() {
-            return fiscalYearFinding();
-        }
-    }
-
-    private class ReceiptGenerationCheck implements Check {
-        public Finding run() {
-            return receiptGenerationFinding();
-        }
-    }
-
-    private class AccessChecksNeedAdminCheck implements Check {
-        public Finding run() {
-            return new Finding(
-                'access_checks_need_admin',
-                System.Label.Core_HealthCheck_AccessNeedsAdminTitle,
-                System.Label.Core_HealthCheck_AccessNeedsAdminDetail,
-                SEVERITY_INFO,
-                CATEGORY_ACCESS
-            );
-        }
-    }
-
     /**
      * Every finding, in the order an administrator should read them.
      *
@@ -361,26 +275,59 @@ public with sharing class HealthCheckService {
             steps.add(new CheckStep('injected', faultInjection));
         }
 
-        steps.add(new CheckStep('org_shape', new OrgShapeCheck()));
-        steps.add(new CheckStep('coexistence_mode', new CoexistenceModeCheck()));
-        steps.add(new CheckStep('membership_mode', new MembershipModeCheck()));
-        steps.add(new CheckStep('connect_module', new ConnectModuleCheck()));
-        steps.add(new CheckStep('multi_currency', new MultiCurrencyCheck()));
+        steps.add(new CheckStep('org_shape', new HealthCheckOrgShapeChecks.OrgShapeCheck()));
+        steps.add(
+            new CheckStep('coexistence_mode', new HealthCheckOrgShapeChecks.CoexistenceModeCheck())
+        );
+        steps.add(
+            new CheckStep('membership_mode', new HealthCheckOrgShapeChecks.MembershipModeCheck())
+        );
+        steps.add(
+            new CheckStep('connect_module', new HealthCheckOrgShapeChecks.ConnectModuleCheck())
+        );
+        steps.add(
+            new CheckStep('multi_currency', new HealthCheckOrgShapeChecks.MultiCurrencyCheck())
+        );
 
         if (canManageSettings()) {
-            steps.add(new CheckStep('nonprofit_admin', new NoAdminCheck()));
-            steps.add(new CheckStep('users_without_access', new UsersWithoutAccessCheck()));
-            steps.add(new CheckStep('override_receipt_lock', new OverrideReceiptLockCheck()));
+            steps.add(
+                new CheckStep(
+                    'nonprofit_admin',
+                    new HealthCheckAccessChecks.NoAdminCheck(accessCounts())
+                )
+            );
+            steps.add(
+                new CheckStep(
+                    'users_without_access',
+                    new HealthCheckAccessChecks.UsersWithoutAccessCheck(accessCounts())
+                )
+            );
+            steps.add(
+                new CheckStep(
+                    'override_receipt_lock',
+                    new HealthCheckAccessChecks.OverrideReceiptLockCheck()
+                )
+            );
         } else {
-            steps.add(new CheckStep('access_checks_need_admin', new AccessChecksNeedAdminCheck()));
+            steps.add(
+                new CheckStep(
+                    'access_checks_need_admin',
+                    new HealthCheckAccessChecks.NeedsAdminCheck()
+                )
+            );
         }
 
-        steps.add(new CheckStep('automation', new AutomationCheck()));
-        steps.add(new CheckStep('fiscal_year', new FiscalYearCheck()));
-        steps.add(new CheckStep('receipt_generation', new ReceiptGenerationCheck()));
+        steps.add(new CheckStep('automation', new HealthCheckSettingsChecks.AutomationCheck()));
+        steps.add(new CheckStep('fiscal_year', new HealthCheckSettingsChecks.FiscalYearCheck()));
+        steps.add(
+            new CheckStep(
+                'receipt_generation',
+                new HealthCheckSettingsChecks.ReceiptGenerationCheck()
+            )
+        );
 
         if (canManageSettings()) {
-            steps.add(new CheckStep('error_log', new ErrorLogCheck()));
+            steps.add(new CheckStep('error_log', new HealthCheckSettingsChecks.ErrorLogCheck()));
         }
 
         return steps;
@@ -425,351 +372,12 @@ public with sharing class HealthCheckService {
         return report;
     }
 
-    private static Finding orgShapeFinding(OrgShapeDetector.OrgShape shape) {
-        String recommended = OrgShapeDetector.recommendedCoexistenceMode();
-        String detail = String.format(
-            System.Label.Core_HealthCheck_OrgShapeDetail,
-            new List<Object>{ detectedSummary(shape), modeLabel(recommended) }
-        );
-        return new Finding(
-            'org_shape',
-            System.Label.Core_HealthCheck_OrgShapeTitle,
-            detail,
-            SEVERITY_INFO,
-            CATEGORY_ORG_SHAPE
-        );
-    }
-
     /**
-     * What was found, as a sentence an administrator can read out loud.
+     * What was found, as a sentence an administrator can read out loud. The sentence itself
+     * is built next to the org shape checks that also use it.
      */
     public static String detectedSummary(OrgShapeDetector.OrgShape shape) {
-        if (shape == null) {
-            return System.Label.Core_HealthCheck_NothingDetected;
-        }
-
-        List<String> detected = new List<String>();
-        if (shape.hasPersonAccounts == true) {
-            detected.add(System.Label.Core_HealthCheck_PersonAccountsDetected);
-        }
-        if (shape.hasIndustriesNonprofit == true) {
-            detected.add(System.Label.Core_HealthCheck_IndustriesDetected);
-        }
-        if (shape.hasNpsp == true) {
-            detected.add(System.Label.Core_HealthCheck_NpspDetected);
-        }
-        if (shape.hasSalesCloudObjects == true) {
-            detected.add(System.Label.Core_HealthCheck_SalesObjectsDetected);
-        }
-        if (detected.isEmpty()) {
-            return System.Label.Core_HealthCheck_NothingDetected;
-        }
-        return String.join(detected, '. ') + '.';
-    }
-
-    private static Finding coexistenceModeFinding() {
-        String recommended = OrgShapeDetector.recommendedCoexistenceMode();
-        String current = CoexistenceService.getCurrentMode();
-
-        if (String.isBlank(current)) {
-            String detail = String.format(
-                System.Label.Core_HealthCheck_ModeUnsetDetail,
-                new List<Object>{
-                    modeLabel(CoexistenceService.MODE_STANDALONE),
-                    modeLabel(recommended)
-                }
-            );
-            return new Finding(
-                    'coexistence_mode_unset',
-                    System.Label.Core_HealthCheck_ModeUnsetTitle,
-                    detail,
-                    SEVERITY_WARNING,
-                    CATEGORY_ORG_SHAPE
-                )
-                .withFix(
-                    System.Label.Core_HealthCheck_UseRecommendedFix,
-                    FIX_APPLY_RECOMMENDED_MODE
-                );
-        }
-
-        if (!current.equals(recommended)) {
-            String detail = String.format(
-                System.Label.Core_HealthCheck_ModeMismatchDetail,
-                new List<Object>{ modeLabel(current), modeLabel(recommended) }
-            );
-            return new Finding(
-                    'coexistence_mode_mismatch',
-                    System.Label.Core_HealthCheck_ModeMismatchTitle,
-                    detail,
-                    SEVERITY_WARNING,
-                    CATEGORY_ORG_SHAPE
-                )
-                .withFix(
-                    System.Label.Core_HealthCheck_UseRecommendedFix,
-                    FIX_APPLY_RECOMMENDED_MODE
-                );
-        }
-
-        String matchDetail = String.format(
-            System.Label.Core_HealthCheck_ModeMatchDetail,
-            new List<Object>{ modeLabel(current) }
-        );
-        return new Finding(
-            'coexistence_mode_match',
-            System.Label.Core_HealthCheck_ModeMatchTitle,
-            matchDetail,
-            SEVERITY_INFO,
-            CATEGORY_ORG_SHAPE
-        );
-    }
-
-    private static Finding membershipModeFinding(OrgShapeDetector.OrgShape shape) {
-        if (shape == null || shape.hasPersonAccounts != true) {
-            return null;
-        }
-        if (CoexistenceService.MEMBERSHIP_JUNCTION.equals(CoexistenceService.getMembershipMode())) {
-            return null;
-        }
-
-        return new Finding(
-                'membership_mode_person_accounts',
-                System.Label.Core_HealthCheck_MembershipTitle,
-                System.Label.Core_HealthCheck_MembershipDetail,
-                SEVERITY_ERROR,
-                CATEGORY_ORG_SHAPE
-            )
-            .withFix(System.Label.Core_HealthCheck_MembershipFix, FIX_APPLY_JUNCTION_MEMBERSHIP);
-    }
-
-    private static Finding connectModuleFinding(OrgShapeDetector.OrgShape shape) {
-        if (shape == null || shape.hasIndustriesNonprofit != true) {
-            return null;
-        }
-        if (Type.forName(CONNECT_MARKER_CLASS) != null) {
-            return null;
-        }
-
-        return new Finding(
-            'connect_module_absent',
-            System.Label.Core_HealthCheck_ConnectMissingTitle,
-            System.Label.Core_HealthCheck_ConnectMissingDetail,
-            SEVERITY_INFO,
-            CATEGORY_ORG_SHAPE
-        );
-    }
-
-    private static Finding multiCurrencyFinding(OrgShapeDetector.OrgShape shape) {
-        if (shape == null || shape.isMultiCurrency != true) {
-            return null;
-        }
-
-        return new Finding(
-            'multi_currency',
-            System.Label.Core_HealthCheck_MultiCurrencyTitle,
-            System.Label.Core_HealthCheck_MultiCurrencyDetail,
-            SEVERITY_WARNING,
-            CATEGORY_LICENSES
-        );
-    }
-
-    private static Finding noAdminFinding() {
-        Integer admins = accessCounts().administrators();
-        if (admins > 0) {
-            return null;
-        }
-
-        return new Finding(
-                'no_nonprofit_admin',
-                System.Label.Core_HealthCheck_NoAdminTitle,
-                System.Label.Core_HealthCheck_NoAdminDetail,
-                SEVERITY_ERROR,
-                CATEGORY_ACCESS
-            )
-            .withFix(System.Label.Core_HealthCheck_AccessFix, SECTION_ACCESS);
-    }
-
-    private static Finding usersWithoutAccessFinding() {
-        Integer without = accessCounts().usersWithoutAccess();
-        if (without <= 0) {
-            return null;
-        }
-
-        List<Object> count = new List<Object>{ String.valueOf(without) };
-        return new Finding(
-                'users_without_access',
-                String.format(System.Label.Core_HealthCheck_UsersWithoutAccessTitle, count),
-                String.format(System.Label.Core_HealthCheck_UsersWithoutAccessDetail, count),
-                SEVERITY_WARNING,
-                CATEGORY_ACCESS
-            )
-            .withFix(System.Label.Core_HealthCheck_AccessFix, SECTION_ACCESS);
-    }
-
-    private static Finding automationFinding() {
-        Nonprofit_Settings__c settings = SettingsService.getSettings();
-        Datetime pausedUntil = settings == null ? null : settings.Automation_Paused_Until__c;
-        if (pausedUntil == null || pausedUntil <= System.now()) {
-            return new Finding(
-                'automation_running',
-                System.Label.Core_HealthCheck_AutomationRunningTitle,
-                System.Label.Core_HealthCheck_AutomationRunningDetail,
-                SEVERITY_INFO,
-                CATEGORY_SETTINGS
-            );
-        }
-
-        String detail = String.format(
-            System.Label.Core_HealthCheck_AutomationPausedDetail,
-            new List<Object>{ pausedUntil.format() }
-        );
-        return new Finding(
-                'automation_paused',
-                System.Label.Core_HealthCheck_AutomationPausedTitle,
-                detail,
-                SEVERITY_INFO,
-                CATEGORY_SETTINGS
-            )
-            .withFix(System.Label.Core_HealthCheck_AutomationFix, SECTION_AUTOMATION);
-    }
-
-    private static Finding errorLogFinding() {
-        Integer newErrors = ErrorLogCountSelector.countNew();
-        if (newErrors <= 0) {
-            return null;
-        }
-
-        List<Object> count = new List<Object>{ String.valueOf(newErrors) };
-        return new Finding(
-                'error_log_new',
-                String.format(System.Label.Core_HealthCheck_ErrorLogTitle, count),
-                String.format(System.Label.Core_HealthCheck_ErrorLogDetail, count),
-                SEVERITY_WARNING,
-                CATEGORY_SETTINGS
-            )
-            .withFix(
-                System.Label.Core_HealthCheck_ErrorLogFix,
-                ErrorLogCountSelector.listViewUrl()
-            );
-    }
-
-    /**
-     * Anyone holding the receipt lock override, by name (ADR-0024). Naming them is the point:
-     * an administrator cannot take a permission away from "somebody".
-     *
-     * Asked only of a viewer who may manage settings, alongside the other two questions about
-     * the whole org, because Salesforce shows a person only their own access and a list built
-     * from that would be confidently wrong.
-     */
-    private static Finding overrideReceiptLockFinding() {
-        CustomPermissionSelector.Holders holders = CustomPermissionSelector.holders(
-            OVERRIDE_RECEIPT_LOCK
-        );
-        if (holders == null || holders.readable != true || holders.total <= 0) {
-            return null;
-        }
-
-        String detail = String.format(
-            System.Label.Core_HealthCheck_OverrideLockDetail,
-            new List<Object>{ holderList(holders) }
-        );
-        return new Finding(
-                'override_receipt_lock',
-                System.Label.Core_HealthCheck_OverrideLockTitle,
-                detail,
-                SEVERITY_WARNING,
-                CATEGORY_ACCESS
-            )
-            .withFix(System.Label.Core_HealthCheck_OverrideLockFix, FIX_CUSTOM_PERMISSIONS_URL);
-    }
-
-    /**
-     * The holders as a sentence: the first few by name, then a count of the rest, so a org
-     * that has granted the permission to a whole profile still produces a readable line.
-     */
-    private static String holderList(CustomPermissionSelector.Holders holders) {
-        List<String> parts = new List<String>(holders.names);
-        Integer unnamed = holders.total - holders.names.size();
-        if (unnamed > 0) {
-            parts.add(
-                String.format(
-                    System.Label.Core_HealthCheck_OverrideLockMoreNames,
-                    new List<Object>{ String.valueOf(unnamed) }
-                )
-            );
-        }
-        return String.join(parts, ', ');
-    }
-
-    /**
-     * Whether the fiscal year in Setup and the one in Nonprofit Settings start in the same
-     * month (ADR-0025). They have to: the rollups are computed from the setting and the
-     * packaged retention reports are filtered on Setup's fiscal year date literals, so a
-     * disagreement makes every year based number quietly measure a different window.
-     */
-    private static Finding fiscalYearFinding() {
-        Integer orgMonth = FiscalYearSelector.orgFiscalYearStartMonth();
-        Integer settingsMonth = FiscalYearSelector.settingsFiscalYearStartMonth();
-        if (orgMonth == null || settingsMonth == null || orgMonth == settingsMonth) {
-            return null;
-        }
-
-        String detail = String.format(
-            System.Label.Core_HealthCheck_FiscalYearMismatchDetail,
-            new List<Object>{
-                FiscalYearSelector.monthName(settingsMonth),
-                FiscalYearSelector.monthName(orgMonth)
-            }
-        );
-        return new Finding(
-                'fiscal_year_mismatch',
-                System.Label.Core_HealthCheck_FiscalYearMismatchTitle,
-                detail,
-                SEVERITY_WARNING,
-                CATEGORY_SETTINGS
-            )
-            .withFix(System.Label.Core_HealthCheck_FiscalYearFix, SECTION_GENERAL);
-    }
-
-    /**
-     * Receipt numbers consumed by a run that failed (R-RC3). One is the reconciliation
-     * mechanism doing its job and is reported as information; more than one is receipt
-     * generation failing repeatedly, which is a warning because the donors are waiting.
-     *
-     * An org without the Giving package cannot answer the question at all, and is told
-     * nothing rather than told zero.
-     */
-    private static Finding receiptGenerationFinding() {
-        ReceiptGapSelector.Result failures = ReceiptGapSelector.generationFailures();
-        if (failures == null || failures.available != true || failures.count <= 0) {
-            return null;
-        }
-
-        if (failures.count <= RECEIPT_FAILURES_EXPECTED) {
-            return new Finding(
-                    'receipt_generation_failed_once',
-                    System.Label.Core_HealthCheck_ReceiptFailedOneTitle,
-                    System.Label.Core_HealthCheck_ReceiptFailedOneDetail,
-                    SEVERITY_INFO,
-                    CATEGORY_SETTINGS
-                )
-                .withFix(
-                    System.Label.Core_HealthCheck_ErrorLogFix,
-                    ErrorLogCountSelector.listViewUrl()
-                );
-        }
-
-        List<Object> count = new List<Object>{ String.valueOf(failures.count) };
-        return new Finding(
-                'receipt_generation_failed',
-                String.format(System.Label.Core_HealthCheck_ReceiptFailedManyTitle, count),
-                String.format(System.Label.Core_HealthCheck_ReceiptFailedManyDetail, count),
-                SEVERITY_WARNING,
-                CATEGORY_SETTINGS
-            )
-            .withFix(
-                System.Label.Core_HealthCheck_ErrorLogFix,
-                ErrorLogCountSelector.listViewUrl()
-            );
+        return HealthCheckOrgShapeChecks.detectedSummary(shape);
     }
 
     private static Finding checkFailed(String checkKey, Exception e) {

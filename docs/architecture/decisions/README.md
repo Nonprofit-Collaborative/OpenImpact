@@ -39,6 +39,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0028](0028-donor-levels-read-a-rollup-and-follow-the-total-down.md) | A donor level labels an existing rollup, and follows that total down | Accepted |
 | [0029](0029-shipped-rollups-are-created-by-each-packages-post-install-script.md) | Shipped rollups are created by each package's post-install script | Accepted |
 | [0030](0030-in-kind-gifts-are-a-gift-type-whose-value-never-enters-the-money-rollups.md) | An in-kind gift is a gift type carrying no amount, and its value is rolled up separately from money | Accepted |
+| [0031](0031-health-check-findings-are-grouped-by-the-question-they-ask.md) | Health Check findings are grouped by the question they ask, not registered one by one | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions
@@ -53,7 +54,8 @@ ADR-0028 is a builder decision for G-14, answering the four questions donor leve
 be built without. ADR-0029 is a builder decision on a defect found in C-13 and
 G-02: the shipped rollup definitions were never created at install. ADR-0030 is a
 builder decision for G-18, and it answers the question ADR-0022 recorded as open
-about a gift recorded at zero.
+about a gift recorded at zero. ADR-0031 is a builder decision made while refactoring
+C-11, and it records where a new Health Check finding goes.
 
 ## Adding a new ADR
 
