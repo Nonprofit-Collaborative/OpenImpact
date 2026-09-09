@@ -137,16 +137,24 @@ does.
 
 Drawn from plan Section 4.6 and the acceptance criteria in Section 10.2.
 
-**R-H1 Automatic creation.** In contact mode, inserting a Contact with no Account
-creates a Household Account named per the naming rules, in the same transaction, and
-attaches the Contact to it. This is controlled by the `Auto_Create_Households__c`
-setting, default on. Bulk safety is required: 200 Contacts inserted in one DML operation
-create their households without exceeding platform limits.
+**R-H1 Automatic creation in contact mode.** In contact mode, inserting a Contact with
+no Account creates a Household Account named per the naming rules, in the same
+transaction, and attaches the Contact to it. This is controlled by the
+`Auto_Create_Households__c` setting, default on. Bulk safety is required: 200 Contacts
+inserted in one DML operation create their households without exceeding platform limits.
 
-**R-H2 Person Accounts.** In junction mode with Person Accounts enabled, creating a
-Person Account does not create a Household unless
-`Create_Households_For_Person_Accounts__c` is on. When it is on, a Household is created
-and a Household Member record links the Person Account to it.
+**R-H2 Automatic creation in junction mode.** In junction mode, saving a new person who
+belongs to no household creates a Household Account named per the naming rules and a
+Household Member record joining them to it, with the role Head and the primary flag set.
+The same `Auto_Create_Households__c` setting governs it, so one switch answers "does a new
+person get a household" in both membership modes. The person may be stored as a Contact
+or, in an org shaped that way, as a person record on Account: both take this path. A
+person a Household Member record already joins to a household is left alone. Bulk safety
+is required here too: 200 people inserted in one DML operation get their households and
+their membership records without exceeding platform limits.
+
+This rule previously said that a person stored as an account got no household unless a
+second setting asked for it. ADR-NEXT retires that setting and records why.
 
 **R-H3 Membership modes.** Membership has two modes, and both sit behind a single Apex
 service so that no other code knows which is in use:
@@ -383,8 +391,9 @@ address fields are used as the platform provides them.
 ### Rules
 
 **R-C1 Every person has a household.** In contact mode a Contact inserted with no
-Account gets one created (R-H1). A Contact is never left without a household unless
-automatic creation is turned off.
+Account gets one created (R-H1). In junction mode a Contact inserted with no membership
+gets a household and the membership record that joins them to it (R-H2). A Contact is
+never left without a household unless automatic creation is turned off.
 
 **R-C2 Naming inputs.** Preferred Name, when present, replaces First Name in the
 informal greeting and in any pattern that uses a personal name. Salutation feeds the
@@ -662,9 +671,8 @@ may add keys, and must add them here first.
 |---|---|---|---|
 | `Coexistence_Mode__c` | picklist(Standalone, NPSP, AgentforceNonprofit) | Standalone | How this org coexists with what is already installed; set by the Setup Assistant after automatic detection and confirmable later (plan Section 4.5). |
 | `Household_Membership_Mode__c` | picklist(Contact, Junction) | Contact | Whether household membership uses the Contact's Account reference or the Household Member junction. |
-| `Auto_Create_Households__c` | boolean | true | Whether inserting a Contact with no household creates one automatically. |
+| `Auto_Create_Households__c` | boolean | true | Whether saving a new person who belongs to no household creates one automatically. Governs both membership modes, and both objects a person can be stored on (R-H1, R-H2). |
 | `Delete_Empty_Households__c` | boolean | true | Whether a household left with no members is deleted. |
-| `Create_Households_For_Person_Accounts__c` | boolean | false | Whether creating a Person Account also creates a household and a membership record. |
 | `Household_Name_Pattern__c` | text | The {LastName} Family | The pattern used to compute a household's name. |
 | `Formal_Greeting_Pattern__c` | text | {Salutation} {FirstName} {LastName} | The pattern used to compute the formal greeting. |
 | `Informal_Greeting_Pattern__c` | text | {FirstName} | The pattern used to compute the informal greeting. |

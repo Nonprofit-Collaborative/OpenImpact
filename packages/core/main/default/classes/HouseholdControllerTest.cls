@@ -184,7 +184,7 @@ private class HouseholdControllerTest {
 
     @IsTest
     static void theScreenIsToldHowPeopleBelongToAHousehold() {
-        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
 
         Test.startTest();
         String mode = HouseholdController.getMembershipMode();

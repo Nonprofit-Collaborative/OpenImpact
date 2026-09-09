@@ -8,6 +8,7 @@
 
 A household is the group of people you treat as one donor: one mailing, one thank you
 letter, one giving history. Open Impact creates a household for every new person you add,
+in either way of belonging to a household and whichever record your org stores people on,
 keeps track of who belongs to it, and keeps the member count right when people join, move,
 or leave.
 
@@ -21,14 +22,13 @@ Nonprofit Settings page, so nobody needs to open Salesforce Setup.
 
 1. Open the **Nonprofit Hub** app and click the **Nonprofit Settings** tab.
 2. Click **Households** in the left navigation.
-3. Check the four settings and change any that do not match how you work.
+3. Check the three settings and change any that do not match how you work.
 
 | Setting | What it does | Ships as |
 |---|---|---|
 | How people belong to a household | The simple way (one household per person) or the flexible way (a person can belong to more than one household, and you keep the history of who belonged when) | The simple way |
-| Create a household automatically | When you save a new person with no household, one is created for them | On |
+| Create a household automatically | When you save a new person with no household, one is created for them. This works the same way in both ways of belonging, and for people stored as contacts and for people stored as accounts | On |
 | Delete a household when the last person leaves | Keeps your list of households clean | On |
-| Create households for people stored as accounts | Only matters when your org stores people as accounts instead of as contacts | Off |
 
 4. Click **Save**. The change applies to the next record anyone saves.
 
@@ -60,17 +60,30 @@ Maria does this from the sample data.
 That is the whole lifecycle: created for you, named for you, counted for you, and tidied
 up for you.
 
+The walkthrough reads the same in the flexible way of belonging, with one difference at
+step 3: the household is not shown in the household field on the person, because in that
+mode membership is a record of its own. Open the household from the **Households** tab, or
+from the Members panel on the person, and everything from step 4 on is identical.
+
 ## If your org stores people as accounts
 
 Some orgs, including most Nonprofit Cloud and Agentforce Nonprofit orgs, store each person
-as an account rather than as a contact. Households work there too, with two differences:
+as an account rather than as a contact. Households work there too, with one difference:
+choose the flexible way of belonging to a household. It is the only mode that can hold a
+person who is stored as an account, and Open Impact selects it for you when it notices your
+org is shaped that way.
 
-1. Choose the flexible way of belonging to a household. It is the only mode that can hold a
-   person who is stored as an account, and Open Impact selects it for you when it notices
-   your org is shaped that way.
-2. Turn on "create households for people stored as accounts" if you want a household made
-   for each new person. It ships off, because many of these orgs already group people
-   another way and would not want a second household appearing.
+Automatic creation is the same setting and the same behavior as anywhere else. When "create
+a household automatically" is on, saving a new person creates their household and the
+membership record that joins them to it, whether that person is a contact or an account.
+There used to be a second setting here, "create households for people stored as accounts",
+and it has been removed: it shipped off, so an org that took the recommended setup got no
+households at all and was told nothing about it. One setting now answers the question for
+everybody.
+
+If you are one of the orgs that groups people another way and does not want a household
+appearing for each person, turn "create a household automatically" off. Health Check will
+tell you the state you are in, so it is a choice rather than a surprise.
 
 Everything else reads the same: the same member counts, the same names and greetings, and
 the same Members panel. A household is still its own record, never a person.
@@ -78,9 +91,11 @@ the same Members panel. A household is still its own record, never a person.
 ## Common mistakes
 
 **"I added a person and no household appeared."**
-Either "create a household automatically" is off, or you filled in the household yourself
-when you created the person. Turn the setting back on in Nonprofit Settings, then open the
-person and pick or create a household.
+Either "create a household automatically" is off, or the person already belongs to a
+household: you filled the household in yourself when you created them, or a membership
+record already joins them to one. Turn the setting back on in Nonprofit Settings, then open
+the person and pick or create a household. Health Check reports the setting being off as a
+red finding, with a button that turns it on.
 
 **"I deleted the last person and the household is still there."**
 "Delete a household when the last person leaves" is off. That is a reasonable choice if

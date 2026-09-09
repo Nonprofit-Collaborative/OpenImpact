@@ -1,9 +1,11 @@
 /**
  * Household upkeep when a person changes.
  *
- * Before insert a person with no household gets one. After every change the households the
- * person came from and went to are recounted, renamed, and, when they have been left empty
- * and the org asks for it, deleted.
+ * A person with no household gets one: before insert in contact mode, where the household
+ * is a reference on the contact, and after insert in junction mode, where it is a
+ * membership row that needs the person's id. After every change the households the person
+ * came from and went to are recounted, renamed, and, when they have been left empty and
+ * the org asks for it, deleted.
  */
 public with sharing class ContactTriggerHandler extends TriggerHandler {
     public override void beforeInsert() {
@@ -11,6 +13,10 @@ public with sharing class ContactTriggerHandler extends TriggerHandler {
     }
 
     public override void afterInsert() {
+        // Junction mode first: a person saved into it with no household gets one here,
+        // because the membership row that joins them to it needs an id the contact did not
+        // have before insert (R-H2, ADR-NEXT). Contact mode did its half before insert.
+        HouseholdService.createHouseholdsForNewContacts((List<Contact>) Trigger.new);
         refresh(householdIds((List<Contact>) Trigger.new), false);
     }
 

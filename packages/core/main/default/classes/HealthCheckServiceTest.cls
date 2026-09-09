@@ -159,6 +159,71 @@ private class HealthCheckServiceTest {
         );
     }
 
+    /**
+     * The state ADR-NEXT closes, and the finding that makes it impossible to sit in it
+     * silently: membership on the junction, automatic creation off, so no new person gets a
+     * household and nothing else in the product says so.
+     */
+    @IsTest
+    static void junctionMembershipWithNoCreationPathIsAnError() {
+        OrgShapeDetector.overrideShape = shape(false, true, false, false);
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
+
+        HealthCheckService.Finding finding = find(
+            HealthCheckService.run(),
+            'household_creation_disabled'
+        );
+
+        System.assertNotEquals(null, finding, 'The state is always reported.');
+        System.assertEquals(
+            HealthCheckService.SEVERITY_ERROR,
+            finding.severity,
+            'Nobody is getting a household, which is broken rather than untidy.'
+        );
+        System.assertEquals(
+            HealthCheckService.CATEGORY_SETTINGS,
+            finding.category,
+            'It is a settings finding: the setting is what has to change.'
+        );
+        System.assertEquals(
+            HealthCheckService.FIX_ENABLE_AUTOMATIC_HOUSEHOLDS,
+            finding.fixTarget,
+            'And the fix turns automatic household creation on.'
+        );
+    }
+
+    @IsTest
+    static void junctionMembershipWithAutomaticHouseholdsIsNotReported() {
+        OrgShapeDetector.overrideShape = shape(false, true, false, false);
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+
+        System.assertEquals(
+            null,
+            find(HealthCheckService.run(), 'household_creation_disabled'),
+            'Every new person is getting a household, so there is nothing to report.'
+        );
+    }
+
+    /**
+     * Contact mode is left alone by this check on purpose: the person still has a household
+     * field anyone can fill in, and turning creation off there is an ordinary preference.
+     */
+    @IsTest
+    static void contactMembershipWithAutomaticHouseholdsOffIsNotReported() {
+        OrgShapeDetector.overrideShape = shape(false, false, false, false);
+        Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
+            HouseholdTestDataFactory.MODE_CONTACT
+        );
+        settings.Auto_Create_Households__c = false;
+        HouseholdTestDataFactory.save(settings);
+
+        System.assertEquals(
+            null,
+            find(HealthCheckService.run(), 'household_creation_disabled'),
+            'This check is about the mode with no household field to fall back on.'
+        );
+    }
+
     @IsTest
     static void industriesObjectsWithoutConnectAreReported() {
         OrgShapeDetector.overrideShape = shape(false, false, true, false);

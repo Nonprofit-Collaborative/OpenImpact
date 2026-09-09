@@ -28,7 +28,14 @@ public with sharing class HouseholdService {
     @TestVisible
     private static Boolean personAccountOverride;
 
-    private static Boolean creatingPersonHouseholds = false;
+    /**
+     * One guard for both automatic creation paths (ADR-NEXT). Creating a household is an
+     * Account insert, which fires the Account trigger, and the membership row that follows
+     * fires the Household Member trigger, so either path can arrive back here inside its own
+     * write. It is set for the whole of one creation pass and read at both entry points.
+     */
+    private static Boolean creatingAutomaticHouseholds = false;
+    private static Boolean automaticCreationSuspended = false;
 
     /**
      * Answers already worked out in this transaction, so that a caller asking about the
@@ -521,19 +528,63 @@ public with sharing class HouseholdService {
     }
 
     /**
+     * Set while package code is inserting people it is going to join to households itself,
+     * so that automatic creation does not give each of them one of their own first (the
+     * sample data loader is the caller this exists for). It suspends the automatic path
+     * only: everything a person does by hand is unaffected, and the flag lasts for one
+     * transaction.
+     */
+    @NamespaceAccessible
+    public static void suspendAutomaticCreation() {
+        automaticCreationSuspended = true;
+    }
+
+    @NamespaceAccessible
+    public static void resumeAutomaticCreation() {
+        automaticCreationSuspended = false;
+    }
+
+    /**
+     * Whether the org asks for a household to be made for a new person who has none. One
+     * setting answers it for both membership modes and for both objects a person can be
+     * stored on (R-H1, R-H2, ADR-NEXT).
+     */
+    private static Boolean automaticCreationEnabled() {
+        if (automaticCreationSuspended) {
+            return false;
+        }
+        Nonprofit_Settings__c settings = SettingsService.getSettings();
+        return settings != null && settings.Auto_Create_Households__c == true;
+    }
+
+    /**
+     * Turns automatic household creation on, which is what the Health Check fix for
+     * "no new person is getting a household" does. The setting is saved the way every
+     * setting is saved, so the change is cached, invalidated and audited like any other.
+     */
+    @NamespaceAccessible
+    public static void enableAutomaticHouseholds() {
+        SettingsService.saveValues(new Map<String, Object>{ 'Auto_Create_Households__c' => true });
+    }
+
+    /**
      * Gives every contact that arrives without a household one of its own, named from the
      * org's pattern. Runs before insert, so the new household id is simply assigned to the
      * contact and no second pass over contacts is needed. R-H1.
+     *
+     * Contact mode only. In junction mode the household is a membership row rather than a
+     * reference on the contact, and a membership row needs an id the contact does not have
+     * yet, so that mode is served after insert by createHouseholdsForNewContacts.
      */
     @NamespaceAccessible
     public static void ensureHouseholds(List<Contact> contacts) {
-        if (contacts == null || contacts.isEmpty()) {
+        if (contacts == null || contacts.isEmpty() || isJunctionMode()) {
+            return;
+        }
+        if (!automaticCreationEnabled()) {
             return;
         }
         Nonprofit_Settings__c settings = SettingsService.getSettings();
-        if (settings == null || settings.Auto_Create_Households__c != true || isJunctionMode()) {
-            return;
-        }
         Id recordTypeId = householdRecordTypeId();
         if (recordTypeId == null) {
             ErrorLogger.log(
@@ -569,12 +620,104 @@ public with sharing class HouseholdService {
 
     /**
      * Creates a household and a membership row for each new person that the org stores as
-     * an account. R-H2. Called only when the org has person records, membership is in
-     * junction mode, and the setting is on.
+     * an account. R-H2. Called only when the org has person records and membership is in
+     * junction mode; the caller has already read the automatic creation setting.
      */
     @NamespaceAccessible
     public static void createHouseholdsForPersonAccounts(List<SObject> personRecords) {
-        if (personRecords == null || personRecords.isEmpty() || creatingPersonHouseholds) {
+        if (
+            personRecords == null ||
+            personRecords.isEmpty() ||
+            creatingAutomaticHouseholds ||
+            automaticCreationSuspended
+        ) {
+            return;
+        }
+        createHouseholdsAndMemberships(PersonRecordSelector.toPersons(personRecords));
+    }
+
+    /**
+     * Creates a household and a membership row for each contact that has just been saved
+     * into junction mode with no household of their own. R-H2, ADR-NEXT.
+     *
+     * This is the junction mode counterpart of ensureHouseholds, and it runs after insert
+     * rather than before it, because the membership row that joins a person to a household
+     * needs the person's id.
+     */
+    @NamespaceAccessible
+    public static void createHouseholdsForNewContacts(List<Contact> contacts) {
+        if (
+            contacts == null ||
+            contacts.isEmpty() ||
+            creatingAutomaticHouseholds ||
+            !isJunctionMode() ||
+            !automaticCreationEnabled()
+        ) {
+            return;
+        }
+        createHouseholdsAndMemberships(toPersons(withoutAHousehold(contacts)));
+    }
+
+    /**
+     * The contacts among these that belong to no household yet.
+     *
+     * Two ways of belonging count, so that automatic creation never makes a second household
+     * for somebody who already has one: a membership row that already joins them to one, and
+     * a household account they were saved against directly, which is how a person arrives
+     * from the merge and split screens and from an import that names their household.
+     */
+    private static List<Contact> withoutAHousehold(List<Contact> contacts) {
+        Set<Id> personIds = new Set<Id>();
+        Set<Id> accountIds = new Set<Id>();
+        for (Contact record : contacts) {
+            if (record.Id == null) {
+                continue;
+            }
+            personIds.add(record.Id);
+            if (record.AccountId != null) {
+                accountIds.add(record.AccountId);
+            }
+        }
+        List<Contact> result = new List<Contact>();
+        if (personIds.isEmpty()) {
+            return result;
+        }
+        Map<Id, Id> householdByPerson = getHouseholdIdsFor(personIds);
+        Set<Id> households = householdsAmong(accountIds);
+        for (Contact record : contacts) {
+            if (record.Id == null || householdByPerson.get(record.Id) != null) {
+                continue;
+            }
+            if (record.AccountId != null && households.contains(record.AccountId)) {
+                continue;
+            }
+            result.add(record);
+        }
+        return result;
+    }
+
+    /** Which of these accounts are households rather than organizations. */
+    private static Set<Id> householdsAmong(Set<Id> accountIds) {
+        Set<Id> result = new Set<Id>();
+        Id recordTypeId = householdRecordTypeId();
+        if (accountIds.isEmpty() || recordTypeId == null) {
+            return result;
+        }
+        for (Account record : HouseholdSelector.getAccountRecordTypes(accountIds)) {
+            if (record.RecordTypeId == recordTypeId) {
+                result.add(record.Id);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * One household each, and the membership row that joins each person to theirs. The one
+     * creation pass both automatic paths use, so that a person stored as a contact and a
+     * person stored as an account are given the same thing in the same way.
+     */
+    private static void createHouseholdsAndMemberships(List<Person> people) {
+        if (people == null || people.isEmpty()) {
             return;
         }
         Id recordTypeId = householdRecordTypeId();
@@ -586,11 +729,7 @@ public with sharing class HouseholdService {
             return;
         }
         Nonprofit_Settings__c settings = SettingsService.getSettings();
-        List<Person> people = PersonRecordSelector.toPersons(personRecords);
-        if (people.isEmpty()) {
-            return;
-        }
-        creatingPersonHouseholds = true;
+        creatingAutomaticHouseholds = true;
         try {
             List<Account> households = new List<Account>();
             for (Person person : people) {
@@ -599,25 +738,17 @@ public with sharing class HouseholdService {
             List<Id> created = HouseholdWriter.createHouseholds(households);
             List<Household_Member__c> memberships = new List<Household_Member__c>();
             for (Integer i = 0; i < created.size(); i++) {
-                if (created[i] == null) {
+                if (created[i] == null || people[i].id == null) {
                     continue;
                 }
-                memberships.add(
-                    new Household_Member__c(
-                        Household__c = created[i],
-                        Account__c = people[i].id,
-                        Role__c = ROLE_HEAD,
-                        Is_Primary__c = true,
-                        Start_Date__c = Date.today()
-                    )
-                );
+                memberships.add(newMembership(people[i].id, created[i], ROLE_HEAD, true));
             }
             if (!memberships.isEmpty()) {
                 HouseholdWriter.createMemberships(memberships);
                 HOUSEHOLD_ID_BY_PERSON.clear();
             }
         } finally {
-            creatingPersonHouseholds = false;
+            creatingAutomaticHouseholds = false;
         }
     }
 

@@ -8,7 +8,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">When you save a new person with no household, one is created for them and named from your patterns.</value>
+    <value xsi:type="xsd:string">When you save a new person with no household, one is created for them and named from your patterns. It works the same way whichever way people belong to a household, and whether your org stores people as contacts or as accounts. Turn it off and no new person gets a household, which Health Check reports.</value>
   </values>
   <values>
     <field>Help_Path__c</field>

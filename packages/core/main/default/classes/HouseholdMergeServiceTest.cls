@@ -184,7 +184,7 @@ private class HouseholdMergeServiceTest {
 
     @IsTest
     static void mergeInJunctionModeLeavesNobodyInTheHouseholdTwice() {
-        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
         Account survivor = HouseholdTestDataFactory.newHousehold('The Garcia Family');
         Account victim = HouseholdTestDataFactory.newHousehold('Garcia Household');
         insert new List<Account>{ survivor, victim };

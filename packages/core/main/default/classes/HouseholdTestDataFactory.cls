@@ -16,11 +16,25 @@ public class HouseholdTestDataFactory {
         record.Household_Membership_Mode__c = membershipMode;
         record.Auto_Create_Households__c = true;
         record.Delete_Empty_Households__c = true;
-        record.Create_Households_For_Person_Accounts__c = false;
         record.Household_Name_Pattern__c = 'The {LastName} Family';
         record.Formal_Greeting_Pattern__c = '{Salutation} {FirstName} {LastName}';
         record.Informal_Greeting_Pattern__c = '{FirstName}';
         record.Include_Deceased_In_Name__c = false;
+        return save(record);
+    }
+
+    /**
+     * Junction mode with automatic household creation switched off.
+     *
+     * The tests that use this build their memberships by hand, which is how they say what
+     * they are testing: who is in which household, and what a move or a merge does to that.
+     * Automatic creation would give every person inserted by those tests a household of
+     * their own first (R-H2, ADR-NEXT), so it is switched off rather than worked around.
+     * The tests of automatic creation itself use the shipped settings.
+     */
+    public static Nonprofit_Settings__c junctionSettingsWithoutAutomaticHouseholds() {
+        Nonprofit_Settings__c record = settings(MODE_JUNCTION);
+        record.Auto_Create_Households__c = false;
         return save(record);
     }
 

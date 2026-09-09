@@ -83,19 +83,23 @@ private class AccountTriggerHandlerTest {
     }
 
     /**
-     * The negative half of R-H2. The setting off has to be the only thing stopping the
-     * household from being made, so two identical people are saved: one with the setting off
-     * and one with it on. Without the person overrides an account is not read as a person at
-     * all on a Platform only org (ADR-0013), and an empty result would prove nothing.
+     * The negative half of R-H2. Automatic creation being off has to be the only thing
+     * stopping the household from being made, so two identical people are saved: one with
+     * the setting off and one with it on. Without the person overrides an account is not
+     * read as a person at all on a Platform only org (ADR-0013), and an empty result would
+     * prove nothing.
+     *
+     * The setting is Auto_Create_Households__c, the same one a person stored as a contact
+     * is given a household by. The separate person account setting this test used to read
+     * is retired (ADR-NEXT).
      */
     @IsTest
-    static void householdsForPeopleStoredAsAccountsAreOnlyMadeWhenAskedFor() {
+    static void householdsForPeopleStoredAsAccountsFollowTheOneCreationSetting() {
         Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
             HouseholdTestDataFactory.MODE_JUNCTION
         );
-        settings.Create_Households_For_Person_Accounts__c = false;
+        settings.Auto_Create_Households__c = false;
         HouseholdTestDataFactory.save(settings);
-        SettingsService.clearCaches();
         HouseholdService.personAccountOverride = true;
         PersonRecordSelector.personRecordOverride = true;
         PersonRecordSelector.personOverridesByName = new Map<String, HouseholdService.Person>{
@@ -106,9 +110,8 @@ private class AccountTriggerHandlerTest {
         Test.startTest();
         insert new Account(Name = 'Maria Garcia');
         Integer whileTheSettingIsOff = [SELECT COUNT() FROM Household_Member__c];
-        settings.Create_Households_For_Person_Accounts__c = true;
+        settings.Auto_Create_Households__c = true;
         HouseholdTestDataFactory.save(settings);
-        SettingsService.clearCaches();
         insert new Account(Name = 'Wei Lee');
         Test.stopTest();
 
@@ -127,13 +130,14 @@ private class AccountTriggerHandlerTest {
         );
     }
 
+    /**
+     * The shipped configuration of a Nonprofit Cloud org: junction membership, automatic
+     * creation on, and nothing else asked for. This is the defect ADR-NEXT closes, so it is
+     * asserted from the setup an administrator actually arrives at.
+     */
     @IsTest
-    static void aPersonStoredAsAnAccountGetsAHouseholdWhenTheSettingIsOn() {
-        Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
-            HouseholdTestDataFactory.MODE_JUNCTION
-        );
-        settings.Create_Households_For_Person_Accounts__c = true;
-        HouseholdTestDataFactory.save(settings);
+    static void aPersonStoredAsAnAccountGetsAHouseholdOnTheShippedSettings() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
         HouseholdService.personAccountOverride = true;
         PersonRecordSelector.personRecordOverride = true;
         // The org running this test may have no person name fields at all, so the test
