@@ -91,6 +91,12 @@ public with sharing class ReceiptController {
         }
     }
 
+    /**
+     * The failure path rethrows on purpose. A per gift receipt number is accounted for only by the
+     * whole transaction rolling back when generation fails, because nothing reconciles that series
+     * (see `ReceiptService.issueForGift`). Logging the failure and returning normally would leave
+     * a consumed number nothing can explain.
+     */
     @AuraEnabled
     public static ReceiptView issue(Id giftId) {
         try {

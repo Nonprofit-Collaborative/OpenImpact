@@ -3,7 +3,8 @@
   <fullName>Receipt_Renderer__c</fullName>
   <externalId>false</externalId>
   <inlineHelpText>
-    Which renderer produces the PDF. Leave it empty to use the one the package ships.
+    Which renderer produces the PDF, as one of the keys Open Impact offers (Blob PDF, Visualforce),
+    never a class name. Leave it empty to use the one the package ships.
   </inlineHelpText>
   <label>Receipt Renderer</label>
   <length>60</length>

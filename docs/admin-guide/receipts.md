@@ -132,15 +132,21 @@ description on a receipted in-kind gift is locked from then on, exactly as the a
 cash gift, because it is printed on the document the donor holds; the fair market value stays
 editable, because it is on no document. See [In-kind gifts](in-kind-gifts.md).
 
-## Two things that are not settled yet
+## Three things to know before you rely on this
 
-Recorded here rather than hidden, because both may change what you see:
+Recorded here rather than hidden, because each may change what you see:
 
 1. **Logos and signature images on the PDF may not appear yet.** How an image reaches the PDF
    renderer has not been confirmed in a real org (ADR-0016). A receipt with no logo and no
    signature is a legally valid receipt, so this does not stop you sending them. If your logo
    does not print, that is this, not your setup.
-2. **The speed of a very large year-end run has not been measured.** If you have tens of
+2. **Two people cannot issue receipts at the same instant.** Receipt numbers come from one
+   counter, and whoever is using it holds it until their receipt or their statement run
+   finishes. A second person issuing at that moment waits, and if the wait reaches ten seconds
+   they see a "record is currently locked" error. Nothing is lost and no number is duplicated:
+   try again. This matters most while a year-end run is going, so issue single receipts before
+   or after the run rather than during it.
+3. **The speed of a very large year-end run has not been measured.** If you have tens of
    thousands of donors, run your statements early in January rather than the night before you
    want to post them, and watch the Receipt Run record.
 
