@@ -24,6 +24,13 @@
  * There are two ways in and they enforce the same rules: `link` and `unlink`, called by an action
  * with two record ids, and `applyLinkChanges`, called by the gift trigger when someone edits the
  * Matched Gift field on the record page.
+ *
+ * A refund of the employer's gift reverses that credit rather than removing it (ADR-0029). The
+ * negative gift `GiftService.refund` inserts is not half of a matching pair, so it earns no
+ * matched donor credit of its own; `syncReversalCredits` mirrors the employer gift's credits onto
+ * it negatively instead, prorated to the amount returned. That is the same shape R-SC5 gives
+ * household credits, and it is what makes a partial refund read as the amount the employer still
+ * holds rather than as the whole match.
  */
 public with sharing class MatchingGiftService {
     public static final String RECORD_TYPE_ORGANIZATION = 'Organization';
@@ -69,6 +76,10 @@ public with sharing class MatchingGiftService {
                 new Map<Id, Gift__c>{ employerGift.Id => employerGift }
             )
         );
+        // A gift refunded in part is still linkable: R-G11 only refuses a link where the whole
+        // gift has gone back. Reversing here as well as on the refund keeps recognition at the
+        // amount still held whichever of the two happened first (ADR-0029).
+        syncReversalCredits(new Set<Id>{ employerGift.Id });
     }
 
     /**
@@ -94,7 +105,11 @@ public with sharing class MatchingGiftService {
             true,
             AccessLevel.USER_MODE
         );
-        removeMatchedDonorCredits(new Set<Id>{ giftId, otherGiftId });
+        Set<Id> pair = new Set<Id>{ giftId, otherGiftId };
+        removeMatchedDonorCredits(pair);
+        // The negative credits reverse the credit that has just gone, so they go with it: an
+        // orphaned minus 200 is a worse number than no rows at all (ADR-0029).
+        syncReversalCredits(pair);
     }
 
     /**
@@ -195,6 +210,97 @@ public with sharing class MatchingGiftService {
             Database.update(updateById.values(), true, AccessLevel.USER_MODE);
         }
         insertCredits(missingCreditsFor(employeePersonByEmployerGift, giftById));
+        syncReversalCredits(involved);
+    }
+
+    /**
+     * Brings the negative Matched Donor credits carried by these gifts' refunds and write-offs
+     * into line with the credits the gifts themselves carry (ADR-0029).
+     *
+     * Keyed on the gift being reversed rather than on the refund action, and idempotent, so the
+     * same records come out whichever happened first: the refund of a linked gift, a link made on
+     * a gift already partly refunded, or the unlink that takes the credit away again. A gift with
+     * no matched donor credit wants no negative ones, which is how the unlink case removes them
+     * without a branch of its own.
+     */
+    public static void syncReversalCredits(Set<Id> reversedGiftIds) {
+        if (reversedGiftIds == null || reversedGiftIds.isEmpty()) {
+            return;
+        }
+        List<Gift__c> reversals = GiftSelector.selectReversalsFor(reversedGiftIds);
+        if (reversals.isEmpty()) {
+            return;
+        }
+        Map<Id, List<Soft_Credit__c>> creditsByGift = matchedDonorCreditsByGift(reversedGiftIds);
+        Set<Id> reversalGiftIds = new Set<Id>();
+        Map<String, Soft_Credit__c> wanted = new Map<String, Soft_Credit__c>();
+        for (Gift__c reversal : reversals) {
+            reversalGiftIds.add(reversal.Id);
+            addReversedCredits(reversal, creditsByGift.get(reversal.Original_Gift__c), wanted);
+        }
+        SoftCreditService.reconcileAutomaticCredits(
+            wanted,
+            SoftCreditSelector.selectAutomaticForGifts(
+                reversalGiftIds,
+                SoftCreditService.ROLE_MATCHED_DONOR
+            )
+        );
+    }
+
+    /**
+     * The matched donor credits these gifts carry, grouped by the gift carrying them.
+     */
+    private static Map<Id, List<Soft_Credit__c>> matchedDonorCreditsByGift(Set<Id> giftIds) {
+        Map<Id, List<Soft_Credit__c>> creditsByGift = new Map<Id, List<Soft_Credit__c>>();
+        for (
+            Soft_Credit__c credit : SoftCreditSelector.selectAutomaticForGifts(
+                giftIds,
+                SoftCreditService.ROLE_MATCHED_DONOR
+            )
+        ) {
+            if (!creditsByGift.containsKey(credit.Gift__c)) {
+                creditsByGift.put(credit.Gift__c, new List<Soft_Credit__c>());
+            }
+            creditsByGift.get(credit.Gift__c).add(credit);
+        }
+        return creditsByGift;
+    }
+
+    /**
+     * The negative credits one reversing gift should carry, added to the wanted map.
+     *
+     * The share each credit was given, applied to what came back: a matched donor credit is the
+     * whole of the employer's gift, so 100 percent of a refund of 200 is minus 200. A credit with
+     * no percent belongs to a gift of zero, which cannot be refunded.
+     */
+    private static void addReversedCredits(
+        Gift__c reversal,
+        List<Soft_Credit__c> credits,
+        Map<String, Soft_Credit__c> wanted
+    ) {
+        if (credits == null || reversal.Amount__c == null) {
+            return;
+        }
+        for (Soft_Credit__c credit : credits) {
+            Id creditedId = credit.Contact__c != null ? credit.Contact__c : credit.Account__c;
+            Decimal reversedAmount = SoftCreditService.amountOf(
+                credit.Percent__c,
+                reversal.Amount__c
+            );
+            if (creditedId == null || reversedAmount == null) {
+                continue;
+            }
+            wanted.put(
+                SoftCreditService.automaticCreditKey(reversal.Id, creditedId),
+                SoftCreditService.buildAutomaticCredit(
+                    reversal.Id,
+                    creditedId,
+                    SoftCreditService.ROLE_MATCHED_DONOR,
+                    reversedAmount,
+                    reversal.Amount__c
+                )
+            );
+        }
     }
 
     /**
@@ -276,8 +382,11 @@ public with sharing class MatchingGiftService {
 
     /**
      * A gift that has been refunded or written off is not money the organization has, so it is
-     * not half of a matching gift pair. The refund is recorded on the gift itself rather than by
-     * deleting it, so without this the link would outlive the money (R-G11, R-SC5).
+     * not half of a new matching gift pair. The refund is recorded on the gift itself rather than
+     * by deleting it, so without this the link would outlive the money (R-G11, R-SC5).
+     *
+     * This refuses a link being made, not a refund of a gift already linked: an existing link
+     * survives the refund and `syncReversalCredits` reverses the credit instead (ADR-0029).
      */
     private static Boolean isClosedOut(Gift__c gift) {
         return gift != null &&

@@ -113,14 +113,16 @@ year end recognition list produced before the refund has to be explicable afterw
   `STATUS_REFUNDED` and `STATUS_WRITTEN_OFF` stay on the class because
   `MatchingGiftService` uses them for R-G11, which is a different question: whether a
   refunded gift may be half of a matching pair.
-- **Still open, and outside this decision: matched donor credits do not reverse.** The
+- **Matched donor credits were left out of this decision, and ADR-0029 settled them.** The
   Matched Donor credits R-G11 creates are removed only when the link between the two gifts
   is undone, and the negative gift recording a refund is not itself linked to a matching
-  pair, so it produces no negative matched donor credit. A refunded employer gift therefore
-  leaves its matched donor credit standing at the full amount. That behavior is unchanged
-  by this decision, in either direction, and fixing it means deciding whether a refund
-  should propagate along the match link, which belongs with G-10 (matching gift
-  linkage, plan Section 5). An earlier draft of this ADR said G-09, which is Tributes.
+  pair, so at the time of this decision it produced no negative matched donor credit and a
+  refunded employer gift left its matched donor credit standing at the full amount. That
+  was recorded here as still open and sent to G-10 (matching gift linkage, plan Section 5;
+  an earlier draft of this ADR said G-09, which is Tributes). ADR-0029 decided it the same
+  way this ADR decided household credits: the refund propagates along the match link as a
+  negative credit on the negative gift, prorated to the amount returned, so a partial
+  refund nets to the amount the employer still holds.
 - **Unverified in an org.** No Salesforce org is available to this change, so the Apex test
   added with it has not been executed and the behavior above is reasoned from the code
   rather than observed.
