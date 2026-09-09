@@ -460,6 +460,103 @@ a field name that lives inside a string. The first scratch org run of the Core s
 Platform-only shape is the real acceptance test for patch E, and it should happen before this code
 is relied on.
 
+## Platform-only deployability of the vendored tests
+
+Patch E moved upstream's tests off the Sales Cloud objects. What it moved them onto was
+`ContactPointAddress`, and upstream's own tests separately name `Individual`, that object's
+change event and history siblings, three more contact point objects, `QuickText`, `Event`
+and the polymorphic `Name` entity: twelve standard objects in all. Those are
+static Apex references. A static reference to an object an org does not have is a compile
+error, and one compile error in one class refuses the whole package, so if any of them
+were absent on a Platform-only org then Core would not install there at all and ADR-0009
+and ADR-0013 would both be false. `scripts/ci/check-standard-objects.sh` excluded the
+vendor directory and recorded the question as open. This section closes it.
+
+### The finding
+
+Every standard object the vendored tree names compiles, and accepts DML where the tests
+insert one, in a Developer edition scratch org created with no features requested. That is
+exactly the shape `config/scratch-defs/platform-only.json` creates, which ADR-0013 defines
+as the Platform-only shape in continuous integration. On that shape the vendored tests are
+not a deployment blocker, and no vendored test method was removed or rewritten.
+
+### The evidence, and what it is worth
+
+The strongest evidence is not documentary, it is upstream's own build. apex-rollup creates
+its scratch org from `config/project-scratch-def.json`, which is `"edition": "developer"`
+with no `features` array at all (only multicurrency and a deployment setting), and its
+`Rollup Release Status` workflow deploys the package into that org and runs the full Apex
+suite on every pull request and every push to `main`. That suite contains the
+`ContactPointAddress` tests, the `Individual` tests including the
+`Contacts.Individual.ConsumerCreditScore` grandparent path, the `QuickText` picklist
+tests, the `ContactPointAddressChangeEvent` change data capture test and the
+`ContactPointAddressHistory` negative test. A green build on that shape is a direct
+observation that those types resolve, that `Contact.IndividualId` exists, and that the
+Data Protection and Privacy setup toggle is not a precondition for the `Individual` type
+to compile. Read at
+https://github.com/jamessimone/apex-rollup, files `config/project-scratch-def.json`,
+`package.json` (the `create:org` script) and `.github/workflows/deploy.yml`, at the tip of
+`main` on 2026-09-09.
+
+Documentation agrees but says less. `Individual` and `ContactPointAddress` are both
+documented in the Object Reference for the Salesforce Platform, the platform-wide
+reference, not in an Industries, Nonprofit Cloud or Data Cloud guide, which is where an
+add-on object would live. `Individual` is available in API version 42.0 and later and
+`ContactPointAddress` in 49.0 and later.
+
+What the documentation does not settle, and what the search results are careless about, is
+the distinction that decides the question. Salesforce Help says data protection and privacy
+must be enabled in Setup "before Individual records can be created". That is a statement
+about records, not about the object, and community answers that turn it into "the Individual
+type does not compile until you enable it" are inference, not a cited source. Upstream's
+build settles it the other way: the object is present, and the toggle governs use rather
+than existence.
+
+Two of the names are weaker references than the rest and are worth separating out.
+`CurrencyType` and `DatedConversionRate` appear only inside dynamic SOQL strings in
+`RollupCurrencyInfo`, guarded by the multicurrency check, so they are never resolved at
+compile time and an org without multicurrency never reaches them.
+
+### What is still unproven
+
+The vendored tests have never been executed in any org by this project (the same admission
+as under "Counts"), and no Open Impact scratch org has ever been created from
+`platform-only.json`. Upstream's build proves that the types compile on that shape; it does
+not prove that Open Impact's copy of them, after patches A through F, deploys and passes.
+Only `sf project deploy start -d packages/core` followed by the Core Apex suite against a
+scratch org created from `config/scratch-defs/platform-only.json` proves that.
+
+Separately, and beyond what any scratch org can show: ADR-0013 already records that a true
+Platform-license org cannot be provisioned as a scratch org at all, because the objects are
+removed by licensing rather than by org shape. So a green run on `platform-only.json`
+remains a proxy. The question of whether these objects are visible to a user holding only a
+Salesforce Platform license is a different question from whether they exist in the schema,
+and only the schema question decides whether Apex compiles. Compilation is what a
+deployment blocker is made of, so the schema question is the one this section answers.
+
+### Why nothing was rewritten
+
+There are 648 `ContactPointAddress` references in the vendored tests. Porting them, as
+patch E ported the Sales Cloud ones, would be the single most expensive thing in this
+directory to carry across every future upgrade, and by the finding above it would prevent
+nothing. The project's rule is as simple as possible but no simpler: nothing breaks without
+the rewrite, so the rewrite is not done. Deleting the offending test classes was rejected
+for a second reason as well: a managed package needs 75 percent Apex code coverage, the
+vendored engine is 13,359 lines of engine covered by 11,973 lines of its own tests, and
+`RollupCalculatorTests`, `RollupTests` and `RollupFlowTests` are three of the largest of
+them. Open Impact ships no coverage of its own for the engine, so removing them risks
+failing packaging outright.
+
+### How the decision is kept
+
+`scripts/ci/check-object-allowlist.py` holds the list. Every standard object the vendored
+tree names is in its `VENDOR_ONLY` section with a one line reason, and the vendored tree is
+inside that gate rather than excluded from it. Two things follow. An upstream upgrade that
+introduces a new standard object fails the build here, which is the whole point: this
+section is a finding about twelve specific names, not a blanket clearance for whatever
+upstream adds next. And a `VENDOR_ONLY` name used from Open Impact's own Apex fails too,
+because the reason each one is acceptable is that no Open Impact code path reaches it.
+
 ## Pull procedure for a future upgrade
 
 Upstream is tracked deliberately, not continuously (ADR-0011). Review it on a schedule and whenever
@@ -482,6 +579,10 @@ a security advisory names it. To take a new version:
 5. Run, and require all of them to pass:
    - `npm run check:namespace`
    - `npm run check:standard-objects`
+   - `npm run check:object-allowlist`, which is the one that notices a standard object
+     upstream has newly introduced. If it fails, do not add the name to `VENDOR_ONLY`
+     without first checking that the object exists on the Platform-only shape, the way
+     "Platform-only deployability of the vendored tests" above checked the current twelve.
    - `bash scripts/ci/check-apex-offline.sh`
    - `sf code-analyzer run --workspace packages/core --rule-selector Recommended --severity-threshold 2`
    - the full Core Apex test suite on the Platform-only scratch org shape

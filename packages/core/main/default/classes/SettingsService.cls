@@ -46,7 +46,8 @@ public with sharing class SettingsService {
      * build when a checkbox that ships on is missing from it (ADR-0035).
      */
     private static final Map<Schema.SObjectField, Boolean> SHIPPED_DEFAULTS = new Map<Schema.SObjectField, Boolean>{
-        Nonprofit_Settings__c.Relationship_Auto_Reciprocal__c => true
+        Nonprofit_Settings__c.Relationship_Auto_Reciprocal__c => true,
+        Nonprofit_Settings__c.Auto_Create_Households__c => true
     };
 
     private static Nonprofit_Settings__c cachedSettings;

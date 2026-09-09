@@ -913,6 +913,30 @@
         <value>Nothing to report. Open Impact is set up correctly.</value>
     </labels>
     <labels>
+        <fullName>Core_HealthCheck_NoHouseholdCreationDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Explains that no new person is getting a household.</shortDescription>
+        <value>Household membership uses membership records, and "create a household automatically" is off, so no person saved from now on gets a household. Nothing fails and nothing is logged while this is true: the people saved in the meantime simply have to be grouped by hand later. Turn automatic households on unless your org deliberately groups people another way.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_NoHouseholdCreationFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that turns automatic household creation on.</shortDescription>
+        <value>Turn on automatic households</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_NoHouseholdCreationTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the finding for junction membership with no creation path.</shortDescription>
+        <value>No new person is getting a household</value>
+    </labels>
+    <labels>
         <fullName>Core_HealthCheck_NothingDetected</fullName>
         <categories>Core</categories>
         <language>en_US</language>
@@ -1785,6 +1809,14 @@
         <protected>true</protected>
         <shortDescription>A household could not be saved</shortDescription>
         <value>A household could not be saved, so its name or its member count may be out of date.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_SkippedNativeDependents</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>An empty household was left in place because records outside Open Impact point at it</shortDescription>
+        <value>Open Impact left the empty household {0} ({1}) in place. Nobody belongs to it in Open Impact, but records outside Open Impact still point at it, and deleting the household would delete those records too. Open the household, check what else uses it, and delete it by hand if you are sure.</value>
     </labels>
     <labels>
         <fullName>Core_Households_LatePrefix</fullName>

@@ -8,7 +8,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">Gives a new household a name, rewrites a household's name and greetings when its custom name box is cleared, and creates households for new people in orgs that store people as accounts.</value>
+    <value xsi:type="xsd:string">Gives a new household a name, rewrites a household's name and greetings when its custom name box is cleared, and, in orgs that store people as accounts, creates households for new people and keeps their households counted and named when a person is renamed, deleted or restored.</value>
   </values>
   <values>
     <field>Handler_Class__c</field>

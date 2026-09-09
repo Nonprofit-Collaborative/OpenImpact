@@ -16,6 +16,12 @@
  * in that field on a business account would be misread. Both are visible only inside this
  * class. If the check ever grows an exemption for a describe-only read of the person flag,
  * that is the one line to change.
+ *
+ * There are two kinds of read here, and they are not interchangeable, exactly as in
+ * HouseholdSelector. The upkeep read (getPersons) feeds the member count, the household
+ * name and the two greetings and runs in system mode under ADR-0021. The display read
+ * (getPersonsForDisplay) is what a screen shows: object access is checked and every field
+ * the running user cannot read is stripped before a person is built.
  */
 public with sharing class PersonRecordSelector {
     // detection-only: these field names exist on the account object only where the org
@@ -74,6 +80,39 @@ public with sharing class PersonRecordSelector {
         return value != null && String.isNotBlank(String.valueOf(value));
     }
 
+    /**
+     * True when the difference between these two versions of a person record is one the
+     * household name or the two greetings are computed from.
+     *
+     * The list is exactly the one `ContactTriggerHandler.namingChanged` watches, held here
+     * as text and compared off the values the records actually carry, so that a field which
+     * exists only where the org stores people as accounts is never named at compile time
+     * (ADR-0009). A field this org does not have is absent on both sides and so reads as
+     * unchanged, which is the right answer: it cannot have changed.
+     */
+    public static Boolean namingChanged(SObject record, SObject previous) {
+        if (record == null || previous == null) {
+            return false;
+        }
+        Map<String, Object> current = record.getPopulatedFieldsAsMap();
+        Map<String, Object> before = previous.getPopulatedFieldsAsMap();
+        for (String fieldName : namingFields()) {
+            if (current.get(fieldName) != before.get(fieldName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Every field a household name or greeting is computed from, name fields first.
+     */
+    private static List<String> namingFields() {
+        List<String> result = new List<String>(NAME_FIELDS);
+        result.addAll(PERSON_FIELDS);
+        return result;
+    }
+
     public static List<SObject> filterPeople(List<SObject> records) {
         List<SObject> result = new List<SObject>();
         if (records == null) {
@@ -87,8 +126,51 @@ public with sharing class PersonRecordSelector {
         return result;
     }
 
+    /**
+     * The people these account records hold, for household upkeep.
+     *
+     * An upkeep read (ADR-0021): the answer never reaches a screen. It feeds the member
+     * count, the household name and the two greetings, which HouseholdWriter then saves,
+     * and a household must be counted and named correctly for a user who holds no packaged
+     * permission set at all. The contact half of the same upkeep reads the same way, in
+     * HouseholdSelector.
+     *
+     * The four ADR-0021 conditions hold. The platform has already authorized the record
+     * write that started the upkeep, or an administrator has asked for the recompute. The
+     * only inputs are ids the package itself gathered and field names held as constants in
+     * this class, so no user typed text reaches the query. Only fields the package owns are
+     * read, plus the name fields a household name is built from. Everything a screen shows
+     * goes through getPersonsForDisplay instead, which stays in user mode.
+     *
+     * The class is `with sharing`, so which records are visible is not changed by any of
+     * this: only field level access on the fields the package owns is bypassed.
+     */
     public static List<HouseholdService.Person> getPersons(Set<Id> personRecordIds) {
-        List<HouseholdService.Person> result = new List<HouseholdService.Person>();
+        return toPersons(queryPersonRecords(personRecordIds));
+    }
+
+    /**
+     * The same people as a screen may see them: nothing at all where the running user
+     * cannot read the object, and otherwise every field they cannot read stripped from the
+     * records before a person is built from them (ADR-0021). Stripping rather than a user
+     * mode query, so that a field this user cannot read leaves a value empty instead of
+     * throwing, which is what HouseholdSelector.readableRecords does on the contact side.
+     */
+    public static List<HouseholdService.Person> getPersonsForDisplay(Set<Id> personRecordIds) {
+        List<SObject> records = queryPersonRecords(personRecordIds);
+        if (records.isEmpty() || !Schema.SObjectType.Account.isAccessible()) {
+            return new List<HouseholdService.Person>();
+        }
+        return toPersons(Security.stripInaccessible(AccessType.READABLE, records).getRecords());
+    }
+
+    /**
+     * The account records themselves. System mode, for the reason the two callers above
+     * set out: the display caller strips what the running user may not read, the upkeep
+     * caller needs the whole record.
+     */
+    private static List<SObject> queryPersonRecords(Set<Id> personRecordIds) {
+        List<SObject> result = new List<SObject>();
         if (
             personRecordIds == null ||
             personRecordIds.isEmpty() ||
@@ -103,10 +185,7 @@ public with sharing class PersonRecordSelector {
             String.join(selected, ', ') +
             ' FROM Account WHERE Id IN :personRecordIds LIMIT 10000';
         Map<String, Object> binds = new Map<String, Object>{ 'personRecordIds' => personRecordIds };
-        for (SObject record : Database.queryWithBinds(query, binds, AccessLevel.USER_MODE)) {
-            result.add(toPerson(record));
-        }
-        return result;
+        return Database.queryWithBinds(query, binds, AccessLevel.SYSTEM_MODE);
     }
 
     public static List<HouseholdService.Person> toPersons(List<SObject> records) {

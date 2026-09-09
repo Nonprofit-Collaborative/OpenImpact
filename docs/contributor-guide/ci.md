@@ -22,29 +22,65 @@ Salesforce org is needed for this job. Steps:
 5. `scripts/ci/check-namespace.sh`, failing the build if a hard-coded namespace prefix
    appears in source.
 6. `scripts/ci/check-standard-objects.sh`, failing the build if a standard Salesforce
-   object is referenced outside `packages/connect`.
-7. `scripts/ci/check-custom-metadata.py`, failing the build if a shipped custom metadata
+   object is referenced outside `packages/connect`, and separately if any Apex or metadata
+   file names a Nonprofit Cloud object. The second half covers the fundraising objects, the
+   objects a household is actually built out of there (`PartyRelationshipGroup`, whose Type
+   of Household is what makes an Account a native household, and `AccountContactRelation`,
+   which carries membership), and the contact point objects. It is checked in Apex and
+   metadata only, because a component's JavaScript cannot reference an SObject and several of
+   our own component names are the same words. This half was added after an audit found the
+   gate matched `GiftTransaction` alone, so Core could have named the two objects Nonprofit
+   Cloud households are made of and the build would have passed. The vendored rollup engine is
+   excluded from that half, because it names `ContactPointAddress` and `Individual` in its
+   own test classes and is not source this project rewrites line by line. It is not
+   unguarded: check 7 below covers the vendored tree with an allowlist, and the objects it
+   names are recorded, with the evidence that they are present on the Platform-only shape,
+   in `packages/core/vendor/apex-rollup/VENDOR.md`.
+7. `scripts/ci/check-object-allowlist.py`, failing the build if Apex or an `objects/`
+   folder anywhere under `packages/` names a standard object that is not on the allowlist
+   in that script. This is the other half of check 6 and the stronger shape: check 6 is a
+   denylist, so it can only fail on a name somebody thought to write down, and the failure
+   that matters is the object nobody thought of. A static Apex reference to an object a
+   subscriber org does not have is a compile error, and one compile error in one class
+   refuses the whole package, so the promise that Core installs on a Platform-only org
+   (ADR-0009, ADR-0013) needs a gate where everything is forbidden unless it is listed.
+   Each allowed name carries its reason on its own line in the script. The vendored rollup
+   engine is inside this gate rather than excluded from it, with its own `VENDOR_ONLY`
+   section: the tree is third party source, but it ships inside Core's package, so a
+   standard object it names is Core's deployment risk. The practical effect is that an
+   upstream upgrade introducing a new standard object fails here instead of in a
+   subscriber org. Names are read only from positions where a bare identifier can be an
+   SObject (`new X(`, `List<X>`, `X.SObjectType`, `FROM X`); the docstring says why that is
+   narrower than every possible reference, and an unrecognized name always fails, so
+   widening the patterns is safe.
+   A line carrying the `// detection-only:` marker is skipped, the same marker check 6
+   honours and for the same reason: a name held as a String constant, or inside the text
+   of a query only run after a describe says the object is there, is not a compile-time
+   reference and cannot refuse a deployment. That is the pattern ADR-0009 requires for an
+   object a subscriber org may not have, so the gate permits the one shape the
+   architecture insists on.
+8. `scripts/ci/check-custom-metadata.py`, failing the build if a shipped custom metadata
    record names a field its type does not define. Such a record refuses the whole
    deployment, and nothing else in the suite sees it: the offline Apex compiler does not
    read custom metadata records.
-8. `scripts/ci/check-symlinks.sh`, failing the build if a tracked file is a symlink
+9. `scripts/ci/check-symlinks.sh`, failing the build if a tracked file is a symlink
    pointing outside the repository or at an absolute path. Such a link resolves on the
    machine that committed it and dangles everywhere else, so every local check passes and
    CI fails. This ran because a stray `.tools` symlink, left in an agent worktree and swept
    in by `git add -A`, broke the offline Apex compile check on `main`.
-9. `scripts/ci/check-permission-sets.py`, failing the build if a packaged permission set
+10. `scripts/ci/check-permission-sets.py`, failing the build if a packaged permission set
    grants access to a class, tab, app, custom permission, object, record type or field that
    the repository does not ship, or a permission set group contains a set that is not there. A dangling grant refuses the whole deployment, and the
    permission sets are assembled by hand at every merge from each branch's integration
    file, so the reference and the metadata can drift apart silently. This ran because
    `Nonprofit_Admin` granted a `Household_Member__c` tab that was never created.
-10. `scripts/ci/check-help-links.py`, failing the build if a Setting Definition's Learn
+11. `scripts/ci/check-help-links.py`, failing the build if a Setting Definition's Learn
    more link points at a page that does not exist. `SettingsController` appends
    `Help_Path__c` to a base already ending in `docs/admin-guide/`, so a row storing
    `admin-guide/access.md` produces a 404 that nothing else notices: the value is a string,
    so it deploys, and it is only wrong once an administrator clicks it in an org looking for
    help. This ran because twelve of the thirty four shipped rows did exactly that.
-11. `scripts/ci/check-adrs.py`, failing the build if a decision record's number disagrees
+12. `scripts/ci/check-adrs.py`, failing the build if a decision record's number disagrees
    with its own heading, if two records share a number, if a record is missing from the
    index, or if an `ADR-NEXT` placeholder survives to `main` (that placeholder is how a
    parallel branch avoids guessing a number, and the integrator assigns the real one at
@@ -53,7 +89,7 @@ Salesforce org is needed for this job. Steps:
    leaves a document that argues with itself. This ran because two branches both claimed
    0025 in one afternoon, and because ADR-0024 was written and never indexed, which is how
    the next author picks a number that is already taken.
-12. `scripts/ci/check-components-reachable.py`, failing the build if a Lightning web
+13. `scripts/ci/check-components-reachable.py`, failing the build if a Lightning web
    component marked `isExposed` is on no flexipage, in no quick action, nested in no other
    component, and not named in the settings console import switch. Exposed means an
    administrator *could* place it, never that the package ships anywhere that does, and an
@@ -62,10 +98,21 @@ Salesforce org is needed for this job. Steps:
    said "scroll to the card", `receiptSettings` named across a package boundary the console
    cannot cross, `receiptActions` while the receipts walkthrough said "click Issue receipt",
    and `commitmentSchedulePreview`, which no guide ever mentioned at all.
-13. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
+14. `scripts/ci/check-record-pages-assigned.py`, failing the build if a packaged record page
+   flexipage is named by no `actionOverrides` assignment, or if an app assigns one for some
+   of the form factors it declares and not the others. Item 12 proves a component is on a
+   page and says so in its own header that it proves nothing about the page: a FlexiPage
+   cannot name the record type it serves, that assignment lives in the Lightning app, and a
+   page nothing assigns is never shown, so the component sits on a page nobody opens. Same
+   defect class one level up, and the same symptom: it deploys, every test passes, and the
+   administrator sees none of it until they wire it up by hand in the Lightning App Builder.
+   This ran because `Nonprofit_Hub.app-meta.xml` carried no `actionOverrides` at all, so the
+   household walkthrough failed at step 4 on every fresh install, and because
+   `Gift_Record_Page` and `Commitment_Record_Page` were stranded the same way in Fundraising.
+15. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
    is missing from `docs/architecture/canonical-model.md`. The canonical model is updated
    before an object or a field is added, so this is the gate that keeps it true.
-14. `scripts/ci/check-setting-defaults.py`, failing the build if a checkbox setting that
+16. `scripts/ci/check-setting-defaults.py`, failing the build if a checkbox setting that
    ships switched on is not declared in `SettingsService.SHIPPED_DEFAULTS`, or is declared
    there with a value the field metadata disagrees with. A field's own `defaultValue` is
    applied by the platform when a record is created through the user interface, and never
@@ -74,8 +121,8 @@ Salesforce org is needed for this job. Steps:
    silently, which is a defect only an org run finds (ADR-0035). This ran because C-15 had
    been writing one side of every relationship since it merged: the reciprocal upkeep read
    its own shipped default as false.
-15. A grep check that fails the build if any tracked file contains an em dash character.
-16. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
+17. A grep check that fails the build if any tracked file contains an em dash character.
+18. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
    `sf code-analyzer run --workspace packages --rule-selector Recommended --severity-threshold 2`.
    The results are uploaded as a build artifact (`code-analyzer-results.html` and
    `code-analyzer-results.json`) even if the job fails, so anyone can download and read
@@ -94,12 +141,14 @@ npm run lint
 npm run test:unit
 npm run check:namespace
 npm run check:standard-objects
+npm run check:object-allowlist
 npm run check:custom-metadata
 npm run check:symlinks
 npm run check:permission-sets
 npm run check:help-links
 npm run check:adrs
 npm run check:components-reachable
+npm run check:record-pages-assigned
 npm run check:canonical-model
 npm run check:setting-defaults
 npm run check:apex

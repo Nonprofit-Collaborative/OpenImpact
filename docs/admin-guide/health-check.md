@@ -87,6 +87,7 @@ recommendation in step 5 is **NPSP coexistence**. Everything else is the same.
 | Your org | Whether your coexistence mode matches what was found. |
 | Your org | Whether household membership is still set to the person's account while Person Accounts are on, which does not work. |
 | Your org | Whether your org has Nonprofit Cloud gift objects while the Connect module is not installed. |
+| Settings | Whether household membership uses membership records while automatic household creation is off, which means no new person gets a household. |
 | Licenses | Whether the org uses more than one currency, which Open Impact does not support yet. |
 | Access | Whether anyone holds the Nonprofit Admin role. |
 | Access | Whether active users with a Salesforce license have no Open Impact role at all. |
@@ -117,6 +118,13 @@ saying so, and the details are written to the Error Log.
 Multi-currency, for example, is amber forever if your org uses more than one currency: Open
 Impact will not break, it simply does not do currency conversion yet, and there is nothing
 you can do to make the finding go away.
+
+**Leaving "no new person is getting a household" unfixed.** That red finding means household
+membership is set to the flexible mode and "create a household automatically" is off, so
+every person saved from now on is left without a household and nothing else says so. Click
+**Turn on automatic households** on the finding. If your org groups people another way and
+means to leave it off, the finding stays, and it stays red, because the people being saved
+today are the ones somebody has to group by hand later.
 
 **Ignoring the red membership finding in a Person Accounts org.** "Household membership does
 not fit Person Accounts" is red for a reason: in that state, new households are built through

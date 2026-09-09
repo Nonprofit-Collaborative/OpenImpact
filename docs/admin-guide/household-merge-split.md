@@ -37,11 +37,13 @@ person leaves" is on (Nonprofit Settings, Households), a household that a split 
 deleted for you. If it is off, the empty household stays and you delete it yourself. The
 setting is on when Core is installed.
 
-If the **Merge or split households** button is not on your household page, ask whoever
-installed Open Impact to add the **Merge or split** action to the Household page layout, or
-to drop the **Household Merge and Split** component onto the household record page in the
-Lightning App Builder. The action ships with the package, so it is a one-time placement, not
-a build.
+**Where the button is.** Core ships the placement, not just the action: the **Merge or
+split** action sits in the Household layout's action bar, and the Nonprofit Hub app opens
+households on the packaged Household record page, on the desktop and on the phone. So the
+button is there on a fresh install, with nothing to wire up in the Lightning App Builder.
+If you do not see it, the two usual reasons are that you are looking at the record outside
+the **Nonprofit Hub** app (another app can carry its own record page assignment), or that
+somebody has since overridden the assignment in the Lightning App Builder.
 
 ## A five-minute walkthrough
 

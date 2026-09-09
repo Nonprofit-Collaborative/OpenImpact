@@ -37,16 +37,13 @@ CORE_SETTINGS = "Nonprofit_Settings__c"
 KNOWN_UNREGISTERED = {
     (
         "Nonprofit_Settings__c",
-        "Auto_Create_Households__c",
-    ): "HouseholdService.ensureHouseholds reads it as '!= true', so a fresh org gets the "
-    "opposite of the shipped default. Registering it turns household creation on for every "
-    "test class that never saves settings, and no org run has measured that yet, so it "
-    "belongs to the household cluster rather than to C-15.",
-    (
-        "Nonprofit_Settings__c",
         "Delete_Empty_Households__c",
-    ): "HouseholdService.deleteEmptyHouseholds reads it as '!= true'. Same cluster, same "
-    "reason as Auto_Create_Households__c.",
+    ): "HouseholdService.deleteEmptyHouseholds reads it as '!= true', so a fresh org gets "
+    "the opposite of the field's declared default and deletes nothing. Left unregistered "
+    "deliberately: turning automatic deletion on for every org is a behaviour change the "
+    "owner should choose, not a side effect of tidying a default, and ADR-0036 has only just "
+    "made the deletion safe next to a native household. The admin guide now says it ships "
+    "off, so the documentation and the behaviour agree while the question is open.",
     (
         "Giving_Settings__c",
         "Auto_Apply_Gifts_To_Installments__c",

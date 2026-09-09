@@ -134,6 +134,44 @@ private class HealthCheckControllerTest {
         }
     }
 
+    @IsTest
+    static void turningOnAutomaticHouseholdsNeedsThePermission() {
+        User priya = HealthCheckTestHelper.priyaWithoutManageSettings();
+
+        System.runAs(priya) {
+            OrgShapeDetector.overrideShape = personAccountsShape();
+
+            Boolean refused = false;
+            try {
+                HealthCheckController.enableAutomaticHouseholds();
+            } catch (AuraHandledException e) {
+                refused = true;
+            }
+
+            System.assert(refused, 'Without the permission, the households fix is refused.');
+        }
+    }
+
+    @IsTest
+    static void withThePermissionAutomaticHouseholdsAreTurnedOn() {
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
+
+        System.runAs(maria) {
+            OrgShapeDetector.overrideShape = personAccountsShape();
+
+            Test.startTest();
+            HealthCheckController.enableAutomaticHouseholds();
+            Test.stopTest();
+
+            SettingsService.clearCaches();
+            System.assertEquals(
+                true,
+                SettingsService.getSettings().Auto_Create_Households__c,
+                'The households fix does what its button says.'
+            );
+        }
+    }
+
     private static OrgShapeDetector.OrgShape npspShape() {
         OrgShapeDetector.OrgShape shape = new OrgShapeDetector.OrgShape();
         shape.hasNpsp = true;

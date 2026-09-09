@@ -18,7 +18,6 @@ public class TestDataFactory {
         settings.Household_Membership_Mode__c = SettingsService.MEMBERSHIP_MODE_DEFAULT;
         settings.Auto_Create_Households__c = true;
         settings.Delete_Empty_Households__c = true;
-        settings.Create_Households_For_Person_Accounts__c = false;
         settings.Household_Name_Pattern__c = 'The {LastName} Family';
         settings.Formal_Greeting_Pattern__c = '{Salutation} {FirstName} {LastName}';
         settings.Informal_Greeting_Pattern__c = '{FirstName}';

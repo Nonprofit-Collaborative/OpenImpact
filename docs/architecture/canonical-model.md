@@ -137,16 +137,24 @@ does.
 
 Drawn from plan Section 4.6 and the acceptance criteria in Section 10.2.
 
-**R-H1 Automatic creation.** In contact mode, inserting a Contact with no Account
-creates a Household Account named per the naming rules, in the same transaction, and
-attaches the Contact to it. This is controlled by the `Auto_Create_Households__c`
-setting, default on. Bulk safety is required: 200 Contacts inserted in one DML operation
-create their households without exceeding platform limits.
+**R-H1 Automatic creation in contact mode.** In contact mode, inserting a Contact with
+no Account creates a Household Account named per the naming rules, in the same
+transaction, and attaches the Contact to it. This is controlled by the
+`Auto_Create_Households__c` setting, default on. Bulk safety is required: 200 Contacts
+inserted in one DML operation create their households without exceeding platform limits.
 
-**R-H2 Person Accounts.** In junction mode with Person Accounts enabled, creating a
-Person Account does not create a Household unless
-`Create_Households_For_Person_Accounts__c` is on. When it is on, a Household is created
-and a Household Member record links the Person Account to it.
+**R-H2 Automatic creation in junction mode.** In junction mode, saving a new person who
+belongs to no household creates a Household Account named per the naming rules and a
+Household Member record joining them to it, with the role Head and the primary flag set.
+The same `Auto_Create_Households__c` setting governs it, so one switch answers "does a new
+person get a household" in both membership modes. The person may be stored as a Contact
+or, in an org shaped that way, as a person record on Account: both take this path. A
+person a Household Member record already joins to a household is left alone. Bulk safety
+is required here too: 200 people inserted in one DML operation get their households and
+their membership records without exceeding platform limits.
+
+This rule previously said that a person stored as an account got no household unless a
+second setting asked for it. ADR-0037 retires that setting and records why.
 
 **R-H3 Membership modes.** Membership has two modes, and both sit behind a single Apex
 service so that no other code knows which is in use:
@@ -214,10 +222,34 @@ carries no default value: it is written by household upkeep and only ever onto a
 so an organization, which upkeep skips by record type, is left with an empty Member Count
 rather than a count of zero it never earned.
 
+Upkeep reads every member in system mode (ADR-0021), whichever object holds the person, so
+the count does not depend on the packaged access of whoever happened to save the record.
+A current member whose own record the upkeep read did not return is still counted, and is
+still moved by a merge or a split, because a household quietly recounted smaller is how a
+household gets renamed, emptied under R-H12, and its members lost. Such a member
+contributes nothing to the household name or the greetings, because there is no name to
+contribute. What a screen shows is read separately, with the running user's own access, and
+a member that read cannot return is not shown.
+
+This holds whichever object the person is stored on. Where people are person accounts, a
+change to the person is a membership change on the same terms as a change to a contact:
+deleting the person, restoring them from the recycle bin, and changing any of the
+attributes R-H4 builds the wording from (first name, surname, salutation, preferred name,
+deceased, household role, and the two exclusion flags) all recount and rewrite every
+household that person belongs to. The delete side of that cannot be done after the fact:
+see the note under R-M4 on what the platform does to a membership row when the person it
+names is deleted.
+
 **R-H12 Reparenting and empty households.** Moving a contact to a different household
 recalculates both households' member counts and, once Giving is installed, their giving
-rollups. The vacated household is deleted when it is empty and
-`Delete_Empty_Households__c` is on.
+rollups. The vacated household is deleted when it is empty, `Delete_Empty_Households__c`
+is on, and nothing outside Open Impact depends on the account (ADR-0036). "Empty" is
+measured in Open Impact's own membership, which is the only membership Open Impact can
+see, so a household that also carries a Salesforce Nonprofit Cloud household group or its
+membership rows reads as empty here while being anything but. The account is the master of
+that group, so deleting the account would destroy it rather than orphan it. A household
+left in place for that reason is reported to the Error Log at Info severity, naming the
+household: it is a correct outcome, not a failure.
 
 **R-H13 Merge and split.** Two households can be merged (members move to the surviving
 household, rollups recalculate, names and greetings recompute unless Custom Name is set)
@@ -237,9 +269,12 @@ was the last to leave, and the survivor of a merge is the record the merge exist
 so two empty households merge into one empty household rather than into nothing.
 
 **R-H14 Recompute action.** Changing a naming pattern in the settings console shows a
-preview against five sample households and offers a "Recompute all households" batch
-with progress and a completion notice. Recomputation never touches households with
-Custom Name set.
+preview against five fixed sample households, computed in memory from the patterns being
+typed: nothing is read from or written to the org's own households. The console also
+offers a "Recompute all households" batch. Starting it confirms that the batch has been
+queued; the batch runs in the background and reports neither progress nor completion to
+the console, and its counts are written to the debug log only. Recomputation never touches
+households with Custom Name set.
 
 ### Salesforce implementation
 
@@ -267,14 +302,6 @@ Custom Name set.
   carries them on the person's own record. They are not shown on Household or Organization
   layouts.
 
-- **Person attributes on Account.** The five person attributes listed under Contact
-  (Section 7) are present on Account as well, with the same API names and the same
-  definitions: `Deceased__c`, `Household_Role__c`, `Exclude_From_Household_Name__c`,
-  `Exclude_From_Greetings__c`, `Preferred_Name__c`. They belong to the person, not to the
-  household, and they exist on both objects so that an org that stores people as accounts
-  carries them on the person's own record. They are not shown on Household or Organization
-  layouts.
-
 - **Service:** `HouseholdService` (membership abstraction), `HouseholdNamingService`
   (R-H4 to R-H9), `HouseholdSelector` (all SOQL).
 
@@ -293,7 +320,7 @@ history of who was in a household when.
 | Attribute | Type | Required | Definition |
 |---|---|---|---|
 | Contact | reference(Contact) | conditional | The person, when the person is represented as a Contact. |
-| Account | reference(Household) | conditional | The person, where the person is represented as an account rather than as a Contact. |
+| Account | reference(Account) | conditional | The person's own account, where the person is represented as an account rather than as a Contact (a Person Account). Never a household: the household side is the Household attribute below. |
 | Household | reference(Household) | yes | The household the person belongs to. |
 | Role | picklist(Head, Spouse or Partner, Child, Other) | no | The person's role in this household, used for greeting order and reporting. |
 | Is Primary | boolean | yes (defaults false) | Marks the member who receives correspondence when only one person can be named. |
@@ -315,12 +342,31 @@ and no automation writes to it.
 **R-M2 Current membership.** A member is current when End Date is empty or in the
 future. Only current members count toward Member Count, naming, and greetings.
 
-**R-M3 One primary.** At most one current member of a household has Is Primary true, and
-that member is mirrored to the household's Primary Contact.
+**R-M3 One primary.** At most one current member of a household has Is Primary true.
+
+The second half of this rule, that the primary member is mirrored to the household's
+Primary Contact, is **not implemented and is not implementable as written**:
+`Primary_Contact__c` is a lookup to Contact, so it cannot hold a person who is stored as a
+Person Account, which is exactly the org shape junction membership exists for. No
+automation derives the field from Is Primary; the only value household upkeep writes to it
+is null, when the person it names is no longer a current member (R-H10). A merge can carry
+an existing value to the survivor, but it never derives one. Recorded as a known gap in
+Section 30.
 
 **R-M4 Person representation.** Exactly one of Contact or Account identifies the person:
 Contact where the person is a Contact, the person's own Person Account where Person
 Accounts are enabled. Both empty, or both pointing at people, is invalid.
+
+Deleting the person record is where "both empty" would otherwise come from. Both person
+lookups clear themselves when the record they point at is deleted, which leaves a row that
+identifies nobody, and the platform does not fill the lookup in again when the person is
+restored from the recycle bin. So a membership row is removed with the person it names,
+before the deletion empties it, and brought back when that person is: membership follows
+the person, current rows and ended ones alike. Membership history therefore survives
+everything except the deletion of the household it is history of and the deletion of the
+person it is history of. Rules R-M2 and R-H11 already ignore a row that identifies nobody,
+so a row orphaned before this was so, or by a deletion made with the automation switched
+off, is counted by nothing and named in nothing; it is simply left.
 
 **R-M5 No direct callers.** All reads and writes go through `HouseholdService`. Feature
 code never branches on membership mode.
@@ -383,8 +429,9 @@ address fields are used as the platform provides them.
 ### Rules
 
 **R-C1 Every person has a household.** In contact mode a Contact inserted with no
-Account gets one created (R-H1). A Contact is never left without a household unless
-automatic creation is turned off.
+Account gets one created (R-H1). In junction mode a Contact inserted with no membership
+gets a household and the membership record that joins them to it (R-H2). A Contact is
+never left without a household unless automatic creation is turned off.
 
 **R-C2 Naming inputs.** Preferred Name, when present, replaces First Name in the
 informal greeting and in any pattern that uses a personal name. Salutation feeds the
@@ -662,9 +709,8 @@ may add keys, and must add them here first.
 |---|---|---|---|
 | `Coexistence_Mode__c` | picklist(Standalone, NPSP, AgentforceNonprofit) | Standalone | How this org coexists with what is already installed; set by the Setup Assistant after automatic detection and confirmable later (plan Section 4.5). |
 | `Household_Membership_Mode__c` | picklist(Contact, Junction) | Contact | Whether household membership uses the Contact's Account reference or the Household Member junction. |
-| `Auto_Create_Households__c` | boolean | true | Whether inserting a Contact with no household creates one automatically. |
+| `Auto_Create_Households__c` | boolean | true | Whether saving a new person who belongs to no household creates one automatically. Governs both membership modes, and both objects a person can be stored on (R-H1, R-H2). |
 | `Delete_Empty_Households__c` | boolean | true | Whether a household left with no members is deleted. |
-| `Create_Households_For_Person_Accounts__c` | boolean | false | Whether creating a Person Account also creates a household and a membership record. |
 | `Household_Name_Pattern__c` | text | The {LastName} Family | The pattern used to compute a household's name. |
 | `Formal_Greeting_Pattern__c` | text | {Salutation} {FirstName} {LastName} | The pattern used to compute the formal greeting. |
 | `Informal_Greeting_Pattern__c` | text | {FirstName} | The pattern used to compute the informal greeting. |
@@ -1335,6 +1381,22 @@ and `SoftCredit` in the template's mapping document, and they are resolved in de
 order: organization, household, people, membership and affiliation, gift, allocations,
 soft credit. Resolution is idempotent per row (R-IB4).
 
+**R-IR1a What a row means for households.** A row is one household. The row's first
+person is saved first and is given a household by the ordinary creation path (R-H1 in
+contact mode, R-H2 in junction mode), which is the household the row then records. The
+row's second person is joined to that same household rather than being given one of their
+own, through `HouseholdService` (R-M5), so the join is written the way this org holds
+membership: the person's own account reference in contact mode, a Household Member record
+in junction mode, for a person stored as a Contact and for a person stored as an account
+alike. Two people on one row are therefore one household with two members in every
+membership mode and on both person objects. Three consequences follow. A second person who
+is created for a row that has no first person (the row named nobody else, or that person
+failed to save) gets a household of their own, because there is nothing to join. A second
+person who matched somebody the org already has keeps the household they already belong
+to: an import never moves an existing person into another household. And nobody is given a
+household and then taken out of it, because automatic creation is suspended while the
+people who are about to be joined are saved.
+
 **R-IR2 Giving links are identifiers, not references.** Gift and Soft Credit are stored
 as record identifiers rather than lookups. Import Row lives in Core and `Gift__c` and
 `Soft_Credit__c` live in Giving, and a base package cannot hold a reference to an object
@@ -1342,6 +1404,12 @@ in a package that depends on it. The Giving package reads and writes these two a
 by identifier. The cost is that the two links are not clickable in the standard record UI
 and cannot be reported on through a relationship; the results screen resolves and links
 them, and ADR-0014 records the deviation from the literal field list in plan Section 4.9.
+
+**R-IR2a The household is named from the row.** Where a row maps a household name, that
+name is written to the household the row resolved to and the household is marked as
+custom named, so the naming patterns leave it alone from then on (R-H8). This holds
+however the household was made, including the one junction mode creates with a membership
+record.
 
 **R-IR3 Person references.** A row resolves its people to Contacts or to person Accounts
 according to the template's Person Mode, never to both (Section 4 "Person references").
@@ -3740,6 +3808,16 @@ object is not worth altering later for fields this cheap: Acknowledgment Status,
 Acknowledgment Date, and Receipt Number for G-12 and G-13, and In-kind Description and
 Fair Market Value for G-18 (R-G9).
 
+### Known gaps in shipped rules
+
+Rules this document states that the shipped code does not implement. They are listed here
+so that a reader is not told the product does something it does not, and so that the gap
+is closed deliberately rather than discovered.
+
+| Rule | Gap | Why it is open |
+|---|---|---|
+| R-M3 (Section 6) | The primary member is not mirrored to the household's Primary Contact. | `Primary_Contact__c` is a lookup to Contact, so it cannot name a person stored as a Person Account, which is the org shape junction membership serves. Closing the gap means changing the field (a Contact and Account pair, per Section 4) or dropping the second half of the rule. Needs an ADR either way. |
+
 ---
 
 ## 31. Change log
@@ -3750,6 +3828,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.1 | 2026-09-07 | C-05 review fix: Error Log entries are published as `Error_Log_Event__e` (Publish Immediately) and written by a subscriber, so an entry survives the rollback it documents (new rule R-E4). |
 | v0.1 | 2026-09-08 | C-05 review fix: all three packaged permission sets grant Read and Create on `Error_Log_Event__e`, because publishing is governed by Create on the event (rule R-E4). |
 | v0.1 | 2026-09-08 | C-01 follow-up, R-H10 enforced in code. No object or field added. Household upkeep now clears Primary Contact when the person it names is no longer a current member, in both membership modes, and promotes nobody in their place: R-H10 already said the next member is proposed and not silently assigned, so the code follows the rule rather than the rule following the code. An organization shares the Primary Contact field (R-O3) and is never touched by this upkeep. |
+| v0.1 | 2026-09-09 | C-01 documentation corrections. No object, field, or code changed. The duplicated "Person attributes on Account" bullet in Section 5 is removed. Household Member's `Account` attribute is retyped `reference(Account)` and defined as the person's own account only, because `reference(Household)` read as a second household reference and invited the confusion R-M4 exists to prevent. R-M3's Primary Contact mirror is recorded as unimplemented and unimplementable as written, and listed in Section 30 as a known gap. R-H14 now says what the console does: a preview over fixed sample households rather than the org's own, and a recompute batch that confirms it was queued and then reports nothing further. |
 | v0.1 | 2026-09-08 | C-09 merge and split build. No object or field added. R-H13 gains the paragraph above on what a merge does, in what order, and what audits it. Recorded against R-M3: a move carries a person's role and primary flag with them, but never gives a household a second primary, so a merge or a split of people who were each primary in their own household leaves the survivor with one. |
 | v0.1 | 2026-09-07 | C-04 and C-05 build. Error Log gains Object Name. Automation Setting gains Handler Class, Object Name, Execution Order, and Package Default, all copied from the shipped registry when a record is materialized. Automation Registry field API names fixed ("Object" and "Order" are reserved words). Error Log and Setting Change record names recorded as auto numbers. Nonprofit Settings picklist keys recorded as text, per ADR-0019. |
 | v0.1 | 2026-09-07 | C-01 and C-02 build. Added `Household__c` (Lookup to Account) to Household Member: the original field list named the household side and the person side with the same attribute, so junction mode had no way to say which household a membership belonged to. `Account__c` is now defined as the person side only, matching R-M4. Recorded the naming service's token forms: `{FirstName}`, `{LastName}`, and `{Salutation}`, with the `{!Token}` spelling accepted as an alias so patterns copied from formula fields keep working. |
@@ -3783,7 +3862,9 @@ Fair Market Value for G-18 (R-G9).
 | v0.4 | 2026-09-09 | G-13 receipt number tampering fixed (ADR-0033). No object or field added. `Gift__c.Receipt_Number__c` becomes read only in `Giving_Staff` and `Giving_Admin`, matching `Giving_Read_Only`, and the receipt lock refuses every write to it, including the first one and including an insert, unless the receipting code is renumbering that gift. R-G4 restated: the number comes from the sequence in Section 25C or it does not exist. A number typed on by hand belonged to no receipt, locked the gift irreversibly, could be issued again later by the sequence, and left the gift unreceiptable, which is the collision ADR-0016 says nobody can recover from. The write moves from user mode to `GiftReceiptNumberWriter` in system mode under ADR-0021, because a field nobody may edit cannot be written in user mode, and the renumbering allowance changes from a transaction wide flag to the set of gift Ids being renumbered, so it no longer reaches an unrelated gift saved in the same transaction. |
 | v0.4 | 2026-09-09 | G-13 receipting defects found by security review (ADR-0034). No object or field added. Section 25B gains R-RC11: a receipt's stored file is linked to its receipt and, on a per gift receipt, to its gift, and never to the donor Contact or Account, because a `ContentDocumentLink` grants access to a file through the record it names and every Core role can read a donor. The relationship bullet is corrected to match. Section 25E gains R-RT4: the shipped letters are materialized by the Giving post-install script rather than by a cacheable controller method, which cannot perform DML, and every write to `Receipt_Template__c` checks `Manage_Nonprofit_Settings`. |
 | v0.4 | 2026-09-08 | C-10 sample data extended to the Giving module and to connections. `Sample Data` (`Sample_Data__c`, Checkbox, default false) added to `Gift__c`, `Fund__c`, `Appeal__c`, `Commitment__c`, `Relationship__c` and `Affiliation__c`, so every record the sample loader creates can be found and removed in one action; a gift's allocations, soft credits and tributes, and a commitment's installments, are details of a flagged record and go with it. `Sample Data Key` (`Sample_Data_Key__c`, Text(20)) added to Account and Contact: it holds the key the generated file gives a household, an organization or a person, which is how the Giving sample gifts find the donor they belong to across the asynchronous chain. No object added. |
+| v0.4 | 2026-09-09 | C-01 person account trigger defect. No object or field added. The person account path ran on insert and update only, so deleting a person left their household with a stale Member Count and stale wording and their membership row identifying nobody, undeleting them did nothing, and the only person change that rewrote a household name was the household's own custom name box. R-H11 now says plainly that a person stored as an account is a member on the same terms as a contact, and R-M4 records what happens to a membership row when the person it names is deleted, and why the row is removed with the person rather than left to the platform. |
 | v0.4 | 2026-09-09 | C-17 address propagation defect, found by the first org run on a person accounts org. No object or field added. R-AD3 gains the record type test: the person mailing fields exist on every account in a person accounts org, so `AddressService` asked the org whether it had them and then wrote them on whatever account it was holding. A household member, or an owner named in Person Account, that is a household or an organization was written through fields it cannot carry, the platform refused the update, and the address the user was saving was refused with it, with a message about permissions that named nothing true. The write is now decided by the account's record type, read once per save through `HouseholdSelector.getAccountRecordTypes` as an ADR-0021 upkeep read, and an account that holds no person is left out of the copy. Invisible on the Platform-only shape (ADR-0013), where the fields do not exist and the path returns early. |
+| v0.4 | 2026-09-09 | C-14 import defect: a row with two people in it. No object or field added. Section 16 gains R-IR1a (what a row means for households) and R-IR2a (the household is named from the row). The importer joined a row's second person to the first person's household by writing the person's account reference, which is contact mode's mechanism, and skipped the join entirely where the org stores people as accounts. In junction mode that reference joined nobody and stopped the automatic path from acting, so a couple imported into the configuration the product recommends became two households or one household and one person with none. The join now goes through `HouseholdService.addMembers`, and automatic creation is suspended while the people about to be joined are saved, so nobody is given a household and then taken out of it. |
 
 ---
 ## 32. Entity ownership by package

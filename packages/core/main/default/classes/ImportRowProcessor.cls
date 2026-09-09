@@ -19,6 +19,9 @@
  *
  * Membership is never reimplemented. A new person is inserted with no household and the
  * household trigger gives them one, which is the same path a person saved by hand takes.
+ * Where a row's two people belong together, the second is joined to the first person's
+ * household through `HouseholdService`, which is the only class that knows whether this org
+ * writes membership as the person's account reference or as a membership row (R-M5).
  */
 @NamespaceAccessible
 public with sharing class ImportRowProcessor {
@@ -83,6 +86,8 @@ public with sharing class ImportRowProcessor {
         Id person2Id;
         Boolean createdAnything = false;
         Boolean updatedAnything = false;
+        /** True when this run created the row's second person, who is joined to a household. */
+        Boolean createdPerson2 = false;
         String error;
     }
 
@@ -638,8 +643,19 @@ public with sharing class ImportRowProcessor {
     }
 
     /**
-     * Inserts the new people and updates the matched ones. The first person is saved before
-     * the second so that the second can join the household the first was given.
+     * Inserts the new people and updates the matched ones.
+     *
+     * The order is load bearing. The first person is saved first, because the household
+     * trigger gives them a household on that save and the second person's household is the
+     * one the first person ended up in: `resolveHouseholds` reads it back before the second
+     * person is saved at all.
+     *
+     * The second person is then saved in two passes over the chunk, which is two saves and
+     * not one per row. The people who are joining a household their row already knows are
+     * saved with automatic creation suspended, so that nobody is given a household of their
+     * own and then taken out of it again, and `joinSecondPeople` joins them afterwards.
+     * Everybody else (a row whose first person is missing, or failed) is saved normally and
+     * gets a household of their own, which is what a row describing one person means.
      */
     private static void savePeople(
         List<Working> working,
@@ -647,13 +663,37 @@ public with sharing class ImportRowProcessor {
         Boolean personAccounts,
         Outcome outcome
     ) {
-        insertPeople(working, batch, personAccounts, ImportMapping.ENTITY_CONTACT_1, true, outcome);
+        insertPeople(
+            working,
+            batch,
+            personAccounts,
+            ImportMapping.ENTITY_CONTACT_1,
+            true,
+            null,
+            outcome
+        );
         resolveHouseholds(working, personAccounts);
+        HouseholdService.suspendAutomaticCreation();
+        try {
+            insertPeople(
+                working,
+                batch,
+                personAccounts,
+                ImportMapping.ENTITY_CONTACT_2,
+                false,
+                true,
+                outcome
+            );
+        } finally {
+            HouseholdService.resumeAutomaticCreation();
+        }
+        joinSecondPeople(working, outcome);
         insertPeople(
             working,
             batch,
             personAccounts,
             ImportMapping.ENTITY_CONTACT_2,
+            false,
             false,
             outcome
         );
@@ -661,12 +701,63 @@ public with sharing class ImportRowProcessor {
         updateMatchedPeople(working, personAccounts, outcome);
     }
 
+    /**
+     * Joins each row's second person to the household its first person is in.
+     *
+     * Membership is never reimplemented here (R-M5). `HouseholdService.addMembers` is what
+     * joining an existing household means, and it is the only thing that knows how this org
+     * writes membership down: the person's own account reference in contact mode, a
+     * `Household_Member__c` row in junction mode, for a person stored as a contact and for a
+     * person stored as an account alike. The whole chunk is joined in one call, and the
+     * write fires the trigger that recounts and renames the households it touched, exactly
+     * as a join made by hand does.
+     *
+     * Only a person this run created is joined. A second person who matched somebody the org
+     * already has keeps the household they already belong to: an import that names two
+     * existing people on one line is not a licence to move one of them.
+     */
+    private static void joinSecondPeople(List<Working> working, Outcome outcome) {
+        Map<Id, Set<Id>> peopleByHousehold = new Map<Id, Set<Id>>();
+        for (Working item : working) {
+            if (item.error != null || !item.createdPerson2 || item.person2Id == null) {
+                continue;
+            }
+            if (item.row.Household__c == null) {
+                continue;
+            }
+            if (!peopleByHousehold.containsKey(item.row.Household__c)) {
+                peopleByHousehold.put(item.row.Household__c, new Set<Id>());
+            }
+            peopleByHousehold.get(item.row.Household__c).add(item.person2Id);
+        }
+        if (peopleByHousehold.isEmpty()) {
+            return;
+        }
+        try {
+            HouseholdService.addMembers(peopleByHousehold);
+        } catch (Exception e) {
+            // The people are saved and the rows say so. A household that could not be joined
+            // is reported in the run log and in the Error Log rather than thrown, so one bad
+            // household does not take the chunk with it (R-IB5).
+            ErrorLogger.log(e, 'ImportRowProcessor.joinSecondPeople');
+            outcome.notes.add(e.getMessage());
+        }
+    }
+
+    /**
+     * Inserts the people this chunk has to create for one entity.
+     *
+     * `joiningAHousehold` selects which of them: true is the people whose row already knows
+     * the household they belong to, false is the people whose row does not, and null is
+     * everybody, which is what the first person of a row always is.
+     */
     private static void insertPeople(
         List<Working> working,
         Import_Batch__c batch,
         Boolean personAccounts,
         String entity,
         Boolean isFirst,
+        Boolean joiningAHousehold,
         Outcome outcome
     ) {
         List<SObject> toCreate = new List<SObject>();
@@ -684,17 +775,21 @@ public with sharing class ImportRowProcessor {
             if (already != null || !describesPerson(item, entity)) {
                 continue;
             }
+            if (joiningAHousehold != null && joiningAHousehold != (item.row.Household__c != null)) {
+                continue;
+            }
             SObject person = personAccounts
                 ? (SObject) new Account(RecordTypeId = personRecordTypeId)
                 : (SObject) new Contact();
             Schema.SObjectType type = personAccounts ? Account.SObjectType : Contact.SObjectType;
             applyValues(person, type, item.byEntity.get(entity), new Set<String>(), outcome);
             person.put('Created_By_Import_Batch__c', batch.Id);
-            // The second person joins the first person's household rather than getting one of
-            // their own. The household itself is made by the household trigger, not here.
-            if (!isFirst && !personAccounts && item.row.Household__c != null) {
-                person.put('AccountId', item.row.Household__c);
-            }
+            // Nobody is saved into a household here. A person saved straight into a household
+            // account is saying "contact mode", which is one of two ways an org can hold
+            // membership, and the importer does not get to pick. The household itself is made
+            // by the household trigger, and the second person is joined to the first person's
+            // household by joinSecondPeople, through the service that knows which way this org
+            // writes membership down.
             toCreate.add(person);
             owners.add(item);
         }
@@ -709,6 +804,7 @@ public with sharing class ImportRowProcessor {
                     owner.person1Id = results[i].getId();
                 } else {
                     owner.person2Id = results[i].getId();
+                    owner.createdPerson2 = true;
                 }
                 owner.createdAnything = true;
             } else {
