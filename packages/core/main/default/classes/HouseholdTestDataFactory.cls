@@ -112,6 +112,50 @@ public class HouseholdTestDataFactory {
         return result;
     }
 
+    /**
+     * Read access to the membership object and to the fields on it that the package's own
+     * permission sets grant, and nothing else: no access is granted to any field on
+     * Account, so a user holding this can open a household panel in junction mode and is
+     * still a user who cannot read a person's deceased flag.
+     *
+     * The required lookup to the household is deliberately absent: a universally required
+     * field carries no field level access row, and asking to insert one fails.
+     */
+    public static void grantMembershipRead(String name, Id userId) {
+        List<String> fields = new List<String>{
+            'Account__c',
+            'Contact__c',
+            'End_Date__c',
+            'Is_Primary__c',
+            'Role__c',
+            'Start_Date__c'
+        };
+        // Setup objects are saved on their own so that granting access and creating records
+        // never mix in one transaction.
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            PermissionSet grant = new PermissionSet(Name = name, Label = name);
+            insert grant;
+            insert new ObjectPermissions(
+                ParentId = grant.Id,
+                SobjectType = 'Household_Member__c',
+                PermissionsRead = true
+            );
+            List<FieldPermissions> reads = new List<FieldPermissions>();
+            for (String field : fields) {
+                reads.add(
+                    new FieldPermissions(
+                        ParentId = grant.Id,
+                        SobjectType = 'Household_Member__c',
+                        Field = 'Household_Member__c.' + field,
+                        PermissionsRead = true
+                    )
+                );
+            }
+            insert reads;
+            insert new PermissionSetAssignment(AssigneeId = userId, PermissionSetId = grant.Id);
+        }
+    }
+
     public static List<Contact> manyContacts(Integer howMany, String lastName) {
         List<Contact> result = new List<Contact>();
         for (Integer i = 0; i < howMany; i++) {
