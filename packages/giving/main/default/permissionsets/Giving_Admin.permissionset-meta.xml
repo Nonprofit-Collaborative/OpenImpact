@@ -183,6 +183,10 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>StewardshipPlanController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>TributeController</apexClass>
     <enabled>true</enabled>
   </classAccesses>
@@ -922,6 +926,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
+    <field>Stewardship_Plan__c.Commitment__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
     <field>Stewardship_Plan__c.Completed_Date__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -1185,6 +1194,10 @@
   </tabSettings>
   <tabSettings>
     <tab>Soft_Credit__c</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Stewardship_Plans</tab>
     <visibility>Visible</visibility>
   </tabSettings>
   <tabSettings>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <label>Stewardship plans</label>
+    <protected>true</protected>
+    <values>
+        <field>Setting_Key__c</field>
+        <value xsi:nil="true" />
+    </values>
+    <values>
+        <field>Settings_Object__c</field>
+        <value xsi:type="xsd:string">Giving_Settings__c</value>
+    </values>
+    <values>
+        <field>Section__c</field>
+        <value xsi:type="xsd:string">Giving</value>
+    </values>
+    <values>
+        <field>Module__c</field>
+        <value xsi:type="xsd:string">Giving</value>
+    </values>
+    <values>
+        <field>Data_Type__c</field>
+        <value xsi:type="xsd:string">Component</value>
+    </values>
+    <values>
+        <field>Component__c</field>
+        <value xsi:nil="true" />
+    </values>
+    <values>
+        <field>Navigation_Target__c</field>
+        <value xsi:type="xsd:string">Stewardship_Plans</value>
+    </values>
+    <values>
+        <field>Sort_Order__c</field>
+        <value xsi:type="xsd:double">54</value>
+    </values>
+    <values>
+        <field>Description__c</field>
+        <value xsi:type="xsd:string">The follow-up your organization repeats: the plans, the steps each one lays out, the order they come in, and whether a plan is switched on. Editing a plan here changes what starts next, never a plan already running.</value>
+    </values>
+    <values>
+        <field>Help_Path__c</field>
+        <value xsi:type="xsd:string">stewardship-plans.md</value>
+    </values>
+</CustomMetadata>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <label>Commitment: stewardship plan starter</label>
+    <protected>true</protected>
+    <values>
+        <field>Object_Name__c</field>
+        <value xsi:type="xsd:string">Commitment__c</value>
+    </values>
+    <values>
+        <field>Handler_Class__c</field>
+        <value xsi:type="xsd:string">StewardshipCommitmentHandler</value>
+    </values>
+    <values>
+        <field>Execution_Order__c</field>
+        <value xsi:type="xsd:double">60</value>
+    </values>
+    <values>
+        <field>Enabled_By_Default__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>Always_Runs__c</field>
+        <value xsi:type="xsd:boolean">false</value>
+    </values>
+    <values>
+        <field>Description__c</field>
+        <value
+      xsi:type="xsd:string"
+    >Starts a stewardship plan when a pledge or recurring gift becomes active and an active plan template is waiting for that event, and creates that plan's tasks. It runs when a commitment is entered as Active and when an existing commitment moves into Active from any other status, so a pledge turned on a week after it was entered still gets its follow-up. Switch it off before loading a file of commitments and they load without starting plans; switch it back on and later commitments start plans again. Nothing is started retroactively for the commitments loaded while it was off. Gifts have their own switch, so stopping one does not stop the other.</value>
+    </values>
+</CustomMetadata>
