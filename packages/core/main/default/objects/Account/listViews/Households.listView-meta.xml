@@ -6,6 +6,10 @@
   <columns>Household_Informal_Greeting__c</columns>
   <columns>Custom_Name__c</columns>
   <filterScope>Everything</filterScope>
+  <filters>
+    <field>ACCOUNT.RECORDTYPE</field>
+    <operation>equals</operation>
+    <value>Account.Household</value>
+  </filters>
   <label>Households</label>
-  <recordType>Account.Household</recordType>
 </ListView>
