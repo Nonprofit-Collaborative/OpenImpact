@@ -23,6 +23,7 @@ public class TestDataFactory {
         settings.Formal_Greeting_Pattern__c = '{Salutation} {FirstName} {LastName}';
         settings.Informal_Greeting_Pattern__c = '{FirstName}';
         settings.Include_Deceased_In_Name__c = false;
+        settings.Relationship_Auto_Reciprocal__c = true;
         saveSettings(settings);
         return settings;
     }

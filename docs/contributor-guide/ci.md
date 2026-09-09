@@ -65,8 +65,17 @@ Salesforce org is needed for this job. Steps:
 13. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
    is missing from `docs/architecture/canonical-model.md`. The canonical model is updated
    before an object or a field is added, so this is the gate that keeps it true.
-14. A grep check that fails the build if any tracked file contains an em dash character.
-15. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
+14. `scripts/ci/check-setting-defaults.py`, failing the build if a checkbox setting that
+   ships switched on is not declared in `SettingsService.SHIPPED_DEFAULTS`, or is declared
+   there with a value the field metadata disagrees with. A field's own `defaultValue` is
+   applied by the platform when a record is created through the user interface, and never
+   by `getOrgDefaults()`, which hands Apex a materialized record with every checkbox false.
+   So a feature that ships on reads as switched off on every fresh install and does nothing,
+   silently, which is a defect only an org run finds (ADR-0035). This ran because C-15 had
+   been writing one side of every relationship since it merged: the reciprocal upkeep read
+   its own shipped default as false.
+15. A grep check that fails the build if any tracked file contains an em dash character.
+16. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
    `sf code-analyzer run --workspace packages --rule-selector Recommended --severity-threshold 2`.
    The results are uploaded as a build artifact (`code-analyzer-results.html` and
    `code-analyzer-results.json`) even if the job fails, so anyone can download and read
@@ -92,6 +101,7 @@ npm run check:help-links
 npm run check:adrs
 npm run check:components-reachable
 npm run check:canonical-model
+npm run check:setting-defaults
 npm run check:apex
 npm run check:analyzer
 ```
