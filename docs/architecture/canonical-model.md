@@ -2614,6 +2614,197 @@ the administrator's to fix, and a template that omits them still produces a vali
 
 ---
 
+## 25F. Gift Batch
+
+### Definition
+
+One sitting's worth of gifts, entered by hand from a stack of paper, checked against the
+total the bank was given, and then posted (plan Section 4.11, feature G-17). A batch is a
+container for entry and a control on entry, not a second kind of gift: once it is posted it
+holds nothing but the record of what it produced.
+
+The reason the entity exists is the control total. A deposit slip says the stack totals
+4,812.50, and the batch refuses to post until what was typed says the same thing. A batch
+that posts while it is out of balance is worse than no batch at all, because it produces
+gifts nobody will re-check.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | computed | The batch's identifier, assigned automatically. |
+| Description | text | no | What this stack of paper is, in the words the person entering it would use: "Tuesday mail, 14 March". |
+| Status | picklist(Open, Posted) | yes (defaults Open) | Whether the batch is still being typed or has produced its gifts (R-GB4). |
+| Control Total | decimal | yes | The total from the deposit slip or the adding machine tape, typed before entry starts, which the entered total has to match (R-GB3). |
+| Entered Total | decimal | computed | The sum of the amounts on the batch's rows. Held nowhere: it is computed from the rows every time it is shown or checked (R-GB2). |
+| Default Gift Date | date | no | The date every row of this batch is dated unless the row says otherwise. |
+| Default Fund | reference(Fund) | no | The fund every row of this batch is designated to unless the row says otherwise. |
+| Default Appeal | reference(Appeal) | no | The appeal every row of this batch responded to unless the row says otherwise. |
+| Default Payment Method | picklist(Cash, Check, Card, ACH, Stock, In-kind, Grant, Other) | no | How the gifts in this batch arrived, unless a row says otherwise. It fills the gift's Type (Section 18). |
+| Posted At | datetime | conditional | When the batch was posted: empty while it is open, set once and never changed (R-GB4). |
+| Posted By | reference(User) | conditional | The person who posted it, so the question "who posted this" is answered without reading a log. |
+| Gift Count | integer | conditional | How many gifts the posting produced, written once at posting so the number survives a gift later being deleted. |
+
+### Relationships
+
+- **Gift Batch to Gift Batch Row**, one to many, master-detail; the rows are deleted with
+  the batch and share its sharing.
+- **Gift Batch to Fund and to Appeal**, many to one in each case, and only as defaults for
+  its rows. A batch designates nothing itself.
+- A Gift Batch has no relationship to Gift. The gifts a posting produced are reached
+  through the rows that produced them, so a gift is never explained by two records.
+
+### Rules
+
+**R-GB1 Defaults are copied, not referenced.** The date, fund, appeal and payment method
+typed at the top of a batch are written onto each row as it is saved. They are a typing
+convenience, so changing a default later does not silently re-designate rows that were
+already entered, and a row that was deliberately made different stays different.
+
+**R-GB2 The entered total is computed, never stored.** It is the sum of the row amounts,
+computed at the moment it is shown and again at the moment a post is attempted. A stored
+copy of a sum is a second place for the number to be wrong, and this is the one number the
+feature exists to get right.
+
+**R-GB3 A batch out of balance does not post.** Posting is refused unless the entered total
+equals the control total exactly, and the refusal states the difference and its direction.
+A batch with no rows does not post either. The check is made on the server, inside the same
+transaction that would create the gifts, so a stale browser cannot post an unbalanced
+batch.
+
+**R-GB4 A batch posts once.** Posting reads the batch with a row lock, refuses if the
+status is already Posted, and sets the status, the posted timestamp, the posting user and
+the gift count in the same transaction that inserts the gifts. A second post, whether from
+a second browser tab or a double tap, finds the batch Posted and is refused. Status never
+returns to Open, a posted batch's fields never change again, and a posted batch is never
+deleted: this is enforced by an automation that always runs, in the sense of R-A4, because
+it is a rule rather than a convenience.
+
+**R-GB5 Posting is all or nothing.** Every row of a balanced batch becomes a gift, or none
+of them does. A partial post would leave a batch whose gifts no longer total the amount the
+bank was given, which is the state the control total exists to prevent, so a row that
+cannot be saved rolls the whole posting back and is named in the message.
+
+**R-GB6 Posted gifts are ordinary gifts.** Posting inserts `Gift__c` records through the
+same triggers a single gift goes through, so the household is derived, the default
+allocation is created, the rollups run and the receipt lock applies exactly as they do for
+a gift typed on the quick entry screen (Sections 18 and 19, R-G2, R-GA1, R-GA2). Nothing
+about a gift records that a batch made it except the row that points at it.
+
+### Salesforce implementation
+
+- **Object:** `Gift_Batch__c`, auto-number Name with format `GB-{000000}`, sharing model
+  ReadWrite.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Description | `Description__c` | Text(255) |
+| Status | `Status__c` | Picklist: Open, Posted |
+| Control Total | `Control_Total__c` | Currency |
+| Default Gift Date | `Default_Gift_Date__c` | Date |
+| Default Fund | `Default_Fund__c` | Lookup to `Fund__c` |
+| Default Appeal | `Default_Appeal__c` | Lookup to `Appeal__c` |
+| Default Payment Method | `Default_Payment_Method__c` | Picklist: Cash, Check, Card, ACH, Stock, In-kind, Grant, Other |
+| Posted At | `Posted_At__c` | DateTime |
+| Posted By | `Posted_By__c` | Lookup to User |
+| Gift Count | `Gift_Count__c` | Number(18, 0) |
+
+- **Service:** `GiftBatchService`, `GiftBatchSelector`, `GiftBatchController`, LWC
+  `giftBatchEntry` (G-17).
+- **Post lock:** handler `GiftBatchPostLockHandler`, registry records
+  `Automation_Registry.Gift_Batch_Post_Lock` and
+  `Automation_Registry.Gift_Batch_Row_Post_Lock` (execution order 5, Always Runs).
+
+---
+
+## 25G. Gift Batch Row
+
+### Definition
+
+One line of a batch: one donor, one amount, one check number, waiting to become a gift.
+A row is a draft of a gift and nothing else, which is why it carries the same handful of
+attributes a gift needs and none of the attributes a gift derives for itself.
+
+A row exists as a saved record from the moment it is typed, so the stack of twenty checks
+survives the browser being closed, the laptop sleeping, and the interruption that comes
+halfway down the pile.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | computed | The row's identifier, assigned automatically. |
+| Gift Batch | reference(Gift Batch) | yes | The batch this line belongs to. |
+| Row Number | integer | yes | The line's place in the batch, so the grid comes back in the order the paper was in. |
+| Donor Contact | reference(Contact) | conditional | The person who gave, where people are Contacts. |
+| Donor Account | reference(Organization) | conditional | The account that gave: an organization, a household giving in its own name, or a person Account. |
+| Amount | decimal | yes | What the check or the cash was for. |
+| Gift Date | date | yes | The date the gift was received, defaulted from the batch (R-GB1). |
+| Fund | reference(Fund) | no | The fund this gift is designated to, defaulted from the batch. Empty means the org's default fund, exactly as for a gift entered anywhere else (R-GA2). |
+| Appeal | reference(Appeal) | no | The appeal this gift responded to, defaulted from the batch. |
+| Payment Method | picklist(Cash, Check, Card, ACH, Stock, In-kind, Grant, Other) | yes | How this gift arrived, defaulted from the batch. It becomes the gift's Type (Section 18). |
+| Payment Reference | text | no | The check number or deposit reference, which is what makes a batch reconcilable against the bank statement. |
+| Gift | reference(Gift) | conditional | The gift this row produced, written at posting and empty before it (R-GB6). |
+
+### Relationships
+
+- **Gift Batch Row to Gift Batch**, many to one, master-detail, not reparentable.
+- **Gift Batch Row to Donor**, many to one, to exactly one of Donor Contact or Donor
+  Account, the same pair as everywhere else (Section 4 "Person references").
+- **Gift Batch Row to Gift**, one to one, and only after posting.
+
+### Rules
+
+**R-GR1 Exactly one donor, on the row as on the gift.** A row names a Donor Contact or a
+Donor Account, never both. A row with neither is incomplete rather than invalid: it can be
+saved, because a person types the amount from the check before they find the donor, and it
+stops the batch from posting until it is finished.
+
+**R-GR2 A row is checked twice, and the second check is the one that counts.** The grid
+tells the person what is missing while they type. The same rules are applied again on the
+server when the batch is posted, and posting is what refuses. Nothing trusts the browser.
+Nothing on a row is required by the platform except that the donor pair holds at most one
+reference, because a line is typed a field at a time and a half typed line has to be
+savable. What makes a row valid is what makes the batch post, which is the same list of
+checks in one place rather than two.
+
+**R-GR3 An amount of zero is not a line.** A row's amount is required and cannot be zero,
+for the reason a gift's cannot (Section 18). A negative row is refused as well: a refund is
+recorded against the gift it reverses (R-G3), never typed into a deposit batch.
+
+**R-GR4 A posted row is closed.** After its batch is posted a row cannot be edited,
+deleted, or added to the batch. The row is now the audit trail between the deposit slip and
+the gifts, and an audit trail that can be edited afterwards is not one (R-GB4). One change
+is still allowed, and only one: the Gift reference clears itself if the gift it points at is
+later deleted, because the platform clears a lookup when its target goes and refusing that
+would let a posted batch stop a gift from ever being deleted. What the row says was typed,
+the donor, the amount, the date and the reference, does not change.
+
+### Salesforce implementation
+
+- **Object:** `Gift_Batch_Row__c`, auto-number Name with format `GBR-{000000}`, sharing
+  model ControlledByParent.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Gift Batch | `Gift_Batch__c` | Master-Detail to `Gift_Batch__c` |
+| Row Number | `Row_Number__c` | Number(18, 0) |
+| Donor Contact | `Donor_Contact__c` | Lookup to Contact |
+| Donor Account | `Donor_Account__c` | Lookup to Account |
+| Amount | `Amount__c` | Currency |
+| Gift Date | `Gift_Date__c` | Date |
+| Fund | `Fund__c` | Lookup to `Fund__c` |
+| Appeal | `Appeal__c` | Lookup to `Appeal__c` |
+| Payment Method | `Payment_Method__c` | Picklist: Cash, Check, Card, ACH, Stock, In-kind, Grant, Other |
+| Payment Reference | `Payment_Reference__c` | Text(50) |
+| Gift | `Gift__c` | Lookup to `Gift__c` |
+
+- The child relationship from the batch is named `Rows`, so the rows of a batch are queried
+  as `Rows__r`.
+- **Service:** `GiftBatchService`, `GiftBatchSelector`.
+
+---
+
 ## 26. Packaged default rollups
 
 ### Definition
@@ -3138,7 +3329,6 @@ that builds it, before its metadata is created.
 | Receipt | Giving | v0.4 (G-13) | Section 4.11, ADR-0010 |
 | Donor Level | Giving | v0.4 (G-14) | Section 5.2 |
 | Stewardship Plan | Giving | v0.4 (G-15) | Section 5.2 |
-| Gift Batch | Giving | v0.5 (G-17) | Section 4.11 |
 | Volunteer, Job, Shift, Sign-up, Hours, Skill | Volunteers | v0.7 | Section 5.3 |
 | Program, Service, Enrollment, Attendance, Service Delivery, Outcome | Programs | v0.8 | Section 5.4 |
 | Funder pipeline entities (grant, reporting deadline, award compliance) | Funders | v0.9 | Section 5.5 |
@@ -3146,6 +3336,9 @@ that builds it, before its metadata is created.
 
 Receipt left this table in v0.4 and is specified in Sections 25B to 25E, together with
 Receipt Number Sequence, Receipt Run and Receipt Template.
+
+Gift Batch left this table in v0.5 and is specified in Sections 25F and 25G,
+together with Gift Batch Row, the child that holds one line of a batch.
 
 Two v0.4 entities have attributes that already exist on `Gift__c` from v0.2, because the
 object is not worth altering later for fields this cheap: Acknowledgment Status,
@@ -3187,6 +3380,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.4 | 2026-09-08 | G-14 donor levels (ADR-0028). New Section 25A, `Donor_Level__c`, with `Minimum_Amount__c`, `Maximum_Amount__c`, `Description__c` and `Active__c`, and three fields shipped by Giving on both Account and Contact: `Donor_Level__c`, `Previous_Donor_Level__c` and `Donor_Level_Changed_Date__c`. Giving Settings gains `Donor_Levels_Enabled__c`, `Donor_Level_Source_Field__c` and `Donor_Levels_Last_Recalculated__c`. A level is a label on a giving total the rollup engine already maintains (R-DL1), never a second aggregation, so the ladder cannot disagree with the total printed beside it and the household membership modes are resolved once, by the rollup, rather than twice. Donor Level is removed from the deferred table in Section 30 and its ownership row now points at Section 25A. |
 | v0.4 | 2026-09-08 | G-13 receipting (ADR-0016). Four objects added: `Receipt__c` (Section 25B), `Receipt_Number_Sequence__c` (25C), `Receipt_Run__c` (25D) and `Receipt_Template__c` (25E), with rules R-RC1 to R-RC10, R-RS1 to R-RS3, R-RR1 to R-RR3 and R-RT1 to R-RT3. Gift gains `Benefit_Description__c`, `Benefit_Value__c` and `Intangible_Religious_Benefits__c`, which is what a receipt needs to state a quid pro quo disclosure and the intangible religious benefits sentence; the deductible amount is computed by the renderer rather than stored, because a stored copy of a subtraction is a second place for it to be wrong. Giving Settings gains `Receipt_Number_Prefix__c`, `Receipt_Next_Counter__c`, `Receipt_Statement_Year__c`, `Receipt_Place_Of_Issue__c` and `Receipt_Renderer__c`, and its implementation subsection now lists every key it holds. Receipt leaves Section 30. |
 | v0.4 | 2026-09-08 | C-10 sample data extended to the Giving module and to connections. `Sample Data` (`Sample_Data__c`, Checkbox, default false) added to `Gift__c`, `Fund__c`, `Appeal__c`, `Commitment__c`, `Relationship__c` and `Affiliation__c`, so every record the sample loader creates can be found and removed in one action; a gift's allocations, soft credits and tributes, and a commitment's installments, are details of a flagged record and go with it. `Sample Data Key` (`Sample_Data_Key__c`, Text(20)) added to Account and Contact: it holds the key the generated file gives a household, an organization or a person, which is how the Giving sample gifts find the donor they belong to across the asynchronous chain. No object added. |
+| v0.5 | 2026-09-08 | G-17 gift batch entry (ADR-0031). Two objects added: `Gift_Batch__c` (Section 25F) and its master-detail child `Gift_Batch_Row__c` (Section 25G), with rules R-GB1 to R-GB6 and R-GR1 to R-GR4. The batch holds the control total from the deposit slip and the four defaults a sitting shares (date, fund, appeal, payment method); the row holds one line of paper and, after posting, the gift it produced. The entered total is computed from the rows and never stored (R-GB2), because a stored copy of the sum the feature exists to check is a second place for it to be wrong. Posting locks the batch row, refuses a second post, inserts the gifts through the ordinary Gift triggers so allocations, rollups and receipts behave identically (R-GB6), and rolls the whole posting back if any row fails (R-GB5). Giving ships `Gift_Batch_Post_Lock` and `Gift_Batch_Row_Post_Lock` (`GiftBatchPostLockHandler`, order 5, Always Runs), so a posted batch cannot be reopened, edited or deleted by any route. The staging rows of the Core import framework were considered and not used: ADR-0031 records why. No field added to an existing object. Gift Batch leaves Section 30. |
 
 ---
 ## 32. Entity ownership by package
@@ -3234,7 +3428,8 @@ included; standard objects the packages extend are named by the entity that gove
 | Receipt Template | Giving | v0.4 | 25D |
 | Donor Level | Giving | v0.4 | 30 |
 | Stewardship Plan | Giving | v0.4 | 30 |
-| Gift Batch | Giving | v0.5 | 30 |
+| Gift Batch | Giving | v0.5 | 25F |
+| Gift Batch Row | Giving | v0.5 | 25G |
 | Gift Transaction mirror | Connect | v0.6 | 30 |
 | Opportunity mirror | Connect | v0.6 | 30 |
 | Campaign sync | Connect | v0.6 | 30 |
