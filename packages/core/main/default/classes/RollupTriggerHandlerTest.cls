@@ -75,28 +75,73 @@ private class RollupTriggerHandlerTest {
         );
     }
 
+    /**
+     * A definition asking for a SUM with nothing to sum cannot be expressed to the engine, so
+     * the adapter refuses it. `skipEngine` stands the engine down but not this path: the refusal
+     * happens while the definition is being turned into metadata, before the engine would be
+     * called at all. Two things have to be true afterwards: the save went through, and Maria can
+     * find out why the number did not move.
+     *
+     * The membership is saved before the broken definition exists, so the only run of the rollup
+     * over it is the one this test makes, and the single log entry below is that run's.
+     */
     @IsTest
     static void aFailureIsLoggedRatherThanFailingTheSave() {
-        Rollup_Definition__c broken = memberCount();
-        broken.Aggregate__c = 'SUM';
-        broken.Source_Field__c = null;
-        insert broken;
-
         Account household = new Account(Name = 'Test household');
         insert household;
         Household_Member__c membership = new Household_Member__c(Household__c = household.Id);
         insert membership;
 
+        Rollup_Definition__c broken = memberCount();
+        broken.Aggregate__c = 'SUM';
+        broken.Source_Field__c = null;
+        insert broken;
+
         RollupService.skipEngine = true;
+        RollupService.lastMetadata = null;
         TriggerHandler.clearRunClaims();
         TriggerHandler.testNew = new List<SObject>{ membership };
 
         Test.startTest();
         new RollupTriggerHandler().afterInsert();
+        Test.getEventBus().deliver();
         Test.stopTest();
 
-        // Nothing thrown: the administrator's save went through and the failure is in the log.
-        System.Assert.isTrue(true, 'A broken rollup never fails a save (R-R4, plan Principle 2)');
+        // Nothing thrown: the administrator's save went through.
+        System.Assert.isNull(
+            RollupService.lastMetadata,
+            'The broken definition never reached the engine, so the refusal is the path that ran'
+        );
+        System.Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Household_Member__c WHERE Id = :membership.Id],
+            'The save the rollup was running for stands (R-R4, plan Principle 2)'
+        );
+        List<Error_Log__c> logged = [
+            SELECT Message__c, Technical_Detail__c, Record_Reference__c, Object_Name__c
+            FROM Error_Log__c
+            WHERE Context__c = 'RollupService.runRealTime'
+        ];
+        System.Assert.areEqual(1, logged.size(), 'And the failure is in the log, once');
+        System.Assert.areEqual(
+            String.valueOf(broken.Id),
+            logged[0].Record_Reference__c,
+            'Pointing at the definition Maria has to fix'
+        );
+        System.Assert.areEqual(
+            'Rollup_Definition__c',
+            logged[0].Object_Name__c,
+            'So the entry can be grouped by what it is about'
+        );
+        System.Assert.areEqual(
+            Label.Core_ErrorLog_UnexpectedFailure,
+            logged[0].Message__c,
+            'What Maria reads is plain language'
+        );
+        System.Assert.isTrue(
+            logged[0].Technical_Detail__c.contains('RollupAdapterException'),
+            'And the detail she forwards names what refused the definition'
+        );
     }
 
     @IsTest

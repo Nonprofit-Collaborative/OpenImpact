@@ -147,8 +147,20 @@ public with sharing class SoftCreditService {
     }
 
     /**
-     * Removes every credit Open Impact created for these gifts. Called before a gift is deleted so
-     * that the rollups see the removal, and by the matching gift service when a link is undone.
+     * Removes every credit Open Impact created for these gifts, and leaves alone every credit a
+     * person entered by hand (R-SC6).
+     *
+     * One caller: `GiftSoftCreditHandler.beforeDelete`. This docstring used to claim the matching
+     * gift service calls it too when a link is undone; it does not, and never has.
+     * `MatchingGiftService` has its own private `removeMatchedDonorCredits`, which deletes only
+     * the Matched Donor rows. Whether the two should share this method is a real question and a
+     * separate one.
+     *
+     * At its one call site the platform would delete these rows anyway, because `Gift__c` on
+     * `Soft_Credit__c` is a master detail field and the cascade removes the children. The call
+     * still earns its place by running `before` the delete, so anything reading credits in the
+     * same transaction sees them gone rather than half gone. That is a narrower claim than the
+     * old comment made, and it is the one the tests now prove.
      */
     public static void removeAutomaticCredits(Set<Id> giftIds) {
         if (giftIds == null || giftIds.isEmpty()) {
