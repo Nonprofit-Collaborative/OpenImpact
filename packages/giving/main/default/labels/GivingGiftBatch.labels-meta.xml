@@ -1,0 +1,539 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+  <labels>
+    <fullName>Giving_GiftBatch_Heading</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: screen heading</shortDescription>
+    <value>Gift batch entry</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_Intro</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: what the screen is for</shortDescription>
+    <value>Type a stack of checks into a grid, set the date, fund and appeal once at the top, and post the batch when what you have typed matches the deposit slip.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_NewBatchButton</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: start a new batch</shortDescription>
+    <value>Start a batch</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ResumeHeading</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: list of batches still open</shortDescription>
+    <value>Batches you have not posted</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_NoOpenBatches</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: there is nothing to resume</shortDescription>
+    <value>You have no batches waiting. Start one when you have a pile of checks to enter.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_OpenBatchButton</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: open one of the waiting batches</shortDescription>
+    <value>Open</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_BackToBatchesButton</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: leave this batch and go back to the list</shortDescription>
+    <value>All batches</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_DescriptionLabel</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: batch description field</shortDescription>
+    <value>What is in this batch</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_DescriptionPlaceholder</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: batch description example</shortDescription>
+    <value>Tuesday mail, 14 March</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ControlTotalLabel</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: control total field</shortDescription>
+    <value>Deposit slip total</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ControlTotalHelp</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: what the control total is for</shortDescription>
+    <value>The total from your deposit slip or adding machine tape. The batch will not post until what you have typed adds up to this.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_DefaultsHeading</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the group of values every line inherits</shortDescription>
+    <value>Applies to every line</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_DateLabel</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: default gift date field</shortDescription>
+    <value>Gift date</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_FundLabel</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: default fund field</shortDescription>
+    <value>Fund</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_AppealLabel</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: default appeal field</shortDescription>
+    <value>Appeal</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_PaymentMethodLabel</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: default payment method field</shortDescription>
+    <value>Payment method</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_PaymentMethodPlaceholder</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: payment method not chosen yet</shortDescription>
+    <value>Choose how these arrived</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ColumnLine</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: grid column: line number</shortDescription>
+    <value>Line</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ColumnDonorKind</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: grid column: person or organization</shortDescription>
+    <value>Donor is</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ColumnDonor</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: grid column: the donor</shortDescription>
+    <value>Donor</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ColumnAmount</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: grid column: the amount</shortDescription>
+    <value>Amount</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ColumnReference</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: grid column: the check number</shortDescription>
+    <value>Check number</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ColumnFund</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: grid column: the fund for this line</shortDescription>
+    <value>Fund</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ColumnRemove</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: grid column: remove this line</shortDescription>
+    <value>Remove</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_DonorKindPerson</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: donor is a person</shortDescription>
+    <value>A person</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_DonorKindOrganization</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: donor is an organization</shortDescription>
+    <value>An organization</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_DonorPlaceholder</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: donor search box</shortDescription>
+    <value>Search for a donor</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_RemoveRowTitle</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: remove one line</shortDescription>
+    <value>Remove this line</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_AddRowButton</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: add another line</shortDescription>
+    <value>Add a line</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_SaveButton</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: save what has been typed</shortDescription>
+    <value>Save</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_PostButton</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: post the batch</shortDescription>
+    <value>Post batch</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_SavingMessage</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: a save is in flight</shortDescription>
+    <value>Saving</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_SavedMessage</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: everything typed is saved</shortDescription>
+    <value>Saved</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_PostingMessage</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: a post is in flight</shortDescription>
+    <value>Posting</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_EnteredTotalLabel</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the total of the lines typed so far</shortDescription>
+    <value>Entered so far</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_DifferenceLabel</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the gap between the two totals</shortDescription>
+    <value>Difference</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_LineCountLabel</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: how many lines the batch has</shortDescription>
+    <value>Lines</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_BalancedMessage</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the two totals agree</shortDescription>
+    <value>This batch balances with the deposit slip and is ready to post.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_UnbalancedMessage</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the two totals do not agree yet</shortDescription>
+    <value>This batch will not post until it balances with the deposit slip.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_PostedTitle</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the batch posted</shortDescription>
+    <value>Batch posted</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_PostedMessage</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: how many gifts the batch produced</shortDescription>
+    <value>This batch posted {0} gifts. They are ordinary gifts now: they show on donor records, count in your totals, and can be receipted.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_PostedAlreadyMessage</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: opening a batch that has posted</shortDescription>
+    <value>This batch has already posted.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorTitle</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: something went wrong</shortDescription>
+    <value>That did not work</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorRowDonorBoth</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: a line names both kinds of donor</shortDescription>
+    <value>This line names a person and an organization. A gift has exactly one donor.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorRowDonorMissing</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: a line has no donor</shortDescription>
+    <value>This line has no donor. Find the person or organization that gave.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorRowAmount</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: a line has no usable amount</shortDescription>
+    <value>This line needs an amount greater than zero.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorRowDate</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: a line has no date</shortDescription>
+    <value>This line needs a gift date.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorRowPaymentMethod</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: a line has no payment method</shortDescription>
+    <value>This line needs a payment method. Set one at the top of the batch to fill in every line.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorRowsIncomplete</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the batch balances but some lines are unfinished</shortDescription>
+    <value>This batch balances, but some lines are not finished. Fix the lines marked below and post again.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorBatchMissing</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the batch is gone</shortDescription>
+    <value>That batch could not be found. It may have been deleted by someone else.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorAlreadyPosted</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the batch has already posted</shortDescription>
+    <value>This batch has already been posted, so it cannot be posted again. Its gifts were created the first time.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorNoRows</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the batch has no lines</shortDescription>
+    <value>This batch has no lines yet, so there is nothing to post.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorNoControlTotal</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the batch has no control total</shortDescription>
+    <value>Enter the deposit slip total before posting, so there is something to check against.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorShortOfControlTotal</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the lines total less than the deposit slip</shortDescription>
+    <value>This batch does not balance. What you have typed is {0} short of the deposit slip total. Find the missing gift, or correct the deposit slip total, then post again.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorOverControlTotal</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the lines total more than the deposit slip</shortDescription>
+    <value>This batch does not balance. What you have typed is {0} more than the deposit slip total. Look for a line entered twice or an amount typed wrong, then post again.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorPostFailed</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the post failed part way</shortDescription>
+    <value>This batch did not post, and nothing was created: the whole batch is still here as you left it.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorEditAfterPost</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: somebody tried to change a posted batch</shortDescription>
+    <value>This batch has been posted, so it cannot be changed. To correct a gift it created, refund or write off that gift.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorDeleteAfterPost</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: somebody tried to delete a posted batch</shortDescription>
+    <value>This batch has been posted, so it cannot be deleted. It is the record of what was deposited.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorPostByHand</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: somebody set the status to Posted by hand</shortDescription>
+    <value>A batch is posted by opening it and choosing Post batch, which is what creates the gifts. Setting the status by hand would close the batch without creating anything.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorRowEditAfterPost</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: somebody tried to change a line of a posted batch</shortDescription>
+    <value>This batch has been posted, so its lines cannot be changed. They are the record of what was on the deposit slip.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorRowAddedToPosted</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: somebody tried to add a line to a posted batch</shortDescription>
+    <value>This batch has been posted, so no more lines can be added to it. Start a new batch for gifts that arrived since.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorRowDeleteAfterPost</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: somebody tried to delete a line of a posted batch</shortDescription>
+    <value>This batch has been posted, so its lines cannot be deleted.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorLoadDefaults</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the screen could not read the org defaults</shortDescription>
+    <value>The batch could not be set up. Ask your administrator to check the Error Log.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorLoadBatches</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the list of open batches could not be read</shortDescription>
+    <value>Your open batches could not be listed. Ask your administrator to check the Error Log.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorLoadBatch</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: one batch could not be read</shortDescription>
+    <value>This batch could not be opened. Ask your administrator to check the Error Log.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorSaveBatch</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the header could not be saved</shortDescription>
+    <value>The batch could not be saved. Nothing was lost: try again in a moment.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_GiftBatch_ErrorSaveRows</fullName>
+    <categories>Giving, Gift Batch</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift batch entry: the lines could not be saved</shortDescription>
+    <value>Your lines could not be saved. Nothing was lost from the screen: try again in a moment.</value>
+  </labels>
+</CustomLabels>

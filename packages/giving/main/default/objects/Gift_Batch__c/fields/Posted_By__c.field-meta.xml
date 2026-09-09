@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Posted_By__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>The user who posted the batch, empty while it is still open.</description>
+  <label>Posted By</label>
+  <referenceTo>User</referenceTo>
+  <relationshipLabel>Gift Batches Posted</relationshipLabel>
+  <relationshipName>Gift_Batches_Posted</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

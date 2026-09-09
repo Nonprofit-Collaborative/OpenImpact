@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Donor_Contact__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <inlineHelpText>
+    The person who gave. Fill in a donor contact or a donor account, never both.
+  </inlineHelpText>
+  <label>Donor Contact</label>
+  <referenceTo>Contact</referenceTo>
+  <relationshipLabel>Gift Batch Rows</relationshipLabel>
+  <relationshipName>Gift_Batch_Rows</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

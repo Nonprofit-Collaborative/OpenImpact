@@ -15,6 +15,8 @@
   <label>Fundraising</label>
   <navType>Standard</navType>
   <tabs>Quick_Gift_Entry</tabs>
+  <tabs>Gift_Batch_Entry</tabs>
+  <tabs>Gift_Batch__c</tabs>
   <tabs>Gift__c</tabs>
   <tabs>Fund__c</tabs>
   <tabs>Appeal__c</tabs>

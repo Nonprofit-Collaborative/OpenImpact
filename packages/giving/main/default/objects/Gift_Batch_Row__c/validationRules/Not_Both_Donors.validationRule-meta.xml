@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Not_Both_Donors</fullName>
+  <active>true</active>
+  <description>
+    R-GR1: a line names a donor contact or a donor account, never both, which is the person
+    reference rule every entity follows (canonical model Section 4). The other half of that rule,
+    that one of them is filled in, is checked when the batch is posted rather than here: a line
+    exists from the moment the amount is typed, and the donor is often found a moment later, so
+    refusing to save an unfinished line would lose the typing this object exists to keep.
+  </description>
+  <errorConditionFormula>
+    AND(NOT(ISBLANK(Donor_Contact__c)), NOT(ISBLANK(Donor_Account__c)))
+  </errorConditionFormula>
+  <errorMessage>
+    Enter a donor contact or a donor account for this line, not both. A gift has exactly one donor.
+  </errorMessage>
+</ValidationRule>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Default_Gift_Date__c</fullName>
+  <inlineHelpText>
+    The date every gift in this batch is given, unless you change it on a line.
+  </inlineHelpText>
+  <label>Default Gift Date</label>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Date</type>
+</CustomField>

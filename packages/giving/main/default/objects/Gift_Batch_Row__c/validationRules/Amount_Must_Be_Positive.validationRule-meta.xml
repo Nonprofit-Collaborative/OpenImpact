@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Amount_Must_Be_Positive</fullName>
+  <active>true</active>
+  <description>
+    R-GR3: a line of a deposit is money that came in. Zero is not a line, and money that went back
+    is a refund recorded against the gift it reverses (R-G3), never a negative line in a batch. An
+    empty amount is allowed while the batch is being typed and stops it posting.
+  </description>
+  <errorConditionFormula>
+    AND(NOT(ISBLANK(Amount__c)), Amount__c &lt;= 0)
+  </errorConditionFormula>
+  <errorDisplayField>Amount__c</errorDisplayField>
+  <errorMessage>
+    Enter an amount greater than zero. To record money that went back, refund the gift it came
+    from rather than adding a negative line here.
+  </errorMessage>
+</ValidationRule>
