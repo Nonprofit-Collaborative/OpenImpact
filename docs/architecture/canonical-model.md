@@ -82,6 +82,7 @@ The pair is named the same way everywhere:
 | Tribute | Honoree Contact, Notification Recipient Contact | Honoree Account, Notification Recipient Account |
 | Import Row | Contact 1, Contact 2 | Person 1 Account, Person 2 Account |
 | Household Member | Contact | Account |
+| Volunteer Sign-up, Volunteer Hours | Contact | Account |
 
 **No packaged metadata references a Person Account field** (plan Section 4.2 and
 ADR-0009). The Account side is a plain lookup to Account. Whether a given account is a
@@ -92,7 +93,8 @@ Accounts are not enabled.
 Because a person can be an Account, the person attributes that v0.1 defined on Contact
 (Deceased, Household Role, Exclude From Household Name, Exclude From Greetings, Preferred
 Name) exist on Account as well. The Account copies are specified in Sections 5 and 7 with
-the rest of the v0.1 model.
+the rest of the v0.1 model. A module that adds a person attribute adds it the same way, on
+both objects under one API name: the volunteer profile does this in Section 29A.
 
 ---
 
@@ -3125,6 +3127,490 @@ be explained.
 
 ---
 
+# Part F: Volunteers entities
+
+These entities are built by the v0.7 iteration in the Volunteers package (features V-01,
+V-02, V-03). They are program delivery data: who offers time, what work there is to do,
+when it happens, and how many hours were actually given.
+
+The part is numbered 29A onward so that the deferred table, the change log, and the
+ownership table stay at the end of the document in reading order, which is the same
+reason Sections 21A and 25A to 25E carry letters.
+
+Three things in the plan's v0.7 list are deliberately absent here. Skill (V-04) and the
+availability, interest, and onboarding attributes (V-04, V-05) stay in Section 30 and are
+specified by the iteration that builds them. There is no Volunteer entity at all: a
+volunteer is a person the organization already knows, so the volunteer profile is a small
+set of person attributes on Contact and Account (Section 29A) rather than a second record
+to create and keep in step. Nothing here blocks V-04 to V-08: a skill is a child of the
+person or a junction to the job, availability and onboarding are further person
+attributes, a recurring shift is a generator of the shifts specified here, an hours import
+is an Import Template over Volunteer Hours, and an hour letter is a Receipt Template with
+a different body.
+
+## 29A. Volunteer profile
+
+### Definition
+
+The small set of attributes that make a person a volunteer rather than only a constituent
+(feature V-01). They are person attributes, so they exist on Contact and on Account under
+the same API names, for the same reason the v0.1 person attributes do (Section 4, "Person
+references"): the same package runs in an org where people are Contacts and in an org
+where people are person Accounts, and no feature code branches on which is in use.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Volunteer Status | picklist(Prospective, Active, Inactive) | no | Where this person stands with the volunteer program. Empty means the person is not a volunteer, which is most people. |
+| Volunteer Since | date | no | The day this person started volunteering, when the organization wants to state it rather than infer it from the first hours recorded. |
+| Emergency Contact Name | text | no | Who to call if something happens to this person on site. |
+| Emergency Contact Phone | text | no | The number to call for that person. |
+
+The rollup targets that carry a volunteer's hours are attributes of the same two objects
+and are listed in Section 29F with the definitions that fill them.
+
+### Relationships
+
+- A person reaches their hours through Volunteer Hours (Section 29E), which names them
+  with a Contact and Account pair.
+- A person reaches the shifts they are booked on through Volunteer Sign-up (Section 29D).
+
+### Rules
+
+**R-VP1 Volunteer Status is a statement, not a calculation.** The package never writes it.
+An organization that wants "active means hours in the last year" builds that as a report
+or a list view on the hours totals rather than having the package decide, because every
+organization draws that line somewhere different and a package that guessed would
+overwrite the coordinator's own answer.
+
+**R-VP2 The emergency contact is free text, deliberately.** It is not a reference to
+another Contact, because the person to call is very often not in the database, and a
+lookup that is usually empty is worse than a phone number that is always there.
+
+**R-VP3 Nothing here is required to record hours.** Hours can be entered for any person,
+whether or not their Volunteer Status is set, so a walk-in who helped for an afternoon is
+recorded in one save rather than in two.
+
+### Salesforce implementation
+
+- **Objects:** Contact and Account, both shipped by the Volunteers package.
+- **Custom fields on Contact, and on Account with the same API names:**
+
+| Attribute | API name | Type |
+|---|---|---|
+| Volunteer Status | `Volunteer_Status__c` | Picklist: Prospective, Active, Inactive |
+| Volunteer Since | `Volunteer_Since__c` | Date |
+| Emergency Contact Name | `Emergency_Contact_Name__c` | Text(100) |
+| Emergency Contact Phone | `Emergency_Contact_Phone__c` | Phone |
+
+An org without the Volunteers package installed has none of them, which is Principle 3.
+
+---
+
+## 29B. Volunteer Job
+
+### Definition
+
+A piece of work the organization needs volunteers for: sorting the food pantry, driving
+the van, staffing the front desk (feature V-01). It is the durable thing, and a shift
+(Section 29C) is one dated occurrence of it.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | yes | What the job is called, in the words the coordinator uses when asking for help. |
+| Description | long text | no | What the volunteer will actually be doing, and anything they should know before they arrive. |
+| Location | text | no | Where the work happens, when it is the same for every shift. |
+| Coordinator | reference(User) | no | The staff member who runs this job and approves the hours recorded against it. |
+| Active | boolean | yes (defaults true) | Whether this job is offered when a new shift is scheduled. |
+| Total Hours | decimal | computed | Approved hours ever recorded against this job. |
+| Last Volunteer Date | date | computed | The most recent day anybody worked this job. |
+| Rollups Last Calculated | datetime | computed | When Open Impact last worked out this job's totals. |
+
+### Relationships
+
+- **Volunteer Job to Volunteer Shift**, one to many, and the shift is a detail of the job.
+- **Volunteer Job to Volunteer Hours**, one to many, so hours can be recorded against a
+  job with no shift at all.
+- Coordinator is a reference to User, not a person reference pair, because a coordinator
+  is a member of staff who logs in rather than a constituent, and Section 4 governs
+  constituents.
+
+### Rules
+
+**R-VJ1 A job that has been used is deactivated, not deleted.** Deleting a job with shifts
+or hours against it would take the record of work that was actually done, so the package
+refuses the delete and the message says to clear Active instead. This is the same rule as
+R-F2 for a fund, for the same reason.
+
+**R-VJ2 An inactive job keeps its history.** Clearing Active stops the job being offered
+on a new shift and changes nothing about the shifts and hours already recorded, including
+its totals.
+
+### Salesforce implementation
+
+- **Object:** `Volunteer_Job__c`, name field Text, label Job Name.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Description | `Description__c` | Long Text Area |
+| Location | `Location__c` | Text(255) |
+| Coordinator | `Coordinator__c` | Lookup to User |
+| Active | `Active__c` | Checkbox, default true |
+| Total Hours | `Total_Hours__c` | Number(10, 2) |
+| Last Volunteer Date | `Last_Volunteer_Date__c` | Date |
+| Rollups Last Calculated | `Rollups_Last_Calculated__c` | DateTime |
+
+- **Service:** `VolunteerJobTriggerHandler`, `VolunteerJobSelector`.
+
+---
+
+## 29C. Volunteer Shift
+
+### Definition
+
+One dated occurrence of a job: the Saturday pantry sort on 14 March, nine until noon, four
+volunteers wanted (feature V-01). It is the thing a volunteer signs up for and the thing a
+coordinator counts heads on.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | yes | What this shift is called. Open Impact writes it from the job and the start when it is left empty. |
+| Volunteer Job | reference(Volunteer Job) | yes | The work being done. A shift is a detail of its job. |
+| Start Time | datetime | yes | When the shift starts. |
+| End Time | datetime | yes | When the shift ends. |
+| Volunteers Needed | integer | yes (defaults 1) | How many people the coordinator wants on this shift. |
+| Location | text | no | Where this shift happens, when it differs from the job's usual place. |
+| Status | picklist(Open, Cancelled, Completed) | yes (defaults Open) | Where the shift stands. A cancelled shift is kept rather than deleted, so the people who signed up can still be found. |
+| Slots Filled | integer | computed | How many people are signed up and have not cancelled. |
+| Slots Remaining | integer | computed | Volunteers Needed less Slots Filled. Negative when more people came than were asked for, which is information rather than an error. |
+| Total Hours | decimal | computed | Approved hours recorded against this shift. |
+| Rollups Last Calculated | datetime | computed | When Open Impact last worked out this shift's totals. |
+
+### Relationships
+
+- **Volunteer Shift to Volunteer Job**, many to one, as a detail of the job.
+- **Volunteer Shift to Volunteer Sign-up**, one to many, and the sign-up is a detail of
+  the shift.
+- **Volunteer Shift to Volunteer Hours**, one to many, optional on the hours side.
+
+### Rules
+
+**R-VS1 A shift belongs to a job.** The reference is required and the shift is a detail of
+the job, so a shift can never be orphaned and a job's shifts are read as one set. The
+practical consequence is that who can see a shift is decided by who can see its job, which
+is what a coordinator expects: shifts are the schedule, not private data.
+
+**R-VS2 A shift names itself.** A shift saved without a name is given one from its job and
+its start, for example "Food pantry sort: 14 Mar 2026, 9:00 AM". Staff creating a hundred
+shifts for a season do not type a hundred names, and a shift in a list is still readable.
+A name that was typed is never overwritten.
+
+**R-VS3 A shift ends after it starts.** Enforced as a validation rule, so it holds whether
+or not the automation is switched on.
+
+**R-VS4 Volunteers Needed is a target, not a limit.** The package never refuses a sign-up
+because a shift is full: a coordinator who lets a fifth person come to a four person shift
+is making a decision the package has no business overruling. Slots Remaining goes negative
+and the coordinator can see it.
+
+**R-VS5 Cancelling is not deleting.** Setting Status to Cancelled keeps the shift and its
+sign-ups, which is what lets the coordinator tell the people who had signed up. Deleting
+the shift takes its sign-ups with it, which is right for a shift created by mistake.
+
+### Salesforce implementation
+
+- **Object:** `Volunteer_Shift__c`, name field Text, label Shift Name, sharing model
+  Controlled By Parent.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Volunteer Job | `Volunteer_Job__c` | Master-Detail to `Volunteer_Job__c`, relationship name Shifts |
+| Start Time | `Start_Time__c` | DateTime, required |
+| End Time | `End_Time__c` | DateTime, required |
+| Volunteers Needed | `Volunteers_Needed__c` | Number(4, 0), default 1 |
+| Location | `Location__c` | Text(255) |
+| Status | `Status__c` | Picklist: Open, Cancelled, Completed |
+| Slots Filled | `Slots_Filled__c` | Number(4, 0) |
+| Slots Remaining | `Slots_Remaining__c` | Formula (Number) |
+| Total Hours | `Total_Hours__c` | Number(10, 2) |
+| Rollups Last Calculated | `Rollups_Last_Calculated__c` | DateTime |
+
+- **Validation rules:** `End_After_Start` (R-VS3).
+- **Service:** `VolunteerShiftTriggerHandler`, `VolunteerShiftSelector`.
+
+---
+
+## 29D. Volunteer Sign-up
+
+### Definition
+
+A person booked onto a shift (feature V-02). It is the intention, and Volunteer Hours
+(Section 29E) is the record of what happened.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | yes | An auto number, because a sign-up is identified by the person and the shift rather than by a name anybody types. |
+| Volunteer Shift | reference(Volunteer Shift) | yes | The shift the person is booked onto. A sign-up is a detail of the shift. |
+| Contact | reference(Contact) | conditional | The person, in an org where people are Contacts. |
+| Account | reference(Account) | conditional | The person, in an org where people are person Accounts. |
+| Status | picklist(Signed up, Confirmed, Attended, No show, Cancelled) | yes (defaults Signed up) | Where this booking stands, up to and including whether the person turned up. |
+| Notes | text | no | Anything the coordinator needs to remember about this booking. |
+
+### Relationships
+
+- **Volunteer Sign-up to Volunteer Shift**, many to one, as a detail of the shift.
+- **Volunteer Sign-up to a person**, through the Contact and Account pair (Section 4).
+- **Volunteer Sign-up to Volunteer Hours**, one to at most one, when marking attendance
+  created the hours (R-VU3).
+
+### Rules
+
+**R-VU1 Exactly one person.** A sign-up names a Contact or an Account, never both and
+never neither, enforced by a validation rule as everywhere else in the model (Section 4).
+
+**R-VU2 One sign-up per person per shift.** A second sign-up for the same person on the
+same shift is refused, because it is always a mistake and it would double the shift's
+filled count. The message names the shift.
+
+**R-VU3 Marking attendance can write the hours.** When Attendance Creates Hours is on
+(Section 29F), moving a sign-up to Attended creates one Volunteer Hours record for that
+person, dated the shift's start, for the length of the shift, against the shift's job. The
+hours record keeps a reference back to the sign-up, so marking attendance twice does not
+create a second record, and moving the sign-up away from Attended does not delete hours
+that a coordinator may since have approved: removing those is left to a person, and the
+sign-up shows what was created.
+
+**R-VU4 A cancelled sign-up stops counting.** Slots Filled counts sign-ups whose status is
+not Cancelled, so somebody who drops out frees the place without their booking being
+deleted.
+
+### Salesforce implementation
+
+- **Object:** `Volunteer_Signup__c`, name field AutoNumber `VS-{000000}`, sharing model
+  Controlled By Parent.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Volunteer Shift | `Volunteer_Shift__c` | Master-Detail to `Volunteer_Shift__c`, relationship name Signups |
+| Contact | `Contact__c` | Lookup to Contact |
+| Account | `Account__c` | Lookup to Account |
+| Status | `Status__c` | Picklist: Signed up, Confirmed, Attended, No show, Cancelled |
+| Notes | `Notes__c` | Text Area(255) |
+
+- **Validation rules:** `Exactly_One_Person` (R-VU1).
+- **Service:** `VolunteerSignupService`, `VolunteerSignupTriggerHandler`,
+  `VolunteerSignupSelector`.
+
+---
+
+## 29E. Volunteer Hours
+
+### Definition
+
+Time a person actually gave, entered by staff and approved by a coordinator (feature
+V-02). This is the record every volunteer number in the product is calculated from, which
+is why approval is part of it rather than a process bolted beside it.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | yes | An auto number: an hours record is identified by the person, the date and the job. |
+| Contact | reference(Contact) | conditional | The person who gave the time, in an org where people are Contacts. |
+| Account | reference(Account) | conditional | The person who gave the time, in an org where people are person Accounts. |
+| Household | reference(Household) | computed | The household credited with this time. Open Impact fills it in from the person. |
+| Volunteer Job | reference(Volunteer Job) | conditional | The work that was done. Filled from the shift when a shift is named. |
+| Volunteer Shift | reference(Volunteer Shift) | no | The shift this time was given on, when it was a scheduled shift. |
+| Volunteer Sign-up | reference(Volunteer Sign-up) | no | The booking these hours were created from, when attendance created them. |
+| Date Worked | date | yes | The day the time was given. |
+| Hours | decimal | yes | How many hours, to two decimal places. |
+| Status | picklist(Submitted, Approved, Rejected) | yes (defaults Submitted) | Where this entry stands with the coordinator. |
+| Approved By | reference(User) | computed | The coordinator who approved or rejected the entry. |
+| Approved Date | datetime | computed | When they did it. |
+| Rejection Reason | text | conditional | Why the entry was rejected, required when rejecting. |
+| Notes | text | no | What the person did, when it is worth recording. |
+
+### Relationships
+
+- **Volunteer Hours to a person**, through the Contact and Account pair (Section 4).
+- **Volunteer Hours to Household**, many to one, written by the package and never typed
+  (R-VG2). This is the same shape as Gift, and for the same reason: a household total is a
+  rollup over one reference rather than a resolution of the membership modes at read time.
+- **Volunteer Hours to Volunteer Job and Volunteer Shift**, many to one, both plain
+  lookups so that hours survive a shift being deleted.
+
+### Rules
+
+**R-VG1 Exactly one person.** Contact or Account, never both and never neither, as a
+validation rule (Section 4).
+
+**R-VG2 The household is written by the package.** It comes from the person's household in
+either membership mode, through `HouseholdService`, exactly as R-G2 does it for a gift. It
+is empty when the person has no household, and it is rewritten when the person on the
+entry changes.
+
+**R-VG3 An entry names a job or a shift.** A validation rule requires at least one, and
+the package fills the job in from the shift when only the shift is given, so a coordinator
+picking a shift never types the job as well. Both are held rather than one derived at read
+time, because a shift can be deleted and the hours it produced still belong to a job.
+
+**R-VG4 Hours are greater than zero.** A validation rule, because an entry of zero hours
+is either a mistake or an attendance record, and attendance is a sign-up.
+
+**R-VG5 Approval is a status on this record, moved by a service.** Staff enter hours and a
+coordinator approves them. The state lives in Status, Approved By and Approved Date, and
+it is moved by `VolunteerHoursService`, gated by the `Approve_Volunteer_Hours` custom
+permission. It is not a Salesforce approval process. Nothing V-02 asks for needs one:
+there is a single step, a single approver role, no delegation, no recall, no email chain,
+and no locking beyond the rule below. An approval process would put the state in a place
+the rollups cannot read and the settings console cannot switch, and it would need the
+admin to open Setup, which plan Section 4.8 forbids for a normal setting.
+
+**R-VG6 Only approved hours count.** Every rollup in Section 29F filters on Status equals
+Approved. An organization that does not want to approve anything sets Hours Require
+Approval to off, and then entries are created Approved and the numbers move as staff type,
+which is the same rule rather than an exception to it.
+
+**R-VG7 An approved entry is locked against a silent edit.** Once Status is Approved, the
+hours, the date and the person cannot be changed while it stays approved: the coordinator
+moves it back to Submitted, changes it, and approves it again. This is a validation rule
+rather than Apex, so it holds when the automation is switched off, which is the same
+reasoning as R-G4 with a lighter mechanism: nothing here has left the organization on
+paper, so no override permission is needed.
+
+**R-VG8 Rejecting says why.** A rejection without a reason gives the person who entered
+the time nothing to act on, so the service refuses it.
+
+### Salesforce implementation
+
+- **Object:** `Volunteer_Hours__c`, name field AutoNumber `VH-{000000}`.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Contact | `Contact__c` | Lookup to Contact |
+| Account | `Account__c` | Lookup to Account |
+| Household | `Household__c` | Lookup to Account |
+| Volunteer Job | `Volunteer_Job__c` | Lookup to `Volunteer_Job__c` |
+| Volunteer Shift | `Volunteer_Shift__c` | Lookup to `Volunteer_Shift__c` |
+| Volunteer Sign-up | `Volunteer_Signup__c` | Lookup to `Volunteer_Signup__c` |
+| Date Worked | `Date_Worked__c` | Date, required |
+| Hours | `Hours__c` | Number(6, 2), required |
+| Status | `Status__c` | Picklist: Submitted, Approved, Rejected |
+| Approved By | `Approved_By__c` | Lookup to User |
+| Approved Date | `Approved_Date__c` | DateTime |
+| Rejection Reason | `Rejection_Reason__c` | Text(255) |
+| Notes | `Notes__c` | Text Area(255) |
+
+- **Validation rules:** `Exactly_One_Person` (R-VG1), `Job_Or_Shift_Required` (R-VG3),
+  `Hours_Must_Be_Positive` (R-VG4), `Approved_Hours_Are_Locked` (R-VG7).
+- **Custom permission:** `Approve_Volunteer_Hours` (R-VG5).
+- **Service:** `VolunteerHoursService`, `VolunteerHoursTriggerHandler`,
+  `VolunteerHoursSelector`, `VolunteerHoursController`.
+
+---
+
+## 29F. Volunteer Settings and packaged default volunteer rollups
+
+### Definition
+
+The Volunteers module's own org-wide settings, and the Rollup Definitions the package
+ships to answer "how many hours" on a person, a household, an organization, a job and a
+shift (features V-02 and V-03). The settings follow ADR-0017: each package owns its own
+protected hierarchy custom setting, edited in the Nonprofit Settings console and never in
+Setup. The rollups follow Section 26: they are shipped as `Rollup_Definition_Default__mdt`
+rows, materialized on install, and every one of them is editable and deactivatable by the
+admin. The Volunteers package ships definitions, not aggregation code.
+
+### v0.7 keys
+
+| Key | Type | Default | Definition |
+|---|---|---|---|
+| Hours Require Approval | boolean | true | Whether hours are entered as Submitted and wait for a coordinator. Off means an entry is Approved as it is saved and counts immediately. |
+| Attendance Creates Hours | boolean | true | Whether marking a sign-up as Attended writes the hours for that shift (R-VU3). |
+
+### Target scopes
+
+The same three disjoint scopes as Section 26, for the same reason: Account carries
+households, organizations, and, in a person account org, people.
+
+| Scope | Target entity | Target filter | Relationship path from Volunteer Hours |
+|---|---|---|---|
+| Household | Account, record type Household | record type is Household | `Household__c` |
+| Account (organization or person) | Account, any other record type | record type is not Household | `Account__c` |
+| Contact | Contact | none | `Contact__c` |
+
+### Volunteer totals on Account and Contact
+
+Every definition here has source entity Volunteer Hours, the base filter Status equals
+Approved (R-VG6), and mode Both. The fiscal windows are the org's own fiscal year
+(Section 12), measured on Date Worked.
+
+| Target attribute | Aggregate | Source attribute | Extra filter | Definition |
+|---|---|---|---|---|
+| `Volunteer_Hours_Total__c` | SUM | `Hours__c` | none | Every approved hour this person or household has ever given. |
+| `Volunteer_Hours_This_Year__c` | SUM | `Hours__c` | fiscal year offset 0 | Approved hours in the current fiscal year, which is the number a board report asks for. |
+| `Volunteer_Hours_Last_Year__c` | SUM | `Hours__c` | fiscal year offset -1 | Approved hours in the previous fiscal year, so this year can be compared with it. |
+| `First_Volunteer_Date__c` | MIN | `Date_Worked__c` | none | The first day this person gave time, which is what a service award counts from. |
+| `Last_Volunteer_Date__c` | MAX | `Date_Worked__c` | none | The most recent day they gave time, which is what a lapsed volunteer report counts from. |
+
+### Totals on Volunteers objects
+
+| Target entity | Target attribute | Source | Aggregate | Source attribute | Filter | Definition |
+|---|---|---|---|---|---|---|
+| Volunteer Job | `Total_Hours__c` | Volunteer Hours | SUM | `Hours__c` | status Approved | Approved hours ever recorded against this job. |
+| Volunteer Job | `Last_Volunteer_Date__c` | Volunteer Hours | MAX | `Date_Worked__c` | status Approved | The most recent day anybody worked this job. |
+| Volunteer Shift | `Total_Hours__c` | Volunteer Hours | SUM | `Hours__c` | status Approved | Approved hours recorded against this shift. |
+| Volunteer Shift | `Slots_Filled__c` | Volunteer Sign-up | COUNT | none | status not equal to Cancelled | How many people are signed up and have not dropped out (R-VU4). |
+
+### Freshness in a Volunteers-only org
+
+`Rollups_Last_Calculated__c` on Account and Contact is shipped by the Giving package
+(Section 26), so in an org with Volunteers and no Giving those two objects carry no
+freshness stamp, and the engine, which looks the attribute up and skips it when it is
+absent, writes none. The volunteer totals are still correct and still recalculated; what
+is missing is the "last worked out at" line on the person's record page. Volunteers does
+not ship a second attribute of its own for it, because two packages cannot define the same
+API name on Account and a differently named twin would be a second answer to one question.
+The Volunteers objects carry their own `Rollups_Last_Calculated__c`, which Volunteers
+owns. ADR-0033 records this and the condition under which Core should adopt the attribute.
+
+### Salesforce implementation
+
+- **Object:** `Volunteer_Settings__c`, a protected hierarchy custom setting.
+
+| Key | API name | Type |
+|---|---|---|
+| Hours Require Approval | `Hours_Require_Approval__c` | Checkbox, default true |
+| Attendance Creates Hours | `Attendance_Creates_Hours__c` | Checkbox, default true |
+
+- **Fields on Contact, and on Account with the same API names** (shipped by Volunteers):
+
+| Attribute | API name | Type |
+|---|---|---|
+| Volunteer Hours Total | `Volunteer_Hours_Total__c` | Number(10, 2) |
+| Volunteer Hours This Year | `Volunteer_Hours_This_Year__c` | Number(10, 2) |
+| Volunteer Hours Last Year | `Volunteer_Hours_Last_Year__c` | Number(10, 2) |
+| First Volunteer Date | `First_Volunteer_Date__c` | Date |
+| Last Volunteer Date | `Last_Volunteer_Date__c` | Date |
+
+- **Shipped defaults:** one `Rollup_Definition_Default__mdt` row per line in the tables
+  above, per scope, with `Package__c` set to Volunteers: five rows each for the Household,
+  Account and Contact scopes, and four rows for the Volunteers objects.
+- **Settings console:** `Setting_Definition__mdt` rows for the two keys and for the
+  volunteer hours approval page, which is reached by navigation (ADR-0020) rather than
+  imported into the console.
+- **Service:** the Core engine (Section 14).
+
+---
+
+
 ## 30. Deferred to later iterations
 
 These entities exist in the product plan but are deliberately **not** part of v0.1, v0.2,
@@ -3139,13 +3625,19 @@ that builds it, before its metadata is created.
 | Donor Level | Giving | v0.4 (G-14) | Section 5.2 |
 | Stewardship Plan | Giving | v0.4 (G-15) | Section 5.2 |
 | Gift Batch | Giving | v0.5 (G-17) | Section 4.11 |
-| Volunteer, Job, Shift, Sign-up, Hours, Skill | Volunteers | v0.7 | Section 5.3 |
+| Skill, and the volunteer availability, interest and onboarding attributes | Volunteers | v0.7 (V-04, V-05) | Section 5.3 |
 | Program, Service, Enrollment, Attendance, Service Delivery, Outcome | Programs | v0.8 | Section 5.4 |
 | Funder pipeline entities (grant, reporting deadline, award compliance) | Funders | v0.9 | Section 5.5 |
 | Connect adapter entities and mirror mappings | Connect | v0.6 onward | Section 4.12 |
 
 Receipt left this table in v0.4 and is specified in Sections 25B to 25E, together with
 Receipt Number Sequence, Receipt Run and Receipt Template.
+
+The Volunteers row lost most of its entities in v0.7. Job, Shift, Sign-up and Hours are
+specified in Sections 29B to 29E, and Volunteer left the table without becoming an object:
+a volunteer is a person, so the profile is person attributes on Contact and Account
+(Section 29A). Skill and the availability, interest and onboarding attributes stay for the
+iteration's remaining features.
 
 Two v0.4 entities have attributes that already exist on `Gift__c` from v0.2, because the
 object is not worth altering later for fields this cheap: Acknowledgment Status,
@@ -3187,6 +3679,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.4 | 2026-09-08 | G-14 donor levels (ADR-0028). New Section 25A, `Donor_Level__c`, with `Minimum_Amount__c`, `Maximum_Amount__c`, `Description__c` and `Active__c`, and three fields shipped by Giving on both Account and Contact: `Donor_Level__c`, `Previous_Donor_Level__c` and `Donor_Level_Changed_Date__c`. Giving Settings gains `Donor_Levels_Enabled__c`, `Donor_Level_Source_Field__c` and `Donor_Levels_Last_Recalculated__c`. A level is a label on a giving total the rollup engine already maintains (R-DL1), never a second aggregation, so the ladder cannot disagree with the total printed beside it and the household membership modes are resolved once, by the rollup, rather than twice. Donor Level is removed from the deferred table in Section 30 and its ownership row now points at Section 25A. |
 | v0.4 | 2026-09-08 | G-13 receipting (ADR-0016). Four objects added: `Receipt__c` (Section 25B), `Receipt_Number_Sequence__c` (25C), `Receipt_Run__c` (25D) and `Receipt_Template__c` (25E), with rules R-RC1 to R-RC10, R-RS1 to R-RS3, R-RR1 to R-RR3 and R-RT1 to R-RT3. Gift gains `Benefit_Description__c`, `Benefit_Value__c` and `Intangible_Religious_Benefits__c`, which is what a receipt needs to state a quid pro quo disclosure and the intangible religious benefits sentence; the deductible amount is computed by the renderer rather than stored, because a stored copy of a subtraction is a second place for it to be wrong. Giving Settings gains `Receipt_Number_Prefix__c`, `Receipt_Next_Counter__c`, `Receipt_Statement_Year__c`, `Receipt_Place_Of_Issue__c` and `Receipt_Renderer__c`, and its implementation subsection now lists every key it holds. Receipt leaves Section 30. |
 | v0.4 | 2026-09-08 | C-10 sample data extended to the Giving module and to connections. `Sample Data` (`Sample_Data__c`, Checkbox, default false) added to `Gift__c`, `Fund__c`, `Appeal__c`, `Commitment__c`, `Relationship__c` and `Affiliation__c`, so every record the sample loader creates can be found and removed in one action; a gift's allocations, soft credits and tributes, and a commitment's installments, are details of a flagged record and go with it. `Sample Data Key` (`Sample_Data_Key__c`, Text(20)) added to Account and Contact: it holds the key the generated file gives a household, an organization or a person, which is how the Giving sample gifts find the donor they belong to across the asynchronous chain. No object added. |
+| v0.7 | 2026-09-08 | V-01, V-02 and V-03, the Volunteers package foundation. New Part F, Sections 29A to 29F: the volunteer profile as person attributes on Contact and Account (`Volunteer_Status__c`, `Volunteer_Since__c`, `Emergency_Contact_Name__c`, `Emergency_Contact_Phone__c`), `Volunteer_Job__c`, `Volunteer_Shift__c`, `Volunteer_Signup__c`, `Volunteer_Hours__c`, `Volunteer_Settings__c` with `Hours_Require_Approval__c` and `Attendance_Creates_Hours__c`, and nineteen shipped `Rollup_Definition_Default__mdt` rows writing `Volunteer_Hours_Total__c`, `Volunteer_Hours_This_Year__c`, `Volunteer_Hours_Last_Year__c`, `First_Volunteer_Date__c` and `Last_Volunteer_Date__c` on the three Section 26 scopes, plus the job and shift totals. Rules R-VP1 to R-VP3, R-VJ1, R-VJ2, R-VS1 to R-VS5, R-VU1 to R-VU4 and R-VG1 to R-VG8. There is no Volunteer object: a volunteer is a person, so the profile is person attributes under one API name on both objects, the way Section 4 requires. Approval of hours is a status moved by a service and gated by the `Approve_Volunteer_Hours` custom permission, not a Salesforce approval process (R-VG5), and only approved hours reach a rollup (R-VG6). Section 29F records that Account and Contact have no rollup freshness stamp in an org without Giving, because Giving owns that attribute (ADR-0033). |
 
 ---
 ## 32. Entity ownership by package
@@ -3238,7 +3731,14 @@ included; standard objects the packages extend are named by the entity that gove
 | Gift Transaction mirror | Connect | v0.6 | 30 |
 | Opportunity mirror | Connect | v0.6 | 30 |
 | Campaign sync | Connect | v0.6 | 30 |
-| Volunteers entities | Volunteers | v0.7 | 30 |
+| Volunteer profile (Contact and Account) | Volunteers | v0.7 | 29A |
+| Volunteer Job | Volunteers | v0.7 | 29B |
+| Volunteer Shift | Volunteers | v0.7 | 29C |
+| Volunteer Sign-up | Volunteers | v0.7 | 29D |
+| Volunteer Hours | Volunteers | v0.7 | 29E |
+| Volunteer Settings | Volunteers | v0.7 | 29F |
+| Volunteer rollup target attributes on Account and Contact | Volunteers | v0.7 | 29F |
+| Remaining Volunteers entities (Skill, availability, onboarding) | Volunteers | v0.7 | 30 |
 | Programs entities | Programs | v0.8 | 30 |
 | Funders entities | Funders | v0.9 | 30 |
 | NPSP household adoption | Connect | v0.9 | 30 |
