@@ -4,7 +4,7 @@
   <columns>FULL_NAME</columns>
   <columns>ACCOUNT.NAME</columns>
   <columns>Household_Role__c</columns>
-  <columns>EMAIL</columns>
+  <columns>CONTACT.EMAIL</columns>
   <filterScope>Everything</filterScope>
   <filters>
     <field>CONTACT.RECORDTYPE</field>
