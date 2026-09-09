@@ -1787,6 +1787,14 @@
         <value>A household could not be saved, so its name or its member count may be out of date.</value>
     </labels>
     <labels>
+        <fullName>Core_Households_SkippedNativeDependents</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>An empty household was left in place because records outside Open Impact point at it</shortDescription>
+        <value>Open Impact left the empty household {0} ({1}) in place. Nobody belongs to it in Open Impact, but records outside Open Impact still point at it, and deleting the household would delete those records too. Open the household, check what else uses it, and delete it by hand if you are sure.</value>
+    </labels>
+    <labels>
         <fullName>Core_Households_LatePrefix</fullName>
         <categories>Households</categories>
         <language>en_US</language>

@@ -1114,8 +1114,15 @@ public with sharing class HouseholdService {
     }
 
     /**
-     * Deletes households that have been left with no members, when the org asks for that.
-     * R-H12.
+     * Deletes households that have been left with no members, when the org asks for that and
+     * nothing outside Open Impact still depends on the account. R-H12, ADR-NEXT.
+     *
+     * "Empty" is decided from Open Impact's own membership, which is the only membership Open
+     * Impact can see. In an org running Salesforce Nonprofit Cloud a household account can
+     * carry a native household group and native membership rows as well, and the account is
+     * the master of that group, so deleting it would destroy the group rather than orphan it.
+     * Such a household is left alone and the skip is reported, because a tidy-up that quietly
+     * deletes somebody else's data is worse than a tidy-up left undone.
      */
     @NamespaceAccessible
     public static void deleteEmptyHouseholds(Set<Id> householdIds) {
@@ -1133,11 +1140,42 @@ public with sharing class HouseholdService {
             List<Person> members = membersByHousehold.get(household.Id);
             Boolean isHousehold = recordTypeId != null && household.RecordTypeId == recordTypeId;
             if (isHousehold && (members == null || members.isEmpty())) {
-                empties.add(new Account(Id = household.Id));
+                empties.add(household);
             }
         }
-        if (!empties.isEmpty()) {
-            HouseholdWriter.deleteHouseholds(empties);
+        if (empties.isEmpty()) {
+            return;
+        }
+        // One probe for the whole batch, so a split of fifty households still asks once.
+        Set<Id> dependent = HouseholdSelector.getAccountsWithNativeDependents(
+            new Map<Id, Account>(empties).keySet()
+        );
+        List<Account> deletable = new List<Account>();
+        List<String> skipped = new List<String>();
+        for (Account household : empties) {
+            if (dependent.contains(household.Id)) {
+                skipped.add(
+                    String.format(
+                        Label.Core_Households_SkippedNativeDependents,
+                        new List<String>{ household.Name, String.valueOf(household.Id) }
+                    )
+                );
+            } else {
+                deletable.add(new Account(Id = household.Id));
+            }
+        }
+        if (!skipped.isEmpty()) {
+            // Not an error: an administrator is being told what was deliberately left alone,
+            // and why, so that the empty household on their list is explained rather than
+            // mysterious.
+            ErrorLogger.logMessages(
+                skipped,
+                Label.Core_Households_ErrorContextMembership,
+                ErrorLogger.SEVERITY_INFO
+            );
+        }
+        if (!deletable.isEmpty()) {
+            HouseholdWriter.deleteHouseholds(deletable);
         }
     }
 }

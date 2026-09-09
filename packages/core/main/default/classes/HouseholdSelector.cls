@@ -4,7 +4,8 @@
  * There are two kinds of read here, and they are not interchangeable.
  *
  * The upkeep reads (everything not named ForDisplay) feed the member count, the household
- * name and the two greetings, which HouseholdWriter then saves. They run
+ * name and the two greetings, which HouseholdWriter then saves, and the guard that decides
+ * whether an emptied household may be deleted at all. They run
  * `WITH SYSTEM_MODE` under ADR-0021: a count computed from only the contacts the saving
  * user happens to see would be wrong, and a household must be named correctly for a user
  * who holds no packaged permission set at all. Nothing read on this path reaches a screen.
@@ -18,6 +19,24 @@
  */
 @NamespaceAccessible
 public with sharing class HouseholdSelector {
+    // The two Nonprofit Cloud objects an Open Impact household Account can have hanging off
+    // it, and the whole text of the query asked of each. Held as text and never compiled
+    // against, so that Core still deploys on a Platform-only org where neither object exists
+    // (ADR-0009, ADR-0013), and each query is a complete literal so that nothing is ever
+    // concatenated into it, the same shape OrgShapeSelector uses.
+    private static final String NATIVE_HOUSEHOLD_GROUP = 'PartyRelationshipGroup'; // detection-only: describe key, so the delete guard can tell whether this org has native household groups at all before it asks about one
+    private static final String NATIVE_HOUSEHOLD_GROUP_QUERY = 'SELECT AccountId FROM PartyRelationshipGroup WHERE AccountId IN :accountIds LIMIT 10000'; // detection-only: the delete guard has to notice a native household group whose master-detail parent is the Account it is about to delete, because deleting the Account cascade-deletes the group
+    private static final String NATIVE_MEMBERSHIP = 'AccountContactRelation'; // detection-only: describe key, so the delete guard can tell whether this org has native membership rows at all before it asks about one
+    private static final String NATIVE_MEMBERSHIP_QUERY = 'SELECT AccountId FROM AccountContactRelation WHERE AccountId IN :accountIds LIMIT 10000'; // detection-only: the delete guard has to notice native household membership rows on the Account it is about to delete, because they make a household that reads as empty to Open Impact
+    private static final String ACCOUNT_FIELD = 'AccountId';
+
+    /**
+     * Set only by tests, so that both outcomes of the delete guard are exercised on an org
+     * where neither Nonprofit Cloud object exists. Production code always runs the probe.
+     */
+    @TestVisible
+    private static Set<Id> accountsWithNativeDependentsOverride;
+
     @NamespaceAccessible
     public static List<Contact> getContactsByHouseholdIds(Set<Id> householdIds) {
         if (householdIds == null || householdIds.isEmpty()) {
@@ -185,6 +204,85 @@ public with sharing class HouseholdSelector {
             WITH SYSTEM_MODE
             LIMIT 10000
         ];
+    }
+
+    /**
+     * Accounts that something outside Open Impact still depends on, of the ones given.
+     *
+     * A household built by Salesforce Nonprofit Cloud is an Account plus a second record, the
+     * native household group, and its membership is carried on native relationship rows
+     * rather than on our own Household Member object. The two object names are the constants
+     * at the top of this class. The group's account field is a master-detail to Account with
+     * no Update property, so deleting the Account does not orphan the group, it destroys it,
+     * and every membership row goes with it. Such a household reads as empty to Open Impact,
+     * because Open Impact owns none of those rows. The verification is in
+     * docs/architecture/reference/nonprofit-cloud-data-model.md section 8 item 7.
+     * ADR-NEXT is the decision this method exists to enforce: an empty household is deleted
+     * only when nothing outside Open Impact depends on the Account.
+     *
+     * Neither object exists on a Platform-only org, so both names and both query texts are
+     * held as String constants and each query is run through Database.query (ADR-0009,
+     * ADR-0013), the same way OrgShapeSelector holds its query. An object that is not in the
+     * org is not a dependency, so it contributes nothing rather than throwing.
+     *
+     * An upkeep read (ADR-0021): the answer never reaches a screen, so it runs in system
+     * mode, and the four conditions hold. Only package upkeep reaches it, from
+     * HouseholdService.deleteEmptyHouseholds and nowhere else. Its only input is the set of
+     * account identifiers that upkeep computed for itself, never anything a person typed. It
+     * reads one identifier field on each object and nothing else. Nothing else in the
+     * transaction is elevated by it. Reading these rows with the saving user's own access
+     * would be worse than useless here: a row that user cannot see would come back missing,
+     * the household would read as safe to delete, and the cascade this guard exists to
+     * prevent would happen anyway.
+     */
+    @NamespaceAccessible
+    public static Set<Id> getAccountsWithNativeDependents(Set<Id> accountIds) {
+        if (accountsWithNativeDependentsOverride != null) {
+            return accountsWithNativeDependentsOverride;
+        }
+        Set<Id> dependent = new Set<Id>();
+        if (accountIds == null || accountIds.isEmpty()) {
+            return dependent;
+        }
+        addNativeDependents(
+            dependent,
+            NATIVE_HOUSEHOLD_GROUP,
+            NATIVE_HOUSEHOLD_GROUP_QUERY,
+            accountIds
+        );
+        addNativeDependents(dependent, NATIVE_MEMBERSHIP, NATIVE_MEMBERSHIP_QUERY, accountIds);
+        return dependent;
+    }
+
+    /**
+     * Adds the accounts that have at least one row of this object hanging off them. An object
+     * the org does not have, or one this user cannot read at all, adds nothing.
+     *
+     * A probe that fails for any other reason is treated as though every account given were
+     * dependent. Not being able to answer is not the same as answering no, and the cost of
+     * the two mistakes is not the same: refusing to delete leaves a tidy-up undone and says
+     * so in the log, while deleting on a probe that never ran destroys the native household
+     * this guard was added to protect.
+     */
+    private static void addNativeDependents(
+        Set<Id> dependent,
+        String objectName,
+        String query,
+        Set<Id> accountIds
+    ) {
+        Schema.SObjectType objectType = Schema.getGlobalDescribe().get(objectName);
+        if (objectType == null || !objectType.getDescribe().isAccessible()) {
+            return;
+        }
+        try {
+            for (SObject row : Database.query(query, AccessLevel.SYSTEM_MODE)) {
+                dependent.add((Id) row.get(ACCOUNT_FIELD));
+            }
+        } catch (Exception probeFailed) {
+            // No logging from a selector: the caller reports every household it declined to
+            // delete, and this account is now one of them.
+            dependent.addAll(accountIds);
+        }
     }
 
     /**
