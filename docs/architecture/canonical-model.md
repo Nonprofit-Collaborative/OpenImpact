@@ -2633,7 +2633,7 @@ belong to the people who have to do them.
 | Name | text | yes | What the administrator calls the plan, for example "First gift welcome". |
 | Plan Key | text | yes | A stable key, unique, so a shipped default is recognized on upgrade without matching on a name the administrator may have changed. |
 | Active | boolean | yes (defaults false) | Whether the plan can start. An inactive template keeps the plans it already started. |
-| Trigger Event | picklist(Manual, First gift, Gift received, Commitment started) | yes | What starts a plan from this template. Manual means a person starts it and nothing starts it automatically. |
+| Trigger Event | picklist(Manual, First gift, Gift received, Commitment started) | yes | What starts a plan from this template. Manual means a person starts it and nothing starts it automatically. Commitment started means a pledge or a recurring gift became active (R-SP3a). |
 | Minimum Amount | currency | no | For the two gift events, the smallest gift that starts a plan. Blank means any amount. |
 | Description | long text | no | What this plan is for, in the administrator's words, shown when a person picks a plan to start by hand. |
 
@@ -2660,6 +2660,15 @@ the gift being saved is the only gift the donor has that counts toward giving to
 the same status set the giving rollups use (Section 26). A refund that arrives later does
 not retroactively unstart the plan, because the welcome has already been sent.
 
+**R-SP3a Commitment started means the commitment became active.** A plan on this event
+starts when a commitment is created already Active, and when an existing commitment moves
+into Active from any other status. Both, because a pledge entered as Active and a pledge
+entered as Paused and turned on a week later are the same event to the donor. A resumed
+commitment therefore starts a plan again only once the earlier plan has been closed, since
+R-SP6 still holds. Nothing starts for a commitment created Paused, Completed or Cancelled,
+and Minimum Amount is not read here: the amount condition belongs to the two gift events,
+which is what the Amount Only For Gift Events rule already enforces at save.
+
 ### Salesforce implementation
 
 - **Object:** `Stewardship_Plan_Template__c`, Giving package.
@@ -2674,6 +2683,11 @@ not retroactively unstart the plan, because the welcome has already been sent.
 
 - **Service:** `StewardshipService`, with `StewardshipSelector` reading and
   `StewardshipWriter` writing, following the pattern the rest of Giving uses.
+- **Settings console:** the Stewardship Plans page, component `stewardshipPlans` with
+  `StewardshipPlanController` behind it, on the `Stewardship_Plans` tab and flexipage and
+  registered as a `Setting_Definition__mdt` Component row reached by navigation (ADR-0020).
+  Templates, their steps, their order and their Active state are all administered there, so
+  no part of setting a plan up needs Setup or a raw object tab.
 
 ---
 
@@ -2746,6 +2760,7 @@ same sequence does not start twice on the same event.
 | Contact | reference(Contact) | conditional | The donor, where people are Contacts. |
 | Account | reference(Organization) | conditional | The donor, where the donor is an organization or where people are person Accounts. |
 | Gift | reference(Gift) | no | The gift that started the plan, where a gift event did. |
+| Commitment | reference(Commitment) | no | The commitment that started the plan, where the Commitment started event did. |
 | Status | picklist(Running, Complete, Cancelled) | yes (defaults Running) | Where the sequence stands. |
 | Started Date | date | yes | The day the plan started, which is the day its due dates count from. |
 | Completed Date | date | no | The day the plan was marked complete or cancelled. |
@@ -2796,12 +2811,17 @@ found sitting Running long after their work finished.
 | Contact | `Contact__c` | Lookup to Contact |
 | Account | `Account__c` | Lookup to Account |
 | Gift | `Gift__c` | Lookup to `Gift__c` |
+| Commitment | `Commitment__c` | Lookup to `Commitment__c` |
 | Status | `Status__c` | Picklist: Running, Complete, Cancelled |
 | Started Date | `Started_Date__c` | Date |
 | Completed Date | `Completed_Date__c` | Date |
 
-- **Automation:** one `Automation_Registry__mdt` row, `Stewardship_Plan_Starter`, order 60,
-  handler `StewardshipTriggerHandler`, on `Gift__c` and `Commitment__c`.
+- **Automation:** two `Automation_Registry__mdt` rows, both order 60 and neither always
+  running: `Stewardship_Plan_Starter`, handler `StewardshipTriggerHandler`, on `Gift__c`,
+  and `Stewardship_Plan_Starter_Commitment`, handler `StewardshipCommitmentHandler`, on
+  `Commitment__c`. Two rows rather than one because the switch is per row, and an
+  administrator loading a year of gifts has no reason to also stop the commitments she
+  enters by hand from starting their plans.
 
 ---
 
@@ -3378,6 +3398,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.4 | 2026-09-08 | G-16 retention reports. One attribute added: `Gifts_Last_Year__c` (Number) on Account and Contact, filled by three new `Rollup_Definition_Default__mdt` rows (`Household_Gifts_Last_Year`, `Account_Gifts_Last_Year`, `Contact_Gifts_Last_Year`) as a COUNT over Gift with the ADR-0022 count filter and fiscal year offset -1. It is the one retention question no shipped attribute could answer: whether a donor gave last fiscal year, counted rather than summed. Everything else G-16 needs was already here, so LYBUNT, SYBUNT and the conversion report add no fields and read `Last_Gift_Date__c`, `First_Gift_Date__c` and `Gift_Count__c`, which already carry the count filter. No object added (ADR-0025, ADR-0026). |
 | v0.4 | 2026-09-08 | C-18 seasonal address swap build. `Address__c` gains `Replaced_By_Seasonal__c` (Checkbox, default false): R-AD4 said the previous default is restored when a season ends but nothing recorded which address that was, so an owner with a home address, a work address and a winter address had no unambiguous address to go back to. `Nonprofit_Settings__c` gains `Seasonal_Address_Last_Run_Summary__c` (Text 255) alongside the `Seasonal_Address_Last_Run__c` timestamp already specified in v0.3: a bare timestamp says the job woke up, not that it did anything, and "visible last run" is the half of C-18 that makes the job trustworthy. R-AD4 restated with the four outcomes per owner and the inclusive boundary days; R-AD8 added for the visible run and the system mode posture (ADR-0027). |
 | v0.4 | 2026-09-08 | G-15 stewardship plans. Three objects added: `Stewardship_Plan_Template__c` (Section 25F) with `Plan_Key__c`, `Active__c`, `Trigger_Event__c`, `Minimum_Amount__c` and `Description__c`; `Stewardship_Plan_Step__c` (25G) as its master detail child; and the running `Stewardship_Plan__c` (25H), which carries the person reference pair `Contact__c` and `Account__c` with exactly one set. Rules R-SP1 to R-SP10. Two limits are recorded as decisions rather than gaps: R-SP7 does not reach back into running plans when a template is edited, and R-SP10 leaves completion to a person because closing a plan from its last task would need packaged automation on Task. Tasks hang off the plan through `WhatId`, so no package field is added to a standard object. |
+| v0.4 | 2026-09-08 | G-15 gaps closed. `Stewardship_Plan__c` gains `Commitment__c` (Lookup), because the Commitment started event now starts plans and a plan started that way had nothing recording what started it. New rule R-SP3a says what the event means: a commitment created Active, or an existing commitment moving into Active from any other status. The automation is two registry rows rather than one, `Stewardship_Plan_Starter` on `Gift__c` and `Stewardship_Plan_Starter_Commitment` on `Commitment__c`, so each is switchable on its own. Templates, steps, step order and the Active state are now administered on a Stewardship Plans page in the settings console rather than on raw object tabs, which is what the every setting in the console rule requires. R-SP10 is unchanged: completion is still a person's judgment. |
 | v0.4 | 2026-09-08 | G-14 donor levels (ADR-0028). New Section 25A, `Donor_Level__c`, with `Minimum_Amount__c`, `Maximum_Amount__c`, `Description__c` and `Active__c`, and three fields shipped by Giving on both Account and Contact: `Donor_Level__c`, `Previous_Donor_Level__c` and `Donor_Level_Changed_Date__c`. Giving Settings gains `Donor_Levels_Enabled__c`, `Donor_Level_Source_Field__c` and `Donor_Levels_Last_Recalculated__c`. A level is a label on a giving total the rollup engine already maintains (R-DL1), never a second aggregation, so the ladder cannot disagree with the total printed beside it and the household membership modes are resolved once, by the rollup, rather than twice. Donor Level is removed from the deferred table in Section 30 and its ownership row now points at Section 25A. |
 | v0.4 | 2026-09-08 | G-13 receipting (ADR-0016). Four objects added: `Receipt__c` (Section 25B), `Receipt_Number_Sequence__c` (25C), `Receipt_Run__c` (25D) and `Receipt_Template__c` (25E), with rules R-RC1 to R-RC10, R-RS1 to R-RS3, R-RR1 to R-RR3 and R-RT1 to R-RT3. Gift gains `Benefit_Description__c`, `Benefit_Value__c` and `Intangible_Religious_Benefits__c`, which is what a receipt needs to state a quid pro quo disclosure and the intangible religious benefits sentence; the deductible amount is computed by the renderer rather than stored, because a stored copy of a subtraction is a second place for it to be wrong. Giving Settings gains `Receipt_Number_Prefix__c`, `Receipt_Next_Counter__c`, `Receipt_Statement_Year__c`, `Receipt_Place_Of_Issue__c` and `Receipt_Renderer__c`, and its implementation subsection now lists every key it holds. Receipt leaves Section 30. |
 | v0.4 | 2026-09-08 | C-10 sample data extended to the Giving module and to connections. `Sample Data` (`Sample_Data__c`, Checkbox, default false) added to `Gift__c`, `Fund__c`, `Appeal__c`, `Commitment__c`, `Relationship__c` and `Affiliation__c`, so every record the sample loader creates can be found and removed in one action; a gift's allocations, soft credits and tributes, and a commitment's installments, are details of a flagged record and go with it. `Sample Data Key` (`Sample_Data_Key__c`, Text(20)) added to Account and Contact: it holds the key the generated file gives a household, an organization or a person, which is how the Giving sample gifts find the donor they belong to across the asynchronous chain. No object added. |
