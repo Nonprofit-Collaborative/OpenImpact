@@ -11,8 +11,11 @@
  *    there, becomes or updates an address record, so the records stay the truth (R-AD5).
  *
  * No Person Account field is referenced statically anywhere in this class. Where people
- * are person accounts their mailing fields are written dynamically, by name, and only in
- * an org that has them (plan Section 4.2, ADR-0009).
+ * are person accounts their mailing fields are written dynamically, by name, only in an
+ * org that has them (plan Section 4.2, ADR-0009), and only on an account that actually
+ * holds a person: in such an org those fields exist on every account, but only a person
+ * account will accept a value in one, so the record type decides the write and not the
+ * org shape. See personAccountIdsAmong.
  */
 public with sharing class AddressService {
     @TestVisible
@@ -275,6 +278,7 @@ public with sharing class AddressService {
         Map<Id, Account> accountUpdates = new Map<Id, Account>();
         Map<Id, Contact> contactUpdates = new Map<Id, Contact>();
         Map<Id, Address__c> addressByHousehold = new Map<Id, Address__c>();
+        Map<Id, Address__c> addressByPersonOwner = new Map<Id, Address__c>();
 
         for (Id ownerId : byOwner.keySet()) {
             Address__c address = byOwner.get(ownerId);
@@ -284,18 +288,39 @@ public with sharing class AddressService {
             } else if (address.Contact__c != null) {
                 contactUpdates.put(ownerId, mailingCopy(ownerId, address));
             } else if (address.Person_Account__c != null) {
-                Account personAccount = personMailingCopy(
-                    ownerId,
-                    address,
-                    accountUpdates.get(ownerId)
-                );
-                if (personAccount != null) {
-                    accountUpdates.put(ownerId, personAccount);
-                }
+                addressByPersonOwner.put(ownerId, address);
             }
         }
 
-        propagateToHouseholdMembers(addressByHousehold, accountUpdates, contactUpdates);
+        // Every account this save might write person mailing fields on, asked about once,
+        // before anything is built: an account that does not hold a person must be left
+        // out rather than written and refused. See personAccountIdsAmong.
+        Map<Id, Set<Id>> membersByHousehold = membersOf(addressByHousehold.keySet());
+        Set<Id> candidates = new Set<Id>(addressByPersonOwner.keySet());
+        candidates.addAll(memberAccountIds(membersByHousehold));
+        Set<Id> personAccountIds = personAccountIdsAmong(candidates);
+
+        for (Id ownerId : addressByPersonOwner.keySet()) {
+            if (!personAccountIds.contains(ownerId)) {
+                continue;
+            }
+            Account personAccount = personMailingCopy(
+                ownerId,
+                addressByPersonOwner.get(ownerId),
+                accountUpdates.get(ownerId)
+            );
+            if (personAccount != null) {
+                accountUpdates.put(ownerId, personAccount);
+            }
+        }
+
+        propagateToHouseholdMembers(
+            addressByHousehold,
+            membersByHousehold,
+            personAccountIds,
+            accountUpdates,
+            contactUpdates
+        );
 
         if (!contactUpdates.isEmpty()) {
             Database.update(contactUpdates.values(), AccessLevel.USER_MODE);
@@ -305,18 +330,81 @@ public with sharing class AddressService {
         }
     }
 
+    /**
+     * The people in each of these households, as HouseholdService reports them, so that
+     * contact mode and the membership junction look the same from here.
+     */
+    private static Map<Id, Set<Id>> membersOf(Set<Id> householdIds) {
+        if (householdIds == null || householdIds.isEmpty()) {
+            return new Map<Id, Set<Id>>();
+        }
+        Map<Id, Set<Id>> members = membersByHouseholdOverride != null
+            ? membersByHouseholdOverride
+            : HouseholdService.getMemberPersonIds(householdIds);
+        return members == null ? new Map<Id, Set<Id>>() : members;
+    }
+
+    /** The members that are account records rather than contacts, households excluded. */
+    private static Set<Id> memberAccountIds(Map<Id, Set<Id>> membersByHousehold) {
+        Set<Id> accountIds = new Set<Id>();
+        Schema.SObjectType contactType = Contact.SObjectType;
+        for (Id householdId : membersByHousehold.keySet()) {
+            Set<Id> memberIds = membersByHousehold.get(householdId);
+            if (memberIds == null) {
+                continue;
+            }
+            for (Id memberId : memberIds) {
+                if (
+                    memberId != null &&
+                    memberId != householdId &&
+                    memberId.getSObjectType() != contactType
+                ) {
+                    accountIds.add(memberId);
+                }
+            }
+        }
+        return accountIds;
+    }
+
+    /**
+     * Which of these accounts actually hold a person.
+     *
+     * In an org that stores people as accounts, the person mailing fields exist on every
+     * account record, so asking the object whether it has them says only what the org is
+     * shaped like. Only an account whose record type is a person type will accept a value
+     * in them: writing one on a household or an organization fails the whole save, and the
+     * address the user was trying to save is refused with it. So the question that decides
+     * the write is asked of the record, not of the org, and it is asked the same way
+     * captureAccounts already asks it, through the record types OrgShapeDetector found.
+     *
+     * An account the running user cannot read is simply not returned, so it is left out
+     * rather than written and refused, which is the same outcome one row later.
+     */
+    private static Set<Id> personAccountIdsAmong(Set<Id> accountIds) {
+        Set<Id> found = new Set<Id>();
+        if (accountIds == null || accountIds.isEmpty() || !personAccountFieldsAvailable()) {
+            return found;
+        }
+        Set<Id> personRecordTypeIds = OrgShapeDetector.detect().personAccountRecordTypeIds;
+        if (personRecordTypeIds == null || personRecordTypeIds.isEmpty()) {
+            return found;
+        }
+        for (Account account : HouseholdSelector.getAccountRecordTypes(accountIds)) {
+            if (personRecordTypeIds.contains(account.RecordTypeId)) {
+                found.add(account.Id);
+            }
+        }
+        return found;
+    }
+
     private static void propagateToHouseholdMembers(
         Map<Id, Address__c> addressByHousehold,
+        Map<Id, Set<Id>> membersByHousehold,
+        Set<Id> personAccountIds,
         Map<Id, Account> accountUpdates,
         Map<Id, Contact> contactUpdates
     ) {
-        if (addressByHousehold.isEmpty()) {
-            return;
-        }
-        Map<Id, Set<Id>> membersByHousehold = membersByHouseholdOverride != null
-            ? membersByHouseholdOverride
-            : HouseholdService.getMemberPersonIds(addressByHousehold.keySet());
-        if (membersByHousehold == null || membersByHousehold.isEmpty()) {
+        if (addressByHousehold.isEmpty() || membersByHousehold.isEmpty()) {
             return;
         }
         Schema.SObjectType contactType = Contact.SObjectType;
@@ -332,7 +420,7 @@ public with sharing class AddressService {
                 }
                 if (memberId.getSObjectType() == contactType) {
                     contactUpdates.put(memberId, mailingCopy(memberId, address));
-                } else {
+                } else if (personAccountIds.contains(memberId)) {
                     Account personAccount = personMailingCopy(
                         memberId,
                         address,

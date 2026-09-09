@@ -117,6 +117,14 @@ your organization needs something extra, create your own permission set in Setup
 that extra piece and assign it alongside the role. Your own permission sets are never
 touched by an upgrade.
 
+**You granted only the Manage Nonprofit Settings permission and saving a setting fails.**
+The permission is what opens the settings console, but it is not the whole of what a save
+needs: every setting that changes is written to a Setting Change record, so that the org can
+answer who changed what and when, and that record is written as you rather than by the
+package. Give the person the Nonprofit Admin role, which carries both. If your organization
+builds its own permission set instead of using the role, it needs Create on Setting Change
+and edit access on its five fields alongside the permission.
+
 **You removed the Nonprofit Admin role from yourself.** The page will not let you remove
 the last person holding Nonprofit Admin, and it warns you before you remove that role from
 your own account. If you lose it anyway, anyone else with the Nonprofit Admin role, or a

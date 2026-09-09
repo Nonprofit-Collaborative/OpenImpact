@@ -4,62 +4,86 @@
  * Reading the report needs nothing. Acting on a finding needs the Manage Nonprofit Settings
  * custom permission, and the controller checks it rather than trusting the component, so
  * both sides of that check are covered here.
+ *
+ * Both sides run as a named user. The user running the tests in a deployed org is an
+ * administrator holding every packaged permission set, so a method that means "without the
+ * permission" and does not run as Priya is asking the question of somebody who has it.
  */
 @IsTest
 private class HealthCheckControllerTest {
     @IsTest
     static void anyoneCanReadTheReport() {
-        OrgShapeDetector.overrideShape = npspShape();
+        User priya = HealthCheckTestHelper.priyaWithoutManageSettings();
 
-        Test.startTest();
-        HealthCheckService.Report report = HealthCheckController.getReport();
-        Test.stopTest();
+        System.runAs(priya) {
+            OrgShapeDetector.overrideShape = npspShape();
 
-        System.assertNotEquals(null, report, 'The report is readable without any permission.');
-        System.assertNotEquals(null, report.findings, 'It carries its findings.');
-        System.assertEquals(
-            CoexistenceService.MODE_NPSP,
-            report.recommendedMode,
-            'It says what this org shape calls for.'
-        );
-        System.assertEquals(
-            false,
-            report.canManageSettings,
-            'The running user has not been given the permission, and the report says so.'
-        );
+            Test.startTest();
+            HealthCheckService.Report report = HealthCheckController.getReport();
+            Test.stopTest();
+
+            System.assertNotEquals(null, report, 'The report is readable without any permission.');
+            System.assertNotEquals(null, report.findings, 'It carries its findings.');
+            System.assertEquals(
+                CoexistenceService.MODE_NPSP,
+                report.recommendedMode,
+                'It says what this org shape calls for.'
+            );
+            System.assertEquals(
+                false,
+                report.canManageSettings,
+                'Priya has not been given the permission, and the report says so.'
+            );
+        }
     }
 
     @IsTest
     static void applyingTheRecommendationNeedsThePermission() {
-        OrgShapeDetector.overrideShape = npspShape();
+        User priya = HealthCheckTestHelper.priyaWithoutManageSettings();
 
-        Boolean refused = false;
-        try {
-            HealthCheckController.applyRecommendedMode();
-        } catch (AuraHandledException e) {
-            refused = true;
+        System.runAs(priya) {
+            OrgShapeDetector.overrideShape = npspShape();
+
+            Boolean refused = false;
+            try {
+                HealthCheckController.applyRecommendedMode();
+            } catch (AuraHandledException e) {
+                refused = true;
+            }
+
+            System.assert(
+                refused,
+                'Without the permission, the fix is refused rather than applied.'
+            );
+            System.assertEquals(
+                null,
+                CoexistenceService.getCurrentMode(),
+                'Nothing was written on the way to being refused.'
+            );
         }
-
-        System.assert(refused, 'Without the permission, the fix is refused rather than applied.');
-        System.assertEquals(
-            null,
-            CoexistenceService.getCurrentMode(),
-            'Nothing was written on the way to being refused.'
-        );
     }
 
     @IsTest
     static void switchingMembershipNeedsThePermission() {
-        OrgShapeDetector.overrideShape = personAccountsShape();
+        User priya = HealthCheckTestHelper.priyaWithoutManageSettings();
 
-        Boolean refused = false;
-        try {
-            HealthCheckController.applyJunctionMembership();
-        } catch (AuraHandledException e) {
-            refused = true;
+        System.runAs(priya) {
+            OrgShapeDetector.overrideShape = personAccountsShape();
+
+            Boolean refused = false;
+            try {
+                HealthCheckController.applyJunctionMembership();
+            } catch (AuraHandledException e) {
+                refused = true;
+            }
+
+            System.assert(refused, 'Without the permission, the membership fix is refused.');
+            System.assertEquals(
+                CoexistenceService.MEMBERSHIP_CONTACT,
+                CoexistenceService.getMembershipMode(),
+                'And membership is left where it was rather than switched.'
+            );
         }
-
-        System.assert(refused, 'Without the permission, the membership fix is refused.');
     }
 
     @IsTest

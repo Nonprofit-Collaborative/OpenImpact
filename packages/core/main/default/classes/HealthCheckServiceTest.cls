@@ -271,12 +271,15 @@ private class HealthCheckServiceTest {
         );
 
         User maria = HealthCheckTestHelper.mariaWithManageSettings();
-        System.runAs(HealthCheckTestHelper.currentUser()) {
-            insert new PermissionSetAssignment(
-                AssigneeId = maria.Id,
-                PermissionSetId = packaged[0].Id
-            );
-        }
+        System.assertEquals(
+            1,
+            [
+                SELECT COUNT()
+                FROM PermissionSetAssignment
+                WHERE AssigneeId = :maria.Id AND PermissionSetId = :packaged[0].Id
+            ],
+            'Maria holds the admin permission set directly rather than through a group.'
+        );
 
         System.runAs(maria) {
             OrgShapeDetector.overrideShape = shape(false, false, false, false);

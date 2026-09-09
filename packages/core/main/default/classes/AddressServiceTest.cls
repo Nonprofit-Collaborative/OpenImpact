@@ -345,8 +345,16 @@ private class AddressServiceTest {
         );
     }
 
+    /**
+     * The owner named in Person Account is an account that does not hold a person, which is a
+     * mistake the object cannot prevent: the field is a lookup to Account. On an org without
+     * person accounts the mailing fields are not there to write. On an org with them they are
+     * there on every account, and only a person account will take a value, so the propagation
+     * has to leave this one alone. Either way the address saves and the household keeps its
+     * own billing address, so one method covers both shapes.
+     */
     @IsTest
-    static void personAccountOwnerPathIsGuardedWhereThereAreNoPersonAccounts() {
+    static void personOwnedAddressSkipsAnAccountThatHoldsNoPerson() {
         Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         insert garcia;
         Address__c personal = new Address__c(
@@ -364,7 +372,7 @@ private class AddressServiceTest {
         Address__c saved = [SELECT Id, Is_Default__c FROM Address__c WHERE Id = :personal.Id];
         Assert.isTrue(
             saved.Is_Default__c,
-            'The address should still save where people are contacts.'
+            'The address saves rather than being refused because its owner holds no person.'
         );
         Account untouched = [SELECT BillingCity FROM Account WHERE Id = :garcia.Id];
         Assert.areEqual(
