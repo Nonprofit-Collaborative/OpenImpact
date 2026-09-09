@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Report xmlns="http://soap.sforce.com/2006/04/metadata">
+  <columns>
+    <field>Gift__c.Name</field>
+  </columns>
+  <columns>
+    <field>Gift__c.Gift_Date__c</field>
+  </columns>
+  <columns>
+    <field>Gift__c.Donor_Contact__c</field>
+  </columns>
+  <columns>
+    <field>Gift__c.Donor_Account__c</field>
+  </columns>
+  <columns>
+    <field>Gift__c.In_Kind_Description__c</field>
+  </columns>
+  <columns>
+    <aggregateTypes>Sum</aggregateTypes>
+    <field>Gift__c.Fair_Market_Value__c</field>
+  </columns>
+  <columns>
+    <field>Gift__c.Status__c</field>
+  </columns>
+  <description>
+    Gifts of goods and services received this year, with what was given and what it was worth.
+    Fair market value is the organization's own figure for its reporting: it is never printed on a
+    donor's receipt, and it is never added into a giving total.
+  </description>
+  <filter>
+    <criteriaItems>
+      <column>Gift__c.Type__c</column>
+      <operator>equals</operator>
+      <value>In-kind</value>
+    </criteriaItems>
+    <criteriaItems>
+      <column>Gift__c.Gift_Date__c</column>
+      <operator>equals</operator>
+      <value>THIS_YEAR</value>
+    </criteriaItems>
+  </filter>
+  <format>Tabular</format>
+  <name>In-kind Gifts This Year</name>
+  <reportType>Gifts</reportType>
+  <scope>organization</scope>
+  <showDetails>true</showDetails>
+  <sortColumn>Gift__c.Gift_Date__c</sortColumn>
+  <sortOrder>Desc</sortOrder>
+</Report>

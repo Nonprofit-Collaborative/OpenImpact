@@ -27,6 +27,15 @@ public with sharing class ReceiptContentBuilder {
     public static final String SENTENCE_NO_GOODS = 'No goods or services were provided in exchange for this contribution.';
     public static final String SENTENCE_INTANGIBLE_RELIGIOUS = 'The only goods or services provided in exchange for this contribution were intangible religious benefits.';
 
+    /**
+     * What stands where a cash receipt prints an amount, on a gift of goods (G-18, ADR-0029).
+     * A gift of goods has no amount, and printing the zero it carries would read as a receipt for
+     * nothing, while printing the fair market value the organization recorded is the one thing
+     * ADR-0016 forbids. So the document says what is true: the organization has not stated a
+     * value.
+     */
+    public static final String AMOUNT_NOT_STATED = 'No value stated (gift of goods or services)';
+
     private static final String IN_KIND = 'In-kind';
     private static final String TOKEN_OPEN = '{{';
     private static final String TOKEN_CLOSE = '}}';
@@ -79,7 +88,7 @@ public with sharing class ReceiptContentBuilder {
     public static List<String> taxSentencesFor(Gift__c gift) {
         List<String> sentences = new List<String>();
 
-        if (IN_KIND.equalsIgnoreCase(gift.Type__c)) {
+        if (isInKind(gift)) {
             String described = String.isBlank(gift.In_Kind_Description__c)
                 ? 'goods or services, described to us by the donor'
                 : gift.In_Kind_Description__c.trim();
@@ -154,7 +163,7 @@ public with sharing class ReceiptContentBuilder {
         Map<String, String> tokens = baseTokens(details, donorName, receiptNumber, issueDate);
         Date giftDate = gift.Gift_Date__c == null ? issueDate : gift.Gift_Date__c;
         tokens.put('StatementYear', String.valueOf(giftDate.year()));
-        tokens.put('Amount', money(gift.Amount__c));
+        tokens.put('Amount', amountText(gift));
         tokens.put('GiftDate', formatDate(giftDate));
         tokens.put('GiftType', String.isBlank(gift.Type__c) ? '' : gift.Type__c);
         tokens.put('GiftLines', '');
@@ -212,13 +221,31 @@ public with sharing class ReceiptContentBuilder {
         );
     }
 
-    /** The sum a statement states, which is the sum of the lines it prints. */
+    /**
+     * The sum a statement states, which is the sum of the lines it prints. An in-kind gift adds
+     * nothing to it, because its amount is zero (R-G12): the goods are listed as lines of their
+     * own, visibly outside the money the statement totals.
+     */
     public static Decimal totalOf(List<Gift__c> gifts) {
         Decimal total = 0;
         for (Gift__c gift : gifts) {
             total += gift.Amount__c == null ? 0 : gift.Amount__c;
         }
         return total;
+    }
+
+    /**
+     * What one gift's amount reads as on a document: the money, or, for a gift of goods, the
+     * sentence that states the absence of a value. The fair market value is never consulted
+     * here, and there is a test that asserts it never reaches the rendered document.
+     */
+    @TestVisible
+    private static String amountText(Gift__c gift) {
+        return isInKind(gift) ? AMOUNT_NOT_STATED : money(gift.Amount__c);
+    }
+
+    private static Boolean isInKind(Gift__c gift) {
+        return IN_KIND.equalsIgnoreCase(gift.Type__c);
     }
 
     // ----------------------------------------------------------------------- internals
@@ -278,7 +305,7 @@ public with sharing class ReceiptContentBuilder {
                 escape(blankToEmpty(gift.Status__c)) +
                 '</td>' +
                 '<td class="amount">' +
-                escape(money(gift.Amount__c)) +
+                escape(amountText(gift)) +
                 '</td>' +
                 '</tr>';
         }

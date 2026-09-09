@@ -3,7 +3,10 @@
   <baseObject>Gift__c</baseObject>
   <category>other</category>
   <deployed>true</deployed>
-  <description>Gifts, with their donor, date, amount, type, status and appeal.</description>
+  <description>
+    Gifts, with their donor, date, amount, type, status and appeal, and the description and fair
+    market value an in-kind gift carries.
+  </description>
   <label>Gifts</label>
   <sections>
     <columns>
@@ -49,6 +52,16 @@
     <columns>
       <checkedByDefault>true</checkedByDefault>
       <field>Appeal__c</field>
+      <table>Gift__c</table>
+    </columns>
+    <columns>
+      <checkedByDefault>false</checkedByDefault>
+      <field>In_Kind_Description__c</field>
+      <table>Gift__c</table>
+    </columns>
+    <columns>
+      <checkedByDefault>false</checkedByDefault>
+      <field>Fair_Market_Value__c</field>
       <table>Gift__c</table>
     </columns>
     <columns>

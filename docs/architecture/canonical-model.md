@@ -1402,7 +1402,7 @@ refund is another gift rather than an edit (ADR-0010).
 | Donor Account | reference(Organization) | conditional | The account credited with the gift: an organization, a household giving in its own name, or a person Account. |
 | Household | reference(Household) | computed | The household credited with the gift, derived from the donor (R-G2). |
 | Gift Date | date | yes | The date the gift was received, which is the date that appears on the receipt. |
-| Amount | decimal | yes | The amount received, negative for a refund or a write-off. |
+| Amount | decimal | yes | The money received, negative for a refund or a write-off, and zero on an in-kind gift, which is goods rather than money (R-G12). |
 | Type | picklist(Cash, Check, Card, ACH, Stock, In-kind, Grant, Other) | yes | How the gift arrived. |
 | Status | picklist(Received, Pending, Refunded, Written off) | yes | Where the gift stands; only Received gifts count in the packaged giving totals. |
 | Appeal | reference(Appeal) | no | The fundraising effort this gift responded to. |
@@ -1417,8 +1417,8 @@ refund is another gift rather than an edit (ADR-0010).
 | Payment Reference | text | no | The processor's transaction reference, check number, or deposit reference, for reconciliation against the bank. |
 | Original Gift | reference(Gift) | conditional | The gift this one refunds or writes off; required when Amount is negative (R-G3). |
 | Refund Reason | text | no | Why the money went back or the gift was written off, typed by the person recording it and carried on the negative gift (R-G3). |
-| In-kind Description | long text | no | What was given, when the gift is goods or services rather than money (v0.4, G-18). |
-| Fair Market Value | decimal | no | The value placed on an in-kind gift, which is what the receipt language must refer to (v0.4, G-18). |
+| In-kind Description | long text | conditional | What was given, when the gift is goods or services rather than money. Required on an in-kind gift and empty on every other gift, and it is the text the receipt prints (v0.4, G-18, R-G12). |
+| Fair Market Value | decimal | no | What the goods were worth, recorded for the organization's own reporting and never printed on a receipt (v0.4, G-18, R-G12, ADR-0029). |
 | Benefit Description | long text | no | What the donor received in return for the gift, described as it must be printed on the receipt (v0.4, G-13, R-RC7). |
 | Benefit Value | decimal | no | The organization's good faith estimate of what the benefit was worth, which the receipt subtracts to state the deductible amount (v0.4, G-13, R-RC7). |
 | Intangible Religious Benefits | boolean | yes (defaults false) | Whether the only thing the donor received in return was an intangible religious benefit, which is a sentence the receipt must carry instead of a value (v0.4, G-13, R-RC7). |
@@ -1460,8 +1460,10 @@ not edited to hold it, because editing the original is the thing this rule exist
 prevent. A partial refund leaves the original at Received, because part of it is still a
 gift the organization holds.
 
-**R-G4 Amount immutability.** Once a Receipt Number is present, Amount, Gift Date, and
-the donor references do not change, and the gift is not deleted. A correction voids the
+**R-G4 Amount immutability.** Once a Receipt Number is present, Amount, Gift Date, the
+donor references, and the In-kind Description do not change, and the gift is not deleted.
+The in-kind description is in that list because it is printed on the document the donor
+holds; Fair Market Value is not, because it never is (R-G12, ADR-0029). A correction voids the
 receipt and reissues (ADR-0010). This is enforced in the domain layer from v0.2, before
 the receipting feature exists in v0.4, so no early data escapes the rule. The enforcement
 runs from its own automation, `Gift_Receipt_Lock`, which is marked Always Runs (R-A4), so
@@ -1505,6 +1507,21 @@ Donor and the employer gift's amount; unlinking clears both references and remov
 credit. A gift matches at most one other gift. Neither gift may have been refunded or
 written off: a link that outlived the money would go on crediting the employee for a match
 the organization gave back.
+
+**R-G12 In-kind gifts carry no amount (G-18, ADR-0029).** A gift of goods or services is a
+Gift with Type In-kind. Its Amount is zero, because an in-kind gift is not money the
+organization holds and no money rollup, report or dashboard may treat it as though it were,
+and its worth is carried on Fair Market Value instead. An in-kind gift must carry an In-kind
+Description, which is what the receipt prints; a gift that is not in-kind carries neither the
+description nor the fair market value, so a type changed in error cannot leave a value behind
+that later reads as an in-kind gift. Fair Market Value is never negative and never appears on
+a rendered receipt or statement (R-RC7, ADR-0016): the donor substantiates what donated
+property was worth, the organization describes what it received. In-kind giving is reported on
+its own two rollups in Section 26, In-kind Value and In-kind Gift Count, so a donor of goods
+has a total and a count without either one entering Total Giving, a donor level (ADR-0028) or
+a retention report (ADR-0026). Because Amount is zero and never changes, a mistaken in-kind
+gift is corrected by writing it off or by correcting the description, not by a negative gift:
+R-G3 has nothing to reverse.
 
 ### Salesforce implementation
 
@@ -2670,6 +2687,19 @@ donor gave, and what the organization is left holding.
 | `Giving_Two_Years_Ago__c` | SUM | `Amount__c` | fiscal year offset -2 | Total given two fiscal years ago, used by SYBUNT and retention reporting. |
 | `Gifts_Last_Year__c` | COUNT | none | `Amount__c` greater than 0, fiscal year offset -1 | How many gifts this donor gave in the previous fiscal year, counting a gift once whether or not it was later refunded. A sum cannot answer this: a donor whose only gift last year was refunded inside that same year sums to zero while having given, and a donor whose sole activity last year was a refund of an older gift sums to less than zero while having given nothing. The retention reports read this attribute to tell a retained donor from a reactivated one (G-16, ADR-0026). |
 
+### In-kind giving on Account and Contact
+
+An in-kind gift is a Gift with Type In-kind whose Amount is zero (R-G12, ADR-0029), so it
+adds nothing to any row in the table above and is excluded from every row that counts, which
+is what keeps a donated vehicle out of Total Giving, out of Largest Gift, out of a donor level
+(ADR-0028) and out of the retention reports (ADR-0026). These two rows are where it does
+appear. They take the same status set and add `Type__c` equals `In-kind`.
+
+| Target attribute | Aggregate | Source attribute | Extra filter | Definition |
+|---|---|---|---|---|
+| `In_Kind_Value__c` | SUM | `Fair_Market_Value__c` | `Type__c` equals `In-kind` | What this donor's gifts of goods and services were worth, as the organization recorded them. Reported beside Total Giving and never added to it. |
+| `In_Kind_Gift_Count__c` | COUNT | none | `Type__c` equals `In-kind` | How many gifts of goods and services this donor has given. There is no amount condition here, because a donor can give goods whose value they never told the organization and that gift still happened. |
+
 Two further definitions on the same targets use different sources:
 
 | Target attribute | Source | Aggregate | Source attribute | Filter | Definition |
@@ -2739,9 +2769,11 @@ why the definition keeps its own Last Calculated as well.
 | Pledge Balance | `Pledge_Balance__c` | Currency |
 | Total Soft Credits | `Total_Soft_Credits__c` | Currency |
 | Soft Credit Count | `Soft_Credit_Count__c` | Number |
+| In-kind Value | `In_Kind_Value__c` | Currency |
+| In-kind Gift Count | `In_Kind_Gift_Count__c` | Number |
 | Rollups Last Calculated | `Rollups_Last_Calculated__c` | DateTime |
 
-- **Fields on Contact** (shipped by Giving): the same thirteen API names, with the same
+- **Fields on Contact** (shipped by Giving): the same fifteen API names, with the same
   types and the same definitions.
 
 - **Fields on `Fund__c`:**
@@ -3186,6 +3218,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.4 | 2026-09-08 | C-18 seasonal address swap build. `Address__c` gains `Replaced_By_Seasonal__c` (Checkbox, default false): R-AD4 said the previous default is restored when a season ends but nothing recorded which address that was, so an owner with a home address, a work address and a winter address had no unambiguous address to go back to. `Nonprofit_Settings__c` gains `Seasonal_Address_Last_Run_Summary__c` (Text 255) alongside the `Seasonal_Address_Last_Run__c` timestamp already specified in v0.3: a bare timestamp says the job woke up, not that it did anything, and "visible last run" is the half of C-18 that makes the job trustworthy. R-AD4 restated with the four outcomes per owner and the inclusive boundary days; R-AD8 added for the visible run and the system mode posture (ADR-0027). |
 | v0.4 | 2026-09-08 | G-14 donor levels (ADR-0028). New Section 25A, `Donor_Level__c`, with `Minimum_Amount__c`, `Maximum_Amount__c`, `Description__c` and `Active__c`, and three fields shipped by Giving on both Account and Contact: `Donor_Level__c`, `Previous_Donor_Level__c` and `Donor_Level_Changed_Date__c`. Giving Settings gains `Donor_Levels_Enabled__c`, `Donor_Level_Source_Field__c` and `Donor_Levels_Last_Recalculated__c`. A level is a label on a giving total the rollup engine already maintains (R-DL1), never a second aggregation, so the ladder cannot disagree with the total printed beside it and the household membership modes are resolved once, by the rollup, rather than twice. Donor Level is removed from the deferred table in Section 30 and its ownership row now points at Section 25A. |
 | v0.4 | 2026-09-08 | G-13 receipting (ADR-0016). Four objects added: `Receipt__c` (Section 25B), `Receipt_Number_Sequence__c` (25C), `Receipt_Run__c` (25D) and `Receipt_Template__c` (25E), with rules R-RC1 to R-RC10, R-RS1 to R-RS3, R-RR1 to R-RR3 and R-RT1 to R-RT3. Gift gains `Benefit_Description__c`, `Benefit_Value__c` and `Intangible_Religious_Benefits__c`, which is what a receipt needs to state a quid pro quo disclosure and the intangible religious benefits sentence; the deductible amount is computed by the renderer rather than stored, because a stored copy of a subtraction is a second place for it to be wrong. Giving Settings gains `Receipt_Number_Prefix__c`, `Receipt_Next_Counter__c`, `Receipt_Statement_Year__c`, `Receipt_Place_Of_Issue__c` and `Receipt_Renderer__c`, and its implementation subsection now lists every key it holds. Receipt leaves Section 30. |
+| v0.4 | 2026-09-09 | G-18 in-kind gifts (ADR-0029). No object added. Two attributes added on both Account and Contact, `In_Kind_Value__c` (Currency) and `In_Kind_Gift_Count__c` (Number), filled by six new `Rollup_Definition_Default__mdt` rows across the three scopes of Section 26, filtered to `Type__c` equals `In-kind` on top of the ADR-0022 status set. Rule R-G12 records what an in-kind gift is: a Gift of Type In-kind whose Amount is zero, whose worth is on `Fair_Market_Value__c`, which is never printed on a receipt, and whose description is required and is printed. R-G4 gains `In_Kind_Description__c`, because it appears on the document the donor holds. The `Amount_Cannot_Be_Zero` validation rule is narrowed to gifts that are not in-kind, and `In_Kind_Needs_Description`, `In_Kind_Has_No_Amount`, `In_Kind_Fields_Need_In_Kind_Type` and `Fair_Market_Value_Not_Negative` are added. |
 | v0.4 | 2026-09-08 | C-10 sample data extended to the Giving module and to connections. `Sample Data` (`Sample_Data__c`, Checkbox, default false) added to `Gift__c`, `Fund__c`, `Appeal__c`, `Commitment__c`, `Relationship__c` and `Affiliation__c`, so every record the sample loader creates can be found and removed in one action; a gift's allocations, soft credits and tributes, and a commitment's installments, are details of a flagged record and go with it. `Sample Data Key` (`Sample_Data_Key__c`, Text(20)) added to Account and Contact: it holds the key the generated file gives a household, an organization or a person, which is how the Giving sample gifts find the donor they belong to across the asynchronous chain. No object added. |
 
 ---

@@ -42,6 +42,8 @@ single number.
 | Pledge balance | Promised and not yet paid. |
 | Total soft credits | What this donor is recognized for without being hard credited. |
 | Soft credit count | How many gifts this donor is recognized on. |
+| In-kind value | What this donor's gifts of goods and services were worth. Never added into total giving. |
+| In-kind gift count | How many gifts of goods and services this donor has given. |
 
 **On a fund, an appeal, a pledge, and a scheduled payment**
 
@@ -69,7 +71,12 @@ about a number that looks wrong:
   **1 gift** and **$0 total giving**. That is deliberate: they did give, once, and the
   organization is holding none of it. The consequence is that dividing total giving by
   gift count is not a meaningful average gift for a donor with refunds. A gift recorded at
-  $0, such as an in-kind gift with no value entered, is not counted either.
+  $0 is not counted either.
+- **In-kind gifts are in none of the money totals.** A gift of goods carries no amount, so
+  it adds nothing to total giving, to a gift count, to a fund or appeal total, or to a
+  donor level. It has two totals of its own, In-kind value and In-kind gift count, kept by
+  this same engine. Total giving is cash and in-kind value is goods: two answers to two
+  questions, not two halves of one. See [In-kind gifts](in-kind-gifts.md).
 - **Soft credits are never added into a giving total.** A soft credit is recognition, not
   money the organization received, so it is counted only in Total soft credits and Soft
   credit count. If it were in Total giving as well, every household gift would be counted
@@ -187,6 +194,7 @@ For report builders only. Nothing on this page requires you to know these.
 | Giving this year, last year, two years ago | `Giving_This_Year__c`, `Giving_Last_Year__c`, `Giving_Two_Years_Ago__c` |
 | Pledge balance | `Pledge_Balance__c` |
 | Total soft credits, soft credit count | `Total_Soft_Credits__c`, `Soft_Credit_Count__c` |
+| In-kind value, in-kind gift count | `In_Kind_Value__c`, `In_Kind_Gift_Count__c` |
 | Total raised, on a fund or an appeal | `Total_Raised__c` |
 | Total raised this year, on a fund | `Total_Raised_This_Year__c` |
 | Paid to date, on a commitment | `Paid_To_Date__c` |

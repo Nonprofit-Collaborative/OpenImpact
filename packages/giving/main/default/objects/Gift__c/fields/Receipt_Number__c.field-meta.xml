@@ -4,8 +4,8 @@
   <caseSensitive>false</caseSensitive>
   <externalId>true</externalId>
   <inlineHelpText>
-    The number of the receipt issued for this gift. Once it is filled in, the amount, date and donor
-    are locked.
+    The number of the receipt issued for this gift. Once it is filled in, the amount, date, donor
+    and in-kind description are locked.
   </inlineHelpText>
   <label>Receipt Number</label>
   <length>50</length>

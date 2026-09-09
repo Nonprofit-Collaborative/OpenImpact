@@ -81,6 +81,13 @@ Start with the sample data loaded (Nonprofit Settings, then Sample data).
 
 ## Common mistakes
 
+**A big in-kind donor is not on the ladder.** Levels are measured on a giving total, and a
+gift of goods carries no amount, so it moves no level. That is deliberate: a level is a
+promise about recognition, and most organizations make that promise about cash. If yours
+recognizes goods, there is no setting for it: **Donor level source** offers the four cash
+totals and not in-kind value, so the honest way to do it is to recognize those donors
+alongside the ladder rather than on it. See [In-kind gifts](in-kind-gifts.md).
+
 **Nobody has a level after you build the ladder.** Two causes. Either **Donor levels** is
 still off in Nonprofit Settings, or you have not pressed **Recalculate now**. Editing the
 ladder does not reassign anybody by itself: a donor moves when their giving changes, or

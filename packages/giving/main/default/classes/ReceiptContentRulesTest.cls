@@ -156,6 +156,101 @@ private class ReceiptContentRulesTest {
     }
 
     /**
+     * Where a cash receipt prints an amount, an in-kind receipt says that no value is stated
+     * (G-18, ADR-0029). Printing the zero the gift carries would read as a receipt for nothing,
+     * and printing the fair market value the organization recorded is the one thing ADR-0016
+     * forbids, so the document says what is true instead.
+     */
+    @IsTest
+    static void anInKindReceiptStatesNoValueWhereACashReceiptPrintsTheAmount() {
+        Gift__c gift = ReceiptTestDataFactory.inKindGift(
+            null,
+            'Sixteen folding tables, used',
+            GIFT_DATE
+        );
+
+        Test.startTest();
+        String html = ReceiptContentBuilder.forGift(
+            gift,
+            'Ines Ferreira',
+            'HFH-2026-000011',
+            Date.newInstance(2027, 1, 15),
+            ReceiptTestDataFactory.perGiftTemplateBody()
+        );
+        Test.stopTest();
+
+        Assert.isTrue(
+            html.contains(ReceiptContentBuilder.AMOUNT_NOT_STATED),
+            'The amount line says no value is stated, rather than a figure: ' + html
+        );
+        Assert.isFalse(
+            html.contains('$0.00'),
+            'And it does not print the zero the gift carries, which would read as nothing given.'
+        );
+        Assert.isFalse(
+            html.contains('$900.00'),
+            'The fair market value the organization recorded reaches no rendered document.'
+        );
+        Assert.isTrue(
+            html.contains('12 April 2026'),
+            'What the receipt does state is the date the goods arrived.'
+        );
+        Assert.isTrue(
+            html.contains('Sixteen folding tables, used'),
+            'And what arrived, in the words the donor gave.'
+        );
+    }
+
+    /**
+     * On a year end statement the in-kind line carries no amount either, so the total the
+     * statement adds up is the money, and the goods are visibly outside it.
+     */
+    @IsTest
+    static void aStatementLeavesAnInKindLineOutOfTheTotalItStates() {
+        Gift__c cash = ReceiptTestDataFactory.plainCashGift(
+            null,
+            100,
+            Date.newInstance(2026, 2, 1)
+        );
+        Gift__c goods = ReceiptTestDataFactory.inKindGift(
+            null,
+            'Two pallets of tinned food',
+            Date.newInstance(2026, 11, 3)
+        );
+        List<Gift__c> gifts = new List<Gift__c>{ cash, goods };
+
+        Test.startTest();
+        Decimal total = ReceiptContentBuilder.totalOf(gifts);
+        String html = ReceiptContentBuilder.forStatement(
+            'Ines Ferreira',
+            gifts,
+            'HFH-2026-000012',
+            2026,
+            Date.newInstance(2027, 1, 15),
+            ReceiptTestDataFactory.statementTemplateBody()
+        );
+        Test.stopTest();
+
+        Assert.areEqual(
+            100,
+            total,
+            'The statement totals the money, and the goods add nothing to it.'
+        );
+        Assert.isTrue(
+            html.contains('Two pallets of tinned food'),
+            'The gift of goods is still on the statement, where the donor can see it.'
+        );
+        Assert.isTrue(
+            html.contains(ReceiptContentBuilder.AMOUNT_NOT_STATED),
+            'Its line states no value rather than a figure: ' + html
+        );
+        Assert.isFalse(
+            html.contains('$900.00'),
+            'And the fair market value is absent from the statement as well as from the receipt.'
+        );
+    }
+
+    /**
      * A consolidated statement carries the status of every gift on that gift's own line (R-RC8).
      * A footer saying that some of the year's gifts were refunded is not something a reader can
      * act on.

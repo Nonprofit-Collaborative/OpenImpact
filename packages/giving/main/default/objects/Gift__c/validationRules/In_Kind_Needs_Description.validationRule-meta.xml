@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>In_Kind_Needs_Description</fullName>
+  <active>true</active>
+  <description>
+    R-G12: the in-kind description is what the receipt prints, so an in-kind gift cannot be saved
+    without one (ADR-0016, ADR-0029).
+  </description>
+  <errorConditionFormula>
+    AND(ISPICKVAL(Type__c, "In-kind"), ISBLANK(In_Kind_Description__c))
+  </errorConditionFormula>
+  <errorDisplayField>In_Kind_Description__c</errorDisplayField>
+  <errorMessage>
+    Describe what was given. This text is printed on the donor's receipt, which is the only
+    record of what your organization received, so write what a stranger would recognize a year
+    from now.
+  </errorMessage>
+</ValidationRule>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>In_Kind_Fields_Need_In_Kind_Type</fullName>
+  <active>true</active>
+  <description>
+    R-G12: a gift that is not in-kind carries neither the description nor the fair market value, so
+    a type changed in error cannot leave a value behind that later reads as a gift of goods
+    (ADR-0029).
+  </description>
+  <errorConditionFormula>
+    AND(
+  NOT(ISPICKVAL(Type__c, "In-kind")),
+  OR(NOT(ISBLANK(In_Kind_Description__c)), NOT(ISBLANK(Fair_Market_Value__c)))
+)
+  </errorConditionFormula>
+  <errorDisplayField>Type__c</errorDisplayField>
+  <errorMessage>
+    In-kind Description and Fair Market Value belong to a gift of goods or services. Either set
+    Type to In-kind, or clear both fields.
+  </errorMessage>
+</ValidationRule>

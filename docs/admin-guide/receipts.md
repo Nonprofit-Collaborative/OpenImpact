@@ -75,8 +75,8 @@ Start from the sample data.
 4. Open the PDF. It states your organization's name, the amount, the date, and the sentence
    "No goods or services were provided in exchange for this contribution."
 5. Now break it on purpose. Try to change the gift's amount. The save is refused with "This
-   gift has a receipt number, so its amount, date and donor cannot change. Void the receipt
-   and reissue it, or record a refund."
+   gift has a receipt number, so its amount, date, donor and in-kind description cannot
+   change. Void the receipt and reissue it, or record a refund."
 6. On the gift, click **Void and reissue**. Type a reason, for example "Amount was entered
    wrongly". You get a second receipt with the next number, the first one is marked Void with
    your reason and today's date, and **the original PDF is still there, untouched**. Open
@@ -122,7 +122,12 @@ receipted that are skipped.
 **Putting a value on an in-kind gift's receipt.** You cannot, and you should not want to. For
 a gift of goods, Open Impact prints the description the donor gave and never a value, because
 in the United States valuing a donated item is the donor's responsibility and not yours. The
-Fair Market Value you record stays in Open Impact for your own reporting.
+Fair Market Value you record stays in Open Impact for your own reporting. Where a cash receipt
+prints the amount, an in-kind receipt says that no value is stated, and on a year-end statement
+an in-kind gift is a line with no amount, outside the total the statement adds up. The
+description on a receipted in-kind gift is locked from then on, exactly as the amount is on a
+cash gift, because it is printed on the document the donor holds; the fair market value stays
+editable, because it is on no document. See [In-kind gifts](in-kind-gifts.md).
 
 ## Two things that are not settled yet
 

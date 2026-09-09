@@ -22,6 +22,10 @@ import typePlaceholder from '@salesforce/label/c.Giving_QuickGiftEntry_TypePlace
 import appealLabel from '@salesforce/label/c.Giving_QuickGiftEntry_AppealLabel';
 import fundLabel from '@salesforce/label/c.Giving_QuickGiftEntry_FundLabel';
 import paymentReferenceLabel from '@salesforce/label/c.Giving_QuickGiftEntry_PaymentReferenceLabel';
+import inKindDescriptionLabel from '@salesforce/label/c.Giving_QuickGiftEntry_InKindDescriptionLabel';
+import inKindDescriptionHelp from '@salesforce/label/c.Giving_QuickGiftEntry_InKindDescriptionHelp';
+import fairMarketValueLabel from '@salesforce/label/c.Giving_QuickGiftEntry_FairMarketValueLabel';
+import fairMarketValueHelp from '@salesforce/label/c.Giving_QuickGiftEntry_FairMarketValueHelp';
 import saveButton from '@salesforce/label/c.Giving_QuickGiftEntry_SaveButton';
 import saveAndNewButton from '@salesforce/label/c.Giving_QuickGiftEntry_SaveAndNewButton';
 import savingMessage from '@salesforce/label/c.Giving_QuickGiftEntry_SavingMessage';
@@ -33,6 +37,7 @@ import errorLoadDefaults from '@salesforce/label/c.Giving_QuickGiftEntry_ErrorLo
 import errorUnexpected from '@salesforce/label/c.Giving_QuickGiftEntry_ErrorUnexpected';
 import fundNotApplied from '@salesforce/label/c.Giving_QuickGiftEntry_FundNotApplied';
 
+const IN_KIND = 'In-kind';
 const PERSON = 'person';
 const ORGANIZATION = 'organization';
 const ACCOUNT = 'Account';
@@ -44,6 +49,8 @@ const FIELD_ORDER = [
   ['amount', 'amount'],
   ['giftDate', 'gift-date'],
   ['giftType', 'gift-type'],
+  ['inKindDescription', 'in-kind-description'],
+  ['fairMarketValue', 'fair-market-value'],
   ['appealId', 'appeal'],
   ['fundId', 'fund']
 ];
@@ -72,6 +79,10 @@ export default class QuickGiftEntry extends LightningElement {
     appealLabel,
     fundLabel,
     paymentReferenceLabel,
+    inKindDescriptionLabel,
+    inKindDescriptionHelp,
+    fairMarketValueLabel,
+    fairMarketValueHelp,
     saveButton,
     saveAndNewButton,
     savingMessage,
@@ -84,6 +95,8 @@ export default class QuickGiftEntry extends LightningElement {
   amount;
   giftDate;
   giftType;
+  inKindDescription;
+  fairMarketValue;
   appealId;
   fundId;
   paymentReference;
@@ -120,6 +133,19 @@ export default class QuickGiftEntry extends LightningElement {
 
   get isPersonDonor() {
     return this.donorKind === PERSON;
+  }
+
+  /**
+   * A gift is money or goods, never both (ADR-0029). Choosing In-kind takes the amount box
+   * away rather than leaving it there to be filled in: an in-kind gift has no amount, and a
+   * box a person can type into is a box they will type into.
+   */
+  get isInKindGift() {
+    return this.giftType === IN_KIND;
+  }
+
+  get isMoneyGift() {
+    return !this.isInKindGift;
   }
 
   /** Where people are accounts, the person picker searches accounts too. */
@@ -159,6 +185,14 @@ export default class QuickGiftEntry extends LightningElement {
     return this.fieldErrors.giftType;
   }
 
+  get errorInKindDescription() {
+    return this.fieldErrors.inKindDescription;
+  }
+
+  get errorFairMarketValue() {
+    return this.fieldErrors.fairMarketValue;
+  }
+
   get errorAppeal() {
     return this.fieldErrors.appealId;
   }
@@ -192,9 +226,29 @@ export default class QuickGiftEntry extends LightningElement {
     this.giftDate = event.detail.value;
   }
 
+  /**
+   * Switching between money and goods clears what belongs to the other kind, so a value typed
+   * before the type was chosen is never saved against a gift it does not belong to.
+   */
   handleTypeChange(event) {
     this.markChanged();
     this.giftType = event.detail.value;
+    if (this.isInKindGift) {
+      this.amount = undefined;
+    } else {
+      this.inKindDescription = undefined;
+      this.fairMarketValue = undefined;
+    }
+  }
+
+  handleInKindDescriptionChange(event) {
+    this.markChanged();
+    this.inKindDescription = event.detail.value;
+  }
+
+  handleFairMarketValueChange(event) {
+    this.markChanged();
+    this.fairMarketValue = event.detail.value;
   }
 
   handlePaymentReferenceChange(event) {
@@ -318,7 +372,9 @@ export default class QuickGiftEntry extends LightningElement {
       giftType: this.giftType || null,
       appealId: this.appealId || null,
       fundId: this.fundId || null,
-      paymentReference: this.paymentReference || null
+      paymentReference: this.paymentReference || null,
+      inKindDescription: this.isInKindGift ? this.inKindDescription || null : null,
+      fairMarketValue: this.isInKindGift ? this.numberOrNull(this.fairMarketValue) : null
     };
     if (this.donorId) {
       if (this.isPersonDonor && !this.hasPersonAccounts) {
@@ -331,10 +387,17 @@ export default class QuickGiftEntry extends LightningElement {
   }
 
   amountAsNumber() {
-    if (this.amount === undefined || this.amount === null || this.amount === '') {
+    if (this.isInKindGift) {
+      return 0;
+    }
+    return this.numberOrNull(this.amount);
+  }
+
+  numberOrNull(value) {
+    if (value === undefined || value === null || value === '') {
       return null;
     }
-    const parsed = Number(this.amount);
+    const parsed = Number(value);
     return Number.isNaN(parsed) ? null : parsed;
   }
 
@@ -376,6 +439,8 @@ export default class QuickGiftEntry extends LightningElement {
     this.donorKind = this.prefilledDonorKind || PERSON;
     this.amount = undefined;
     this.giftType = undefined;
+    this.inKindDescription = undefined;
+    this.fairMarketValue = undefined;
     this.paymentReference = undefined;
     this.fieldErrors = {};
     const donor = this.template.querySelector('[data-id="donor-person"]')
