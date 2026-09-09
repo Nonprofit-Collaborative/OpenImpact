@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Appeal__c</fullName>
+  <inlineHelpText>The one appeal this rule matches. Leave it empty to match every appeal, and none.</inlineHelpText>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <label>Appeal</label>
+  <referenceTo>Appeal__c</referenceTo>
+  <relationshipLabel>Acknowledgment Rules</relationshipLabel>
+  <relationshipName>Acknowledgment_Rules</relationshipName>
+  <required>false</required>
+  <type>Lookup</type>
+  <trackTrending>false</trackTrending>
+  <externalId>false</externalId>
+</CustomField>

@@ -115,6 +115,7 @@ Each feature adds its row here when its page is written.
 | G-08 Soft credits | [soft-credits.md](soft-credits.md) | Giving | v0.3 |
 | G-09 Tributes | [tributes.md](tributes.md) | Giving | v0.3 |
 | G-10 Matching gifts | [matching-gifts.md](matching-gifts.md) | Giving | v0.3 |
+| G-12 Acknowledgments | [acknowledgments.md](acknowledgments.md) | Giving | v0.4 |
 | G-13 Receipts and year-end statements | [receipts.md](receipts.md) | Giving | v0.4 |
 | G-14 Donor levels | [donor-levels.md](donor-levels.md) | Giving | v0.4 |
 | G-16 Retention reports | [retention-reports.md](retention-reports.md) | Giving | v0.4 |

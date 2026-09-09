@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Status__c</fullName>
+  <inlineHelpText>Where the run stands. Ready to merge means the letter file is written and the letters have not been marked sent yet.</inlineHelpText>
+  <label>Status</label>
+  <required>true</required>
+  <type>Picklist</type>
+  <valueSet>
+    <restricted>true</restricted>
+    <valueSetDefinition>
+      <sorted>false</sorted>
+      <value>
+        <fullName>Queued</fullName>
+        <default>true</default>
+        <label>Queued</label>
+      </value>
+      <value>
+        <fullName>Running</fullName>
+        <default>false</default>
+        <label>Running</label>
+      </value>
+      <value>
+        <fullName>Ready to merge</fullName>
+        <default>false</default>
+        <label>Ready to merge</label>
+      </value>
+      <value>
+        <fullName>Completed</fullName>
+        <default>false</default>
+        <label>Completed</label>
+      </value>
+      <value>
+        <fullName>Completed with errors</fullName>
+        <default>false</default>
+        <label>Completed with errors</label>
+      </value>
+      <value>
+        <fullName>Failed</fullName>
+        <default>false</default>
+        <label>Failed</label>
+      </value>
+    </valueSetDefinition>
+  </valueSet>
+  <trackTrending>false</trackTrending>
+  <externalId>false</externalId>
+</CustomField>

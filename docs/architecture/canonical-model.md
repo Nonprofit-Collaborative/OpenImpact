@@ -1799,6 +1799,15 @@ Moved here from Section 12 by ADR-0017, with their definitions unchanged.
 | `Donor_Levels_Enabled__c` | boolean | false | Whether donor levels are assigned at all. Off until the organization has built its ladder, because a wrong ladder is worse than none (R-DL7). |
 | `Donor_Level_Source_Field__c` | text | `Total_Giving__c` | Which giving total the ladder is measured on, named as one of the packaged rollup attributes of Section 26 (R-DL1). Stored as text under ADR-0019. |
 | `Donor_Levels_Last_Recalculated__c` | datetime | empty | When the nightly or on demand level pass last completed, shown read only on the Donor Levels page, the same freshness promise the rollups make (Principle 2). |
+
+Added by acknowledgments (G-12, ADR-0032).
+
+| Key | Type | Default | Definition |
+|---|---|---|---|
+| `Acknowledgments_Enabled__c` | boolean | false | Whether gifts are placed in the acknowledgment queue as they are saved. Off until the organization has written its rules, because a thank you that goes out with the wrong wording cannot be recalled (R-AK5). |
+| `Acknowledgment_From_Address__c` | text | empty | The organization wide email address acknowledgments are sent from, named by its address. Empty means they are sent from the user who ran the send, which is what a small organization usually wants. |
+| `Acknowledgments_Last_Run__c` | datetime | empty | When the last acknowledgment send finished, shown read only on the Acknowledgments page (R-AK12). |
+| `Acknowledgments_Last_Run_Summary__c` | text | empty | What that run did, in one sentence, because a bare timestamp says the job woke up and not that it sent anything (R-AK12). |
 Added by receipting (G-13). The organization's identity keys that a receipt prints, the
 legal name, the tax identification number, the address, the logo, the signature, and the
 signer's name and title, are Core keys and stay on `Nonprofit_Settings__c` (Section 12):
@@ -1843,6 +1852,10 @@ these keys, which is what makes a module that is off leave nothing behind.
 | Receipt Statement Year | `Receipt_Statement_Year__c` | Number(4, 0) |
 | Receipt Place Of Issue | `Receipt_Place_Of_Issue__c` | Text(80) |
 | Receipt Renderer | `Receipt_Renderer__c` | Text(60) |
+| Acknowledgments Enabled | `Acknowledgments_Enabled__c` | Checkbox |
+| Acknowledgment From Address | `Acknowledgment_From_Address__c` | Text(255) |
+| Acknowledgments Last Run | `Acknowledgments_Last_Run__c` | Date/Time |
+| Acknowledgments Last Run Summary | `Acknowledgments_Last_Run_Summary__c` | Text(255) |
 
 - **Service:** Core `SettingsService`, reading and writing this object through the
   `Settings_Object__c` field on `Setting_Definition__mdt` (ADR-0017).
@@ -2645,6 +2658,258 @@ the administrator's to fix, and a template that omits them still produces a vali
 
 ---
 
+## 25F. Acknowledgment Rule
+
+### Definition
+
+The organization's answer to "which thank you does this gift get" (feature G-12, v0.4,
+ADR-0032). A rule matches a gift on the things a fundraising office actually sorts gifts
+by, and resolves to a channel and, for email, to the standard email template that carries
+the wording.
+
+A rule is not a filter on a report. It is evaluated on the save of every gift, first
+matching rule wins, so the order of the rules is the organization's editorial judgment
+about which thank you takes precedence.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | yes | What the organization calls this rule, for example "Major gifts, over $1,000". |
+| Description | long text | no | When this rule is meant to apply, in the organization's own words. |
+| Active | boolean | yes (defaults true) | Whether the rule takes part in matching. An inactive rule matches nothing and is kept rather than deleted. |
+| Order | integer | yes | Where the rule sits in the list. The lowest numbered matching rule wins. |
+| Channel | picklist(Email, Letter, None) | yes | How the donor is thanked, or that this kind of gift is not acknowledged. |
+| Email Template | text | conditional | The developer name of the standard email template this rule sends; required when Channel is Email. |
+| Minimum Amount | currency | no | The smallest gift this rule matches. Empty means no lower bound. |
+| Maximum Amount | currency | no | The largest gift this rule matches. Empty means no upper bound. |
+| Gift Type | picklist(Cash, Check, Card, ACH, Stock, In-kind, Grant, Other) | no | The one gift type this rule matches. Empty means any type. |
+| Appeal | reference(Appeal) | no | The one appeal this rule matches. Empty means any appeal, and no appeal. |
+| First Gift Only | boolean | yes (defaults false) | Whether the rule matches only a donor's first gift. |
+
+### Relationships
+
+- **Acknowledgment Rule to Acknowledgment**, one to many: every acknowledgment records the
+  rule that produced it, so a rule that sent the wrong letter can be traced to what it sent.
+- **Acknowledgment Rule to Appeal**, many to one, as a matching criterion.
+- Acknowledgment Rule has no reference to Gift. A gift does not carry the rule that matched
+  it, because rules are re-evaluated when the queue is sent (R-AK3).
+
+### Rules
+
+**R-AK1 First matching rule wins.** Active rules are considered in Order, lowest first, and
+the first one whose criteria all match the gift decides the channel and the template. Ties
+on Order are broken by Name, so a badly ordered list is still deterministic. A gift matching
+no rule is left exactly as it is: no channel, no send, and the status it already had.
+
+**R-AK2 What a rule can match on.** Amount range (inclusive at both ends), gift type,
+appeal, and whether the gift is the donor's first. An empty criterion is not a criterion:
+an empty Gift Type matches every type rather than matching gifts with no type. First Gift
+Only is true for a gift where the donor, the Contact or the Account that the gift credits,
+has no other gift of a positive amount, counted at the moment the gift is saved rather than
+read from a rollup, because the rollup for a gift being inserted has not been calculated
+yet.
+
+**R-AK3 Rules are evaluated twice, on purpose.** On the save of a gift, to decide whether it
+joins the queue, and again when the queue is sent, to decide which template each queued gift
+gets. Nothing is stored on the gift in between. An administrator who fixes a rule's template
+on Tuesday morning therefore fixes it for the gifts that arrived on Monday and have not gone
+out yet, which is what she expects and what a stored channel would have prevented.
+
+**R-AK4 Channel None means not required.** A rule whose channel is None sets the gift's
+Acknowledgment Status to Not required, which is the organization saying this kind of gift
+does not get a thank you. It is not the same as Do not acknowledge, which is a person's
+decision about one gift and which no rule ever overwrites (R-AK6).
+
+**R-AK5 Nothing is shipped, nothing is overwritten.** The package ships no rules. An org
+with no rules acknowledges nothing automatically, which is the correct behavior for a
+feature that sends mail to donors on the organization's letterhead.
+
+---
+
+## 25G. Acknowledgment
+
+### Definition
+
+One thank you, recorded (feature G-12, ADR-0032). The row exists so that the questions
+asked in January have answers: did this go, when, by which letter, to which address, and
+did it go twice.
+
+An acknowledgment is not a receipt (Section 25B). It carries no number, it is not
+immutable, it may legitimately happen more than once for the same gift, and it has no
+statutory content.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | computed | The record's identifier, assigned automatically. |
+| Gift | reference(Gift) | yes | The gift being acknowledged. |
+| Rule | reference(Acknowledgment Rule) | no | The rule that produced this acknowledgment; empty when a person acknowledged the gift outside the rules. |
+| Channel | picklist(Email, Letter) | yes | How this one went out. |
+| Template | text | no | The developer name of the email template used, as it was at the time, so a letter that has since been rewritten can still be identified. |
+| Status | picklist(Queued, Sent, Failed) | yes (defaults Queued) | Where this acknowledgment stands. A letter stays Queued until the letters are marked sent. |
+| Sent On | datetime | conditional | When it went; set when Status becomes Sent. |
+| Recipient Contact | reference(Contact) | no | The person it was addressed to. |
+| Recipient Email | email | no | The address it was sent to, kept because the contact's address changes and the question is where it actually went. |
+| Failure Reason | text | conditional | Why it did not go, in a sentence a person can read; required when Status is Failed. |
+| Run | reference(Acknowledgment Run) | no | The run that produced it, empty when a person produced it one at a time. |
+| Gift Key | text | no | The gift's identifier, unique, held while this acknowledgment stands and cleared when the gift is deliberately queued again (R-AK7). |
+
+### Relationships
+
+- **Acknowledgment to Gift**, many to one. A gift may hold several acknowledgments over its
+  life; at most one of them holds the Gift Key.
+- **Acknowledgment to Acknowledgment Run**, many to one.
+- **Acknowledgment to Acknowledgment Rule**, many to one.
+
+### Rules
+
+**R-AK6 The gift's two fields are the summary, the record is the truth.** Acknowledgment
+Status and Acknowledgment Date on Gift (R-G9) are written from the ledger and never the
+other way around: a row reaching Sent sets the gift to Acknowledged and stamps the date. The
+fields exist because a list view and a report need one column, not a subquery. Where they
+disagree with the ledger the ledger is right, and Do not acknowledge on a gift is a person's
+instruction that no automation and no run ever overwrites.
+
+**R-AK7 A gift is thanked once unless a person says otherwise.** Gift Key is unique and
+holds the gift's identifier from the moment the row is written, which is before anything is
+sent. A second row for the same gift therefore cannot be inserted, so a batch chunk retried
+after a partial failure resumes rather than sending again, and two people pressing Send at
+once produce one thank you. The key is cleared in exactly two cases: the send failed, so the
+gift is retried; or a person set the gift's Acknowledgment Status back to To acknowledge,
+which is the deliberate act of thanking a donor again. Both leave the earlier row in place,
+so "we sent it twice" reads as two rows rather than as silence.
+
+**R-AK8 Only a positive received gift is ever acknowledged.** A gift whose Status is
+Refunded, Written off or Pending, and any gift whose Amount is zero or negative, is never
+queued and never sent, so the negative gift that records a refund (R-G3) is outside this
+feature entirely. Refunding a gift does not withdraw its acknowledgment: the donor was
+thanked, and that happened.
+
+**R-AK9 A failure is one row, not a run.** A send that fails marks its own row Failed with
+the reason, clears its key so the next send retries it, and writes an Error Log entry naming
+the gift. The rest of the chunk goes out.
+
+A gift with nobody to email, an organization gift with no primary contact for example, gets
+no row at all. Nothing went wrong and nothing was attempted, so there is nothing to record
+about the thank you; the run counts it, names it in one Error Log entry for the whole chunk,
+and leaves the gift in the queue, where a letter rule or a corrected contact will pick it up.
+A row per night for a gift that will never have an email address is noise on the donor's
+record, which is the thing this ledger exists to keep clean.
+
+---
+
+## 25H. Acknowledgment Run
+
+### Definition
+
+One send (ADR-0032). It exists for the same reason the receipt run does, and for one more:
+a letter run owns the merge file, which is the thing the administrator actually leaves
+Salesforce with.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | computed | The run's identifier, assigned automatically. |
+| Channel | picklist(Email, Letter) | yes | What the run does. |
+| Status | picklist(Queued, Running, Ready to merge, Completed, Completed with errors, Failed) | yes | Where the run stands. Ready to merge belongs to a letter run whose file is written and whose letters have not yet been marked sent. |
+| Started | datetime | no | When the run began. |
+| Finished | datetime | no | When the run ended. |
+| Gifts Processed | integer | yes (defaults 0) | How many gifts the run examined. |
+| Acknowledgments Sent | integer | yes (defaults 0) | How many thank yous it produced. |
+| Errors | integer | yes (defaults 0) | How many failed, each of which is also in the Error Log. |
+| Async Job Id | text | no | The platform job identifier, so a stuck run can be found. |
+| Merge File Document Id | text | no | The Salesforce file identifier of the letter merge CSV, on a letter run. |
+
+### Relationships
+
+- **Acknowledgment Run to Acknowledgment**, one to many.
+
+### Rules
+
+**R-AK10 A failed send never aborts the run.** Counted, logged, and the run continues. A run
+that ends with any failure is Completed with errors, never Completed, which is the same
+promise the receipt run makes (R-RR1).
+
+**R-AK11 A letter run is finished by a person.** The run writes the merge file and stops at
+Ready to merge with its rows Queued. Marking it sent, which the Acknowledgments page offers
+and which nothing does automatically, stamps the rows and the gifts and closes the run. The
+package cannot know whether a letter was printed, so it does not pretend to.
+
+**R-AK12 The run is visible without being opened.** Last run and last run summary are held
+on Giving Settings and shown on the Acknowledgments page, the same freshness promise the
+seasonal address swap makes (R-AD8), so an administrator can see that last night's send
+happened without finding the run record.
+
+### Salesforce implementation
+
+- **Objects:** `Acknowledgment_Rule__c` (Text Name), `Acknowledgment__c` (auto-number Name
+  with format `AK-{000000}`) and `Acknowledgment_Run__c` (auto-number Name with format
+  `AR-{000000}`), all three shipped by Giving.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Description | `Description__c` | Long Text Area |
+| Active | `Active__c` | Checkbox |
+| Order | `Order__c` | Number(4, 0) |
+| Email Template | `Email_Template__c` | Text(80) |
+| Minimum Amount | `Minimum_Amount__c` | Currency |
+| Maximum Amount | `Maximum_Amount__c` | Currency |
+| Gift Type | `Gift_Type__c` | Picklist: Cash, Check, Card, ACH, Stock, In-kind, Grant, Other |
+| Appeal | `Appeal__c` | Lookup to `Appeal__c` |
+| First Gift Only | `First_Gift_Only__c` | Checkbox |
+
+- **Fields on `Acknowledgment__c`:**
+
+| Attribute | API name | Type |
+|---|---|---|
+| Gift | `Gift__c` | Lookup to `Gift__c` |
+| Rule | `Rule__c` | Lookup to `Acknowledgment_Rule__c` |
+| Template | `Template__c` | Text(80) |
+| Sent On | `Sent_On__c` | Date/Time |
+| Recipient Contact | `Recipient_Contact__c` | Lookup to Contact |
+| Recipient Email | `Recipient_Email__c` | Email |
+| Failure Reason | `Failure_Reason__c` | Text(255) |
+| Run | `Run__c` | Lookup to `Acknowledgment_Run__c` |
+| Gift Key | `Gift_Key__c` | Text(18), External Id, unique |
+
+- **Fields on `Acknowledgment_Run__c`:**
+
+| Attribute | API name | Type |
+|---|---|---|
+| Started | `Started__c` | Date/Time |
+| Finished | `Finished__c` | Date/Time |
+| Gifts Processed | `Gifts_Processed__c` | Number(18, 0) |
+| Acknowledgments Sent | `Acknowledgments_Sent__c` | Number(18, 0) |
+| Errors | `Errors__c` | Number(18, 0) |
+| Async Job Id | `Async_Job_Id__c` | Text(18) |
+| Merge File Document Id | `Merge_File_Document_Id__c` | Text(18) |
+
+  `Channel__c` (Picklist: Email, Letter, None on the rule; Email, Letter on the other two)
+  and `Status__c` (Picklist: Queued, Sent, Failed on the acknowledgment; Queued,
+  Running, Ready to merge, Completed, Completed with errors, Failed on the run) are shipped
+  on the objects named above.
+
+- **Settings keys:** `Acknowledgments_Enabled__c`, `Acknowledgment_From_Address__c`,
+  `Acknowledgments_Last_Run__c` and `Acknowledgments_Last_Run_Summary__c` on
+  `Giving_Settings__c` (Section 21A).
+- **Validation rules:** on the rule, Maximum Amount above Minimum Amount when both are
+  filled in, and an Email Template named when Channel is Email.
+- **Automation:** `Gift_Acknowledgment` in `Automation_Registry__mdt`, naming
+  `GiftAcknowledgmentHandler`, execution order 40, switchable and pausable like every other
+  convenience (R-A1, and deliberately not `Always_Runs__c`, ADR-0024).
+- **Service:** `AcknowledgmentRuleService`, `AcknowledgmentService`,
+  `AcknowledgmentSelector`, `AcknowledgmentWriter` (ADR-0021), `AcknowledgmentSender` with
+  `MessagingAcknowledgmentSender`, `AcknowledgmentBatch`, `AcknowledgmentScheduler`,
+  `AcknowledgmentLetterMerge`, and `AcknowledgmentController` for the page.
+- **Custom permission:** `Send_Acknowledgments`, granted to Giving Admin and Giving Staff.
+- **Page:** LWC `acknowledgments` on the `Acknowledgments` tab and flexipage, reached from
+  the Giving section of the Nonprofit Settings console by navigation (ADR-0020).
+
+---
+
 ## 26. Packaged default rollups
 
 ### Definition
@@ -3180,7 +3445,6 @@ that builds it, before its metadata is created.
 
 | Entity | Package | Iteration | Plan reference |
 |---|---|---|---|
-| Acknowledgment Rule | Giving | v0.4 (G-12) | Section 4.11 |
 | Receipt | Giving | v0.4 (G-13) | Section 4.11, ADR-0010 |
 | Donor Level | Giving | v0.4 (G-14) | Section 5.2 |
 | Stewardship Plan | Giving | v0.4 (G-15) | Section 5.2 |
@@ -3191,7 +3455,9 @@ that builds it, before its metadata is created.
 | Connect adapter entities and mirror mappings | Connect | v0.6 onward | Section 4.12 |
 
 Receipt left this table in v0.4 and is specified in Sections 25B to 25E, together with
-Receipt Number Sequence, Receipt Run and Receipt Template.
+Receipt Number Sequence, Receipt Run and Receipt Template. Acknowledgment Rule left it in
+the same iteration and is specified in Section 25F, together with Acknowledgment (25G) and
+Acknowledgment Run (25H).
 
 Two v0.4 entities have attributes that already exist on `Gift__c` from v0.2, because the
 object is not worth altering later for fields this cheap: Acknowledgment Status,
@@ -3234,6 +3500,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.4 | 2026-09-08 | G-14 donor levels (ADR-0028). New Section 25A, `Donor_Level__c`, with `Minimum_Amount__c`, `Maximum_Amount__c`, `Description__c` and `Active__c`, and three fields shipped by Giving on both Account and Contact: `Donor_Level__c`, `Previous_Donor_Level__c` and `Donor_Level_Changed_Date__c`. Giving Settings gains `Donor_Levels_Enabled__c`, `Donor_Level_Source_Field__c` and `Donor_Levels_Last_Recalculated__c`. A level is a label on a giving total the rollup engine already maintains (R-DL1), never a second aggregation, so the ladder cannot disagree with the total printed beside it and the household membership modes are resolved once, by the rollup, rather than twice. Donor Level is removed from the deferred table in Section 30 and its ownership row now points at Section 25A. |
 | v0.4 | 2026-09-08 | G-13 receipting (ADR-0016). Four objects added: `Receipt__c` (Section 25B), `Receipt_Number_Sequence__c` (25C), `Receipt_Run__c` (25D) and `Receipt_Template__c` (25E), with rules R-RC1 to R-RC10, R-RS1 to R-RS3, R-RR1 to R-RR3 and R-RT1 to R-RT3. Gift gains `Benefit_Description__c`, `Benefit_Value__c` and `Intangible_Religious_Benefits__c`, which is what a receipt needs to state a quid pro quo disclosure and the intangible religious benefits sentence; the deductible amount is computed by the renderer rather than stored, because a stored copy of a subtraction is a second place for it to be wrong. Giving Settings gains `Receipt_Number_Prefix__c`, `Receipt_Next_Counter__c`, `Receipt_Statement_Year__c`, `Receipt_Place_Of_Issue__c` and `Receipt_Renderer__c`, and its implementation subsection now lists every key it holds. Receipt leaves Section 30. |
 | v0.4 | 2026-09-09 | G-18 in-kind gifts (ADR-0030). No object added. Two attributes added on both Account and Contact, `In_Kind_Value__c` (Currency) and `In_Kind_Gift_Count__c` (Number), filled by six new `Rollup_Definition_Default__mdt` rows across the three scopes of Section 26, filtered to `Type__c` equals `In-kind` on top of the ADR-0022 status set. Rule R-G12 records what an in-kind gift is: a Gift of Type In-kind whose Amount is zero, whose worth is on `Fair_Market_Value__c`, which is never printed on a receipt, and whose description is required and is printed. R-G4 gains `In_Kind_Description__c`, because it appears on the document the donor holds. The `Amount_Cannot_Be_Zero` validation rule is narrowed to gifts that are not in-kind, and `In_Kind_Needs_Description`, `In_Kind_Has_No_Amount`, `In_Kind_Fields_Need_In_Kind_Type` and `Fair_Market_Value_Not_Negative` are added. |
+| v0.4 | 2026-09-09 | G-12 acknowledgments (ADR-0032). Three objects added: `Acknowledgment_Rule__c` (Section 25F), `Acknowledgment__c` (25G) and `Acknowledgment_Run__c` (25H), with rules R-AK1 to R-AK12. No field is added to `Gift__c`: `Acknowledgment_Status__c` and `Acknowledgment_Date__c` were shipped in v0.2 for this feature (R-G9), and the rule that matched a gift is deliberately not stored on it, so that an edited rule applies to the gifts already queued (R-AK3). Giving Settings gains `Acknowledgments_Enabled__c`, `Acknowledgment_From_Address__c`, `Acknowledgments_Last_Run__c` and `Acknowledgments_Last_Run_Summary__c`. The wording of an emailed thank you lives in a standard `EmailTemplate` rather than in a packaged template object, which is what the plan's note on G-12 asks for and is the whole of the difference between this feature and receipting. Acknowledgment Rule leaves Section 30.
 | v0.4 | 2026-09-08 | C-10 sample data extended to the Giving module and to connections. `Sample Data` (`Sample_Data__c`, Checkbox, default false) added to `Gift__c`, `Fund__c`, `Appeal__c`, `Commitment__c`, `Relationship__c` and `Affiliation__c`, so every record the sample loader creates can be found and removed in one action; a gift's allocations, soft credits and tributes, and a commitment's installments, are details of a flagged record and go with it. `Sample Data Key` (`Sample_Data_Key__c`, Text(20)) added to Account and Contact: it holds the key the generated file gives a household, an organization or a person, which is how the Giving sample gifts find the donor they belong to across the asynchronous chain. No object added. |
 
 ---
@@ -3273,7 +3540,9 @@ included; standard objects the packages extend are named by the entity that gove
 | Relationship Type (shipped default) | Core | v0.3 | 13 |
 | Affiliation | Core | v0.3 | 28 |
 | Address | Core | v0.3 | 29 |
-| Acknowledgment Rule | Giving | v0.4 | 30 |
+| Acknowledgment Rule | Giving | v0.4 | 25F |
+| Acknowledgment | Giving | v0.4 | 25G |
+| Acknowledgment Run | Giving | v0.4 | 25H |
 | Receipt | Giving | v0.4 | 30 |
 | Donor Level | Giving | v0.4 | 25A |
 | Receipt | Giving | v0.4 | 25A |
