@@ -303,24 +303,66 @@ private class SoftCreditServiceTest {
         System.assertEquals(firstCreditId, credits[0].Id, 'The same record is kept');
     }
 
+    /**
+     * The gift is deliberately left in place. Soft Credit's Gift lookup is a master detail
+     * relationship, so deleting the gift would take its credits with it whatever this package
+     * does, and a test that deleted the gift would pass with the whole removal path deleted.
+     * What the method promises, and what nothing else does for it, is that it removes the
+     * credits Open Impact created while leaving the ones a person entered (R-SC6).
+     */
     @IsTest
-    static void removesCreditsBeforeTheGiftIsDeleted() {
+    static void removesTheAutomaticCreditsAndLeavesTheOnesStaffEnteredAlone() {
         RecognitionTestData.setAutomaticHouseholdCredits(true);
         Account garcias = RecognitionTestData.household('The Garcia Family');
         Contact ana = RecognitionTestData.person('Ana', 'Garcia', garcias.Id);
-        RecognitionTestData.person('Luis', 'Garcia', garcias.Id);
+        Contact luis = RecognitionTestData.person('Luis', 'Garcia', garcias.Id);
+        Contact solicitor = RecognitionTestData.person('Tom', 'Alvarez', null);
         Gift__c gift = RecognitionTestData.gift(ana.Id, null, 500);
-        Id giftId = gift.Id;
+        Soft_Credit__c manual = RecognitionTestData.manualCredit(
+            gift.Id,
+            solicitor.Id,
+            'Solicitor',
+            500
+        );
+        Map<Id, Soft_Credit__c> before = new Map<Id, Soft_Credit__c>(
+            RecognitionTestData.creditsFor(gift.Id)
+        );
+        System.assertEquals(2, before.size(), 'Luis is credited automatically, Tom by hand');
+        System.assertEquals(
+            luis.Id,
+            automaticIn(before.values())[0].Contact__c,
+            'And the automatic one is the household member credit'
+        );
 
         Test.startTest();
-        delete gift;
+        SoftCreditService.removeAutomaticCredits(new Set<Id>{ gift.Id });
         Test.stopTest();
 
         System.assertEquals(
-            0,
-            [SELECT COUNT() FROM Soft_Credit__c WHERE Gift__c = :giftId],
-            'The credits go with the gift'
+            1,
+            [SELECT COUNT() FROM Gift__c WHERE Id = :gift.Id],
+            'The gift itself is untouched, so no cascade explains what happened to the credits'
         );
+        List<Soft_Credit__c> remaining = RecognitionTestData.creditsFor(gift.Id);
+        System.assertEquals(1, remaining.size(), 'Only one credit is left');
+        System.assertEquals(manual.Id, remaining[0].Id, 'And it is the one Tom was given by hand');
+        System.assertEquals(false, remaining[0].Is_Automatic__c, 'A manual credit stays manual');
+        System.assertEquals(500, remaining[0].Amount__c, 'With the amount staff entered');
+        System.assertEquals(
+            0,
+            automaticIn(remaining).size(),
+            'Every credit Open Impact created for the gift is gone'
+        );
+    }
+
+    private static List<Soft_Credit__c> automaticIn(List<Soft_Credit__c> credits) {
+        List<Soft_Credit__c> automatic = new List<Soft_Credit__c>();
+        for (Soft_Credit__c credit : credits) {
+            if (credit.Is_Automatic__c == true) {
+                automatic.add(credit);
+            }
+        }
+        return automatic;
     }
 
     @IsTest
