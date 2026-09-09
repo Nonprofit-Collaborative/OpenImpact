@@ -258,10 +258,12 @@ means a second org and a second secret; until then, treat every green org test a
 about one shape and no other.
 
 The deploy goes in stages through `scripts/org/deploy-packages.sh`: the vendored rollup
-engine, then Core in three stages (data model, then Apex, then everything that wires the two
-together: permission sets and groups, layouts, flexipages, applications, tabs, quick actions,
-Lightning components), then Giving. A failed stage asks the org for the component level
-report, by job id, in human form and then as JSON. After the last stage the script runs
+engine, then Core in five stages (the data model split into two file-count-balanced halves of
+`packages/core/main/default/objects` computed at deploy time, then custom metadata and the
+smaller data-model metadata types, then Apex, then everything that wires the two together:
+permission sets and groups, layouts, flexipages, applications, tabs, quick actions, Lightning
+components), then Giving. A failed stage asks the org for the component level report, by job
+id, in human form and then as JSON. After the last stage the script runs
 `RollupService.ensureDefaults()` as anonymous Apex, because a source deployment runs no
 post-install script and would otherwise leave the org without the rollup definitions a real
 install creates (ADR-0029).
@@ -280,14 +282,34 @@ something wrong with a component. Quote the ErrorId to Salesforce support.
 times across four separate runs before 2026-09-09, always on the Core stage, always with zero
 components deployed and zero component errors, and always with the same trailing code in the
 ErrorId (`-315522575`) behind a different leading number each time. It then hit that same
-undivided Core stage twice more on 2026-09-09, on two separate pushes to main, for six
-occurrences total, none of them resolved by re-running. Six identical failures is a
-deterministic fault, so re-running on its own costs a build and proves nothing.
-`scripts/org/deploy-packages.sh` no longer prints the old "sometimes transient" line; it now
-prints this count and points here. What changed on 2026-09-09 is that Core, which had grown
-to 904 components in one request, was split into the three stages described above, in an
-attempt to narrow the failure to a component or rule it out as a size effect. That split has
-not yet been proven to help: it had not been exercised against the org as of this writing.
+undivided Core stage twice more on 2026-09-09, on two separate pushes to main, once at 904
+components. A three-way split (data model, Apex, UI and permissions) went in immediately
+after, to see whether a smaller request avoided it. The very next run failed again, on the
+data model stage alone, at 853 components: close enough to 904 and 982 that a specific bad
+file stopped being the likely explanation. Three deploys of substantially different content
+(mostly Apex the first two times, mostly custom fields and their sub-components the third)
+failing in the same shape once each got into the same few-hundred-to-thousand range reads as
+a size effect rather than a component defect, though nothing about this failure can be
+proven from the client side, so treat that as the working theory, not a settled fact.
+
+Seven occurrences, none resolved by re-running: six identical failures on Core (four
+documented before 2026-09-09, two more that day) plus the data-model stage's failure right
+after the first split. `scripts/org/deploy-packages.sh` no longer prints the old "sometimes
+transient" line; it now prints this count and points here. The data model stage was then
+split again, the same way, into two runtime-balanced halves of `packages/core/main/default/objects`
+plus a third stage for custom metadata and the remaining data-model metadata types, since a
+hand-written list of object names would go stale the first time someone adds one. That
+second split has not yet been proven to help either: it had not been exercised against the
+org as of this writing. Apex and UI/permissions are unchanged from the first split, because
+neither has failed yet.
+
+**If a stage fails again, keep the pattern rather than guessing at a safe size.** Read
+`scripts/org/deploy-packages.sh`'s own header, which is updated at each split with the exact
+component counts and what they ruled in or out, split whichever stage actually failed the
+same way (narrower, on the number that stage actually carried, not a round number picked in
+advance), and update both this section and that header with the new count before pushing.
+Guessing a threshold and pre-splitting everything to be safe is not the goal: each split
+should answer a question the previous failure actually raised.
 
 Two things constrain when it runs, both because there is one org rather than one per run.
 
