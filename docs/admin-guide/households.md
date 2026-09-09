@@ -60,17 +60,15 @@ Maria does this from the sample data.
 That is the whole lifecycle: created for you, named for you, counted for you, and tidied
 up for you.
 
-<<<<<<< HEAD
-One thing the tidy-up will not do: it never deletes a household that something outside
-Open Impact still points at, even when the setting is on and nobody is left in it. It
-leaves that household alone and writes an Info entry in the Error Log naming it, so you
-can look at it and decide for yourself.
-=======
 The walkthrough reads the same in the flexible way of belonging, with one difference at
 step 3: the household is not shown in the household field on the person, because in that
 mode membership is a record of its own. Open the household from the **Households** tab, or
 from the Members panel on the person, and everything from step 4 on is identical.
->>>>>>> fix/c-01-junction-mode-auto-create
+
+One thing the tidy-up will not do: it never deletes a household that something outside
+Open Impact still points at, even when the setting is on and nobody is left in it. It
+leaves that household alone and writes an Info entry in the Error Log naming it, so you
+can look at it and decide for yourself.
 
 ## If your org stores people as accounts
 
