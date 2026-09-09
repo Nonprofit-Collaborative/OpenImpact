@@ -4,8 +4,9 @@
 
 Open Impact produces the numbered PDF a donor needs at tax time: one receipt for one gift,
 or one consolidated statement listing everything a donor gave in a year. Each document
-carries a number that is used once and never again, and the file is stored on the gift and
-on the donor so anyone can find the exact copy the donor received.
+carries a number that is used once and never again, and the file is stored on the receipt
+record, and on the gift for a single gift receipt, so anyone working with giving can find
+the exact copy the donor received.
 
 A receipt never changes after it is issued. If something on it is wrong, you void it and
 issue a new one; both stay on the record, so you can always answer the question "which
@@ -57,6 +58,10 @@ Open Impact ships one letter of each kind:
 - **Per gift receipt**, for a single gift.
 - **Consolidated statement**, for a donor's whole year.
 
+Both letters are created when the package is installed. If the list is empty, that step did
+not finish: click **Restore the shipped letters** and the two come back. Restoring is safe to
+run at any time, and it never touches a letter you have already edited.
+
 Pick a letter, edit the wording, keep the tokens (`{{DonorName}}`, `{{Amount}}`,
 `{{GiftDate}}` and the rest, listed under the editor), and click **Save**. If the letter you
 edited is not the one in use, **Use this letter** switches it on and switches the other one of
@@ -73,6 +78,24 @@ receipts and start a run. Everyone with any Giving permission set can read recei
 the stored files. **Nobody can edit or delete an issued receipt or its file**, including
 Nonprofit Admin. That is not an oversight, and there is no switch for it.
 
+**Who can open a receipt PDF, exactly.** The file is attached to the **Receipt** record, and
+for a single gift receipt to the **Gift** as well. It is not attached to the donor's household
+or contact record. So a person can open a receipt PDF if, and only if, they hold one of the
+three Giving permission sets: Giving Admin, Giving Staff or Giving Read Only. Somebody with
+only a Core role, for example Program Staff or Volunteer Coordinator, can open the donor and
+cannot open the donor's receipts or year-end statement. That is deliberate: a year-end
+statement is a donor's whole giving history plus your tax identification number, and it should
+not be in the Files list of a record that everybody reads.
+
+To get to a donor's documents, open the donor, then the **Receipts** related list, then the
+receipt, then the file on it.
+
+**Editing the letters needs the Nonprofit Admin role.** Writing the letter every donor
+receives is configuration, so saving a letter, switching one on, and restoring the shipped
+letters all need the Manage Nonprofit Settings permission, exactly like every other page in
+Nonprofit Settings. Issuing receipts does not: that is day to day work and needs only Giving
+Staff.
+
 ## A five-minute walkthrough
 
 Start from the sample data.
@@ -83,8 +106,9 @@ Start from the sample data.
    check that a letter of each kind is in use. If one is not, pick it and click **Use this
    letter**.
 3. Open any gift from the sample data. Click **Issue receipt** on the **Receipts** panel.
-   You will see a receipt
-   number appear on the gift, and a PDF in the Files list on the gift and on the donor.
+   You will see a receipt number appear on the gift, and a PDF in the Files list on the gift
+   and on the receipt. Deliberately not on the donor's household: see "Give people access"
+   above.
 4. Open the PDF. It states your organization's name, the amount, the date, and the sentence
    "No goods or services were provided in exchange for this contribution."
 5. Now break it on purpose. Try to change the gift's amount. The save is refused with "This
@@ -100,8 +124,9 @@ Start from the sample data.
    statements** again, open the **Year end statements** tab, check
    the statement year, and click **Generate**. A run appears in the list below and counts up
    as it goes; **Refresh** updates it. When it finishes, open a household with several gifts
-   in that year and read its statement: every gift is a line, each line carries its own
-   status, and the total at the bottom is the sum of the lines.
+   in that year, open its **Receipts** related list, open the statement, and read the file:
+   every gift is a line, each line carries its own status, and the total at the bottom is the
+   sum of the lines.
 
 That is the whole feature. Steps 5 and 6 are the ones worth doing twice, because they are
 what makes the rest trustworthy.
@@ -132,6 +157,10 @@ year-end statement; and the gift itself can never be receipted afterwards, becau
 sees a number already there. Use **Issue receipt** on the gift instead. If a gift in your org
 already carries a number that no receipt matches, see "Lifting the receipt lock" in
 [Gifts](gifts.md): clearing the number there puts the gift back in reach of Issue receipt.
+**Looking for a receipt in the Files list on a donor's household.** It is not there, and it
+is not missing. A receipt PDF lives on the Receipt record, and on the Gift for a single gift
+receipt, so that reading it takes a Giving permission set rather than read access to a contact.
+Open the donor, then the **Receipts** related list.
 
 **Deleting a receipt's file to "cancel" it.** Voiding is the way to cancel a receipt, and it
 deliberately leaves the file alone: the donor still has their copy, so the org should too.

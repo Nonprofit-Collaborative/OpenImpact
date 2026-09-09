@@ -2406,7 +2406,9 @@ nothing packaged to conflict with it (ADR-0006).
 - **Receipt to Receipt**, through Replaces and Replaced By, which point at each other.
 - **Receipt to Receipt Run**, many to one.
 - **Receipt to its stored file**, one to one, as a `ContentVersion` linked to the receipt
-  and, per type, to the gift and to the donor.
+  and, on a per gift receipt, to the gift. It is not linked to the donor: a
+  `ContentDocumentLink` grants access to a file through the record it names, and every Core
+  role can read a Contact and an Account (R-RC11, ADR-0034).
 
 ### Rules
 
@@ -2459,6 +2461,15 @@ possible.
 **R-RC10 Read only to everyone.** No packaged permission set grants Edit or Delete on
 Receipt to any role, including the administrator's, and the fields above are read only in
 every packaged permission set. The package writes them; a person never does.
+
+**R-RC11 A receipt document is reached only through Receipt and Gift.** The stored file is
+linked to its receipt, and on a per gift receipt to its gift, and to nothing else. A
+`ContentDocumentLink` grants access through the record it names rather than through
+`Receipt__c`, so linking the donor Contact or Account would give the file to every role that
+can read a donor, including roles that hold no Giving permission set. The link is written with
+`ShareType` Viewer, which caps what it can grant at reading (R-RC1), and `Visibility`
+InternalUsers. The donor's route to the document is the Receipts related list on their record
+(ADR-0034).
 
 ### Salesforce implementation
 
@@ -2658,6 +2669,14 @@ proof rather than invisible on the donor's copy.
 the sentences R-RC7 requires. A template that also types them produces them twice, which is
 the administrator's to fix, and a template that omits them still produces a valid receipt.
 
+**R-RT4 The shipped letters arrive at install, and writing one needs Manage Nonprofit
+Settings.** `Receipt_Template_Default__mdt` is materialized by the Giving post-install script,
+at install and at every upgrade, creating only what the org does not have (ADR-0029). The
+Receipts page carries a Restore the shipped letters action for an install whose step failed,
+and issuing a receipt with no letter of that kind materializes the shipped one under
+`Issue_Receipts`. Saving a body, switching a letter on, and restoring the shipped letters all
+check `Manage_Nonprofit_Settings` and write in user mode (ADR-0034).
+
 ### Salesforce implementation
 
 - **Object:** `Receipt_Template__c`, Text Name.
@@ -2668,6 +2687,9 @@ the administrator's to fix, and a template that omits them still produces a vali
 | Body | `Body__c` | Long Text Area (32768) |
 | Active | `Active__c` | Checkbox |
 
+- **Shipped defaults:** `Receipt_Template_Default__mdt`, with `Template_Name__c`,
+  `Receipt_Type__c` and `Body__c`, one row per receipt type, materialized into
+  `Receipt_Template__c` by `GivingPostInstall` (R-RT4).
 - **Service:** `ReceiptTemplateService`, LWC `receiptTemplates`, reached from the Nonprofit
   Settings console as a Component row.
 
@@ -3732,6 +3754,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.4 | 2026-09-09 | G-18 in-kind gifts (ADR-0030). No object added. Two attributes added on both Account and Contact, `In_Kind_Value__c` (Currency) and `In_Kind_Gift_Count__c` (Number), filled by six new `Rollup_Definition_Default__mdt` rows across the three scopes of Section 26, filtered to `Type__c` equals `In-kind` on top of the ADR-0022 status set. Rule R-G12 records what an in-kind gift is: a Gift of Type In-kind whose Amount is zero, whose worth is on `Fair_Market_Value__c`, which is never printed on a receipt, and whose description is required and is printed. R-G4 gains `In_Kind_Description__c`, because it appears on the document the donor holds. The `Amount_Cannot_Be_Zero` validation rule is narrowed to gifts that are not in-kind, and `In_Kind_Needs_Description`, `In_Kind_Has_No_Amount`, `In_Kind_Fields_Need_In_Kind_Type` and `Fair_Market_Value_Not_Negative` are added. |
 | v0.4 | 2026-09-09 | G-12 acknowledgments (ADR-0032). Three objects added: `Acknowledgment_Rule__c` (Section 25F), `Acknowledgment__c` (25G) and `Acknowledgment_Run__c` (25H), with rules R-AK1 to R-AK12. No field is added to `Gift__c`: `Acknowledgment_Status__c` and `Acknowledgment_Date__c` were shipped in v0.2 for this feature (R-G9), and the rule that matched a gift is deliberately not stored on it, so that an edited rule applies to the gifts already queued (R-AK3). Giving Settings gains `Acknowledgments_Enabled__c`, `Acknowledgment_From_Address__c`, `Acknowledgments_Last_Run__c` and `Acknowledgments_Last_Run_Summary__c`. The wording of an emailed thank you lives in a standard `EmailTemplate` rather than in a packaged template object, which is what the plan's note on G-12 asks for and is the whole of the difference between this feature and receipting. Acknowledgment Rule leaves Section 30.
 | v0.4 | 2026-09-09 | G-13 receipt number tampering fixed (ADR-0033). No object or field added. `Gift__c.Receipt_Number__c` becomes read only in `Giving_Staff` and `Giving_Admin`, matching `Giving_Read_Only`, and the receipt lock refuses every write to it, including the first one and including an insert, unless the receipting code is renumbering that gift. R-G4 restated: the number comes from the sequence in Section 25C or it does not exist. A number typed on by hand belonged to no receipt, locked the gift irreversibly, could be issued again later by the sequence, and left the gift unreceiptable, which is the collision ADR-0016 says nobody can recover from. The write moves from user mode to `GiftReceiptNumberWriter` in system mode under ADR-0021, because a field nobody may edit cannot be written in user mode, and the renumbering allowance changes from a transaction wide flag to the set of gift Ids being renumbered, so it no longer reaches an unrelated gift saved in the same transaction. |
+| v0.4 | 2026-09-09 | G-13 receipting defects found by security review (ADR-0034). No object or field added. Section 25B gains R-RC11: a receipt's stored file is linked to its receipt and, on a per gift receipt, to its gift, and never to the donor Contact or Account, because a `ContentDocumentLink` grants access to a file through the record it names and every Core role can read a donor. The relationship bullet is corrected to match. Section 25E gains R-RT4: the shipped letters are materialized by the Giving post-install script rather than by a cacheable controller method, which cannot perform DML, and every write to `Receipt_Template__c` checks `Manage_Nonprofit_Settings`. |
 | v0.4 | 2026-09-08 | C-10 sample data extended to the Giving module and to connections. `Sample Data` (`Sample_Data__c`, Checkbox, default false) added to `Gift__c`, `Fund__c`, `Appeal__c`, `Commitment__c`, `Relationship__c` and `Affiliation__c`, so every record the sample loader creates can be found and removed in one action; a gift's allocations, soft credits and tributes, and a commitment's installments, are details of a flagged record and go with it. `Sample Data Key` (`Sample_Data_Key__c`, Text(20)) added to Account and Contact: it holds the key the generated file gives a household, an organization or a person, which is how the Giving sample gifts find the donor they belong to across the asynchronous chain. No object added. |
 
 ---

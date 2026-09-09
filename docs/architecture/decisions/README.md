@@ -42,6 +42,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0031](0031-refund-reverses-the-matched-donor-credit.md) | A refund of the employer's gift reverses the matched donor credit, along the link | Accepted |
 | [0032](0032-acknowledgments-are-standard-email-plus-a-ledger.md) | Acknowledgments send standard email templates and keep a ledger, sharing no machinery with receipts | Accepted |
 | [0033](0033-receipt-numbers-come-only-from-the-sequence.md) | A receipt number comes only from the sequence, so the field is package written | Accepted |
+| [0034](0034-receipt-document-access-and-template-writes.md) | A receipt document is reached only through the records a Giving permission set governs | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions
@@ -63,6 +64,10 @@ ADR-0032 is a builder decision for G-12, separating acknowledgments from
 the receipting machinery they resemble. ADR-0033 is a builder decision on a defect a
 security review found in G-13: staff could type a receipt number onto a gift, which
 locked it, collided with the sequence, and left it unreceiptable.
+ADR-0034 is a builder decision on three further defects the same review
+found in G-13, and it amends the storage sentence in ADR-0016: a `ContentDocumentLink` is an
+access control list, so a receipt document is linked only to the records a Giving permission
+set governs.
 
 ## Adding a new ADR
 

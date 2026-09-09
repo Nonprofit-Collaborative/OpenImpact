@@ -4,6 +4,10 @@
 **Date:** 2026-09-07
 **Accepted:** 2026-09-08, by the owner, as the v0.4 prerequisite the plan names
   (Section 6 "PDF generation approach settled", Section 11.2 open question 6)
+**Amended by:** ADR-0034, which narrows which records a stored receipt is linked to. The
+  "Storage" bullet below names the donor Contact and Account; a `ContentDocumentLink` grants file
+  access through the linked record, so those two links handed donor tax documents to every role
+  that can read a Contact. Read that bullet with ADR-0034 beside it.
 **Source:** plan Section 11.2 open question 6; plan Section 6 v0.4 engineering item
 "PDF generation approach settled"; features G-13 and G-18; ADR-0010
 
