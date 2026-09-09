@@ -1,5 +1,37 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+  <actionOverrides>
+    <actionName>View</actionName>
+    <comment>Gift</comment>
+    <content>Gift_Record_Page</content>
+    <formFactor>Large</formFactor>
+    <pageOrSobjectType>Gift__c</pageOrSobjectType>
+    <type>Flexipage</type>
+  </actionOverrides>
+  <actionOverrides>
+    <actionName>View</actionName>
+    <comment>Gift</comment>
+    <content>Gift_Record_Page</content>
+    <formFactor>Small</formFactor>
+    <pageOrSobjectType>Gift__c</pageOrSobjectType>
+    <type>Flexipage</type>
+  </actionOverrides>
+  <actionOverrides>
+    <actionName>View</actionName>
+    <comment>Commitment</comment>
+    <content>Commitment_Record_Page</content>
+    <formFactor>Large</formFactor>
+    <pageOrSobjectType>Commitment__c</pageOrSobjectType>
+    <type>Flexipage</type>
+  </actionOverrides>
+  <actionOverrides>
+    <actionName>View</actionName>
+    <comment>Commitment</comment>
+    <content>Commitment_Record_Page</content>
+    <formFactor>Small</formFactor>
+    <pageOrSobjectType>Commitment__c</pageOrSobjectType>
+    <type>Flexipage</type>
+  </actionOverrides>
   <brand>
     <headerColor>#0B5CAB</headerColor>
     <shouldOverrideOrgTheme>false</shouldOverrideOrgTheme>
