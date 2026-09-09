@@ -13,6 +13,12 @@
  * the reason "Generation failed", so an auditor asking what happened to number N gets a record
  * rather than silence (R-RC2, R-RC3).
  *
+ * **The two series are accounted for by different mechanisms, and only one of them is
+ * `reconcile`.** The statement series is reconciled by `ReceiptStatementBatch.finish`, which is
+ * the only caller of `reconcile` there is. The per gift series has no reconciliation pass at all:
+ * it is accounted for by being all or nothing inside one transaction, which is an invariant its
+ * callers have to keep. See `allocateOne` and `ReceiptService.issueForGift`.
+ *
  * `without sharing` under ADR-0021: the sequence is package owned data that no permission set
  * grants anyone write access to. See `ReceiptWriter` for the conditions this meets.
  */
@@ -45,9 +51,23 @@ public without sharing class ReceiptNumberSequence {
      * Consumes a block of numbers and returns them in order.
      *
      * One `FOR UPDATE` select, one update, whatever the size of the block: a batch chunk takes its
-     * twenty five numbers in a single round trip rather than holding the lock twenty five times.
-     * The lock is held for the length of this method and nothing slow happens inside it, which is
-     * what keeps the sequence row from becoming the bottleneck ADR-0016 warns about.
+     * twenty five numbers in a single round trip rather than locking the row twenty five times.
+     *
+     * **The lock is held until the transaction ends, not until this method returns.** An Apex
+     * `FOR UPDATE` row lock is released at commit or rollback, so every caller holds the sequence
+     * row for the rest of its request: `ReceiptService.issueForGift` holds it through rendering,
+     * the `ContentVersion` insert and the gift update, and `ReceiptStatementBatch` holds it while
+     * a chunk renders and stores twenty five documents. Uniqueness is not at risk, which is what
+     * the lock is for. Throughput is: two people issuing receipts at the same moment serialize for
+     * the whole request, and the second sees `UNABLE_TO_LOCK_ROW` after ten seconds. Taking a
+     * block per chunk is still worth it, because it makes that one wait per chunk rather than one
+     * per document, but it does not make the wait short.
+     *
+     * Allocating, committing, and only then rendering would remove the contention. It is a design
+     * change, not a tuning knob: a committed allocation whose document then fails leaves a number
+     * that only a reconciliation pass can account for, and the per gift series has no such pass
+     * (see `reconcile`). ADR-0016 records it as an open item for the v0.4 performance baseline,
+     * which is where the contention can actually be measured.
      */
     public static List<String> allocate(
         String receiptType,
@@ -78,7 +98,19 @@ public without sharing class ReceiptNumberSequence {
         return numbers;
     }
 
-    /** One number, for a person issuing one receipt from a gift. */
+    /**
+     * One number, for a person issuing one receipt from a gift.
+     *
+     * **The caller must be all or nothing in one transaction.** Nothing reconciles the per gift
+     * series: `reconcile` is called from `ReceiptStatementBatch.finish` for the statement series
+     * and from nowhere else, and `ReceiptGapSelector`, which is what the Health Check reads,
+     * counts only the records `reconcile` wrote. So a number taken here is accounted for by the
+     * receipt insert happening in the same transaction and by the whole transaction rolling back
+     * when anything fails. A caller that catches the failure and commits anyway consumes a number
+     * that no pass will ever explain, and the Health Check will report zero. If a bulk action, an
+     * async retry wrapper, or an allocate-commit-render redesign ever needs to swallow a failure,
+     * a per gift reconciliation pass has to be built first (ADR-0016, "Numbering").
+     */
     public static String allocateOne(String receiptType, Integer statementYear) {
         return allocate(receiptType, statementYear, 1)[0];
     }
@@ -108,6 +140,10 @@ public without sharing class ReceiptNumberSequence {
      * this step exists to answer a question, not to close a gap.
      *
      * Returns how many numbers it had to account for, which is normally zero.
+     *
+     * It accounts for the series it is given and no other. `ReceiptStatementBatch.finish` is its
+     * only caller, so today only the statement series is reconciled; the per gift series relies on
+     * the transactional invariant `allocateOne` states.
      */
     public static Integer reconcile(String receiptType, Integer statementYear, Id runId) {
         String key = seriesKeyFor(receiptType, statementYear);

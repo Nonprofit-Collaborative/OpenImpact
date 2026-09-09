@@ -7,6 +7,13 @@
  */
 @IsTest
 public class ReceiptTestDataFactory {
+    /**
+     * How many times `ConstructionProbe` has been constructed in this transaction. A test resets
+     * it and then reads it to tell "the factory refused the name" from "the factory built the
+     * class and then refused it", which is the whole difference the renderer allow-list makes.
+     */
+    public static Integer probeConstructions = 0;
+
     /** The renderer a test uses: it keeps what it was asked to render, and returns something. */
     public class RecordingRenderer implements ReceiptRenderer {
         public List<String> renderedHtml = new List<String>();
@@ -23,6 +30,40 @@ public class ReceiptTestDataFactory {
         /** The last document composed, which is what a content assertion reads. */
         public String lastHtml() {
             return renderedHtml.isEmpty() ? '' : renderedHtml[renderedHtml.size() - 1];
+        }
+    }
+
+    /** A renderer that fails, so a test can watch what a failed generation leaves behind. */
+    public class FailingRenderer implements ReceiptRenderer {
+        public Blob render(String html) {
+            throw new RendererFailureException('The PDF service was unavailable.');
+        }
+
+        public String describe() {
+            return 'Failing renderer (test)';
+        }
+    }
+
+    public class RendererFailureException extends Exception {
+    }
+
+    /**
+     * A renderer that records the fact of its own construction. It genuinely implements
+     * `ReceiptRenderer`, so an interface check after the fact would accept it: the only thing that
+     * stops it being constructed inside somebody else's transaction is that its class name is not
+     * on `ReceiptRendererFactory`'s allow-list.
+     */
+    public class ConstructionProbe implements ReceiptRenderer {
+        public ConstructionProbe() {
+            ReceiptTestDataFactory.probeConstructions++;
+        }
+
+        public Blob render(String html) {
+            return Blob.valueOf(html);
+        }
+
+        public String describe() {
+            return 'Construction probe (test)';
         }
     }
 

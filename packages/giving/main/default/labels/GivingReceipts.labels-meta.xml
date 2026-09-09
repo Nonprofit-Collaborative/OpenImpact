@@ -81,6 +81,14 @@
     <value>A year end statement is reissued by voiding it and running statements again for that donor, not from this button.</value>
   </labels>
   <labels>
+    <fullName>Giving_Receipt_RendererUnavailable</fullName>
+    <categories>Giving, Receipts</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Configured renderer is not installed in this org</shortDescription>
+    <value>The receipt renderer chosen in settings ({0}) is not available in this org. Clear the setting to use the one Open Impact ships.</value>
+  </labels>
+  <labels>
     <fullName>Giving_Receipt_SeriesIncomplete</fullName>
     <categories>Giving, Receipts</categories>
     <language>en_US</language>
@@ -109,8 +117,8 @@
     <categories>Giving, Receipts</categories>
     <language>en_US</language>
     <protected>false</protected>
-    <shortDescription>Configured renderer class cannot be used</shortDescription>
-    <value>The receipt renderer named in settings ({0}) does not exist or is not a receipt renderer. Clear the setting to use the one Open Impact ships.</value>
+    <shortDescription>Configured renderer is not one Open Impact offers</shortDescription>
+    <value>The receipt renderer chosen in settings ({0}) is not one Open Impact offers. Clear the setting to use the one Open Impact ships.</value>
   </labels>
   <labels>
     <fullName>Giving_Receipt_VoidNeedsReason</fullName>

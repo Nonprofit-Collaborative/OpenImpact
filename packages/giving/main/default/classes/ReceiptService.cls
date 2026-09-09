@@ -31,6 +31,16 @@ public with sharing class ReceiptService {
      * number are not. The document is rendered next, then stored, then the receipt record is
      * written, and only then does the gift learn its receipt number, which is the point at which
      * the gift becomes locked (R-G4).
+     *
+     * **A caller must let a failure here propagate all the way out, so the transaction rolls
+     * back.** That is not style, it is the only thing accounting for the per gift number series:
+     * nothing reconciles it. `ReceiptNumberSequence.reconcile` runs for the statement series from
+     * `ReceiptStatementBatch.finish` and for nothing else, and the Health Check finding added in
+     * C-11 counts only what that pass wrote. `ReceiptController.issue` rethrows, so today the
+     * number and the receipt stand or fall together. A future caller that catches this exception
+     * and carries on, a bulk action or an async retry wrapper, consumes a number that no pass will
+     * ever explain and that the Health Check will report as zero. Build the per gift
+     * reconciliation pass before writing that caller (ADR-0016, "Numbering").
      */
     public static Receipt__c issueForGift(Id giftId) {
         requirePermission();

@@ -1826,7 +1826,7 @@ the Setup Assistant writes them and letters other than receipts print them too.
 | `Receipt_Next_Counter__c` | integer | 1 | The counter a new numbering series starts at, so an organization moving from another system continues its own sequence. |
 | `Receipt_Statement_Year__c` | integer | empty | The tax year the year end run reports on, which an administrator sets in January and leaves alone. |
 | `Receipt_Place_Of_Issue__c` | text | empty | The city and region the receipt is issued from, printed on the document. |
-| `Receipt_Renderer__c` | text | empty | Which `ReceiptRenderer` implementation produces the PDF; empty means the shipped one. It exists because ADR-0016 names a fallback implementation and the spike that would settle the question needs an org (ADR-0016, "Consequences"). |
+| `Receipt_Renderer__c` | text | empty | Which renderer produces the PDF, as one of the two keys ADR-0016 names (`Blob PDF`, `Visualforce`) and never a class name; empty means the shipped one. A key outside that list is refused before any class is resolved or constructed. Stored as text and validated in Apex per ADR-0019. It exists because ADR-0016 names a fallback implementation and the spike that would settle the question needs an org (ADR-0016, "Consequences"). |
 
 ### Rules
 
@@ -2418,10 +2418,15 @@ issued receipt accepts are the void fields and Replaced By (ADR-0010).
 Section 25C. Gaplessness is not attempted at the database level, because a rolled back
 transaction cannot un-consume a number that another transaction has already moved past.
 
-**R-RC3 Every consumed number is accounted for.** A number whose generation failed is
-reconciled into a receipt with Status Void and Void Reason `Generation failed`, so an
-auditor asking what happened to number N gets a record rather than silence. Reconciliation
-runs at the end of every batch run and on demand.
+**R-RC3 Every consumed number is accounted for, by one of two mechanisms.** For the
+statement series, a number whose generation failed is reconciled into a receipt with Status
+Void and Void Reason `Generation failed`, and that reconciliation runs at the end of every
+batch run. For the per gift series there is no reconciliation pass: the allocation and the
+receipt insert share one transaction and a failure rolls both back, so a failed issue
+consumes no number. Either way an auditor asking what happened to number N gets a record
+rather than silence. A per gift caller that catches a generation failure and commits anyway
+breaks this rule, and the Health Check finding in C-11 counts only reconciled records, so it
+would not see the result (ADR-0016, "Numbering").
 
 **R-RC4 Voiding never touches the stored file.** A void writes Void Reason and Voided On
 and leaves the document exactly as the donor received it. Deleting the file is not a void.
@@ -2517,8 +2522,11 @@ year, and cannot be read back so that a consumed number can be accounted for.
 ### Rules
 
 **R-RS1 One locked row per series.** An allocation selects the series row `FOR UPDATE`,
-reads Next Counter, advances it by the size of the block requested, and commits. A batch
-chunk allocates its whole block in one update rather than one number at a time.
+reads Next Counter, and advances it by the size of the block requested. A batch chunk
+allocates its whole block in one update rather than one number at a time. The lock is held
+until the transaction ends, not until the allocation returns, so the block keeps the wait to
+one per chunk rather than one per document but does not make it short (ADR-0016,
+"Consequences").
 
 **R-RS2 The number format is fixed.** `{prefix}-{statement year}-{counter zero padded to
 six digits}`. Prefix and starting counter come from settings; nothing else about the format

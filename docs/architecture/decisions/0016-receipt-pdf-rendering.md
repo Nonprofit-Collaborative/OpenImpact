@@ -42,6 +42,18 @@ therefore available in the execution context the plan needs it in.
   implementation. A Visualforce `renderAs="pdf"` implementation is the named fallback if
   the spike in Section "Consequences" fails; nothing else in the feature knows which is
   in use.
+  - **Which one an org uses is a key from a closed list, never a class name.** The
+    `Receipt_Renderer__c` setting holds `Blob PDF` or `Visualforce`, or nothing, which means the
+    shipped one; `ReceiptRendererFactory` maps the key to a class name this package owns and
+    checks the key **before** anything is resolved or constructed. This ADR names exactly two
+    implementations, so the list is short and closed, and it follows ADR-0019: a setting with a
+    fixed value set is text validated in Apex and rendered as a choice list in the console.
+    Accepting a class name would let whoever can write the setting have an arbitrary class
+    constructed inside every receipt-issuing user's transaction, and let any class implementing
+    the interface read the composed HTML of every receipt and statement in the org. The setting
+    object is protected, so a managed package will hide it from subscribers, but the namespace
+    is deferred and no package version exists, so that protection does not exist yet and the
+    gate cannot depend on it.
 - **Numbering.** `Receipt__c.Receipt_Number__c` is a text field written by a package
   owned sequence, never a Salesforce auto number. Numbers come from a single `FOR UPDATE`
   locked sequence row per series, where a series is a receipt type plus a statement year.
@@ -49,10 +61,26 @@ therefore available in the execution context the plan needs it in.
   settings. Batch runs allocate a block of numbers per chunk in one update.
   - A number is **consumed once and never reused.** Gaplessness is not attempted at the
     database level, because a rolled back transaction cannot un-consume it. Instead every
-    consumed number is accounted for: a reconciliation step records any number with no
-    surviving `Receipt__c` as a `Receipt__c` with `Status__c = Void` and
-    `Void_Reason__c = Generation failed`, so an auditor asking what happened to number
-    N always gets a record rather than silence.
+    consumed number is accounted for, and the **two series are accounted for by two different
+    mechanisms**:
+    - The **statement series** is accounted for by a reconciliation step, run from
+      `ReceiptStatementBatch.finish`, which records any number with no surviving `Receipt__c`
+      as a `Receipt__c` with `Status__c = Void` and `Void_Reason__c = Generation failed`.
+    - The **per gift series has no reconciliation pass.** It is accounted for by being all or
+      nothing in one transaction: the allocation and the receipt insert share a transaction,
+      and `ReceiptController.issue` rethrows, so a failed issue rolls the allocation back and
+      no number is consumed. This is an invariant, not an accident, and it is stated in
+      `ReceiptService.issueForGift`, `ReceiptNumberSequence.allocateOne` and
+      `ReceiptController.issue`, which is where a future caller will read it. **Any caller that
+      catches a failure from `issueForGift` and continues breaks it**, and the Health Check
+      finding from C-11 will not see the result, because `ReceiptGapSelector` counts only what
+      the reconciliation pass wrote.
+
+    So an auditor asking what happened to number N always gets a record rather than silence,
+    for the statement series by reconciliation and for the per gift series by rollback.
+    **Open item:** a per gift reconciliation pass is required before either a bulk or async
+    per gift caller that swallows failures, or the allocate-commit-render change named under
+    "Consequences", can be built. Neither is in v0.4.
 - **Void and reissue.** `Status__c` is `Issued` or `Void`. Voiding sets `Voided_On__c`
   and `Void_Reason__c` and never touches the stored file. The replacement receipt takes
   the next number and points at the voided one through `Replaces__c`, with
@@ -125,9 +153,21 @@ therefore available in the execution context the plan needs it in.
   chunks; at 30 seconds a chunk that is over 13 hours. The v0.4 performance baseline sets
   the real scope size and, if needed, splits a run into segments. The run is resumable
   precisely because it will be long.
-- **The sequence row is a contention point.** Only receipt issuance touches it, block
-  allocation keeps the lock short, and a run holds one lock per chunk rather than per
-  receipt.
+- **The sequence row is a contention point, and the lock is held for the whole transaction.**
+  An Apex `FOR UPDATE` row lock is released at commit or rollback, not when the allocating
+  method returns. Block allocation makes it one wait per chunk rather than one per receipt, but
+  it does not make the wait short: `ReceiptStatementBatch` holds the row while a chunk renders
+  and stores twenty five PDFs, and `ReceiptService.issueForGift` holds it through `Blob.toPdf`,
+  the `ContentVersion` insert and the gift update. Uniqueness is safe, which is what the lock is
+  for. Throughput is not: two staff issuing receipts at the same moment serialize for the whole
+  request, and the second gets `UNABLE_TO_LOCK_ROW` after ten seconds.
+  - **Open item, for the v0.4 performance baseline: allocate, commit, then render.** That
+    removes the contention and is a real design change rather than a tuning knob, because a
+    committed allocation whose document then fails leaves a number that only a reconciliation
+    pass can account for, and the per gift series has none (see "Numbering"). It is deferred to
+    the baseline deliberately: the contention has never been measured, no Apex here has been run
+    against an org, and doing it now would mean building the per gift reconciliation pass on an
+    unmeasured guess. Nothing in the code asserts otherwise.
 - **Localization is deferred but not designed out.** CRA receipts need a serial number, an
   advantage value, a place of issue and an authorized signature, all of which this design
   already has; the Canadian template itself is out of scope for v1.
