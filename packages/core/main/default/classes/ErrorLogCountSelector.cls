@@ -20,9 +20,16 @@ public with sharing class ErrorLogCountSelector {
 
     /**
      * Whether the running user can read the Error Log at all.
+     *
+     * The status is part of the question, not a detail of it: the count filters on it, and a
+     * `WITH USER_MODE` query throws for a field the reader may not see. Asking about the object
+     * alone turned a person's missing field access into a failed check on Maria's Health Check
+     * page, which is the opposite of what this selector promises: what somebody cannot see is
+     * told to them as nothing, never as a fault.
      */
     public static Boolean isReadable() {
-        return Error_Log__c.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).isAccessible();
+        return Error_Log__c.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED)
+                .isAccessible() && Error_Log__c.Status__c.getDescribe().isAccessible();
     }
 
     /**

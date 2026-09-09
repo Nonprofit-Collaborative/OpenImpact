@@ -614,8 +614,8 @@ what. Required by the C-03 acceptance criterion that every settings change is lo
 | Attribute | Type | Required | Definition |
 |---|---|---|---|
 | Setting Name | text | yes | The setting that changed, recorded by its stable key. |
-| Old Value | long text | no | The value before the change, empty when the setting had never been set. |
-| New Value | long text | no | The value after the change, empty when the setting was cleared. |
+| Old Value | long text | no | The value before the change, blank when the setting had never been set. |
+| New Value | long text | no | The value after the change, blank when the setting was cleared. |
 | Changed By | reference(User) | yes | The user who made the change. |
 | Changed At | datetime | yes | When the change was saved. |
 
@@ -626,6 +626,14 @@ record per setting actually changed. Saving a page without changing anything wri
 nothing.
 **R-S2** Setting Change records are never edited or deleted by packaged code.
 **R-S3** Values are stored as text so that any setting type can be audited uniformly.
+**R-S4** A value that is not set is recorded as nothing, never as empty text. Unset and
+cleared are the same state on a hierarchy custom setting, the platform stores empty text
+as nothing anyway, and an audit row that claimed otherwise could never read back what it
+was written with.
+**R-S5** A value arrives at the settings service in whatever Apex type its caller holds,
+not only as text. A Datetime handed in as a Datetime is stored as it is: `String.valueOf`
+of a Datetime is not the ISO 8601 form the service parses back, so a round trip through
+text would refuse the package's own writes.
 
 ### Salesforce implementation
 

@@ -151,8 +151,8 @@ public with sharing class SettingsService {
             changes.add(
                 new Setting_Change__c(
                     Setting_Name__c = objectName + '.' + localName,
-                    Old_Value__c = oldText,
-                    New_Value__c = newText,
+                    Old_Value__c = stored(oldText),
+                    New_Value__c = stored(newText),
                     Changed_By__c = UserInfo.getUserId(),
                     Changed_At__c = changedAt
                 )
@@ -344,18 +344,48 @@ public with sharing class SettingsService {
                 ? (Boolean) raw
                 : (String.isBlank(text) ? false : Boolean.valueOf(text));
         }
+        Object typed = alreadyTyped(kind, raw);
+        if (typed != null) {
+            return typed;
+        }
         if (String.isBlank(text)) {
             return null;
         }
-        Object typed = parse(kind, text);
-        if (typed != null) {
-            return typed;
+        Object parsed = parse(kind, text);
+        if (parsed != null) {
+            return parsed;
         }
         Integer maximum = field.getLength();
         if (maximum > 0 && text.length() > maximum) {
             throw new SettingsException(System.Label.Core_Settings_InvalidValueError);
         }
         return text;
+    }
+
+    /**
+     * The value exactly as the caller handed it in, when its Apex type is already the field's
+     * own type, or null when it is not.
+     *
+     * A caller inside the package passes a real Datetime, not text: `SetupAssistantService`
+     * records when setup started. `String.valueOf(Datetime)` produces `yyyy-MM-dd HH:mm:ss`,
+     * which is not the ISO 8601 form `parse` reads back, so putting every value through text
+     * refused the package's own writes and took the whole Setup Assistant with it.
+     *
+     * Only the two date types are named here. A number handed in as an Integer or a Decimal
+     * already survives the round trip through text, and `parse` returns the Decimal the field
+     * takes, so naming numbers as well would add a second way to do what already works.
+     */
+    private static Object alreadyTyped(Schema.DisplayType kind, Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        if (kind == Schema.DisplayType.DATETIME && raw instanceof Datetime) {
+            return raw;
+        }
+        if (kind == Schema.DisplayType.DATE && raw instanceof Date) {
+            return raw;
+        }
+        return null;
     }
 
     /** The value a non-text setting holds, or null when the setting is text after all. */
@@ -383,6 +413,20 @@ public with sharing class SettingsService {
         return kind == Schema.DisplayType.DOUBLE ||
             kind == Schema.DisplayType.CURRENCY ||
             kind == Schema.DisplayType.PERCENT;
+    }
+
+    /**
+     * What an audit row holds for a value that is not set: nothing.
+     *
+     * `asText` answers `''` so that a setting that has never been set and one that was cleared
+     * compare equal and no audit row is written for a save that changed nothing. An audit row is
+     * a different question: an unset setting is null, and the platform stores an empty text field
+     * as null anyway, so writing `''` would have claimed something the record could never say
+     * back. Old and new go through the same call, so a value cleared reads the same as a value
+     * never set, which is what happened.
+     */
+    private static String stored(String text) {
+        return String.isEmpty(text) ? null : text;
     }
 
     /** One text form for every value type, so old and new can be compared and audited. */
@@ -463,8 +507,8 @@ public with sharing class SettingsService {
         }
         Setting_Change__c change = new Setting_Change__c(
             Setting_Name__c = settingName.left(255),
-            Old_Value__c = oldValue,
-            New_Value__c = newValue,
+            Old_Value__c = stored(oldValue),
+            New_Value__c = stored(newValue),
             Changed_By__c = UserInfo.getUserId(),
             Changed_At__c = System.now()
         );
