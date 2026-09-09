@@ -436,6 +436,57 @@ public with sharing class HouseholdSelector {
     }
 
     /**
+     * Every membership row that names one of these people, current and ended alike.
+     *
+     * `getMembershipsForPeople` answers who is in a household now, which is what a count
+     * and a name are built from. This one is for the moment a person record itself is
+     * going away, when an ended membership is no more use than a current one: both are
+     * about to be left pointing at nothing.
+     */
+    @NamespaceAccessible
+    public static List<Household_Member__c> getAllMembershipsForPeople(Set<Id> personIds) {
+        if (personIds == null || personIds.isEmpty()) {
+            return new List<Household_Member__c>();
+        }
+        return [
+            SELECT Id, Household__c, Contact__c, Account__c, Role__c, Is_Primary__c, End_Date__c
+            FROM Household_Member__c
+            WHERE Contact__c IN :personIds OR Account__c IN :personIds
+            WITH SYSTEM_MODE
+            ORDER BY CreatedDate
+            LIMIT 10000
+        ];
+    }
+
+    /**
+     * The membership rows in the recycle bin that name one of these people, so that
+     * restoring a person can put the memberships back that their deletion took away.
+     *
+     * An upkeep read under ADR-0021, on all four of the conditions that ADR sets. It is
+     * reached only after the platform has already authorized this user's own undelete of
+     * the person record. Its only input is the set of record ids the trigger handed it, so
+     * no user typed text goes anywhere near it. Nothing it returns reaches a screen: it
+     * feeds the package owned member count, name and greetings and nothing else. And a
+     * membership row the restoring user cannot read would otherwise leave a household they
+     * can see counted and named as though the restored person were still gone. The class
+     * is `with sharing`, so which rows exist for this user is not changed by any of it.
+     */
+    @NamespaceAccessible
+    public static List<Household_Member__c> getDeletedMembershipsForPeople(Set<Id> personIds) {
+        if (personIds == null || personIds.isEmpty()) {
+            return new List<Household_Member__c>();
+        }
+        return [
+            SELECT Id, Household__c, Contact__c, Account__c
+            FROM Household_Member__c
+            WHERE (Contact__c IN :personIds OR Account__c IN :personIds) AND IsDeleted = TRUE
+            WITH SYSTEM_MODE
+            LIMIT 10000
+            ALL ROWS
+        ];
+    }
+
+    /**
      * Every household the naming batch may rewrite. Households whose wording a person has
      * taken over are left out of the query rather than filtered later. R-H8.
      */

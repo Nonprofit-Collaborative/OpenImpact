@@ -159,4 +159,80 @@ private class PersonRecordSelectorTest {
 
         Assert.areEqual(1, people.size(), 'One record makes one person');
     }
+
+    /**
+     * Every attribute the wording is built from, one at a time, on plain accounts with no
+     * override of any kind in play. The five Core person fields are on the account object
+     * in every org, so this exercises the real comparison rather than a stand-in.
+     */
+    @IsTest
+    static void everyAttributeTheWordingIsBuiltFromCountsAsAChange() {
+        Map<String, Object> changes = new Map<String, Object>{
+            'Preferred_Name__c' => 'Mari',
+            'Deceased__c' => true,
+            'Household_Role__c' => 'Head',
+            'Exclude_From_Household_Name__c' => true,
+            'Exclude_From_Greetings__c' => true
+        };
+
+        Test.startTest();
+        Map<String, Boolean> noticed = new Map<String, Boolean>();
+        for (String fieldName : changes.keySet()) {
+            Account previous = new Account(Name = 'Maria Garcia');
+            Account record = new Account(Name = 'Maria Garcia');
+            record.put(fieldName, changes.get(fieldName));
+            noticed.put(fieldName, PersonRecordSelector.namingChanged(record, previous));
+        }
+        Test.stopTest();
+
+        for (String fieldName : changes.keySet()) {
+            Assert.isTrue(
+                noticed.get(fieldName),
+                'A change to ' + fieldName + ' changes what the household is called'
+            );
+        }
+    }
+
+    @IsTest
+    static void aChangeTheWordingIsNotBuiltFromIsIgnored() {
+        Account previous = new Account(Name = 'Maria Garcia', Deceased__c = false);
+        Account record = new Account(
+            Name = 'Maria Garcia',
+            Deceased__c = false,
+            BillingCity = 'Riverside',
+            Description = 'Met at the gala'
+        );
+
+        Test.startTest();
+        Boolean noticed = PersonRecordSelector.namingChanged(record, previous);
+        Boolean unchanged = PersonRecordSelector.namingChanged(previous, previous);
+        Test.stopTest();
+
+        Assert.isFalse(noticed, 'An address or a note is not part of the wording');
+        Assert.isFalse(unchanged, 'A record compared with itself has not changed');
+    }
+
+    @IsTest
+    static void aChangeBackAgainIsNotAChange() {
+        Account previous = new Account(Name = 'Maria Garcia', Household_Role__c = 'Head');
+        Account record = new Account(Name = 'Maria Garcia', Household_Role__c = 'Head');
+
+        Test.startTest();
+        Boolean noticed = PersonRecordSelector.namingChanged(record, previous);
+        Test.stopTest();
+
+        Assert.isFalse(noticed, 'The same value on both sides is not a change');
+    }
+
+    @IsTest
+    static void nothingToCompareIsNotAChange() {
+        Assert.isFalse(
+            PersonRecordSelector.namingChanged(null, new Account(Name = 'Maria Garcia')),
+            'No record means nothing changed'
+        );
+        Assert.isFalse(
+            PersonRecordSelector.namingChanged(new Account(Name = 'Maria Garcia'), null),
+            'No previous version means nothing to compare with'
+        );
+    }
 }

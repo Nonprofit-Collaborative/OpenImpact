@@ -20,8 +20,10 @@
  * - Only these fields are written here, and only on the Household record type.
  * - No value written here comes from user input: every one is computed by
  *   HouseholdNamingService or counted by HouseholdService.
- * - Deleting an emptied household is NOT done here: that removes a record, so it runs
- *   with the user's own access and is logged rather than thrown when it is refused.
+ * - Deleting an emptied household, and removing or restoring a membership row, are NOT
+ *   covered by the exception: those remove or bring back a record rather than compute a
+ *   value, so they run with the user's own access and are logged rather than thrown when
+ *   they are refused.
  * - Everything a person types (a contact, a membership row, a move) is saved elsewhere in
  *   user mode, and everything a screen reads is read in user mode.
  */
@@ -95,6 +97,66 @@ public with sharing class HouseholdWriter {
                 AccessLevel.USER_MODE
             );
             for (Database.DeleteResult result : deletes) {
+                if (!result.isSuccess()) {
+                    log(
+                        firstMessage(result.getErrors()),
+                        Label.Core_Households_ErrorContextMembership
+                    );
+                }
+            }
+        } catch (Exception e) {
+            ErrorLogger.log(e, Label.Core_Households_ErrorContextMembership);
+        }
+    }
+
+    /**
+     * Removes the membership rows that join a person to their households, on the one path
+     * that needs it: the person record itself is being deleted, and a row that survives it
+     * would be left naming nobody.
+     *
+     * Like `deleteHouseholds` this runs with the user's own access rather than in system
+     * mode, and a refusal is logged rather than thrown: removing a record is not the
+     * package writing one of its own computed values, and tidying up must never fail
+     * somebody's save.
+     */
+    public static void deleteMemberships(List<Household_Member__c> memberships) {
+        if (memberships == null || memberships.isEmpty()) {
+            return;
+        }
+        try {
+            List<Database.DeleteResult> deletes = Database.delete(
+                memberships,
+                false,
+                AccessLevel.USER_MODE
+            );
+            for (Database.DeleteResult result : deletes) {
+                if (!result.isSuccess()) {
+                    log(
+                        firstMessage(result.getErrors()),
+                        Label.Core_Households_ErrorContextMembership
+                    );
+                }
+            }
+        } catch (Exception e) {
+            ErrorLogger.log(e, Label.Core_Households_ErrorContextMembership);
+        }
+    }
+
+    /**
+     * Puts back the membership rows that were removed when a person record was deleted,
+     * on the same terms as the removal: the user's own access, and a refusal logged.
+     */
+    public static void undeleteMemberships(List<Household_Member__c> memberships) {
+        if (memberships == null || memberships.isEmpty()) {
+            return;
+        }
+        try {
+            List<Database.UndeleteResult> restores = Database.undelete(
+                memberships,
+                false,
+                AccessLevel.USER_MODE
+            );
+            for (Database.UndeleteResult result : restores) {
                 if (!result.isSuccess()) {
                     log(
                         firstMessage(result.getErrors()),
