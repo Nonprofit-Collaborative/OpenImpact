@@ -4,7 +4,7 @@
   <deploymentStatus>Deployed</deploymentStatus>
   <description>
     One task a stewardship plan template lays out, and when it comes due relative to the day the
-    plan starts (canonical model Section 25G).
+    plan starts (canonical model Section 25J).
   </description>
   <enableActivities>false</enableActivities>
   <enableBulkApi>true</enableBulkApi>

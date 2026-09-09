@@ -2,7 +2,7 @@
  * What the Stewardship Plans page in the settings console can do, and the one thing it refuses.
  *
  * These tests have not been executed against an org: none was reachable from the environment they
- * were written in. They are written to the rules in canonical model Sections 25F to 25H.
+ * were written in. They are written to the rules in canonical model Sections 25I to 25K.
  */
 @IsTest
 private class StewardshipPlanControllerTest {

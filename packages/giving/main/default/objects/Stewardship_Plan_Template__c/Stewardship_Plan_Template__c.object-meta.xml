@@ -5,7 +5,7 @@
   <description>
     A named sequence of follow up work an organization repeats, and what starts it. The template is
     the recipe rather than the work: its steps say which tasks to create, and a Stewardship Plan is
-    one running copy of it on one donor (canonical model Section 25F).
+    one running copy of it on one donor (canonical model Section 25I).
   </description>
   <enableActivities>false</enableActivities>
   <enableBulkApi>true</enableBulkApi>

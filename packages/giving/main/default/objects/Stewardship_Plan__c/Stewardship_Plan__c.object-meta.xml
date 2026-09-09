@@ -5,7 +5,7 @@
   <description>
     One running copy of a stewardship plan template on one donor: what started it, when, and
     whether it is still going. Activities are enabled because the tasks a plan creates hang off it
-    (canonical model Section 25H).
+    (canonical model Section 25K).
   </description>
   <enableActivities>true</enableActivities>
   <enableBulkApi>true</enableBulkApi>

@@ -1,6 +1,6 @@
 /**
- * Starts stewardship plans and lays out the tasks they call for (canonical model Sections 25F to
- * 25H, plan feature G-15).
+ * Starts stewardship plans and lays out the tasks they call for (canonical model Sections 25I to
+ * 25K, plan feature G-15).
  *
  * The shape of the work is deliberately narrow. Starting a plan creates one `Stewardship_Plan__c`
  * and one Task per step, once, at the moment it starts (R-SP7). Nothing here closes a plan, edits

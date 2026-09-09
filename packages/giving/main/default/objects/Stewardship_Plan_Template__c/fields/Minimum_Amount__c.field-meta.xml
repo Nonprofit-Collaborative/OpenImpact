@@ -3,7 +3,7 @@
   <fullName>Minimum_Amount__c</fullName>
   <description>
     The gift size threshold for the two gift events. Blank means any amount (canonical model
-    Section 25F).
+    Section 25I).
   </description>
   <externalId>false</externalId>
   <inlineHelpText>

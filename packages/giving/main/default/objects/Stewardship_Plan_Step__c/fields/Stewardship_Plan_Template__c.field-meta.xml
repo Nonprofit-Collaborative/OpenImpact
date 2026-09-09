@@ -3,7 +3,7 @@
   <fullName>Stewardship_Plan_Template__c</fullName>
   <description>
     The template this step belongs to. A step has no meaning apart from its template and is deleted
-    with it (canonical model Section 25F).
+    with it (canonical model Section 25I).
   </description>
   <externalId>false</externalId>
   <inlineHelpText>The plan this step is part of.</inlineHelpText>

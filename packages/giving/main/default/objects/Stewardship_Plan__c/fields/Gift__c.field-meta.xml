@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
   <fullName>Gift__c</fullName>
   <deleteConstraint>SetNull</deleteConstraint>
-  <description>The gift that started the plan, where a gift event did (canonical model Section 25H).</description>
+  <description>The gift that started the plan, where a gift event did (canonical model Section 25K).</description>
   <externalId>false</externalId>
   <inlineHelpText>The gift that started this plan, if a gift did.</inlineHelpText>
   <label>Gift</label>
