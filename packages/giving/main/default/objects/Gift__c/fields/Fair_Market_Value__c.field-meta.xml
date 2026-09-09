@@ -3,7 +3,8 @@
   <fullName>Fair_Market_Value__c</fullName>
   <externalId>false</externalId>
   <inlineHelpText>
-    The value placed on an in-kind gift, which is what the receipt language refers to.
+    The value your organization records for an in-kind gift, which is the same figure as the
+    amount. The receipt never prints it: valuing donated property is the donor's job, not yours.
   </inlineHelpText>
   <label>Fair Market Value</label>
   <precision>18</precision>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>In_Kind_Gift_Needs_Fair_Market_Value</fullName>
+  <active>true</active>
+  <description>
+    R-G12: a gift of goods or services carries the value the organization records for it, which is
+    what its books and its giving totals count. The receipt never prints that value (R-RC11).
+  </description>
+  <errorConditionFormula>
+    AND(
+  ISPICKVAL(Type__c, "In-kind"),
+  ISBLANK(Original_Gift__c),
+  ISBLANK(Fair_Market_Value__c)
+)
+  </errorConditionFormula>
+  <errorDisplayField>Fair_Market_Value__c</errorDisplayField>
+  <errorMessage>
+    Enter a fair market value. An in-kind gift needs the value your organization records for it,
+    which is the same figure as the amount. It stays in Open Impact and is never printed on the
+    donor's receipt.
+  </errorMessage>
+</ValidationRule>
