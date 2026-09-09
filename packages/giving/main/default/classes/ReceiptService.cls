@@ -68,7 +68,9 @@ public with sharing class ReceiptService {
             Donor_Contact__c = gift.Donor_Contact__c,
             Donor_Account__c = gift.Donor_Account__c,
             Household__c = gift.Household__c,
-            Total_Amount__c = gift.Amount__c == null ? 0 : gift.Amount__c,
+            // What the document states, which for a gift of goods or services is nothing at all
+            // (R-RC11). The value the organization recorded stays on the gift.
+            Total_Amount__c = ReceiptContentBuilder.statedAmountOf(gift),
             Issue_Date__c = Date.today(),
             Series_Key__c = ReceiptNumberSequence.seriesKeyFor(
                 ReceiptNumberSequence.TYPE_PER_GIFT,
@@ -181,7 +183,7 @@ public with sharing class ReceiptService {
             Status__c = STATUS_ISSUED,
             Statement_Year__c = statementYear,
             Donor_Account__c = donor.Id,
-            Total_Amount__c = ReceiptContentBuilder.totalOf(gifts),
+            Total_Amount__c = ReceiptContentBuilder.cashTotalOf(gifts),
             Issue_Date__c = Date.today(),
             Series_Key__c = seriesKey,
             Donor_Year_Key__c = donorYearKey(

@@ -3,7 +3,8 @@
   <fullName>In_Kind_Description__c</fullName>
   <externalId>false</externalId>
   <inlineHelpText>
-    What was given, when the gift is goods or services rather than money.
+    What was given, when the gift is goods or services rather than money. This is what the receipt
+    prints in place of an amount, so write it as the donor should read it.
   </inlineHelpText>
   <label>In-kind Description</label>
   <length>32768</length>

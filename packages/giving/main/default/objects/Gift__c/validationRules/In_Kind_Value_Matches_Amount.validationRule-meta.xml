@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>In_Kind_Value_Matches_Amount</fullName>
+  <active>true</active>
+  <description>
+    R-G12: an in-kind gift is one gift with one number. Two figures that could drift apart would
+    make a report of what the organization received disagree with a report of what it valued.
+  </description>
+  <errorConditionFormula>
+    AND(
+  ISPICKVAL(Type__c, "In-kind"),
+  ISBLANK(Original_Gift__c),
+  NOT(ISBLANK(Fair_Market_Value__c)),
+  Amount__c &lt;&gt; Fair_Market_Value__c
+)
+  </errorConditionFormula>
+  <errorDisplayField>Fair_Market_Value__c</errorDisplayField>
+  <errorMessage>
+    The amount and the fair market value of an in-kind gift are the same number: what your
+    organization values the goods or services at. Enter the same figure in both, or change the type
+    if this gift was money.
+  </errorMessage>
+</ValidationRule>

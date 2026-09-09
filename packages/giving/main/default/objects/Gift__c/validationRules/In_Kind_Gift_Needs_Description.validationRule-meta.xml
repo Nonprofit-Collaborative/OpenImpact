@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>In_Kind_Gift_Needs_Description</fullName>
+  <active>true</active>
+  <description>
+    R-G12: a gift of goods or services says what was given, because that description is what the
+    receipt prints instead of an amount. The rule is on the gift that records the property, not on
+    the negative gift that reverses it (R-G3).
+  </description>
+  <errorConditionFormula>
+    AND(
+  ISPICKVAL(Type__c, "In-kind"),
+  ISBLANK(Original_Gift__c),
+  ISBLANK(In_Kind_Description__c)
+)
+  </errorConditionFormula>
+  <errorDisplayField>In_Kind_Description__c</errorDisplayField>
+  <errorMessage>
+    Describe what was given. An in-kind gift needs a description, because that description is what
+    the donor's receipt prints instead of an amount.
+  </errorMessage>
+</ValidationRule>
