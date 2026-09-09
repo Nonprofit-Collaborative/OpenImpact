@@ -140,7 +140,7 @@ public with sharing class SoftCreditService {
             }
         }
 
-        reconcile(
+        reconcileAutomaticCredits(
             wanted,
             SoftCreditSelector.selectAutomaticForGifts(giftById.keySet(), ROLE_HOUSEHOLD_MEMBER)
         );
@@ -233,7 +233,17 @@ public with sharing class SoftCreditService {
         return (giftAmount * percent / 100).setScale(2, System.RoundingMode.HALF_UP);
     }
 
-    private static void reconcile(
+    /**
+     * Makes the automatic credits that exist for a set of gifts equal to the ones wanted:
+     * inserting what is missing, correcting an amount that has moved, and deleting what is no
+     * longer wanted, all keyed by gift and credited party.
+     *
+     * Public because `MatchingGiftService` reconciles the negative Matched Donor credits a
+     * refund of an employer's gift produces (ADR-0031), and that is the same job as this one on
+     * a different role. The two callers pass disjoint roles, so each one's existing list is its
+     * own: passing credits of one role against wanted credits of another would delete them.
+     */
+    public static void reconcileAutomaticCredits(
         Map<String, Soft_Credit__c> wanted,
         List<Soft_Credit__c> existing
     ) {
@@ -296,6 +306,16 @@ public with sharing class SoftCreditService {
             credit.Account__c = personId;
         }
         return credit;
+    }
+
+    /**
+     * The key `reconcileAutomaticCredits` compares on: one credited party, on one gift, in one
+     * role. Exposed for the callers that build a wanted map of their own. Named for the map
+     * rather than for the row, because `reconcileAutomaticCredits` already uses `creditKey` as a
+     * local.
+     */
+    public static String automaticCreditKey(Id giftId, Id personId) {
+        return key(giftId, personId);
     }
 
     private static Id donorPersonOf(Gift__c gift) {

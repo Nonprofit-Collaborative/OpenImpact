@@ -45,7 +45,10 @@ Two things to know about how the automatic credits behave:
   Ana's gift, keeps that 500 and gains a credit of minus 500 on the refund, and his Total
   Soft Credits is nothing. Both rows carry the Automatic badge, and a negative credit is
   the package working rather than a fault. This is the same shape as the gifts themselves,
-  where the refunded gift also keeps its row.
+  where the refunded gift also keeps its row. A **matched donor** credit reverses the same
+  way: refund a company's matching gift and the employee gets a negative credit for what
+  went back, so a match of 500 with 200 returned leaves them recognized for 300. See
+  `matching-gifts.md`.
 
 ## A five-minute walkthrough
 
