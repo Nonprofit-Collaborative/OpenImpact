@@ -12,7 +12,7 @@
 # It also matches how the packages actually depend on each other: the vendored engine is
 # self contained, Core does not call it yet, and Giving depends on Core.
 #
-# WHY CORE ITSELF IS THREE STAGES. docs/contributor-guide/ci.md records this same failure
+# WHY CORE IS SEVERAL STAGES. docs/contributor-guide/ci.md records this same failure
 # hitting the undivided Core stage four times across four separate runs before 2026-09-09:
 # always UNKNOWN_EXCEPTION, always zero components deployed, always zero component errors,
 # always the same trailing code -315522575 behind a different leading number, which is why
@@ -20,20 +20,26 @@
 # nothing. It recurred twice more on 2026-09-09, on two separate pushes to main, both times
 # on the same undivided Core stage, which by then held 904 components in one request: the
 # same shape as the original 982-component failure this file was written to avoid, just
-# smaller. Nobody has identified which component, or whether it is about total size at all
-# rather than something in one specific file, because a failure with nothing attached names
-# nothing to investigate.
+# smaller.
 #
-# Splitting Core further follows Salesforce's own deploy dependency order, so each stage is
-# also a stage that can legally deploy on its own: data model first (objects, custom
-# metadata, labels, static resources, custom permissions), then Apex (classes, triggers,
-# which the data model must exist before), then everything that references Apex or wires the
-# two together (permission sets and groups, layouts, flexipages, applications, tabs, quick
-# actions, Lightning components). This is a narrowing attempt, not a confirmed fix: if the
-# fault is about total payload size, three stages of a few hundred components each may simply
-# not fail. If it is about one specific component, the next failure now names which third of
-# Core that component is in, instead of naming all of Core. Either outcome is progress on a
-# question that has otherwise gone six occurrences with no information at all.
+# Splitting Core into three (data model, Apex, UI and permissions) followed Salesforce's own
+# deploy dependency order and named a stage instead of nothing: the very next run, still on
+# 2026-09-09, failed on data model alone, at 853 components. That is the load-bearing data
+# point. 853 is close enough to 904 and 982 that a specific bad component stopped being the
+# more likely explanation: three deploys of very different content (mostly Apex classes the
+# first time, mostly custom fields the second) all failed in the same shape once they got
+# into the same few-hundred-to-thousand range. That reads as a size effect, not a component
+# defect, though it is still not proven, because nothing about this failure can be proven
+# from the client side. It just stopped being a coin flip.
+#
+# So data model is now three stages of its own: `balanced_split` divides
+# packages/core/main/default/objects by file count into two roughly equal halves at runtime
+# (a hand-written list of object names would go stale the first time someone adds one), and
+# customMetadata, labels, static resources and custom permissions form a third, smaller
+# stage. Apex and UI/permissions are unchanged from the first split, because neither has
+# failed yet and there is no evidence pointing at either. If one of them fails next, split
+# that one the same way this file has now split twice: narrower each time, on the evidence
+# the previous stage actually produced, not on a guess about what the eventual safe size is.
 #
 # Exit codes: 0 = every stage deployed, non-zero = the first stage that failed.
 
@@ -91,11 +97,14 @@ deploy_stage() {
     echo "is a Salesforce side failure, not a component to fix here: quote the ErrorId in the"
     echo "JSON above to Salesforce support. Re-running is not worth trying on its own account:"
     echo "this exact failure (same trailing code -315522575, zero components, zero errors) has"
-    echo "hit the undivided Core stage at least six times. See docs/contributor-guide/ci.md,"
-    echo "\"It is not transient here\", for the count as of the fourth. If this is one of the"
-    echo "three stages Core was split into on 2026-09-09, that is new information: record which"
-    echo "one, because narrowing it from all of Core to one third of Core is the point of the"
-    echo "split, whether or not it turns out to also dodge the failure."
+    echo "hit an undivided or partly divided Core at least seven times now. See"
+    echo "docs/contributor-guide/ci.md, \"It is not transient here\", for the count and the"
+    echo "component totals each occurrence carried. If ${label} is small (comfortably under"
+    echo "the few hundred components the smallest confirmed failure has carried so far), this"
+    echo "is new evidence the effect is not purely about size, and the next step is to look at"
+    echo "what is actually in this stage rather than splitting it again on faith. If it is"
+    echo "still large, split it the same way the data model stage was split: narrower, by"
+    echo "runtime file count where possible, on what this run actually showed."
     rm -f "$log"
     return "$status"
   fi
@@ -104,9 +113,52 @@ deploy_stage() {
   return 0
 }
 
+# Splits the immediate subdirectories of one directory into two file-count-balanced
+# groups, greedily: largest subdirectory first, each one going to whichever running total
+# is currently smaller. File count is a proxy for the metadata component count Salesforce
+# actually charges a deploy for, not the same number, but the two have moved together in
+# every measurement this project has taken (982, then 904, then 853 components behind file
+# counts of comparable size), so it is a proxy worth using.
+#
+# Dynamic on purpose. A hand-written list of object names goes stale the day a new object
+# is added, silently piling onto whichever stage it happens to be typed after. This looks
+# at the directory itself, so packages/core/main/default/objects splits itself in half
+# again automatically as it grows, the same way this file's own history shows it needs to.
+balanced_split() {
+  local parent="$1"
+  local -n out_a="$2"
+  local -n out_b="$3"
+  local total_a=0 total_b=0
+  out_a=()
+  out_b=()
+  local line count dir
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    count="${line%% *}"
+    dir="${line#* }"
+    if (( total_a <= total_b )); then
+      out_a+=("$dir")
+      (( total_a += count ))
+    else
+      out_b+=("$dir")
+      (( total_b += count ))
+    fi
+  done < <(
+    for dir in "$parent"/*/; do
+      [[ -d "$dir" ]] || continue
+      echo "$(find "$dir" -type f | wc -l) $dir"
+    done | sort -rn
+  )
+}
+
 deploy_stage "the vendored rollup engine" "packages/core/vendor" || exit $?
-deploy_stage "Core (data model)" \
-  "packages/core/main/default/objects" \
+
+OBJECTS_A=()
+OBJECTS_B=()
+balanced_split "packages/core/main/default/objects" OBJECTS_A OBJECTS_B
+deploy_stage "Core (data model, objects A)" "${OBJECTS_A[@]}" || exit $?
+deploy_stage "Core (data model, objects B)" "${OBJECTS_B[@]}" || exit $?
+deploy_stage "Core (data model, config)" \
   "packages/core/main/default/customMetadata" \
   "packages/core/main/default/labels" \
   "packages/core/main/default/staticresources" \
