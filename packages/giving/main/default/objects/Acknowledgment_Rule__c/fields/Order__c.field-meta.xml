@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Order__c</fullName>
+  <inlineHelpText>Where this rule sits in the list. The lowest numbered rule that matches a gift wins, so put your most specific rule at the top.</inlineHelpText>
+  <label>Order</label>
+  <precision>4</precision>
+  <scale>0</scale>
+  <required>true</required>
+  <type>Number</type>
+  <trackTrending>false</trackTrending>
+  <externalId>false</externalId>
+</CustomField>

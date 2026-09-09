@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+  <compactLayoutAssignment>Acknowledgment_Rule_Compact</compactLayoutAssignment>
+  <deploymentStatus>Deployed</deploymentStatus>
+  <description>
+    One line of the organization's answer to "which thank you does this gift get": what the rule
+    matches on, and the channel and email template it resolves to. The lowest numbered matching
+    rule wins (canonical model R-AK1, ADR-0029).
+  </description>
+  <enableActivities>false</enableActivities>
+  <enableBulkApi>true</enableBulkApi>
+  <enableFeeds>false</enableFeeds>
+  <enableHistory>false</enableHistory>
+  <enableReports>true</enableReports>
+  <enableSearch>true</enableSearch>
+  <enableSharing>true</enableSharing>
+  <enableStreamingApi>true</enableStreamingApi>
+  <label>Acknowledgment Rule</label>
+  <nameField>
+    <label>Rule Name</label>
+    <trackHistory>false</trackHistory>
+    <type>Text</type>
+  </nameField>
+  <pluralLabel>Acknowledgment Rules</pluralLabel>
+  <sharingModel>ReadWrite</sharingModel>
+  <visibility>Public</visibility>
+</CustomObject>
