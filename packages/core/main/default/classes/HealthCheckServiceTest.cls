@@ -365,9 +365,10 @@ private class HealthCheckServiceTest {
     @IsTest
     static void pausedAutomationIsReportedWhileItLasts() {
         OrgShapeDetector.overrideShape = shape(false, false, false, false);
-        SettingsService.saveValues(
-            new Map<String, Object>{ 'Automation_Paused_Until__c' => System.now().addHours(2) }
-        );
+        // The pause is not an editable setting with a shipped Setting Definition row: Maria sets
+        // it from the Automation panel, and the settings service rightly refuses a key no row
+        // names. The factory writes the same field the way the product does.
+        TestDataFactory.pausedSettings(2);
 
         HealthCheckService.Finding finding = find(HealthCheckService.run(), 'automation_paused');
 
@@ -405,9 +406,7 @@ private class HealthCheckServiceTest {
     @IsTest
     static void expiredPauseIsNotReported() {
         OrgShapeDetector.overrideShape = shape(false, false, false, false);
-        SettingsService.saveValues(
-            new Map<String, Object>{ 'Automation_Paused_Until__c' => System.now().addHours(-1) }
-        );
+        TestDataFactory.pausedSettings(-1);
 
         List<HealthCheckService.Finding> findings = HealthCheckService.run();
 
@@ -433,6 +432,10 @@ private class HealthCheckServiceTest {
             Status__c = 'New'
         );
         User maria = HealthCheckTestHelper.mariaWithManageSettings();
+        // Counting the Error Log needs read on the object and on Status, which is what the
+        // packaged Nonprofit Admin permission set gives Maria. Without it the selector keeps
+        // its promise and says nothing, which is what this test used to be measuring.
+        HealthCheckTestHelper.grantPackagedPermissionSet(maria, 'Nonprofit_Admin');
 
         System.runAs(maria) {
             OrgShapeDetector.overrideShape = shape(false, false, false, false);

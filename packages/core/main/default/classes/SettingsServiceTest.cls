@@ -74,7 +74,11 @@ private class SettingsServiceTest {
             changes[0].Setting_Name__c,
             'The audit record names the settings object and the setting, because each package owns one'
         );
-        Assert.areEqual('', changes[0].Old_Value__c, 'The setting had never been set');
+        Assert.areEqual(
+            null,
+            changes[0].Old_Value__c,
+            'A setting that had never been set has no old value: unset is null, not empty text'
+        );
         Assert.areEqual(
             'The {LastName} Family',
             changes[0].New_Value__c,
@@ -84,6 +88,23 @@ private class SettingsServiceTest {
             UserInfo.getUserId(),
             changes[0].Changed_By__c,
             'The audit record names who changed it'
+        );
+    }
+
+    @IsTest
+    static void savesADateAndTimeThePackageItselfHandsIn() {
+        stubDefinitions();
+        Datetime chosen = Datetime.newInstanceGmt(2026, 9, 7, 17, 0, 0);
+
+        Test.startTest();
+        SettingsService.saveValues(new Map<String, Object>{ DATETIME_KEY => chosen });
+        Test.stopTest();
+
+        Assert.areEqual(
+            chosen,
+            SettingsService.getValue(DATETIME_KEY),
+            'A Datetime handed in as a Datetime is stored as it is: the Setup Assistant records ' +
+            'when setup started this way, and text is not the only shape a value arrives in'
         );
     }
 

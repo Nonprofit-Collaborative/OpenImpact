@@ -7,6 +7,14 @@ see custom metadata records, so nothing else in the check suite catches it.
 This ran because three Automation Registry records reached main naming
 Default_Enabled__c, a field that belongs to Naming Pattern, not to that type.
 
+It also checks a Setting Definition row against the org it would be installed
+into: the field its Setting_Key__c names has to be defined on the settings
+object it points at, and its Section__c has to be a section name Core knows.
+A row naming a field that is not there deploys cleanly and then tells the
+administrator "That setting does not exist in this org" the first time anybody
+saves that panel, and a row in a section Core does not know is a section the
+Setup Assistant cannot send anybody to.
+
 It also checks the other half of a Setting Definition row whose Data_Type__c is
 Component: the settings console can only render a component it names in its own
 import switch, because dynamic imports must be statically analyzable. A row
@@ -28,6 +36,10 @@ VALUE_FOR = (
 )
 CONSOLE = "packages/core/main/default/lwc/settingsConsole/settingsConsole.js"
 CONSOLE_CASE = re.compile(r"case '([A-Za-z0-9_]+)':")
+SECTIONS = "packages/core/main/default/classes/SettingSections.cls"
+SECTION_CONSTANT = re.compile(r"public static final String [A-Z_]+ = '([^']+)';")
+SETTING_DEFINITIONS = "packages/*/main/default/customMetadata/Setting_Definition.*.md-meta.xml"
+CORE_SETTINGS_OBJECT = "Nonprofit_Settings__c"
 
 
 def type_definitions():
@@ -83,6 +95,59 @@ def check_console_components(problems):
             )
 
 
+def settings_objects():
+    """Every custom object in the repo, with the fields it defines, by name."""
+    objects = {}
+    for path in glob.glob("packages/*/main/default/objects/*"):
+        objects[os.path.basename(path)] = defined_fields(path)
+    return objects
+
+
+def known_sections():
+    """Every section name Core knows, read from the one class that names them."""
+    return set(SECTION_CONSTANT.findall(open(SECTIONS, encoding="utf-8").read()))
+
+
+def check_setting_rows(problems):
+    """Every Setting Definition row names a real field, on a real object, in a known section.
+
+    This ran because a settings panel can only refuse what it cannot find: `SettingsService`
+    throws "That setting does not exist in this org" for a key its settings object does not
+    define, and nothing before this point compares the two. `Section__c` is checked in the same
+    pass because `SettingSections` is the vocabulary a Setup Assistant step and a shipped row
+    have to agree on, and a row can quietly invent a section name that no step can target.
+    """
+    objects = settings_objects()
+    sections = known_sections()
+    for record in sorted(glob.glob(SETTING_DEFINITIONS)):
+        text = open(record, encoding="utf-8").read()
+        section = value_of(text, "Section__c")
+        if section and section not in sections:
+            problems.append(
+                f"{record}: is in the section {section}, which SettingSections.cls does not "
+                "name, so no setup step can send anybody to it"
+            )
+        if value_of(text, "Data_Type__c") == "Component":
+            continue
+        key = value_of(text, "Setting_Key__c")
+        if not key:
+            problems.append(f"{record}: is not a Component row and names no Setting_Key__c")
+            continue
+        settings_object = value_of(text, "Settings_Object__c") or CORE_SETTINGS_OBJECT
+        fields = objects.get(settings_object)
+        if fields is None:
+            problems.append(
+                f"{record}: names the settings object {settings_object}, "
+                "which no package in this repo defines"
+            )
+            continue
+        if key not in fields:
+            problems.append(
+                f"{record}: names the setting {key}, which {settings_object} does not define, "
+                "so saving that panel would tell the administrator the setting does not exist"
+            )
+
+
 def main():
     types = type_definitions()
     problems = []
@@ -101,6 +166,7 @@ def main():
                 problems.append(f"{record}: names {named}, which {type_name}__mdt does not define")
 
     check_console_components(problems)
+    check_setting_rows(problems)
 
     for problem in problems:
         print(problem, file=sys.stderr)

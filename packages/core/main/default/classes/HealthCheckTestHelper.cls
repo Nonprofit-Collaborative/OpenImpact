@@ -44,6 +44,36 @@ public class HealthCheckTestHelper {
     }
 
     /**
+     * Gives someone one of the packaged permission sets, by API name.
+     *
+     * Maria holds Nonprofit Admin in a real org, and that is where her access to the Error Log
+     * and its fields comes from. The custom permission alone says what she may change, not what
+     * she may read, so a test that only grants the custom permission is testing a person who
+     * does not exist.
+     */
+    public static void grantPackagedPermissionSet(User person, String permissionSetName) {
+        List<PermissionSet> sets = [
+            SELECT Id
+            FROM PermissionSet
+            WHERE Name = :permissionSetName
+            LIMIT 1
+        ];
+        System.assert(
+            !sets.isEmpty(),
+            'The ' +
+                permissionSetName +
+                ' permission set is not in this org. It ships with Core, so a missing one is a ' +
+                'deployment problem, not something for a test to work around.'
+        );
+        System.runAs(currentUser()) {
+            insert new PermissionSetAssignment(
+                AssigneeId = person.Id,
+                PermissionSetId = sets[0].Id
+            );
+        }
+    }
+
+    /**
      * Priya: an ordinary user with no packaged permission at all.
      */
     public static User priyaWithoutManageSettings() {
