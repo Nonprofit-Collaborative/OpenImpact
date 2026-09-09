@@ -28,7 +28,7 @@ Nonprofit Settings page, so nobody needs to open Salesforce Setup.
 |---|---|---|
 | How people belong to a household | The simple way (one household per person) or the flexible way (a person can belong to more than one household, and you keep the history of who belonged when) | The simple way |
 | Create a household automatically | When you save a new person with no household, one is created for them. This works the same way in both ways of belonging, and for people stored as contacts and for people stored as accounts | On |
-| Delete a household when the last person leaves | Keeps your list of households clean | On |
+| Delete a household when the last person leaves | Keeps your list of households clean. A household is left alone when anything outside Open Impact still depends on its account record, so this never removes a household another product built | Off, switch it on if you want it |
 
 4. Click **Save**. The change applies to the next record anyone saves.
 
