@@ -11,7 +11,7 @@
   <filters>
     <field>Notification_Sent__c</field>
     <operation>equals</operation>
-    <value>false</value>
+    <value>0</value>
   </filters>
   <label>Notifications to send</label>
 </ListView>
