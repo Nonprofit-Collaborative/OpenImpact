@@ -49,9 +49,13 @@ NPC_PATTERN='\b(PartyRelationshipGroup|PartyRoleRelation|AccountAccountRelation|
 NPC_INCLUDES=(--include='*.cls' --include='*.trigger' --include='*.xml')
 
 # The vendored rollup engine is third party source, not ours to rewrite line by line, and it
-# names ContactPointAddress and Individual in its own test classes. That is a real open
-# question about whether Core deploys on a Platform-only org, not something to hide, so it is
-# excluded here and tracked as a follow-up rather than silently passed.
+# names ContactPointAddress and Individual in its own test classes, so it is excluded from
+# this half of the check. It is not left unguarded: scripts/ci/check-object-allowlist.py
+# covers the vendored tree with an allowlist, so every standard object it names is listed
+# with a reason and a new one arriving with an upstream upgrade fails the build. The
+# evidence that those objects are present on the Platform-only shape is in
+# packages/core/vendor/apex-rollup/VENDOR.md, "Platform-only deployability of the vendored
+# tests".
 NPC_EXCLUDE_DIR='vendor'
 
 MARKER='// detection-only:'
