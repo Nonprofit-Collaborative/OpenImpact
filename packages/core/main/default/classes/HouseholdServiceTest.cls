@@ -1211,4 +1211,77 @@ private class HouseholdServiceTest {
             'An organization is never a household to join'
         );
     }
+
+    /**
+     * The delete guard, ADR-0036. The probe it uses asks two Salesforce Nonprofit Cloud
+     * objects that do not exist in this org and cannot be created in a test, so the probe's
+     * answer is injected and both outcomes are exercised against it.
+     */
+    @IsTest
+    static void anEmptyHouseholdWithNothingElseDependingOnItIsDeleted() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        Contact wei = HouseholdTestDataFactory.newContact('Mr.', 'Wei', 'Lee');
+        insert new List<Contact>{ maria, wei };
+        Id fromHousehold = [SELECT AccountId FROM Contact WHERE Id = :maria.Id].AccountId;
+        Id toHousehold = [SELECT AccountId FROM Contact WHERE Id = :wei.Id].AccountId;
+        HouseholdSelector.accountsWithNativeDependentsOverride = new Set<Id>();
+
+        Test.startTest();
+        HouseholdService.moveContact(maria.Id, toHousehold);
+        Test.stopTest();
+
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Account WHERE Id = :fromHousehold],
+            'Nothing outside Open Impact points at the empty household, so it was deleted'
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Error_Log__c WHERE Severity__c = :ErrorLogger.SEVERITY_INFO],
+            'An ordinary tidy-up is not worth telling anybody about'
+        );
+    }
+
+    @IsTest
+    static void anEmptyHouseholdSomethingElseDependsOnIsKeptAndReported() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        Contact wei = HouseholdTestDataFactory.newContact('Mr.', 'Wei', 'Lee');
+        insert new List<Contact>{ maria, wei };
+        Id fromHousehold = [SELECT AccountId FROM Contact WHERE Id = :maria.Id].AccountId;
+        Id toHousehold = [SELECT AccountId FROM Contact WHERE Id = :wei.Id].AccountId;
+        // As though this household were also a Nonprofit Cloud household: an account with a
+        // native household group hanging off it, whose members Open Impact cannot see.
+        HouseholdSelector.accountsWithNativeDependentsOverride = new Set<Id>{ fromHousehold };
+
+        Test.startTest();
+        HouseholdService.moveContact(maria.Id, toHousehold);
+        Test.stopTest();
+
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Account WHERE Id = :fromHousehold],
+            'Deleting the household would have destroyed the records that depend on it'
+        );
+        List<Error_Log__c> reported = [
+            SELECT Message__c, Severity__c, Context__c
+            FROM Error_Log__c
+            WHERE Severity__c = :ErrorLogger.SEVERITY_INFO
+        ];
+        Assert.areEqual(1, reported.size(), 'The household that was kept was reported once');
+        Assert.areEqual(
+            ErrorLogger.SEVERITY_INFO,
+            reported[0].Severity__c,
+            'Leaving the household alone is the correct outcome, not a failure'
+        );
+        Assert.isTrue(
+            reported[0].Message__c.contains('The Garcia Family'),
+            'The message names the household an administrator has to go and look at'
+        );
+        Assert.isTrue(
+            reported[0].Message__c.contains(String.valueOf(fromHousehold)),
+            'The message carries the household record identifier'
+        );
+    }
 }

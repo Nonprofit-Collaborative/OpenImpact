@@ -225,8 +225,14 @@ a member that read cannot return is not shown.
 
 **R-H12 Reparenting and empty households.** Moving a contact to a different household
 recalculates both households' member counts and, once Giving is installed, their giving
-rollups. The vacated household is deleted when it is empty and
-`Delete_Empty_Households__c` is on.
+rollups. The vacated household is deleted when it is empty, `Delete_Empty_Households__c`
+is on, and nothing outside Open Impact depends on the account (ADR-0036). "Empty" is
+measured in Open Impact's own membership, which is the only membership Open Impact can
+see, so a household that also carries a Salesforce Nonprofit Cloud household group or its
+membership rows reads as empty here while being anything but. The account is the master of
+that group, so deleting the account would destroy it rather than orphan it. A household
+left in place for that reason is reported to the Error Log at Info severity, naming the
+household: it is a correct outcome, not a failure.
 
 **R-H13 Merge and split.** Two households can be merged (members move to the surviving
 household, rollups recalculate, names and greetings recompute unless Custom Name is set)

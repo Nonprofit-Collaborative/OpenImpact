@@ -60,6 +60,11 @@ Maria does this from the sample data.
 That is the whole lifecycle: created for you, named for you, counted for you, and tidied
 up for you.
 
+One thing the tidy-up will not do: it never deletes a household that something outside
+Open Impact still points at, even when the setting is on and nobody is left in it. It
+leaves that household alone and writes an Info entry in the Error Log naming it, so you
+can look at it and decide for yourself.
+
 ## If your org stores people as accounts
 
 Some orgs, including most Nonprofit Cloud and Agentforce Nonprofit orgs, store each person
@@ -83,9 +88,21 @@ when you created the person. Turn the setting back on in Nonprofit Settings, the
 person and pick or create a household.
 
 **"I deleted the last person and the household is still there."**
-"Delete a household when the last person leaves" is off. That is a reasonable choice if
-you want to keep an empty household and its giving history. Delete the household by hand,
-and turn the setting on if you want it done for you next time.
+Either "Delete a household when the last person leaves" is off, or Open Impact deliberately
+left that one alone.
+
+If the setting is off, that is a reasonable choice if you want to keep an empty household
+and its giving history. Delete the household by hand, and turn the setting on if you want
+it done for you next time.
+
+If the setting is on, look in the Error Log. Open Impact never deletes a household that
+something outside Open Impact still points at, because deleting it would delete those
+records too, and it writes an Info entry naming each household it left in place for that
+reason. This happens most often in orgs that also run Salesforce Nonprofit Cloud, where a
+household is a second record attached to the same account and its members are held
+somewhere Open Impact cannot count them: the household looks empty here and is not empty
+there. Open the household, check what else is using it, and delete it by hand if you are
+sure.
 
 **"The member count looks wrong."**
 The count includes current members only. In the flexible membership mode, a person whose
