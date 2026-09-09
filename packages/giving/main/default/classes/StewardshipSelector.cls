@@ -175,6 +175,99 @@ public with sharing class StewardshipSelector {
         return owners;
     }
 
+    /**
+     * Every template with its steps, for the Stewardship Plans page in the settings console.
+     *
+     * Read as the person looking at the page rather than in system mode: this is an
+     * administrator's own configuration surface, so what the page shows is what she may see, and
+     * a field she cannot read is a field she is not offered.
+     */
+    public static List<Stewardship_Plan_Template__c> selectTemplatesForPage() {
+        return [
+            SELECT
+                Id,
+                Name,
+                Plan_Key__c,
+                Active__c,
+                Trigger_Event__c,
+                Minimum_Amount__c,
+                Description__c,
+                (
+                    SELECT
+                        Id,
+                        Name,
+                        Order__c,
+                        Subject__c,
+                        Days_After_Start__c,
+                        Assign_To__c,
+                        Assigned_User__c,
+                        Assigned_User__r.Name,
+                        Priority__c,
+                        Comments__c
+                    FROM Steps__r
+                    ORDER BY Order__c ASC, Name ASC
+                )
+            FROM Stewardship_Plan_Template__c
+            WITH USER_MODE
+            ORDER BY Name ASC
+            LIMIT :TEMPLATE_LIMIT
+        ];
+    }
+
+    /**
+     * How many plans are running from each template, which is the number that tells an
+     * administrator what an edit will not reach (R-SP7). One grouped query rather than one per
+     * template.
+     */
+    public static Map<Id, Integer> countRunningPlansByTemplate() {
+        Map<Id, Integer> counts = new Map<Id, Integer>();
+        for (AggregateResult row : [
+            SELECT Stewardship_Plan_Template__c template, COUNT(Id) total
+            FROM Stewardship_Plan__c
+            WHERE Status__c = :StewardshipService.STATUS_RUNNING
+            WITH USER_MODE
+            GROUP BY Stewardship_Plan_Template__c
+            LIMIT :TEMPLATE_LIMIT
+        ]) {
+            Id templateId = (Id) row.get('template');
+            if (templateId != null) {
+                counts.put(templateId, (Integer) row.get('total'));
+            }
+        }
+        return counts;
+    }
+
+    /** One template's steps, in the order they are laid out, for a reorder or an edit. */
+    public static List<Stewardship_Plan_Step__c> selectStepsFor(Id templateId) {
+        if (templateId == null) {
+            return new List<Stewardship_Plan_Step__c>();
+        }
+        return [
+            SELECT Id, Order__c
+            FROM Stewardship_Plan_Step__c
+            WHERE Stewardship_Plan_Template__c = :templateId
+            WITH USER_MODE
+            ORDER BY Order__c ASC, Name ASC
+            LIMIT 1000
+        ];
+    }
+
+    /**
+     * The people a step can be assigned to, for the picker on the settings page. Active users
+     * only, because a step naming somebody who has left falls back to the plan starter (R-SP4) and
+     * offering that name would be offering a setting that quietly does nothing.
+     */
+    public static List<User> selectAssignableUsers() {
+        return [
+            SELECT Id, Name
+            FROM User
+            WHERE IsActive = TRUE
+            WITH USER_MODE
+            ORDER BY Name ASC
+            LIMIT 500
+        ];
+    }
+
     /** The templates a person may start by hand, read as that person. */
     public static List<Stewardship_Plan_Template__c> selectManualTemplates() {
         return [

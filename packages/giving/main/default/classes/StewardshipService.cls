@@ -23,6 +23,9 @@ public with sharing class StewardshipService {
     public static final String EVENT_GIFT_RECEIVED = 'Gift received';
     public static final String EVENT_COMMITMENT_STARTED = 'Commitment started';
 
+    /** The commitment status that means the commitment is running (R-SP3a). */
+    public static final String COMMITMENT_ACTIVE = 'Active';
+
     public static final String ASSIGN_RECORD_OWNER = 'Record owner';
     public static final String ASSIGN_PLAN_STARTER = 'Plan starter';
     public static final String ASSIGN_SPECIFIC_USER = 'Specific user';
@@ -109,6 +112,73 @@ public with sharing class StewardshipService {
                 toStart.add(
                     plan(template.Id, gift.Donor_Contact__c, gift.Donor_Account__c, gift.Id)
                 );
+                usedTemplates.add(template);
+            }
+        }
+        StewardshipWriter.startPlans(toStart, usedTemplates);
+    }
+
+    /**
+     * Starts every plan the given commitments call for.
+     *
+     * The caller decides which commitments have started (R-SP3a); this only has to lay the plans
+     * out. Bulk safe the same way the gift path is: one selector call for the templates, one for
+     * the plans already running, one insert of plans and one insert of tasks, whatever the size
+     * of the list.
+     *
+     * Minimum Amount is not read here. It is a condition on a gift, and the Amount Only For Gift
+     * Events rule refuses it on a commitment template at save, so there is nothing to apply.
+     */
+    public static void startForCommitments(List<Commitment__c> commitments) {
+        if (commitments == null || commitments.isEmpty()) {
+            return;
+        }
+        List<Stewardship_Plan_Template__c> templates = StewardshipSelector.selectActiveTemplatesForEvents(
+            new Set<String>{ EVENT_COMMITMENT_STARTED }
+        );
+        if (templates.isEmpty()) {
+            return;
+        }
+
+        Set<Id> contactIds = new Set<Id>();
+        Set<Id> accountIds = new Set<Id>();
+        for (Commitment__c commitment : commitments) {
+            if (commitment.Donor_Contact__c != null) {
+                contactIds.add(commitment.Donor_Contact__c);
+            } else if (commitment.Donor_Account__c != null) {
+                accountIds.add(commitment.Donor_Account__c);
+            }
+        }
+        if (contactIds.isEmpty() && accountIds.isEmpty()) {
+            return;
+        }
+        Set<String> alreadyRunning = runningKeys(
+            StewardshipSelector.selectRunningPlansFor(contactIds, accountIds)
+        );
+
+        List<Stewardship_Plan__c> toStart = new List<Stewardship_Plan__c>();
+        List<Stewardship_Plan_Template__c> usedTemplates = new List<Stewardship_Plan_Template__c>();
+        for (Commitment__c commitment : commitments) {
+            Id donorId = commitment.Donor_Contact__c == null
+                ? commitment.Donor_Account__c
+                : commitment.Donor_Contact__c;
+            if (donorId == null) {
+                continue;
+            }
+            for (Stewardship_Plan_Template__c template : templates) {
+                String key = runningKey(template.Id, donorId);
+                if (alreadyRunning.contains(key)) {
+                    continue;
+                }
+                alreadyRunning.add(key);
+                Stewardship_Plan__c started = plan(
+                    template.Id,
+                    commitment.Donor_Contact__c,
+                    commitment.Donor_Account__c,
+                    null
+                );
+                started.Commitment__c = commitment.Id;
+                toStart.add(started);
                 usedTemplates.add(template);
             }
         }

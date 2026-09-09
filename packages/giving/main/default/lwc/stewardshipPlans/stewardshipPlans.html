@@ -1,0 +1,311 @@
+<template>
+  <lightning-card title={labels.title} icon-name="custom:custom54">
+    <div class="slds-var-p-horizontal_medium">
+      <p class="slds-text-body_regular slds-var-m-bottom_small">{labels.intro}</p>
+
+      <template if:true={hasError}>
+        <p data-id="error-message" class="slds-text-color_error slds-var-m-bottom_small">
+          {errorMessage}
+        </p>
+      </template>
+
+      <template if:true={hasNotice}>
+        <p data-id="notice-message" class="slds-text-body_small slds-var-m-bottom_small">
+          {noticeMessage}
+        </p>
+      </template>
+
+      <template if:true={showReadOnlyNotice}>
+        <p data-id="read-only-notice" class="slds-text-body_small slds-var-m-bottom_small">
+          {labels.readOnlyNotice}
+        </p>
+      </template>
+
+      <template if:true={isEmpty}>
+        <p data-id="empty-state" class="slds-text-body_regular">{labels.empty}</p>
+      </template>
+
+      <template if:true={hasTemplates}>
+        <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+          <thead>
+            <tr class="slds-line-height_reset">
+              <th scope="col">{labels.columnPlan}</th>
+              <th scope="col">{labels.columnEvent}</th>
+              <th scope="col">{labels.columnSteps}</th>
+              <th scope="col">{labels.columnRunning}</th>
+              <th scope="col">{labels.columnActive}</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <template for:each={templates} for:item="plan">
+              <tr key={plan.recordId} data-id="plan-row" class={plan.rowClass}>
+                <td>
+                  <lightning-button
+                    data-id="plan-link"
+                    data-record-id={plan.recordId}
+                    variant="base"
+                    label={plan.name}
+                    onclick={handleSelect}
+                  ></lightning-button>
+                </td>
+                <td data-id="plan-event">{plan.triggerEvent}</td>
+                <td data-id="plan-steps">{plan.stepCount}</td>
+                <td data-id="plan-running">{plan.runningPlans}</td>
+                <td data-id="plan-active">{plan.activeText}</td>
+                <td>
+                  <lightning-button
+                    data-id="edit-plan"
+                    data-record-id={plan.recordId}
+                    label={labels.editPlan}
+                    disabled={cannotEdit}
+                    onclick={handleEditPlan}
+                  ></lightning-button>
+                  <lightning-button
+                    data-id="toggle-active"
+                    data-record-id={plan.recordId}
+                    class="slds-var-m-left_x-small"
+                    label={plan.toggleLabel}
+                    disabled={cannotEdit}
+                    onclick={handleToggleActive}
+                  ></lightning-button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </template>
+
+      <div class="slds-var-m-top_small">
+        <lightning-button
+          data-id="new-plan"
+          variant="brand"
+          label={labels.newPlan}
+          disabled={cannotEdit}
+          onclick={handleNewPlan}
+        ></lightning-button>
+      </div>
+
+      <template if:true={showTemplateForm}>
+        <div data-id="plan-form" class="slds-box slds-var-m-top_medium">
+          <lightning-input
+            data-id="plan-name"
+            data-field="name"
+            label={labels.fieldName}
+            value={templateDraft.name}
+            onchange={handleTemplateField}
+          ></lightning-input>
+          <lightning-input
+            data-id="plan-key"
+            data-field="planKey"
+            label={labels.fieldKey}
+            field-level-help={labels.fieldKeyHelp}
+            value={templateDraft.planKey}
+            onchange={handleTemplateField}
+          ></lightning-input>
+          <lightning-combobox
+            data-id="plan-event-input"
+            data-field="triggerEvent"
+            label={labels.fieldEvent}
+            options={triggerEvents}
+            value={templateDraft.triggerEvent}
+            onchange={handleTemplateField}
+          ></lightning-combobox>
+          <lightning-input
+            data-id="plan-minimum"
+            data-field="minimumAmount"
+            type="number"
+            formatter="currency"
+            label={labels.fieldMinimum}
+            field-level-help={labels.fieldMinimumHelp}
+            value={templateDraft.minimumAmount}
+            onchange={handleTemplateField}
+          ></lightning-input>
+          <lightning-textarea
+            data-id="plan-description"
+            data-field="description"
+            label={labels.fieldDescription}
+            value={templateDraft.description}
+            onchange={handleTemplateField}
+          ></lightning-textarea>
+          <lightning-input
+            data-id="plan-active-input"
+            data-field="active"
+            type="checkbox"
+            label={labels.columnActive}
+            checked={templateDraft.active}
+            onchange={handleTemplateField}
+          ></lightning-input>
+          <div class="slds-var-m-top_small">
+            <lightning-button
+              data-id="save-plan"
+              variant="brand"
+              label={labels.save}
+              disabled={busy}
+              onclick={handleSaveTemplate}
+            ></lightning-button>
+            <lightning-button
+              data-id="cancel-plan"
+              class="slds-var-m-left_x-small"
+              label={labels.cancel}
+              onclick={handleCancelTemplate}
+            ></lightning-button>
+          </div>
+        </div>
+      </template>
+
+      <div class="slds-var-m-top_large">
+        <h3 class="slds-text-heading_small">{labels.stepsHeading}</h3>
+        <p data-id="running-notice" class="slds-text-body_small slds-var-m-vertical_x-small">
+          {labels.runningNotice}
+        </p>
+
+        <template if:false={hasSelection}>
+          <p data-id="select-plan" class="slds-text-body_regular">{labels.selectPlan}</p>
+        </template>
+
+        <template if:true={hasSelection}>
+          <template if:false={hasSteps}>
+            <p data-id="no-steps" class="slds-text-body_regular">{labels.noSteps}</p>
+          </template>
+
+          <template if:true={hasSteps}>
+            <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+              <thead>
+                <tr class="slds-line-height_reset">
+                  <th scope="col">{labels.columnSteps}</th>
+                  <th scope="col">{labels.stepSubject}</th>
+                  <th scope="col">{labels.stepDays}</th>
+                  <th scope="col">{labels.stepAssign}</th>
+                  <th scope="col">{labels.stepPriority}</th>
+                  <th scope="col"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <template for:each={steps} for:item="step">
+                  <tr key={step.recordId} data-id="step-row">
+                    <td data-id="step-position">{step.position}</td>
+                    <td data-id="step-subject">{step.subject}</td>
+                    <td data-id="step-days">{step.daysAfterStart}</td>
+                    <td data-id="step-assignee">{step.assigneeText}</td>
+                    <td data-id="step-priority">{step.priority}</td>
+                    <td>
+                      <lightning-button
+                        data-id="move-up"
+                        data-record-id={step.recordId}
+                        label={labels.moveUp}
+                        disabled={step.isFirst}
+                        onclick={handleMoveUp}
+                      ></lightning-button>
+                      <lightning-button
+                        data-id="move-down"
+                        data-record-id={step.recordId}
+                        class="slds-var-m-left_x-small"
+                        label={labels.moveDown}
+                        disabled={step.isLast}
+                        onclick={handleMoveDown}
+                      ></lightning-button>
+                      <lightning-button
+                        data-id="edit-step"
+                        data-record-id={step.recordId}
+                        class="slds-var-m-left_x-small"
+                        label={labels.editPlan}
+                        disabled={cannotEdit}
+                        onclick={handleEditStep}
+                      ></lightning-button>
+                      <lightning-button
+                        data-id="delete-step"
+                        data-record-id={step.recordId}
+                        class="slds-var-m-left_x-small"
+                        label={labels.removeStep}
+                        disabled={cannotEdit}
+                        onclick={handleDeleteStep}
+                      ></lightning-button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </template>
+
+          <div class="slds-var-m-top_small">
+            <lightning-button
+              data-id="add-step"
+              label={labels.addStep}
+              disabled={cannotEdit}
+              onclick={handleAddStep}
+            ></lightning-button>
+          </div>
+
+          <template if:true={showStepForm}>
+            <div data-id="step-form" class="slds-box slds-var-m-top_medium">
+              <lightning-input
+                data-id="step-subject-input"
+                data-field="subject"
+                label={labels.stepSubject}
+                field-level-help={labels.stepSubjectHelp}
+                value={stepDraft.subject}
+                onchange={handleStepField}
+              ></lightning-input>
+              <lightning-input
+                data-id="step-days-input"
+                data-field="daysAfterStart"
+                type="number"
+                min="0"
+                label={labels.stepDays}
+                value={stepDraft.daysAfterStart}
+                onchange={handleStepField}
+              ></lightning-input>
+              <lightning-combobox
+                data-id="step-assign-input"
+                data-field="assignTo"
+                label={labels.stepAssign}
+                options={assignToOptions}
+                value={stepDraft.assignTo}
+                onchange={handleStepField}
+              ></lightning-combobox>
+              <lightning-combobox
+                data-id="step-user-input"
+                data-field="assignedUserId"
+                label={labels.stepUser}
+                options={userOptions}
+                value={stepDraft.assignedUserId}
+                onchange={handleStepField}
+              ></lightning-combobox>
+              <lightning-combobox
+                data-id="step-priority-input"
+                data-field="priority"
+                label={labels.stepPriority}
+                options={priorityOptions}
+                value={stepDraft.priority}
+                onchange={handleStepField}
+              ></lightning-combobox>
+              <lightning-textarea
+                data-id="step-comments-input"
+                data-field="comments"
+                label={labels.stepComments}
+                value={stepDraft.comments}
+                onchange={handleStepField}
+              ></lightning-textarea>
+              <div class="slds-var-m-top_small">
+                <lightning-button
+                  data-id="save-step"
+                  variant="brand"
+                  label={labels.save}
+                  disabled={busy}
+                  onclick={handleSaveStep}
+                ></lightning-button>
+                <lightning-button
+                  data-id="cancel-step"
+                  class="slds-var-m-left_x-small"
+                  label={labels.cancel}
+                  onclick={handleCancelStep}
+                ></lightning-button>
+              </div>
+            </div>
+          </template>
+        </template>
+      </div>
+    </div>
+  </lightning-card>
+</template>
