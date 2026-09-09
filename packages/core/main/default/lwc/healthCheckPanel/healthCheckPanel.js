@@ -2,31 +2,36 @@ import { LightningElement, api } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 
 import getReport from '@salesforce/apex/HealthCheckController.getReport';
-import applyRecommendedMode from '@salesforce/apex/HealthCheckController.applyRecommendedMode';
-import applyJunctionMembership from '@salesforce/apex/HealthCheckController.applyJunctionMembership';
+import previewFix from '@salesforce/apex/HealthCheckController.previewFix';
+import applyFix from '@salesforce/apex/HealthCheckController.applyFix';
 
+import CANCEL_FIX from '@salesforce/label/c.Core_HealthCheckFix_CancelButton';
 import CATEGORY_ACCESS from '@salesforce/label/c.Core_HealthCheck_CategoryAccess';
 import CATEGORY_LICENSES from '@salesforce/label/c.Core_HealthCheck_CategoryLicenses';
 import CATEGORY_ORG_SHAPE from '@salesforce/label/c.Core_HealthCheck_CategoryOrgShape';
 import CATEGORY_SETTINGS from '@salesforce/label/c.Core_HealthCheck_CategorySettings';
+import CONFIRM_FIX from '@salesforce/label/c.Core_HealthCheckFix_ConfirmButton';
 import CURRENT_MODE from '@salesforce/label/c.Core_HealthCheck_CurrentModeLabel';
 import INTRO from '@salesforce/label/c.Core_HealthCheck_Intro';
 import LOAD_FAILED from '@salesforce/label/c.Core_HealthCheck_LoadFailed';
 import LOADING from '@salesforce/label/c.Core_HealthCheck_Loading';
+import NOTHING_TO_DO from '@salesforce/label/c.Core_HealthCheckFix_NothingToDo';
 import NO_FINDINGS from '@salesforce/label/c.Core_HealthCheck_NoFindings';
 import ORG_SHAPE_CARD from '@salesforce/label/c.Core_HealthCheck_OrgShapeCardTitle';
+import PREVIEW_HEADING from '@salesforce/label/c.Core_HealthCheckFix_PreviewHeading';
 import READ_ONLY from '@salesforce/label/c.Core_HealthCheck_ReadOnlyNotice';
 import RECOMMENDED_MODE from '@salesforce/label/c.Core_HealthCheck_RecommendedModeLabel';
 import RERUN from '@salesforce/label/c.Core_HealthCheck_RerunButton';
+import RESULT_HEADING from '@salesforce/label/c.Core_HealthCheckFix_ResultHeading';
 import SEVERITY_ERROR from '@salesforce/label/c.Core_HealthCheck_SeverityError';
 import SEVERITY_INFO from '@salesforce/label/c.Core_HealthCheck_SeverityInfo';
 import SEVERITY_WARNING from '@salesforce/label/c.Core_HealthCheck_SeverityWarning';
 import TITLE from '@salesforce/label/c.Core_HealthCheck_Title';
 import USE_RECOMMENDED from '@salesforce/label/c.Core_HealthCheck_UseRecommendedButton';
+import WILL_CHANGE from '@salesforce/label/c.Core_HealthCheckFix_WillChange';
 
 const ACTION_PREFIX = 'action:';
-const ACTION_RECOMMENDED_MODE = 'action:applyRecommendedMode';
-const ACTION_JUNCTION_MEMBERSHIP = 'action:applyJunctionMembership';
+const ACTION_RECOMMENDED_MODE = 'applyRecommendedMode';
 
 const SEVERITY_DISPLAY = {
   Error: { icon: 'utility:error', variant: 'error', order: 0 },
@@ -37,16 +42,24 @@ const SEVERITY_DISPLAY = {
 const CATEGORY_ORDER = ['OrgShape', 'Licenses', 'Access', 'Settings'];
 
 /**
- * Health Check: what Open Impact found in this org and what to do about it (feature C-11).
+ * Health Check: what Open Impact found in this org and what to do about it (features C-11
+ * and C-21).
  *
  * The panel is readable by anyone. The Fix buttons appear only when the report says the
  * viewer holds the Manage Nonprofit Settings permission, which Apex checks again before it
- * changes anything.
+ * previews or changes anything.
+ *
+ * A fix is never one click. Pressing a fix button asks Apex what that fix would change and
+ * shows it; only the confirm button in that panel applies it. Which findings may carry a fix
+ * button at all is ADR-0029, and the answer is decided in Apex, not here: this component runs
+ * whatever key the finding carries.
  */
 export default class HealthCheckPanel extends NavigationMixin(LightningElement) {
   report;
   loading = false;
   errorMessage;
+  pendingFix;
+  fixResult;
 
   labels = {
     title: TITLE,
@@ -58,7 +71,12 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
     loading: LOADING,
     noFindings: NO_FINDINGS,
     currentMode: CURRENT_MODE,
-    recommendedMode: RECOMMENDED_MODE
+    recommendedMode: RECOMMENDED_MODE,
+    previewHeading: PREVIEW_HEADING,
+    willChange: WILL_CHANGE,
+    confirmFix: CONFIRM_FIX,
+    cancelFix: CANCEL_FIX,
+    resultHeading: RESULT_HEADING
   };
 
   connectedCallback() {
@@ -70,6 +88,7 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
   async load() {
     this.loading = true;
     this.errorMessage = undefined;
+    this.pendingFix = undefined;
     try {
       this.report = await getReport();
     } catch (error) {
@@ -115,6 +134,29 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
 
   get showNoFindings() {
     return this.hasReport && !this.hasFindings;
+  }
+
+  /** True while a fix is waiting for the person to confirm or cancel it. */
+  get hasPendingFix() {
+    return !!this.pendingFix;
+  }
+
+  /** The things the pending fix says it will create or change, ready for the template. */
+  get pendingFixItems() {
+    const items = (this.pendingFix && this.pendingFix.items) || [];
+    return items.map((label, index) => ({ key: `${index}-${label}`, label }));
+  }
+
+  get hasPendingFixItems() {
+    return this.pendingFixItems.length > 0;
+  }
+
+  get pendingFixMoreLabel() {
+    return this.pendingFix ? this.pendingFix.moreLabel : undefined;
+  }
+
+  get hasFixResult() {
+    return !!this.fixResult;
   }
 
   /** Findings grouped by category, in reading order, with their severity display. */
@@ -185,12 +227,12 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
   }
 
   handleUseRecommended() {
-    this.runAction(applyRecommendedMode);
+    this.startFix(ACTION_RECOMMENDED_MODE);
   }
 
   /**
-   * A fix is one of three things: a method on the controller, a page to navigate to, or a
-   * section of the settings console for the console to open.
+   * A fix is one of three things: a fix action, a page to navigate to, or a section of the
+   * settings console for the console to open.
    */
   handleFix(event) {
     const target = event.currentTarget.dataset.target;
@@ -198,15 +240,8 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
       return;
     }
 
-    if (target === ACTION_RECOMMENDED_MODE) {
-      this.runAction(applyRecommendedMode);
-      return;
-    }
-    if (target === ACTION_JUNCTION_MEMBERSHIP) {
-      this.runAction(applyJunctionMembership);
-      return;
-    }
     if (target.startsWith(ACTION_PREFIX)) {
+      this.startFix(target.slice(ACTION_PREFIX.length));
       return;
     }
     if (target.startsWith('/')) {
@@ -256,11 +291,46 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
     });
   }
 
-  async runAction(action) {
+  /** Ask Apex what this fix would change. Nothing is changed by asking. */
+  async startFix(fixKey) {
+    this.loading = true;
+    this.errorMessage = undefined;
+    this.fixResult = undefined;
+    this.pendingFix = undefined;
+    try {
+      const preview = await previewFix({ fixKey });
+      if (preview && preview.nothingToDo) {
+        // The finding was already answered, by someone else or by an earlier press on a page
+        // this browser tab has not refreshed. Say so, refresh, and change nothing.
+        this.fixResult = { fixKey, title: preview.title, summary: NOTHING_TO_DO, changed: 0 };
+        await this.load();
+        return;
+      }
+      this.pendingFix = preview;
+    } catch (error) {
+      this.errorMessage = this.messageFrom(error);
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  handleCancelFix() {
+    this.pendingFix = undefined;
+  }
+
+  /** The second click, and the only one that changes anything. */
+  async handleConfirmFix() {
+    const fixKey = this.pendingFix && this.pendingFix.fixKey;
+    if (!fixKey) {
+      return;
+    }
     this.loading = true;
     this.errorMessage = undefined;
     try {
-      this.report = await action();
+      const outcome = await applyFix({ fixKey });
+      this.pendingFix = undefined;
+      this.fixResult = outcome.result;
+      this.report = outcome.report;
     } catch (error) {
       this.errorMessage = this.messageFrom(error);
     } finally {

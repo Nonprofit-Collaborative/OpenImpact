@@ -1,22 +1,18 @@
 import { createElement } from 'lwc';
 import HealthCheckPanel from 'c/healthCheckPanel';
 import getReport from '@salesforce/apex/HealthCheckController.getReport';
-import applyRecommendedMode from '@salesforce/apex/HealthCheckController.applyRecommendedMode';
-import applyJunctionMembership from '@salesforce/apex/HealthCheckController.applyJunctionMembership';
+import previewFix from '@salesforce/apex/HealthCheckController.previewFix';
+import applyFix from '@salesforce/apex/HealthCheckController.applyFix';
 
 jest.mock('@salesforce/apex/HealthCheckController.getReport', () => ({ default: jest.fn() }), {
   virtual: true
 });
-jest.mock(
-  '@salesforce/apex/HealthCheckController.applyRecommendedMode',
-  () => ({ default: jest.fn() }),
-  { virtual: true }
-);
-jest.mock(
-  '@salesforce/apex/HealthCheckController.applyJunctionMembership',
-  () => ({ default: jest.fn() }),
-  { virtual: true }
-);
+jest.mock('@salesforce/apex/HealthCheckController.previewFix', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock('@salesforce/apex/HealthCheckController.applyFix', () => ({ default: jest.fn() }), {
+  virtual: true
+});
 
 const mockNavigate = jest.fn();
 jest.mock(
@@ -95,6 +91,25 @@ function agentforceReport(overrides = {}) {
   };
 }
 
+/** What Apex answers when the panel asks what a fix would do. */
+function preview(fixKey, overrides = {}) {
+  return {
+    fixKey,
+    title: 'Add the rollups this package ships',
+    summary: 'Open Impact will create 2 rollup definitions, listed below.',
+    items: ['Household Lifetime Giving', 'Household Last Gift Date'],
+    moreLabel: null,
+    affected: 2,
+    nothingToDo: false,
+    ...overrides
+  };
+}
+
+function findFix(element, target) {
+  const fixes = element.shadowRoot.querySelectorAll('[data-id="fix"]');
+  return Array.from(fixes).find((button) => button.dataset.target === target);
+}
+
 function createPanel() {
   const element = createElement('c-health-check-panel', { is: HealthCheckPanel });
   document.body.appendChild(element);
@@ -136,37 +151,97 @@ describe('c-health-check-panel', () => {
     expect(groups.length).toBe(3);
   });
 
-  it('offers the recommended mode when the mode needs attention', async () => {
+  it('previews the recommended mode rather than applying it, and applies it on confirm', async () => {
     getReport.mockResolvedValue(agentforceReport());
-    applyRecommendedMode.mockResolvedValue(
-      agentforceReport({ modeNeedsAttention: false, findings: [] })
+    previewFix.mockResolvedValue(
+      preview('applyRecommendedMode', {
+        title: 'Use the coexistence mode this org needs',
+        summary: 'Open Impact will change the coexistence mode from Standalone.',
+        items: [],
+        affected: 1
+      })
     );
+    applyFix.mockResolvedValue({
+      result: { fixKey: 'applyRecommendedMode', summary: 'The coexistence mode is now NPSP.' },
+      report: agentforceReport({ modeNeedsAttention: false, findings: [] })
+    });
     const element = createPanel();
     await flush();
 
-    const button = element.shadowRoot.querySelector('[data-id="use-recommended"]');
-    expect(button).not.toBeNull();
-    button.click();
+    element.shadowRoot.querySelector('[data-id="use-recommended"]').click();
     await flush();
 
-    expect(applyRecommendedMode).toHaveBeenCalled();
+    expect(previewFix).toHaveBeenCalledWith({ fixKey: 'applyRecommendedMode' });
+    expect(applyFix).not.toHaveBeenCalled();
+    const panel = element.shadowRoot.querySelector('[data-id="fix-preview"]');
+    expect(panel).not.toBeNull();
+    expect(
+      element.shadowRoot.querySelector('[data-id="fix-preview-summary"]').textContent
+    ).toContain('will change the coexistence mode');
+
+    element.shadowRoot.querySelector('[data-id="fix-confirm"]').click();
+    await flush();
+
+    expect(applyFix).toHaveBeenCalledWith({ fixKey: 'applyRecommendedMode' });
+    expect(element.shadowRoot.querySelector('[data-id="fix-preview"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="fix-result-summary"]').textContent).toBe(
+      'The coexistence mode is now NPSP.'
+    );
     expect(element.shadowRoot.querySelector('[data-id="use-recommended"]')).toBeNull();
   });
 
-  it('runs the junction membership fix from the finding', async () => {
+  it('names what a fix would create, and cancelling changes nothing', async () => {
     getReport.mockResolvedValue(agentforceReport());
-    applyJunctionMembership.mockResolvedValue(agentforceReport({ findings: [] }));
+    previewFix.mockResolvedValue(preview('applyJunctionMembership'));
     const element = createPanel();
     await flush();
 
-    const fixes = element.shadowRoot.querySelectorAll('[data-id="fix"]');
-    const junction = Array.from(fixes).find(
-      (button) => button.dataset.target === 'action:applyJunctionMembership'
-    );
-    junction.click();
+    findFix(element, 'action:applyJunctionMembership').click();
     await flush();
 
-    expect(applyJunctionMembership).toHaveBeenCalled();
+    const items = element.shadowRoot.querySelectorAll('[data-id="fix-preview-item"]');
+    expect(items.length).toBe(2);
+    expect(items[0].textContent).toBe('Household Lifetime Giving');
+
+    element.shadowRoot.querySelector('[data-id="fix-cancel"]').click();
+    await flush();
+
+    expect(applyFix).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('[data-id="fix-preview"]')).toBeNull();
+  });
+
+  it('says so and applies nothing when a fix has nothing left to do', async () => {
+    getReport.mockResolvedValue(agentforceReport());
+    previewFix.mockResolvedValue(
+      preview('applyJunctionMembership', { items: [], affected: 0, nothingToDo: true })
+    );
+    const element = createPanel();
+    await flush();
+
+    findFix(element, 'action:applyJunctionMembership').click();
+    await flush();
+
+    expect(applyFix).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('[data-id="fix-preview"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="fix-result"]')).not.toBeNull();
+    expect(getReport).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows the message when a fix is refused', async () => {
+    getReport.mockResolvedValue(agentforceReport());
+    previewFix.mockRejectedValue({
+      body: { message: 'You need the Manage Nonprofit Settings permission.' }
+    });
+    const element = createPanel();
+    await flush();
+
+    findFix(element, 'action:applyJunctionMembership').click();
+    await flush();
+
+    expect(element.shadowRoot.querySelector('[data-id="error"]').textContent).toBe(
+      'You need the Manage Nonprofit Settings permission.'
+    );
+    expect(element.shadowRoot.querySelector('[data-id="fix-preview"]')).toBeNull();
   });
 
   it('navigates to a relative URL fix', async () => {

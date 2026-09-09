@@ -1,6 +1,12 @@
 /**
  * Health Check: what this org looks like, whether Open Impact is set up to match, who can
- * get in, and what is currently in the way (plan Section 4.8, feature C-11).
+ * get in, and what is currently in the way (plan Section 4.8, features C-11 and C-21).
+ *
+ * C-21 added five checks and left the nine that were here alone. The new ones ask whether the
+ * package owned defaults this org is supposed to have were ever materialized, and whether the
+ * install finished handing out the administrator role. They are here rather than in the fix
+ * framework because they are questions, and a question is worth asking whether or not there
+ * is a button next to the answer. Which findings get a button is ADR-0029.
  *
  * Every check is isolated. A check that throws becomes a finding of its own and is written
  * to the Error Log; the other checks still run, because a report that hides eight answers
@@ -20,13 +26,30 @@ public with sharing class HealthCheckService {
 
     /**
      * A fix target is one of three things, and the component tells them apart by shape:
-     * a value starting with "action:" is a method on the controller, a value starting with
-     * "/" is a relative URL to navigate to, and anything else names a section of the
-     * settings console. Null means there is nothing to click.
+     * a value starting with "action:" is a fix action, which the component previews and then
+     * asks the controller to apply (C-21, ADR-0029); a value starting with "/" is a relative
+     * URL to navigate to; and anything else names a section of the settings console. Null
+     * means there is nothing to click.
      */
     public static final String FIX_ACTION_PREFIX = 'action:';
-    public static final String FIX_APPLY_RECOMMENDED_MODE = 'action:applyRecommendedMode';
-    public static final String FIX_APPLY_JUNCTION_MEMBERSHIP = 'action:applyJunctionMembership';
+
+    /**
+     * The fix actions a finding can carry. Each names an action in `HealthCheckFixCatalog`,
+     * which is where what it does, and the rule that let it exist at all, are written
+     * (ADR-0029). A finding whose remedy is a choice carries a section or a URL instead.
+     */
+    public static final String FIX_APPLY_RECOMMENDED_MODE =
+        FIX_ACTION_PREFIX + HealthCheckFix.KEY_RECOMMENDED_MODE;
+    public static final String FIX_APPLY_JUNCTION_MEMBERSHIP =
+        FIX_ACTION_PREFIX + HealthCheckFix.KEY_JUNCTION_MEMBERSHIP;
+    public static final String FIX_RESTORE_SHIPPED_ROLLUPS =
+        FIX_ACTION_PREFIX + HealthCheckFix.KEY_SHIPPED_ROLLUPS;
+    public static final String FIX_RESTORE_AUTOMATION_SWITCHES =
+        FIX_ACTION_PREFIX + HealthCheckFix.KEY_AUTOMATION_SWITCHES;
+    public static final String FIX_RESTORE_IMPORT_TEMPLATES =
+        FIX_ACTION_PREFIX + HealthCheckFix.KEY_IMPORT_TEMPLATES;
+    public static final String FIX_FINISH_ADMIN_ROLE =
+        FIX_ACTION_PREFIX + HealthCheckFix.KEY_ADMIN_ROLE;
 
     /** The settings console tab that hosts every section a fix can point at. */
     public static final String SETTINGS_TAB = 'Nonprofit_Settings';
@@ -273,6 +296,36 @@ public with sharing class HealthCheckService {
         }
     }
 
+    private class MissingRollupsCheck implements Check {
+        public Finding run() {
+            return missingRollupsFinding();
+        }
+    }
+
+    private class MissingAutomationCheck implements Check {
+        public Finding run() {
+            return missingAutomationFinding();
+        }
+    }
+
+    private class MissingTemplatesCheck implements Check {
+        public Finding run() {
+            return missingTemplatesFinding();
+        }
+    }
+
+    private class UnregisteredAutomationCheck implements Check {
+        public Finding run() {
+            return unregisteredAutomationFinding();
+        }
+    }
+
+    private class AdminRoleGapCheck implements Check {
+        public Finding run() {
+            return adminRoleGapFinding();
+        }
+    }
+
     private class AccessChecksNeedAdminCheck implements Check {
         public Finding run() {
             return new Finding(
@@ -329,13 +382,22 @@ public with sharing class HealthCheckService {
         if (canManageSettings()) {
             steps.add(new CheckStep('nonprofit_admin', new NoAdminCheck()));
             steps.add(new CheckStep('users_without_access', new UsersWithoutAccessCheck()));
+            steps.add(new CheckStep('admin_role_gap', new AdminRoleGapCheck()));
         } else {
             steps.add(new CheckStep('access_checks_need_admin', new AccessChecksNeedAdminCheck()));
         }
 
         steps.add(new CheckStep('automation', new AutomationCheck()));
 
+        // The five C-21 checks all count package owned configuration against what this package
+        // ships, and every one of them is a whole-org question, so they are asked only by a
+        // viewer allowed to see the whole org, for the reason the access checks above are:
+        // a count taken from a subset is confidently wrong, which is worse than no count.
         if (canManageSettings()) {
+            steps.add(new CheckStep('missing_packaged_rollups', new MissingRollupsCheck()));
+            steps.add(new CheckStep('missing_automation_switches', new MissingAutomationCheck()));
+            steps.add(new CheckStep('missing_import_templates', new MissingTemplatesCheck()));
+            steps.add(new CheckStep('unregistered_automation', new UnregisteredAutomationCheck()));
             steps.add(new CheckStep('error_log', new ErrorLogCheck()));
         }
 
@@ -586,6 +648,113 @@ public with sharing class HealthCheckService {
                 CATEGORY_SETTINGS
             )
             .withFix(System.Label.Core_HealthCheck_AutomationFix, SECTION_AUTOMATION);
+    }
+
+    /**
+     * The packaged rollups this org never materialized. The count comes from the fix action
+     * itself, so the number in the finding and the number in its preview are the same number.
+     */
+    private static Finding missingRollupsFinding() {
+        Integer missing = HealthCheckFixCatalog.missingCount(HealthCheckFix.KEY_SHIPPED_ROLLUPS);
+        if (missing <= 0) {
+            return null;
+        }
+        List<Object> count = new List<Object>{ String.valueOf(missing) };
+        return new Finding(
+                'missing_packaged_rollups',
+                System.Label.Core_HealthCheck_MissingRollupsTitle,
+                String.format(System.Label.Core_HealthCheck_MissingRollupsDetail, count),
+                SEVERITY_WARNING,
+                CATEGORY_SETTINGS
+            )
+            .withFix(System.Label.Core_HealthCheck_MissingRollupsFix, FIX_RESTORE_SHIPPED_ROLLUPS);
+    }
+
+    /**
+     * The packaged automations with no row on the Automation page. Information rather than a
+     * warning: they all run, because an automation with no row runs by default. What is missing
+     * is the ability to switch one of them off on its own.
+     */
+    private static Finding missingAutomationFinding() {
+        Integer missing = HealthCheckFixCatalog.missingCount(
+            HealthCheckFix.KEY_AUTOMATION_SWITCHES
+        );
+        if (missing <= 0) {
+            return null;
+        }
+        List<Object> count = new List<Object>{ String.valueOf(missing) };
+        return new Finding(
+                'missing_automation_switches',
+                System.Label.Core_HealthCheck_MissingAutomationTitle,
+                String.format(System.Label.Core_HealthCheck_MissingAutomationDetail, count),
+                SEVERITY_INFO,
+                CATEGORY_SETTINGS
+            )
+            .withFix(
+                System.Label.Core_HealthCheck_MissingAutomationFix,
+                FIX_RESTORE_AUTOMATION_SWITCHES
+            );
+    }
+
+    /** The packaged import templates this org never materialized. */
+    private static Finding missingTemplatesFinding() {
+        Integer missing = HealthCheckFixCatalog.missingCount(HealthCheckFix.KEY_IMPORT_TEMPLATES);
+        if (missing <= 0) {
+            return null;
+        }
+        List<Object> count = new List<Object>{ String.valueOf(missing) };
+        return new Finding(
+                'missing_import_templates',
+                System.Label.Core_HealthCheck_MissingTemplatesTitle,
+                String.format(System.Label.Core_HealthCheck_MissingTemplatesDetail, count),
+                SEVERITY_INFO,
+                CATEGORY_SETTINGS
+            )
+            .withFix(
+                System.Label.Core_HealthCheck_MissingTemplatesFix,
+                FIX_RESTORE_IMPORT_TEMPLATES
+            );
+    }
+
+    /**
+     * Automation rows an upgrade left behind. Reported with no button on purpose: the only
+     * remedy is a delete, and no Health Check action deletes a record (ADR-0029 condition 3).
+     * Nothing runs them, so saying so is the whole of the answer.
+     */
+    private static Finding unregisteredAutomationFinding() {
+        List<String> unregistered = HealthCheckFixCatalog.unregisteredAutomationNames();
+        if (unregistered.isEmpty()) {
+            return null;
+        }
+        List<Object> count = new List<Object>{ String.valueOf(unregistered.size()) };
+        return new Finding(
+            'unregistered_automation',
+            System.Label.Core_HealthCheck_StaleAutomationTitle,
+            String.format(System.Label.Core_HealthCheck_StaleAutomationDetail, count),
+            SEVERITY_INFO,
+            CATEGORY_SETTINGS
+        );
+    }
+
+    /**
+     * The people the install gave the Nonprofit Admin permission set to and never got round to
+     * giving the role. They can use the app, so this is not an error, but the Access page shows
+     * the role as held by nobody, which is how an org ends up thinking it has no administrator.
+     */
+    private static Finding adminRoleGapFinding() {
+        Integer waiting = HealthCheckFixCatalog.missingCount(HealthCheckFix.KEY_ADMIN_ROLE);
+        if (waiting <= 0) {
+            return null;
+        }
+        List<Object> count = new List<Object>{ String.valueOf(waiting) };
+        return new Finding(
+                'admin_role_gap',
+                System.Label.Core_HealthCheck_AdminRoleGapTitle,
+                String.format(System.Label.Core_HealthCheck_AdminRoleGapDetail, count),
+                SEVERITY_WARNING,
+                CATEGORY_ACCESS
+            )
+            .withFix(System.Label.Core_HealthCheck_AdminRoleGapFix, FIX_FINISH_ADMIN_ROLE);
     }
 
     private static Finding errorLogFinding() {

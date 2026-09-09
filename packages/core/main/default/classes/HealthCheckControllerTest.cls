@@ -1,9 +1,13 @@
 /**
- * Tests for HealthCheckController (feature C-11).
+ * Tests for HealthCheckController (features C-11 and C-21).
  *
- * Reading the report needs nothing. Acting on a finding needs the Manage Nonprofit Settings
- * custom permission, and the controller checks it rather than trusting the component, so
- * both sides of that check are covered here.
+ * Reading the report needs nothing. Previewing or applying a fix needs the Manage Nonprofit
+ * Settings custom permission, and the controller checks it rather than trusting the component,
+ * so both sides of that check are covered here. The preview is gated as well as the apply,
+ * because a preview counts things a person without that permission may not count.
+ *
+ * NOT EXECUTED. There was no Salesforce org reachable from the environment the C-21 changes
+ * were written in, so the tests in this class have been compiled and reviewed but not run.
  */
 @IsTest
 private class HealthCheckControllerTest {
@@ -30,12 +34,26 @@ private class HealthCheckControllerTest {
     }
 
     @IsTest
+    static void previewingAFixNeedsThePermission() {
+        OrgShapeDetector.overrideShape = npspShape();
+
+        Boolean refused = false;
+        try {
+            HealthCheckController.previewFix(HealthCheckFix.KEY_RECOMMENDED_MODE);
+        } catch (AuraHandledException e) {
+            refused = true;
+        }
+
+        System.assert(refused, 'Without the permission, even the preview is refused.');
+    }
+
+    @IsTest
     static void applyingTheRecommendationNeedsThePermission() {
         OrgShapeDetector.overrideShape = npspShape();
 
         Boolean refused = false;
         try {
-            HealthCheckController.applyRecommendedMode();
+            HealthCheckController.applyFix(HealthCheckFix.KEY_RECOMMENDED_MODE);
         } catch (AuraHandledException e) {
             refused = true;
         }
@@ -54,12 +72,39 @@ private class HealthCheckControllerTest {
 
         Boolean refused = false;
         try {
-            HealthCheckController.applyJunctionMembership();
+            HealthCheckController.applyFix(HealthCheckFix.KEY_JUNCTION_MEMBERSHIP);
         } catch (AuraHandledException e) {
             refused = true;
         }
 
         System.assert(refused, 'Without the permission, the membership fix is refused.');
+        System.assertEquals(
+            CoexistenceService.MEMBERSHIP_CONTACT,
+            CoexistenceService.getMembershipMode(),
+            'And membership is where it was.'
+        );
+    }
+
+    @IsTest
+    static void aPreviewChangesNothing() {
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
+
+        System.runAs(maria) {
+            OrgShapeDetector.overrideShape = npspShape();
+
+            Test.startTest();
+            HealthCheckFix.Preview preview = HealthCheckController.previewFix(
+                HealthCheckFix.KEY_RECOMMENDED_MODE
+            );
+            Test.stopTest();
+
+            System.assertEquals(1, preview.affected, 'The preview counts the one change.');
+            System.assertEquals(
+                null,
+                CoexistenceService.getCurrentMode(),
+                'And asking what would happen does not make it happen.'
+            );
+        }
     }
 
     @IsTest
@@ -70,12 +115,14 @@ private class HealthCheckControllerTest {
             OrgShapeDetector.overrideShape = npspShape();
 
             Test.startTest();
-            HealthCheckService.Report report = HealthCheckController.applyRecommendedMode();
+            HealthCheckController.FixOutcome outcome = HealthCheckController.applyFix(
+                HealthCheckFix.KEY_RECOMMENDED_MODE
+            );
             Test.stopTest();
 
             System.assertEquals(
                 true,
-                report.canManageSettings,
+                outcome.report.canManageSettings,
                 'Maria holds the permission, so she sees the fix buttons.'
             );
             System.assertEquals(
@@ -85,8 +132,13 @@ private class HealthCheckControllerTest {
             );
             System.assertEquals(
                 false,
-                report.modeNeedsAttention,
+                outcome.report.modeNeedsAttention,
                 'Once applied, the mode no longer needs attention.'
+            );
+            System.assertEquals(
+                true,
+                outcome.result.changedAnything,
+                'And the person is told what was done, not only shown the new report.'
             );
         }
     }
@@ -99,7 +151,7 @@ private class HealthCheckControllerTest {
             OrgShapeDetector.overrideShape = personAccountsShape();
 
             Test.startTest();
-            HealthCheckController.applyJunctionMembership();
+            HealthCheckController.applyFix(HealthCheckFix.KEY_JUNCTION_MEMBERSHIP);
             Test.stopTest();
 
             System.assertEquals(
@@ -107,6 +159,27 @@ private class HealthCheckControllerTest {
                 CoexistenceService.getMembershipMode(),
                 'The membership fix does what its button says.'
             );
+        }
+    }
+
+    @IsTest
+    static void anActionNobodyShipsIsRefusedWithSomethingReadable() {
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
+
+        System.runAs(maria) {
+            Boolean refused = false;
+            try {
+                HealthCheckController.applyFix('deleteEverything');
+            } catch (AuraHandledException e) {
+                refused = true;
+                System.assertEquals(
+                    Label.Core_HealthCheckFix_Unknown,
+                    e.getMessage(),
+                    'The message is the label, not "Script-thrown exception".'
+                );
+            }
+
+            System.assert(refused, 'A key that names no action changes nothing.');
         }
     }
 

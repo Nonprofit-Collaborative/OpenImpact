@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_HealthCheck_AdminRoleGapDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Finding: the install gave people the admin permission set but not the role.</shortDescription>
+        <value>{0} people hold the Nonprofit Admin permission set but not the Nonprofit Admin role, which is how the install leaves an org when Salesforce was still calculating the role at the moment the package finished installing. They can use the app, but the Access page shows the role as held by nobody, so nobody can see who administers Open Impact.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_AdminRoleGapFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button on the admin role finding.</shortDescription>
+        <value>Finish the role assignment</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_AdminRoleGapTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the finding for an unfinished admin role assignment.</shortDescription>
+        <value>The install did not finish giving out the Nonprofit Admin role</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MissingAutomationDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Finding: automation switch rows were never materialized.</shortDescription>
+        <value>{0} of the packaged automations have no row on the Automation page, so they cannot be switched off one at a time. They are all running: an automation with no row runs by default, and pausing all automation still stops them.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MissingAutomationFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button on the missing automation rows finding.</shortDescription>
+        <value>Add the missing switches</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MissingAutomationTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the finding for missing automation switch rows.</shortDescription>
+        <value>Some automations are missing their switch</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MissingRollupsDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Finding: packaged rollup definitions were never materialized.</shortDescription>
+        <value>{0} of the rollups Open Impact ships are not in this org, so the totals they keep, such as lifetime giving and last gift date, are not being calculated. Adding them back never changes a rollup you have edited.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MissingRollupsFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button on the missing rollups finding.</shortDescription>
+        <value>Add the missing rollups</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MissingRollupsTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the finding for missing packaged rollup definitions.</shortDescription>
+        <value>Some of the rollups this package ships are missing</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MissingTemplatesDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Finding: packaged import templates were never materialized.</shortDescription>
+        <value>{0} of the import templates Open Impact ships are not in this org, so the import wizard offers fewer starting points than it should. Adding them back never changes a template you have edited.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MissingTemplatesFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button on the missing import templates finding.</shortDescription>
+        <value>Add the missing templates</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MissingTemplatesTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the finding for missing packaged import templates.</shortDescription>
+        <value>Some of the import templates this package ships are missing</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_StaleAutomationDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Finding: automation rows left behind by an upgrade, reported and never removed.</shortDescription>
+        <value>{0} rows on the Automation page belong to automations this version no longer ships, usually because an upgrade replaced them. Nothing runs them and they change nothing. Open Impact leaves them alone: no Health Check action deletes a record, so if you want them gone, remove them yourself once you are sure of what they were.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_StaleAutomationTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the finding for automation rows an upgrade left behind.</shortDescription>
+        <value>Some automation rows are left over from an earlier version</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_AdminRolePreview</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Preview: what finishing the admin role assignment will do.</shortDescription>
+        <value>Open Impact will give the Nonprofit Admin role to these {0} people. They already hold the Nonprofit Admin permission set, which is everything the role contains, so nobody gains any access they do not have today. You can take the role away again on the Access page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_AdminRoleResult</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Result: the admin role was assigned.</shortDescription>
+        <value>{0} people now hold the Nonprofit Admin role. They are listed on the Access page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_AdminRoleTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading of the admin role fix.</shortDescription>
+        <value>Finish giving out the Nonprofit Admin role</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_AndMore</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown under a preview list that was cut short.</shortDescription>
+        <value>and {0} more</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_AutomationPreview</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Preview: what adding the missing automation rows will do.</shortDescription>
+        <value>Open Impact will add {0} rows to the Automation page, one for each of these automations, switched on or off as this package ships it. Automations that already have a row are left exactly as you set them, and nothing about how automation runs today changes.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_AutomationResult</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Result: automation rows were created.</shortDescription>
+        <value>{0} automations now have a switch on the Automation page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_AutomationTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading of the missing automation rows fix.</shortDescription>
+        <value>Add the missing automation switches</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_CancelButton</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that closes the preview without changing anything.</shortDescription>
+        <value>Cancel</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_ConfirmButton</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that commits a previewed fix.</shortDescription>
+        <value>Yes, make this change</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_MembershipPreview</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Preview: what switching to junction membership will do.</shortDescription>
+        <value>Open Impact will store household membership on the Household Member record from now on, which is the only way it works in an org where people are accounts. Households that already exist are not touched and no record is changed: this decides how the next household is built.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_MembershipResult</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Result: membership mode was switched.</shortDescription>
+        <value>Household membership is now stored on the Household Member record.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_MembershipTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading of the junction membership fix.</shortDescription>
+        <value>Switch household membership to the junction</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_ModePreview</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Preview: what setting the recommended coexistence mode will do.</shortDescription>
+        <value>Open Impact will change the coexistence mode from {0} to {1}, which is the mode that matches what was found in this org. One setting changes. No record of yours is touched, and you can change the mode back at any time on the General page of Nonprofit Settings.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_ModeResult</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Result: the coexistence mode was set.</shortDescription>
+        <value>The coexistence mode is now {0}.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_ModeTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading of the coexistence mode fix.</shortDescription>
+        <value>Use the coexistence mode this org needs</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_NothingToDo</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when a fix is pressed and there is nothing left for it to do.</shortDescription>
+        <value>There was nothing left to do: this org is already in the state this action would have put it in. Nothing was changed.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_PreviewFailed</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when the preview itself could not be worked out.</shortDescription>
+        <value>Open Impact could not work out what this action would change, so it has not done anything. The details are in the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_PreviewHeading</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading over the preview of a fix, before it runs.</shortDescription>
+        <value>Before Open Impact changes anything</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_ResultHeading</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading over what a fix reports it did.</shortDescription>
+        <value>What Open Impact did</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_RollupsPreview</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Preview: what adding the missing rollups will do.</shortDescription>
+        <value>Open Impact will create {0} rollup definitions, listed below, exactly as this package ships them. Rollups you already have are left alone, including any you have edited or switched off, and no total is recalculated until the rollup next runs.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_RollupsResult</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Result: rollup definitions were created.</shortDescription>
+        <value>{0} rollups were added. They are on the Rollups page of Nonprofit Settings, where you can switch each one on, off, or recalculate it now.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_RollupsTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading of the missing rollups fix.</shortDescription>
+        <value>Add the rollups this package ships</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_TemplatesPreview</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Preview: what adding the missing import templates will do.</shortDescription>
+        <value>Open Impact will create {0} import templates, listed below, exactly as this package ships them. Templates you already have, including any mapping you have saved onto one, are left alone.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_TemplatesResult</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Result: import templates were created.</shortDescription>
+        <value>{0} import templates were added. The import wizard offers them the next time you open it.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_TemplatesTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading of the missing import templates fix.</shortDescription>
+        <value>Add the import templates this package ships</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_Unknown</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when a fix action that does not exist is asked for.</shortDescription>
+        <value>That action is not one Health Check offers, so nothing was changed.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheckFix_WillChange</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading over the list of things a fix will create or change.</shortDescription>
+        <value>What this will add</value>
+    </labels>
+</CustomLabels>

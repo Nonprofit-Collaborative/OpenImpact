@@ -68,6 +68,14 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>HealthCheckFix</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>HealthCheckFixCatalog</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>HealthCheckService</apexClass>
     <enabled>true</enabled>
   </classAccesses>

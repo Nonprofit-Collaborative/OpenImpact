@@ -34,6 +34,64 @@
                 </p>
             </template>
 
+            <template if:true={hasPendingFix}>
+                <article
+                    class="slds-box slds-theme_shade slds-m-bottom_medium"
+                    data-id="fix-preview"
+                    role="region"
+                    aria-label={labels.previewHeading}
+                >
+                    <h2 class="slds-text-heading_small">{labels.previewHeading}</h2>
+                    <p class="slds-text-title_bold slds-m-top_x-small" data-id="fix-preview-title">
+                        {pendingFix.title}
+                    </p>
+                    <p class="slds-m-top_xx-small" data-id="fix-preview-summary">
+                        {pendingFix.summary}
+                    </p>
+                    <template if:true={hasPendingFixItems}>
+                        <p class="slds-text-title slds-m-top_x-small">{labels.willChange}</p>
+                        <ul class="slds-list_dotted slds-text-body_small">
+                            <template for:each={pendingFixItems} for:item="item">
+                                <li key={item.key} data-id="fix-preview-item">{item.label}</li>
+                            </template>
+                        </ul>
+                        <template if:true={pendingFixMoreLabel}>
+                            <p class="slds-text-body_small" data-id="fix-preview-more">
+                                {pendingFixMoreLabel}
+                            </p>
+                        </template>
+                    </template>
+                    <div class="slds-m-top_small">
+                        <lightning-button
+                            variant="brand"
+                            label={labels.confirmFix}
+                            onclick={handleConfirmFix}
+                            class="slds-m-right_x-small"
+                            data-id="fix-confirm"
+                        ></lightning-button>
+                        <lightning-button
+                            label={labels.cancelFix}
+                            onclick={handleCancelFix}
+                            data-id="fix-cancel"
+                        ></lightning-button>
+                    </div>
+                </article>
+            </template>
+
+            <template if:true={hasFixResult}>
+                <article
+                    class="slds-box slds-m-bottom_medium"
+                    data-id="fix-result"
+                    role="status"
+                    aria-label={labels.resultHeading}
+                >
+                    <h2 class="slds-text-heading_small">{labels.resultHeading}</h2>
+                    <p class="slds-m-top_xx-small" data-id="fix-result-summary">
+                        {fixResult.summary}
+                    </p>
+                </article>
+            </template>
+
             <template if:true={hasReport}>
                 <article class="slds-box slds-m-bottom_medium" data-id="org-shape-card">
                     <h2 class="slds-text-heading_small">{labels.orgShapeCard}</h2>

@@ -8,8 +8,9 @@ licenses are in play), whether your coexistence mode matches that, who can and c
 into the app, and anything that is currently getting in the way, such as paused automation
 or errors nobody has looked at.
 
-Every finding says what is wrong and what to do about it, and most of them have a button
-that takes you straight to the place where you fix it.
+Every finding says what is wrong and what to do about it. Most of them have a button. Some of
+those buttons take you to the page where you decide what to do. The rest do the work for you,
+and those always show you what they are about to change before they change it.
 
 Run it after you install, after you add people, and any time something feels wrong.
 
@@ -35,6 +36,43 @@ answered wrongly, because Salesforce only lets you see your own access: who hold
 Nonprofit Admin role, and how many errors nobody has read. In their place you get one line,
 **Sign in as a Nonprofit Admin to see the access checks**.
 
+## The buttons that fix things
+
+Six findings can be put right from this page. Every one of them works the same way, and the
+sequence is deliberate.
+
+1. **You press the button.** Nothing has happened yet.
+2. **Open Impact tells you what it is about to do**, counted from your org, not in general
+   terms: how many records it will create, and their names. If the list is long it shows the
+   first ten and says how many more there are.
+3. **You press "Yes, make this change", or Cancel.** Cancel changes nothing.
+4. **It reports what it actually did**, and the report underneath is re-run so you can see the
+   finding go.
+
+The six are: use the coexistence mode your org needs, switch household membership to the
+junction, add the missing packaged rollups, add the missing automation switches, add the
+missing import templates, and finish handing out the Nonprofit Admin role.
+
+Four things are true of all six, and are worth knowing before you press anything.
+
+- **None of them deletes anything.** Not a record, not a row, not ever. If the only way to
+  clear a finding is to delete something, Health Check reports it and leaves it to you.
+- **None of them touches your data.** They create configuration that this package ships and
+  set settings that this package owns. No donor, no gift, no address, and no amount is read,
+  changed, or removed by a fix.
+- **Pressing one twice is the same as pressing it once.** Before it acts, it looks again. If
+  there is nothing left to do it says so and changes nothing, so a stale page or a second
+  administrator clicking at the same moment cannot do the work twice.
+- **They finish or they do not happen.** If anything fails part way through, everything it did
+  in that moment is undone, the details go to the Error Log, and the page tells you.
+
+Some findings have no fix button on purpose, because the right answer depends on what your
+organization meant and Health Check will not guess: who should hold the Nonprofit Admin role,
+which people should get which role, whether paused automation should be resumed now, and what
+to do about errors nobody has read. Those keep the button that takes you to the page where you
+decide. The rule the project follows for which findings may have a fix button is written down
+in `docs/architecture/decisions/0029-which-health-check-findings-get-a-fix-button.md`.
+
 ## A five-minute walkthrough
 
 Maria has just installed Open Impact into her organization's Nonprofit Cloud org. Person
@@ -57,21 +95,39 @@ Accounts are on. She has not set anything up yet.
    Open Impact is running as Standalone but this org is a Nonprofit Cloud org, and that until
    she confirms, households will be built the wrong way for Person Accounts. There is a
    button, **Use recommended mode**.
-6. Maria clicks **Use recommended mode**. The page saves Agentforce Nonprofit coexistence,
-   switches household membership to junction mode with it, and re-runs. The amber finding is
-   replaced by a blue one: **Coexistence mode matches your org**.
-7. Under **Access** there is a red finding: **No one is assigned the Nonprofit Admin role**.
-   She clicks **Open the Access page**, which takes her to the Access section of Nonprofit
-   Settings, adds herself, and comes back to Health.
+6. Maria clicks **Use recommended mode**. Nothing changes yet. A panel opens at the top of the
+   page under the heading **Before Open Impact changes anything**, and it says: Open Impact
+   will change the coexistence mode from Standalone to Agentforce Nonprofit coexistence, one
+   setting changes, no record of hers is touched, and she can change it back on the General
+   page. She clicks **Yes, make this change**. The page saves it, switches household membership
+   to junction mode with it, and re-runs. A green line reports **The coexistence mode is now
+   Agentforce Nonprofit coexistence**, and the amber finding is replaced by a blue one:
+   **Coexistence mode matches your org**.
+7. Under **Access** there is an amber finding she was not expecting: **The install did not
+   finish giving out the Nonprofit Admin role**, and it says one person is in that state. That
+   person is Maria: she installed the package, so Salesforce gave her the Nonprofit Admin
+   permission set straight away and was still calculating the role when the install finished.
+   She clicks **Finish the role assignment**, reads the preview, which names her and says that
+   nobody gains any access they do not have today, and confirms. The finding is gone and her
+   name is on the Access page.
 8. Another finding is amber: **4 users cannot see the app**. Four active users have a
    Salesforce license but none of the Open Impact roles, so the Nonprofit Hub is invisible to
-   them. She clicks **Open the Access page** again and assigns roles.
-9. There is a blue finding too: **The Gift Transaction mirror is in the Connect module**.
-   Her org has Nonprofit Cloud gift objects and the Connect module is not installed, so if she
-   wants Nonprofit Cloud's own donor summaries to keep working, that is what she will install
-   in v0.6. Nothing is broken today.
-10. She clicks **Re-run**. The red finding is gone, the amber ones are gone, and what is left
+   them. This one has no fix button, because which role each of those four should get is her
+   decision. She clicks **Open the Access page** and assigns roles.
+9. Under **Settings** there is an amber finding: **Some of the rollups this package ships are
+   missing**, with a count. This org has never opened the Rollups page, so the definitions that
+   keep lifetime giving and last gift date were never created. She clicks **Add the missing
+   rollups**, reads the list of what will be created, and confirms. The result line says how
+   many were added and where to find them.
+10. There is a blue finding too: **The Gift Transaction mirror is in the Connect module**.
+    Her org has Nonprofit Cloud gift objects and the Connect module is not installed, so if she
+    wants Nonprofit Cloud's own donor summaries to keep working, that is what she will install
+    in v0.6. Nothing is broken today.
+11. She clicks **Re-run**. The red finding is gone, the amber ones are gone, and what is left
     is blue: her org shape, the mode, the Connect note, and **Automation is running normally**.
+12. Out of curiosity she clicks **Add the missing rollups** on the finding she has just fixed,
+    from a browser tab she left open. The preview says there is nothing left to do, and nothing
+    is created a second time.
 
 Total time: about five minutes, most of it assigning roles.
 
@@ -89,11 +145,20 @@ recommendation in step 5 is **NPSP coexistence**. Everything else is the same.
 | Licenses | Whether the org uses more than one currency, which Open Impact does not support yet. |
 | Access | Whether anyone holds the Nonprofit Admin role. |
 | Access | Whether active users with a Salesforce license have no Open Impact role at all. |
+| Access | Whether anyone holds the Nonprofit Admin permission set without the role that carries it, which is how a slow install leaves an org. |
 | Settings | Whether Open Impact automation is paused, and says so plainly when it is running. |
+| Settings | Whether any of the rollups this package ships were never created in your org. |
+| Settings | Whether any packaged automation has no switch on the Automation page. |
+| Settings | Whether any of the import templates this package ships were never created. |
+| Settings | Whether any automation rows are left over from a version that no longer ships them. |
 | Settings | Whether there are new entries in the Error Log that nobody has looked at. |
 
 If one check cannot run, the rest still run. The check that failed appears as its own finding
 saying so, and the details are written to the Error Log.
+
+The last six of these count things across the whole org, so like the two access checks they are
+only asked for a person holding the Manage Nonprofit Settings permission. A count taken from a
+partial view of the org would be wrong, and a wrong count is worse than no count.
 
 ## Common mistakes
 
@@ -123,3 +188,16 @@ run it again as an administrator.
 to turn it back on means households stop being created and names stop being recomputed, quietly.
 That is why the paused finding is always shown, with the time it expires. If you see it and you
 are not in the middle of a load, resume automation.
+
+**Expecting a fix button to clean up.** No fix button deletes anything, and none of them ever
+will. The finding **Some automation rows are left over from an earlier version** is the clearest
+case: those rows do nothing, because Open Impact runs the automations this version ships rather
+than the rows on the page, and removing them is a decision for you rather than for a button.
+
+**Reading a preview as a change.** Pressing a fix button changes nothing on its own. Until you
+press **Yes, make this change**, you are reading a description of what would happen. Cancel is
+always safe, and so is closing the tab.
+
+**Adding the missing rollups and expecting yesterday's totals.** Creating a rollup definition
+does not calculate it. The totals fill in when the rollup next runs, which is the nightly run,
+or straight away if you use **Recalculate** on the Rollups page of Nonprofit Settings.

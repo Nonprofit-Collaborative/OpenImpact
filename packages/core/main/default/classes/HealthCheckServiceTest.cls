@@ -1,5 +1,8 @@
 /**
- * Tests for HealthCheckService (feature C-11), one per finding path.
+ * Tests for HealthCheckService (features C-11 and C-21), one per finding path.
+ *
+ * NOT EXECUTED. There was no Salesforce org reachable from the environment the C-21 tests at
+ * the end of this class were written in, so they have been compiled and reviewed but not run.
  *
  * Org shape is forced through the detector's test override so that every path runs on every
  * org shape in the CI matrix, and the two access counts through the service's own override,
@@ -604,6 +607,109 @@ private class HealthCheckServiceTest {
             HealthCheckService.detectedSummary(null),
             'A shape that could not be read still produces a sentence.'
         );
+    }
+
+    @IsTest
+    static void missingPackagedRollupsAreReportedWithAFixButton() {
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
+
+        System.runAs(maria) {
+            OrgShapeDetector.overrideShape = shape(false, false, false, false);
+            RollupSelector.defaultsOverride = new List<Rollup_Definition_Default__mdt>{
+                new Rollup_Definition_Default__mdt(
+                    DeveloperName = 'Test_Missing_Rollup',
+                    MasterLabel = 'Household Gift Count',
+                    Definition_Key__c = 'test_missing_rollup',
+                    Source_Object__c = 'Contact',
+                    Target_Object__c = 'Account',
+                    Aggregate__c = 'COUNT',
+                    Target_Field__c = 'Member_Count__c'
+                )
+            };
+
+            HealthCheckService.Finding finding = find(
+                HealthCheckService.run(),
+                'missing_packaged_rollups'
+            );
+
+            System.assertNotEquals(null, finding, 'A rollup that was never created is reported.');
+            System.assertEquals(
+                HealthCheckService.FIX_RESTORE_SHIPPED_ROLLUPS,
+                finding.fixTarget,
+                'And it carries the fix that creates it.'
+            );
+            System.assert(
+                finding.detail.contains('1'),
+                'The finding says how many, counted from the org: ' + finding.detail
+            );
+        }
+    }
+
+    @IsTest
+    static void automationRowsAnUpgradeLeftBehindAreReportedWithNoButton() {
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
+
+        System.runAs(maria) {
+            OrgShapeDetector.overrideShape = shape(false, false, false, false);
+            insert new Automation_Setting__c(
+                Name = 'Something an upgrade retired',
+                Automation_Name__c = 'Retired_Automation',
+                Enabled__c = true
+            );
+            AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>();
+            AutomationControl.clearCache();
+
+            HealthCheckService.Finding finding = find(
+                HealthCheckService.run(),
+                'unregistered_automation'
+            );
+
+            System.assertNotEquals(null, finding, 'The leftover row is reported.');
+            System.assertEquals(
+                null,
+                finding.fixTarget,
+                'And has no button: the only remedy would be a delete (ADR-0029 condition 3).'
+            );
+            System.assertEquals(
+                HealthCheckService.SEVERITY_INFO,
+                finding.severity,
+                'Nothing runs it, so it is information rather than a problem.'
+            );
+        }
+    }
+
+    @IsTest
+    static void theCountingChecksAreNotAskedOfSomeoneWhoCannotSeeTheWholeOrg() {
+        User priya = HealthCheckTestHelper.priyaWithoutManageSettings();
+
+        System.runAs(priya) {
+            OrgShapeDetector.overrideShape = shape(false, false, false, false);
+            RollupSelector.defaultsOverride = new List<Rollup_Definition_Default__mdt>{
+                new Rollup_Definition_Default__mdt(
+                    DeveloperName = 'Test_Missing_Rollup',
+                    MasterLabel = 'Household Gift Count',
+                    Definition_Key__c = 'test_missing_rollup',
+                    Source_Object__c = 'Contact',
+                    Target_Object__c = 'Account',
+                    Aggregate__c = 'COUNT',
+                    Target_Field__c = 'Member_Count__c'
+                )
+            };
+
+            List<HealthCheckService.Finding> findings = HealthCheckService.run();
+
+            System.assertEquals(
+                null,
+                find(findings, 'missing_packaged_rollups'),
+                'A count of the whole org is not offered to someone who cannot see the whole org.'
+            );
+            System.assertEquals(null, find(findings, 'admin_role_gap'), 'Nor is the access one.');
+            System.assertNotEquals(
+                null,
+                find(findings, 'access_checks_need_admin'),
+                'She is told why, once, rather than being shown numbers that are wrong.'
+            );
+        }
     }
 
     /**
