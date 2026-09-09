@@ -1331,6 +1331,10 @@
     <visibility>Visible</visibility>
   </tabSettings>
   <tabSettings>
+    <tab>Receipts</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
     <tab>Soft_Credit__c</tab>
     <visibility>Visible</visibility>
   </tabSettings>

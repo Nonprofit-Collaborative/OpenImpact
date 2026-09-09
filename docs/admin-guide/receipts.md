@@ -39,8 +39,10 @@ In the Receipts section:
 
 ### 3. Write your two letters
 
-Also in the Receipts section, **Receipt letters and year end statements** opens a panel with
-two tabs. On the **Receipt templates** tab, Open Impact ships one letter of each kind:
+Also in the Receipts section, **Receipt letters and year end statements** opens the Receipts
+page, which has two tabs. It opens as its own page rather than inside the settings console,
+which is how every page the Giving module adds behaves. On the **Receipt templates** tab,
+Open Impact ships one letter of each kind:
 
 - **Per gift receipt**, for a single gift.
 - **Consolidated statement**, for a donor's whole year.
@@ -83,7 +85,8 @@ Start from the sample data.
    both files and compare them.
 7. Go to the **Receipts** tab and look at the two records. The voided one points at its
    replacement, the replacement points back at what it replaces.
-8. Back in Nonprofit Settings, under Receipts, open the **Year end statements** tab, check
+8. Back in Nonprofit Settings, under Receipts, choose **Receipt letters and year end
+   statements** again, open the **Year end statements** tab, check
    the statement year, and click **Generate**. A run appears in the list below and counts up
    as it goes; **Refresh** updates it. When it finishes, open a household with several gifts
    in that year and read its statement: every gift is a line, each line carries its own

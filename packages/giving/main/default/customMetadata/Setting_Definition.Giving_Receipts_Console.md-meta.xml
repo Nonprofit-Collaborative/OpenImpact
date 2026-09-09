@@ -32,6 +32,10 @@
   </values>
   <values>
     <field>Component__c</field>
-    <value xsi:type="xsd:string">receiptSettings</value>
+    <value xsi:nil="true" />
+  </values>
+  <values>
+    <field>Navigation_Target__c</field>
+    <value xsi:type="xsd:string">Receipts</value>
   </values>
 </CustomMetadata>
