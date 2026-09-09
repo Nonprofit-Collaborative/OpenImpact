@@ -1113,6 +1113,14 @@
     <visibility>Visible</visibility>
   </tabSettings>
   <tabSettings>
+    <tab>Stewardship_Plan_Template__c</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Stewardship_Plan__c</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
     <tab>Tribute__c</tab>
     <visibility>Visible</visibility>
   </tabSettings>
