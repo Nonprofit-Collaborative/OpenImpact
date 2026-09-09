@@ -1,0 +1,32 @@
+/**
+ * The one account query the Volunteers package needs: which record type an account carries, so
+ * an hours entry can tell a household from an organization from a person held as an account.
+ *
+ * The test is made at run time on record type developer names, never on a person account field,
+ * so the package installs and behaves in an org where people are contacts (canonical model
+ * Section 4, ADR-0009). It is named for its package because class names are unique within a
+ * namespace and Core owns the account queries everything else uses.
+ */
+public with sharing class VolunteerAccountSelector {
+    /**
+     * The record type developer name of each of the given accounts. An account with no record
+     * type is absent from the map.
+     */
+    public static Map<Id, String> selectRecordTypeNamesById(Set<Id> accountIds) {
+        Map<Id, String> names = new Map<Id, String>();
+        if (accountIds == null || accountIds.isEmpty()) {
+            return names;
+        }
+        for (Account person : [
+            SELECT Id, RecordTypeId, RecordType.DeveloperName
+            FROM Account
+            WHERE Id IN :accountIds
+            WITH USER_MODE
+        ]) {
+            if (person.RecordTypeId != null) {
+                names.put(person.Id, person.RecordType.DeveloperName);
+            }
+        }
+        return names;
+    }
+}

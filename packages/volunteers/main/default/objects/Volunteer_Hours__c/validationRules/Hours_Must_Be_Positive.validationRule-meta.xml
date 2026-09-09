@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Hours_Must_Be_Positive</fullName>
+  <active>true</active>
+  <description>
+    R-VG4: an entry of zero or fewer hours is a mistake. Attendance without hours is a
+    sign-up, not an hours entry.
+  </description>
+  <errorConditionFormula>
+AND(NOT(ISBLANK(Hours__c)), Hours__c <= 0)
+  </errorConditionFormula>
+  <errorMessage>
+    Enter how many hours were given. Half an hour is 0.5. An entry of nothing is not an entry.
+  </errorMessage>
+</ValidationRule>

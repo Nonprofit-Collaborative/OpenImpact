@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Job_Or_Shift_Required</fullName>
+  <active>true</active>
+  <description>
+    R-VG3: an entry names a job or a shift, so the hours can be reported against the work
+    that was done.
+  </description>
+  <errorConditionFormula>
+AND(ISBLANK(Volunteer_Job__c), ISBLANK(Volunteer_Shift__c))
+  </errorConditionFormula>
+  <errorMessage>
+    Choose the job these hours were given to, or the shift they were given on.
+  </errorMessage>
+</ValidationRule>

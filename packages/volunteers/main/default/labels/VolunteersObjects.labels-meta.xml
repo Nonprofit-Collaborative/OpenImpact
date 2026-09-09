@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Volunteers_Job_InUseNotDeletable</fullName>
+        <categories>Volunteers</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Job has shifts or hours and cannot be deleted</shortDescription>
+        <value>This job has shifts or recorded hours against it, so it cannot be deleted: deleting it would take the record of work people actually did. Untick Active instead, and the job stops being offered on new shifts while it keeps its history.</value>
+    </labels>
+    <labels>
+        <fullName>Volunteers_Signup_AlreadySignedUp</fullName>
+        <categories>Volunteers</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Person already signed up for this shift</shortDescription>
+        <value>This person is already signed up for that shift. Open the sign-up you already have rather than adding a second one, which would count them twice.</value>
+    </labels>
+    <labels>
+        <fullName>Volunteers_Signup_HoursNotCreated</fullName>
+        <categories>Volunteers</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Attendance saved but hours were not written</shortDescription>
+        <value>The sign-up was saved, but the hours for it could not be written. Nothing else was changed. Add the hours by hand, or ask your administrator to check the error log.</value>
+    </labels>
+    <labels>
+        <fullName>Volunteers_Hours_ApprovalNotPermitted</fullName>
+        <categories>Volunteers</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>User may not approve hours</shortDescription>
+        <value>You do not have permission to approve or send back volunteer hours. Ask your administrator for the Volunteers Admin permission set.</value>
+    </labels>
+    <labels>
+        <fullName>Volunteers_Hours_RejectionNeedsReason</fullName>
+        <categories>Volunteers</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Rejection without a reason</shortDescription>
+        <value>Say why you are sending these hours back. The person who entered them needs to know what to change.</value>
+    </labels>
+    <labels>
+        <fullName>Volunteers_Hours_NothingSelected</fullName>
+        <categories>Volunteers</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>No hours entries selected</shortDescription>
+        <value>Select the hours entries you want to act on first.</value>
+    </labels>
+    <labels>
+        <fullName>Volunteers_Hours_ApprovalFailed</fullName>
+        <categories>Volunteers</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Approval could not be saved</shortDescription>
+        <value>The approval could not be saved and nothing was changed. Try again, or ask your administrator to check the error log.</value>
+    </labels>
+    <labels>
+        <fullName>Volunteers_Hours_HouseholdNotResolved</fullName>
+        <categories>Volunteers</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Household could not be worked out</shortDescription>
+        <value>The household for these hours could not be worked out, so the entry was saved without one and the household total does not include it yet. Your administrator can see why in the error log.</value>
+    </labels>
+</CustomLabels>

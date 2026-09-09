@@ -3130,7 +3130,8 @@ be explained.
 # Part F: Volunteers entities
 
 These entities are built by the v0.7 iteration in the Volunteers package (features V-01,
-V-02, V-03). They are program delivery data: who offers time, what work there is to do,
+V-02, V-03), with the one exception named in Section 29A: the four volunteer person
+attributes sit in Core with the other person attributes. They are program delivery data: who offers time, what work there is to do,
 when it happens, and how many hours were actually given.
 
 The part is numbered 29A onward so that the deferred table, the change log, and the
@@ -3194,7 +3195,7 @@ recorded in one save rather than in two.
 
 ### Salesforce implementation
 
-- **Objects:** Contact and Account, both shipped by the Volunteers package.
+- **Objects:** Contact and Account, in the Core package with the other person attributes.
 - **Custom fields on Contact, and on Account with the same API names:**
 
 | Attribute | API name | Type |
@@ -3204,7 +3205,15 @@ recorded in one save rather than in two.
 | Emergency Contact Name | `Emergency_Contact_Name__c` | Text(100) |
 | Emergency Contact Phone | `Emergency_Contact_Phone__c` | Phone |
 
-An org without the Volunteers package installed has none of them, which is Principle 3.
+*Why Core rather than Volunteers.* These four are person attributes, and Section 4 makes
+person attributes a Core concern: they are added to Contact and Account together, under one
+API name, and read through the `HouseholdService.Person` shape that no feature code
+branches on. Putting them beside the v0.1 five is what "added the same way" means in
+practice. The cost is four fields in an org that never installs Volunteers, which is a
+Principle 3 debt and is recorded as one: they are four inert attributes on a person rather
+than an object, a tab, or a line of behavior. The volunteer numbers are a different matter
+and stay in the module: the rollup targets in Section 29F are shipped by Volunteers, so an
+org without the module has no volunteer totals on anybody.
 
 ---
 
@@ -3679,7 +3688,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.4 | 2026-09-08 | G-14 donor levels (ADR-0028). New Section 25A, `Donor_Level__c`, with `Minimum_Amount__c`, `Maximum_Amount__c`, `Description__c` and `Active__c`, and three fields shipped by Giving on both Account and Contact: `Donor_Level__c`, `Previous_Donor_Level__c` and `Donor_Level_Changed_Date__c`. Giving Settings gains `Donor_Levels_Enabled__c`, `Donor_Level_Source_Field__c` and `Donor_Levels_Last_Recalculated__c`. A level is a label on a giving total the rollup engine already maintains (R-DL1), never a second aggregation, so the ladder cannot disagree with the total printed beside it and the household membership modes are resolved once, by the rollup, rather than twice. Donor Level is removed from the deferred table in Section 30 and its ownership row now points at Section 25A. |
 | v0.4 | 2026-09-08 | G-13 receipting (ADR-0016). Four objects added: `Receipt__c` (Section 25B), `Receipt_Number_Sequence__c` (25C), `Receipt_Run__c` (25D) and `Receipt_Template__c` (25E), with rules R-RC1 to R-RC10, R-RS1 to R-RS3, R-RR1 to R-RR3 and R-RT1 to R-RT3. Gift gains `Benefit_Description__c`, `Benefit_Value__c` and `Intangible_Religious_Benefits__c`, which is what a receipt needs to state a quid pro quo disclosure and the intangible religious benefits sentence; the deductible amount is computed by the renderer rather than stored, because a stored copy of a subtraction is a second place for it to be wrong. Giving Settings gains `Receipt_Number_Prefix__c`, `Receipt_Next_Counter__c`, `Receipt_Statement_Year__c`, `Receipt_Place_Of_Issue__c` and `Receipt_Renderer__c`, and its implementation subsection now lists every key it holds. Receipt leaves Section 30. |
 | v0.4 | 2026-09-08 | C-10 sample data extended to the Giving module and to connections. `Sample Data` (`Sample_Data__c`, Checkbox, default false) added to `Gift__c`, `Fund__c`, `Appeal__c`, `Commitment__c`, `Relationship__c` and `Affiliation__c`, so every record the sample loader creates can be found and removed in one action; a gift's allocations, soft credits and tributes, and a commitment's installments, are details of a flagged record and go with it. `Sample Data Key` (`Sample_Data_Key__c`, Text(20)) added to Account and Contact: it holds the key the generated file gives a household, an organization or a person, which is how the Giving sample gifts find the donor they belong to across the asynchronous chain. No object added. |
-| v0.7 | 2026-09-08 | V-01, V-02 and V-03, the Volunteers package foundation. New Part F, Sections 29A to 29F: the volunteer profile as person attributes on Contact and Account (`Volunteer_Status__c`, `Volunteer_Since__c`, `Emergency_Contact_Name__c`, `Emergency_Contact_Phone__c`), `Volunteer_Job__c`, `Volunteer_Shift__c`, `Volunteer_Signup__c`, `Volunteer_Hours__c`, `Volunteer_Settings__c` with `Hours_Require_Approval__c` and `Attendance_Creates_Hours__c`, and nineteen shipped `Rollup_Definition_Default__mdt` rows writing `Volunteer_Hours_Total__c`, `Volunteer_Hours_This_Year__c`, `Volunteer_Hours_Last_Year__c`, `First_Volunteer_Date__c` and `Last_Volunteer_Date__c` on the three Section 26 scopes, plus the job and shift totals. Rules R-VP1 to R-VP3, R-VJ1, R-VJ2, R-VS1 to R-VS5, R-VU1 to R-VU4 and R-VG1 to R-VG8. There is no Volunteer object: a volunteer is a person, so the profile is person attributes under one API name on both objects, the way Section 4 requires. Approval of hours is a status moved by a service and gated by the `Approve_Volunteer_Hours` custom permission, not a Salesforce approval process (R-VG5), and only approved hours reach a rollup (R-VG6). Section 29F records that Account and Contact have no rollup freshness stamp in an org without Giving, because Giving owns that attribute (ADR-0033). |
+| v0.7 | 2026-09-08 | V-01, V-02 and V-03, the Volunteers package foundation. New Part F, Sections 29A to 29F: the volunteer profile as four person attributes shipped by Core on Contact and Account (`Volunteer_Status__c`, `Volunteer_Since__c`, `Emergency_Contact_Name__c`, `Emergency_Contact_Phone__c`), `Volunteer_Job__c`, `Volunteer_Shift__c`, `Volunteer_Signup__c`, `Volunteer_Hours__c`, `Volunteer_Settings__c` with `Hours_Require_Approval__c` and `Attendance_Creates_Hours__c`, and nineteen shipped `Rollup_Definition_Default__mdt` rows writing `Volunteer_Hours_Total__c`, `Volunteer_Hours_This_Year__c`, `Volunteer_Hours_Last_Year__c`, `First_Volunteer_Date__c` and `Last_Volunteer_Date__c` on the three Section 26 scopes, plus the job and shift totals. Rules R-VP1 to R-VP3, R-VJ1, R-VJ2, R-VS1 to R-VS5, R-VU1 to R-VU4 and R-VG1 to R-VG8. There is no Volunteer object: a volunteer is a person, so the profile is person attributes under one API name on both objects, the way Section 4 requires. Approval of hours is a status moved by a service and gated by the `Approve_Volunteer_Hours` custom permission, not a Salesforce approval process (R-VG5), and only approved hours reach a rollup (R-VG6). Section 29F records that Account and Contact have no rollup freshness stamp in an org without Giving, because Giving owns that attribute (ADR-0033). |
 
 ---
 ## 32. Entity ownership by package
@@ -3731,7 +3740,7 @@ included; standard objects the packages extend are named by the entity that gove
 | Gift Transaction mirror | Connect | v0.6 | 30 |
 | Opportunity mirror | Connect | v0.6 | 30 |
 | Campaign sync | Connect | v0.6 | 30 |
-| Volunteer profile (Contact and Account) | Volunteers | v0.7 | 29A |
+| Volunteer profile (Contact and Account) | Core | v0.7 | 29A |
 | Volunteer Job | Volunteers | v0.7 | 29B |
 | Volunteer Shift | Volunteers | v0.7 | 29C |
 | Volunteer Sign-up | Volunteers | v0.7 | 29D |

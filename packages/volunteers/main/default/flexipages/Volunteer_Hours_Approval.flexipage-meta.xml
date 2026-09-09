@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>
+    Every hours entry waiting for a coordinator, reached from the Volunteers app and from the
+    Volunteers section of Nonprofit Settings.
+  </description>
+  <flexiPageRegions>
+    <componentInstances>
+      <componentName>volunteerHoursApproval</componentName>
+      <identifier>volunteerHoursApprovalPageComponent</identifier>
+    </componentInstances>
+    <mode>Replace</mode>
+    <name>main</name>
+    <type>Region</type>
+  </flexiPageRegions>
+  <masterLabel>Approve Volunteer Hours</masterLabel>
+  <template>
+    <name>flexipage:defaultAppHomeTemplate</name>
+  </template>
+  <type>AppPage</type>
+</FlexiPage>

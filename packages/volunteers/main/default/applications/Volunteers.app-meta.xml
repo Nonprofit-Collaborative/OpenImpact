@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+  <brand>
+    <headerColor>#1B7F5A</headerColor>
+    <shouldOverrideOrgTheme>false</shouldOverrideOrgTheme>
+  </brand>
+  <description>
+    Everything the volunteer coordinator does day to day: set up the work, schedule the
+    shifts, see who is coming, record the hours, and approve them.
+  </description>
+  <formFactors>Small</formFactors>
+  <formFactors>Large</formFactors>
+  <isNavAutoTempTabsDisabled>false</isNavAutoTempTabsDisabled>
+  <isNavPersonalizationDisabled>false</isNavPersonalizationDisabled>
+  <label>Volunteers</label>
+  <navType>Standard</navType>
+  <tabs>Volunteer_Hours_Approval</tabs>
+  <tabs>Volunteer_Shift__c</tabs>
+  <tabs>Volunteer_Job__c</tabs>
+  <tabs>Volunteer_Hours__c</tabs>
+  <tabs>Volunteer_Signup__c</tabs>
+  <tabs>standard-Dashboard</tabs>
+  <tabs>standard-report</tabs>
+  <uiType>Lightning</uiType>
+</CustomApplication>

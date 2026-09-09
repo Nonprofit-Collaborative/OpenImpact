@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>
+    Lets a user approve or send back an hours entry (feature V-02). Approving is the act
+    that makes hours count towards every volunteer total, so it is separated from being
+    able to type an entry: staff record time, a coordinator stands behind it. Granted to
+    Volunteers Admin, and not to Volunteers Staff.
+  </description>
+  <isLicensed>false</isLicensed>
+  <label>Approve Volunteer Hours</label>
+</CustomPermission>

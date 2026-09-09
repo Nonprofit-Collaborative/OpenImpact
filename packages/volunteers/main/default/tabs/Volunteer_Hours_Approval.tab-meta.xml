@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>
+    Every hours entry waiting for a coordinator, with what it is for and who gave it, and
+    the buttons that approve or send back a whole screen of them at once.
+  </description>
+  <flexiPage>Volunteer_Hours_Approval</flexiPage>
+  <label>Approve Hours</label>
+  <mobileReady>true</mobileReady>
+  <motif>Custom51: Hourglass</motif>
+</CustomTab>
