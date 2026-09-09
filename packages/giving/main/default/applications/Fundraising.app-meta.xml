@@ -19,6 +19,9 @@
   <tabs>Fund__c</tabs>
   <tabs>Appeal__c</tabs>
   <tabs>Donor_Level__c</tabs>
+  <tabs>Acknowledgment_Rule__c</tabs>
+  <tabs>Acknowledgment_Template__c</tabs>
+  <tabs>Acknowledgment__c</tabs>
   <tabs>standard-Dashboard</tabs>
   <tabs>standard-report</tabs>
   <uiType>Lightning</uiType>

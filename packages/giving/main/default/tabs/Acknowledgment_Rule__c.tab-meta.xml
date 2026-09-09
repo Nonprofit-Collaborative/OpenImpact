@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+  <customObject>true</customObject>
+  <description>Who gets thanked and how, as a list you can read from top to bottom.</description>
+  <label>Acknowledgment Rules</label>
+  <motif>Custom18: Bell</motif>
+</CustomTab>

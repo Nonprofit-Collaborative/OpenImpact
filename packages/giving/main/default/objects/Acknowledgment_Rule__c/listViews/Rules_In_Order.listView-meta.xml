@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Rules_In_Order</fullName>
+  <columns>Evaluation_Order__c</columns>
+  <columns>NAME</columns>
+  <columns>Minimum_Amount__c</columns>
+  <columns>Maximum_Amount__c</columns>
+  <columns>Gift_Type__c</columns>
+  <columns>First_Gift_Only__c</columns>
+  <columns>Channel__c</columns>
+  <columns>Template__c</columns>
+  <filters>
+    <field>Active__c</field>
+    <operation>equals</operation>
+    <value>true</value>
+  </filters>
+  <filterScope>Everything</filterScope>
+  <label>Rules In Order</label>
+</ListView>

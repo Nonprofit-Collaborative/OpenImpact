@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Rule__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    The rule that matched this gift. Empty when the gift was marked acknowledged and no rule
+    matched it.
+  </inlineHelpText>
+  <label>Rule</label>
+  <referenceTo>Acknowledgment_Rule__c</referenceTo>
+  <relationshipLabel>Acknowledgments</relationshipLabel>
+  <relationshipName>Acknowledgments</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

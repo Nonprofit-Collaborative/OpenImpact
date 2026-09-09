@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Template_Matches_Channel</fullName>
+  <active>true</active>
+  <description>
+    A rule that thanks somebody needs wording to thank them with, and a rule that thanks nobody
+    has no use for any. Both halves are refused here so that neither is discovered in the Error
+    Log at the moment a gift is acknowledged.
+  </description>
+  <errorConditionFormula>
+    (ISPICKVAL(Channel__c, "None") &amp;&amp; NOT(ISBLANK(Template__c))) ||
+    (NOT(ISPICKVAL(Channel__c, "None")) &amp;&amp; ISBLANK(Template__c))
+  </errorConditionFormula>
+  <errorDisplayField>Template__c</errorDisplayField>
+  <errorMessage>
+    A rule with a channel of Email or Letter needs a template, and a rule with a channel of None
+    cannot have one.
+  </errorMessage>
+</ValidationRule>

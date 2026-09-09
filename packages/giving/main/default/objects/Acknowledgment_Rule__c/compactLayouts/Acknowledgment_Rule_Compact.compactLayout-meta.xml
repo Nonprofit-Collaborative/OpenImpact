@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CompactLayout xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Acknowledgment_Rule_Compact</fullName>
+  <fields>NAME</fields>
+  <fields>Evaluation_Order__c</fields>
+  <fields>Channel__c</fields>
+  <fields>Active__c</fields>
+  <label>Acknowledgment Rule Compact Layout</label>
+</CompactLayout>

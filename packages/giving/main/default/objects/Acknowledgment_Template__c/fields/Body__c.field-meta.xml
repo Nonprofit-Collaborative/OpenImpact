@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Body__c</fullName>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    The letter, with merge tokens in double braces. Only the tokens the admin guide lists are
+    merged; anything else is left exactly as you typed it, so a misspelled token is visible.
+  </inlineHelpText>
+  <label>Body</label>
+  <length>32768</length>
+  <trackTrending>false</trackTrending>
+  <type>LongTextArea</type>
+  <visibleLines>20</visibleLines>
+</CustomField>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>All_Acknowledgment_Rules</fullName>
+  <columns>NAME</columns>
+  <columns>Evaluation_Order__c</columns>
+  <columns>Minimum_Amount__c</columns>
+  <columns>Maximum_Amount__c</columns>
+  <columns>Gift_Type__c</columns>
+  <columns>First_Gift_Only__c</columns>
+  <columns>Channel__c</columns>
+  <columns>Template__c</columns>
+  <columns>Active__c</columns>
+  <filterScope>Everything</filterScope>
+  <label>All Acknowledgment Rules</label>
+</ListView>

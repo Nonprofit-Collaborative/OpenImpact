@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Letter__c</fullName>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    The letter as it read on the day, with the tokens already merged. The template will be
+    edited; what the donor read will not be.
+  </inlineHelpText>
+  <label>Letter</label>
+  <length>32768</length>
+  <trackTrending>false</trackTrending>
+  <type>LongTextArea</type>
+  <visibleLines>20</visibleLines>
+</CustomField>

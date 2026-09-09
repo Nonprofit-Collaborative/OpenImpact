@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Wording_Matches_Channel</fullName>
+  <active>true</active>
+  <description>
+    A letter with no letter in it, or an email that names no email template, is wording that
+    cannot thank anybody. Refused here rather than logged when a gift is acknowledged (R-AT4).
+  </description>
+  <errorConditionFormula>
+    (ISPICKVAL(Channel__c, "Letter") &amp;&amp; ISBLANK(Body__c)) ||
+    (ISPICKVAL(Channel__c, "Email") &amp;&amp; ISBLANK(Email_Template_Developer_Name__c))
+  </errorConditionFormula>
+  <errorMessage>
+    A Letter template needs a body, and an Email template needs the unique name of a standard
+    email template.
+  </errorMessage>
+</ValidationRule>

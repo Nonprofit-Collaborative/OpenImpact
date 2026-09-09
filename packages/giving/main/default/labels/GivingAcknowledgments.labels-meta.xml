@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+  <labels>
+    <fullName>Giving_Acknowledgment_NotRecorded</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgment record could not be written</shortDescription>
+    <value>The thank you for gift {0} could not be recorded: {1}. The gift is still marked acknowledged.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgment_TemplateUnusable</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Rule names wording that cannot be used</shortDescription>
+    <value>The acknowledgment rule {0} names wording that is missing, switched off, or for the other channel, so the thank you was recorded without it. Open Acknowledgment Rules and check the template on that rule.</value>
+  </labels>
+</CustomLabels>

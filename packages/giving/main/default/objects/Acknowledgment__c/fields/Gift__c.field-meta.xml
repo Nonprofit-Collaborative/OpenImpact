@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Gift__c</fullName>
+  <description>
+    The gift that was thanked. An acknowledgment belongs to its gift, is visible to exactly the
+    people who can see the gift, and is deleted with it.
+  </description>
+  <externalId>false</externalId>
+  <inlineHelpText>The gift this thank you was recorded against.</inlineHelpText>
+  <label>Gift</label>
+  <referenceTo>Gift__c</referenceTo>
+  <relationshipLabel>Acknowledgments</relationshipLabel>
+  <relationshipName>Acknowledgments</relationshipName>
+  <relationshipOrder>0</relationshipOrder>
+  <reparentableMasterDetail>false</reparentableMasterDetail>
+  <trackTrending>false</trackTrending>
+  <type>MasterDetail</type>
+  <writeRequiresMasterRead>false</writeRequiresMasterRead>
+</CustomField>

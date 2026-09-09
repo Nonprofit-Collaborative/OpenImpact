@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Email_Template_Developer_Name__c</fullName>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    The unique name of the standard email template that applied on the day. Open Impact does not
+    merge or send the email, so it records the name rather than a guess at the wording.
+  </inlineHelpText>
+  <label>Email Template Developer Name</label>
+  <length>80</length>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Text</type>
+  <unique>false</unique>
+</CustomField>
