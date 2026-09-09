@@ -142,6 +142,43 @@ public class TestDataFactory {
     }
 
     /**
+     * Makes a packaged role assignable inside a test, and hands back the group behind it.
+     *
+     * Test.calculatePermissionSetGroup takes the group's record Id, not its DeveloperName:
+     * given a name it throws System.StringException: Invalid permission set group id. The
+     * package itself never refers to a group by Id (see PermissionSetGroupSelector), so every
+     * test that needs a role has to look the Id up first, which is what this does once for all
+     * of them.
+     *
+     * The group is recalculated only when the platform has not already finished with it, so
+     * this works both in an org where the metadata has just been deployed and in one where the
+     * groups have been settled for weeks.
+     *
+     * @param developerName the DeveloperName of a packaged permission set group
+     * @return the group, ready to be assigned
+     */
+    @NamespaceAccessible
+    public static PermissionSetGroup prepareRoleGroup(String developerName) {
+        List<PermissionSetGroup> groups = [
+            SELECT Id, DeveloperName, Status
+            FROM PermissionSetGroup
+            WHERE DeveloperName = :developerName
+            LIMIT 1
+        ];
+        Assert.isFalse(
+            groups.isEmpty(),
+            'This org does not have the packaged permission set group ' +
+                developerName +
+                ', so no test that hands out that role can prove anything. Deploy the package ' +
+                'metadata into the org before running the tests.'
+        );
+        if (!'Updated'.equalsIgnoreCase(groups[0].Status)) {
+            Test.calculatePermissionSetGroup(groups[0].Id);
+        }
+        return groups[0];
+    }
+
+    /**
      * The least privileged profile that can be assigned. Standard User on every org shape we
      * support; the running user's profile is the fallback if an org has renamed it.
      */

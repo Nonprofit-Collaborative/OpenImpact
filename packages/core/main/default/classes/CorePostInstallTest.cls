@@ -7,6 +7,27 @@
 @IsTest
 private class CorePostInstallTest {
     private static final String ROLLUP_CONTEXT = 'CorePostInstall.ensureRollupDefaults';
+    private static final String RETRY_CONTEXT = 'CorePostInstallRetryQueueable.execute';
+
+    /**
+     * The Nonprofit Admin group as the platform leaves it in the minutes after an install:
+     * present, but still being calculated, so it cannot be assigned yet.
+     *
+     * Built by deserializing rather than by construction because Status is written by the
+     * platform and Apex cannot assign it, and because Test.calculatePermissionSetGroup only
+     * ever moves a group forwards to Updated. There is no other way to prove what the install
+     * does while it waits.
+     *
+     * @return a permission set group that is not ready to be assigned
+     */
+    private static PermissionSetGroup groupStillBeingCalculated() {
+        return (PermissionSetGroup) JSON.deserialize(
+            '{"attributes":{"type":"PermissionSetGroup"},"DeveloperName":"' +
+                AccessService.ADMIN_ROLE +
+                '","Status":"Updating"}',
+            PermissionSetGroup.class
+        );
+    }
 
     @IsTest
     static void installAlwaysGivesTheInstallerTheAdminPermissionSet() {
@@ -27,7 +48,7 @@ private class CorePostInstallTest {
 
     @IsTest
     static void installGivesTheInstallerTheRoleWhenItIsReady() {
-        Test.calculatePermissionSetGroup(AccessService.ADMIN_ROLE);
+        TestDataFactory.prepareRoleGroup(AccessService.ADMIN_ROLE);
         CorePostInstall handler = new CorePostInstall();
 
         Test.startTest();
@@ -48,10 +69,19 @@ private class CorePostInstallTest {
 
     @IsTest
     static void installQueuesARetryWhenTheRoleIsNotReadyYet() {
-        // Test.calculatePermissionSetGroup is deliberately not called, so the group is in
-        // the state a real org is in during the minutes after an install.
+        // The state a real org is in during the minutes after an install: the packaged group
+        // is there, but the platform is still calculating it and will refuse to assign it.
+        // Leaving Test.calculatePermissionSetGroup uncalled does not produce that state, which
+        // is what this test used to assume: in any org where the metadata is deployed the
+        // group is already Updated, the install assigns the role outright, and nothing is
+        // queued. The state has to be stated rather than hoped for.
+        PermissionSetGroupSelector.systemModeOverride = groupStillBeingCalculated();
         CorePostInstall handler = new CorePostInstall();
 
+        // The queued job runs at Test.stopTest, finds the group still not ready, and tries to
+        // queue the next attempt. The platform does not allow a queueable to chain inside a
+        // test, so that attempt fails and the job logs it, which is why this asserts on the
+        // one job the install itself queued rather than on the whole chain.
         Test.startTest();
         Test.testInstall(handler, null);
         Test.stopTest();
@@ -62,6 +92,11 @@ private class CorePostInstallTest {
             'The installer is working regardless, because the permission set does not wait.'
         );
         Assert.areEqual(
+            0,
+            countRoleAssignments(UserInfo.getUserId()),
+            'A role the platform is still calculating cannot be handed out during the install.'
+        );
+        Assert.areEqual(
             1,
             countRetryJobs(),
             'A role that is not prepared yet should be picked up by a background job.'
@@ -70,7 +105,7 @@ private class CorePostInstallTest {
 
     @IsTest
     static void upgradingAnOrgThatIsAlreadySetUpChangesNothing() {
-        Test.calculatePermissionSetGroup(AccessService.ADMIN_ROLE);
+        TestDataFactory.prepareRoleGroup(AccessService.ADMIN_ROLE);
         CorePostInstall handler = new CorePostInstall();
         Test.testInstall(handler, null);
 
@@ -115,7 +150,7 @@ private class CorePostInstallTest {
 
     @IsTest
     static void theRetryJobAssignsTheRoleOnceItIsPrepared() {
-        Test.calculatePermissionSetGroup(AccessService.ADMIN_ROLE);
+        TestDataFactory.prepareRoleGroup(AccessService.ADMIN_ROLE);
 
         Test.startTest();
         System.enqueueJob(new CorePostInstallRetryQueueable(UserInfo.getUserId()));
@@ -130,8 +165,10 @@ private class CorePostInstallTest {
 
     @IsTest
     static void theRetryJobGivesUpQuietlyOnItsLastAttempt() {
-        // One attempt left and a role that is not prepared: the job records a warning and
-        // stops rather than queueing for ever or throwing.
+        // One attempt left and a role the platform is still calculating: the job records a
+        // warning and stops rather than queueing for ever or throwing. The state is stated
+        // rather than assumed, for the reason given in installQueuesARetryWhenTheRoleIsNotReadyYet.
+        PermissionSetGroupSelector.systemModeOverride = groupStillBeingCalculated();
         CorePostInstallRetryQueueable job = new CorePostInstallRetryQueueable(
             UserInfo.getUserId(),
             1
@@ -147,6 +184,20 @@ private class CorePostInstallTest {
             'Giving up should leave the org as it was, with the permission set doing the work.'
         );
         Assert.areEqual(0, countRetryJobs(), 'The last attempt should not queue another.');
+        List<Error_Log__c> logged = [
+            SELECT Technical_Detail__c
+            FROM Error_Log__c
+            WHERE Context__c = :RETRY_CONTEXT
+        ];
+        Assert.areEqual(
+            1,
+            logged.size(),
+            'Giving up quietly still means leaving Maria a note in the Error Log.'
+        );
+        Assert.isTrue(
+            logged[0].Technical_Detail__c.contains('Nonprofit Admin role'),
+            'The note names the role that was never handed out, so Maria knows what to finish.'
+        );
     }
 
     @IsTest
