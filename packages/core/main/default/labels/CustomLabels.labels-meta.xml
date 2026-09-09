@@ -581,7 +581,7 @@
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>Shown to a viewer who cannot see who else is in the org.</shortDescription>
-        <value>Who can get into the app, and how many errors nobody has read, can only be counted by an administrator. Everything else in this report is accurate for everyone.</value>
+        <value>Who can get into the app, who can override the receipt lock, and how many errors nobody has read can only be answered by an administrator. Everything else in this report is accurate for everyone.</value>
     </labels>
     <labels>
         <fullName>Core_HealthCheck_AccessNeedsAdminTitle</fullName>
@@ -734,6 +734,31 @@
         <protected>false</protected>
         <shortDescription>Title of the unread errors finding.</shortDescription>
         <value>{0} errors nobody has looked at</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_FiscalYearFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that opens the general settings from the fiscal year finding.</shortDescription>
+        <value>Open general settings</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_FiscalYearMismatchDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Explains that the Setup fiscal year and the Open Impact fiscal year start in different months.</shortDescription>
+        <value
+    >Open Impact starts its fiscal year in {0}, and the fiscal year in Setup starts in {1}. Every year based total on a donor is measured from the first, and the packaged retention reports (LYBUNT, SYBUNT, new versus retained, conversion) are measured from the second, so the two disagree and nothing else in the app will say so. Set both to the same month, then recalculate rollups.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_FiscalYearMismatchTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the fiscal year mismatch finding.</shortDescription>
+        <value>Your two fiscal years do not match</value>
     </labels>
     <labels>
         <fullName>Core_HealthCheck_FixFailed</fullName>
@@ -928,6 +953,39 @@
         <value>Your org at a glance</value>
     </labels>
     <labels>
+        <fullName>Core_HealthCheck_OverrideLockDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Explains that somebody holds the Override Receipt Lock permission, and names who.</shortDescription>
+        <value
+    >The Override Receipt Lock permission lets a person change or delete a gift that already carries a receipt number. Open Impact grants it to nobody: it is meant to be assigned in Setup for one correction and taken away again. It is held by {0}. If nobody is correcting a receipted gift right now, remove it in Setup, Custom Permissions. Every change made with it is in the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_OverrideLockFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that opens Custom Permissions in Setup from the override finding.</shortDescription>
+        <value>Open Custom Permissions in Setup</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_OverrideLockMoreNames</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Ends the list of people holding a permission when there are more than the finding names.</shortDescription>
+        <value>and {0} others</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_OverrideLockTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the finding shown when anyone holds the Override Receipt Lock permission.</shortDescription>
+        <value>Someone can override the receipt lock</value>
+    </labels>
+    <labels>
         <fullName>Core_HealthCheck_PermissionRequired</fullName>
         <categories>Core</categories>
         <language>en_US</language>
@@ -950,6 +1008,38 @@
         <protected>false</protected>
         <shortDescription>Shown to someone who can read the report but not act on it.</shortDescription>
         <value>You can read this report but not change anything. Ask an administrator for the Manage Nonprofit Settings permission.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ReceiptFailedManyDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Explains that receipt generation has failed repeatedly.</shortDescription>
+        <value>{0} receipts are recorded as Void with the reason Generation failed, which means receipt generation has failed that many times and those donors are still waiting for their documents. Read the receipt entries in the Error Log, fix what they name, and run the receipts again. Leave the void records alone: they are what accounts for the numbers that were used.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ReceiptFailedManyTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the repeated receipt generation failure finding.</shortDescription>
+        <value>{0} receipts failed to generate</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ReceiptFailedOneDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Explains the single reconciled receipt number, which is ordinary.</shortDescription>
+        <value>One receipt is recorded as Void with the reason Generation failed. That is the record of a number that was handed out to a document which never generated, and a single one is ordinary rather than a problem. The Error Log says what went wrong, and the receipt can be run again once it is fixed.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ReceiptFailedOneTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the single receipt generation failure finding.</shortDescription>
+        <value>One receipt number was used by a run that failed</value>
     </labels>
     <labels>
         <fullName>Core_HealthCheck_RecommendedModeLabel</fullName>
