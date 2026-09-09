@@ -46,6 +46,8 @@ function importCoreComponent(name) {
       return import('c/sampleDataManager');
     case 'rollupDefinitions':
       return import('c/rollupDefinitions');
+    case 'seasonalAddressJob':
+      return import('c/seasonalAddressJob');
     default:
       return null;
   }

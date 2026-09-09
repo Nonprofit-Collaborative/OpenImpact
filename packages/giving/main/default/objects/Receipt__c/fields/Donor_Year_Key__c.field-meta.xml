@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Donor_Year_Key__c</fullName>
+  <externalId>true</externalId>
+  <inlineHelpText>
+    Donor, statement year and type as one value, so a retried batch chunk reissues nothing.
+  </inlineHelpText>
+  <label>Donor Year Key</label>
+  <length>120</length>
+  <required>false</required>
+  <type>Text</type>
+  <unique>true</unique>
+  <trackTrending>false</trackTrending>
+</CustomField>

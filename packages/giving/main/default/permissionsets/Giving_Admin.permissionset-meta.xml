@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='UTF-8' ?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
   <hasActivationRequired>false</hasActivationRequired>
   <label>Giving Admin</label>
@@ -19,6 +19,10 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>BlobToPdfReceiptRenderer</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>CommitmentController</apexClass>
     <enabled>true</enabled>
   </classAccesses>
@@ -32,6 +36,34 @@
   </classAccesses>
   <classAccesses>
     <apexClass>CommitmentTriggerHandler</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>DonorLevelBatch</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>DonorLevelController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>DonorLevelSchedulable</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>DonorLevelSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>DonorLevelService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>DonorLevelTriggerHandler</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>DonorLevelWriter</apexClass>
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
@@ -56,6 +88,10 @@
   </classAccesses>
   <classAccesses>
     <apexClass>GiftController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>GiftReceiptLockHandler</apexClass>
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
@@ -103,6 +139,46 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>ReceiptContentBuilder</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>ReceiptController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>ReceiptNumberSequence</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>ReceiptRendererFactory</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>ReceiptRunService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>ReceiptSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>ReceiptService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>ReceiptStatementBatch</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>ReceiptTemplateService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>ReceiptWriter</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>SoftCreditController</apexClass>
     <enabled>true</enabled>
   </classAccesses>
@@ -110,6 +186,20 @@
     <apexClass>TributeController</apexClass>
     <enabled>true</enabled>
   </classAccesses>
+  <customPermissions>
+    <enabled>true</enabled>
+    <name>Issue_Receipts</name>
+  </customPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.Donor_Level_Changed_Date__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.Donor_Level__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
     <field>Account.Employer__c</field>
@@ -123,6 +213,11 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Account.Gift_Count__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.Gifts_Last_Year__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -153,6 +248,11 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Account.Pledge_Balance__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.Previous_Donor_Level__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -227,6 +327,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
+    <field>Appeal__c.Sample_Data__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
     <field>Appeal__c.Start_Date__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -296,6 +401,21 @@
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
+    <editable>false</editable>
+    <field>Contact.Donor_Level_Changed_Date__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Contact.Donor_Level__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Commitment__c.Sample_Data__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
     <editable>true</editable>
     <field>Contact.Employer__c</field>
     <readable>true</readable>
@@ -308,6 +428,11 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Contact.Gift_Count__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Contact.Gifts_Last_Year__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -342,6 +467,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
+    <field>Contact.Previous_Donor_Level__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
     <field>Contact.Rollups_Last_Calculated__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -358,6 +488,26 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Contact.Total_Soft_Credits__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Donor_Level__c.Active__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Donor_Level__c.Description__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Donor_Level__c.Maximum_Amount__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Donor_Level__c.Minimum_Amount__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -401,6 +551,11 @@
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
+    <editable>true</editable>
+    <field>Fund__c.Sample_Data__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
     <editable>false</editable>
     <field>Fund__c.Total_Raised_This_Year__c</field>
     <readable>true</readable>
@@ -428,6 +583,16 @@
   <fieldPermissions>
     <editable>true</editable>
     <field>Gift__c.Appeal__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Gift__c.Benefit_Description__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Gift__c.Benefit_Value__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -477,6 +642,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
+    <field>Gift__c.Intangible_Religious_Benefits__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
     <field>Gift__c.Matched_Gift__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -502,6 +672,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
+    <field>Gift__c.Sample_Data__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
     <field>Gift__c.Tribute__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -513,6 +688,141 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Installment__c.Rollups_Last_Calculated__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt_Number_Sequence__c.First_Counter__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt_Number_Sequence__c.Next_Counter__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt_Number_Sequence__c.Prefix__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt_Number_Sequence__c.Receipt_Type__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt_Number_Sequence__c.Statement_Year__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt_Run__c.Async_Job_Id__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt_Run__c.Donors_Processed__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt_Run__c.Errors__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt_Run__c.Finished__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt_Run__c.Receipts_Issued__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt_Run__c.Started__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Receipt_Template__c.Active__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Receipt_Template__c.Body__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt__c.Content_Document_Id__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt__c.Donor_Account__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt__c.Donor_Contact__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt__c.Donor_Year_Key__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt__c.Gift__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt__c.Household__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt__c.Issue_Date__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt__c.Receipt_Run__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt__c.Replaced_By__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt__c.Replaces__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt__c.Series_Key__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt__c.Total_Amount__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt__c.Void_Reason__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Receipt__c.Voided_On__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -614,6 +924,15 @@
     <allowEdit>true</allowEdit>
     <allowRead>true</allowRead>
     <modifyAllRecords>false</modifyAllRecords>
+    <object>Donor_Level__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>true</allowCreate>
+    <allowDelete>true</allowDelete>
+    <allowEdit>true</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
     <object>Fund__c</object>
     <viewAllRecords>false</viewAllRecords>
   </objectPermissions>
@@ -645,6 +964,42 @@
     <viewAllRecords>true</viewAllRecords>
   </objectPermissions>
   <objectPermissions>
+    <allowCreate>false</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>false</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Receipt_Number_Sequence__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>false</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>false</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Receipt_Run__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>true</allowCreate>
+    <allowDelete>true</allowDelete>
+    <allowEdit>true</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Receipt_Template__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>false</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>false</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Receipt__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
     <allowCreate>true</allowCreate>
     <allowDelete>true</allowDelete>
     <allowEdit>true</allowEdit>
@@ -671,6 +1026,14 @@
     <visibility>Visible</visibility>
   </tabSettings>
   <tabSettings>
+    <tab>Donor_Level__c</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Donor_Levels</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
     <tab>Fund__c</tab>
     <visibility>Visible</visibility>
   </tabSettings>
@@ -688,6 +1051,14 @@
   </tabSettings>
   <tabSettings>
     <tab>Quick_Gift_Entry</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Receipt_Run__c</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Receipt__c</tab>
     <visibility>Visible</visibility>
   </tabSettings>
   <tabSettings>

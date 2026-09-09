@@ -57,6 +57,22 @@ const RUNNING_PAGE = {
   ]
 };
 
+const ALWAYS_RUNS_PAGE = {
+  ...RUNNING_PAGE,
+  automations: [
+    RUNNING_PAGE.automations[0],
+    {
+      recordId: '001000000000001AAA',
+      automationName: 'Gift_Receipt_Lock',
+      label: 'Gift: receipt lock',
+      description: 'Protects the receipt a donor is holding.',
+      objectName: 'Gift__c',
+      enabled: false,
+      alwaysRuns: true
+    }
+  ]
+};
+
 const PAUSED_PAGE = {
   ...RUNNING_PAGE,
   paused: true,
@@ -92,6 +108,37 @@ describe('c-automation-control', () => {
     expect(toggles[0].disabled).toBe(false);
     expect(element.shadowRoot.querySelector('[data-id="paused-banner"]')).toBeNull();
     expect(element.shadowRoot.querySelector('[data-id="empty-state"]')).toBeNull();
+  });
+
+  it('shows an automation that always runs as off, disabled, and says why', async () => {
+    const element = createComponent();
+    getPage.emit(ALWAYS_RUNS_PAGE);
+    await flush();
+
+    const toggles = element.shadowRoot.querySelectorAll('.automation-toggle');
+    expect(toggles.length).toBe(2);
+    // The ordinary automation is unaffected: it is the row, not the page, that is not switchable.
+    expect(toggles[0].disabled).toBe(false);
+    expect(toggles[1].disabled).toBe(true);
+    expect(toggles[1].checked).toBe(false);
+
+    const reasons = element.shadowRoot.querySelectorAll('[data-id="always-runs-reason"]');
+    expect(reasons.length).toBe(1);
+    expect(reasons[0].textContent.trim().length).toBeGreaterThan(0);
+  });
+
+  it('never asks the server to switch an automation that always runs', async () => {
+    const element = createComponent();
+    getPage.emit(ALWAYS_RUNS_PAGE);
+    await flush();
+
+    const toggle = element.shadowRoot.querySelectorAll('.automation-toggle')[1];
+    toggle.checked = true;
+    toggle.dispatchEvent(new CustomEvent('change'));
+    await flush();
+
+    expect(setEnabled).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelectorAll('.automation-toggle')[1].checked).toBe(false);
   });
 
   it('shows the banner while automation is paused, and announces it', async () => {

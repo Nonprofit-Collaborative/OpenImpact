@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Exactly_One_Donor</fullName>
+  <active>true</active>
+  <description>
+    R-RC6 and the person reference convention: a receipt names a Contact or an Account, never both and never neither. A receipt reconciled from a consumed number carries no donor, so the rule reads issued receipts only (R-RC3).
+  </description>
+  <errorConditionFormula>
+    AND( TEXT(Status__c) = "Issued", OR( AND( ISBLANK(Donor_Contact__c), ISBLANK(Donor_Account__c) ), AND( NOT(ISBLANK(Donor_Contact__c)), NOT(ISBLANK(Donor_Account__c)) ) ) )
+  </errorConditionFormula>
+  <errorMessage>
+    A receipt names one donor: either a person or an organization, not both and not neither.
+  </errorMessage>
+</ValidationRule>

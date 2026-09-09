@@ -8,6 +8,11 @@
  *   2. the org wide pause, held as a datetime on Nonprofit Settings, so it expires by itself;
  *   3. the per automation switch, held as a row per automation on Automation Setting.
  *
+ * An automation whose shipped registry row carries `Always_Runs__c` is none of these three
+ * things: it enforces a rule rather than providing a convenience, so the dispatcher does not
+ * ask about it and `setEnabled` refuses to change it (ADR-0024). Its row is still materialized,
+ * so the console can list it and say why its switch will not move.
+ *
  * An automation with no row yet still runs. That matters on upgrade: a newly shipped automation
  * works from the moment it is installed, and `ensureDefaults` materializes its row without ever
  * touching a row the administrator already has (Decision D-06, rule R-A2).
@@ -65,6 +70,11 @@ public with sharing class AutomationControl {
         }
         Boolean target = enabled == true;
         Automation_Setting__c setting = matches[0];
+        // An automation that enforces a rule is not a switch (ADR-0024). Refusing here rather
+        // than only in the component is what makes it true of the API as well as of the page.
+        if (setting.Always_Runs__c == true) {
+            throw new AutomationControlException(Label.Core_Automation_AlwaysRuns);
+        }
         Boolean previous = setting.Enabled__c;
         if (previous == target) {
             return;
@@ -210,6 +220,7 @@ public with sharing class AutomationControl {
                     Automation_Name__c = entry.DeveloperName,
                     Description__c = entry.Description__c,
                     Enabled__c = entry.Enabled_By_Default__c == true,
+                    Always_Runs__c = entry.Always_Runs__c == true,
                     Handler_Class__c = entry.Handler_Class__c,
                     Object_Name__c = entry.Object_Name__c,
                     Execution_Order__c = entry.Execution_Order__c,

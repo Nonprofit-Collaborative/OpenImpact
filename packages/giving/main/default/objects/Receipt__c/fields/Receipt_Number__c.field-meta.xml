@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Receipt_Number__c</fullName>
+  <externalId>true</externalId>
+  <inlineHelpText>
+    The number printed on the document. It is allocated once and never reused.
+  </inlineHelpText>
+  <label>Receipt Number</label>
+  <length>50</length>
+  <required>true</required>
+  <type>Text</type>
+  <unique>true</unique>
+  <trackTrending>false</trackTrending>
+</CustomField>

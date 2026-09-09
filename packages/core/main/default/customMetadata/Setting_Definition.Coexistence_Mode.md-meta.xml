@@ -34,7 +34,7 @@
   </values>
   <values>
     <field>Help_Path__c</field>
-    <value xsi:type="xsd:string">admin-guide/coexistence-mode.md</value>
+    <value xsi:type="xsd:string">coexistence-mode.md</value>
   </values>
   <values>
     <field>Sort_Order__c</field>

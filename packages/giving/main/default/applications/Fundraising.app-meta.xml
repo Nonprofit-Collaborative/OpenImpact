@@ -18,6 +18,7 @@
   <tabs>Gift__c</tabs>
   <tabs>Fund__c</tabs>
   <tabs>Appeal__c</tabs>
+  <tabs>Donor_Level__c</tabs>
   <tabs>standard-Dashboard</tabs>
   <tabs>standard-report</tabs>
   <uiType>Lightning</uiType>

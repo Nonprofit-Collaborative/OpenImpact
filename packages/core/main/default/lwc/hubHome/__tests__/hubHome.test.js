@@ -147,4 +147,60 @@ describe('c-hub-home', () => {
     expect(warning.getAttribute('aria-live')).toBe('polite');
     expect(warning.querySelector('lightning-icon')).not.toBeNull();
   });
+
+  it('says when the seasonal addresses were last swapped and what the run did', async () => {
+    getHomeModel.mockResolvedValue(
+      model({
+        seasonalAddressLastRun: '2027-01-15T06:30:00.000Z',
+        seasonalAddressLastRunSummary:
+          '3 moved to a seasonal address, 1 moved back, 0 could not be changed.',
+        seasonalAddressScheduled: true,
+        seasonalAddressStale: false
+      })
+    );
+    const element = build();
+    await settle();
+
+    expect(element.shadowRoot.querySelector('[data-id="seasonal-last-run"]')).not.toBeNull();
+    expect(
+      element.shadowRoot.querySelector('[data-id="seasonal-last-run-summary"]').textContent
+    ).toBe('3 moved to a seasonal address, 1 moved back, 0 could not be changed.');
+    expect(element.shadowRoot.querySelector('[data-id="seasonal-stale"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="seasonal-not-scheduled"]')).toBeNull();
+  });
+
+  it('says the seasonal swap is not scheduled rather than pretending it ran', async () => {
+    getHomeModel.mockResolvedValue(
+      model({
+        seasonalAddressLastRun: null,
+        seasonalAddressScheduled: false,
+        seasonalAddressStale: false
+      })
+    );
+    const element = build();
+    await settle();
+
+    expect(element.shadowRoot.querySelector('[data-id="seasonal-never"]')).not.toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="seasonal-not-scheduled"]')).not.toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="seasonal-stale"]')).toBeNull();
+  });
+
+  it('warns when a scheduled seasonal swap has missed its window, and not by color alone', async () => {
+    getHomeModel.mockResolvedValue(
+      model({
+        seasonalAddressLastRun: null,
+        seasonalAddressScheduled: true,
+        seasonalAddressStale: true
+      })
+    );
+    const element = build();
+    await settle();
+
+    const warning = element.shadowRoot.querySelector('[data-id="seasonal-stale"]');
+    expect(warning).not.toBeNull();
+    expect(warning.getAttribute('aria-live')).toBe('polite');
+    expect(warning.querySelector('lightning-icon')).not.toBeNull();
+    // One message at a time: an overdue run is the fault worth reading, not the schedule.
+    expect(element.shadowRoot.querySelector('[data-id="seasonal-not-scheduled"]')).toBeNull();
+  });
 });

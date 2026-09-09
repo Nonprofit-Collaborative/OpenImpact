@@ -50,6 +50,7 @@ private class SampleDataLoaderTest {
         Integer emailIndex
     ) {
         Map<String, Object> member = new Map<String, Object>();
+        member.put('key', 'H' + householdIndex + '-' + (memberIndex + 1));
         member.put('firstName', 'Test' + emailIndex);
         member.put('lastName', 'Household' + householdIndex);
         member.put('salutation', 'Mr.');
@@ -97,6 +98,36 @@ private class SampleDataLoaderTest {
         return organization;
     }
 
+    /**
+     * The same payload as buildJson, with one connection between people in two different
+     * households and one affiliation to the organization, so the third stage has work to do.
+     */
+    private static String buildJsonWithConnections() {
+        Map<String, Object> root = (Map<String, Object>) JSON.deserializeUntyped(
+            buildJson(2, 2, false)
+        );
+
+        Map<String, Object> relationship = new Map<String, Object>();
+        relationship.put('person', 'H0-1');
+        relationship.put('relatedPerson', 'H1-1');
+        relationship.put('type', 'Friend');
+        relationship.put('status', 'Current');
+        relationship.put('startDate', '2020-04-01');
+        relationship.put('description', 'Met through the volunteer programme.');
+
+        Map<String, Object> affiliation = new Map<String, Object>();
+        affiliation.put('person', 'H0-1');
+        affiliation.put('organization', 'O1');
+        affiliation.put('role', 'Board Member');
+        affiliation.put('status', 'Current');
+        affiliation.put('isPrimary', true);
+        affiliation.put('startDate', '2019-01-15');
+
+        root.put('relationships', new List<Object>{ relationship });
+        root.put('affiliations', new List<Object>{ affiliation });
+        return JSON.serialize(root);
+    }
+
     /** Runs both stages in order, the way the queueable chain does in an org. */
     private static SampleDataSet loadEverything(String jsonBody) {
         SampleDataSet data = SampleDataSet.parse(jsonBody);
@@ -105,6 +136,51 @@ private class SampleDataLoaderTest {
             SampleDataLoadQueueable.loadContactChunk(data, chunk);
         }
         return data;
+    }
+
+    /** Runs all three stages, the way the whole chain does in an org. */
+    private static SampleDataSet loadEverythingIncludingConnections(String jsonBody) {
+        SampleDataSet data = loadEverything(jsonBody);
+        SampleDataConnectionQueueable.loadConnections(data);
+        return data;
+    }
+
+    /**
+     * A module sample data set that records what Core asked it to do, standing in for the
+     * Giving implementation, which Core cannot compile against.
+     */
+    private class StubModule implements SampleDataModule {
+        private Integer loaded;
+        private Integer removeCalls = 0;
+
+        private StubModule(Integer loaded) {
+            this.loaded = loaded;
+        }
+
+        public String moduleName() {
+            return 'Stub';
+        }
+
+        public String countLabel() {
+            return 'Stub records';
+        }
+
+        public Integer countLoaded() {
+            return loaded;
+        }
+
+        public void enqueueLoad() {
+            // Nothing to start: what Core does with a module's load is asserted in
+            // SampleDataModulesTest, and these tests are about the remove path.
+            return;
+        }
+
+        public Integer removeAll() {
+            removeCalls++;
+            Integer removed = loaded;
+            loaded = 0;
+            return removed;
+        }
     }
 
     @IsTest
@@ -372,14 +448,178 @@ private class SampleDataLoaderTest {
 
     @IsTest
     static void testRemoveLeavesRecordsTheLoaderDidNotCreate() {
-        loadEverything(buildJson(1, 1, false));
+        loadEverythingIncludingConnections(buildJsonWithConnections());
         Account ownRecord = new Account(Name = 'A real household');
         insert ownRecord;
+        Contact ownPerson = new Contact(LastName = 'Real', AccountId = ownRecord.Id);
+        insert ownPerson;
+        Contact ownOtherPerson = new Contact(LastName = 'Alsoreal', AccountId = ownRecord.Id);
+        insert ownOtherPerson;
+        Relationship__c ownRelationship = new Relationship__c(
+            Contact__c = ownPerson.Id,
+            Related_Contact__c = ownOtherPerson.Id,
+            Type__c = 'Friend',
+            Status__c = 'Current'
+        );
+        insert ownRelationship;
+        Affiliation__c ownAffiliation = new Affiliation__c(
+            Contact__c = ownPerson.Id,
+            Organization__c = ownRecord.Id,
+            Role__c = 'Board Member',
+            Status__c = 'Current'
+        );
+        insert ownAffiliation;
 
         SampleDataLoader.remove();
 
-        List<Account> remaining = [SELECT Id FROM Account WHERE Id = :ownRecord.Id];
-        System.assertEquals(1, remaining.size(), 'records the admin entered are not touched');
+        System.assertEquals(
+            1,
+            [SELECT COUNT() FROM Account WHERE Id = :ownRecord.Id],
+            'a household the admin entered is not touched'
+        );
+        System.assertEquals(
+            2,
+            [SELECT COUNT() FROM Contact WHERE Id IN (:ownPerson.Id, :ownOtherPerson.Id)],
+            'people the admin entered are not touched'
+        );
+        System.assertEquals(
+            1,
+            [SELECT COUNT() FROM Relationship__c WHERE Id = :ownRelationship.Id],
+            'a connection the admin entered is not touched'
+        );
+        System.assertEquals(
+            1,
+            [SELECT COUNT() FROM Affiliation__c WHERE Id = :ownAffiliation.Id],
+            'an affiliation the admin entered is not touched'
+        );
+        System.assertEquals(
+            0,
+            [SELECT COUNT() FROM Relationship__c WHERE Sample_Data__c = TRUE],
+            'every connection the loader created is gone'
+        );
+        System.assertEquals(
+            0,
+            [SELECT COUNT() FROM Affiliation__c WHERE Sample_Data__c = TRUE],
+            'every affiliation the loader created is gone'
+        );
+    }
+
+    @IsTest
+    static void testConnectionStageLoadsRelationshipsAndAffiliations() {
+        loadEverythingIncludingConnections(buildJsonWithConnections());
+
+        SampleDataLoader.Counts status = SampleDataLoader.status();
+        System.assertEquals(
+            1,
+            status.relationshipCount,
+            'the payload names one connection between two households'
+        );
+        System.assertEquals(1, status.affiliationCount, 'the payload names one affiliation');
+
+        Relationship__c saved = [
+            SELECT Contact__c, Related_Contact__c, Type__c, Sample_Data__c
+            FROM Relationship__c
+            WHERE Sample_Data__c = TRUE
+            LIMIT 1
+        ];
+        System.assertEquals('Friend', saved.Type__c, 'the connection keeps the type it was given');
+        System.assertNotEquals(
+            saved.Contact__c,
+            saved.Related_Contact__c,
+            'a connection joins two different people'
+        );
+
+        Affiliation__c affiliation = [
+            SELECT Contact__c, Organization__c, Role__c
+            FROM Affiliation__c
+            WHERE Sample_Data__c = TRUE
+            LIMIT 1
+        ];
+        System.assertEquals(
+            'Board Member',
+            affiliation.Role__c,
+            'the affiliation keeps the role it was given'
+        );
+        System.assertNotEquals(
+            null,
+            affiliation.Organization__c,
+            'the affiliation found the sample organization by its key'
+        );
+    }
+
+    @IsTest
+    static void testEveryPersonAndHouseholdKeepsItsGeneratorKey() {
+        loadEverything(buildJson(2, 2, false));
+
+        System.assertEquals(
+            2,
+            [
+                SELECT COUNT()
+                FROM Account
+                WHERE Sample_Data__c = TRUE AND Sample_Data_Key__c LIKE 'H%'
+            ],
+            'each household carries the key the generator gave it'
+        );
+        System.assertEquals(
+            4,
+            [
+                SELECT COUNT()
+                FROM Contact
+                WHERE Sample_Data__c = TRUE AND Sample_Data_Key__c != NULL
+            ],
+            'each person carries the key a module sample set finds them by'
+        );
+        System.assertEquals(
+            1,
+            [
+                SELECT COUNT()
+                FROM Account
+                WHERE Sample_Data__c = TRUE AND Sample_Data_Key__c = 'O1'
+            ],
+            'the organization carries its own key'
+        );
+    }
+
+    @IsTest
+    static void testRemoveAsksEveryModuleToRemoveItsOwnRecords() {
+        loadEverything(buildJson(1, 1, false));
+        StubModule module = new StubModule(12);
+        SampleDataModules.moduleOverride = new List<SampleDataModule>{ module };
+
+        SampleDataLoader.Counts removed = SampleDataLoader.remove();
+
+        System.assertEquals(1, module.removeCalls, 'the module is asked once to remove its own');
+        System.assertEquals(
+            1,
+            removed.moduleCounts.size(),
+            'the counts returned name the module that was removed'
+        );
+        System.assertEquals(
+            12,
+            removed.moduleCounts[0].recordCount,
+            'the count reported is what the module held before it was emptied'
+        );
+        System.assertEquals(
+            0,
+            SampleDataLoader.status().moduleCounts[0].recordCount,
+            'the module has nothing left after the remove'
+        );
+    }
+
+    @IsTest
+    static void testStatusReportsEachModuleCountWithItsOwnLabel() {
+        SampleDataModules.moduleOverride = new List<SampleDataModule>{ new StubModule(709) };
+
+        SampleDataLoader.Counts status = SampleDataLoader.status();
+
+        System.assertEquals(1, status.moduleCounts.size(), 'one installed module is reported');
+        System.assertEquals('Stub', status.moduleCounts[0].name);
+        System.assertEquals(
+            'Stub records',
+            status.moduleCounts[0].label,
+            'the card is given the module its own wording for the number'
+        );
+        System.assertEquals(709, status.moduleCounts[0].recordCount);
     }
 
     @IsTest

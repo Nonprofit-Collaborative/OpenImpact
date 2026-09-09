@@ -1,0 +1,111 @@
+<template>
+  <div class="slds-p-around_medium">
+    <template if:true={loadError}>
+      <p class="slds-text-color_error slds-m-bottom_small">{loadError}</p>
+    </template>
+
+    <lightning-tabset>
+      <lightning-tab label="Receipt templates">
+        <lightning-combobox
+          label="Letter"
+          value={selectedTemplateId}
+          options={templateOptions}
+          onchange={handleTemplateChange}
+        ></lightning-combobox>
+
+        <lightning-textarea
+          class="slds-m-top_small"
+          label="The letter donors read"
+          value={draftBody}
+          onchange={handleBodyChange}
+        ></lightning-textarea>
+
+        <div class="slds-m-top_small">
+          <lightning-button
+            label="Save"
+            variant="brand"
+            disabled={busy}
+            onclick={handleSave}
+          ></lightning-button>
+          <template if:false={selectedIsActive}>
+            <lightning-button
+              class="slds-m-left_x-small"
+              label="Use this letter"
+              disabled={busy}
+              onclick={handleActivate}
+            ></lightning-button>
+          </template>
+        </div>
+
+        <p class="slds-text-body_small slds-m-top_small">
+          The tax wording is not in this letter and cannot be edited. Whatever you write here, Open
+          Impact adds the sentences a valid receipt must carry: whether goods or services were
+          provided, the quid pro quo disclosure with its good faith estimate and deductible amount,
+          and the intangible religious benefits sentence.
+        </p>
+
+        <p class="slds-text-body_small slds-m-top_small">Tokens you can use:</p>
+        <ul class="slds-list_dotted">
+          <template for:each={tokens} for:item="token">
+            <li key={token}>{token}</li>
+          </template>
+        </ul>
+      </lightning-tab>
+
+      <lightning-tab label="Year end statements">
+        <lightning-input
+          type="number"
+          label="Statement year"
+          value={statementYear}
+          onchange={handleYearChange}
+        ></lightning-input>
+        <div class="slds-m-top_small">
+          <lightning-button
+            label="Generate"
+            variant="brand"
+            disabled={busy}
+            onclick={handleGenerate}
+          ></lightning-button>
+          <lightning-button
+            class="slds-m-left_x-small"
+            label="Refresh"
+            onclick={handleRefreshRuns}
+          ></lightning-button>
+        </div>
+
+        <template if:true={hasRuns}>
+          <table class="slds-table slds-table_bordered slds-m-top_medium">
+            <thead>
+              <tr class="slds-line-height_reset">
+                <th scope="col">Run</th>
+                <th scope="col">Year</th>
+                <th scope="col">Status</th>
+                <th scope="col">Donors</th>
+                <th scope="col">Issued</th>
+                <th scope="col">Errors</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template for:each={runs} for:item="run">
+                <tr key={run.id}>
+                  <td>{run.name}</td>
+                  <td>{run.statementYear}</td>
+                  <td>{run.status}</td>
+                  <td>{run.donorsProcessed}</td>
+                  <td>{run.receiptsIssued}</td>
+                  <td>{run.errors}</td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </template>
+
+        <template if:false={hasRuns}>
+          <p class="slds-text-body_regular slds-m-top_medium">
+            No statement run has been started yet.
+          </p>
+        </template>
+      </lightning-tab>
+    </lightning-tabset>
+  </div>
+</template>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Always_Runs__c</fullName>
+  <defaultValue>false</defaultValue>
+  <description>Whether this automation enforces a rule rather than providing a convenience, copied from the shipped registry. An automation marked this way cannot be switched off from the console or suppressed by a pause (ADR-0024).</description>
+  <inlineHelpText>Checked when the automation enforces a rule rather than providing a convenience. Its switch is shown off and disabled, and a pause does not suspend it.</inlineHelpText>
+  <label>Always Runs</label>
+  <trackTrending>false</trackTrending>
+  <type>Checkbox</type>
+</CustomField>

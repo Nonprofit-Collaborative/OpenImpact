@@ -1,19 +1,28 @@
 #!/usr/bin/env python3
 """generate-sample-data.py
 
-Generates the C-10 sample data set: 200 realistic, diverse US households
-(440 contacts), plus 25 organizations, and writes it as the JSON body of
-the SampleData static resource consumed by SampleDataLoader (Apex).
+Generates the C-10 sample data set and writes it as the JSON body of the two
+static resources the sample data loaders read.
 
-Python 3 standard library only. Deterministic: a fixed random seed means the
+Core (SampleData): 200 realistic, diverse US households (440 contacts), 25
+organizations, the connections between people in different households, and the
+affiliations that join people to organizations.
+
+Giving (GivingSampleData): funds, appeals, three years of gifts with their
+allocations, pledges and recurring commitments, hand-entered soft credits, and
+tributes. Its dates are day offsets from the day the set is loaded rather than
+fixed dates, so a set loaded next year still has a gift this year.
+
+Python 3 standard library only. Deterministic: fixed random seeds mean the
 output is byte-identical across runs and across machines, so the generated
-static resource can be regenerated and diffed in code review.
+static resources can be regenerated and diffed in code review.
 
 Usage:
     python3 scripts/data/generate-sample-data.py
 
 Writes:
     packages/core/main/default/staticresources/SampleData.json
+    packages/giving/main/default/staticresources/GivingSampleData.json
 
 See data/sample/README.md for the JSON structure and regeneration notes.
 """
@@ -34,6 +43,15 @@ OUTPUT_PATH = (
     / "default"
     / "staticresources"
     / "SampleData.json"
+)
+GIVING_OUTPUT_PATH = (
+    REPO_ROOT
+    / "packages"
+    / "giving"
+    / "main"
+    / "default"
+    / "staticresources"
+    / "GivingSampleData.json"
 )
 
 # ---------------------------------------------------------------------------
@@ -722,25 +740,807 @@ def build_organizations(rng):
     return [build_organization(rng, i) for i in range(1, 26)]
 
 
+# ---------------------------------------------------------------------------
+# Relationships and affiliations (C-15, C-16). Both are Core objects, so they
+# ship in the Core payload beside the households they connect. Relationships are
+# deliberately between people in different households: two people in the same
+# household are already connected by the household itself, and the panel a
+# fundraiser wants is the one showing the daughter who gives from her own
+# address, the friend who introduced the donor, the colleague on the board.
+# ---------------------------------------------------------------------------
+
+RELATIONSHIP_SHAPES = [
+    ("Parent", 0.28),
+    ("Sibling", 0.2),
+    ("Friend", 0.2),
+    ("Colleague", 0.16),
+    ("Grandparent", 0.1),
+    ("Other", 0.06),
+]
+
+RELATIONSHIP_DESCRIPTIONS = {
+    "Parent": "Gives from her own household; the two records are stewarded together.",
+    "Sibling": "Introduced by their sibling at the spring event.",
+    "Friend": "Long-standing friendship; the two often give in the same appeal.",
+    "Colleague": "They serve on the finance committee together.",
+    "Grandparent": "Funds the grandchild's scholarship every year.",
+    "Other": "Met through the volunteer programme.",
+}
+
+AFFILIATION_ROLES = [
+    ("Board Member", 0.16),
+    ("Employee", 0.3),
+    ("Volunteer", 0.16),
+    ("Executive Director", 0.06),
+    ("Owner", 0.08),
+    ("Member", 0.16),
+    ("Grant Officer", 0.08),
+]
+
+RELATIONSHIP_COUNT = 60
+AFFILIATION_COUNT = 80
+
+
+def assign_member_keys(households):
+    """Stamps every member with a stable key, which is the join between the two files.
+
+    The Giving payload names its donors by these keys and the Core loader writes
+    them to `Sample_Data_Key__c`, so the Giving loader can find the person a
+    sample gift belongs to without depending on names or on insert order.
+    """
+    for household in households:
+        for position, member in enumerate(household["members"], start=1):
+            member["key"] = "{0}-{1}".format(household["key"], position)
+
+
+def adult_keys_by_household(households):
+    """One list of living adult member keys per household, in file order."""
+    result = []
+    for household in households:
+        result.append(
+            [
+                member["key"]
+                for member in household["members"]
+                if member["householdRole"] != "Child" and not member.get("deceased")
+            ]
+        )
+    return result
+
+
+def past_date(rng, earliest_years_ago, latest_years_ago):
+    """A date wholly in the past, so no start or end date is dated in the future."""
+    year = REFERENCE_YEAR - rng.randint(latest_years_ago, earliest_years_ago)
+    if year == REFERENCE_YEAR:
+        return "{0:04d}-{1:02d}-{2:02d}".format(year, rng.randint(1, 6), rng.randint(1, 28))
+    return "{0:04d}-{1:02d}-{2:02d}".format(year, rng.randint(1, 12), rng.randint(1, 28))
+
+
+def build_relationships(rng, households):
+    adults = adult_keys_by_household(households)
+    eligible = [index for index, keys in enumerate(adults) if keys]
+    relationships = []
+    seen = set()
+    attempts = 0
+    while len(relationships) < RELATIONSHIP_COUNT and attempts < RELATIONSHIP_COUNT * 40:
+        attempts += 1
+        first_household = rng.choice(eligible)
+        second_household = rng.choice(eligible)
+        if first_household == second_household:
+            continue
+        first = rng.choice(adults[first_household])
+        second = rng.choice(adults[second_household])
+        pair = tuple(sorted((first, second)))
+        if pair in seen:
+            continue
+        seen.add(pair)
+        relationship_type = random_choice_weighted(rng, RELATIONSHIP_SHAPES)
+        former = rng.random() < 0.12
+        relationships.append(
+            {
+                "person": first,
+                "relatedPerson": second,
+                "type": relationship_type,
+                "status": "Former" if former else "Current",
+                "startDate": past_date(rng, 30, 6) if former else past_date(rng, 30, 1),
+                "endDate": past_date(rng, 4, 1) if former else None,
+                "description": RELATIONSHIP_DESCRIPTIONS[relationship_type],
+            }
+        )
+    return relationships
+
+
+def build_affiliations(rng, households, organizations):
+    adults = [key for keys in adult_keys_by_household(households) for key in keys]
+    organization_keys = [organization["key"] for organization in organizations]
+    affiliations = []
+    seen_pairs = set()
+    people_with_primary = set()
+    attempts = 0
+    while len(affiliations) < AFFILIATION_COUNT and attempts < AFFILIATION_COUNT * 40:
+        attempts += 1
+        person = rng.choice(adults)
+        organization = rng.choice(organization_keys)
+        if (person, organization) in seen_pairs:
+            continue
+        seen_pairs.add((person, organization))
+        former = rng.random() < 0.25
+        # The first current affiliation a person gets is their primary one, which
+        # is the case rule R-AF3 settles when somebody has several at once.
+        primary = not former and person not in people_with_primary
+        if primary:
+            people_with_primary.add(person)
+        affiliations.append(
+            {
+                "person": person,
+                "organization": organization,
+                "role": random_choice_weighted(rng, AFFILIATION_ROLES),
+                "status": "Former" if former else "Current",
+                "isPrimary": primary,
+                "startDate": past_date(rng, 22, 6) if former else past_date(rng, 22, 1),
+                "endDate": past_date(rng, 4, 1) if former else None,
+            }
+        )
+    return affiliations
+
+
+# ---------------------------------------------------------------------------
+# Giving payload (funds, appeals, commitments, gifts, allocations, soft credits,
+# tributes), written as its own static resource in the Giving package so an org
+# without Giving never carries it.
+#
+# Dates here are day offsets from the day the set is loaded, never fixed dates.
+# A fixed-date set goes stale: load it eighteen months from now and "Giving This
+# Year" is empty, the retention report shows nobody renewing, and the dashboard
+# is a wall of zeros. Offsets keep the three-year giving history true whenever
+# somebody loads the set.
+# ---------------------------------------------------------------------------
+
+GIVING_SEED = 20260908
+
+FUND_SPECS = [
+    ("General Fund", "4000", False, "Unrestricted giving: wherever the need is greatest."),
+    ("Building Fund", "4100", True, "The capital campaign for the new wing."),
+    ("Scholarship Fund", "4200", True, "Named scholarships awarded each August."),
+    ("Food Pantry", "4300", True, "Weekly groceries for neighbours who need them."),
+    ("Youth Programs", "4400", True, "After-school and summer programmes."),
+    ("Emergency Relief", "4500", True, "Rent, utilities and one-off crisis help."),
+    ("Endowment", "4600", True, "Permanently restricted: only the income is spent."),
+    ("Memorial Fund", "4700", True, "Gifts given in memory of someone."),
+]
+
+# Weighted the way a real fund list is: most money is unrestricted, a capital
+# campaign takes the next slice, and the small restricted funds share the rest.
+FUND_WEIGHTS = [
+    ("General Fund", 0.5),
+    ("Building Fund", 0.13),
+    ("Scholarship Fund", 0.08),
+    ("Food Pantry", 0.1),
+    ("Youth Programs", 0.07),
+    ("Emergency Relief", 0.05),
+    ("Endowment", 0.03),
+    ("Memorial Fund", 0.04),
+]
+
+# (name, parent, goal, cost, days ago it opened, days ago it closed or None, description)
+APPEAL_SPECS = [
+    (
+        "Annual Fund",
+        None,
+        250000,
+        4000,
+        1150,
+        None,
+        "The unrestricted annual giving programme the other appeals roll up into.",
+    ),
+    (
+        "Spring Appeal",
+        "Annual Fund",
+        40000,
+        3200,
+        210,
+        120,
+        "The spring letter, mailed to everyone who gave in the last three years.",
+    ),
+    (
+        "Year-End Appeal",
+        "Annual Fund",
+        80000,
+        6500,
+        400,
+        300,
+        "The December letter and the email series that goes with it.",
+    ),
+    (
+        "Give Local Day",
+        "Annual Fund",
+        10000,
+        500,
+        320,
+        318,
+        "The community giving day, matched by a local business.",
+    ),
+    ("Spring Gala", None, 60000, 15000, 250, 240, "The ticketed dinner and auction."),
+    (
+        "Emergency Roof Repair",
+        None,
+        35000,
+        900,
+        150,
+        60,
+        "The emergency appeal after the storm took the roof off the hall.",
+    ),
+    (
+        "Legacy Circle",
+        None,
+        100000,
+        1200,
+        900,
+        None,
+        "Multi-year pledges from long-standing donors.",
+    ),
+]
+
+GIFT_TYPE_WEIGHTS = [
+    ("Check", 0.36),
+    ("Card", 0.28),
+    ("ACH", 0.14),
+    ("Cash", 0.1),
+    ("Stock", 0.04),
+    ("In-kind", 0.04),
+    ("Other", 0.04),
+]
+
+IN_KIND_DESCRIPTIONS = [
+    "Twelve cases of tinned food for the pantry",
+    "A used minibus in working order",
+    "Office furniture for the new wing",
+    "Printing and postage for the spring letter",
+    "Auction lot: a week at a lakeside cabin",
+    "Two laptops for the homework club",
+]
+
+# Gift sizes as a real list is shaped: many small, a few large.
+GIFT_AMOUNT_BANDS = [
+    ((25, 100), 0.42),
+    ((100, 500), 0.32),
+    ((500, 2500), 0.16),
+    ((2500, 10000), 0.07),
+    ((10000, 50000), 0.03),
+]
+
+# How a household gives, which is what the retention and lapsed-donor reports
+# are for. The weights are roughly the shape of a small nonprofit's list.
+DONOR_PROFILE_WEIGHTS = [
+    ("multi_year", 0.24),
+    ("lapsed", 0.14),
+    ("new", 0.14),
+    ("one_time", 0.2),
+    ("major", 0.05),
+    ("none", 0.23),
+]
+
+HISTORY_DAYS = 3 * 365
+
+# Sized so the whole set stays inside the one transaction the remove action runs
+# in: see the counts in docs/admin-guide/sample-data.md and the note on limits in
+# GivingSampleDataLoader.
+RECURRING_COMMITMENT_COUNT = 14
+PLEDGE_COMMITMENT_COUNT = 10
+MAX_RECURRING_START_DAYS = 480
+TRIBUTE_COUNT = 24
+RECOGNITION_CREDIT_COUNT = 30
+ORGANIZATIONS_THAT_GIVE = 18
+
+
+def money(rng, low, high):
+    """An amount that looks entered rather than generated: round numbers dominate."""
+    raw = rng.uniform(low, high)
+    if raw < 200:
+        return float(int(round(raw / 5.0) * 5))
+    if raw < 2000:
+        return float(int(round(raw / 25.0) * 25))
+    if raw < 10000:
+        return float(int(round(raw / 100.0) * 100))
+    return float(int(round(raw / 500.0) * 500))
+
+
+def gift_amount(rng):
+    band = random_choice_weighted(rng, GIFT_AMOUNT_BANDS)
+    return money(rng, band[0], band[1])
+
+
+def acknowledgment_for(days_ago, amount):
+    """Recent gifts are still waiting to be thanked; older ones have been."""
+    if amount < 50:
+        return "Not required"
+    if days_ago < 21:
+        return "To acknowledge"
+    return "Acknowledged"
+
+
+def payment_reference(gift_type, sequence):
+    if gift_type == "Check":
+        return "Check {0}".format(1000 + sequence)
+    if gift_type in ("Card", "ACH"):
+        return "TXN-{0:06d}".format(400000 + sequence)
+    return None
+
+
+class GiftBuilder:
+    """Builds gifts in file order, numbering each one so it has a stable key."""
+
+    def __init__(self, rng):
+        self.rng = rng
+        self.gifts = []
+
+    def add(
+        self,
+        donor,
+        days_ago,
+        amount,
+        appeal=None,
+        fund=None,
+        gift_type=None,
+        status="Received",
+        commitment=None,
+        split=False,
+    ):
+        rng = self.rng
+        sequence = len(self.gifts) + 1
+        if gift_type is None:
+            gift_type = random_choice_weighted(rng, GIFT_TYPE_WEIGHTS)
+        if fund is None:
+            fund = random_choice_weighted(rng, FUND_WEIGHTS)
+        gift = {
+            "key": "G{0:04d}".format(sequence),
+            "donor": donor,
+            "daysAgo": days_ago,
+            "amount": amount,
+            "type": gift_type,
+            "status": status,
+            "appeal": appeal,
+            "acknowledgmentStatus": acknowledgment_for(days_ago, amount),
+            "paymentReference": payment_reference(gift_type, sequence),
+            "commitment": commitment,
+            "allocations": self.allocations(fund, amount, split),
+        }
+        if gift_type == "In-kind":
+            gift["inKindDescription"] = rng.choice(IN_KIND_DESCRIPTIONS)
+            gift["fairMarketValue"] = amount
+        self.gifts.append(gift)
+        return gift
+
+    def allocations(self, fund, amount, split):
+        """One allocation, or two where the donor designated the gift twice over."""
+        if not split or amount < 200:
+            return [{"fund": fund, "amount": amount}]
+        second = random_choice_weighted(self.rng, FUND_WEIGHTS)
+        if second == fund:
+            second = "General Fund" if fund != "General Fund" else "Building Fund"
+        first_share = money(self.rng, amount * 0.4, amount * 0.7)
+        if first_share <= 0 or first_share >= amount:
+            return [{"fund": fund, "amount": amount}]
+        return [
+            {"fund": fund, "amount": first_share},
+            {"fund": second, "amount": round(amount - first_share, 2)},
+        ]
+
+
+def profile_gift_plan(rng, profile):
+    """How many gifts a household of this profile gave, and how long ago each was."""
+    if profile == "none":
+        return []
+    if profile == "new":
+        return sorted(rng.sample(range(5, 170), rng.randint(1, 2)), reverse=True)
+    if profile == "lapsed":
+        return sorted(rng.sample(range(520, HISTORY_DAYS), rng.randint(2, 5)), reverse=True)
+    if profile == "one_time":
+        return [rng.randint(30, HISTORY_DAYS)]
+    if profile == "major":
+        days = [rng.randint(0, 330), rng.randint(370, 700), rng.randint(740, HISTORY_DAYS)]
+        return sorted(days[: rng.randint(2, 3)], reverse=True)
+    # multi_year: at least one gift in each of the three years, so the retention
+    # report has renewals to count rather than one year of activity.
+    days = [rng.randint(10, 330), rng.randint(400, 700), rng.randint(760, HISTORY_DAYS)]
+    for _ in range(rng.randint(0, 3)):
+        days.append(rng.randint(10, HISTORY_DAYS))
+    return sorted(days, reverse=True)
+
+
+def appeal_for(rng, days_ago):
+    """The appeal a gift of that age plausibly came from, or none at all."""
+    candidates = []
+    for name, _parent, _goal, _cost, opened, closed, _description in APPEAL_SPECS:
+        if days_ago > opened:
+            continue
+        if closed is not None and days_ago < closed - 30:
+            continue
+        candidates.append(name)
+    if not candidates or rng.random() < 0.25:
+        return None
+    return rng.choice(candidates)
+
+
+def build_commitments(rng, builder, adults, giving_households, profiles):
+    """Pledges and recurring commitments, with the gifts that have paid them so far.
+
+    One recurring commitment is deliberately three months in arrears: its
+    payments stop part way along, so the installments it has missed are already
+    overdue when the daily job (or the end of the load) next looks at them.
+    """
+    commitments = []
+    candidates = [
+        index
+        for index in giving_households
+        if profiles.get(index) in ("multi_year", "new", "major")
+    ]
+    rng.shuffle(candidates)
+    chosen = candidates[: RECURRING_COMMITMENT_COUNT + PLEDGE_COMMITMENT_COUNT]
+
+    for position, index in enumerate(chosen):
+        donor = rng.choice(adults[index])
+        key = "C{0:03d}".format(position + 1)
+        if position < RECURRING_COMMITMENT_COUNT:
+            amount = money(rng, 10, 250)
+            start_days_ago = rng.randint(120, MAX_RECURRING_START_DAYS)
+            months_elapsed = max(start_days_ago // 30, 1)
+            status = "Active"
+            end_days_ago = None
+            paid_months = months_elapsed
+            if position == 0:
+                # The lapsed monthly donor: three payments missed and counting.
+                paid_months = max(months_elapsed - 3, 1)
+            elif position == 1:
+                status = "Paused"
+                paid_months = max(months_elapsed - 2, 1)
+            elif position == 2:
+                status = "Cancelled"
+                end_days_ago = 30
+                paid_months = max(months_elapsed - 1, 1)
+            commitments.append(
+                {
+                    "key": key,
+                    "donor": donor,
+                    "type": "Recurring",
+                    "frequency": "Monthly",
+                    "amount": amount,
+                    "expectedTotal": None,
+                    "installmentsPlanned": None,
+                    "startDaysAgo": start_days_ago,
+                    "endDaysAgo": end_days_ago,
+                    "dayOfMonth": rng.choice([1, 5, 10, 15, 20, 28]),
+                    "status": status,
+                    "fund": random_choice_weighted(rng, FUND_WEIGHTS),
+                    "appeal": None,
+                }
+            )
+            for payment in range(paid_months):
+                builder.add(
+                    donor,
+                    start_days_ago - payment * 30,
+                    amount,
+                    gift_type=rng.choice(["ACH", "Card"]),
+                    commitment=key,
+                )
+        else:
+            installment_amount = money(rng, 250, 2500)
+            planned = rng.choice([4, 6, 8, 12])
+            frequency = rng.choice(["Quarterly", "Monthly"])
+            step = 90 if frequency == "Quarterly" else 30
+            start_days_ago = rng.randint(step * 2, step * planned)
+            paid = min(planned, max(1, start_days_ago // step))
+            commitments.append(
+                {
+                    "key": key,
+                    "donor": donor,
+                    "type": "Pledge",
+                    "frequency": frequency,
+                    "amount": installment_amount,
+                    "expectedTotal": installment_amount * planned,
+                    "installmentsPlanned": planned,
+                    "startDaysAgo": start_days_ago,
+                    "endDaysAgo": None,
+                    "dayOfMonth": rng.choice([1, 15]),
+                    "status": "Completed" if paid >= planned else "Active",
+                    "fund": random_choice_weighted(rng, FUND_WEIGHTS),
+                    "appeal": "Legacy Circle",
+                }
+            )
+            for payment in range(paid):
+                builder.add(
+                    donor,
+                    start_days_ago - payment * step,
+                    installment_amount,
+                    appeal="Legacy Circle",
+                    gift_type="Check",
+                    commitment=key,
+                )
+    return commitments
+
+
+def reversal_of(builder, original, reason, days_ago):
+    """The negative gift that reverses one original, with its allocations mirrored."""
+    return {
+        "key": "G{0:04d}".format(len(builder.gifts) + 1),
+        "donor": original["donor"],
+        "daysAgo": days_ago,
+        "amount": -original["amount"],
+        "type": original["type"],
+        "status": "Received",
+        "appeal": original["appeal"],
+        "acknowledgmentStatus": "Not required",
+        "paymentReference": None,
+        "commitment": None,
+        "originalGift": original["key"],
+        "refundReason": reason,
+        "allocations": [
+            {"fund": allocation["fund"], "amount": -allocation["amount"]}
+            for allocation in original["allocations"]
+        ],
+    }
+
+
+def build_pending_and_reversed(rng, builder, adults, giving_households):
+    """Gifts that are not simply money in the bank: pending, refunded, written off.
+
+    The refunds and the write-off are recorded the way G-04 records them: the
+    original keeps its own amount and takes a reversed status, and a linked
+    negative gift carries the money back out, so the ADR-0022 rollup behaviour (a
+    gift given once and refunded in full reads as one gift and a total of zero)
+    is visible in the set rather than only in a test.
+    """
+    donors = [rng.choice(adults[index]) for index in rng.sample(giving_households, 9)]
+
+    for donor in donors[:6]:
+        builder.add(donor, rng.randint(3, 45), gift_amount(rng), status="Pending")
+
+    reasons = [
+        "Card charged twice at the gala: the second charge was returned.",
+        "Donor asked for the gift back after a change in circumstances.",
+    ]
+    for position, donor in enumerate(donors[6:8]):
+        original = builder.add(
+            donor, rng.randint(60, 200), money(rng, 250, 1500), status="Refunded"
+        )
+        builder.gifts.append(
+            reversal_of(builder, original, reasons[position], rng.randint(5, 50))
+        )
+
+    original = builder.add(
+        donors[8], rng.randint(200, 400), money(rng, 500, 2500), status="Written off"
+    )
+    builder.gifts.append(
+        reversal_of(
+            builder,
+            original,
+            "Pledged at the gala and never collected: written off at year end.",
+            rng.randint(10, 90),
+        )
+    )
+
+
+def build_tributes(rng, builder, households):
+    """Memorials and gifts in honour of someone, attached to gifts already built.
+
+    A memorial names the person who died and notifies somebody else: notifying
+    the honoree is what rule R-TR6 refuses, so the set never asks for it.
+    """
+    deceased = []
+    for household in households:
+        for member in household["members"]:
+            if not member.get("deceased"):
+                continue
+            others = [
+                other["key"] for other in household["members"] if other["key"] != member["key"]
+            ]
+            if others:
+                deceased.append((member, others[0]))
+
+    living_adults = [
+        member
+        for household in households
+        for member in household["members"]
+        if member["householdRole"] != "Child" and not member.get("deceased")
+    ]
+
+    eligible = [
+        gift
+        for gift in builder.gifts
+        if gift["status"] == "Received"
+        and gift["amount"] > 0
+        and gift.get("commitment") is None
+        and gift.get("originalGift") is None
+    ]
+    chosen = rng.sample(eligible, min(TRIBUTE_COUNT, len(eligible)))
+
+    tributes = []
+    for position, gift in enumerate(chosen):
+        if position % 2 == 0 and deceased:
+            honoree, recipient = deceased[position % len(deceased)]
+            tributes.append(
+                {
+                    "gift": gift["key"],
+                    "type": "In memory of",
+                    "honoreePerson": honoree["key"],
+                    "recipientPerson": recipient,
+                    "message": "Given in loving memory of {0} {1}.".format(
+                        honoree["firstName"], honoree["lastName"]
+                    ),
+                }
+            )
+        else:
+            honoree = living_adults[position % len(living_adults)]
+            tributes.append(
+                {
+                    "gift": gift["key"],
+                    "type": "In honor of",
+                    "honoreePerson": honoree["key"],
+                    "recipientPerson": None,
+                    "message": "In honour of {0} {1}, with thanks.".format(
+                        honoree["firstName"], honoree["lastName"]
+                    ),
+                }
+            )
+    return tributes
+
+
+def build_soft_credits(rng, builder, adults, giving_households):
+    """The recognition credits staff enter by hand: the solicitor, the influencer.
+
+    Household member credits are deliberately not here. Those are written by the
+    automatic soft credit rule as each gift is inserted, so putting them in the
+    file would only duplicate what the product already does, and would leave two
+    credits behind where the rule expects one.
+    """
+    solicitors = [rng.choice(adults[index]) for index in rng.sample(giving_households, 6)]
+    large_gifts = [
+        gift for gift in builder.gifts if gift["amount"] >= 1000 and gift["status"] == "Received"
+    ]
+    chosen = rng.sample(large_gifts, min(RECOGNITION_CREDIT_COUNT, len(large_gifts)))
+    credits = []
+    for position, gift in enumerate(chosen):
+        solicitor = solicitors[position % len(solicitors)]
+        if solicitor == gift["donor"]:
+            continue
+        credits.append(
+            {
+                "gift": gift["key"],
+                "person": solicitor,
+                "role": "Solicitor" if position % 3 else "Influencer",
+                "amount": gift["amount"],
+            }
+        )
+    return credits
+
+
+def build_giving(rng, households, organizations):
+    """The whole Giving payload, built against the households the Core set creates."""
+    funds = [
+        {
+            "key": name,
+            "name": name,
+            "accountingCode": code,
+            "restricted": restricted,
+            "active": True,
+            "description": description,
+        }
+        for name, code, restricted, description in FUND_SPECS
+    ]
+    appeals = [
+        {
+            "key": name,
+            "name": name,
+            "parent": parent,
+            "goal": goal,
+            "cost": cost,
+            "startDaysAgo": opened,
+            "endDaysAgo": closed,
+            "active": closed is None,
+            "description": description,
+        }
+        for name, parent, goal, cost, opened, closed, description in APPEAL_SPECS
+    ]
+
+    adults = adult_keys_by_household(households)
+    giving_households = [index for index, keys in enumerate(adults) if keys]
+    builder = GiftBuilder(rng)
+
+    profiles = {}
+    for index in giving_households:
+        profiles[index] = random_choice_weighted(rng, DONOR_PROFILE_WEIGHTS)
+    # The walkthrough household gives across all three years, so the admin guide
+    # can send a reader to one household and know what they will find there.
+    profiles[0] = "multi_year"
+
+    for index in giving_households:
+        donor = rng.choice(adults[index])
+        profile = profiles[index]
+        for days_ago in profile_gift_plan(rng, profile):
+            amount = money(rng, 5000, 50000) if profile == "major" else gift_amount(rng)
+            builder.add(
+                donor,
+                days_ago,
+                amount,
+                appeal=appeal_for(rng, days_ago),
+                split=rng.random() < 0.12,
+            )
+
+    # Organizations: grants, sponsorships and business gifts, which is what makes
+    # the organization half of the dashboard worth looking at.
+    for organization in organizations[:ORGANIZATIONS_THAT_GIVE]:
+        for _ in range(rng.randint(1, 3)):
+            days_ago = rng.randint(20, HISTORY_DAYS)
+            builder.add(
+                organization["key"],
+                days_ago,
+                money(rng, 2500, 40000),
+                appeal=appeal_for(rng, days_ago),
+                gift_type=random_choice_weighted(
+                    rng, [("Grant", 0.5), ("Check", 0.35), ("Stock", 0.15)]
+                ),
+                split=rng.random() < 0.2,
+            )
+
+    commitments = build_commitments(rng, builder, adults, giving_households, profiles)
+    build_pending_and_reversed(rng, builder, adults, giving_households)
+    tributes = build_tributes(rng, builder, households)
+    soft_credits = build_soft_credits(rng, builder, adults, giving_households)
+
+    return {
+        "funds": funds,
+        "appeals": appeals,
+        "commitments": commitments,
+        "gifts": builder.gifts,
+        "tributes": tributes,
+        "softCredits": soft_credits,
+    }
+
+
+def write_json(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(data, handle, indent=None, separators=(",", ":"), sort_keys=False)
+        handle.write("\n")
+    return path.stat().st_size
+
+
 def main():
     households = build_households(RNG)
     organizations = build_organizations(RNG)
+    assign_member_keys(households)
+    relationships = build_relationships(RNG, households)
+    affiliations = build_affiliations(RNG, households, organizations)
 
     total_members = sum(len(h["members"]) for h in households)
 
-    data = {"households": households, "organizations": organizations}
+    core = {
+        "households": households,
+        "organizations": organizations,
+        "relationships": relationships,
+        "affiliations": affiliations,
+    }
+    giving = build_giving(random.Random(GIVING_SEED), households, organizations)
 
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with OUTPUT_PATH.open("w", encoding="utf-8") as handle:
-        json.dump(data, handle, indent=None, separators=(",", ":"), sort_keys=False)
-        handle.write("\n")
+    core_size = write_json(OUTPUT_PATH, core)
+    giving_size = write_json(GIVING_OUTPUT_PATH, giving)
 
-    size_bytes = OUTPUT_PATH.stat().st_size
+    allocations = sum(len(gift["allocations"]) for gift in giving["gifts"])
     print("Wrote {0}".format(OUTPUT_PATH))
     print("Households: {0}".format(len(households)))
     print("Contacts: {0}".format(total_members))
     print("Organizations: {0}".format(len(organizations)))
-    print("File size: {0} bytes ({1:.1f} KB)".format(size_bytes, size_bytes / 1024.0))
+    print("Relationships: {0}".format(len(relationships)))
+    print("Affiliations: {0}".format(len(affiliations)))
+    print("File size: {0} bytes ({1:.1f} KB)".format(core_size, core_size / 1024.0))
+    print("Wrote {0}".format(GIVING_OUTPUT_PATH))
+    print("Funds: {0}".format(len(giving["funds"])))
+    print("Appeals: {0}".format(len(giving["appeals"])))
+    print("Commitments: {0}".format(len(giving["commitments"])))
+    print("Gifts: {0}".format(len(giving["gifts"])))
+    print("Gift allocations: {0}".format(allocations))
+    print("Tributes: {0}".format(len(giving["tributes"])))
+    print("Soft credits: {0}".format(len(giving["softCredits"])))
+    print("File size: {0} bytes ({1:.1f} KB)".format(giving_size, giving_size / 1024.0))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Seasonal_Address_Last_Run_Summary__c</fullName>
+  <description>
+    What the last seasonal address swap run did, in one sentence: how many addresses moved in, how
+    many moved back, and how many failed. A timestamp on its own says the job woke up, not that it
+    did anything (C-18, R-AD8).
+  </description>
+  <externalId>false</externalId>
+  <label>Seasonal Address Last Run Summary</label>
+  <length>255</length>
+  <required>false</required>
+  <type>Text</type>
+</CustomField>

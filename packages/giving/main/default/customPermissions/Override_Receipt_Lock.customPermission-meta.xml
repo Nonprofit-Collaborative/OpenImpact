@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>
+    Lets a user change or delete a gift that carries a receipt number, which Open Impact
+    otherwise refuses (ADR-0010, ADR-0024). It is granted to nobody by the package: an
+    administrator assigns it in Setup for the length of one correction and removes it again.
+    Every change made with it is written to the Error Log at Warning severity.
+  </description>
+  <isLicensed>false</isLicensed>
+  <label>Override Receipt Lock</label>
+</CustomPermission>

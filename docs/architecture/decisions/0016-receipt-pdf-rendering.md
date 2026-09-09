@@ -1,7 +1,9 @@
 # ADR-0016: Receipt PDFs are rendered by the Visualforce PDF rendering service, called from Apex
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-09-07
+**Accepted:** 2026-09-08, by the owner, as the v0.4 prerequisite the plan names
+  (Section 6 "PDF generation approach settled", Section 11.2 open question 6)
 **Source:** plan Section 11.2 open question 6; plan Section 6 v0.4 engineering item
 "PDF generation approach settled"; features G-13 and G-18; ADR-0010
 
@@ -131,9 +133,8 @@ therefore available in the execution context the plan needs it in.
   already has; the Canadian template itself is out of scope for v1.
 - **Revisit when**: `Blob.toPdf()` behaviour changes, a standard Flow PDF action ships
   without an add on licence, or the year end run misses an overnight window in a real org.
-```
 
-## 5. First three tests
+## First three tests
 
 1. **`ReceiptNumberSequenceTest`**: a number is allocated once and never reused.
    Consecutive allocations strictly increase, a batch block allocation does not overlap a

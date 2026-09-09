@@ -105,6 +105,14 @@
         <value>This gift has a receipt number, so its amount, date and donor cannot change. Void the receipt and reissue it, or record a refund.</value>
     </labels>
     <labels>
+        <fullName>Giving_Gift_ReceiptLockOverridden</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Receipt lock override recorded</shortDescription>
+        <value>The receipt lock was lifted on gift {0} (receipt number {1}) by a user holding the Override Receipt Lock permission. What changed: {2}. Check that this correction was expected, and remove the permission from whoever holds it.</value>
+    </labels>
+    <labels>
         <fullName>Giving_Gift_ReceiptNumberLocked</fullName>
         <categories>Giving</categories>
         <language>en_US</language>

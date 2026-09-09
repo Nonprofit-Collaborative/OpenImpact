@@ -392,6 +392,14 @@
         <value>2 hours</value>
     </labels>
     <labels>
+        <fullName>Core_Automation_AlwaysRuns</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation that always runs</shortDescription>
+        <value>This automation enforces a rule, so it always runs. It cannot be switched off here and a pause does not suspend it.</value>
+    </labels>
+    <labels>
         <fullName>Core_Automation_HandlerUnavailable</fullName>
         <categories>Core, Automation</categories>
         <language>en_US</language>
@@ -1886,7 +1894,7 @@
     <language>en_US</language>
     <protected>false</protected>
     <shortDescription>Load confirmation dialog body</shortDescription>
-    <value xml:space="preserve">This adds 200 households, 440 contacts, and 25 organizations to this org. Only load sample data into a scratch org, sandbox, or demo org, never into production.</value>
+    <value xml:space="preserve">This adds 200 households, 440 contacts, 25 organizations, and the connections and affiliations between them to this org, plus three years of gifts, funds, appeals, pledges and tributes where Giving is installed. Only load sample data into a scratch org, sandbox, or demo org, never into production.</value>
   </labels>
   <labels>
     <fullName>Core_SampleData_LoadConfirmTitle</fullName>
@@ -1943,6 +1951,22 @@
     <protected>false</protected>
     <shortDescription>Organizations count label</shortDescription>
     <value>Organizations</value>
+  </labels>
+  <labels>
+    <fullName>Core_SampleData_RelationshipsLabel</fullName>
+    <categories>Sample Data</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Relationships count label</shortDescription>
+    <value>Connections</value>
+  </labels>
+  <labels>
+    <fullName>Core_SampleData_AffiliationsLabel</fullName>
+    <categories>Sample Data</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Affiliations count label</shortDescription>
+    <value>Affiliations</value>
   </labels>
   <labels>
     <fullName>Core_SampleData_ProductionWarning</fullName>

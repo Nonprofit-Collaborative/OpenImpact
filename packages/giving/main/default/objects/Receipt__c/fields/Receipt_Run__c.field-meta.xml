@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Receipt_Run__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    The generation run that issued this receipt, empty when a person issued it.
+  </inlineHelpText>
+  <label>Receipt Run</label>
+  <referenceTo>Receipt_Run__c</referenceTo>
+  <relationshipLabel>Receipts</relationshipLabel>
+  <relationshipName>Receipts</relationshipName>
+  <required>false</required>
+  <type>Lookup</type>
+  <trackTrending>false</trackTrending>
+</CustomField>

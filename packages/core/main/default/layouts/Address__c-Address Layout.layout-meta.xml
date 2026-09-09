@@ -90,6 +90,10 @@
         <behavior>Edit</behavior>
         <field>Seasonal_End_Day__c</field>
       </layoutItems>
+      <layoutItems>
+        <behavior>Readonly</behavior>
+        <field>Replaced_By_Seasonal__c</field>
+      </layoutItems>
     </layoutColumns>
     <style>TwoColumnsTopToBottom</style>
   </layoutSections>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Report xmlns="http://soap.sforce.com/2006/04/metadata">
+  <columns>
+    <field>Account.Name</field>
+  </columns>
+  <columns>
+    <field>Account.Last_Gift_Date__c</field>
+  </columns>
+  <columns>
+    <field>Account.First_Gift_Date__c</field>
+  </columns>
+  <columns>
+    <field>Account.Gift_Count__c</field>
+  </columns>
+  <columns>
+    <aggregateTypes>Sum</aggregateTypes>
+    <field>Account.Total_Giving__c</field>
+  </columns>
+  <columns>
+    <field>Account.Largest_Gift__c</field>
+  </columns>
+  <columns>
+    <field>Account.Rollups_Last_Calculated__c</field>
+  </columns>
+  <description>
+    SYBUNT: gave in some earlier fiscal year, has not given this fiscal year. Some year reaches
+    all the way back, because the test is that the donor's most recent gift of more than zero
+    falls before this fiscal year began. Grouped by the fiscal year of that last gift, so the
+    donors who lapsed last year and the donors who lapsed six years ago are separate lines.
+  </description>
+  <filter>
+    <criteriaItems>
+      <column>Account.Last_Gift_Date__c</column>
+      <operator>lessThan</operator>
+      <value>THIS_FISCAL_YEAR</value>
+    </criteriaItems>
+  </filter>
+  <format>Summary</format>
+  <groupingsDown>
+    <dateGranularity>FiscalYear</dateGranularity>
+    <field>Account.Last_Gift_Date__c</field>
+    <sortOrder>Desc</sortOrder>
+  </groupingsDown>
+  <name>SYBUNT Donors</name>
+  <reportType>Donors_with_Giving</reportType>
+  <scope>organization</scope>
+  <showDetails>true</showDetails>
+</Report>

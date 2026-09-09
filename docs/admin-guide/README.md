@@ -104,10 +104,10 @@ Each feature adds its row here when its page is written.
 | C-14 Importing | [importing.md](importing.md) | Core | v0.2 |
 | G-01 Gifts | [gifts.md](gifts.md) | Giving | v0.2 |
 | G-03 Quick gift entry | [quick-gift-entry.md](quick-gift-entry.md) | Giving | v0.2 |
-| G-04 Funds | [funds.md](funds.md) | Giving | v0.2 |
+| G-01 Funds | [funds.md](funds.md) | Giving | v0.2 |
 | G-05 Appeals | [appeals.md](appeals.md) | Giving | v0.2 |
 | G-06 Giving dashboard | [giving-dashboard.md](giving-dashboard.md) | Giving | v0.2 |
-| G-01 Refunds and write-offs | [refunds.md](refunds.md) | Giving | v0.2 |
+| G-04 Refunds and write-offs | [refunds.md](refunds.md) | Giving | v0.2 |
 | G-07 and G-11 Commitments | [commitments.md](commitments.md) | Giving | v0.3 |
 | C-17 Addresses | [addresses.md](addresses.md) | Core | v0.3 |
 | C-15 Relationships | [relationships.md](relationships.md) | Core | v0.3 |
@@ -115,3 +115,6 @@ Each feature adds its row here when its page is written.
 | G-08 Soft credits | [soft-credits.md](soft-credits.md) | Giving | v0.3 |
 | G-09 Tributes | [tributes.md](tributes.md) | Giving | v0.3 |
 | G-10 Matching gifts | [matching-gifts.md](matching-gifts.md) | Giving | v0.3 |
+| G-13 Receipts and year-end statements | [receipts.md](receipts.md) | Giving | v0.4 |
+| G-14 Donor levels | [donor-levels.md](donor-levels.md) | Giving | v0.4 |
+| G-16 Retention reports | [retention-reports.md](retention-reports.md) | Giving | v0.4 |

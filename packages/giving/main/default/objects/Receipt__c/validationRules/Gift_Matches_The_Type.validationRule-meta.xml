@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Gift_Matches_The_Type</fullName>
+  <active>true</active>
+  <description>
+    R-RC6: a per gift receipt covers one gift and names it; a consolidated statement covers a year and names none, because the gifts are its lines. A receipt reconciled from a consumed number names no gift, so the rule reads issued receipts only (R-RC3).
+  </description>
+  <errorConditionFormula>
+    AND( TEXT(Status__c) = "Issued", OR( AND( TEXT(Type__c) = "Per gift", ISBLANK(Gift__c) ), AND( TEXT(Type__c) = "Consolidated statement", NOT(ISBLANK(Gift__c)) ) ) )
+  </errorConditionFormula>
+  <errorMessage>
+    A per gift receipt must name its gift, and a year end statement must not name one.
+  </errorMessage>
+</ValidationRule>

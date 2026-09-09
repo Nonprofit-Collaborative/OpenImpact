@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Status__c</fullName>
+  <externalId>false</externalId>
+  <inlineHelpText>
+    Whether the document still stands. A void is a record, never a deletion.
+  </inlineHelpText>
+  <label>Status</label>
+  <required>true</required>
+  <type>Picklist</type>
+  <valueSet>
+    <restricted>true</restricted>
+    <valueSetDefinition>
+      <sorted>false</sorted>
+      <value>
+        <fullName>Issued</fullName>
+        <default>true</default>
+        <label>Issued</label>
+      </value>
+      <value>
+        <fullName>Void</fullName>
+        <default>false</default>
+        <label>Void</label>
+      </value>
+    </valueSetDefinition>
+  </valueSet>
+  <trackTrending>false</trackTrending>
+</CustomField>
