@@ -136,6 +136,7 @@ public with sharing class ReceiptLogoSource {
                 SELECT Id, FileExtension, VersionData
                 FROM ContentVersion
                 WHERE ContentDocumentId = :documentId AND IsLatest = TRUE
+                WITH USER_MODE
                 LIMIT 1
             ];
         } else {
@@ -143,6 +144,7 @@ public with sharing class ReceiptLogoSource {
                 SELECT Id, FileExtension
                 FROM ContentVersion
                 WHERE ContentDocumentId = :documentId AND IsLatest = TRUE
+                WITH USER_MODE
                 LIMIT 1
             ];
         }
