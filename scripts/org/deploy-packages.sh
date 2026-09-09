@@ -32,14 +32,27 @@
 # defect, though it is still not proven, because nothing about this failure can be proven
 # from the client side. It just stopped being a coin flip.
 #
-# So data model is now three stages of its own: `balanced_split` divides
+# So data model became three stages of its own: `balanced_split` divided
 # packages/core/main/default/objects by file count into two roughly equal halves at runtime
 # (a hand-written list of object names would go stale the first time someone adds one), and
-# customMetadata, labels, static resources and custom permissions form a third, smaller
-# stage. Apex and UI/permissions are unchanged from the first split, because neither has
-# failed yet and there is no evidence pointing at either. If one of them fails next, split
-# that one the same way this file has now split twice: narrower each time, on the evidence
-# the previous stage actually produced, not on a guess about what the eventual safe size is.
+# customMetadata, labels, static resources and custom permissions formed a third, smaller
+# stage. That halving stopped being useful evidence on 2026-09-09: the two halves it produces
+# are stable across runs (nothing but file *content* changed in between, and balanced_split
+# only looks at file *counts*), and across four consecutive pushes that all fixed real
+# component-level errors in "objects B" (139 files, 10 objects), that stage kept failing with
+# the same zero-component UNKNOWN_EXCEPTION every single time, while "objects A" (144 files,
+# 11 objects, comparable size) deployed clean every one of those four runs. Two same-sized
+# groups behaving oppositely and consistently is not a size effect; it is evidence the fault
+# tracks something specific to one or more objects inside "objects B".
+#
+# Objects now deploy one at a time, each its own stage, rather than split into another pair
+# of same-content halves that would just repeat this result. With ~10 to 30 files per object,
+# a per-object stage is nowhere near the few-hundred-component range any prior failure has
+# carried, so the next run either names the exact object responsible (a stage newly failing
+# alone) or clears every object individually, which would itself be new evidence: that the
+# fault needs several specific objects deployed *together* in one request, not any one of them
+# alone. Apex and UI/permissions are unchanged, because neither has failed yet and there is no
+# evidence pointing at either.
 #
 # Exit codes: 0 = every stage deployed, non-zero = the first stage that failed.
 
@@ -97,14 +110,14 @@ deploy_stage() {
     echo "is a Salesforce side failure, not a component to fix here: quote the ErrorId in the"
     echo "JSON above to Salesforce support. Re-running is not worth trying on its own account:"
     echo "this exact failure (same trailing code -315522575, zero components, zero errors) has"
-    echo "hit an undivided or partly divided Core at least seven times now. See"
+    echo "hit an undivided or partly divided Core at least eight times now. See"
     echo "docs/contributor-guide/ci.md, \"It is not transient here\", for the count and the"
     echo "component totals each occurrence carried. If ${label} is small (comfortably under"
-    echo "the few hundred components the smallest confirmed failure has carried so far), this"
-    echo "is new evidence the effect is not purely about size, and the next step is to look at"
-    echo "what is actually in this stage rather than splitting it again on faith. If it is"
-    echo "still large, split it the same way the data model stage was split: narrower, by"
-    echo "runtime file count where possible, on what this run actually showed."
+    echo "the few hundred components the smallest confirmed failure has carried so far), do not"
+    echo "just split it again on faith: the objects data model stage already tried a same-size"
+    echo "split four times running and it named nothing, because both halves stayed the same"
+    echo "size and content on every run. Look at what is actually in this specific stage, or,"
+    echo "if it is still large, split it narrower on the number this run actually carried."
     rm -f "$log"
     return "$status"
   fi
@@ -113,51 +126,23 @@ deploy_stage() {
   return 0
 }
 
-# Splits the immediate subdirectories of one directory into two file-count-balanced
-# groups, greedily: largest subdirectory first, each one going to whichever running total
-# is currently smaller. File count is a proxy for the metadata component count Salesforce
-# actually charges a deploy for, not the same number, but the two have moved together in
-# every measurement this project has taken (982, then 904, then 853 components behind file
-# counts of comparable size), so it is a proxy worth using.
-#
-# Dynamic on purpose. A hand-written list of object names goes stale the day a new object
-# is added, silently piling onto whichever stage it happens to be typed after. This looks
-# at the directory itself, so packages/core/main/default/objects splits itself in half
-# again automatically as it grows, the same way this file's own history shows it needs to.
-balanced_split() {
-  local parent="$1"
-  local -n out_a="$2"
-  local -n out_b="$3"
-  local total_a=0 total_b=0
-  out_a=()
-  out_b=()
-  local line count dir
-  while IFS= read -r line; do
-    [[ -n "$line" ]] || continue
-    count="${line%% *}"
-    dir="${line#* }"
-    if (( total_a <= total_b )); then
-      out_a+=("$dir")
-      (( total_a += count ))
-    else
-      out_b+=("$dir")
-      (( total_b += count ))
-    fi
-  done < <(
-    for dir in "$parent"/*/; do
-      [[ -d "$dir" ]] || continue
-      echo "$(find "$dir" -type f | wc -l) $dir"
-    done | sort -rn
-  )
-}
-
 deploy_stage "the vendored rollup engine" "packages/core/vendor" || exit $?
 
-OBJECTS_A=()
-OBJECTS_B=()
-balanced_split "packages/core/main/default/objects" OBJECTS_A OBJECTS_B
-deploy_stage "Core (data model, objects A)" "${OBJECTS_A[@]}" || exit $?
-deploy_stage "Core (data model, objects B)" "${OBJECTS_B[@]}" || exit $?
+# One stage per object, not a file-count split. The two-way file-count split this replaced
+# produced the same two groups every run, since only file content had been changing, not
+# file counts, and one of those two groups (10 objects, 139 files) failed with the platform's
+# zero-component UNKNOWN_EXCEPTION on four consecutive pushes while the other (11 objects, 144
+# files, comparable size) deployed clean every time. Same size, opposite and consistent
+# outcomes: that is evidence against a size effect, not for one, so splitting into another
+# same-content pair would not have told us anything the last four runs did not already show.
+# Each object is small enough on its own (a handful of files to a few dozen) that the next
+# failure, if there is one, names the exact object; if every object deploys clean individually,
+# that is itself the finding, that it takes several specific objects deployed together in one
+# request to trigger this.
+for dir in packages/core/main/default/objects/*/; do
+  [[ -d "$dir" ]] || continue
+  deploy_stage "Core (data model, $(basename "$dir"))" "$dir" || exit $?
+done
 deploy_stage "Core (data model, config)" \
   "packages/core/main/default/customMetadata" \
   "packages/core/main/default/labels" \
