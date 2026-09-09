@@ -21,12 +21,18 @@ public class HouseholdTestDataFactory {
         record.Formal_Greeting_Pattern__c = '{Salutation} {FirstName} {LastName}';
         record.Informal_Greeting_Pattern__c = '{FirstName}';
         record.Include_Deceased_In_Name__c = false;
-        upsert record;
-        return record;
+        return save(record);
     }
 
+    /**
+     * Saves the org level settings and forgets the cached copy, so that the next read sees
+     * what was just written. Without this a test that changes a setting after something has
+     * already read the settings in the same transaction is silently ignored: SettingsService
+     * holds the first answer for the rest of the transaction.
+     */
     public static Nonprofit_Settings__c save(Nonprofit_Settings__c record) {
         upsert record;
+        SettingsService.clearCaches();
         return record;
     }
 

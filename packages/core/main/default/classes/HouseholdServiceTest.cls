@@ -150,7 +150,15 @@ private class HouseholdServiceTest {
 
     @IsTest
     static void junctionModeEndsTheOldMembershipWhenSomeoneMoves() {
-        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
+            HouseholdTestDataFactory.MODE_JUNCTION
+        );
+        // The household John leaves has to still be there afterwards for this test to be
+        // able to look at what happened to his membership of it. Household Member cascades
+        // from its household, so tidying the emptied household away would take the ended
+        // membership row with it and there would be nothing left to assert on.
+        settings.Delete_Empty_Households__c = false;
+        HouseholdTestDataFactory.save(settings);
         List<Account> households = new List<Account>{
             HouseholdTestDataFactory.newHousehold('The Smith Family'),
             HouseholdTestDataFactory.newHousehold('The Garcia Family')
@@ -602,7 +610,13 @@ private class HouseholdServiceTest {
         User staff = HouseholdTestDataFactory.standardUser('fls');
         Contact john = HouseholdTestDataFactory.newContact('Mr.', 'John', 'Smith');
         john.Deceased__c = true;
-        insert john;
+        // Saved by the same user who will read it back, so that what this test measures is
+        // field level access and nothing else. Whether a user can see a person somebody
+        // else entered is the org's sharing model, which differs from org to org, and a
+        // test that depends on it is testing the org rather than the package.
+        System.runAs(staff) {
+            insert john;
+        }
         Id householdId = [SELECT AccountId FROM Contact WHERE Id = :john.Id].AccountId;
         Assert.isTrue(
             HouseholdService.getMembers(new Set<Id>{ householdId }).get(householdId)[0].isDeceased,
