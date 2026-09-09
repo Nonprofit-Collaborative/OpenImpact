@@ -20,9 +20,9 @@ looking fresh.
 
 ## What Open Impact calculates for you
 
-Every total below is created by **Restore shipped rollups** on the Rollups page, and every
-one of them can then be switched to another mode, made inactive, or recalculated on its
-own. Three of the giving totals exist once for each kind of record, because a household,
+Every total below is created when you install the module that owns it, switched on and
+ready to calculate, and every one of them can then be switched to another mode, made
+inactive, or recalculated on its own. Three of the giving totals exist once for each kind of record, because a household,
 an organization or person account, and a person each reach their gifts differently. You see the household one on a household, the account one
 on an organization, and the contact one on a person, so on any one record there is a
 single number.
@@ -80,23 +80,36 @@ about a number that looks wrong:
 
 ## How to turn it on
 
-The rollup engine is installed with Open Impact, but an org starts with no rollups in it
-and nothing calculating. Two clicks set that right, and neither of them happens on its own:
+Most of it is already on. Installing a module creates its rollups: the giving totals
+arrive with the Giving module, active and ready to calculate, and an upgrade adds anything
+newly shipped without touching a rollup you have changed. An org with Core alone has no
+giving totals because it has no gifts, and they appear when the Giving module is installed.
+
+One step is left for you, and nothing in the app does it on your behalf:
 
 1. Open the **Nonprofit Hub** app and choose the **Nonprofit Settings** tab.
-2. Choose **Rollups** in the left navigation. On a new org the page says "No rollups are
-   set up yet."
-3. Click **Restore shipped rollups**. Every total listed above is created, active, and
-   ready to calculate. The same button is how you get one back later: it creates only the
-   shipped rollups this org does not have, and leaves every rollup you have edited alone.
-   The totals themselves come from the modules, so an org with Core alone has nothing to
-   restore until the Giving module is installed.
-4. Click **Schedule nightly recalculation**. The page then shows "Nightly recalculation
+2. Choose **Rollups** in the left navigation. You should see every total listed above, one
+   row each.
+3. Click **Schedule nightly recalculation**. The page then shows "Nightly recalculation
    is scheduled for 2:00 AM."
 
-Do both on the day you install. Nothing else in the app does either of them for you: the
-Setup Assistant has no rollup step, so an org whose administrator never opened this page
-has no totals at all.
+Do that on the day you install. The Setup Assistant has no rollup step, so until you click
+it nothing recalculates overnight and the Hub tile stays in warning.
+
+### If a rollup is missing
+
+**Restore shipped rollups** at the top of the page creates the shipped rollups this org
+does not have and leaves every other rollup exactly as it is, including ones you have
+edited or switched off. Press it if the page is empty on a fresh install, which means the
+install-time step failed and the Error Log will say why, or if a rollup you need is not
+listed.
+
+It is also the reason to switch a rollup off rather than delete it. Open Impact cannot
+tell a rollup you deleted on purpose from one that has never existed, so a deleted rollup
+comes back the next time the package is upgraded or the next time somebody presses this
+button. Clearing the **Active** box is the durable way to say no to a total: an inactive
+rollup stays inactive across every upgrade, and the values it has already calculated stay
+on the records.
 
 Two settings on the same page change how every rollup behaves:
 
@@ -161,6 +174,11 @@ needs to be right the moment a gift is saved, set it to **Real time** or **Both*
 stops it being recalculated; it does not erase the values already on the records. That is
 deliberate, so that turning something off never destroys data. If you want the field
 empty, clear it after you make the rollup inactive.
+
+**Deleting a rollup you do not want.** Deleting it works until the next upgrade, which
+creates it again, because a rollup that is gone is indistinguishable from one that was
+never created. Clear its **Active** box instead. That is remembered, and it leaves the
+numbers already calculated on the records.
 
 **Never starting the nightly schedule.** If nobody clicks **Schedule nightly
 recalculation**, nothing recalculates overnight and the Hub tile stays in warning. Nothing

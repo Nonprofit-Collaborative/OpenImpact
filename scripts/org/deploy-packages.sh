@@ -74,5 +74,16 @@ if [[ "$CORE_ONLY" -eq 0 ]]; then
   deploy_stage "Giving" "packages/giving" || exit $?
 fi
 
+# A deployment is not an install, so neither post-install script runs here and the shipped
+# rollup definitions would not exist in a development org (ADR-0029). This is the same call
+# CorePostInstall and GivingPostInstall make, run once the last stage is in, so a development
+# org holds the rollups a real install would have. It creates only what is missing.
+echo ""
+echo "== Creating the shipped rollup definitions =="
+if ! printf '%s\n' 'RollupService.ensureDefaults();' | sf apex run --target-org "$ALIAS"; then
+  echo "The rollup definitions were not created. Nothing else is affected: the Restore shipped"
+  echo "rollups button on the Rollups page runs exactly the same step."
+fi
+
 echo ""
 echo "== Every stage deployed =="
