@@ -42,6 +42,12 @@ The job stamps **Installments last topped up** in the Giving settings when it fi
 which is how you will tell it is running once it is. That value is not on the settings
 console today, so it is read from the Giving Settings custom setting.
 
+The **payment schedule** card lives on a commitment's record page, and Open Impact ships a
+page called **Commitment Record Page** with the card already on it. Assign it once, as your
+org default for Commitment, and every commitment shows the schedule from then on. If your
+organization has built a commitment record page of its own, add the **Commitment Payment
+Schedule** component to that page instead.
+
 ## A five-minute walkthrough
 
 Start from the sample data. The first part is David's work, the last step is Jen's.

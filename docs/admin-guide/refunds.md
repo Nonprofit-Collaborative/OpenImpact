@@ -39,6 +39,12 @@ original credit where it is, so his **Total soft credits** ends at nothing. Both
 on the record, which is why a negative soft credit is a normal thing to see next to a
 refund.
 
+The same is true of a matching gift. Refunding a company's match gives the employee who
+earned it a negative soft credit for the amount that went back, so a match of 500 with 200
+returned leaves them recognized for 300, and the link between the two gifts stays as it was.
+You do not have to unlink the pair first. Refunding the employee's own gift does not change
+the match, because the company's money is still money you are holding.
+
 ## How to turn it on
 
 Refunds and write-offs arrive with the Giving module. There is nothing to configure.

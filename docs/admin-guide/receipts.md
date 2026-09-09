@@ -37,10 +37,20 @@ In the Receipts section:
 - **Statement year.** The tax year the year-end run covers. Set it in January to last year.
 - **Place of issue.** The city and region you issue from. Optional in the United States.
 
+One piece of first-time setup needs Salesforce Setup: the **Receipts** panel, which is where
+you issue, void and reissue, lives on a gift's record page, and Open Impact ships a page
+called **Gift Record Page** with the panel already on it. Assign it once, as your org default
+for Gift, and every gift shows the panel from then on. If your organization has built a gift
+record page of its own, add the **Receipts** component to that page instead. This is the same
+one-time assignment the soft credits and tributes panels need, so if you have already done it
+for those, the Receipts panel is there too.
+
 ### 3. Write your two letters
 
-Also in the Receipts section, **Receipt letters and year end statements** opens a panel with
-two tabs. On the **Receipt templates** tab, Open Impact ships one letter of each kind:
+Also in the Receipts section, **Receipt letters and year end statements** opens the Receipts
+page, which has two tabs. It opens as its own page rather than inside the settings console,
+which is how every page the Giving module adds behaves. On the **Receipt templates** tab,
+Open Impact ships one letter of each kind:
 
 - **Per gift receipt**, for a single gift.
 - **Consolidated statement**, for a donor's whole year.
@@ -70,20 +80,22 @@ Start from the sample data.
 2. Open **Receipt letters and year end statements**, and on the **Receipt templates** tab
    check that a letter of each kind is in use. If one is not, pick it and click **Use this
    letter**.
-3. Open any gift from the sample data. Click **Issue receipt**. You will see a receipt
+3. Open any gift from the sample data. Click **Issue receipt** on the **Receipts** panel.
+   You will see a receipt
    number appear on the gift, and a PDF in the Files list on the gift and on the donor.
 4. Open the PDF. It states your organization's name, the amount, the date, and the sentence
    "No goods or services were provided in exchange for this contribution."
 5. Now break it on purpose. Try to change the gift's amount. The save is refused with "This
-   gift has a receipt number, so its amount, date and donor cannot change. Void the receipt
-   and reissue it, or record a refund."
+   gift has a receipt number, so its amount, date, donor and in-kind description cannot
+   change. Void the receipt and reissue it, or record a refund."
 6. On the gift, click **Void and reissue**. Type a reason, for example "Amount was entered
    wrongly". You get a second receipt with the next number, the first one is marked Void with
    your reason and today's date, and **the original PDF is still there, untouched**. Open
    both files and compare them.
 7. Go to the **Receipts** tab and look at the two records. The voided one points at its
    replacement, the replacement points back at what it replaces.
-8. Back in Nonprofit Settings, under Receipts, open the **Year end statements** tab, check
+8. Back in Nonprofit Settings, under Receipts, choose **Receipt letters and year end
+   statements** again, open the **Year end statements** tab, check
    the statement year, and click **Generate**. A run appears in the list below and counts up
    as it goes; **Refresh** updates it. When it finishes, open a household with several gifts
    in that year and read its statement: every gift is a line, each line carries its own
@@ -122,7 +134,12 @@ receipted that are skipped.
 **Putting a value on an in-kind gift's receipt.** You cannot, and you should not want to. For
 a gift of goods, Open Impact prints the description the donor gave and never a value, because
 in the United States valuing a donated item is the donor's responsibility and not yours. The
-Fair Market Value you record stays in Open Impact for your own reporting.
+Fair Market Value you record stays in Open Impact for your own reporting. Where a cash receipt
+prints the amount, an in-kind receipt says that no value is stated, and on a year-end statement
+an in-kind gift is a line with no amount, outside the total the statement adds up. The
+description on a receipted in-kind gift is locked from then on, exactly as the amount is on a
+cash gift, because it is printed on the document the donor holds; the fair market value stays
+editable, because it is on no document. See [In-kind gifts](in-kind-gifts.md).
 
 ## Two things that are not settled yet
 

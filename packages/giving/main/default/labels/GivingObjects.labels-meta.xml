@@ -102,7 +102,7 @@
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Gift locked by its receipt</shortDescription>
-        <value>This gift has a receipt number, so its amount, date and donor cannot change. Void the receipt and reissue it, or record a refund.</value>
+        <value>This gift has a receipt number, so its amount, date, donor and in-kind description cannot change. Void the receipt and reissue it, or record a refund.</value>
     </labels>
     <labels>
         <fullName>Giving_Gift_ReceiptLockOverridden</fullName>

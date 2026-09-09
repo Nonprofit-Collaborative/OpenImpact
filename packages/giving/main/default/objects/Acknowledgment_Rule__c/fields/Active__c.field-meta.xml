@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Active__c</fullName>
+  <inlineHelpText>Whether this rule takes part in matching. Clearing it keeps the rule and stops it matching anything.</inlineHelpText>
+  <defaultValue>true</defaultValue>
+  <label>Active</label>
+  <type>Checkbox</type>
+  <trackTrending>false</trackTrending>
+  <externalId>false</externalId>
+</CustomField>

@@ -45,17 +45,28 @@ Salesforce org is needed for this job. Steps:
    so it deploys, and it is only wrong once an administrator clicks it in an org looking for
    help. This ran because twelve of the thirty four shipped rows did exactly that.
 11. `scripts/ci/check-adrs.py`, failing the build if a decision record's number disagrees
-   with its own heading, if two records share a number, or if a record is missing from the
-   index. Parallel branches pick the next free number at the same time and collide, so
+   with its own heading, if two records share a number, if a record is missing from the
+   index, or if an `ADR-NEXT` placeholder survives to `main` (that placeholder is how a
+   parallel branch avoids guessing a number, and the integrator assigns the real one at
+   merge). Parallel branches pick the next free number at the same time and collide, so
    renumbering at merge is routine, and a renumber that renames the file but not the heading
    leaves a document that argues with itself. This ran because two branches both claimed
    0025 in one afternoon, and because ADR-0024 was written and never indexed, which is how
    the next author picks a number that is already taken.
-12. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
+12. `scripts/ci/check-components-reachable.py`, failing the build if a Lightning web
+   component marked `isExposed` is on no flexipage, in no quick action, nested in no other
+   component, and not named in the settings console import switch. Exposed means an
+   administrator *could* place it, never that the package ships anywhere that does, and an
+   unreachable component is a feature that does not exist however green its tests are. This
+   ran because it has happened four times: the three C-15 to C-17 panels while their guides
+   said "scroll to the card", `receiptSettings` named across a package boundary the console
+   cannot cross, `receiptActions` while the receipts walkthrough said "click Issue receipt",
+   and `commitmentSchedulePreview`, which no guide ever mentioned at all.
+13. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
    is missing from `docs/architecture/canonical-model.md`. The canonical model is updated
    before an object or a field is added, so this is the gate that keeps it true.
-13. A grep check that fails the build if any tracked file contains an em dash character.
-14. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
+14. A grep check that fails the build if any tracked file contains an em dash character.
+15. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
    `sf code-analyzer run --workspace packages --rule-selector Recommended --severity-threshold 2`.
    The results are uploaded as a build artifact (`code-analyzer-results.html` and
    `code-analyzer-results.json`) even if the job fails, so anyone can download and read
@@ -79,6 +90,7 @@ npm run check:symlinks
 npm run check:permission-sets
 npm run check:help-links
 npm run check:adrs
+npm run check:components-reachable
 npm run check:canonical-model
 npm run check:apex
 npm run check:analyzer
@@ -172,9 +184,26 @@ packages deploy), deploys
 `packages/core` and then `packages/giving`, runs the Apex tests, and uploads the results. It
 creates nothing and deletes nothing.
 
+**What the org actually is, read from the org on 2026-09-08:** Enterprise Edition, Person
+Accounts yes, Sales Cloud yes, NPSP no, Nonprofit Cloud no. So it is the
+`person-accounts.json` shape, which is what the setup steps above recommend and the closest
+an ordinary Dev Hub gets to the Agentforce Nonprofit orgs the first customers run.
+
+That is the good news and the caveat in one line. **The Platform-only shape is never
+exercised**, and ADR-0013 makes running on a Platform-only org a requirement rather than a
+preference. This org has Sales Cloud and Person Accounts, so a Core component that
+accidentally depends on either would deploy here and pass here, and fail at the first
+customer who has neither. `scripts/ci/check-standard-objects.sh` is the only thing standing
+between the package and that mistake, and it is a grep. Testing the Platform-only shape
+means a second org and a second secret; until then, treat every green org test as evidence
+about one shape and no other.
+
 The deploy goes in stages through `scripts/org/deploy-packages.sh`: the vendored rollup
 engine, then Core, then Giving. A failed stage asks the org for the component level report,
-by job id, in human form and then as JSON.
+by job id, in human form and then as JSON. After the last stage the script runs
+`RollupService.ensureDefaults()` as anonymous Apex, because a source deployment runs no
+post-install script and would otherwise leave the org without the rollup definitions a real
+install creates (ADR-0029).
 
 That is not tidiness. The first deploy this project ever attempted sent all 982 components in
 one request and came back with `UNKNOWN_EXCEPTION`, zero components deployed, zero component

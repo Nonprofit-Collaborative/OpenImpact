@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Gift__c</fullName>
+  <inlineHelpText>The gift being thanked for.</inlineHelpText>
+  <deleteConstraint>Cascade</deleteConstraint>
+  <label>Gift</label>
+  <referenceTo>Gift__c</referenceTo>
+  <relationshipLabel>Acknowledgments</relationshipLabel>
+  <relationshipName>Acknowledgments</relationshipName>
+  <required>true</required>
+  <type>Lookup</type>
+  <trackTrending>false</trackTrending>
+  <externalId>false</externalId>
+</CustomField>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>First_Gift_Only__c</fullName>
+  <inlineHelpText>Whether this rule matches only a donor's very first gift, for a welcome letter.</inlineHelpText>
+  <defaultValue>false</defaultValue>
+  <label>First Gift Only</label>
+  <type>Checkbox</type>
+  <trackTrending>false</trackTrending>
+  <externalId>false</externalId>
+</CustomField>

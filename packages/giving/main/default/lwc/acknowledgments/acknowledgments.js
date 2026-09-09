@@ -1,0 +1,306 @@
+import { LightningElement, wire } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+import { refreshApex } from '@salesforce/apex';
+import getPage from '@salesforce/apex/AcknowledgmentController.getPage';
+import sendEmailsNow from '@salesforce/apex/AcknowledgmentController.sendEmailsNow';
+import produceLetters from '@salesforce/apex/AcknowledgmentController.produceLetters';
+import markLettersSent from '@salesforce/apex/AcknowledgmentController.markLettersSent';
+import setSchedule from '@salesforce/apex/AcknowledgmentController.setSchedule';
+
+import TITLE from '@salesforce/label/c.Giving_Acknowledgments_Title';
+import INTRO from '@salesforce/label/c.Giving_Acknowledgments_Intro';
+import OFF from '@salesforce/label/c.Giving_Acknowledgments_Off';
+import NO_RULES from '@salesforce/label/c.Giving_Acknowledgments_NoRules';
+import QUEUE_HEADING from '@salesforce/label/c.Giving_Acknowledgments_QueueHeading';
+import EMAIL_QUEUE from '@salesforce/label/c.Giving_Acknowledgments_EmailQueue';
+import LETTER_QUEUE from '@salesforce/label/c.Giving_Acknowledgments_LetterQueue';
+import UNMATCHED from '@salesforce/label/c.Giving_Acknowledgments_Unmatched';
+import WITHOUT_RECIPIENT from '@salesforce/label/c.Giving_Acknowledgments_WithoutRecipient';
+import QUEUE_CAPPED from '@salesforce/label/c.Giving_Acknowledgments_QueueCapped';
+import SEND_EMAILS from '@salesforce/label/c.Giving_Acknowledgments_SendEmails';
+import EMAILS_STARTED from '@salesforce/label/c.Giving_Acknowledgments_EmailsStarted';
+import PRODUCE_LETTERS from '@salesforce/label/c.Giving_Acknowledgments_ProduceLetters';
+import LETTERS_READY from '@salesforce/label/c.Giving_Acknowledgments_LettersReady';
+import MARK_SENT from '@salesforce/label/c.Giving_Acknowledgments_MarkSent';
+import LETTERS_MARKED_SENT from '@salesforce/label/c.Giving_Acknowledgments_LettersMarkedSent';
+import NIGHTLY from '@salesforce/label/c.Giving_Acknowledgments_Nightly';
+import NEXT_RUN from '@salesforce/label/c.Giving_Acknowledgments_NextRun';
+import NOT_SCHEDULED from '@salesforce/label/c.Giving_Acknowledgments_NotScheduled';
+import LAST_RUN from '@salesforce/label/c.Giving_Acknowledgments_LastRun';
+import NEVER_RUN from '@salesforce/label/c.Giving_Acknowledgments_NeverRun';
+import RULES_HEADING from '@salesforce/label/c.Giving_Acknowledgments_RulesHeading';
+import NEW_RULE from '@salesforce/label/c.Giving_Acknowledgments_NewRule';
+import TEMPLATES_HEADING from '@salesforce/label/c.Giving_Acknowledgments_TemplatesHeading';
+import TEMPLATES_INTRO from '@salesforce/label/c.Giving_Acknowledgments_TemplatesIntro';
+import RUNS_HEADING from '@salesforce/label/c.Giving_Acknowledgments_RunsHeading';
+import NO_RUNS from '@salesforce/label/c.Giving_Acknowledgments_NoRuns';
+import TEMPLATE_NOT_FOUND from '@salesforce/label/c.Giving_Acknowledgments_TemplateNotFound';
+import INACTIVE from '@salesforce/label/c.Giving_Acknowledgments_Inactive';
+import ACTION_FAILED from '@salesforce/label/c.Giving_Acknowledgments_ActionFailed';
+import COLUMN_RULE from '@salesforce/label/c.Giving_Acknowledgments_ColumnRule';
+import COLUMN_ORDER from '@salesforce/label/c.Giving_Acknowledgments_ColumnOrder';
+import COLUMN_CHANNEL from '@salesforce/label/c.Giving_Acknowledgments_ColumnChannel';
+import COLUMN_TEMPLATE from '@salesforce/label/c.Giving_Acknowledgments_ColumnTemplate';
+import COLUMN_MATCHES from '@salesforce/label/c.Giving_Acknowledgments_ColumnMatches';
+import COLUMN_LABEL from '@salesforce/label/c.Giving_Acknowledgments_ColumnLabel';
+import COLUMN_DEVELOPER_NAME from '@salesforce/label/c.Giving_Acknowledgments_ColumnDeveloperName';
+import COLUMN_RUN from '@salesforce/label/c.Giving_Acknowledgments_ColumnRun';
+import COLUMN_STATUS from '@salesforce/label/c.Giving_Acknowledgments_ColumnStatus';
+import COLUMN_SENT from '@salesforce/label/c.Giving_Acknowledgments_ColumnSent';
+import COLUMN_ERRORS from '@salesforce/label/c.Giving_Acknowledgments_ColumnErrors';
+import COLUMN_FINISHED from '@salesforce/label/c.Giving_Acknowledgments_ColumnFinished';
+import DOWNLOAD_FILE from '@salesforce/label/c.Giving_Acknowledgments_DownloadFile';
+import ANY_AMOUNT from '@salesforce/label/c.Giving_Acknowledgments_AnyAmount';
+
+const FILE_DOWNLOAD_PATH = '/sfc/servlet.shepherd/document/download/';
+
+/**
+ * The thank you queue, as Maria reads it: what is waiting, what would send it, and the three
+ * buttons that do it. The rules themselves are edited as records, so this page navigates to them
+ * rather than carrying a second editor, which is the same choice the Donor Levels page made
+ * (ADR-0028, ADR-0032).
+ */
+export default class Acknowledgments extends NavigationMixin(LightningElement) {
+  labels = {
+    title: TITLE,
+    intro: INTRO,
+    off: OFF,
+    noRules: NO_RULES,
+    queueHeading: QUEUE_HEADING,
+    emailQueue: EMAIL_QUEUE,
+    letterQueue: LETTER_QUEUE,
+    unmatched: UNMATCHED,
+    withoutRecipient: WITHOUT_RECIPIENT,
+    queueCapped: QUEUE_CAPPED,
+    sendEmails: SEND_EMAILS,
+    produceLetters: PRODUCE_LETTERS,
+    markSent: MARK_SENT,
+    nightly: NIGHTLY,
+    nextRun: NEXT_RUN,
+    notScheduled: NOT_SCHEDULED,
+    lastRun: LAST_RUN,
+    neverRun: NEVER_RUN,
+    rulesHeading: RULES_HEADING,
+    newRule: NEW_RULE,
+    templatesHeading: TEMPLATES_HEADING,
+    templatesIntro: TEMPLATES_INTRO,
+    runsHeading: RUNS_HEADING,
+    noRuns: NO_RUNS,
+    inactive: INACTIVE,
+    columnRule: COLUMN_RULE,
+    columnOrder: COLUMN_ORDER,
+    columnChannel: COLUMN_CHANNEL,
+    columnTemplate: COLUMN_TEMPLATE,
+    columnMatches: COLUMN_MATCHES,
+    columnLabel: COLUMN_LABEL,
+    columnDeveloperName: COLUMN_DEVELOPER_NAME,
+    columnRun: COLUMN_RUN,
+    columnStatus: COLUMN_STATUS,
+    columnSent: COLUMN_SENT,
+    columnErrors: COLUMN_ERRORS,
+    columnFinished: COLUMN_FINISHED,
+    downloadFile: DOWNLOAD_FILE
+  };
+
+  page;
+  wiredPage;
+  errorMessage;
+  noticeMessage;
+  busy = false;
+
+  @wire(getPage)
+  wiredResult(result) {
+    this.wiredPage = result;
+    if (result.data) {
+      this.page = result.data;
+      this.errorMessage = undefined;
+    }
+    if (result.error) {
+      this.errorMessage = this.messageFrom(result.error);
+    }
+  }
+
+  get hasPage() {
+    return !!this.page;
+  }
+
+  get showOffNotice() {
+    return !!this.page && this.page.enabled === false;
+  }
+
+  get hasRules() {
+    return !!(this.page && this.page.rules && this.page.rules.length);
+  }
+
+  get showNoRules() {
+    return !!this.page && !this.hasRules;
+  }
+
+  get hasRuns() {
+    return !!(this.page && this.page.runs && this.page.runs.length);
+  }
+
+  get showNoRuns() {
+    return !!this.page && !this.hasRuns;
+  }
+
+  get hasTemplates() {
+    return !!(this.page && this.page.templates && this.page.templates.length);
+  }
+
+  get showQueueCapped() {
+    return !!this.page && this.page.queueCapped === true;
+  }
+
+  get scheduled() {
+    return !!this.page && this.page.scheduled === true;
+  }
+
+  get nextRunText() {
+    if (!this.page || !this.page.nextRunAt) {
+      return this.labels.notScheduled;
+    }
+    return new Date(this.page.nextRunAt).toLocaleString();
+  }
+
+  get lastRunText() {
+    if (!this.page || !this.page.lastRun) {
+      return this.labels.neverRun;
+    }
+    const when = new Date(this.page.lastRun).toLocaleString();
+    return this.page.lastRunSummary ? `${when}: ${this.page.lastRunSummary}` : when;
+  }
+
+  /**
+   * The rules with the two things a raw record cannot say: whether the template it names actually
+   * exists in this org, and what its criteria add up to in one phrase.
+   */
+  get rules() {
+    if (!this.hasRules) {
+      return [];
+    }
+    return this.page.rules.map((rule) => ({
+      ...rule,
+      templateText: rule.templateFound ? rule.template : TEMPLATE_NOT_FOUND,
+      templateMissing: rule.templateFound === false,
+      activeText: rule.active ? '' : this.labels.inactive,
+      matchesText: this.describe(rule)
+    }));
+  }
+
+  get runs() {
+    if (!this.hasRuns) {
+      return [];
+    }
+    return this.page.runs.map((run) => ({
+      ...run,
+      finishedText: run.finished ? new Date(run.finished).toLocaleString() : '',
+      hasFile: !!run.mergeFileId,
+      fileUrl: run.mergeFileId ? FILE_DOWNLOAD_PATH + run.mergeFileId : ''
+    }));
+  }
+
+  get sendDisabled() {
+    return this.busy || !this.page || this.page.canSend !== true || !this.page.emailQueue;
+  }
+
+  get lettersDisabled() {
+    return this.busy || !this.page || this.page.canSend !== true || !this.page.letterQueue;
+  }
+
+  get scheduleDisabled() {
+    return this.busy || !this.page || this.page.canManage !== true;
+  }
+
+  get hasError() {
+    return !!this.errorMessage;
+  }
+
+  get hasNotice() {
+    return !!this.noticeMessage;
+  }
+
+  /** What a rule matches, in the words the admin guide uses. */
+  describe(rule) {
+    const parts = [];
+    if (rule.minimumAmount !== null && rule.minimumAmount !== undefined) {
+      parts.push(`${rule.minimumAmount} and up`);
+    }
+    if (rule.maximumAmount !== null && rule.maximumAmount !== undefined) {
+      parts.push(`up to ${rule.maximumAmount}`);
+    }
+    if (rule.giftType) {
+      parts.push(rule.giftType);
+    }
+    if (rule.appealName) {
+      parts.push(rule.appealName);
+    }
+    if (rule.firstGiftOnly) {
+      parts.push('first gift only');
+    }
+    return parts.length ? parts.join(', ') : ANY_AMOUNT;
+  }
+
+  handleNewRule() {
+    this[NavigationMixin.Navigate]({
+      type: 'standard__objectPage',
+      attributes: { objectApiName: 'Acknowledgment_Rule__c', actionName: 'new' }
+    });
+  }
+
+  handleOpenRule(event) {
+    this[NavigationMixin.Navigate]({
+      type: 'standard__recordPage',
+      attributes: {
+        recordId: event.currentTarget.dataset.recordId,
+        objectApiName: 'Acknowledgment_Rule__c',
+        actionName: 'view'
+      }
+    });
+  }
+
+  handleSendEmails() {
+    return this.run(sendEmailsNow(), EMAILS_STARTED);
+  }
+
+  handleProduceLetters() {
+    return this.run(produceLetters(), LETTERS_READY);
+  }
+
+  handleMarkSent(event) {
+    return this.run(
+      markLettersSent({ runId: event.currentTarget.dataset.recordId }),
+      LETTERS_MARKED_SENT
+    );
+  }
+
+  handleScheduleChange(event) {
+    return this.run(setSchedule({ scheduled: event.target.checked }), undefined);
+  }
+
+  /** Every action is the same three steps, so they are written once. */
+  run(promise, notice) {
+    this.busy = true;
+    this.errorMessage = undefined;
+    this.noticeMessage = undefined;
+    return promise
+      .then((view) => {
+        this.page = view;
+        this.noticeMessage = notice;
+        return refreshApex(this.wiredPage);
+      })
+      .catch((error) => {
+        this.errorMessage = this.messageFrom(error);
+      })
+      .finally(() => {
+        this.busy = false;
+      });
+  }
+
+  messageFrom(error) {
+    if (error && error.body && error.body.message) {
+      return error.body.message;
+    }
+    return ACTION_FAILED;
+  }
+}

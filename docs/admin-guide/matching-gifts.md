@@ -58,6 +58,31 @@ organization Riverside Consulting Group.
    with: **That gift is from someone whose employer is a different organization. Check the
    employer on the person's record, or clear it if you are not sure.**
 
+## What a refund does to the match
+
+If the company reverses its check, the recognition reverses with it. You do not have to
+unlink anything and you do not have to edit a soft credit.
+
+Record the refund on the company's gift the way you would on any other gift. Open Impact
+writes the usual negative gift, and alongside it a **negative matched donor credit** for the
+same employee, for the amount that went back. Riverside matched Harper with 500 and asked
+for 200 of it back: Harper's **Total soft credits** reads 300, which is what Riverside is
+still holding because of her. Take the other 300 back as well and it reads 0.
+
+Three things follow, and they surprise people the first time:
+
+- **The original credit stays on the company's gift, at the full amount.** Nothing is
+  erased. A recognition list you printed before the refund is still explicable afterwards,
+  and the credit list shows both the 500 Harper was recognized for and the amount that took
+  it back. This is the same shape as the gifts themselves, where the refunded gift keeps its
+  row.
+- **The link stays too.** The two gifts still name each other, because that is the record of
+  what the money was. Open Impact refuses to *create* a link involving a gift that has been
+  refunded or written off, which is a different question.
+- **Refunding the employee's own gift does not touch the match.** The company's money is
+  still money you are holding, and the employee still caused it. Only a refund of the
+  company's gift reverses the matched donor credit.
+
 ## Common mistakes
 
 - **Linking two gifts that are both from people.** One gift of the pair has to come from an
@@ -69,12 +94,13 @@ organization Riverside Consulting Group.
   makes your receipts wrong.
 - **Leaving Employer blank and linking anyway.** That is allowed: Open Impact only compares
   when an employer is set. Filling it in is what turns a silent mistake into a warning.
-- **Refunding one half of a linked pair.** Unlink first, then record the refund. Open
-  Impact refuses to create a link involving a refunded or written off gift, and a refund
-  recorded against a gift that is already linked leaves a link you should clear by hand.
+- **Unlinking a pair before refunding it.** You do not have to, and it loses the record of
+  what the match was. Record the refund and the recognition reverses itself, as described
+  above. What Open Impact does refuse is a *new* link involving a gift that has already been
+  refunded or written off.
 - **Expecting the soft credit to survive an unlink.** Clearing Matched gift removes the
-  matched donor credit that the link created, because it exists only to record the link. A
-  credit you entered by hand stays.
+  matched donor credit that the link created, and any negative credit that was reversing it,
+  because they exist only to record the link. A credit you entered by hand stays.
 
 ## Fields, for report builders
 
@@ -83,3 +109,4 @@ organization Riverside Consulting Group.
 | The other gift in the pair | Matched gift, on both gifts |
 | The employee's employer | Employer, on Contact and on Account |
 | The recognition the link creates | Soft credit with role Matched donor |
+| The recognition a refund takes back | Soft credit with role Matched donor, negative amount, on the refund gift |

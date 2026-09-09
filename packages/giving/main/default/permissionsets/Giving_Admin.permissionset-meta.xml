@@ -11,6 +11,50 @@
     <visible>true</visible>
   </applicationVisibilities>
   <classAccesses>
+    <apexClass>AcknowledgmentBatch</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>AcknowledgmentController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>AcknowledgmentLetterMerge</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>AcknowledgmentRuleService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>AcknowledgmentRunService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>AcknowledgmentScheduler</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>AcknowledgmentSelector</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>AcknowledgmentSendOutcome</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>AcknowledgmentSender</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>AcknowledgmentService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>AcknowledgmentWriter</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>AppealSelector</apexClass>
     <enabled>true</enabled>
   </classAccesses>
@@ -75,6 +119,10 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>GiftAcknowledgmentHandler</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>GiftAllocationSelector</apexClass>
     <enabled>true</enabled>
   </classAccesses>
@@ -132,6 +180,10 @@
   </classAccesses>
   <classAccesses>
     <apexClass>InstallmentTriggerHandler</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>MessagingAcknowledgmentSender</apexClass>
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
@@ -194,6 +246,10 @@
     <enabled>true</enabled>
     <name>Issue_Receipts</name>
   </customPermissions>
+  <customPermissions>
+    <enabled>true</enabled>
+    <name>Send_Acknowledgments</name>
+  </customPermissions>
   <fieldPermissions>
     <editable>false</editable>
     <field>Account.Donor_Level_Changed_Date__c</field>
@@ -241,6 +297,16 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
+    <field>Account.In_Kind_Gift_Count__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Account.In_Kind_Value__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
     <field>Account.Largest_Gift__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -277,6 +343,156 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Account.Total_Soft_Credits__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Acknowledgment_Rule__c.Active__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Acknowledgment_Rule__c.Appeal__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Acknowledgment_Rule__c.Channel__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Acknowledgment_Rule__c.Description__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Acknowledgment_Rule__c.Email_Template__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Acknowledgment_Rule__c.First_Gift_Only__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Acknowledgment_Rule__c.Gift_Type__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Acknowledgment_Rule__c.Maximum_Amount__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Acknowledgment_Rule__c.Minimum_Amount__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Acknowledgment_Rule__c.Order__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment_Run__c.Acknowledgments_Sent__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment_Run__c.Async_Job_Id__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment_Run__c.Channel__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment_Run__c.Errors__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment_Run__c.Finished__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment_Run__c.Gifts_Processed__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment_Run__c.Merge_File_Document_Id__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment_Run__c.Started__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment_Run__c.Status__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment__c.Channel__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment__c.Failure_Reason__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment__c.Gift_Key__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment__c.Gift__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment__c.Recipient_Contact__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment__c.Recipient_Email__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment__c.Rule__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment__c.Run__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment__c.Sent_On__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment__c.Status__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Acknowledgment__c.Template__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -452,6 +668,16 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Contact.Giving_Two_Years_Ago__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Contact.In_Kind_Gift_Count__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Contact.In_Kind_Value__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -1010,6 +1236,33 @@
     <allowEdit>true</allowEdit>
     <allowRead>true</allowRead>
     <modifyAllRecords>false</modifyAllRecords>
+    <object>Acknowledgment_Rule__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>false</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>false</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Acknowledgment_Run__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>false</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>false</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Acknowledgment__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>true</allowCreate>
+    <allowDelete>true</allowDelete>
+    <allowEdit>true</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
     <object>Appeal__c</object>
     <viewAllRecords>false</viewAllRecords>
   </objectPermissions>
@@ -1149,6 +1402,22 @@
     <viewAllRecords>false</viewAllRecords>
   </objectPermissions>
   <tabSettings>
+    <tab>Acknowledgment_Rule__c</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Acknowledgment_Run__c</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Acknowledgment__c</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Acknowledgments</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
     <tab>Appeal__c</tab>
     <visibility>Visible</visibility>
   </tabSettings>
@@ -1190,6 +1459,10 @@
   </tabSettings>
   <tabSettings>
     <tab>Receipt__c</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Receipts</tab>
     <visibility>Visible</visibility>
   </tabSettings>
   <tabSettings>

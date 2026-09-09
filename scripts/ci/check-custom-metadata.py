@@ -57,10 +57,17 @@ def console_components():
 
 
 def check_console_components(problems):
-    """Every Component setting row names a component the console imports."""
+    """Every Component setting row names a component the console imports.
+
+    Every package, not only Core. This scanned Core's directory alone until a Giving row named
+    `receiptSettings`, a Giving component, and the Receipts panel rendered as not installed for
+    every administrator while the check passed. The rows most likely to get this wrong are
+    exactly the ones this used to skip, because a module author is the person who has a
+    component Core cannot import (ADR-0020).
+    """
     importable = console_components()
     for record in sorted(
-        glob.glob("packages/core/main/default/customMetadata/Setting_Definition.*.md-meta.xml")
+        glob.glob("packages/*/main/default/customMetadata/Setting_Definition.*.md-meta.xml")
     ):
         text = open(record, encoding="utf-8").read()
         if value_of(text, "Data_Type__c") != "Component":

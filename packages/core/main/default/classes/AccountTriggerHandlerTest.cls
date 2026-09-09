@@ -82,6 +82,12 @@ private class AccountTriggerHandlerTest {
         );
     }
 
+    /**
+     * The negative half of R-H2. The setting off has to be the only thing stopping the
+     * household from being made, so two identical people are saved: one with the setting off
+     * and one with it on. Without the person overrides an account is not read as a person at
+     * all on a Platform only org (ADR-0013), and an empty result would prove nothing.
+     */
     @IsTest
     static void householdsForPeopleStoredAsAccountsAreOnlyMadeWhenAskedFor() {
         Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
@@ -89,16 +95,35 @@ private class AccountTriggerHandlerTest {
         );
         settings.Create_Households_For_Person_Accounts__c = false;
         HouseholdTestDataFactory.save(settings);
+        SettingsService.clearCaches();
         HouseholdService.personAccountOverride = true;
+        PersonRecordSelector.personRecordOverride = true;
+        PersonRecordSelector.personOverridesByName = new Map<String, HouseholdService.Person>{
+            'Maria Garcia' => HouseholdTestDataFactory.person('Ms.', 'Maria', 'Garcia', 'Head'),
+            'Wei Lee' => HouseholdTestDataFactory.person('Mr.', 'Wei', 'Lee', 'Head')
+        };
 
         Test.startTest();
         insert new Account(Name = 'Maria Garcia');
+        Integer whileTheSettingIsOff = [SELECT COUNT() FROM Household_Member__c];
+        settings.Create_Households_For_Person_Accounts__c = true;
+        HouseholdTestDataFactory.save(settings);
+        SettingsService.clearCaches();
+        insert new Account(Name = 'Wei Lee');
         Test.stopTest();
 
+        Assert.areEqual(0, whileTheSettingIsOff, 'The setting is off, so nothing was created');
+        List<Household_Member__c> memberships = [SELECT Account__c FROM Household_Member__c];
         Assert.areEqual(
-            0,
-            [SELECT COUNT() FROM Household_Member__c],
-            'The setting is off, so nothing was created'
+            1,
+            memberships.size(),
+            'And the person saved with the setting on is joined to a household, so the setting is the only reason the first one was not'
+        );
+        Id memberId = memberships[0].Account__c;
+        Assert.areEqual(
+            'Wei Lee',
+            [SELECT Name FROM Account WHERE Id = :memberId].Name,
+            'The membership belongs to the person saved after the setting was turned on'
         );
     }
 

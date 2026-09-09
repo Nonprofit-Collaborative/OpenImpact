@@ -1105,8 +1105,16 @@ class GiftBuilder:
             "allocations": self.allocations(fund, amount, split),
         }
         if gift_type == "In-kind":
+            # An in-kind gift is goods rather than money (R-G12, ADR-0029), so the value the
+            # profile generated becomes its fair market value and its amount, and the amount of
+            # every allocation it carries, is zero. The allocations are still generated above,
+            # and still zeroed rather than dropped, so that the random stream, and therefore
+            # every other gift in the file, is unchanged by this rule.
             gift["inKindDescription"] = rng.choice(IN_KIND_DESCRIPTIONS)
             gift["fairMarketValue"] = amount
+            gift["amount"] = 0.0
+            for allocation in gift["allocations"]:
+                allocation["amount"] = 0.0
         self.gifts.append(gift)
         return gift
 

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Gift_Type__c</fullName>
+  <inlineHelpText>The one gift type this rule matches. Leave it empty to match every type.</inlineHelpText>
+  <label>Gift Type</label>
+  <required>false</required>
+  <type>Picklist</type>
+  <valueSet>
+    <restricted>true</restricted>
+    <valueSetDefinition>
+      <sorted>false</sorted>
+      <value>
+        <fullName>Cash</fullName>
+        <default>false</default>
+        <label>Cash</label>
+      </value>
+      <value>
+        <fullName>Check</fullName>
+        <default>false</default>
+        <label>Check</label>
+      </value>
+      <value>
+        <fullName>Card</fullName>
+        <default>false</default>
+        <label>Card</label>
+      </value>
+      <value>
+        <fullName>ACH</fullName>
+        <default>false</default>
+        <label>ACH</label>
+      </value>
+      <value>
+        <fullName>Stock</fullName>
+        <default>false</default>
+        <label>Stock</label>
+      </value>
+      <value>
+        <fullName>In-kind</fullName>
+        <default>false</default>
+        <label>In-kind</label>
+      </value>
+      <value>
+        <fullName>Grant</fullName>
+        <default>false</default>
+        <label>Grant</label>
+      </value>
+      <value>
+        <fullName>Other</fullName>
+        <default>false</default>
+        <label>Other</label>
+      </value>
+    </valueSetDefinition>
+  </valueSet>
+  <trackTrending>false</trackTrending>
+  <externalId>false</externalId>
+</CustomField>

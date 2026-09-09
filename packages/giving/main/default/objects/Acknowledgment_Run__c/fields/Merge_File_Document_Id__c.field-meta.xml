@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Merge_File_Document_Id__c</fullName>
+  <inlineHelpText>The file identifier of this run's letter merge spreadsheet.</inlineHelpText>
+  <label>Merge File Document Id</label>
+  <length>18</length>
+  <required>false</required>
+  <type>Text</type>
+  <trackTrending>false</trackTrending>
+  <externalId>false</externalId>
+</CustomField>

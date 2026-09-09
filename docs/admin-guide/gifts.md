@@ -11,6 +11,11 @@ away: a refund is a separate, linked gift (see the Refunds page).
 Everything the board and the bookkeeper ask for comes off these records: donor totals, fund
 balances, appeal results, and the receipt.
 
+A gift of goods or services rather than money is entered here too, with the type **In-kind**.
+It works differently in two ways that catch people out: its amount is always zero and its
+worth goes in **Fair market value**, and its receipt describes what arrived without stating
+what it was worth. [In-kind gifts](in-kind-gifts.md) is the page for that.
+
 ## How to turn it on
 
 Gifts arrive with the Giving module. Before David enters his first gift, do two things
@@ -39,6 +44,8 @@ You are David, and a check from Maria's neighbour arrived this morning.
 4. In **Donor Contact**, choose a person who belongs to a household. Leave **Donor Account**
    empty: a gift has one donor, either a person or an organization, never both.
 5. Enter an **Amount** of 250, choose the **Type** `Check`, and leave **Gift Date** empty.
+   (Had this been a gift of goods you would choose `In-kind` here instead, leave the amount
+   at zero, and describe the goods: [In-kind gifts](in-kind-gifts.md).)
 6. Choose `Spring appeal` in **Appeal** and save.
 7. Look at the saved gift. **Gift Date** is today, because you left it blank. **Household**
    shows the donor's household, filled in by Open Impact rather than by you, which is what
@@ -106,11 +113,14 @@ reaches the problem.
   when an organization or a household gives in its own name, and the contact when a person
   gives.
 - **Entering a gift of zero.** The save is refused with "A gift amount cannot be zero."
-  Zero-value records break averages and counts. If you are recording goods, enter the fair
-  market value.
+  Zero-value records break averages and counts. The one exception is a gift of goods: an
+  in-kind gift is always zero, and its worth goes in **Fair market value**. See
+  [In-kind gifts](in-kind-gifts.md).
 - **Editing the amount after a receipt has been issued.** The save is refused with "This
-  gift has a receipt number, so its amount, date and donor cannot change. Void the receipt
-  and reissue it, or record a refund." That rule protects the document already in the
+  gift has a receipt number, so its amount, date, donor and in-kind description cannot
+  change. Void the receipt and reissue it, or record a refund." The in-kind description is
+  in that list because it is what an in-kind receipt prints; the fair market value is not,
+  because it is printed nowhere. That rule protects the document already in the
   donor's hands. Deleting the gift is refused for the same reason, and so is changing or
   clearing the receipt number itself.
 - **Pausing automation to get around the lock.** It does not work, and that is deliberate.

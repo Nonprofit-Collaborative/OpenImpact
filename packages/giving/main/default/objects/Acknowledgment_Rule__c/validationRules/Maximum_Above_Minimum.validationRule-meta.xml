@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Maximum_Above_Minimum</fullName>
+  <active>true</active>
+  <description>
+    A rule whose maximum is below its minimum matches no gift at all, silently.
+  </description>
+  <errorConditionFormula>
+    NOT(ISBLANK(Minimum_Amount__c)) &amp;&amp; NOT(ISBLANK(Maximum_Amount__c)) &amp;&amp;
+    Maximum_Amount__c &lt; Minimum_Amount__c
+  </errorConditionFormula>
+  <errorDisplayField>Maximum_Amount__c</errorDisplayField>
+  <errorMessage>
+    The maximum amount has to be at least the minimum amount, or this rule can never match a gift.
+  </errorMessage>
+</ValidationRule>
