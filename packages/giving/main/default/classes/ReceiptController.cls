@@ -118,27 +118,43 @@ public with sharing class ReceiptController {
         }
     }
 
+    /**
+     * The letters, for the console.
+     *
+     * `cacheable=true` is wanted here and kept: the list is small, it is read on every visit to the
+     * page and again after every save through `refreshApex`, and it changes only when somebody on
+     * this screen changes it. What it cost was a defect: this method used to materialize the
+     * shipped letters when the list came back empty, and **Apex cannot perform DML in a cacheable
+     * method**, so on an org that had never issued a receipt the page threw instead of showing the
+     * two shipped letters. Creating them is now the post-install script's job (ADR-0029), with
+     * `restoreDefaultTemplates` as the recovery path, so this method only reads (ADR-NEXT).
+     */
     @AuraEnabled(cacheable=true)
     public static List<TemplateView> getTemplates() {
         try {
-            List<Receipt_Template__c> templates = ReceiptSelector.allTemplates();
-            if (templates.isEmpty()) {
-                ReceiptTemplateService.installDefaults();
-                templates = ReceiptSelector.allTemplates();
-            }
-            List<TemplateView> views = new List<TemplateView>();
-            for (Receipt_Template__c template : templates) {
-                TemplateView view = new TemplateView();
-                view.id = template.Id;
-                view.name = template.Name;
-                view.type = template.Type__c;
-                view.body = template.Body__c;
-                view.active = template.Active__c;
-                views.add(view);
-            }
-            return views;
+            return viewsOfTemplates(ReceiptSelector.allTemplates());
         } catch (Exception failure) {
             throw asUserError(failure, 'ReceiptController.getTemplates', null);
+        }
+    }
+
+    /** Whether the running user may edit a letter, so the page can say so before they try. */
+    @AuraEnabled(cacheable=true)
+    public static Boolean getCanManageTemplates() {
+        return ReceiptTemplateService.canManageTemplates();
+    }
+
+    /**
+     * Creates any shipped letter this org does not have. Not cacheable, because it writes: this is
+     * the button an administrator presses when an install left the list empty (ADR-0029 point 3).
+     */
+    @AuraEnabled
+    public static List<TemplateView> restoreDefaultTemplates() {
+        try {
+            ReceiptTemplateService.restoreDefaults();
+            return viewsOfTemplates(ReceiptSelector.allTemplates());
+        } catch (Exception failure) {
+            throw asUserError(failure, 'ReceiptController.restoreDefaultTemplates', null);
         }
     }
 
@@ -209,6 +225,20 @@ public with sharing class ReceiptController {
     }
 
     // ----------------------------------------------------------------------- internals
+
+    private static List<TemplateView> viewsOfTemplates(List<Receipt_Template__c> templates) {
+        List<TemplateView> views = new List<TemplateView>();
+        for (Receipt_Template__c template : templates) {
+            TemplateView view = new TemplateView();
+            view.id = template.Id;
+            view.name = template.Name;
+            view.type = template.Type__c;
+            view.body = template.Body__c;
+            view.active = template.Active__c;
+            views.add(view);
+        }
+        return views;
+    }
 
     private static List<ReceiptView> viewsOf(List<Receipt__c> receipts) {
         List<ReceiptView> views = new List<ReceiptView>();

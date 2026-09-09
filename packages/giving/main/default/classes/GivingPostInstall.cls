@@ -1,10 +1,18 @@
 /**
  * What Open Impact Giving does for itself at install and at every upgrade.
  *
- * One thing: create the Rollup Definitions this package ships, so that a fresh install has
+ * Two things, both of them shipped defaults that an org is supposed to arrive with.
+ *
+ * One: create the Rollup Definitions this package ships, so that a fresh install has
  * the giving totals on donors, funds, appeals, commitments and installments rather than a
  * page of blank currency attributes and a button labelled Restore that has never had
  * anything to restore (ADR-0029).
+ *
+ * Two: create the two receipt letters this package ships. They used to be created the first
+ * time somebody opened the Receipts page, from a cacheable Apex method, which cannot perform
+ * DML: the page threw instead. Install is the honest home for a shipped default, for the same
+ * reasons ADR-0029 gives for rollups, and it is the one place where a system mode write to
+ * package owned data is already justified (ADR-0021, ADR-NEXT).
  *
  * Core cannot do this on Giving's behalf. Core installs first, and a package that is not
  * installed yet has no objects to describe, so `RollupService.ensureDefaults` correctly
@@ -23,6 +31,7 @@
  */
 public with sharing class GivingPostInstall implements InstallHandler {
     private static final String ROLLUP_CONTEXT = 'GivingPostInstall.ensureRollupDefaults';
+    private static final String TEMPLATE_CONTEXT = 'GivingPostInstall.installReceiptTemplates';
 
     /**
      * Called by the platform after the package is installed or upgraded.
@@ -35,5 +44,6 @@ public with sharing class GivingPostInstall implements InstallHandler {
         // failure in the Error Log and returns, so an install is never aborted by this step, and
         // the Rollups page can still create the rows on demand.
         RollupService.ensureDefaultsDuringInstall(ROLLUP_CONTEXT);
+        ReceiptTemplateService.installDefaultsDuringInstall(TEMPLATE_CONTEXT);
     }
 }

@@ -4,6 +4,8 @@ import getTemplates from '@salesforce/apex/ReceiptController.getTemplates';
 import getRuns from '@salesforce/apex/ReceiptController.getRuns';
 import getDefaultStatementYear from '@salesforce/apex/ReceiptController.getDefaultStatementYear';
 import startStatementRun from '@salesforce/apex/ReceiptController.startStatementRun';
+import getCanManageTemplates from '@salesforce/apex/ReceiptController.getCanManageTemplates';
+import restoreDefaultTemplates from '@salesforce/apex/ReceiptController.restoreDefaultTemplates';
 
 jest.mock(
   '@salesforce/apex/ReceiptController.getTemplates',
@@ -27,6 +29,19 @@ jest.mock(
     const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
     return { default: createApexTestWireAdapter(jest.fn()) };
   },
+  { virtual: true }
+);
+jest.mock(
+  '@salesforce/apex/ReceiptController.getCanManageTemplates',
+  () => {
+    const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
+    return { default: createApexTestWireAdapter(jest.fn()) };
+  },
+  { virtual: true }
+);
+jest.mock(
+  '@salesforce/apex/ReceiptController.restoreDefaultTemplates',
+  () => ({ default: jest.fn(() => Promise.resolve([])) }),
   { virtual: true }
 );
 jest.mock(
@@ -101,6 +116,35 @@ describe('c-receipt-settings', () => {
 
     const text = element.shadowRoot.textContent;
     expect(text).toContain('cannot be edited');
+  });
+
+  it('offers to restore the shipped letters when the org has none', async () => {
+    const element = build();
+    getTemplates.emit([]);
+    getRuns.emit([]);
+    getCanManageTemplates.emit(true);
+    await flush();
+
+    expect(element.shadowRoot.querySelector('lightning-textarea')).toBeNull();
+    const buttons = Array.from(element.shadowRoot.querySelectorAll('lightning-button'));
+    const restore = buttons.find((button) => button.label === 'Restore the shipped letters');
+    expect(restore).toBeDefined();
+    restore.click();
+    await flush();
+
+    expect(restoreDefaultTemplates).toHaveBeenCalled();
+  });
+
+  it('will not offer to save a letter to somebody who cannot manage settings', async () => {
+    const element = build();
+    getTemplates.emit(TEMPLATES);
+    getRuns.emit([]);
+    getCanManageTemplates.emit(false);
+    await flush();
+
+    const buttons = Array.from(element.shadowRoot.querySelectorAll('lightning-button'));
+    const save = buttons.find((button) => button.label === 'Save');
+    expect(save.disabled).toBe(true);
   });
 
   it('starts a run for the year the settings name', async () => {

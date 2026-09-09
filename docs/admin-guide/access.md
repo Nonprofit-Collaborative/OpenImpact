@@ -28,6 +28,34 @@ The five roles are:
 | Volunteer Coordinator | Whoever schedules and tracks volunteers | Day to day work with people, households, and volunteer records |
 | Read Only | Board members, auditors, and anyone who should look but not change | Read access, no editing |
 
+## Who can read a donor's receipts and tax statements
+
+Nobody sees a receipt PDF unless they hold one of the Giving module's permission sets. This is
+worth stating plainly, because a file in Salesforce is reached through the record it is attached
+to, not through the record it is about.
+
+| Person | What they hold | Can they open a receipt PDF |
+|---|---|---|
+| Maria, who configures Open Impact | Nonprofit Admin, plus Giving Admin | Yes |
+| David, who enters the gifts | Fundraising Staff, plus Giving Staff | Yes |
+| Tom, on the board | Read Only, plus Giving Read Only | Yes, read only |
+| Priya, who coordinates volunteers | Volunteer Coordinator, and no Giving set | No |
+| Sam, in programs | Program Staff, and no Giving set | No |
+
+Priya and Sam can open the donor's household and the donor's contact record, because that is
+their job. What they cannot open is the receipt or the year-end statement, because a receipt PDF
+is attached to the **Receipt** record and, for a single gift receipt, to the **Gift**, and both
+of those need a Giving permission set. It is deliberately not attached to the household or the
+contact: attaching it there would have handed every donor's tax history, and your organization's
+tax identification number, to everyone who can read a contact.
+
+So to find a donor's receipt, open the donor, then the **Receipts** related list, then the receipt,
+then the file on it. If somebody says they cannot see receipts on a donor's record, that is this,
+and the fix is the Giving permission set rather than anything on this page.
+
+Nobody can edit or delete a receipt PDF, whatever they hold. See
+[Receipts and year-end statements](receipts.md).
+
 ## How to turn it on
 
 There is nothing to turn on. Access is part of Open Impact Core and appears in Nonprofit

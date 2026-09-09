@@ -41,6 +41,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0030](0030-in-kind-gifts-are-a-gift-type-whose-value-never-enters-the-money-rollups.md) | An in-kind gift is a gift type carrying no amount, and its value is rolled up separately from money | Accepted |
 | [0031](0031-refund-reverses-the-matched-donor-credit.md) | A refund of the employer's gift reverses the matched donor credit, along the link | Accepted |
 | [0032](0032-acknowledgments-are-standard-email-plus-a-ledger.md) | Acknowledgments send standard email templates and keep a ledger, sharing no machinery with receipts | Accepted |
+| NEXT | [A receipt document is reached only through the records a Giving permission set governs](NEXT-receipt-document-access-and-template-writes.md) | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions
@@ -59,7 +60,10 @@ about a gift recorded at zero. ADR-0031 answers the question ADR-0023 left open 
 sent to G-10: what a refund of the employer's gift does to the employee's matched
 donor credit.
 ADR-0032 is a builder decision for G-12, separating acknowledgments from
-the receipting machinery they resemble.
+the receipting machinery they resemble. ADR-NEXT is a builder decision on three defects a
+security review found in G-13, and it amends the storage sentence in ADR-0016: a
+`ContentDocumentLink` is an access control list, so a receipt document is linked only to the
+records a Giving permission set governs.
 
 ## Adding a new ADR
 

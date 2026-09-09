@@ -6,6 +6,21 @@
 
     <lightning-tabset>
       <lightning-tab label="Receipt templates">
+        <template if:false={hasTemplates}>
+          <p class="slds-text-body_regular slds-m-bottom_small">
+            This org has no receipt letters. Open Impact creates the two it ships when the package
+            is installed, so if they are missing that step did not finish. Restore them here, then
+            edit the wording.
+          </p>
+          <lightning-button
+            label="Restore the shipped letters"
+            variant="brand"
+            disabled={cannotEdit}
+            onclick={handleRestore}
+          ></lightning-button>
+        </template>
+
+        <template if:true={hasTemplates}>
         <lightning-combobox
           label="Letter"
           value={selectedTemplateId}
@@ -24,14 +39,14 @@
           <lightning-button
             label="Save"
             variant="brand"
-            disabled={busy}
+            disabled={cannotEdit}
             onclick={handleSave}
           ></lightning-button>
           <template if:false={selectedIsActive}>
             <lightning-button
               class="slds-m-left_x-small"
               label="Use this letter"
-              disabled={busy}
+              disabled={cannotEdit}
               onclick={handleActivate}
             ></lightning-button>
           </template>
@@ -50,6 +65,7 @@
             <li key={token}>{token}</li>
           </template>
         </ul>
+        </template>
       </lightning-tab>
 
       <lightning-tab label="Year end statements">

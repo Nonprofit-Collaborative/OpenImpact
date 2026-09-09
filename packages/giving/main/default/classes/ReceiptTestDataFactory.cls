@@ -28,8 +28,8 @@ public class ReceiptTestDataFactory {
 
     /**
      * Everything a receipt needs before it can be issued: an organization to issue it, a numbering
-     * prefix, a letter of each kind, permission to issue, and a renderer that does not need a PDF
-     * engine. Returns the renderer so a test can read what was composed.
+     * prefix, a letter of each kind, permission to issue and to manage the letters, and a renderer
+     * that does not need a PDF engine. Returns the renderer so a test can read what was composed.
      */
     public static RecordingRenderer setUpReceipting() {
         Nonprofit_Settings__c core = Nonprofit_Settings__c.getOrgDefaults();
@@ -64,6 +64,10 @@ public class ReceiptTestDataFactory {
         };
 
         ReceiptService.issuePermission = true;
+        // Maria configures Open Impact, so the tests that edit a letter run as somebody who may.
+        // A custom permission cannot be granted to the user a test runs as without assigning a
+        // permission set, which would make every receipting test a test of that assignment.
+        ReceiptTemplateService.managePermission = true;
         RecordingRenderer renderer = new RecordingRenderer();
         ReceiptRendererFactory.overrideRenderer = renderer;
         return renderer;

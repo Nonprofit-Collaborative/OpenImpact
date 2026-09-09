@@ -116,6 +116,69 @@ private class GivingPostInstallTest {
     }
 
     /**
+     * Installing Giving also puts the two receipt letters in the org.
+     *
+     * The defect this covers: the letters were created lazily, by a cacheable Apex method that
+     * cannot perform DML, so the Receipts console threw on an org that had never issued a receipt
+     * (ADR-NEXT). Install is where a shipped default belongs, for the reasons ADR-0029 gives.
+     */
+    @IsTest
+    static void installingGivingCreatesTheTwoShippedReceiptLetters() {
+        GivingPostInstall handler = new GivingPostInstall();
+
+        Test.startTest();
+        Test.testInstall(handler, null);
+        Test.stopTest();
+
+        Map<String, Receipt_Template__c> byType = new Map<String, Receipt_Template__c>();
+        for (Receipt_Template__c letter : [
+            SELECT Id, Name, Type__c, Body__c, Active__c
+            FROM Receipt_Template__c
+        ]) {
+            byType.put(letter.Type__c, letter);
+        }
+        Assert.areEqual(
+            2,
+            byType.size(),
+            'A fresh install arrives with one letter of each kind, not with an empty page.'
+        );
+        for (String type : byType.keySet()) {
+            Receipt_Template__c letter = byType.get(type);
+            Assert.isTrue(letter.Active__c, 'It arrives switched on, so a receipt can be issued.');
+            Assert.isFalse(
+                String.isBlank(letter.Body__c),
+                'It carries the shipped wording: ' + letter.Name
+            );
+        }
+    }
+
+    /**
+     * An upgrade leaves the letter Maria wrote exactly as she wrote it.
+     */
+    @IsTest
+    static void upgradingKeepsTheLetterTheAdministratorRewrote() {
+        GivingPostInstall handler = new GivingPostInstall();
+        Test.testInstall(handler, null);
+        Receipt_Template__c letter = [SELECT Id, Body__c FROM Receipt_Template__c LIMIT 1];
+        update new Receipt_Template__c(Id = letter.Id, Body__c = '<p>Maria wrote this.</p>');
+
+        Test.startTest();
+        Test.testInstall(handler, new Version(1, 0), true);
+        Test.stopTest();
+
+        Assert.areEqual(
+            2,
+            [SELECT COUNT() FROM Receipt_Template__c],
+            'An upgrade creates no second copy of a letter that is already here.'
+        );
+        Assert.areEqual(
+            '<p>Maria wrote this.</p>',
+            [SELECT Body__c FROM Receipt_Template__c WHERE Id = :letter.Id].Body__c,
+            'And it does not put the shipped wording back over what she wrote.'
+        );
+    }
+
+    /**
      * The Definition Keys of the rollup defaults this package ships.
      *
      * @return one key per shipped Giving row

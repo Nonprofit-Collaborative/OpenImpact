@@ -33,7 +33,7 @@ public with sharing class ReceiptService {
      * the gift becomes locked (R-G4).
      */
     public static Receipt__c issueForGift(Id giftId) {
-        requirePermission();
+        requireIssuePermission();
         Gift__c gift = ReceiptSelector.giftForReceipting(giftId);
         if (gift == null) {
             throw new ReceiptServiceException(Label.Giving_Receipt_GiftNotFound);
@@ -77,11 +77,11 @@ public with sharing class ReceiptService {
         );
         ReceiptWriter.insertReceipts(new List<Receipt__c>{ receipt });
 
-        storeDocumentFor(
-            receipt,
-            html,
-            new List<Id>{ receipt.Id, gift.Id, gift.Donor_Contact__c, gift.Donor_Account__c }
-        );
+        // The receipt and the gift, and deliberately not the donor Contact or Account: a file's
+        // audience is the audience of the records it is linked to, and every Core role can read a
+        // Contact and an Account (ADR-NEXT). The donor still finds the document, through the
+        // Receipts related list on their record, which needs a Giving permission set.
+        storeDocumentFor(receipt, html, new List<Id>{ receipt.Id, gift.Id });
 
         GiftService.recordReceiptNumbers(new Map<Id, String>{ gift.Id => allocated });
         return receipt;
@@ -93,7 +93,7 @@ public with sharing class ReceiptService {
      * (R-RC4).
      */
     public static Receipt__c voidReceipt(Id receiptId, String reason) {
-        requirePermission();
+        requireIssuePermission();
         if (String.isBlank(reason)) {
             throw new ReceiptServiceException(Label.Giving_Receipt_VoidNeedsReason);
         }
@@ -122,7 +122,7 @@ public with sharing class ReceiptService {
      * records point at each other so that a person holding either can find the other.
      */
     public static Receipt__c voidAndReissue(Id receiptId, String reason) {
-        requirePermission();
+        requireIssuePermission();
         Receipt__c original = ReceiptSelector.byId(receiptId);
         if (original == null) {
             throw new ReceiptServiceException(Label.Giving_Receipt_NotFound);
@@ -192,7 +192,10 @@ public with sharing class ReceiptService {
             Receipt_Run__c = runId
         );
         ReceiptWriter.insertReceipts(new List<Receipt__c>{ receipt });
-        storeDocumentFor(receipt, html, new List<Id>{ receipt.Id, donor.Id }, renderer);
+        // The receipt only. A year end statement is the whole of a donor's giving, their address
+        // and the organization's tax identifiers in one document, and linking it to the donor
+        // Account put it in the Files list of a record every Core role can read (ADR-NEXT).
+        storeDocumentFor(receipt, html, new List<Id>{ receipt.Id }, renderer);
         return receipt;
     }
 
@@ -274,7 +277,12 @@ public with sharing class ReceiptService {
         return issuePermission;
     }
 
-    private static void requirePermission() {
+    /**
+     * The gate every issuing path passes. Public because `ReceiptTemplateService` needs the same
+     * answer before it materializes a shipped letter on the issuing path, and one gate stated once
+     * is what ADR-0021 asks for (ADR-NEXT).
+     */
+    public static void requireIssuePermission() {
         if (!canIssueReceipts()) {
             throw new ReceiptServiceException(Label.Giving_Receipt_NoPermission);
         }
