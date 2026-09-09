@@ -2614,6 +2614,271 @@ the administrator's to fix, and a template that omits them still produces a vali
 
 ---
 
+## 25F. Acknowledgment Rule
+
+### Definition
+
+One line of the organization's answer to "who gets thanked, and how" (plan Section 4.11,
+feature G-12, v0.4). A rule names the gifts it is about, by amount, by gift type, by appeal,
+and by whether the gift is the donor's first, and says what those gifts get: an email, a
+letter, or nothing.
+
+The rules decide and record. **Nothing in this release sends anything.** A rule that says
+Email records that an email is the right thank you and which standard email template says
+it; sending is a later feature, and until then a person or an integration sends the thank
+you and the gift is marked acknowledged.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | yes | What the administrator calls this rule, in their own words: "Gifts over 1000", "First gift from an appeal". |
+| Evaluation Order | integer | yes | The position of this rule in the list. Rules are tested lowest first and the first one that matches wins. |
+| Active | boolean | yes (defaults true) | Whether this rule is tested at all. |
+| Minimum Amount | decimal | no | The smallest gift this rule is about. Empty means there is no lower bound. |
+| Maximum Amount | decimal | no | The amount at which a gift is past this rule. Empty means there is no upper bound. |
+| Gift Type | picklist(Cash, Check, Card, ACH, Stock, In-kind, Grant, Other) | no | The one kind of gift this rule is about. Empty means every kind. |
+| Appeal | reference(Appeal) | no | The one appeal this rule is about. Empty means every appeal, and gifts with no appeal. |
+| First Gift Only | boolean | yes (defaults false) | When set, the rule is only about a donor's first gift. |
+| Channel | picklist(Email, Letter, None) | yes | How a matching gift is thanked, or that it is not thanked at all. |
+| Template | reference(Acknowledgment Template) | conditional | The wording. Required when Channel is Email or Letter, and empty when Channel is None. |
+
+### Relationships
+
+- **Acknowledgment Rule to Acknowledgment Template**, many to one. Several rules can send
+  the same letter.
+- **Acknowledgment Rule to Acknowledgment**, one to many. An acknowledgment records the rule
+  that produced it, so editing the rules afterwards does not rewrite history.
+
+### Rules
+
+**R-AK1 First match wins.** Active rules are tested in Evaluation Order, then by Name so that two rules
+sharing an order are still tested in a fixed sequence. The first rule whose criteria all
+match is the rule for that gift, and no later rule is consulted. This is what makes an
+overlapping ladder ("first gifts", then "gifts over 1000", then "everything else")
+predictable without an administrator having to reason about precedence.
+
+**R-AK2 An empty criterion matches everything.** A rule with no amounts, no gift type, no
+appeal and First Gift Only clear matches every gift, which is how the catch-all rule at the
+bottom of the list is written.
+
+**R-AK3 Amount bounds are inclusive at the bottom and exclusive at the top.** A gift of
+exactly the minimum matches; a gift of exactly the maximum belongs to the next rule up. This
+is the convention Donor Level already uses (R-DL2), so an administrator learns it once.
+
+**R-AK4 First gift means no earlier gift.** A gift is the donor's first when that donor (the
+Donor Contact if there is one, otherwise the Donor Account) has no other gift with an earlier
+Gift Date, counting gifts whose Amount is greater than zero and whose Status is Received,
+Refunded or Written off, which is the count filter ADR-0022 settled. Two gifts on the same
+earliest date are both first gifts, which is the honest answer when nothing separates them.
+The test reads gifts rather than the First Gift Date rollup attribute, because the rollup may
+be a night behind and a gift entered today has to be classified today.
+
+**R-AK5 No rule, no opinion.** A gift that matches no rule, and every gift in an organization
+that has written no rules, keeps the Acknowledgment Status it already has. The package never
+decides by default that a donor does not need thanking.
+
+**R-AK6 Channel None means Not required.** When the matching rule's channel is None, the
+gift's Acknowledgment Status becomes Not required, which takes it out of the list of gifts
+waiting for a thank you and leaves a record of why.
+
+**R-AK7 A person's decision is never overwritten.** A gift is evaluated only while its
+Acknowledgment Status is still To acknowledge and its Acknowledgment Date is empty. A gift
+somebody set to Do not acknowledge, Not required or Acknowledged by hand is left alone, and
+an already evaluated gift is re-evaluated only when one of the attributes a rule can read
+(amount, gift type, appeal, gift date, donor, status) has changed.
+
+**R-AK8 Deciding is not sending.** No packaged automation sends an email or produces a
+mailing file in this release. Acknowledgment Status and Acknowledgment Date on the gift, and
+the Acknowledgment record of Section 25H, say what was decided and what was recorded as
+done.
+
+### Salesforce implementation
+
+- **Object:** `Acknowledgment_Rule__c`, Text Name, sharing model ReadWrite.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Evaluation Order | `Evaluation_Order__c` | Number(4, 0) |
+| Active | `Active__c` | Checkbox, default true |
+| Minimum Amount | `Minimum_Amount__c` | Currency(18, 2) |
+| Maximum Amount | `Maximum_Amount__c` | Currency(18, 2) |
+| Gift Type | `Gift_Type__c` | Picklist: Cash, Check, Card, ACH, Stock, In-kind, Grant, Other |
+| Appeal | `Appeal__c` | Lookup to `Appeal__c` |
+| First Gift Only | `First_Gift_Only__c` | Checkbox, default false |
+| Channel | `Channel__c` | Picklist: Email, Letter, None |
+| Template | `Template__c` | Lookup to `Acknowledgment_Template__c` |
+
+- **Validation rules:** `Maximum_Above_Minimum`, and `Template_Matches_Channel`, which
+  refuses a rule with a channel of Email or Letter and no template, and a rule with a channel
+  of None that names one.
+- **Automation:** `Automation_Registry__mdt` row `Acknowledgment_Rules` on `Gift__c`, order
+  50, handler `AcknowledgmentGiftHandler`. It is an ordinary switchable automation: an
+  organization that would rather decide by hand switches it off in the console and nothing
+  else changes.
+- **Service:** `AcknowledgmentRuleEngine` evaluates, `AcknowledgmentService` records.
+
+---
+
+## 25G. Acknowledgment Template
+
+### Definition
+
+The wording of a thank you: the letter an administrator writes, or the name of the standard
+email template they built with the platform's own email editor.
+
+The two channels are held differently on purpose. A letter is wording this package owns, so
+it lives here as text with merge tokens, exactly as a receipt letter does (Section 25E). An
+email is wording the platform already has a good editor and a good preview for, so the
+package stores the developer name of a standard email template and ships no email template
+metadata of its own (R-AT3).
+
+This is a different object from Receipt Template and deliberately not a reuse of it. A
+receipt template is a tax document whose renderer appends legally required sentences an
+administrator cannot edit out (R-RT3), and its types are Per gift and Consolidated statement.
+A thank you carries no such obligation and has no such types.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | yes | What the administrator calls this wording. |
+| Channel | picklist(Email, Letter) | yes | Which kind of thank you this template is for. |
+| Body | long text | conditional | The letter, with merge tokens. Required for a Letter template and ignored for an Email one. |
+| Email Template Developer Name | text | conditional | The developer name of a standard email template in this org. Required for an Email template and ignored for a Letter one. |
+| Active | boolean | yes (defaults true) | Whether rules may use this wording. |
+
+### Relationships
+
+- **Acknowledgment Template to Acknowledgment Rule**, one to many.
+- **Acknowledgment Template to Acknowledgment**, one to many. An acknowledgment names the
+  template it used and also keeps a copy of the wording as it stood (R-AC3), because the
+  template will have been edited by the time anybody asks what the donor was sent.
+
+### Rules
+
+**R-AT1 A template belongs to one channel.** There is no template that is both a letter and
+an email, because the two are edited in different places and a single record that was
+sometimes one and sometimes the other would be a template nobody could proofread.
+
+**R-AT2 Tokens are a closed set.** Only the tokens the package documents are merged. An
+unknown token is left as typed rather than silently emptied, so a typo shows up on the record
+of the letter rather than disappearing from it. The set is `{{DonorName}}`,
+`{{DonorFirstName}}`, `{{GiftAmount}}`, `{{GiftDate}}`, `{{GiftType}}`, `{{AppealName}}`,
+`{{OrganizationName}}`, `{{SignerName}}` and `{{SignerTitle}}`. A token whose value is empty
+merges to nothing, and never to an error: a thank you is not a tax document and a missing
+organization name is not worth refusing a save over.
+
+**R-AT3 The email wording is the platform's, named and not owned.** The Email channel stores
+a developer name in a text attribute rather than a reference to an email template, and the
+package ships no email template metadata. That keeps the package installable in an org with
+no email templates at all, lets an administrator point at wording built and previewed with
+the standard editor, and means an upgrade never overwrites what somebody wrote. A developer
+name that no longer resolves is reported to the Error Log when a gift is acknowledged, not at
+install time.
+
+**R-AT4 An unusable template is reported, not silently ignored.** A rule whose template is
+inactive, deleted, or of the wrong channel is reported to the Error Log with the rule's name
+at the moment a gift acknowledged under it is recorded. The acknowledgment is still written,
+naming the rule that matched and carrying no wording, because a person sent that thank you
+and the record of it should not be lost to a configuration mistake. The commonest version of
+the mistake, a rule with a channel and no template at all, is refused where it is typed by
+the rule's own validation.
+
+**R-AT5 More than one template may be active for a channel.** Unlike a receipt letter
+(R-RT1), thank you wording is chosen by the rule that matched and not by being the one active
+template, because the point of the feature is that a first gift and a gift of ten thousand
+read differently. Active means only that rules may use it.
+
+### Salesforce implementation
+
+- **Object:** `Acknowledgment_Template__c`, Text Name, sharing model ReadWrite.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Channel | `Channel__c` | Picklist: Email, Letter |
+| Body | `Body__c` | Long Text Area (32768) |
+| Email Template Developer Name | `Email_Template_Developer_Name__c` | Text(80) |
+| Active | `Active__c` | Checkbox, default true |
+
+- **Validation rule:** `Wording_Matches_Channel`, which refuses a Letter template with no
+  body and an Email template with no developer name.
+- **Service:** `AcknowledgmentTemplateService` merges the token set of R-AT2.
+
+---
+
+## 25H. Acknowledgment
+
+### Definition
+
+The record that one gift was thanked: when, under which rule, with which wording, on which
+channel. It is the sent tracking G-12 asks for, and it is written by automation the moment a
+gift's Acknowledgment Status becomes Acknowledged, whoever moved it there.
+
+That last point is what makes the feature work with no new screen. David exports the gifts
+waiting to be thanked, sends the letters or the emails outside Salesforce, and marks the
+gifts acknowledged: from a list view, from an import, from the API, or one at a time. The
+package notices the change and writes the record of it.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | yes (computed) | An automatically assigned record number. |
+| Gift | reference(Gift) | yes | The gift that was thanked. The acknowledgment belongs to its gift and is deleted with it. |
+| Rule | reference(Acknowledgment Rule) | no | The rule that matched. Empty when a gift was acknowledged with no rule matching it. |
+| Template | reference(Acknowledgment Template) | no | The wording the rule named. |
+| Channel | picklist(Email, Letter) | no | How the donor was thanked. Empty when no rule matched. |
+| Acknowledged Date | date | yes | The date recorded on the gift. |
+| Letter | long text | no | The merged wording, as it stood on the day, for a Letter. |
+| Email Template Developer Name | text | no | The developer name that applied on the day, for an Email. |
+
+### Relationships
+
+- **Acknowledgment to Gift**, many to one. Many because a gift thanked, then moved back to To
+  acknowledge and thanked again, has two of them, and both are true.
+
+### Rules
+
+**R-AC1 Written by the status, not by a button.** One record is created when a gift's
+Acknowledgment Status becomes Acknowledged from any other value, in the same transaction as
+the change. Acknowledgment Date is filled with today's date first if it is empty, so the gift
+and its record always agree.
+
+**R-AC2 History is not edited.** A record is never updated and never deleted by the package.
+A gift moved back to To acknowledge keeps the records it has and gains another when it is
+acknowledged again, which is the honest account of a donor who was thanked twice.
+
+**R-AC3 The wording is frozen.** For a Letter, the merged text is stored on the record. The
+template will be edited; what the donor read will not be. For an Email the package stores the
+developer name rather than merged text, because it does not merge or send the email and
+storing a guess at what the platform would have produced would be a lie about a document.
+
+**R-AC4 The record is not a receipt.** It carries no number, no immutability lock and no tax
+language, and nothing in the receipting rules (R-RC1 to R-RC10) applies to it.
+
+### Salesforce implementation
+
+- **Object:** `Acknowledgment__c`, AutoNumber Name `AK-{000000}`, sharing model
+  ControlledByParent, so a person who cannot see a gift cannot read its thank you, and a
+  deleted gift takes its thank you records with it. This is the shape Soft Credit and
+  Tribute already use.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Gift | `Gift__c` | Master-Detail to `Gift__c` |
+| Rule | `Rule__c` | Lookup to `Acknowledgment_Rule__c` |
+| Template | `Template__c` | Lookup to `Acknowledgment_Template__c` |
+| Channel | `Channel__c` | Picklist: Email, Letter |
+| Acknowledged Date | `Acknowledged_Date__c` | Date |
+| Letter | `Letter__c` | Long Text Area (32768) |
+| Email Template Developer Name | `Email_Template_Developer_Name__c` | Text(80) |
+
+- **Service:** `AcknowledgmentService.recordAcknowledgments`, called by
+  `AcknowledgmentGiftHandler` after insert and after update.
+
+---
+
 ## 26. Packaged default rollups
 
 ### Definition
@@ -3134,7 +3399,6 @@ that builds it, before its metadata is created.
 
 | Entity | Package | Iteration | Plan reference |
 |---|---|---|---|
-| Acknowledgment Rule | Giving | v0.4 (G-12) | Section 4.11 |
 | Receipt | Giving | v0.4 (G-13) | Section 4.11, ADR-0010 |
 | Donor Level | Giving | v0.4 (G-14) | Section 5.2 |
 | Stewardship Plan | Giving | v0.4 (G-15) | Section 5.2 |
@@ -3146,6 +3410,9 @@ that builds it, before its metadata is created.
 
 Receipt left this table in v0.4 and is specified in Sections 25B to 25E, together with
 Receipt Number Sequence, Receipt Run and Receipt Template.
+
+Acknowledgment Rule left this table in v0.4 and is specified in Sections 25F to 25H,
+together with Acknowledgment Template and Acknowledgment.
 
 Two v0.4 entities have attributes that already exist on `Gift__c` from v0.2, because the
 object is not worth altering later for fields this cheap: Acknowledgment Status,
@@ -3187,6 +3454,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.4 | 2026-09-08 | G-14 donor levels (ADR-0028). New Section 25A, `Donor_Level__c`, with `Minimum_Amount__c`, `Maximum_Amount__c`, `Description__c` and `Active__c`, and three fields shipped by Giving on both Account and Contact: `Donor_Level__c`, `Previous_Donor_Level__c` and `Donor_Level_Changed_Date__c`. Giving Settings gains `Donor_Levels_Enabled__c`, `Donor_Level_Source_Field__c` and `Donor_Levels_Last_Recalculated__c`. A level is a label on a giving total the rollup engine already maintains (R-DL1), never a second aggregation, so the ladder cannot disagree with the total printed beside it and the household membership modes are resolved once, by the rollup, rather than twice. Donor Level is removed from the deferred table in Section 30 and its ownership row now points at Section 25A. |
 | v0.4 | 2026-09-08 | G-13 receipting (ADR-0016). Four objects added: `Receipt__c` (Section 25B), `Receipt_Number_Sequence__c` (25C), `Receipt_Run__c` (25D) and `Receipt_Template__c` (25E), with rules R-RC1 to R-RC10, R-RS1 to R-RS3, R-RR1 to R-RR3 and R-RT1 to R-RT3. Gift gains `Benefit_Description__c`, `Benefit_Value__c` and `Intangible_Religious_Benefits__c`, which is what a receipt needs to state a quid pro quo disclosure and the intangible religious benefits sentence; the deductible amount is computed by the renderer rather than stored, because a stored copy of a subtraction is a second place for it to be wrong. Giving Settings gains `Receipt_Number_Prefix__c`, `Receipt_Next_Counter__c`, `Receipt_Statement_Year__c`, `Receipt_Place_Of_Issue__c` and `Receipt_Renderer__c`, and its implementation subsection now lists every key it holds. Receipt leaves Section 30. |
 | v0.4 | 2026-09-08 | C-10 sample data extended to the Giving module and to connections. `Sample Data` (`Sample_Data__c`, Checkbox, default false) added to `Gift__c`, `Fund__c`, `Appeal__c`, `Commitment__c`, `Relationship__c` and `Affiliation__c`, so every record the sample loader creates can be found and removed in one action; a gift's allocations, soft credits and tributes, and a commitment's installments, are details of a flagged record and go with it. `Sample Data Key` (`Sample_Data_Key__c`, Text(20)) added to Account and Contact: it holds the key the generated file gives a household, an organization or a person, which is how the Giving sample gifts find the donor they belong to across the asynchronous chain. No object added. |
+| v0.4 | 2026-09-08 | G-12 acknowledgments. Three objects added: `Acknowledgment_Rule__c` (Section 25F), `Acknowledgment_Template__c` (25G) and `Acknowledgment__c` (25H), with rules R-AK1 to R-AK8, R-AT1 to R-AT5 and R-AC1 to R-AC4. No field is added to `Gift__c`: `Acknowledgment_Status__c` and `Acknowledgment_Date__c` have been there since v0.2 and are what the rules write. `Acknowledgment_Template__c` is a separate object from `Receipt_Template__c` rather than a second type on it, because a receipt template is a tax document whose renderer appends sentences an administrator cannot edit out (R-RT3) and a thank you is not. The Email channel names a standard email template by developer name instead of holding a reference to one, so the package ships no email template metadata and installs in an org that has none (R-AT3). This release decides and records; it does not send (R-AK8). |
 
 ---
 ## 32. Entity ownership by package
@@ -3225,7 +3493,9 @@ included; standard objects the packages extend are named by the entity that gove
 | Relationship Type (shipped default) | Core | v0.3 | 13 |
 | Affiliation | Core | v0.3 | 28 |
 | Address | Core | v0.3 | 29 |
-| Acknowledgment Rule | Giving | v0.4 | 30 |
+| Acknowledgment Rule | Giving | v0.4 | 25F |
+| Acknowledgment Template | Giving | v0.4 | 25G |
+| Acknowledgment | Giving | v0.4 | 25H |
 | Receipt | Giving | v0.4 | 30 |
 | Donor Level | Giving | v0.4 | 25A |
 | Receipt | Giving | v0.4 | 25A |
