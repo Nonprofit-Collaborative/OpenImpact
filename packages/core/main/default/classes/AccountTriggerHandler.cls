@@ -153,7 +153,12 @@ public with sharing class AccountTriggerHandler extends TriggerHandler {
 
     /**
      * R-H2. Only in an org that stores people as accounts, only in junction mode, and only
-     * when the org has asked for it.
+     * when automatic household creation is on.
+     *
+     * That is the same setting a person stored as a contact is given a household by
+     * (ADR-0037). The separate person account setting this used to read is retired: it
+     * shipped off, so an org that took the recommended setup got no households at all and
+     * was told nothing about it.
      */
     private static void createHouseholdsForNewPeople(List<Account> records) {
         if (running || records == null || records.isEmpty()) {
@@ -163,7 +168,7 @@ public with sharing class AccountTriggerHandler extends TriggerHandler {
             return;
         }
         Nonprofit_Settings__c settings = SettingsService.getSettings();
-        if (settings == null || settings.Create_Households_For_Person_Accounts__c != true) {
+        if (settings == null || settings.Auto_Create_Households__c != true) {
             return;
         }
         List<SObject> people = PersonRecordSelector.filterPeople(records);

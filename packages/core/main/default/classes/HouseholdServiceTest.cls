@@ -44,6 +44,137 @@ private class HouseholdServiceTest {
         Assert.areEqual(200, withHousehold, 'Every person in the batch has a household');
     }
 
+    /**
+     * The defect ADR-0037 closes, asserted from the configuration an administrator arrives
+     * at by following the product's own recommendation in a Nonprofit Cloud org: junction
+     * membership, and nothing else changed.
+     */
+    @IsTest
+    static void aNewPersonInJunctionModeGetsAHouseholdAndAMembershipRow() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+
+        Test.startTest();
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        insert maria;
+        Test.stopTest();
+
+        List<Household_Member__c> memberships = [
+            SELECT
+                Household__c,
+                Contact__c,
+                Account__c,
+                Role__c,
+                Is_Primary__c,
+                Household__r.Name,
+                Household__r.Member_Count__c,
+                Household__r.RecordTypeId
+            FROM Household_Member__c
+            WHERE Contact__c = :maria.Id
+        ];
+        Assert.areEqual(1, memberships.size(), 'Maria was joined to a household (R-H2)');
+        Assert.areEqual(
+            HouseholdService.householdRecordTypeId(),
+            memberships[0].Household__r.RecordTypeId,
+            'The household is a household'
+        );
+        Assert.areEqual(
+            'The Garcia Family',
+            memberships[0].Household__r.Name,
+            'And it is named from her surname, the same way contact mode names it'
+        );
+        Assert.areEqual(1, memberships[0].Household__r.Member_Count__c, 'And counts her');
+        Assert.areEqual('Head', memberships[0].Role__c, 'She heads her own household');
+        Assert.isTrue(memberships[0].Is_Primary__c, 'And is its primary member');
+        Assert.isNull(
+            memberships[0].Account__c,
+            'She is recorded as a contact, because that is the object she is stored on'
+        );
+        Assert.areEqual(
+            memberships[0].Household__c,
+            HouseholdService.getHouseholdIdsFor(new Set<Id>{ maria.Id }).get(maria.Id),
+            'And the service answers with that household when asked whose she is'
+        );
+    }
+
+    @IsTest
+    static void noHouseholdIsCreatedInJunctionModeWhenTheSettingIsOff() {
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
+
+        Test.startTest();
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        insert maria;
+        Test.stopTest();
+
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Household_Member__c],
+            'The org said no, so nobody was joined to anything'
+        );
+        Assert.areEqual(
+            0,
+            [
+                SELECT COUNT()
+                FROM Account
+                WHERE RecordTypeId = :HouseholdService.householdRecordTypeId()
+            ],
+            'And no household was made either'
+        );
+    }
+
+    @IsTest
+    static void twoHundredPeopleInOneSaveEachGetAHouseholdInJunctionMode() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        List<Contact> people = HouseholdTestDataFactory.manyContacts(200, 'Bulk');
+
+        Test.startTest();
+        insert people;
+        Test.stopTest();
+
+        Assert.areEqual(
+            200,
+            [SELECT COUNT() FROM Household_Member__c WHERE Contact__c IN :people],
+            'Every person in the batch is joined to a household of their own (R-H2)'
+        );
+        Assert.areEqual(
+            200,
+            [
+                SELECT COUNT()
+                FROM Account
+                WHERE RecordTypeId = :HouseholdService.householdRecordTypeId()
+            ],
+            'And exactly one household was made for each of them, not two'
+        );
+    }
+
+    /**
+     * Somebody saved straight into a household they were given is not given a second one.
+     * This is how a person arrives from the merge and split screens and from an import that
+     * names their household, and it is the junction mode form of the contact mode test that
+     * a contact arriving with an account keeps it.
+     */
+    @IsTest
+    static void aPersonSavedIntoAHouseholdInJunctionModeIsNotGivenASecondOne() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        Account household = HouseholdTestDataFactory.newHousehold('The Smith Family');
+        insert household;
+
+        Test.startTest();
+        Contact john = HouseholdTestDataFactory.newContact('Mr.', 'John', 'Smith');
+        john.AccountId = household.Id;
+        insert john;
+        Test.stopTest();
+
+        Assert.areEqual(
+            1,
+            [
+                SELECT COUNT()
+                FROM Account
+                WHERE RecordTypeId = :HouseholdService.householdRecordTypeId()
+            ],
+            'The household he was saved into is the only one there is'
+        );
+    }
+
     @IsTest
     static void noHouseholdIsCreatedWhenTheSettingIsOff() {
         Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
@@ -117,7 +248,7 @@ private class HouseholdServiceTest {
 
     @IsTest
     static void junctionModeReadsMembersFromTheJunction() {
-        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
         Account household = HouseholdTestDataFactory.newHousehold('The Smith Family');
         insert household;
         Contact john = HouseholdTestDataFactory.newContact('Mr.', 'John', 'Smith');
@@ -150,9 +281,7 @@ private class HouseholdServiceTest {
 
     @IsTest
     static void junctionModeEndsTheOldMembershipWhenSomeoneMoves() {
-        Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
-            HouseholdTestDataFactory.MODE_JUNCTION
-        );
+        Nonprofit_Settings__c settings = HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
         // The household John leaves has to still be there afterwards for this test to be
         // able to look at what happened to his membership of it. Household Member cascades
         // from its household, so tidying the emptied household away would take the ended
@@ -351,7 +480,7 @@ private class HouseholdServiceTest {
 
     @IsTest
     static void theHouseholdOfAPersonIsAnsweredInJunctionMode() {
-        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
         List<Account> households = new List<Account>{
             HouseholdTestDataFactory.newHousehold('The Smith Family'),
             HouseholdTestDataFactory.newHousehold('The Garcia Family')
@@ -436,7 +565,7 @@ private class HouseholdServiceTest {
 
     @IsTest
     static void theMembersOfAHouseholdAreAnsweredInJunctionMode() {
-        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
         Account household = HouseholdTestDataFactory.newHousehold('The Smith Family');
         insert household;
         Contact john = HouseholdTestDataFactory.newContact('Mr.', 'John', 'Smith');
@@ -474,7 +603,7 @@ private class HouseholdServiceTest {
 
     @IsTest
     static void aPersonStoredAsAnAccountIsMovedThroughTheJunction() {
-        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
         HouseholdService.personAccountOverride = true;
         PersonRecordSelector.personRecordOverride = true;
         Account person = new Account(Name = 'Maria Garcia');
@@ -796,7 +925,7 @@ private class HouseholdServiceTest {
 
     @IsTest
     static void peopleStoredAsAccountsMoveInBulkThroughTheJunction() {
-        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
         HouseholdService.personAccountOverride = true;
         PersonRecordSelector.personRecordOverride = true;
         List<Account> people = new List<Account>{
@@ -851,7 +980,7 @@ private class HouseholdServiceTest {
 
     @IsTest
     static void twoPrimaryPeopleMovingIntoOneHouseholdLeaveItOnePrimary() {
-        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
         List<Contact> people = new List<Contact>{
             HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia'),
             HouseholdTestDataFactory.newContact('Mr.', 'Wei', 'Lee')
@@ -909,7 +1038,7 @@ private class HouseholdServiceTest {
 
     @IsTest
     static void anArrivingPrimaryDoesNotDisplaceTheOneAlreadyThere() {
-        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
         List<Contact> people = new List<Contact>{
             HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia'),
             HouseholdTestDataFactory.newContact('Mr.', 'Wei', 'Lee')
@@ -980,7 +1109,7 @@ private class HouseholdServiceTest {
 
     @IsTest
     static void thePrimaryContactIsClearedWhenThatPersonLeavesInJunctionMode() {
-        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
         Account household = HouseholdTestDataFactory.newHousehold('The Smith Family');
         Account target = HouseholdTestDataFactory.newHousehold('The Garcia Family');
         insert new List<Account>{ household, target };
@@ -1093,7 +1222,7 @@ private class HouseholdServiceTest {
 
     @IsTest
     static void peopleAreJoinedToSeveralHouseholdsAtOnceInJunctionMode() {
-        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
         List<Account> households = new List<Account>{
             HouseholdTestDataFactory.newHousehold('The Smith Family'),
             HouseholdTestDataFactory.newHousehold('The Garcia Family')
@@ -1135,7 +1264,7 @@ private class HouseholdServiceTest {
 
     @IsTest
     static void joiningSomebodyTwiceLeavesThemOneMembership() {
-        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
         Account household = HouseholdTestDataFactory.newHousehold('The Smith Family');
         insert household;
         Contact john = HouseholdTestDataFactory.newContact('Mr.', 'John', 'Smith');

@@ -64,7 +64,10 @@ Open Impact looks at your org and tells you what it found, in plain words:
   Open Impact recommends **Agentforce Nonprofit coexistence**: households are tracked with
   a membership record for each person, so a person can belong to more than one household
   and nothing you already have is disturbed. Your existing records keep working exactly as
-  they do today.
+  they do today. Confirming this mode switches household membership to those membership
+  records, and from then on saving a new person creates their household and their
+  membership of it, exactly as it does in the simple mode. The switch that governs that is
+  "create a household automatically" on the Households page of Nonprofit Settings.
 - **"NPSP is installed in this org."** Open Impact recommends **NPSP coexistence**, which
   records that NPSP is here. In this version it changes no behaviour: Open Impact builds its
   own households and leaves NPSP's alone.

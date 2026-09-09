@@ -59,6 +59,24 @@ public with sharing class HealthCheckController {
         }
     }
 
+    /**
+     * Turn automatic household creation on, which is what the org needs when household
+     * membership is on the junction and no new person is getting a household (ADR-0037).
+     */
+    @AuraEnabled
+    public static HealthCheckService.Report enableAutomaticHouseholds() {
+        requireManageSettings();
+        try {
+            HouseholdService.enableAutomaticHouseholds();
+            return HealthCheckService.buildReport();
+        } catch (AuraHandledException e) {
+            throw e;
+        } catch (Exception e) {
+            ErrorLogger.log(e, System.Label.Core_HealthCheck_ErrorContext);
+            throw new AuraHandledException(System.Label.Core_HealthCheck_FixFailed);
+        }
+    }
+
     private static void requireManageSettings() {
         if (!HealthCheckService.canManageSettings()) {
             throw new AuraHandledException(System.Label.Core_HealthCheck_PermissionRequired);

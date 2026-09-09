@@ -27,6 +27,7 @@ public with sharing class HealthCheckService {
     public static final String FIX_ACTION_PREFIX = 'action:';
     public static final String FIX_APPLY_RECOMMENDED_MODE = 'action:applyRecommendedMode';
     public static final String FIX_APPLY_JUNCTION_MEMBERSHIP = 'action:applyJunctionMembership';
+    public static final String FIX_ENABLE_AUTOMATIC_HOUSEHOLDS = 'action:enableAutomaticHouseholds';
 
     /** The settings console tab that hosts every section a fix can point at. */
     public static final String SETTINGS_TAB = 'Nonprofit_Settings';
@@ -260,6 +261,12 @@ public with sharing class HealthCheckService {
         }
     }
 
+    private class HouseholdCreationCheck implements Check {
+        public Finding run() {
+            return householdCreationFinding();
+        }
+    }
+
     private class ConnectModuleCheck implements Check {
         public Finding run() {
             return connectModuleFinding(OrgShapeDetector.detect());
@@ -364,6 +371,7 @@ public with sharing class HealthCheckService {
         steps.add(new CheckStep('org_shape', new OrgShapeCheck()));
         steps.add(new CheckStep('coexistence_mode', new CoexistenceModeCheck()));
         steps.add(new CheckStep('membership_mode', new MembershipModeCheck()));
+        steps.add(new CheckStep('household_creation', new HouseholdCreationCheck()));
         steps.add(new CheckStep('connect_module', new ConnectModuleCheck()));
         steps.add(new CheckStep('multi_currency', new MultiCurrencyCheck()));
 
@@ -539,6 +547,41 @@ public with sharing class HealthCheckService {
                 CATEGORY_ORG_SHAPE
             )
             .withFix(System.Label.Core_HealthCheck_MembershipFix, FIX_APPLY_JUNCTION_MEMBERSHIP);
+    }
+
+    /**
+     * The state this finding exists for: household membership is on the junction, and
+     * automatic creation is off, so no new person gets a household and nothing else says so
+     * (ADR-0037).
+     *
+     * It is an error rather than a warning because it is silent by construction. Nothing
+     * fails, nothing is logged, and the damage is only visible later, in the people saved
+     * while it was true. Only junction mode is reported: contact mode with automatic
+     * creation off still leaves the household field on the person, where its being empty is
+     * there to see, and junction mode has no such field to notice.
+     */
+    private static Finding householdCreationFinding() {
+        if (
+            !CoexistenceService.MEMBERSHIP_JUNCTION.equals(CoexistenceService.getMembershipMode())
+        ) {
+            return null;
+        }
+        Nonprofit_Settings__c settings = SettingsService.getSettings();
+        if (settings != null && settings.Auto_Create_Households__c == true) {
+            return null;
+        }
+
+        return new Finding(
+                'household_creation_disabled',
+                System.Label.Core_HealthCheck_NoHouseholdCreationTitle,
+                System.Label.Core_HealthCheck_NoHouseholdCreationDetail,
+                SEVERITY_ERROR,
+                CATEGORY_SETTINGS
+            )
+            .withFix(
+                System.Label.Core_HealthCheck_NoHouseholdCreationFix,
+                FIX_ENABLE_AUTOMATIC_HOUSEHOLDS
+            );
     }
 
     private static Finding connectModuleFinding(OrgShapeDetector.OrgShape shape) {
