@@ -6,10 +6,6 @@
   <columns>Household_Role__c</columns>
   <columns>CONTACT.EMAIL</columns>
   <filterScope>Everything</filterScope>
-  <filters>
-    <field>RecordType.DeveloperName</field>
-    <operation>equals</operation>
-    <value>Household_Contact</value>
-  </filters>
   <label>All Household Contacts</label>
+  <recordType>Contact.Household_Contact</recordType>
 </ListView>

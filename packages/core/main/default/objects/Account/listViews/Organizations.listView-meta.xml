@@ -5,10 +5,6 @@
   <columns>ACCOUNT.PHONE1</columns>
   <columns>Primary_Contact__c</columns>
   <filterScope>Everything</filterScope>
-  <filters>
-    <field>RecordType.DeveloperName</field>
-    <operation>equals</operation>
-    <value>Organization</value>
-  </filters>
   <label>Organizations</label>
+  <recordType>Account.Organization</recordType>
 </ListView>
