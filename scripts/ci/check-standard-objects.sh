@@ -8,6 +8,16 @@
 # name. Those objects and fields may only be referenced from packages/connect, and even there
 # behind dynamic Apex (see docs/product-plan.md Section 4.2).
 #
+# A second pattern covers the Nonprofit Cloud surface: the fundraising objects, the objects a
+# household is actually built out of there (PartyRelationshipGroup and AccountContactRelation),
+# and the contact point objects that are its answer to an address. It is checked in Apex and
+# metadata only, because a Lightning component's JavaScript cannot reference an SObject and
+# our own component class names collide with several of these words.
+#
+# This half was added after an audit found the gate matched GiftTransaction alone. Core could
+# have named PartyRelationshipGroup, the object that decides whether an Account is a Nonprofit
+# Cloud household, and CI would have passed it.
+#
 # Detection-only exemptions
 # -------------------------
 # Detecting that an object exists is not depending on it. Core has to be able to tell an
@@ -34,6 +44,16 @@ DIRS=(packages/core packages/giving packages/volunteers packages/programs packag
 
 PATTERN='\b(Opportunity|OpportunityContactRole|Campaign|CampaignMember|Lead|Case|PersonAccount|IsPersonAccount|GiftTransaction)\b|__dlm\b'
 
+# Apex and metadata only. See the note above on JavaScript.
+NPC_PATTERN='\b(PartyRelationshipGroup|PartyRoleRelation|AccountAccountRelation|AccountContactRelation|ContactContactRelation|ContactPointAddress|ContactPointEmail|ContactPointPhone|ContactPointConsent|PersonLifeEvent|GiftTransactionDesignation|GiftDesignation|GiftDefaultDesignation|GiftCommitment|GiftCommitmentSchedule|GiftSoftCredit|GiftTribute|GiftRefund|GiftEntry|GiftBatch|OutreachSourceCode|OutreachSummary|DonorGiftSummary|ProgramEnrollment|BenefitAssignment|BenefitDisbursement|RecordAggregationDefinition)\b'
+NPC_INCLUDES=(--include='*.cls' --include='*.trigger' --include='*.xml')
+
+# The vendored rollup engine is third party source, not ours to rewrite line by line, and it
+# names ContactPointAddress and Individual in its own test classes. That is a real open
+# question about whether Core deploys on a Platform-only org, not something to hide, so it is
+# excluded here and tracked as a follow-up rather than silently passed.
+NPC_EXCLUDE_DIR='vendor'
+
 MARKER='// detection-only:'
 
 FAILED=0
@@ -43,6 +63,11 @@ VIOLATIONS=()
 for DIR in "${DIRS[@]}"; do
   [[ -d "$DIR" ]] || continue
   MATCHES=$(grep -rnwE "$PATTERN" "$DIR" --include='*' --exclude='README.md' 2>/dev/null || true)
+  NPC_MATCHES=$(grep -rnwE "$NPC_PATTERN" "$DIR" "${NPC_INCLUDES[@]}" \
+    --exclude='README.md' --exclude-dir="$NPC_EXCLUDE_DIR" 2>/dev/null || true)
+  if [[ -n "$NPC_MATCHES" ]]; then
+    MATCHES=$(printf '%s\n%s' "$MATCHES" "$NPC_MATCHES")
+  fi
   [[ -n "$MATCHES" ]] || continue
   while IFS= read -r LINE; do
     [[ -n "$LINE" ]] || continue
