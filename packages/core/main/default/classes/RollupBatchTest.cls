@@ -30,8 +30,14 @@ private class RollupBatchTest {
         };
         RollupService.skipEngine = true;
 
+        // The scope has to hold every definition the query returns, which is why this is not the
+        // scope of 1 the scheduler uses. A test method runs exactly one chunk, so a scope of 1
+        // against the two definitions this run covers asks the platform for a second chunk and it
+        // refuses with "No more than one executeBatch can be called from within a test method".
+        // What is asserted here is which definitions the run covers, and that is decided by the
+        // query in start(), not by how the rows are chunked.
         Test.startTest();
-        Database.executeBatch(new RollupBatch(), 1);
+        Database.executeBatch(new RollupBatch(), 200);
         Test.stopTest();
 
         List<Rollup_Definition__c> stamped = [
