@@ -638,6 +638,109 @@ private class HouseholdServiceTest {
         );
     }
 
+    /**
+     * The junction mode counterpart of the contact save above, with the member stored as an
+     * account rather than as a contact. Upkeep reads that person through
+     * PersonRecordSelector, and a user mode read there fails on the packaged fields the
+     * query selects, which fails the user's own save.
+     *
+     * What this test substitutes and what it does not: the org shape is declared through
+     * personAccountOverride, because a Platform only test org has no person accounts to
+     * make. Nothing else is substituted. PersonRecordSelector.personRecordOverride and
+     * personOverridesByName are both left unset, so the query really runs, really selects
+     * Deceased__c and Household_Role__c on Account, and the person really is built from
+     * what came back. This test therefore measures the product and not the override.
+     */
+    @IsTest
+    static void aStandardUserWithNoPackagedAccessCanStillSaveAJunctionMembership() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdService.personAccountOverride = true;
+        User staff = HouseholdTestDataFactory.standardUser('junc');
+        // The household and the person are made by an administrator: a record type and a
+        // packaged field are not what this test is about, and the save it measures is the
+        // membership row.
+        Account household = HouseholdTestDataFactory.newHousehold('Placeholder');
+        insert household;
+        Account person = new Account(Name = 'Maria Garcia', Deceased__c = false);
+        insert person;
+        String failure = '';
+
+        Test.startTest();
+        System.runAs(staff) {
+            try {
+                insert new Household_Member__c(
+                    Household__c = household.Id,
+                    Account__c = person.Id,
+                    Role__c = 'Head',
+                    Start_Date__c = Date.today()
+                );
+            } catch (Exception e) {
+                failure = e.getMessage();
+            }
+        }
+        Test.stopTest();
+
+        Assert.areEqual('', failure, 'A user with no packaged access saves the membership');
+        Assert.areEqual(
+            1,
+            [SELECT Member_Count__c FROM Account WHERE Id = :household.Id].Member_Count__c,
+            'And the household counts the person stored as an account'
+        );
+    }
+
+    /**
+     * The junction mode counterpart of the screen test above. The panel reads the person
+     * with the running user's own access, so the deceased flag on the account never
+     * reaches a user who cannot read it, while upkeep still sees it.
+     *
+     * The same note about substitution applies: only the org shape is declared, through
+     * personAccountOverride. The person is a real account record, read by a real query,
+     * and no declared person stands in for it. The panel's name column is not asserted
+     * because the person name fields exist on Account only in an org shaped for them, and
+     * ADR-0009 forbids this package to name one.
+     */
+    @IsTest
+    static void aScreenNeverShowsAFieldTheUserCannotReadOnAPersonStoredAsAnAccount() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdService.personAccountOverride = true;
+        User staff = HouseholdTestDataFactory.standardUser('pafls');
+        HouseholdTestDataFactory.grantMembershipRead('C01_Junction_Display_Test', staff.Id);
+        Account household = HouseholdTestDataFactory.newHousehold('Placeholder');
+        insert household;
+        // Saved by the same user who will read it back, so that what this test measures is
+        // field level access and nothing else, exactly as the contact test above explains.
+        Account person = new Account(Name = 'Maria Garcia');
+        System.runAs(staff) {
+            insert person;
+        }
+        update new Account(Id = person.Id, Deceased__c = true);
+        insert new Household_Member__c(
+            Household__c = household.Id,
+            Account__c = person.Id,
+            Role__c = 'Head',
+            Start_Date__c = Date.today()
+        );
+        Assert.isTrue(
+            HouseholdService.getMembers(new Set<Id>{ household.Id }).get(household.Id)[0]
+                .isDeceased,
+            'Upkeep sees the whole record, which is how the greetings stay right'
+        );
+
+        List<HouseholdController.MemberView> shown;
+        Test.startTest();
+        System.runAs(staff) {
+            shown = HouseholdController.getMembers(household.Id);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, shown.size(), 'The panel still lists the member');
+        Assert.areEqual('Head', shown[0].role, 'With the role the membership row carries');
+        Assert.isFalse(
+            shown[0].isDeceased,
+            'A user with no access to the deceased field is not told that she died'
+        );
+    }
+
     @IsTest
     static void aBulkMoveMovesEverybodyAtOnceAndAnswersWithEveryHouseholdItTouched() {
         HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);

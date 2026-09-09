@@ -214,6 +214,15 @@ carries no default value: it is written by household upkeep and only ever onto a
 so an organization, which upkeep skips by record type, is left with an empty Member Count
 rather than a count of zero it never earned.
 
+Upkeep reads every member in system mode (ADR-0021), whichever object holds the person, so
+the count does not depend on the packaged access of whoever happened to save the record.
+A current member whose own record the upkeep read did not return is still counted, and is
+still moved by a merge or a split, because a household quietly recounted smaller is how a
+household gets renamed, emptied under R-H12, and its members lost. Such a member
+contributes nothing to the household name or the greetings, because there is no name to
+contribute. What a screen shows is read separately, with the running user's own access, and
+a member that read cannot return is not shown.
+
 **R-H12 Reparenting and empty households.** Moving a contact to a different household
 recalculates both households' member counts and, once Giving is installed, their giving
 rollups. The vacated household is deleted when it is empty and

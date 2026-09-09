@@ -309,8 +309,16 @@ public with sharing class HouseholdService {
                 peopleById.put(record.Id, new Person(record));
             }
         }
+        // Everybody the rows named and this org can read through: in an org that does not
+        // store people as accounts, an account named by a membership row is not a person
+        // and is not looked for at all.
+        Set<Id> lookedFor = new Set<Id>(contactIds);
         if (!personRecordIds.isEmpty() && isPersonAccountOrg()) {
-            for (Person person : PersonRecordSelector.getPersons(personRecordIds)) {
+            lookedFor.addAll(personRecordIds);
+            List<Person> people = asUser
+                ? PersonRecordSelector.getPersonsForDisplay(personRecordIds)
+                : PersonRecordSelector.getPersons(personRecordIds);
+            for (Person person : people) {
                 peopleById.put(person.id, person);
             }
         }
@@ -321,8 +329,20 @@ public with sharing class HouseholdService {
             Id householdId = idValue(values, 'Household__c');
             Person source = peopleById.get(personId);
             List<Person> bucket = householdId == null ? null : result.get(householdId);
-            if (source == null || bucket == null) {
+            if (bucket == null) {
                 continue;
+            }
+            if (source == null) {
+                if (asUser || !lookedFor.contains(personId)) {
+                    // A screen shows the people this user can read and nothing standing in
+                    // for the ones they cannot, and a row naming nobody the org stores
+                    // people on names no member at all.
+                    continue;
+                }
+                source = unresolvedMember(
+                    personId,
+                    contactId != null ? SOURCE_CONTACT : SOURCE_ACCOUNT
+                );
             }
             Person member = source.copy();
             String role = textValue(values, 'Role__c');
@@ -332,6 +352,28 @@ public with sharing class HouseholdService {
             member.isPrimary = flagValue(values, 'Is_Primary__c');
             bucket.add(member);
         }
+    }
+
+    /**
+     * A member whose own record the upkeep read did not return, kept as a member anyway.
+     *
+     * That read runs in system mode (ADR-0021), so field level access is not why the record
+     * is missing: either it has been deleted while the membership row still names it, or
+     * sharing withholds it from the running user. Dropping the member would recount the
+     * household smaller than it is, could rename it, could have it deleted as empty, and in
+     * a merge would leave the member behind on the household the merge deletes. So the
+     * member is counted. There is no name to put in the household name or the greetings,
+     * and the naming service would read a blank surname as a real one, so the placeholder
+     * is kept out of both: the wording a household ends up with is the wording it has
+     * today, and only the count and the moves change.
+     */
+    private static Person unresolvedMember(Id personId, String source) {
+        Person result = new Person();
+        result.id = personId;
+        result.sourceObject = source;
+        result.excludeFromName = true;
+        result.excludeFromGreetings = true;
+        return result;
     }
 
     /**
