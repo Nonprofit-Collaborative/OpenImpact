@@ -21,7 +21,7 @@ nested inside another component's markup, or named in the settings console's own
 switch. Those are the four ways anything in this package reaches a screen.
 
 The check deliberately says nothing about whether the *page* is reachable in turn: a flexipage
-nobody assigns is a different problem, and Salesforce gives us no way to know from source.
+nobody assigns is a different problem, and `check-record-pages-assigned.py` is the gate for it.
 """
 
 import glob

@@ -73,10 +73,21 @@ Salesforce org is needed for this job. Steps:
    said "scroll to the card", `receiptSettings` named across a package boundary the console
    cannot cross, `receiptActions` while the receipts walkthrough said "click Issue receipt",
    and `commitmentSchedulePreview`, which no guide ever mentioned at all.
-13. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
+13. `scripts/ci/check-record-pages-assigned.py`, failing the build if a packaged record page
+   flexipage is named by no `actionOverrides` assignment, or if an app assigns one for some
+   of the form factors it declares and not the others. Item 12 proves a component is on a
+   page and says so in its own header that it proves nothing about the page: a FlexiPage
+   cannot name the record type it serves, that assignment lives in the Lightning app, and a
+   page nothing assigns is never shown, so the component sits on a page nobody opens. Same
+   defect class one level up, and the same symptom: it deploys, every test passes, and the
+   administrator sees none of it until they wire it up by hand in the Lightning App Builder.
+   This ran because `Nonprofit_Hub.app-meta.xml` carried no `actionOverrides` at all, so the
+   household walkthrough failed at step 4 on every fresh install, and because
+   `Gift_Record_Page` and `Commitment_Record_Page` were stranded the same way in Fundraising.
+14. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
    is missing from `docs/architecture/canonical-model.md`. The canonical model is updated
    before an object or a field is added, so this is the gate that keeps it true.
-14. `scripts/ci/check-setting-defaults.py`, failing the build if a checkbox setting that
+15. `scripts/ci/check-setting-defaults.py`, failing the build if a checkbox setting that
    ships switched on is not declared in `SettingsService.SHIPPED_DEFAULTS`, or is declared
    there with a value the field metadata disagrees with. A field's own `defaultValue` is
    applied by the platform when a record is created through the user interface, and never
@@ -85,8 +96,8 @@ Salesforce org is needed for this job. Steps:
    silently, which is a defect only an org run finds (ADR-0035). This ran because C-15 had
    been writing one side of every relationship since it merged: the reciprocal upkeep read
    its own shipped default as false.
-15. A grep check that fails the build if any tracked file contains an em dash character.
-16. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
+16. A grep check that fails the build if any tracked file contains an em dash character.
+17. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
    `sf code-analyzer run --workspace packages --rule-selector Recommended --severity-threshold 2`.
    The results are uploaded as a build artifact (`code-analyzer-results.html` and
    `code-analyzer-results.json`) even if the job fails, so anyone can download and read
@@ -111,6 +122,7 @@ npm run check:permission-sets
 npm run check:help-links
 npm run check:adrs
 npm run check:components-reachable
+npm run check:record-pages-assigned
 npm run check:canonical-model
 npm run check:setting-defaults
 npm run check:apex

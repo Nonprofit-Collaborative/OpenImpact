@@ -18,6 +18,7 @@
     "check:help-links": "python3 scripts/ci/check-help-links.py",
     "check:adrs": "python3 scripts/ci/check-adrs.py",
     "check:components-reachable": "python3 scripts/ci/check-components-reachable.py",
+    "check:record-pages-assigned": "python3 scripts/ci/check-record-pages-assigned.py",
     "check:canonical-model": "python3 scripts/ci/check-canonical-model.py",
     "check:setting-defaults": "python3 scripts/ci/check-setting-defaults.py",
     "precommit": "lint-staged",
