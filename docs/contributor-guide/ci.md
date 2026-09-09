@@ -172,6 +172,20 @@ packages deploy), deploys
 `packages/core` and then `packages/giving`, runs the Apex tests, and uploads the results. It
 creates nothing and deletes nothing.
 
+**What the org actually is, read from the org on 2026-09-08:** Enterprise Edition, Person
+Accounts yes, Sales Cloud yes, NPSP no, Nonprofit Cloud no. So it is the
+`person-accounts.json` shape, which is what the setup steps above recommend and the closest
+an ordinary Dev Hub gets to the Agentforce Nonprofit orgs the first customers run.
+
+That is the good news and the caveat in one line. **The Platform-only shape is never
+exercised**, and ADR-0013 makes running on a Platform-only org a requirement rather than a
+preference. This org has Sales Cloud and Person Accounts, so a Core component that
+accidentally depends on either would deploy here and pass here, and fail at the first
+customer who has neither. `scripts/ci/check-standard-objects.sh` is the only thing standing
+between the package and that mistake, and it is a grep. Testing the Platform-only shape
+means a second org and a second secret; until then, treat every green org test as evidence
+about one shape and no other.
+
 The deploy goes in stages through `scripts/org/deploy-packages.sh`: the vendored rollup
 engine, then Core, then Giving. A failed stage asks the org for the component level report,
 by job id, in human form and then as JSON.
