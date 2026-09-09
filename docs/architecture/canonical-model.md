@@ -3125,6 +3125,92 @@ be explained.
 
 ---
 
+## 29A. Duplicate Dismissal
+
+### Definition
+
+A record of a person deciding that two records the duplicate scan proposed are not in fact
+the same household or the same person (plan Section 5.1, feature C-20). It exists so that a
+decision a person already made is not asked again the next time the scan runs.
+
+Nothing else about duplicate detection is stored here. The suggestions themselves are
+platform records: an active duplicate rule writes a Duplicate Record Set and its Duplicate
+Record Items when a record is saved, and the Open Impact scan writes the same two standard
+objects for duplicates that already existed before the rules were switched on. Open Impact
+adds no object for a suggestion, no matching logic of its own, and no copy of what the
+platform found (R-DP1).
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | computed | The dismissal's identifier, assigned automatically. |
+| Pair Key | text | yes | The two record identifiers, sorted and joined, that a person said are not duplicates. Unique, so the same pair is dismissed once. |
+| Reason | text | no | Why they are not duplicates, in the words of the person who decided: "twin sisters at the same address". |
+
+### Relationships
+
+- **Duplicate Dismissal to the two records it is about**, by identifier rather than by
+  lookup. The pair can be two Contacts or two Accounts, and a lookup field cannot point at
+  either object, so the identifiers are held as text (ADR-0014 records the same choice for
+  cross-package references).
+
+### Rules
+
+**R-DP1 The platform detects, Open Impact reviews.** Detection is done by the platform's
+own matching rules and duplicate rules. Open Impact ships one matching rule and one
+duplicate rule for Contact and for Account, and reads what they find from Duplicate Record
+Set and Duplicate Record Item. No packaged code compares two records field by field to
+decide whether they are duplicates.
+
+**R-DP2 The shipped rules use the import definition of the same person.** The Contact
+matching rule matches on an exact email address, or on an exact last name together with an
+exact mailing postal code. The Account matching rule matches on an exact account name
+together with an exact billing postal code or an exact billing street. These are the same
+keys the import framework uses to decide that an incoming row is a person or a household
+the org already has, so an import and a duplicate scan cannot disagree about what "the same
+person" means.
+
+**R-DP3 The scan finds what the rules would have found.** The scan asks the platform to
+evaluate its own active duplicate rules against records that already exist, in batches, and
+writes a Duplicate Record Set of exactly two items for each pair it is given back. It never
+proposes a pair that is already in an open Duplicate Record Set, and never one that has been
+dismissed. A scan cannot run when no duplicate rule for that object is active: there is
+nothing to evaluate, and the console says so rather than reporting that the org is clean.
+
+**R-DP4 A merge is one at a time, previewed, and confirmed by a person.** No packaged code
+merges or deletes records in bulk, and no automation merges anything at all. Two households
+are merged through the household merge service (R-H13), which is the only merge Open Impact
+performs. Two contacts are merged with the platform's own merge, from the record page,
+because the platform already does it and does it safely.
+
+**R-DP5 A dismissal is remembered, a suggestion is not.** Dismissing a suggestion deletes
+its Duplicate Record Set, which removes the grouping and never touches the two records, and
+writes a Duplicate Dismissal so the next scan passes the pair over. A dismissal can be
+deleted by an administrator, which is how a pair is put back in front of a reviewer.
+
+### Salesforce implementation
+
+- **Object** `Duplicate_Dismissal__c`, with an auto number Name.
+
+| Attribute | API name | Type | Notes |
+|---|---|---|---|
+| Pair Key | `Pair_Key__c` | Text(80), unique, external id | The two 18 character identifiers in ascending order, joined with a hyphen. |
+| Reason | `Reason__c` | Text(255) | Optional. |
+
+- **Suggestions** are the standard objects `DuplicateRecordSet` and `DuplicateRecordItem`.
+  They are read and written with the running user's own access, so a reviewer is never shown
+  a pair containing a record they cannot see.
+- **Shipped rules** are the matching rules `Open_Impact_Contact_Match` and
+  `Open_Impact_Household_Match` and the duplicate rules `Open_Impact_Contact_Duplicates` and
+  `Open_Impact_Household_Duplicates`. All four ship inactive, because a matching rule is
+  deployed inactive and activated afterwards, and a duplicate rule cannot be active until the
+  matching rule it names is. Activating them is a Setup action the platform does not expose
+  to Apex, so the Duplicates page of Nonprofit Settings shows their status and links to the
+  page in Setup that activates them.
+
+---
+
 ## 30. Deferred to later iterations
 
 These entities exist in the product plan but are deliberately **not** part of v0.1, v0.2,
@@ -3225,6 +3311,7 @@ included; standard objects the packages extend are named by the entity that gove
 | Relationship Type (shipped default) | Core | v0.3 | 13 |
 | Affiliation | Core | v0.3 | 28 |
 | Address | Core | v0.3 | 29 |
+| Duplicate Dismissal | Core | v0.5 | 29A |
 | Acknowledgment Rule | Giving | v0.4 | 30 |
 | Receipt | Giving | v0.4 | 30 |
 | Donor Level | Giving | v0.4 | 25A |
@@ -3251,3 +3338,4 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.1 | 2026-09-07 | C-03, following ADR-0020: added `Navigation_Target__c` to Setting Definition, so a module's settings page is reached by navigation while Core's own panels are imported by name. |
 | v0.2 | 2026-09-07 | C-12: added the Nonprofit Settings keys that the full Setup Assistant fills in (Section 12): the organization identity keys used on receipts (`Organization_Legal_Name__c`, `Organization_EIN__c`, `Organization_Address__c`, `Receipt_Logo_Document_Id__c`, `Receipt_Signature_Document_Id__c`, `Receipt_Signer_Name__c`, `Receipt_Signer_Title__c`), the giving defaults written only when the Giving module is present (`Default_Fund__c`, `Default_Appeal__c`), and the assistant's own progress keys `Setup_Steps_Skipped__c` and `Setup_Started_At__c`. The v0.2 key planned as `Setup_Assistant_Steps_Complete__c` shipped as `Setup_Steps_Completed__c` plus `Setup_Steps_Skipped__c`. |
 
+| v0.5 | 2026-09-08 | C-20 duplicate detection. One object added: `Duplicate_Dismissal__c` (Section 29A) with `Pair_Key__c` and `Reason__c`, which is the only thing this feature stores. Detection is the platform's: two packaged matching rules and two packaged duplicate rules for Contact and Account, and the suggestions themselves are the standard `DuplicateRecordSet` and `DuplicateRecordItem` records the rules write, so no object holds a suggestion and no packaged code compares two records to decide they match. The scan asks the platform to evaluate its own rules against records that already exist, which is the gap: duplicate rules run on save, and the standard job that runs them retroactively is available only in the two largest editions. Rules R-DP1 to R-DP5 added. The merge is the C-09 household merge (R-H13) called one pair at a time, and the contact merge is the platform's own. |
