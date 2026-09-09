@@ -259,11 +259,11 @@ about one shape and no other.
 
 The deploy goes in stages through `scripts/org/deploy-packages.sh`: the vendored rollup
 engine, then Core (one stage per object under `packages/core/main/default/objects`, then
-custom metadata and the smaller data-model metadata types, then Apex, then everything that
-wires the two together: permission sets and groups, layouts, flexipages, applications, tabs,
-quick actions, Lightning components), then Giving. A failed stage asks the org for the
-component level report, by job id, in human form and then as JSON. After the last stage the
-script runs
+custom metadata, then labels, then static resources with custom permissions, then Apex, then
+everything that wires the two together: permission sets and groups, layouts, flexipages,
+applications, tabs, quick actions, Lightning components), then Giving. A failed stage asks the
+org for the component level report, by job id, in human form and then as JSON. After the last
+stage the script runs
 `RollupService.ensureDefaults()` as anonymous Apex, because a source deployment runs no
 post-install script and would otherwise leave the org without the rollup definitions a real
 install creates (ADR-0029).
@@ -292,10 +292,11 @@ failing in the same shape once each got into the same few-hundred-to-thousand ra
 a size effect rather than a component defect, though nothing about this failure can be
 proven from the client side, so treat that as the working theory, not a settled fact.
 
-Eight occurrences, none resolved by re-running: six identical failures on Core (four
+Nine occurrences, none resolved by re-running: six identical failures on Core (four
 documented before 2026-09-09, two more that day), the data-model stage's failure right after
-the first split, and a further one after that. `scripts/org/deploy-packages.sh` no longer
-prints the old "sometimes transient" line; it now prints this count and points here.
+the first split, a further one after that, and the config stage's failure once objects had
+been cleared. `scripts/org/deploy-packages.sh` no longer prints the old "sometimes transient"
+line; it now prints this count and points here.
 
 The data model stage was then split again, into two runtime-balanced halves of
 `packages/core/main/default/objects` plus a third stage for custom metadata and the remaining
@@ -311,11 +312,21 @@ not for one: it points at something specific to one or more objects inside the f
 not at the request being too big.
 
 Objects now deploy one at a time, each its own stage, rather than another same-content
-halving that would only repeat the last four results. A per-object stage (roughly 10 to 30
-files) is far below any size that has ever failed on its own, so the next run either names
-the exact object responsible or clears every object individually, in which case the finding
-is that the fault needs several specific objects deployed *together*, not any single one of
-them. Apex and UI/permissions are unchanged, because neither has failed yet.
+halving that would only repeat the last four results. That worked immediately: every object
+deployed clean on the next run, and Address__c's own two real component errors (an invalid
+`length` on a `TextArea` field, and that same field listed in a compact layout, which no text
+area field may be) turned out to be what the opaque failure had been hiding on that object,
+not the platform fault recurring.
+
+With every object clear, the fault moved to the next stage in line: the four config
+directories (custom metadata, labels, static resources, custom permissions), deployed
+together, hit it at 568 components. File count badly misled here: roughly 70 files across all
+four looked nowhere near a risk, but `packages/core/main/default/labels/CustomLabels.labels-meta.xml`
+is one file holding 388 individual label components, each one its own component for deploy
+purposes. Config is now three stages: custom metadata alone, labels alone (isolating that one
+file), and static resources with custom permissions together, since both are a handful of
+components on any count. Apex and UI/permissions are unchanged, because neither has failed
+yet.
 
 **If a stage fails again, keep the pattern rather than guessing at a safe size.** Read
 `scripts/org/deploy-packages.sh`'s own header, which is updated at each split with what the
