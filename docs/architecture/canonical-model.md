@@ -3125,6 +3125,87 @@ be explained.
 
 ---
 
+# Part F: Connect entities
+
+These entities are built by the Connect package, which depends on Core and on Giving
+(plan Section 4.1). Connect holds references to Core and Giving objects; nothing in Core
+or Giving references Connect (ADR-0014).
+
+## 29A. Accounting Export Run
+
+### Definition
+
+One occasion on which somebody produced the accounting export: what range of dates was
+asked for, what narrowed it, and what came out (plan Section 4.12, feature X-04). It
+exists so that the bookkeeper can tell whether a period has already been sent to the
+accounting package, which is the question a per-gift posting flag would have answered if
+Connect were able to add a field to a gift (ADR-0032).
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | computed | The run's identifier, assigned automatically. |
+| Start Date | date | yes | The first gift date included, inclusive. |
+| End Date | date | yes | The last gift date included, inclusive. |
+| Fund | reference(Fund) | no | The fund the run was narrowed to, empty when every fund was included. |
+| Payment Method | text | no | The payment method the run was narrowed to, empty when every method was included. |
+| Row Count | integer | yes | How many rows the file carries, one per part of a gift designated to a fund. |
+| Gift Count | integer | yes | How many gifts those rows came from, which is smaller than Row Count wherever a gift was split. |
+| Total Amount | decimal | yes | The sum of the Amount column, which is the net for the period once refunds are counted. |
+| Truncated | boolean | yes (defaults false) | Whether the run hit the row limit and the file is therefore incomplete. |
+
+### Relationships
+
+- **Accounting Export Run to Fund**, many to one, and only when the run was narrowed to
+  one fund.
+- The run holds no reference to the gifts it exported (R-AE2).
+
+### Rules
+
+**R-AE1 A run is a record of an answer, not of a decision.** The export reads gifts and
+their allocations and writes nothing to them. Producing the same range twice produces the
+same file, and the second run is recorded alongside the first rather than replacing it.
+
+**R-AE2 The run does not name the gifts.** It records the question asked and the totals
+that came back, not a list of identifiers. A gift is found again by re-running the same
+range, which is cheap, whereas a stored list of identifiers would be a second copy of the
+ledger to keep true (ADR-0032).
+
+**R-AE3 Refunds are rows, never adjustments.** A refund and a write-off are negative
+gifts with negative allocations (R-G3, R-GA3), so each is its own row with a negative
+amount, on the date the money went back rather than on the date of the gift it reverses.
+Total Amount is therefore the net for the period, which is the figure the bank statement
+shows.
+
+**R-AE4 Pending gifts are not exported.** Only gifts whose Status is Received, Refunded
+or Written off appear, which is the same status set the packaged rollups use (ADR-0022).
+A gift still Pending is money that has not arrived and has nothing to reconcile against.
+
+**R-AE5 A truncated run says so.** The export stops at a fixed row limit rather than
+failing, marks the run Truncated, and tells the person to narrow the range. A file that is
+quietly short is worse than no file, because it reconciles to nothing and looks complete.
+
+### Salesforce implementation
+
+- **Object:** `Accounting_Export_Run__c`, auto-number Name with format `AE-{000000}`.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Start Date | `Start_Date__c` | Date |
+| End Date | `End_Date__c` | Date |
+| Fund | `Fund__c` | Lookup to `Fund__c` |
+| Payment Method | `Payment_Method__c` | Text |
+| Row Count | `Row_Count__c` | Number (0 decimals) |
+| Gift Count | `Gift_Count__c` | Number (0 decimals) |
+| Total Amount | `Total_Amount__c` | Currency |
+| Truncated | `Truncated__c` | Checkbox |
+
+- **Service:** `AccountingExportService`, `AccountingExportSelector`,
+  `AccountingExportController`, LWC `accountingExport`.
+
+---
+
 ## 30. Deferred to later iterations
 
 These entities exist in the product plan but are deliberately **not** part of v0.1, v0.2,
@@ -3146,6 +3227,10 @@ that builds it, before its metadata is created.
 
 Receipt left this table in v0.4 and is specified in Sections 25B to 25E, together with
 Receipt Number Sequence, Receipt Run and Receipt Template.
+
+Accounting Export Run left this table in v0.6 and is specified in Section 29A. The
+mirror mappings named in the same row are still deferred: no Connect entity for them
+exists yet.
 
 Two v0.4 entities have attributes that already exist on `Gift__c` from v0.2, because the
 object is not worth altering later for fields this cheap: Acknowledgment Status,
@@ -3187,6 +3272,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.4 | 2026-09-08 | G-14 donor levels (ADR-0028). New Section 25A, `Donor_Level__c`, with `Minimum_Amount__c`, `Maximum_Amount__c`, `Description__c` and `Active__c`, and three fields shipped by Giving on both Account and Contact: `Donor_Level__c`, `Previous_Donor_Level__c` and `Donor_Level_Changed_Date__c`. Giving Settings gains `Donor_Levels_Enabled__c`, `Donor_Level_Source_Field__c` and `Donor_Levels_Last_Recalculated__c`. A level is a label on a giving total the rollup engine already maintains (R-DL1), never a second aggregation, so the ladder cannot disagree with the total printed beside it and the household membership modes are resolved once, by the rollup, rather than twice. Donor Level is removed from the deferred table in Section 30 and its ownership row now points at Section 25A. |
 | v0.4 | 2026-09-08 | G-13 receipting (ADR-0016). Four objects added: `Receipt__c` (Section 25B), `Receipt_Number_Sequence__c` (25C), `Receipt_Run__c` (25D) and `Receipt_Template__c` (25E), with rules R-RC1 to R-RC10, R-RS1 to R-RS3, R-RR1 to R-RR3 and R-RT1 to R-RT3. Gift gains `Benefit_Description__c`, `Benefit_Value__c` and `Intangible_Religious_Benefits__c`, which is what a receipt needs to state a quid pro quo disclosure and the intangible religious benefits sentence; the deductible amount is computed by the renderer rather than stored, because a stored copy of a subtraction is a second place for it to be wrong. Giving Settings gains `Receipt_Number_Prefix__c`, `Receipt_Next_Counter__c`, `Receipt_Statement_Year__c`, `Receipt_Place_Of_Issue__c` and `Receipt_Renderer__c`, and its implementation subsection now lists every key it holds. Receipt leaves Section 30. |
 | v0.4 | 2026-09-08 | C-10 sample data extended to the Giving module and to connections. `Sample Data` (`Sample_Data__c`, Checkbox, default false) added to `Gift__c`, `Fund__c`, `Appeal__c`, `Commitment__c`, `Relationship__c` and `Affiliation__c`, so every record the sample loader creates can be found and removed in one action; a gift's allocations, soft credits and tributes, and a commitment's installments, are details of a flagged record and go with it. `Sample Data Key` (`Sample_Data_Key__c`, Text(20)) added to Account and Contact: it holds the key the generated file gives a household, an organization or a person, which is how the Giving sample gifts find the donor they belong to across the asynchronous chain. No object added. |
+| v0.6 | 2026-09-08 | X-03, X-04 and X-06, the Connect integration surface. One object added: `Accounting_Export_Run__c` (Section 29A), which records each accounting export that was produced, with `Start_Date__c`, `End_Date__c`, `Fund__c`, `Payment_Method__c`, `Row_Count__c`, `Gift_Count__c`, `Total_Amount__c` and `Truncated__c`. It is the substitute for the per-gift posting flag plan Section 4.12 asked for: a dependent package cannot add a field to an object another package owns (ADR-0014, ADR-0017), so the mark of what has been sent to the accounting package sits on the run rather than on the gift (ADR-0032). No Giving object or field changed: the inbound gift API writes `Gift__c` and `Gift_Allocation__c` through ordinary saves, so R-G2, R-G5, R-GA1 and R-GA2 are applied by the Giving package's own automation rather than a second time here, and R-G7 (External Id is unique) is what makes the API idempotent. |
 
 ---
 ## 32. Entity ownership by package
@@ -3235,6 +3321,7 @@ included; standard objects the packages extend are named by the entity that gove
 | Donor Level | Giving | v0.4 | 30 |
 | Stewardship Plan | Giving | v0.4 | 30 |
 | Gift Batch | Giving | v0.5 | 30 |
+| Accounting Export Run | Connect | v0.6 | 29A |
 | Gift Transaction mirror | Connect | v0.6 | 30 |
 | Opportunity mirror | Connect | v0.6 | 30 |
 | Campaign sync | Connect | v0.6 | 30 |
