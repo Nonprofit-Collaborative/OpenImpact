@@ -28,8 +28,9 @@ private class GiftInKindTest {
         gift.In_Kind_Description__c = DESCRIBED;
         gift.Fair_Market_Value__c = 900;
         insert gift;
-        gift.Receipt_Number__c = RECEIPT_NUMBER;
-        update gift;
+        // The number comes from the receipting feature's door, because a person cannot type one
+        // onto a gift (ADR-0033).
+        GiftService.recordReceiptNumbers(new Map<Id, String>{ gift.Id => RECEIPT_NUMBER });
     }
 
     private static Gift__c receiptedGift() {

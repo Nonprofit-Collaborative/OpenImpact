@@ -14,13 +14,19 @@ public with sharing class GiftService {
     public static Boolean suppressDefaultAllocations = false;
 
     /**
-     * The allowance that lets a gift's receipt number change once it exists, which happens only
-     * when a receipt is voided and reissued (ADR-0010). The receipting feature (G-13) opens it
-     * through a service method of its own; nothing else does. It is visible to tests so the
-     * lock can be tested from both sides.
+     * The gifts whose receipt number the receipting feature is writing right now, by Id.
+     *
+     * ADR-0033: a receipt number only ever comes from `ReceiptNumberSequence`, so the lock refuses
+     * every write to the field, including the first one, unless the gift is in this set. The
+     * receipting feature (G-13) opens it through a service method of its own; nothing else does.
+     *
+     * It is a set of Ids rather than a flag because a flag is transaction wide: while it was true
+     * any `Gift__c` DML in the transaction had the number branch lifted, including nested updates
+     * reached from an after-update handler. A set lifts it for the gifts being renumbered and for
+     * no others. It is visible to tests so the lock can be tested from both sides.
      */
     @TestVisible
-    private static Boolean allowReceiptNumberChange = false;
+    private static Set<Id> giftsBeingRenumbered = new Set<Id>();
 
     /**
      * The one way past the receipt lock: a custom permission the package grants to nobody, so
@@ -127,16 +133,24 @@ public with sharing class GiftService {
             Boolean receiptNumberChanged = gift.Receipt_Number__c != previous.Receipt_Number__c;
             Boolean hadReceipt = String.isNotBlank(previous.Receipt_Number__c);
 
-            // Clearing or changing the number is how the lock would otherwise be lifted in two
-            // saves, so the number itself is locked once it exists. Issuing a number for the
-            // first time stays allowed, and voiding and reissuing is the receipting feature's
-            // job (G-13), which sets the allowance below when it lands.
-            if (hadReceipt && receiptNumberChanged && !allowReceiptNumberChange) {
+            // Every write to the number is refused, in both directions and including the first
+            // one, unless this gift is one the receipting feature is renumbering right now
+            // (ADR-0033). Clearing or changing an existing number is how the lock would otherwise
+            // be lifted in two saves. Typing a number in for the first time is worse: it locks the
+            // gift irreversibly, it never passed through the sequence, so the sequence can hand
+            // the same number to a year end statement later, and `ReceiptService.issueForGift`
+            // then refuses to receipt that gift forever because it already carries a number.
+            // A receipt number comes from `ReceiptNumberSequence` or it does not exist.
+            if (receiptNumberChanged && !giftsBeingRenumbered.contains(gift.Id)) {
                 if (overridden) {
                     overrides.add(describeOverride(previous, gift));
                     continue;
                 }
-                gift.addError(Label.Giving_Gift_ReceiptNumberLocked);
+                gift.addError(
+                    hadReceipt
+                        ? Label.Giving_Gift_ReceiptNumberLocked
+                        : Label.Giving_Gift_ReceiptNumberNotIssuedByHand
+                );
                 continue;
             }
 
@@ -172,15 +186,77 @@ public with sharing class GiftService {
     }
 
     /**
+     * The same rule on the way in: a gift is never created carrying a receipt number (ADR-0033).
+     *
+     * Nothing in the package inserts one. A gift is receipted after it exists, by
+     * `ReceiptService.issueForGift`, which allocates the number from the sequence. So a number
+     * present on an insert was typed by a person, and it is the same tamper as typing one on an
+     * update: it locks the gift, it collides with the sequence, and it makes the gift
+     * unreceiptable. Field level security stops most of this on its own; this refuses it whoever
+     * was granted the field.
+     *
+     * The refusal is here rather than in the after trigger because a refused save should not have
+     * run the rest of the insert. The override's Error Log entry is written in the after trigger
+     * instead, by `recordReceiptNumberOverridesOnInsert`, because a new record has no Id to name
+     * until then.
+     */
+    public static void enforceReceiptNumberOnInsert(List<Gift__c> gifts) {
+        if (canOverrideReceiptLock()) {
+            return;
+        }
+        for (Gift__c gift : gifts) {
+            if (String.isNotBlank(gift.Receipt_Number__c)) {
+                gift.addError(Label.Giving_Gift_ReceiptNumberNotIssuedByHand);
+            }
+        }
+    }
+
+    /**
+     * Records the inserts that only went through because the running user holds the override
+     * (ADR-0024: an override nobody recorded is the thing an auditor cannot reconstruct). It runs
+     * after the insert so the entry can name the gift.
+     */
+    public static void recordReceiptNumberOverridesOnInsert(List<Gift__c> gifts) {
+        if (!canOverrideReceiptLock()) {
+            return;
+        }
+        List<String> overrides = new List<String>();
+        for (Gift__c gift : gifts) {
+            if (String.isBlank(gift.Receipt_Number__c)) {
+                continue;
+            }
+            overrides.add(
+                String.format(
+                    Label.Giving_Gift_ReceiptLockOverridden,
+                    new List<String>{
+                        String.valueOf(gift.Id),
+                        valueOrNone(gift.Receipt_Number__c),
+                        'the gift was created already carrying that receipt number'
+                    }
+                )
+            );
+        }
+        ErrorLogger.logMessages(overrides, OVERRIDE_LOG_CONTEXT, ErrorLogger.SEVERITY_WARNING);
+    }
+
+    /**
      * The one door through the receipt number lock, and the only caller is the receipting feature
      * (G-13). ADR-0010 makes a correction a void plus a new receipt, so a gift's receipt number
-     * has to be able to change exactly twice: cleared when its receipt is voided, and set again
-     * when the replacement is issued. Everything else about the gift stays locked while this runs,
-     * because `enforceReceiptLock` checks the amount, the date and the donor separately.
+     * has to be able to change: set when a receipt is issued, cleared when that receipt is voided,
+     * and set again when the replacement is issued. Everything else about the gift stays locked
+     * while this runs, because `enforceReceiptLock` checks the amount, the date and the donor
+     * separately, after the number branch.
      *
-     * The allowance is opened and closed around one save in a finally block: it is transaction
-     * state, not configuration, and a path that left it open would leave every later save in the
-     * transaction able to renumber a receipted gift.
+     * The allowance names the gifts it is for and is closed in a finally block: it is transaction
+     * state, not configuration. Naming them is what keeps it from reaching an unrelated gift saved
+     * later in the same transaction, for example the nested update
+     * `MatchingGiftService.applyLinkChanges` makes from the after-update handler (ADR-0033). The
+     * previous set is restored rather than emptied, so a nested call leaves the outer one intact.
+     *
+     * The save goes through `GiftReceiptNumberWriter` in system mode. The field is read only to
+     * everyone in the packaged permission sets (ADR-0033), which is what stops a person typing a
+     * number in, and a user mode write would therefore be refused for the very user issuing the
+     * receipt.
      *
      * A null value in the map clears the number.
      */
@@ -192,12 +268,14 @@ public with sharing class GiftService {
         for (Id giftId : numbersByGiftId.keySet()) {
             gifts.add(new Gift__c(Id = giftId, Receipt_Number__c = numbersByGiftId.get(giftId)));
         }
-        Boolean wasAllowed = allowReceiptNumberChange;
+        Set<Id> wasAllowed = giftsBeingRenumbered;
         try {
-            allowReceiptNumberChange = true;
-            Database.update(gifts, true, AccessLevel.USER_MODE);
+            Set<Id> allowed = new Set<Id>(wasAllowed);
+            allowed.addAll(numbersByGiftId.keySet());
+            giftsBeingRenumbered = allowed;
+            GiftReceiptNumberWriter.save(gifts);
         } finally {
-            allowReceiptNumberChange = wasAllowed;
+            giftsBeingRenumbered = wasAllowed;
         }
     }
 

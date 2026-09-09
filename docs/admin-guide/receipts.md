@@ -33,7 +33,9 @@ In the Receipts section:
 - **Receipt number prefix.** Two or three letters, usually your initials. The number is
   built as prefix, year, counter: `HFH-2026-000001`.
 - **Next counter.** Leave it at 1 unless you are moving from another system and want to
-  carry on from where it stopped. Set it once, before you issue anything.
+  carry on from where it stopped. Set it once, before you issue anything. This is the only
+  place a receipt number is ever chosen by a person: Open Impact issues every number itself,
+  from this counter, when it creates the receipt.
 - **Statement year.** The tax year the year-end run covers. Set it in January to last year.
 - **Place of issue.** The city and region you issue from. Optional in the United States.
 
@@ -119,6 +121,17 @@ Impact does not hand that number to somebody else. It creates a receipt record w
 Void and the reason "Generation failed", so if an auditor asks what happened to number 47,
 you can show them. A gap you cannot explain would be the problem; a gap with a Void record
 against it is an answer.
+
+**Typing a receipt number onto a gift.** You cannot, and there is nothing to fix: the
+Receipt Number on a gift is read only for everyone, and a save that tries to fill it in is
+refused with "A receipt number is issued by Open Impact when it creates the receipt, and
+cannot be filled in by hand." A number typed in belongs to no receipt, so there is no PDF and
+nothing to send; it locks the gift's amount, date and donor as if a donor were holding a
+document; the same number can still come out of the counter later and land on somebody's
+year-end statement; and the gift itself can never be receipted afterwards, because Open Impact
+sees a number already there. Use **Issue receipt** on the gift instead. If a gift in your org
+already carries a number that no receipt matches, see "Lifting the receipt lock" in
+[Gifts](gifts.md): clearing the number there puts the gift back in reach of Issue receipt.
 
 **Deleting a receipt's file to "cancel" it.** Voiding is the way to cancel a receipt, and it
 deliberately leaves the file alone: the donor still has their copy, so the org should too.
