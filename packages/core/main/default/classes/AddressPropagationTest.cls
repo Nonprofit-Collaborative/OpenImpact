@@ -99,6 +99,12 @@ private class AddressPropagationTest {
      * if it were treated as the address owner. The member therefore carries a billing address
      * of its own before the propagation runs, so the assertion is that the propagation left it
      * alone rather than that the field started empty.
+     *
+     * On an org that does have person accounts this method covers a second thing, which is why
+     * the member is a household record rather than a person: the member account does not hold a
+     * person, so the propagation must leave it out entirely. Before that guard existed the
+     * propagation wrote person mailing fields on it, the platform refused the update, and the
+     * address the user was saving was refused with it.
      */
     @IsTest
     static void aMemberAccountIsNeverWrittenThroughItsBillingFields() {
@@ -145,6 +151,11 @@ private class AddressPropagationTest {
             WINTER_STREET,
             household.BillingStreet,
             'The household that owns the address still gets its billing fields.'
+        );
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Address__c WHERE Account__c = :garcia.Id],
+            'And the address was saved rather than refused on account of the member.'
         );
     }
 

@@ -16,6 +16,13 @@ exactly the process that produces this mistake, so it is worth a gate rather tha
 
 Standard objects and fields are not checked: they exist in the org rather than in this
 repository. Only custom API names, which end in __c, are resolved against the packages.
+
+One grant that resolves is still checked, because it cannot be given: View All Records or
+Modify All Records on the detail side of a master-detail relationship. Record access to a
+detail object comes from its master, and a permission set that asks for it anyway risks
+losing the whole objectPermissions entry, and with it the create and edit access the
+feature actually needs. Nonprofit_Admin asked for both on Import Row, and the first org run
+of the import tests failed on staging a row.
 """
 
 import glob
@@ -32,6 +39,16 @@ def q(tag):
 
 def exists(pattern):
     return bool(glob.glob(pattern))
+
+
+def controlled_by_parent(obj):
+    """Whether this custom object is the detail side of a master-detail relationship."""
+    for path in glob.glob(f"packages/*/main/default/objects/{obj}/{obj}.object-meta.xml"):
+        root = ET.parse(path).getroot()
+        model = root.find(q("sharingModel"))
+        if model is not None and model.text == "ControlledByParent":
+            return True
+    return False
 
 
 def check(path):
@@ -67,6 +84,16 @@ def check(path):
         value = entry.find(q("object")).text
         if value.endswith("__c") and not exists(f"packages/*/main/default/objects/{value}"):
             report("grants object", value)
+        for flag in ("viewAllRecords", "modifyAllRecords"):
+            element = entry.find(q(flag))
+            if element is not None and element.text == "true" and controlled_by_parent(value):
+                problems.append(
+                    f"{name}: grants {flag} on {value}, which is the detail side of a "
+                    f"master-detail relationship. Record access there comes from the master, "
+                    f"so the platform has no such grant to give and the whole "
+                    f"objectPermissions entry is at risk of being dropped, taking the "
+                    f"ordinary create and edit access with it. Grant it on the master instead."
+                )
 
     for entry in root.findall(q("recordTypeVisibilities")):
         value = entry.find(q("recordType")).text
@@ -125,7 +152,7 @@ def main():
         print(problem, file=sys.stderr)
     if problems:
         print(
-            f"check-permission-sets.py: FAILED, {len(problems)} dangling reference(s) above",
+            f"check-permission-sets.py: FAILED, {len(problems)} problem(s) above",
             file=sys.stderr,
         )
         return 1

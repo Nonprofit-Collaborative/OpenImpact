@@ -166,6 +166,28 @@ public with sharing class HouseholdSelector {
     }
 
     /**
+     * The record type of each of these accounts, and nothing else.
+     *
+     * An upkeep read (ADR-0021): the answer never reaches a screen. It decides which
+     * standard fields address propagation may write on an account, and a household member
+     * the saving user cannot see would otherwise read as an organization and be written
+     * through the wrong fields.
+     */
+    @NamespaceAccessible
+    public static List<Account> getAccountRecordTypes(Set<Id> accountIds) {
+        if (accountIds == null || accountIds.isEmpty()) {
+            return new List<Account>();
+        }
+        return [
+            SELECT Id, RecordTypeId
+            FROM Account
+            WHERE Id IN :accountIds
+            WITH SYSTEM_MODE
+            LIMIT 10000
+        ];
+    }
+
+    /**
      * The households a merge compares, with every field the comparison offers a choice
      * about: the wording, the primary contact, the anniversary, and the address a letter
      * is sent to.

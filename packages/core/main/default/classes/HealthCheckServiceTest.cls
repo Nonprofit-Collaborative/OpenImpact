@@ -271,12 +271,15 @@ private class HealthCheckServiceTest {
         );
 
         User maria = HealthCheckTestHelper.mariaWithManageSettings();
-        System.runAs(HealthCheckTestHelper.currentUser()) {
-            insert new PermissionSetAssignment(
-                AssigneeId = maria.Id,
-                PermissionSetId = packaged[0].Id
-            );
-        }
+        System.assertEquals(
+            1,
+            [
+                SELECT COUNT()
+                FROM PermissionSetAssignment
+                WHERE AssigneeId = :maria.Id AND PermissionSetId = :packaged[0].Id
+            ],
+            'Maria holds the admin permission set directly rather than through a group.'
+        );
 
         System.runAs(maria) {
             OrgShapeDetector.overrideShape = shape(false, false, false, false);
@@ -431,11 +434,12 @@ private class HealthCheckServiceTest {
             Severity__c = 'Error',
             Status__c = 'New'
         );
-        User maria = HealthCheckTestHelper.mariaWithManageSettings();
         // Counting the Error Log needs read on the object and on Status, which is what the
-        // packaged Nonprofit Admin permission set gives Maria. Without it the selector keeps
-        // its promise and says nothing, which is what this test used to be measuring.
-        HealthCheckTestHelper.grantPackagedPermissionSet(maria, 'Nonprofit_Admin');
+        // packaged Nonprofit Admin permission set gives Maria, and mariaWithManageSettings
+        // now assigns it because every audited settings save needs it too. Without that
+        // access the selector keeps its promise and says nothing, which is what this test
+        // used to be measuring.
+        User maria = HealthCheckTestHelper.mariaWithManageSettings();
 
         System.runAs(maria) {
             OrgShapeDetector.overrideShape = shape(false, false, false, false);
