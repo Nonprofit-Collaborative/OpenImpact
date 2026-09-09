@@ -258,12 +258,12 @@ means a second org and a second secret; until then, treat every green org test a
 about one shape and no other.
 
 The deploy goes in stages through `scripts/org/deploy-packages.sh`: the vendored rollup
-engine, then Core in five stages (the data model split into two file-count-balanced halves of
-`packages/core/main/default/objects` computed at deploy time, then custom metadata and the
-smaller data-model metadata types, then Apex, then everything that wires the two together:
-permission sets and groups, layouts, flexipages, applications, tabs, quick actions, Lightning
-components), then Giving. A failed stage asks the org for the component level report, by job
-id, in human form and then as JSON. After the last stage the script runs
+engine, then Core (one stage per object under `packages/core/main/default/objects`, then
+custom metadata and the smaller data-model metadata types, then Apex, then everything that
+wires the two together: permission sets and groups, layouts, flexipages, applications, tabs,
+quick actions, Lightning components), then Giving. A failed stage asks the org for the
+component level report, by job id, in human form and then as JSON. After the last stage the
+script runs
 `RollupService.ensureDefaults()` as anonymous Apex, because a source deployment runs no
 post-install script and would otherwise leave the org without the rollup definitions a real
 install creates (ADR-0029).
@@ -292,24 +292,39 @@ failing in the same shape once each got into the same few-hundred-to-thousand ra
 a size effect rather than a component defect, though nothing about this failure can be
 proven from the client side, so treat that as the working theory, not a settled fact.
 
-Seven occurrences, none resolved by re-running: six identical failures on Core (four
-documented before 2026-09-09, two more that day) plus the data-model stage's failure right
-after the first split. `scripts/org/deploy-packages.sh` no longer prints the old "sometimes
-transient" line; it now prints this count and points here. The data model stage was then
-split again, the same way, into two runtime-balanced halves of `packages/core/main/default/objects`
-plus a third stage for custom metadata and the remaining data-model metadata types, since a
-hand-written list of object names would go stale the first time someone adds one. That
-second split has not yet been proven to help either: it had not been exercised against the
-org as of this writing. Apex and UI/permissions are unchanged from the first split, because
-neither has failed yet.
+Eight occurrences, none resolved by re-running: six identical failures on Core (four
+documented before 2026-09-09, two more that day), the data-model stage's failure right after
+the first split, and a further one after that. `scripts/org/deploy-packages.sh` no longer
+prints the old "sometimes transient" line; it now prints this count and points here.
+
+The data model stage was then split again, into two runtime-balanced halves of
+`packages/core/main/default/objects` plus a third stage for custom metadata and the remaining
+data-model metadata types. That halving is what stopped being useful evidence: across four
+consecutive pushes, all fixing real component-level errors the org had newly started
+reporting (list view defects, not deploy-shape ones), the same 10-object, 139-file half kept
+failing with the zero-component `UNKNOWN_EXCEPTION` every single time, while the other
+11-object, 144-file half deployed clean every one of those four runs. Both halves stayed the
+same size and the same content across all four runs, because `balanced_split` only reacts to
+file *counts*, which never changed; only file *content* did. Two comparably sized groups
+behaving oppositely and consistently four times running is evidence against a size effect,
+not for one: it points at something specific to one or more objects inside the failing half,
+not at the request being too big.
+
+Objects now deploy one at a time, each its own stage, rather than another same-content
+halving that would only repeat the last four results. A per-object stage (roughly 10 to 30
+files) is far below any size that has ever failed on its own, so the next run either names
+the exact object responsible or clears every object individually, in which case the finding
+is that the fault needs several specific objects deployed *together*, not any single one of
+them. Apex and UI/permissions are unchanged, because neither has failed yet.
 
 **If a stage fails again, keep the pattern rather than guessing at a safe size.** Read
-`scripts/org/deploy-packages.sh`'s own header, which is updated at each split with the exact
-component counts and what they ruled in or out, split whichever stage actually failed the
-same way (narrower, on the number that stage actually carried, not a round number picked in
-advance), and update both this section and that header with the new count before pushing.
-Guessing a threshold and pre-splitting everything to be safe is not the goal: each split
-should answer a question the previous failure actually raised.
+`scripts/org/deploy-packages.sh`'s own header, which is updated at each split with what the
+run actually showed, split whichever stage actually failed the same way (narrower, on what
+that stage carried, not a round number picked in advance, and never just another same-size,
+same-content split of a stage that has already failed that way more than once), and update
+both this section and that header with the new count before pushing. Guessing a threshold and
+pre-splitting everything to be safe is not the goal: each split should answer a question the
+previous failure actually raised.
 
 Two things constrain when it runs, both because there is one org rather than one per run.
 
