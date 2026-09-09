@@ -46,12 +46,20 @@
 # tracks something specific to one or more objects inside "objects B".
 #
 # Objects now deploy one at a time, each its own stage, rather than split into another pair
-# of same-content halves that would just repeat this result. With ~10 to 30 files per object,
-# a per-object stage is nowhere near the few-hundred-component range any prior failure has
-# carried, so the next run either names the exact object responsible (a stage newly failing
-# alone) or clears every object individually, which would itself be new evidence: that the
-# fault needs several specific objects deployed *together* in one request, not any one of them
-# alone. Apex and UI/permissions are unchanged, because neither has failed yet and there is no
+# of same-content halves that would just repeat this result. That worked immediately: every
+# object deployed clean, and it was Address__c's own real component errors (Street__c's
+# invalid length, a text area field in a compact layout) that had been hiding behind the
+# opaque failure the whole time, not the platform fault recurring on an object.
+#
+# With objects clear, the platform fault moved to the next stage in line: the four config
+# directories (customMetadata, labels, staticresources, customPermissions), deployed together,
+# hit it at 568 components. File count there is a badly misleading proxy: around 70 files
+# across all four looked nothing like a risk, but `packages/core/main/default/labels/CustomLabels.labels-meta.xml`
+# is one file holding 388 individual label components. Config is now three stages: custom
+# metadata, labels (isolating that one file), and static resources with custom permissions
+# together, since both are a handful of components on any count.
+#
+# Apex and UI/permissions are unchanged, because neither has failed yet and there is no
 # evidence pointing at either.
 #
 # Exit codes: 0 = every stage deployed, non-zero = the first stage that failed.
@@ -110,7 +118,7 @@ deploy_stage() {
     echo "is a Salesforce side failure, not a component to fix here: quote the ErrorId in the"
     echo "JSON above to Salesforce support. Re-running is not worth trying on its own account:"
     echo "this exact failure (same trailing code -315522575, zero components, zero errors) has"
-    echo "hit an undivided or partly divided Core at least eight times now. See"
+    echo "hit an undivided or partly divided Core at least nine times now. See"
     echo "docs/contributor-guide/ci.md, \"It is not transient here\", for the count and the"
     echo "component totals each occurrence carried. If ${label} is small (comfortably under"
     echo "the few hundred components the smallest confirmed failure has carried so far), do not"
@@ -143,9 +151,19 @@ for dir in packages/core/main/default/objects/*/; do
   [[ -d "$dir" ]] || continue
   deploy_stage "Core (data model, $(basename "$dir"))" "$dir" || exit $?
 done
-deploy_stage "Core (data model, config)" \
-  "packages/core/main/default/customMetadata" \
-  "packages/core/main/default/labels" \
+# One stage per config directory, not one stage for all four. Every object deployed clean
+# individually (the finding the per-object split above was designed to produce), so the very
+# next stage in line, the four config directories deployed together, is what hit the platform
+# fault this time: 568 components in one request from a directory set whose file count (about
+# 70 across all four) looked nowhere near that. The gap is CustomLabels.labels-meta.xml, one
+# file holding 388 individual label components; file count is a proxy for component count,
+# not the same number, and a single label file is the sharpest case yet of that proxy failing.
+# Splitting by directory isolates that file's stage from the other three, which are small on
+# any count (customMetadata's ~60 files are ~60 components, one per record; static resources
+# and custom permissions are a handful each).
+deploy_stage "Core (data model, custom metadata)" "packages/core/main/default/customMetadata" || exit $?
+deploy_stage "Core (data model, labels)" "packages/core/main/default/labels" || exit $?
+deploy_stage "Core (data model, static resources and custom permissions)" \
   "packages/core/main/default/staticresources" \
   "packages/core/main/default/customPermissions" || exit $?
 deploy_stage "Core (Apex)" \
