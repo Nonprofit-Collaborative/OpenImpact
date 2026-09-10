@@ -62,9 +62,25 @@
 # Apex and UI/permissions are unchanged, because neither has failed yet and there is no
 # evidence pointing at either.
 #
+# WHY A PAUSE BETWEEN STAGES. Custom metadata alone, split out from the rest of config,
+# still hit the same zero-component UNKNOWN_EXCEPTION at 61 files, confirmed identical on a
+# manual re-run (same ErrorId trailing code, same zero components, zero errors). 61 is nowhere
+# near the few-hundred-to-thousand range every prior failure has carried, and this is the
+# first time a stage that small has failed on its own, so size stops being a workable
+# explanation for this occurrence specifically: something else has to be going on. Every stage
+# in this script runs as its own blocking `sf project deploy start --wait 30` call, one after
+# another, against the one persistent org, with no gap between a stage finishing and the next
+# one starting. If the org's deploy engine needs a moment to settle after reporting a deploy
+# Done before it can safely accept the next one, back to back calls with no pause would be
+# exactly the condition to trigger that. Untested, and not the only remaining explanation, but
+# cheap and non-destructive to try: every deploy_stage call now pauses for
+# $STAGE_PAUSE_SECONDS after a successful deploy, before the next stage starts.
+#
 # Exit codes: 0 = every stage deployed, non-zero = the first stage that failed.
 
 set -uo pipefail
+
+STAGE_PAUSE_SECONDS="${STAGE_PAUSE_SECONDS:-15}"
 
 ALIAS="${1:-}"
 if [[ -z "$ALIAS" ]]; then
@@ -118,7 +134,7 @@ deploy_stage() {
     echo "is a Salesforce side failure, not a component to fix here: quote the ErrorId in the"
     echo "JSON above to Salesforce support. Re-running is not worth trying on its own account:"
     echo "this exact failure (same trailing code -315522575, zero components, zero errors) has"
-    echo "hit an undivided or partly divided Core at least nine times now. See"
+    echo "hit an undivided or partly divided Core at least ten times now. See"
     echo "docs/contributor-guide/ci.md, \"It is not transient here\", for the count and the"
     echo "component totals each occurrence carried. If ${label} is small (comfortably under"
     echo "the few hundred components the smallest confirmed failure has carried so far), do not"
@@ -131,6 +147,8 @@ deploy_stage() {
   fi
 
   rm -f "$log"
+  echo "== Pausing ${STAGE_PAUSE_SECONDS}s before the next stage =="
+  sleep "$STAGE_PAUSE_SECONDS"
   return 0
 }
 
