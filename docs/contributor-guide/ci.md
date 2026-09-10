@@ -292,11 +292,11 @@ failing in the same shape once each got into the same few-hundred-to-thousand ra
 a size effect rather than a component defect, though nothing about this failure can be
 proven from the client side, so treat that as the working theory, not a settled fact.
 
-Nine occurrences, none resolved by re-running: six identical failures on Core (four
-documented before 2026-09-09, two more that day), the data-model stage's failure right after
-the first split, a further one after that, and the config stage's failure once objects had
-been cleared. `scripts/org/deploy-packages.sh` no longer prints the old "sometimes transient"
-line; it now prints this count and points here.
+Ten occurrences, none resolved by re-running: six identical failures on Core (four documented
+before 2026-09-09, two more that day), the data-model stage's failure right after the first
+split, a further one after that, the config stage's failure once objects had been cleared, and
+custom metadata's failure alone once config had been split three ways. `scripts/org/deploy-packages.sh`
+no longer prints the old "sometimes transient" line; it now prints this count and points here.
 
 The data model stage was then split again, into two runtime-balanced halves of
 `packages/core/main/default/objects` plus a third stage for custom metadata and the remaining
@@ -323,10 +323,22 @@ directories (custom metadata, labels, static resources, custom permissions), dep
 together, hit it at 568 components. File count badly misled here: roughly 70 files across all
 four looked nowhere near a risk, but `packages/core/main/default/labels/CustomLabels.labels-meta.xml`
 is one file holding 388 individual label components, each one its own component for deploy
-purposes. Config is now three stages: custom metadata alone, labels alone (isolating that one
-file), and static resources with custom permissions together, since both are a handful of
-components on any count. Apex and UI/permissions are unchanged, because neither has failed
-yet.
+purposes. Config was split into three stages: custom metadata alone, labels alone (isolating
+that one file), and static resources with custom permissions together, since both are a
+handful of components on any count.
+
+Custom metadata alone, about 60 records, failed the same way, confirmed identical on a manual
+re-run: same zero components, zero errors, same ErrorId trailing code. This is the point where
+size stops being a workable explanation for the occurrence in front of us: 61 files is nowhere
+near the few-hundred-to-thousand range every prior failure carried, and it is the first time a
+stage this small has failed on its own. The working theory shifts from request size to request
+*rate*: every stage in this script is its own blocking deploy call, run immediately after the
+previous one reports done, against the one persistent org, with no gap between them. If the
+org's deploy engine needs a moment after a deploy completes before it can safely accept the
+next one, back to back calls would reproduce exactly this. Untested and not the only remaining
+explanation, but cheap and non-destructive to try: every `deploy_stage` call now pauses (15
+seconds by default, `STAGE_PAUSE_SECONDS` to change it) after a successful deploy, before the
+next stage starts. Apex and UI/permissions are unchanged, because neither has failed yet.
 
 **If a stage fails again, keep the pattern rather than guessing at a safe size.** Read
 `scripts/org/deploy-packages.sh`'s own header, which is updated at each split with what the
