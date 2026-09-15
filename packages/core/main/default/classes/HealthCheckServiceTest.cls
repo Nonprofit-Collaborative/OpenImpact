@@ -1146,4 +1146,102 @@ private class HealthCheckServiceTest {
         }
         return null;
     }
+
+    // ---------------------------------------------------------- native household findings
+
+    /**
+     * Informational: an org with native Nonprofit Cloud households is told how many, and
+     * that Open Impact leaves them alone (product-plan Section 11.2 item 9).
+     */
+    @IsTest
+    static void anOrgWithNativeHouseholdsReportsHowManyInformationally() {
+        OrgShapeDetector.OrgShape orgShape = shape(false, false, false, false);
+        orgShape.hasNativeHouseholdGroups = true;
+        orgShape.nativeHouseholdGroupCount = 3;
+        OrgShapeDetector.overrideShape = orgShape;
+        HouseholdSelector.nativeHouseholdCollisionCountOverride = 0;
+
+        Test.startTest();
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+        Test.stopTest();
+
+        HealthCheckService.Finding finding = find(findings, 'native_households');
+        System.assertNotEquals(null, finding, 'The native households finding is reported');
+        System.assertEquals(
+            HealthCheckService.SEVERITY_INFO,
+            finding.severity,
+            'A native household is not a problem, it is mutual exclusion working'
+        );
+        System.assert(finding.detail.contains('3'), 'The finding names how many were found');
+    }
+
+    /**
+     * An org OrgShapeDetector reports as having no native households at all gets no finding.
+     */
+    @IsTest
+    static void anOrgWithNoNativeHouseholdsReportsNothing() {
+        OrgShapeDetector.OrgShape orgShape = shape(false, false, false, false);
+        orgShape.hasNativeHouseholdGroups = false;
+        orgShape.nativeHouseholdGroupCount = 0;
+        OrgShapeDetector.overrideShape = orgShape;
+        HouseholdSelector.nativeHouseholdCollisionCountOverride = 0;
+
+        Test.startTest();
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+        Test.stopTest();
+
+        System.assertEquals(
+            null,
+            find(findings, 'native_households'),
+            'Nothing is reported about native households when there are none'
+        );
+    }
+
+    /**
+     * Warning: an Account that is an Open Impact household and a native Nonprofit Cloud
+     * household at once, the collision mutual exclusion exists to prevent.
+     */
+    @IsTest
+    static void anAccountCarryingBothHouseholdModelsIsReportedAsAWarning() {
+        OrgShapeDetector.OrgShape orgShape = shape(false, false, false, false);
+        orgShape.hasNativeHouseholdGroups = true;
+        orgShape.nativeHouseholdGroupCount = 1;
+        OrgShapeDetector.overrideShape = orgShape;
+        HouseholdSelector.nativeHouseholdCollisionCountOverride = 1;
+
+        Test.startTest();
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+        Test.stopTest();
+
+        HealthCheckService.Finding finding = find(findings, 'native_household_collision');
+        System.assertNotEquals(null, finding, 'The collision finding is reported');
+        System.assertEquals(
+            HealthCheckService.SEVERITY_WARNING,
+            finding.severity,
+            'A collision is a problem, an administrator should look at'
+        );
+        System.assert(finding.detail.contains('1'), 'The finding names how many Accounts collide');
+    }
+
+    /**
+     * No collision, no warning, even in an org that does have native households.
+     */
+    @IsTest
+    static void noCollisionMeansNoWarning() {
+        OrgShapeDetector.OrgShape orgShape = shape(false, false, false, false);
+        orgShape.hasNativeHouseholdGroups = true;
+        orgShape.nativeHouseholdGroupCount = 2;
+        OrgShapeDetector.overrideShape = orgShape;
+        HouseholdSelector.nativeHouseholdCollisionCountOverride = 0;
+
+        Test.startTest();
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+        Test.stopTest();
+
+        System.assertEquals(
+            null,
+            find(findings, 'native_household_collision'),
+            'No warning is raised when nothing collides'
+        );
+    }
 }
