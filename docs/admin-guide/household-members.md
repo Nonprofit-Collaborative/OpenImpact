@@ -49,6 +49,15 @@ Both actions name the person for a screen reader ("Make Maria Garcia the primary
 "Move Maria Garcia to another household"), so a reader who cannot see the row still knows
 whose button it is. While the panel is loading or saving, it says so.
 
+An **Add member** button sits below the list.
+
+- In the simple way of belonging it opens the same new contact form you would use anywhere
+  else in the org, with this household already filled in.
+- In the flexible way of belonging it offers two ways to add someone. **Add someone already
+  in Salesforce** searches by name as you type and lists matches to add with one click. **Or
+  add someone new** takes a salutation, first name and last name and creates the person as
+  it joins them. Either way the list refreshes to show the new member once it is added.
+
 ### The primary contact in the simple way of belonging
 
 In the simple way (one household per person, the shipped default), the primary contact is

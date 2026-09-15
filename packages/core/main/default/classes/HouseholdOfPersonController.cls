@@ -134,7 +134,9 @@ public with sharing class HouseholdOfPersonController {
             if (householdId == null || personId == null) {
                 throw new HouseholdException(Label.Core_HouseholdPanel_AddMemberMissingPerson);
             }
-            HouseholdService.addMembers(new Map<Id, Set<Id>>{ householdId => new Set<Id>{ personId } });
+            HouseholdService.addMembers(
+                new Map<Id, Set<Id>>{ householdId => new Set<Id>{ personId } }
+            );
         } catch (HouseholdException e) {
             throw asUserError(e.getMessage());
         } catch (Exception e) {

@@ -135,7 +135,12 @@ function build() {
 }
 
 describe('c-household-members-panel', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
   afterEach(() => {
+    jest.useRealTimers();
     while (document.body.firstChild) {
       document.body.removeChild(document.body.firstChild);
     }
@@ -408,10 +413,13 @@ describe('c-household-members-panel', () => {
     element.shadowRoot.querySelector('.add-button').dispatchEvent(new CustomEvent('click'));
     await flush();
     const search = element.shadowRoot.querySelector('.add-search-input');
+    search.value = 'Maria';
     search.dispatchEvent(new CustomEvent('change', { detail: { value: 'Maria' } }));
     jest.runAllTimers();
     await flush();
-    element.shadowRoot.querySelector('.add-existing-button').dispatchEvent(new CustomEvent('click'));
+    element.shadowRoot
+      .querySelector('.add-existing-button')
+      .dispatchEvent(new CustomEvent('click'));
     await flush();
 
     const alert = element.shadowRoot.querySelector('[role="alert"]');
@@ -428,16 +436,18 @@ describe('c-household-members-panel', () => {
 
     element.shadowRoot.querySelector('.add-button').dispatchEvent(new CustomEvent('click'));
     await flush();
+    const salutation = element.shadowRoot.querySelector('.add-new-salutation');
+    salutation.value = 'Mr.';
+    salutation.dispatchEvent(new CustomEvent('change', { detail: { value: 'Mr.' } }));
+    const firstName = element.shadowRoot.querySelector('.add-new-first-name');
+    firstName.value = 'Wei';
+    firstName.dispatchEvent(new CustomEvent('change', { detail: { value: 'Wei' } }));
+    const lastName = element.shadowRoot.querySelector('.add-new-last-name');
+    lastName.value = 'Lee';
+    lastName.dispatchEvent(new CustomEvent('change', { detail: { value: 'Lee' } }));
     element.shadowRoot
-      .querySelector('.add-new-salutation')
-      .dispatchEvent(new CustomEvent('change', { detail: { value: 'Mr.' } }));
-    element.shadowRoot
-      .querySelector('.add-new-first-name')
-      .dispatchEvent(new CustomEvent('change', { detail: { value: 'Wei' } }));
-    element.shadowRoot
-      .querySelector('.add-new-last-name')
-      .dispatchEvent(new CustomEvent('change', { detail: { value: 'Lee' } }));
-    element.shadowRoot.querySelector('.add-new-save-button').dispatchEvent(new CustomEvent('click'));
+      .querySelector('.add-new-save-button')
+      .dispatchEvent(new CustomEvent('click'));
     await flush();
 
     expect(addNewPerson).toHaveBeenCalledWith({
@@ -459,7 +469,9 @@ describe('c-household-members-panel', () => {
 
     element.shadowRoot.querySelector('.add-button').dispatchEvent(new CustomEvent('click'));
     await flush();
-    element.shadowRoot.querySelector('.add-new-save-button').dispatchEvent(new CustomEvent('click'));
+    element.shadowRoot
+      .querySelector('.add-new-save-button')
+      .dispatchEvent(new CustomEvent('click'));
     await flush();
 
     const alert = element.shadowRoot.querySelector('[role="alert"]');

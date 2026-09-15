@@ -9,14 +9,6 @@
         <value>Add member</value>
     </labels>
     <labels>
-        <fullName>Core_HouseholdMembersPanel_AddMemberJunction</fullName>
-        <categories>Households</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>How to add a member in the flexible membership mode</shortDescription>
-        <value>To add someone to this household, use the Household Members list further down this page.</value>
-    </labels>
-    <labels>
         <fullName>Core_HouseholdMembersPanel_AddSuccess</fullName>
         <categories>Households</categories>
         <language>en_US</language>
