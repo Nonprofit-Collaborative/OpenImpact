@@ -482,3 +482,46 @@ donor name and address, the gift and three designations, matching our row semant
 3. Get the Volunteer Management object API names from the official data model page.
 4. Record the picklist translation tables (gift type, payment method, status, tribute
    type, soft credit role) as custom metadata, not as code.
+
+## 10. Detection in Core, added 2026-09-15
+
+Core can now tell whether an org already models households the Nonprofit Cloud way. This is
+detection only. Nothing acts on the answer yet: the guards that use it, and the migration,
+are later work.
+
+`OrgShapeDetector.OrgShape` carries two more fields, both `@AuraEnabled` so Health Check can
+show them:
+
+- `hasNativeHouseholdGroups` (Boolean)
+- `nativeHouseholdGroupCount` (Integer, null when the count could not be made)
+
+The probe lives in `OrgShapeSelector.nativeHouseholdGroupCount`. It looks
+`PartyRelationshipGroup` up in the global describe, checks `isAccessible`, and runs
+`SELECT COUNT() FROM PartyRelationshipGroup WHERE Type = 'Household'` through
+`Database.countQuery`. The object name and the whole query text are String constants carrying
+the `// detection-only:` marker `scripts/ci/check-standard-objects.sh` honors, so Core still
+compiles and deploys on a Platform-only org (ADR-0009, ADR-0013). The count is part of the
+cached org shape, so it is asked once per transaction.
+
+It is probed on its own and never inferred from `GiftTransaction`, for the reason recorded in
+Section 4: the household group is an Industries common object and the Fundraising licence
+does not gate it, so an org can have native households without having any fundraising object
+at all.
+
+**Unknown is treated as yes.** Any outcome other than a count that actually came back leaves
+`nativeHouseholdGroupCount` null and `hasNativeHouseholdGroups` true: the object missing from
+the describe, the object not accessible to the running user, or the query throwing. Only a
+count that ran and returned zero answers no. The asymmetry is the one ADR-0036 argues for the
+delete guard. A false negative would let a later guard silently open, rename or tidy up a
+household the customer built in Nonprofit Cloud and Open Impact does not own. A false positive
+only makes that guard cautious about an org that had nothing to protect. `getGlobalDescribe`
+is itself filtered by the running user's permission set licences, and the group is gated by
+the Group Membership permission set, so "not in the describe map" really is an ambiguous
+answer rather than a clean no.
+
+This is a question about the org. The per-record question, whether one particular Account
+carries a native household group, stays where it already was, in
+`HouseholdSelector.getAccountsWithNativeDependents` under ADR-0036, and is not duplicated.
+
+Still unverified, and inherited from Section 9: the query text itself has never run against a
+real Nonprofit Cloud org. Run it before anything is built on the answer.
