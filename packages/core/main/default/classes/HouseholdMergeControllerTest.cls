@@ -22,6 +22,35 @@ private class HouseholdMergeControllerTest {
         Assert.areEqual(duplicate.Id, options[0].id, 'And it is the duplicate');
     }
 
+    /**
+     * A typed % or _ is a letter to search for, not a wildcard: otherwise typing % would
+     * offer every household in the org.
+     */
+    @IsTest
+    static void theSearchTreatsWildcardsAsLetters() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Account plain = HouseholdTestDataFactory.newHousehold('The Garcia Family');
+        Account percent = HouseholdTestDataFactory.newHousehold('100% Garcia');
+        Account underscore = HouseholdTestDataFactory.newHousehold('Garcia_Lee');
+        insert new List<Account>{ plain, percent, underscore };
+
+        Test.startTest();
+        List<HouseholdMergeController.HouseholdOption> byPercent = HouseholdMergeController.searchHouseholds(
+            '0% G',
+            null
+        );
+        List<HouseholdMergeController.HouseholdOption> byUnderscore = HouseholdMergeController.searchHouseholds(
+            'ia_L',
+            null
+        );
+        Test.stopTest();
+
+        Assert.areEqual(1, byPercent.size(), 'Only the household with a percent sign matches');
+        Assert.areEqual(percent.Id, byPercent[0].id, 'And it is that one');
+        Assert.areEqual(1, byUnderscore.size(), 'Only the household with an underscore matches');
+        Assert.areEqual(underscore.Id, byUnderscore[0].id, 'And it is that one');
+    }
+
     @IsTest
     static void aVeryShortSearchAsksForMore() {
         HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
@@ -145,5 +174,87 @@ private class HouseholdMergeControllerTest {
             message,
             'The screen shows the same words the guide quotes'
         );
+    }
+
+    /**
+     * A failure the package did not expect (here, a user whose profile cannot read
+     * households at all, so the platform refuses the comparison's own query) reaches the
+     * screen as the plain message, and the platform's wording goes to the Error Log.
+     */
+    @IsTest
+    static void aPlatformFailureReachesTheScreenInPlainWords() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Account survivor = HouseholdTestDataFactory.newHousehold('The Garcia Family');
+        Account victim = HouseholdTestDataFactory.newHousehold('Garcia Household');
+        insert new List<Account>{ survivor, victim };
+        User reader = readOnlyUser();
+
+        String message;
+        Test.startTest();
+        System.runAs(reader) {
+            try {
+                HouseholdMergeController.preview(survivor.Id, victim.Id);
+            } catch (Exception e) {
+                message = e.getMessage();
+            }
+        }
+        Test.stopTest();
+
+        Assert.areEqual(
+            Label.Core_Households_ErrorUnexpected,
+            message,
+            'The person is told something went wrong, in words meant for them'
+        );
+        Assert.areEqual(
+            1,
+            [
+                SELECT COUNT()
+                FROM Error_Log__c
+                WHERE Context__c = :Label.Core_HouseholdMerge_ErrorContext
+            ],
+            'What actually happened is in the Error Log for the administrator'
+        );
+    }
+
+    // ------------------------------------------------------------------ helpers
+
+    /**
+     * A user on the most restricted standard profile, the same one the service tests use.
+     */
+    private static User readOnlyUser() {
+        // "Read Only" is absent from some editions and org shapes, so the first of the
+        // known profiles without edit access that this org actually has is used.
+        Map<String, Profile> byName = new Map<String, Profile>();
+        for (Profile candidate : [
+            SELECT Id, Name
+            FROM Profile
+            WHERE Name IN ('Read Only', 'Minimum Access - Salesforce')
+        ]) {
+            byName.put(candidate.Name, candidate);
+        }
+        Profile readOnly = byName.containsKey('Read Only')
+            ? byName.get('Read Only')
+            : byName.get('Minimum Access - Salesforce');
+        Assert.isNotNull(
+            readOnly,
+            'This org has no standard profile without edit access, so a refused read ' +
+            'cannot be exercised at all'
+        );
+        User reader = new User(
+            ProfileId = readOnly.Id,
+            LastName = 'Reader',
+            Email = 'reader@openimpact.test.invalid',
+            Username = 'reader' + DateTime.now().getTime() + '@openimpact.test.invalid',
+            Alias = 'reader',
+            TimeZoneSidKey = 'America/Los_Angeles',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        // A user is a setup record, so it is saved on its own, after the households.
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert reader;
+        }
+        return reader;
     }
 }
