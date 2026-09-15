@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_HubHome_AutomationPausedBanner</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Hub home: banner shown while all packaged automation is paused</shortDescription>
+        <value>Open Impact automation is paused. Households and greetings are not being updated until it resumes.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HubHome_ChecklistHeading</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Hub home: heading above the setup checklist</shortDescription>
+        <value>Setup checklist</value>
+    </labels>
+    <labels>
+        <fullName>Core_HubHome_ErrorTileHeading</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Hub home: heading of the tile counting unreviewed errors</shortDescription>
+        <value>Errors to review</value>
+    </labels>
+    <labels>
+        <fullName>Core_HubHome_ErrorTileLinkLabel</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Hub home: link from the error tile to the Error Log tab</shortDescription>
+        <value>Open the Error Log</value>
+    </labels>
+    <labels>
+        <fullName>Core_HubHome_LoadErrorMessage</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Hub home: message shown when part of the home page could not load</shortDescription>
+        <value>The home page could not load everything. The error is recorded in the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HubHome_QuickLinkHouseholds</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Hub home: quick link to the Households tab</shortDescription>
+        <value>Households</value>
+    </labels>
+    <labels>
+        <fullName>Core_HubHome_QuickLinkOrganizations</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Hub home: quick link to the Organizations tab</shortDescription>
+        <value>Organizations</value>
+    </labels>
+    <labels>
+        <fullName>Core_HubHome_QuickLinkSettings</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Hub home: quick link to the Nonprofit Settings tab</shortDescription>
+        <value>Nonprofit Settings</value>
+    </labels>
+    <labels>
+        <fullName>Core_HubHome_QuickLinksHeading</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Hub home: heading above the quick links</shortDescription>
+        <value>Quick links</value>
+    </labels>
+    <labels>
+        <fullName>Core_HubHome_WelcomeHeading</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Hub home: the page heading</shortDescription>
+        <value>Welcome to Open Impact</value>
+    </labels>
+    <labels>
+        <fullName>Core_HubHome_WelcomeMessage</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Hub home: the sentence under the page heading</shortDescription>
+        <value>Start with the setup checklist below. You can leave and come back: your progress is saved.</value>
+    </labels>
+</CustomLabels>

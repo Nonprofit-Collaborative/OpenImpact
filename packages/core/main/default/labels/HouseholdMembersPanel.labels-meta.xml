@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_HouseholdMembersPanel_AddMember</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Add member button</shortDescription>
+        <value>Add member</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdMembersPanel_AddMemberJunction</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>How to add a member in the flexible membership mode</shortDescription>
+        <value>To add someone to this household, use the Household Members list further down this page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdMembersPanel_AddSuccess</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>A person was added to the household</shortDescription>
+        <value>Added. The household name and greetings have been brought up to date.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdMembersPanel_Cancel</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Cancel button</shortDescription>
+        <value>Cancel</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdMembersPanel_Deceased</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Badge for a person who has died</shortDescription>
+        <value>Deceased</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdMembersPanel_Empty</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>The household has no members yet</shortDescription>
+        <value>Nobody belongs to this household yet.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdMembersPanel_MoveHelp</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>How to move a person to another household</shortDescription>
+        <value>Choose the household to move this person to.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdMembersPanel_MoveMember</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Move a person button</shortDescription>
+        <value>Move to another household</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdMembersPanel_MoveSuccess</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>A person was moved</shortDescription>
+        <value>Moved. Both households have been brought up to date.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdMembersPanel_NotAHousehold</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>The record is not a household</shortDescription>
+        <value>This panel is for households. This record is an organization, so it has no members to show.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdMembersPanel_Primary</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Badge for the primary member</shortDescription>
+        <value>Primary</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdMembersPanel_Save</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Save button</shortDescription>
+        <value>Save</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdMembersPanel_Title</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Members panel heading</shortDescription>
+        <value>Members</value>
+    </labels>
+</CustomLabels>
