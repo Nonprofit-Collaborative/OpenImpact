@@ -412,6 +412,10 @@ address fields are used as the platform provides them.
 | Household Role | picklist(Head, Spouse or Partner, Child, Other) | no | The person's role in their household, used for greeting order. |
 | Exclude From Household Name | boolean | yes (defaults false) | Leaves this person out of the computed household name. |
 | Exclude From Greetings | boolean | yes (defaults false) | Leaves this person out of both computed greetings. |
+| Personal Email | email | no | The person's own email address, the one they read at home. |
+| Work Email | email | no | The email address this person uses at work. |
+| Alternate Email | email | no | A third email address for a person who has one, for example a seasonal or a school address. |
+| Preferred Email | picklist(Personal, Work, Alternate) | no | Which of the three addresses the nonprofit should write to. Leaving it empty means the org is not using the three addresses at all. |
 | Employer | reference(Organization) | no | The organization this person works for, used to recognize the employer when a matching gift arrives (G-10). |
 | Household | reference(Household) | conditional | The household this person belongs to; in contact mode this is the person's Account. |
 | Sample Data | boolean | yes (defaults false) | True when the record was created by the sample data loader so it can be removed in one action. |
@@ -447,6 +451,15 @@ Contact, so that an org can add its own record types without colliding with ours
 as a Person Account rather than a Contact. `HouseholdService` presents both uniformly;
 no feature code branches on it.
 
+**R-C6 Preferred email.** The standard email is the address the platform and every email
+tool reads, so it is kept in step with the choice. When Preferred Email names one of the
+three addresses, the standard email is copied from that address on every save of the
+person, before the record is written. When Preferred Email is empty nothing is copied and
+the standard email is left exactly as it was entered, so an org that never fills the three
+addresses in sees no change in behavior at all. When Preferred Email names an address that
+is empty the save is refused with a message that says which address to fill in: blanking
+the standard email would quietly cut the person off from every mailing.
+
 ### Salesforce implementation
 
 - **Object:** Contact, record type `Household Contact`.
@@ -468,6 +481,22 @@ no feature code branches on it.
 The seven above are person attributes, present on both Contact and Account with the same
 API names so that Person Accounts carry them (Section 5). `HouseholdService.Person` is the
 shape naming and greetings read, so no naming code knows which object a person came from.
+
+- **Email fields on Contact, and on Account with the same API names (v0.5):**
+
+| Attribute | API name | Type |
+|---|---|---|
+| Personal Email | `Personal_Email__c` | Email |
+| Work Email | `Work_Email__c` | Email |
+| Alternate Email | `Alternate_Email__c` | Email |
+| Preferred Email | `Preferred_Email__c` | Picklist: Personal, Work, Alternate (restricted) |
+
+These four are person attributes like the seven above and are carried on Account for the
+same reason. The standard email R-C6 keeps in step is `Email` on Contact and, where the org
+stores people as accounts, the account object's own person email field.
+`PreferredEmailService` is the only class that touches the account one, and it names it as
+text and checks that the object has it before writing, exactly as `PersonRecordSelector`
+does with the person name fields (Section 4 "Person references", ADR-0009).
 
 - **Employer on the Account side:** in Person Account orgs the same attribute exists on
   Account as `Employer__c`, added there with the other person attributes (Section 4
@@ -766,10 +795,10 @@ must be able to read them with no Giving package installed.
 | `Seasonal_Address_Last_Run__c` | datetime | empty | When the seasonal address swap job last completed, shown on the Hub; written by the job (C-18, R-AD4, R-AD8). |
 | `Seasonal_Address_Last_Run_Summary__c` | text | empty | What the last seasonal swap run did, in one sentence: how many addresses moved in, how many moved back, and how many failed (R-AD8). |
 
-The four commitment keys (`Installment_Generation_Horizon_Months__c`,
-`Installment_Overdue_Grace_Days__c`, `Auto_Apply_Gifts_To_Installments__c`, and
-`Installment_Top_Up_Last_Run__c`) and `Automatic_Household_Soft_Credits__c` are Giving
-keys and live on `Giving_Settings__c`, the Giving package's own protected hierarchy
+The commitment keys (`Installment_Generation_Horizon_Months__c`,
+`Installment_Overdue_Grace_Days__c`, `Auto_Apply_Gifts_To_Installments__c`, and the
+nightly run stamps listed in Section 21A) and `Automatic_Household_Soft_Credits__c` are
+Giving keys and live on `Giving_Settings__c`, the Giving package's own protected hierarchy
 custom setting, not on `Nonprofit_Settings__c`: a dependent package cannot add fields to
 an object Core owns (ADR-0017). They are listed here because this section is the whole
 settings inventory, and the settings console reads every registered settings object
@@ -1888,6 +1917,9 @@ Moved here from Section 12 by ADR-0017, with their definitions unchanged.
 | `Donor_Levels_Enabled__c` | boolean | false | Whether donor levels are assigned at all. Off until the organization has built its ladder, because a wrong ladder is worse than none (R-DL7). |
 | `Donor_Level_Source_Field__c` | text | `Total_Giving__c` | Which giving total the ladder is measured on, named as one of the packaged rollup attributes of Section 26 (R-DL1). Stored as text under ADR-0019. |
 | `Donor_Levels_Last_Recalculated__c` | datetime | empty | When the nightly or on demand level pass last completed, shown read only on the Donor Levels page, the same freshness promise the rollups make (Principle 2). |
+| `Installment_Top_Up_Last_Run_Summary__c` | text | empty | What the last top up run did, in one sentence: how many recurring commitments were extended, and how many chunks failed. A timestamp on its own says the job woke up, not that it did anything (R-IN5). |
+| `Installment_Overdue_Last_Run__c` | datetime | empty | When the overdue pass last completed, whether or not it marked anything. Empty means the pass has never run in this org, which is a different thing from a pass that ran and found nothing overdue (R-IN2, R-IN5). |
+| `Installment_Overdue_Last_Run_Summary__c` | text | empty | What the last overdue pass did, in one sentence: how many payments it marked Overdue, or that it found none (R-IN5). |
 
 Added by acknowledgments (G-12, ADR-0032).
 
@@ -1936,6 +1968,9 @@ these keys, which is what makes a module that is off leave nothing behind.
 | Installment Overdue Grace Days | `Installment_Overdue_Grace_Days__c` | Number(18, 0) |
 | Auto Apply Gifts To Installments | `Auto_Apply_Gifts_To_Installments__c` | Checkbox |
 | Installment Top Up Last Run | `Installment_Top_Up_Last_Run__c` | Date/Time |
+| Installment Top Up Last Run Summary | `Installment_Top_Up_Last_Run_Summary__c` | Text(255) |
+| Installment Overdue Last Run | `Installment_Overdue_Last_Run__c` | Date/Time |
+| Installment Overdue Last Run Summary | `Installment_Overdue_Last_Run_Summary__c` | Text(255) |
 | Receipt Number Prefix | `Receipt_Number_Prefix__c` | Text(10) |
 | Receipt Next Counter | `Receipt_Next_Counter__c` | Number(18, 0) |
 | Receipt Statement Year | `Receipt_Statement_Year__c` | Number(4, 0) |
@@ -2050,9 +2085,10 @@ Section 26.
 
 - **Settings keys** (on `Giving_Settings__c`, Section 12):
   `Installment_Generation_Horizon_Months__c`, `Auto_Apply_Gifts_To_Installments__c`,
-  `Installment_Top_Up_Last_Run__c`.
+  `Installment_Top_Up_Last_Run__c`, `Installment_Top_Up_Last_Run_Summary__c`.
 - **Service:** `CommitmentService`, `CommitmentSelector`, `CommitmentTriggerHandler`,
-  `GiftCommitmentHandler`, `InstallmentTopUpSchedulable`, `InstallmentTopUpBatch`.
+  `GiftCommitmentHandler`, `InstallmentTopUpSchedulable`, `InstallmentTopUpBatch`,
+  `GivingScheduler`, `GivingJobsController`.
 
 ---
 
@@ -2104,6 +2140,17 @@ entering a cheque against a pledge know the pledge and not the row number.
 **R-IN4 Sequence is stable.** Sequence is assigned at generation and does not change when
 an installment is skipped or paid late, so an installment can be named the same way in a
 report a year later.
+
+**R-IN5 The nightly passes are switched on in the console and visible there.** Nothing in
+the Giving module marks an installment Overdue or extends a recurring schedule until an
+administrator schedules the nightly jobs from the Nightly Jobs page of the Nonprofit
+Settings console, and the same page stops them (ADR-0031). Each pass records when it last
+finished and one sentence saying what it did, whether or not it changed anything, so a
+pass that ran and found nothing overdue reads differently from a pass that never ran. The
+console warns that a pass is stale only when the jobs are scheduled: an org that has not
+switched them on is told that instead, because it has not missed a run that was never
+going to happen. A failure inside a pass goes to the Error Log and the rest of the run
+carries on (R-E1).
 
 ### Salesforce implementation
 
@@ -3865,6 +3912,7 @@ is closed deliberately rather than discovered.
 | v0.4 | 2026-09-09 | C-01 person account trigger defect. No object or field added. The person account path ran on insert and update only, so deleting a person left their household with a stale Member Count and stale wording and their membership row identifying nobody, undeleting them did nothing, and the only person change that rewrote a household name was the household's own custom name box. R-H11 now says plainly that a person stored as an account is a member on the same terms as a contact, and R-M4 records what happens to a membership row when the person it names is deleted, and why the row is removed with the person rather than left to the platform. |
 | v0.4 | 2026-09-09 | C-17 address propagation defect, found by the first org run on a person accounts org. No object or field added. R-AD3 gains the record type test: the person mailing fields exist on every account in a person accounts org, so `AddressService` asked the org whether it had them and then wrote them on whatever account it was holding. A household member, or an owner named in Person Account, that is a household or an organization was written through fields it cannot carry, the platform refused the update, and the address the user was saving was refused with it, with a message about permissions that named nothing true. The write is now decided by the account's record type, read once per save through `HouseholdSelector.getAccountRecordTypes` as an ADR-0021 upkeep read, and an account that holds no person is left out of the copy. Invisible on the Platform-only shape (ADR-0013), where the fields do not exist and the path returns early. |
 | v0.4 | 2026-09-09 | C-14 import defect: a row with two people in it. No object or field added. Section 16 gains R-IR1a (what a row means for households) and R-IR2a (the household is named from the row). The importer joined a row's second person to the first person's household by writing the person's account reference, which is contact mode's mechanism, and skipped the join entirely where the org stores people as accounts. In junction mode that reference joined nobody and stopped the automatic path from acting, so a couple imported into the configuration the product recommends became two households or one household and one person with none. The join now goes through `HouseholdService.addMembers`, and automatic creation is suspended while the people about to be joined are saved, so nobody is given a household and then taken out of it. |
+| v0.4 | 2026-09-09 | G-07 defect fix: nothing in a real org scheduled the Giving nightly jobs, so no installment was ever marked Overdue. `Giving_Settings__c` gains `Installment_Overdue_Last_Run__c` (Date/Time), `Installment_Overdue_Last_Run_Summary__c` (Text 255) and `Installment_Top_Up_Last_Run_Summary__c` (Text 255): the overdue pass recorded nothing at all, so "it has never run" and "it ran and found nothing overdue" were the same blank, and the top up carried a bare timestamp that said the job woke up rather than what it did. New rule R-IN5: the nightly passes are scheduled and stopped from the Nightly Jobs page of the settings console (ADR-0038), each records what it did, and a stale warning is shown only when the jobs are actually scheduled. No object added. |
 | v0.3 | 2026-09-09 | C-17 deploy defect, found by the first org run to validate `Address__c` on its own. No rule changed. `Street__c` shipped with a `length` of 255 on a `TextArea` field, which the metadata schema does not accept: `TextArea`'s 255 character limit is fixed by the type, not settable, and only `LongTextArea` takes a `length`. The `length` element is removed; the field is unchanged in every way an admin or a user sees. `Address_Compact` shipped listing `Street__c`, which the platform also refused: no text area field, long or short, can appear in a compact layout. `Street__c` is removed from `Address_Compact`, which now reads Type, City, State, Default. Street is still visible everywhere a text field can appear: the four list views in Section 29 and the page layout are unaffected. |
 | v0.4 | 2026-09-15 | X-09 native household guards (product-plan Section 11.2 item 9, mutual exclusion). No object or field added. `HouseholdSelector.nativeHouseholdAccountsAmong` is the single predicate, built on the existing ADR-0036 delete guard probe and short circuited by `OrgShapeDetector.hasNativeHouseholdGroups`, that every guard below asks. The naming batch and the naming path in `HouseholdService.afterMembershipChange` leave out an Account that already carries a native Nonprofit Cloud household group and count what they skipped. Automatic household creation, in both membership modes, does not make a second household for a person already linked to one, by the weaker but safe rule of asking the person's own Account. `AddressService` never writes the billing or person mailing fields of such an Account, from a default address or by propagation to its members. Health Check gains an informational finding naming how many native households were found, and a warning naming how many Accounts carry both household models at once, from a new `HouseholdSelector.nativeHouseholdCollisionCount` probe. No migration and no sync: an Account with both models keeps whatever name, greetings and address it already has until an administrator settles it on one model. |
 
@@ -3937,4 +3985,4 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.4 | 2026-09-15 | C-16 review fix. No object or field added. `Primary_Affiliation__c` was maintained by `AffiliationService` (R-AF2) but shown nowhere: added, read only, to the Contact Household Contact page layout in the Person section and to the Household Contact compact layout, so a list view or a mail merge can show a person's employer as the field's own description says. The matching field on Account is left off both Account page layouts: per Section 28, it is populated only in Person Account orgs, and neither the Household nor the Organization record type is a person, so it has nowhere on those layouts to belong. Also removed the internal feature tag "(C-10)" from the inline help text and description of `Sample_Data__c` and `Sample_Data_Key__c` on Account and Contact, since a feature ID means nothing to a nonprofit user; the same tag was removed from the Relationship, Affiliation, Commitment, Gift, Fund, and Appeal copies of `Sample_Data__c` in the same pass, so no field help or description in either package carries a feature ID now. |
 | v0.4 | 2026-09-15 | C-01 defect, found by a Sales Cloud readiness audit. No object or field added. In junction mode a person's household is a `Household_Member__c` row, not the account their contact points at, but `ContactTriggerHandler` read the household from `Contact.AccountId` in every context, which in junction mode is an employer or nothing. So renaming, deleting and restoring a person stored as a contact quietly did nothing to their household: the count stayed stale, the dead person stayed in the name and both greetings, the membership row survived naming nobody because `Contact__c` empties itself on delete, and undelete never put them back. `AccountTriggerHandler` had always handled the account half of this correctly (see the 2026-09-09 C-01 person account row above); only the contact half was missing. `ContactTrigger` now declares before delete, and the handler mirrors the account one: memberships are removed in before delete while they still name the person, the departing households are carried to after delete, after undelete restores them, and a rename asks `householdIdsForPeople` which households to rewrite. Contact mode is unchanged by construction, since each of those calls answers empty outside junction mode. R-M4 and R-H11 now hold for both representations of a person, which matters because a Platform-only org (ADR-0013) can only run junction mode with contacts, and a mixed org holds both. |
 | v0.4 | 2026-09-15 | Deploy stability: `packages/core/main/default/labels/CustomLabels.labels-meta.xml` (391 labels, 141 KB) split into per-feature label files, following the pattern already used for Address, Import, CoreRollups, Relationship, SeasonalAddress and Affiliation. No label was renamed, so no Apex or LWC reference changed. Groups of 8 or more labels, grouped by the second underscore-separated segment of `fullName`, became their own file: Access (33), AutomationControl (16), HealthCheck (73), HouseholdMembersPanel (13), HouseholdMerge (39), HouseholdNamingSettings (18), Households (19), HubHome (11), SampleData (31), Settings (23), SetupAssistant (84, after the four removals below). Groups under 8 (Automation, CoexistenceMode, ErrorLog, ErrorLogTile, HouseholdNaming, SettingsSearch, 27 labels total) were merged into `CoreShared.labels-meta.xml`. Four unreferenced Setup Assistant labels were deleted in the same pass, each re-verified with a grep of `packages/` for `.cls`, `.js` and `.html` consumers before removal: `Core_SetupAssistant_AllDoneMessage`, `Core_SetupAssistant_MarkDoneButton`, `Core_SetupAssistant_MarkNotDoneButton`, `Core_SetupAssistant_OpenButton`. Two label values were reworded without renaming the label: `Core_HouseholdNamingSettings_Recompute` from "Recompute all households" to "Update all household names", and `Core_HouseholdNamingSettings_RecomputeStarted` from "Recompute started. Households are being brought up to date in the background." to "Updating household names in the background." Verified: the 387 labels written across the new and shared files plus the 4 deleted equal the original 391, no label name is duplicated across files, and all 486 distinct `System.Label.X` and `@salesforce/label/c.X` references under `packages/core/` resolve to exactly one file. |
-
+| v0.5 | 2026-09-15 | C-25: added the email attributes `Personal_Email__c`, `Work_Email__c`, `Alternate_Email__c` and `Preferred_Email__c` to the person attributes (Section 7), on both Contact and Account, with rule R-C6. When Preferred Email is set, the standard email is copied from the address it names on every save; when it is empty nothing is copied; when the address it names is empty the save is refused rather than the standard email being blanked. |

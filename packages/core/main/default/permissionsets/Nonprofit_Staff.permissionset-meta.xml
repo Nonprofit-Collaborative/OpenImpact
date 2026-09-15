@@ -240,6 +240,11 @@
   </classAccesses>
   <fieldPermissions>
     <editable>true</editable>
+    <field>Account.Alternate_Email__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
     <field>Account.Anniversary__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -290,6 +295,16 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
+    <field>Account.Personal_Email__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Account.Preferred_Email__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
     <field>Account.Preferred_Name__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -301,6 +316,11 @@
   <fieldPermissions>
     <editable>true</editable>
     <field>Account.Primary_Contact__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Account.Work_Email__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -460,6 +480,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
+    <field>Contact.Alternate_Email__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
     <field>Contact.Created_By_Import_Batch__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -485,12 +510,27 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
+    <field>Contact.Personal_Email__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Contact.Preferred_Email__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
     <field>Contact.Preferred_Name__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
     <field>Contact.Primary_Affiliation__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Contact.Work_Email__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>

@@ -68,6 +68,10 @@ public without sharing class ErrorLogWriter {
             }
             return true;
         } catch (Exception cannotPublish) {
+            // Deliberate: publish failing is the expected trigger for the writeDirectly
+            // fallback below, so this is a normal branch rather than a last resort, but there
+            // is still nowhere but the debug log to note why the fallback fired. Kept
+            // intentionally (PMD AvoidDebugStatements finding accepted, not suppressed).
             System.debug(
                 LoggingLevel.ERROR,
                 'Open Impact could not publish an Error Log event: ' + cannotPublish.getMessage()
@@ -88,6 +92,10 @@ public without sharing class ErrorLogWriter {
         try {
             Database.insert(entries, false, AccessLevel.SYSTEM_MODE);
         } catch (Exception failedToLog) {
+            // Deliberate last resort: both the platform event publish and this direct insert
+            // have now failed, so there is no remaining path to record the entry anywhere but
+            // the debug log. Kept intentionally (PMD AvoidDebugStatements finding accepted,
+            // not suppressed).
             System.debug(
                 LoggingLevel.ERROR,
                 'Open Impact could not write an Error Log record: ' + failedToLog.getMessage()

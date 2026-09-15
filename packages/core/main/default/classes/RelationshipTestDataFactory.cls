@@ -144,6 +144,7 @@ public class RelationshipTestDataFactory {
                 Is_Reciprocal_Managed__c
             FROM Relationship__c
             ORDER BY Name
+            LIMIT 5000
         ];
     }
 
@@ -163,6 +164,7 @@ public class RelationshipTestDataFactory {
                 End_Date__c
             FROM Affiliation__c
             ORDER BY Name
+            LIMIT 5000
         ];
     }
 

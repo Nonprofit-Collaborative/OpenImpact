@@ -8,13 +8,25 @@
  * job exists to finish the job properly, so that the Access page lists them under the
  * Nonprofit Admin role rather than showing an org where nobody holds it.
  *
- * It re-checks a few times, a job at a time, and then stops. It never throws: an install
- * or an upgrade must not fail because of a background tidy-up.
+ * It re-checks a few times, a job at a time, a minute apart, and then stops. It never
+ * throws: an install or an upgrade must not fail because of a background tidy-up.
  */
 public with sharing class CorePostInstallRetryQueueable implements Queueable {
     /** How many times to look before giving up. */
     @TestVisible
     private static final Integer MAX_ATTEMPTS = 5;
+
+    /**
+     * How long to wait between attempts.
+     *
+     * A Queueable cannot sleep, so the wait is the job re-enqueueing itself with the
+     * delayed-execution overload of System.enqueueJob (available since API 60; this package
+     * is on 67). A minute is well under the few minutes the platform typically takes to
+     * finish calculating a packaged group, and MAX_ATTEMPTS gives five of them before the
+     * job gives up.
+     */
+    @TestVisible
+    private static final Integer RETRY_DELAY_MINUTES = 1;
 
     private static final String CONTEXT = 'CorePostInstallRetryQueueable.execute';
 
@@ -56,7 +68,10 @@ public with sharing class CorePostInstallRetryQueueable implements Queueable {
                 return;
             }
             if (attemptsLeft > 1) {
-                System.enqueueJob(new CorePostInstallRetryQueueable(installerId, attemptsLeft - 1));
+                System.enqueueJob(
+                    new CorePostInstallRetryQueueable(installerId, attemptsLeft - 1),
+                    RETRY_DELAY_MINUTES
+                );
                 return;
             }
             giveUp();

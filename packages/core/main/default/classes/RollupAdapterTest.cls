@@ -215,27 +215,44 @@ private class RollupAdapterTest {
     static void aDefinitionThatCannotBeBuiltIsRefusedRatherThanGuessed() {
         Rollup_Definition__c noAggregate = givingTotal();
         noAggregate.Aggregate__c = 'MEDIAN';
-        assertRefused(noAggregate, 'an aggregate the engine does not have');
+        Integer refusedCount = assertRefused(noAggregate, 'an aggregate the engine does not have')
+            ? 1
+            : 0;
 
         Rollup_Definition__c noSourceField = givingTotal();
         noSourceField.Source_Field__c = null;
-        assertRefused(noSourceField, 'a sum with nothing to sum');
+        refusedCount += assertRefused(noSourceField, 'a sum with nothing to sum') ? 1 : 0;
 
         Rollup_Definition__c noOrderBy = givingTotal();
         noOrderBy.Aggregate__c = 'LAST';
-        assertRefused(noOrderBy, 'a last with no order (R-R10)');
+        refusedCount += assertRefused(noOrderBy, 'a last with no order (R-R10)') ? 1 : 0;
 
         Rollup_Definition__c noTargetField = givingTotal();
         noTargetField.Target_Field__c = null;
-        assertRefused(noTargetField, 'a rollup with nowhere to put the answer');
+        refusedCount += assertRefused(noTargetField, 'a rollup with nowhere to put the answer')
+            ? 1
+            : 0;
+
+        System.Assert.areEqual(
+            4,
+            refusedCount,
+            'every unbuildable definition above must be refused'
+        );
     }
 
-    private static void assertRefused(Rollup_Definition__c definition, String why) {
+    /**
+     * Asserts that building metadata for the given definition is refused with a message, and
+     * returns whether it was, so the calling test method also carries its own assertion on the
+     * outcome rather than trusting a shared helper silently.
+     */
+    private static Boolean assertRefused(Rollup_Definition__c definition, String why) {
         try {
             RollupAdapter.toMetadata(definition);
             System.Assert.fail('Expected a refusal for ' + why);
         } catch (RollupAdapter.RollupAdapterException expected) {
             System.Assert.isNotNull(expected.getMessage(), 'The message names the problem');
+            return true;
         }
+        return false;
     }
 }

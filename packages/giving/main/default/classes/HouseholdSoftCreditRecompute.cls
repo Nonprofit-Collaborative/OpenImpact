@@ -77,6 +77,12 @@ public with sharing class HouseholdSoftCreditRecompute implements Queueable {
         if (pending == null || pending.isEmpty()) {
             return;
         }
+        // The recompute failure below is already caught and logged, but the chained
+        // System.enqueueJob call after it is not: if that call itself throws (the org's
+        // queueable limit moving under it, for example), the failure would otherwise reach
+        // no one but the platform's own failure email. The finalizer is the net under that
+        // one path.
+        System.attachFinalizer(new RecomputeFinalizer(CONTEXT));
         Id householdId = pending[0];
         List<Id> remaining = new List<Id>(pending);
         remaining.remove(0);
@@ -91,6 +97,25 @@ public with sharing class HouseholdSoftCreditRecompute implements Queueable {
             Limits.getQueueableJobs() < Limits.getLimitQueueableJobs()
         ) {
             System.enqueueJob(new HouseholdSoftCreditRecompute(remaining));
+        }
+    }
+
+    /**
+     * Catches whatever escapes execute() uncaught, which today can only be the chained
+     * System.enqueueJob call, and logs it through ErrorLogger. Does nothing else and never
+     * throws, matching the pattern every other Error Log writer in this package follows.
+     */
+    private class RecomputeFinalizer implements System.Finalizer {
+        private final String context;
+
+        private RecomputeFinalizer(String context) {
+            this.context = context;
+        }
+
+        public void execute(System.FinalizerContext ctx) {
+            if (ctx.getResult() == ParentJobResult.UNHANDLED_EXCEPTION) {
+                ErrorLogger.log(ctx.getException(), context);
+            }
         }
     }
 }

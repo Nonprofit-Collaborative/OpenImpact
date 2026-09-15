@@ -229,6 +229,7 @@ public with sharing class ReceiptSelector {
             FROM Receipt_Template__c
             WITH USER_MODE
             ORDER BY Type__c, Name
+            LIMIT 2000
         ];
     }
 
