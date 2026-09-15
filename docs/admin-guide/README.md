@@ -121,3 +121,4 @@ Each feature adds its row here when its page is written.
 | G-15 Stewardship plans | [stewardship-plans.md](stewardship-plans.md) | Giving | v0.4 |
 | G-16 Retention reports | [retention-reports.md](retention-reports.md) | Giving | v0.4 |
 | G-18 In-kind gifts | [in-kind-gifts.md](in-kind-gifts.md) | Giving | v0.4 |
+| X-09 Nonprofit Cloud households | [nonprofit-cloud-households.md](nonprofit-cloud-households.md) | Core | v0.6 |
