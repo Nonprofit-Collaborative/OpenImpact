@@ -795,10 +795,10 @@ must be able to read them with no Giving package installed.
 | `Seasonal_Address_Last_Run__c` | datetime | empty | When the seasonal address swap job last completed, shown on the Hub; written by the job (C-18, R-AD4, R-AD8). |
 | `Seasonal_Address_Last_Run_Summary__c` | text | empty | What the last seasonal swap run did, in one sentence: how many addresses moved in, how many moved back, and how many failed (R-AD8). |
 
-The four commitment keys (`Installment_Generation_Horizon_Months__c`,
-`Installment_Overdue_Grace_Days__c`, `Auto_Apply_Gifts_To_Installments__c`, and
-`Installment_Top_Up_Last_Run__c`) and `Automatic_Household_Soft_Credits__c` are Giving
-keys and live on `Giving_Settings__c`, the Giving package's own protected hierarchy
+The commitment keys (`Installment_Generation_Horizon_Months__c`,
+`Installment_Overdue_Grace_Days__c`, `Auto_Apply_Gifts_To_Installments__c`, and the
+nightly run stamps listed in Section 21A) and `Automatic_Household_Soft_Credits__c` are
+Giving keys and live on `Giving_Settings__c`, the Giving package's own protected hierarchy
 custom setting, not on `Nonprofit_Settings__c`: a dependent package cannot add fields to
 an object Core owns (ADR-0017). They are listed here because this section is the whole
 settings inventory, and the settings console reads every registered settings object
@@ -1917,6 +1917,9 @@ Moved here from Section 12 by ADR-0017, with their definitions unchanged.
 | `Donor_Levels_Enabled__c` | boolean | false | Whether donor levels are assigned at all. Off until the organization has built its ladder, because a wrong ladder is worse than none (R-DL7). |
 | `Donor_Level_Source_Field__c` | text | `Total_Giving__c` | Which giving total the ladder is measured on, named as one of the packaged rollup attributes of Section 26 (R-DL1). Stored as text under ADR-0019. |
 | `Donor_Levels_Last_Recalculated__c` | datetime | empty | When the nightly or on demand level pass last completed, shown read only on the Donor Levels page, the same freshness promise the rollups make (Principle 2). |
+| `Installment_Top_Up_Last_Run_Summary__c` | text | empty | What the last top up run did, in one sentence: how many recurring commitments were extended, and how many chunks failed. A timestamp on its own says the job woke up, not that it did anything (R-IN5). |
+| `Installment_Overdue_Last_Run__c` | datetime | empty | When the overdue pass last completed, whether or not it marked anything. Empty means the pass has never run in this org, which is a different thing from a pass that ran and found nothing overdue (R-IN2, R-IN5). |
+| `Installment_Overdue_Last_Run_Summary__c` | text | empty | What the last overdue pass did, in one sentence: how many payments it marked Overdue, or that it found none (R-IN5). |
 
 Added by acknowledgments (G-12, ADR-0032).
 
@@ -1965,6 +1968,9 @@ these keys, which is what makes a module that is off leave nothing behind.
 | Installment Overdue Grace Days | `Installment_Overdue_Grace_Days__c` | Number(18, 0) |
 | Auto Apply Gifts To Installments | `Auto_Apply_Gifts_To_Installments__c` | Checkbox |
 | Installment Top Up Last Run | `Installment_Top_Up_Last_Run__c` | Date/Time |
+| Installment Top Up Last Run Summary | `Installment_Top_Up_Last_Run_Summary__c` | Text(255) |
+| Installment Overdue Last Run | `Installment_Overdue_Last_Run__c` | Date/Time |
+| Installment Overdue Last Run Summary | `Installment_Overdue_Last_Run_Summary__c` | Text(255) |
 | Receipt Number Prefix | `Receipt_Number_Prefix__c` | Text(10) |
 | Receipt Next Counter | `Receipt_Next_Counter__c` | Number(18, 0) |
 | Receipt Statement Year | `Receipt_Statement_Year__c` | Number(4, 0) |
@@ -2079,9 +2085,10 @@ Section 26.
 
 - **Settings keys** (on `Giving_Settings__c`, Section 12):
   `Installment_Generation_Horizon_Months__c`, `Auto_Apply_Gifts_To_Installments__c`,
-  `Installment_Top_Up_Last_Run__c`.
+  `Installment_Top_Up_Last_Run__c`, `Installment_Top_Up_Last_Run_Summary__c`.
 - **Service:** `CommitmentService`, `CommitmentSelector`, `CommitmentTriggerHandler`,
-  `GiftCommitmentHandler`, `InstallmentTopUpSchedulable`, `InstallmentTopUpBatch`.
+  `GiftCommitmentHandler`, `InstallmentTopUpSchedulable`, `InstallmentTopUpBatch`,
+  `GivingScheduler`, `GivingJobsController`.
 
 ---
 
@@ -2133,6 +2140,17 @@ entering a cheque against a pledge know the pledge and not the row number.
 **R-IN4 Sequence is stable.** Sequence is assigned at generation and does not change when
 an installment is skipped or paid late, so an installment can be named the same way in a
 report a year later.
+
+**R-IN5 The nightly passes are switched on in the console and visible there.** Nothing in
+the Giving module marks an installment Overdue or extends a recurring schedule until an
+administrator schedules the nightly jobs from the Nightly Jobs page of the Nonprofit
+Settings console, and the same page stops them (ADR-0031). Each pass records when it last
+finished and one sentence saying what it did, whether or not it changed anything, so a
+pass that ran and found nothing overdue reads differently from a pass that never ran. The
+console warns that a pass is stale only when the jobs are scheduled: an org that has not
+switched them on is told that instead, because it has not missed a run that was never
+going to happen. A failure inside a pass goes to the Error Log and the rest of the run
+carries on (R-E1).
 
 ### Salesforce implementation
 
@@ -3894,6 +3912,7 @@ is closed deliberately rather than discovered.
 | v0.4 | 2026-09-09 | C-01 person account trigger defect. No object or field added. The person account path ran on insert and update only, so deleting a person left their household with a stale Member Count and stale wording and their membership row identifying nobody, undeleting them did nothing, and the only person change that rewrote a household name was the household's own custom name box. R-H11 now says plainly that a person stored as an account is a member on the same terms as a contact, and R-M4 records what happens to a membership row when the person it names is deleted, and why the row is removed with the person rather than left to the platform. |
 | v0.4 | 2026-09-09 | C-17 address propagation defect, found by the first org run on a person accounts org. No object or field added. R-AD3 gains the record type test: the person mailing fields exist on every account in a person accounts org, so `AddressService` asked the org whether it had them and then wrote them on whatever account it was holding. A household member, or an owner named in Person Account, that is a household or an organization was written through fields it cannot carry, the platform refused the update, and the address the user was saving was refused with it, with a message about permissions that named nothing true. The write is now decided by the account's record type, read once per save through `HouseholdSelector.getAccountRecordTypes` as an ADR-0021 upkeep read, and an account that holds no person is left out of the copy. Invisible on the Platform-only shape (ADR-0013), where the fields do not exist and the path returns early. |
 | v0.4 | 2026-09-09 | C-14 import defect: a row with two people in it. No object or field added. Section 16 gains R-IR1a (what a row means for households) and R-IR2a (the household is named from the row). The importer joined a row's second person to the first person's household by writing the person's account reference, which is contact mode's mechanism, and skipped the join entirely where the org stores people as accounts. In junction mode that reference joined nobody and stopped the automatic path from acting, so a couple imported into the configuration the product recommends became two households or one household and one person with none. The join now goes through `HouseholdService.addMembers`, and automatic creation is suspended while the people about to be joined are saved, so nobody is given a household and then taken out of it. |
+| v0.4 | 2026-09-09 | G-07 defect fix: nothing in a real org scheduled the Giving nightly jobs, so no installment was ever marked Overdue. `Giving_Settings__c` gains `Installment_Overdue_Last_Run__c` (Date/Time), `Installment_Overdue_Last_Run_Summary__c` (Text 255) and `Installment_Top_Up_Last_Run_Summary__c` (Text 255): the overdue pass recorded nothing at all, so "it has never run" and "it ran and found nothing overdue" were the same blank, and the top up carried a bare timestamp that said the job woke up rather than what it did. New rule R-IN5: the nightly passes are scheduled and stopped from the Nightly Jobs page of the settings console (ADR-0038), each records what it did, and a stale warning is shown only when the jobs are actually scheduled. No object added. |
 | v0.3 | 2026-09-09 | C-17 deploy defect, found by the first org run to validate `Address__c` on its own. No rule changed. `Street__c` shipped with a `length` of 255 on a `TextArea` field, which the metadata schema does not accept: `TextArea`'s 255 character limit is fixed by the type, not settable, and only `LongTextArea` takes a `length`. The `length` element is removed; the field is unchanged in every way an admin or a user sees. `Address_Compact` shipped listing `Street__c`, which the platform also refused: no text area field, long or short, can appear in a compact layout. `Street__c` is removed from `Address_Compact`, which now reads Type, City, State, Default. Street is still visible everywhere a text field can appear: the four list views in Section 29 and the page layout are unaffected. |
 
 ---
