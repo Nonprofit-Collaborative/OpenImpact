@@ -16,7 +16,10 @@ public with sharing class InstallmentTopUpBatch implements Database.Batchable<SO
      */
     public static final Integer CHUNK_SIZE = 25;
 
+    private static final String LOG_CONTEXT = 'Installment top up';
+
     private Integer processed = 0;
+    private Integer failedChunks = 0;
 
     public Database.QueryLocator start(Database.BatchableContext context) {
         return new CommitmentSelector().activeRecurringLocator();
@@ -27,20 +30,32 @@ public with sharing class InstallmentTopUpBatch implements Database.Batchable<SO
             processed += CommitmentService.topUpRecurringSchedules(scope);
         } catch (Exception chunkFailure) {
             // One bad commitment must not stop the rest of the org being extended.
-            ErrorLogger.log(chunkFailure, 'InstallmentTopUpBatch');
+            failedChunks++;
+            ErrorLogger.log(chunkFailure, LOG_CONTEXT);
         }
     }
 
+    /**
+     * Records the run, including a run that had nothing to extend, so that the Nightly Jobs page
+     * can tell a job that is working from a job that has never started (R-IN5).
+     */
     public void finish(Database.BatchableContext context) {
         try {
-            CommitmentService.recordTopUpRun(System.now());
+            CommitmentService.recordTopUpRun(System.now(), summary());
         } catch (Exception finishFailure) {
-            ErrorLogger.log(finishFailure, 'InstallmentTopUpBatch.finish');
+            ErrorLogger.log(finishFailure, LOG_CONTEXT + ' finish');
         }
     }
 
     /** How many commitments this run extended, for a test or a caller that wants to know. */
     public Integer commitmentsProcessed() {
         return processed;
+    }
+
+    private String summary() {
+        return String.format(
+            System.Label.Giving_NightlyJobs_TopUpSummaryFormat,
+            new List<String>{ String.valueOf(processed), String.valueOf(failedChunks) }
+        );
     }
 }
