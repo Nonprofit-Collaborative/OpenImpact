@@ -35,7 +35,12 @@ private class SampleDataSetTest {
         return root;
     }
 
-    private static void assertRejects(Object root, String because) {
+    /**
+     * Asserts that parsing the given payload throws SampleDataException with the packaged
+     * label, and returns whether it did, so each calling test method also carries its own
+     * assertion on the outcome rather than trusting a shared helper silently.
+     */
+    private static Boolean assertRejects(Object root, String because) {
         Boolean threw = false;
         try {
             SampleDataSet.parse(root instanceof String ? (String) root : JSON.serialize(root));
@@ -48,6 +53,7 @@ private class SampleDataSetTest {
             );
         }
         System.assertEquals(true, threw, because);
+        return threw;
     }
 
     @IsTest
@@ -98,7 +104,10 @@ private class SampleDataSetTest {
         Map<String, Object> root = validRoot();
         root.put('relationships', new List<Object>{ relationship });
 
-        assertRejects(root, 'a connection with only one person named is invalid data');
+        Assert.isTrue(
+            assertRejects(root, 'a connection with only one person named is invalid data'),
+            'the one-sided connection must be rejected'
+        );
     }
 
     @IsTest
@@ -108,7 +117,10 @@ private class SampleDataSetTest {
         Map<String, Object> root = validRoot();
         root.put('affiliations', new List<Object>{ affiliation });
 
-        assertRejects(root, 'an affiliation with no organization named is invalid data');
+        Assert.isTrue(
+            assertRejects(root, 'an affiliation with no organization named is invalid data'),
+            'the affiliation missing its organization must be rejected'
+        );
     }
 
     @IsTest
@@ -160,31 +172,56 @@ private class SampleDataSetTest {
 
     @IsTest
     static void testRejectsBlankAndUnparseableBodies() {
-        assertRejects('', 'a blank body is not sample data');
-        assertRejects('not json at all', 'an unparseable body is not sample data');
-        assertRejects('[1,2,3]', 'a JSON array is not the expected object');
+        Integer rejectedCount = 0;
+        rejectedCount += assertRejects('', 'a blank body is not sample data') ? 1 : 0;
+        rejectedCount += assertRejects('not json at all', 'an unparseable body is not sample data')
+            ? 1
+            : 0;
+        rejectedCount += assertRejects('[1,2,3]', 'a JSON array is not the expected object')
+            ? 1
+            : 0;
+        Assert.areEqual(3, rejectedCount, 'all three malformed bodies must be rejected');
     }
 
     @IsTest
     static void testRejectsMissingOrNullHouseholds() {
         Map<String, Object> missing = validRoot();
         missing.remove('households');
-        assertRejects(missing, 'a payload with no households key is invalid');
+        Boolean missingRejected = assertRejects(
+            missing,
+            'a payload with no households key is invalid'
+        );
 
         Map<String, Object> nulled = validRoot();
         nulled.put('households', null);
-        assertRejects(nulled, 'a payload with null households is invalid');
+        Boolean nulledRejected = assertRejects(nulled, 'a payload with null households is invalid');
+
+        Assert.isTrue(
+            missingRejected && nulledRejected,
+            'both a missing and a null households key must be rejected'
+        );
     }
 
     @IsTest
     static void testRejectsMissingOrNullOrganizations() {
         Map<String, Object> missing = validRoot();
         missing.remove('organizations');
-        assertRejects(missing, 'a payload with no organizations key is invalid');
+        Boolean missingRejected = assertRejects(
+            missing,
+            'a payload with no organizations key is invalid'
+        );
 
         Map<String, Object> nulled = validRoot();
         nulled.put('organizations', null);
-        assertRejects(nulled, 'a payload with null organizations is invalid');
+        Boolean nulledRejected = assertRejects(
+            nulled,
+            'a payload with null organizations is invalid'
+        );
+
+        Assert.isTrue(
+            missingRejected && nulledRejected,
+            'both a missing and a null organizations key must be rejected'
+        );
     }
 
     @IsTest
@@ -193,13 +230,21 @@ private class SampleDataSetTest {
         household.remove('members');
         Map<String, Object> missing = validRoot();
         missing.put('households', new List<Object>{ household });
-        assertRejects(missing, 'a household with no members key is invalid');
+        Boolean missingRejected = assertRejects(
+            missing,
+            'a household with no members key is invalid'
+        );
 
         Map<String, Object> nullMembers = validHousehold();
         nullMembers.put('members', null);
         Map<String, Object> nulled = validRoot();
         nulled.put('households', new List<Object>{ nullMembers });
-        assertRejects(nulled, 'a household with null members is invalid');
+        Boolean nulledRejected = assertRejects(nulled, 'a household with null members is invalid');
+
+        Assert.isTrue(
+            missingRejected && nulledRejected,
+            'both a missing and a null members key must be rejected'
+        );
     }
 
     @IsTest
@@ -211,20 +256,34 @@ private class SampleDataSetTest {
         );
         Map<String, Object> memberRoot = validRoot();
         memberRoot.put('households', new List<Object>{ noLastName });
-        assertRejects(memberRoot, 'a member with no last name is invalid');
+        Boolean noLastNameRejected = assertRejects(
+            memberRoot,
+            'a member with no last name is invalid'
+        );
 
         Map<String, Object> noOrgName = validOrganization();
         noOrgName.put('name', null);
         Map<String, Object> orgRoot = validRoot();
         orgRoot.put('organizations', new List<Object>{ noOrgName });
-        assertRejects(orgRoot, 'an organization with no name is invalid');
+        Boolean noOrgNameRejected = assertRejects(
+            orgRoot,
+            'an organization with no name is invalid'
+        );
 
         Map<String, Object> customNoName = validHousehold();
         customNoName.put('customName', true);
         customNoName.put('name', null);
         Map<String, Object> customRoot = validRoot();
         customRoot.put('households', new List<Object>{ customNoName });
-        assertRejects(customRoot, 'a custom-named household with no name is invalid');
+        Boolean customNoNameRejected = assertRejects(
+            customRoot,
+            'a custom-named household with no name is invalid'
+        );
+
+        Assert.isTrue(
+            noLastNameRejected && noOrgNameRejected && customNoNameRejected,
+            'every missing-name case above must be rejected'
+        );
     }
 
     @IsTest
@@ -233,10 +292,21 @@ private class SampleDataSetTest {
         noKey.put('key', null);
         Map<String, Object> keyless = validRoot();
         keyless.put('households', new List<Object>{ noKey });
-        assertRejects(keyless, 'a household with no key cannot be matched to its members');
+        Boolean keylessRejected = assertRejects(
+            keyless,
+            'a household with no key cannot be matched to its members'
+        );
 
         Map<String, Object> duplicates = validRoot();
         duplicates.put('households', new List<Object>{ validHousehold(), validHousehold() });
-        assertRejects(duplicates, 'two households cannot share one key');
+        Boolean duplicatesRejected = assertRejects(
+            duplicates,
+            'two households cannot share one key'
+        );
+
+        Assert.isTrue(
+            keylessRejected && duplicatesRejected,
+            'both the keyless and the duplicate-key households must be rejected'
+        );
     }
 }

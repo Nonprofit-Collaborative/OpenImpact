@@ -46,6 +46,10 @@ public without sharing class ErrorLogEventHandler {
         try {
             Database.insert(entries, false, AccessLevel.SYSTEM_MODE);
         } catch (Exception failedToLog) {
+            // Deliberate last resort: this is the write that turns an Error Log event into the
+            // Error_Log__c row, so when it itself fails there is nowhere left to record the
+            // failure but the debug log. Kept intentionally (PMD AvoidDebugStatements finding
+            // accepted, not suppressed).
             System.debug(
                 LoggingLevel.ERROR,
                 'Open Impact could not write an Error Log record from an event: ' +

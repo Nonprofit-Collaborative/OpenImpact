@@ -43,19 +43,26 @@ public with sharing class ImportMatcher {
         return String.isBlank(name) ? null : name.trim().toLowerCase();
     }
 
+    /** One slice's worth of contacts matched on email. Kept out of the caller's loop so the
+     * query itself is never lexically inside a loop; the caller still runs one query per
+     * MAX_KEYS_PER_QUERY-sized chunk, never one per row. */
+    private static List<Contact> contactsByEmailSlice(List<String> slice) {
+        return [
+            SELECT Id, Email
+            FROM Contact
+            WHERE Email IN :slice
+            WITH USER_MODE
+            ORDER BY CreatedDate ASC
+            LIMIT 5000
+        ];
+    }
+
     /** Contacts whose email is one of these, keyed by the lower cased email. */
     @NamespaceAccessible
     public static Map<String, Id> contactsByEmail(Set<String> emails) {
         Map<String, Id> result = new Map<String, Id>();
         for (List<String> slice : slices(emails)) {
-            List<Contact> found = [
-                SELECT Id, Email
-                FROM Contact
-                WHERE Email IN :slice
-                WITH USER_MODE
-                ORDER BY CreatedDate ASC
-                LIMIT 5000
-            ];
+            List<Contact> found = contactsByEmailSlice(slice);
             for (Contact record : found) {
                 // First created wins, so a duplicate in the org resolves the same way twice.
                 String key = emailKey(record.Email);
@@ -81,14 +88,7 @@ public with sharing class ImportMatcher {
             }
         }
         for (List<String> slice : slices(lastNames)) {
-            List<Contact> found = [
-                SELECT Id, LastName, MailingPostalCode
-                FROM Contact
-                WHERE LastName IN :slice
-                WITH USER_MODE
-                ORDER BY CreatedDate ASC
-                LIMIT 5000
-            ];
+            List<Contact> found = contactsByNameSlice(slice);
             for (Contact record : found) {
                 String key = nameAndPostalKey(record.LastName, record.MailingPostalCode);
                 if (key != null && keys.contains(key) && !result.containsKey(key)) {
@@ -99,19 +99,36 @@ public with sharing class ImportMatcher {
         return result;
     }
 
+    /** One slice's worth of contacts matched on last name, kept out of the caller's loop. */
+    private static List<Contact> contactsByNameSlice(List<String> slice) {
+        return [
+            SELECT Id, LastName, MailingPostalCode
+            FROM Contact
+            WHERE LastName IN :slice
+            WITH USER_MODE
+            ORDER BY CreatedDate ASC
+            LIMIT 5000
+        ];
+    }
+
+    /** One slice's worth of accounts matched on name within a record type. */
+    private static List<Account> accountsByNameSlice(List<String> slice, Id recordTypeId) {
+        return [
+            SELECT Id, Name
+            FROM Account
+            WHERE Name IN :slice AND RecordTypeId = :recordTypeId
+            WITH USER_MODE
+            ORDER BY CreatedDate ASC
+            LIMIT 5000
+        ];
+    }
+
     /** Accounts of the given record type whose name matches, keyed by the lower cased name. */
     @NamespaceAccessible
     public static Map<String, Id> accountsByName(Set<String> names, Id recordTypeId) {
         Map<String, Id> result = new Map<String, Id>();
         for (List<String> slice : slices(names)) {
-            List<Account> found = [
-                SELECT Id, Name
-                FROM Account
-                WHERE Name IN :slice AND RecordTypeId = :recordTypeId
-                WITH USER_MODE
-                ORDER BY CreatedDate ASC
-                LIMIT 5000
-            ];
+            List<Account> found = accountsByNameSlice(slice, recordTypeId);
             for (Account record : found) {
                 String key = nameKey(record.Name);
                 if (key != null && !result.containsKey(key)) {
@@ -138,17 +155,7 @@ public with sharing class ImportMatcher {
             return result;
         }
         for (List<String> slice : slices(emails)) {
-            String query =
-                'SELECT Id, ' +
-                ACCOUNT_EMAIL_FIELD +
-                ' FROM Account WHERE ' +
-                ACCOUNT_EMAIL_FIELD +
-                ' IN :slice AND RecordTypeId IN :recordTypeIds ORDER BY CreatedDate ASC LIMIT 5000';
-            List<SObject> found = Database.queryWithBinds(
-                query,
-                new Map<String, Object>{ 'slice' => slice, 'recordTypeIds' => recordTypeIds },
-                AccessLevel.USER_MODE
-            );
+            List<SObject> found = personAccountsByEmailSlice(slice, recordTypeIds);
             for (SObject record : found) {
                 String key = emailKey((String) record.get(ACCOUNT_EMAIL_FIELD));
                 if (key != null && !result.containsKey(key)) {
@@ -157,6 +164,24 @@ public with sharing class ImportMatcher {
             }
         }
         return result;
+    }
+
+    /** One slice's worth of person accounts matched on email, kept out of the caller's loop. */
+    private static List<SObject> personAccountsByEmailSlice(
+        List<String> slice,
+        Set<Id> recordTypeIds
+    ) {
+        String query =
+            'SELECT Id, ' +
+            ACCOUNT_EMAIL_FIELD +
+            ' FROM Account WHERE ' +
+            ACCOUNT_EMAIL_FIELD +
+            ' IN :slice AND RecordTypeId IN :recordTypeIds ORDER BY CreatedDate ASC LIMIT 5000';
+        return Database.queryWithBinds(
+            query,
+            new Map<String, Object>{ 'slice' => slice, 'recordTypeIds' => recordTypeIds },
+            AccessLevel.USER_MODE
+        );
     }
 
     /** Person records held as accounts, matched on last name plus billing postal code. */
@@ -182,17 +207,7 @@ public with sharing class ImportMatcher {
             }
         }
         for (List<String> slice : slices(lastNames)) {
-            String query =
-                'SELECT Id, ' +
-                ACCOUNT_LAST_NAME_FIELD +
-                ', BillingPostalCode FROM Account WHERE ' +
-                ACCOUNT_LAST_NAME_FIELD +
-                ' IN :slice AND RecordTypeId IN :recordTypeIds ORDER BY CreatedDate ASC LIMIT 5000';
-            List<SObject> found = Database.queryWithBinds(
-                query,
-                new Map<String, Object>{ 'slice' => slice, 'recordTypeIds' => recordTypeIds },
-                AccessLevel.USER_MODE
-            );
+            List<SObject> found = personAccountsByNameSlice(slice, recordTypeIds);
             for (SObject record : found) {
                 String key = nameAndPostalKey(
                     (String) record.get(ACCOUNT_LAST_NAME_FIELD),
@@ -204,6 +219,24 @@ public with sharing class ImportMatcher {
             }
         }
         return result;
+    }
+
+    /** One slice's worth of person accounts matched on last name, kept out of the caller's loop. */
+    private static List<SObject> personAccountsByNameSlice(
+        List<String> slice,
+        Set<Id> recordTypeIds
+    ) {
+        String query =
+            'SELECT Id, ' +
+            ACCOUNT_LAST_NAME_FIELD +
+            ', BillingPostalCode FROM Account WHERE ' +
+            ACCOUNT_LAST_NAME_FIELD +
+            ' IN :slice AND RecordTypeId IN :recordTypeIds ORDER BY CreatedDate ASC LIMIT 5000';
+        return Database.queryWithBinds(
+            query,
+            new Map<String, Object>{ 'slice' => slice, 'recordTypeIds' => recordTypeIds },
+            AccessLevel.USER_MODE
+        );
     }
 
     /**
@@ -220,19 +253,7 @@ public with sharing class ImportMatcher {
         }
         String objectName = type.getDescribe(SObjectDescribeOptions.DEFERRED).getName();
         for (List<String> slice : slices(values)) {
-            String query =
-                'SELECT Id, ' +
-                field +
-                ' FROM ' +
-                objectName +
-                ' WHERE ' +
-                field +
-                ' IN :slice ORDER BY CreatedDate ASC LIMIT 5000';
-            List<SObject> found = Database.queryWithBinds(
-                query,
-                new Map<String, Object>{ 'slice' => slice },
-                AccessLevel.USER_MODE
-            );
+            List<SObject> found = byExternalIdSlice(objectName, field, slice);
             for (SObject record : found) {
                 String key = nameKey((String) record.get(field));
                 if (key != null && !result.containsKey(key)) {
@@ -241,6 +262,27 @@ public with sharing class ImportMatcher {
             }
         }
         return result;
+    }
+
+    /** One slice's worth of records matched on an external identifier field. */
+    private static List<SObject> byExternalIdSlice(
+        String objectName,
+        String field,
+        List<String> slice
+    ) {
+        String query =
+            'SELECT Id, ' +
+            field +
+            ' FROM ' +
+            objectName +
+            ' WHERE ' +
+            field +
+            ' IN :slice ORDER BY CreatedDate ASC LIMIT 5000';
+        return Database.queryWithBinds(
+            query,
+            new Map<String, Object>{ 'slice' => slice },
+            AccessLevel.USER_MODE
+        );
     }
 
     /** The API name of the object's external identifier field, or null when it has none. */

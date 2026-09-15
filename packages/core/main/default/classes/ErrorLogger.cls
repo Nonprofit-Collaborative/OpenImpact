@@ -71,6 +71,10 @@ public with sharing class ErrorLogger {
                 );
             }
         } catch (Exception failedToBuild) {
+            // Deliberate last resort: this catch runs before any Error_Log__c row exists to
+            // write, so there is no queue-able entry left to hand to ErrorLogWriter. The debug
+            // log is the only place this failure can go. Kept intentionally (PMD
+            // AvoidDebugStatements finding accepted, not suppressed).
             System.debug(
                 LoggingLevel.ERROR,
                 'Open Impact could not build an Error Log record: ' + failedToBuild.getMessage()

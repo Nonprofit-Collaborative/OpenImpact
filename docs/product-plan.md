@@ -375,6 +375,7 @@ Priority: **P0** must ship before v1.0; **P1** should ship before v1.0 if the it
 | C-22 | Junction membership hardening with Person Accounts (Agentforce Nonprofit coexistence) | M | P0 | 0.5 | |
 | C-23 | Automation pause with auto-expiry; error digest email | m | P0 | 0.6 | |
 | C-24 | Module Manager (install links, on, off, uninstall pre-flight) | M | P0 | 0.7 | Needed once a second package exists |
+| C-25 | Multiple email addresses on a person (personal, work, alternate, with a preferred choice that keeps the standard Email in step) | S | P1 | 0.5 | Added 2026-09-15 for Sales Cloud readiness; built on `feature/c-25-multiple-emails` |
 | C-25 | Interaction notes (lightweight major-gift contact reports on Contact and Account) | m | P1 | 0.8 | Copies the useful part of NPC Interaction Summaries |
 | C-26 | Telemetry, opt-in, anonymous (installed modules, org shape, error counts) | m | P1 | 0.10 | Informs the roadmap; default off |
 | C-27 | In-app "What's new" after upgrade | m | P1 | 0.11 | |

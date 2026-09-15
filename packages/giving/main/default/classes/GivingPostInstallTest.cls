@@ -207,6 +207,7 @@ private class GivingPostInstallTest {
         for (Rollup_Definition__c definition : [
             SELECT Id, Definition_Key__c, Target_Field__c, Active__c, Is_Package_Default__c, Mode__c
             FROM Rollup_Definition__c
+            LIMIT 1000
         ]) {
             byKey.put(definition.Definition_Key__c, definition);
         }

@@ -168,6 +168,7 @@ public with sharing class ReceiptTemplateService {
             SELECT Template_Name__c, Receipt_Type__c, Body__c
             FROM Receipt_Template_Default__mdt
             WITH SYSTEM_MODE
+            LIMIT 500
         ]) {
             if (typesPresent.contains(shipped.Receipt_Type__c)) {
                 continue;
