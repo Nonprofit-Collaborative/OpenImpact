@@ -344,9 +344,12 @@ public with sharing class HouseholdSelector {
         if (recordTypeId == null || String.isBlank(term)) {
             return new List<Account>();
         }
-        // The term is a bind variable, not string concatenation, so it needs no escaping.
-        // Escaping it would put a backslash into the pattern and lose every O'Brien.
-        String pattern = '%' + term.trim() + '%';
+        // The term is a bind variable, not string concatenation, so quotes need no escaping
+        // and escapeSingleQuotes would lose every O'Brien. The LIKE wildcards are another
+        // matter: a typed % or _ would match every household, so each is escaped with the
+        // backslash LIKE understands, after any backslash of the person's own.
+        String literal = term.trim().replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_');
+        String pattern = '%' + literal + '%';
         Integer rows = maxRows == null || maxRows <= 0 ? 20 : maxRows;
         Id skip = excludeId;
         return [

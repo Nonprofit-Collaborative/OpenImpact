@@ -1543,7 +1543,7 @@
       <language>en_US</language>
       <protected>true</protected>
       <shortDescription>A merge finished</shortDescription>
-      <value>Merged. The surviving household now holds everyone from both.</value>
+      <value>Merged. The household you kept now holds everyone from both.</value>
     </labels>
     <labels>
       <fullName>Core_HouseholdMerge_TabMerge</fullName>
@@ -1755,6 +1755,14 @@
       <value>The new household could not be created, so nobody was moved. The Error Log has the details.</value>
     </labels>
     <labels>
+      <fullName>Core_Households_ErrorCreateFailedForPerson</fullName>
+      <categories>Households</categories>
+      <language>en_US</language>
+      <protected>true</protected>
+      <shortDescription>Put on a person's own save when the household being created for them was refused. {0} is the reason the platform gave.</shortDescription>
+      <value>This person could not be saved because a household could not be created for them: {0}</value>
+    </labels>
+    <labels>
         <fullName>Core_Households_ErrorMoveMissingInput</fullName>
         <categories>Households</categories>
         <language>en_US</language>
@@ -1769,6 +1777,14 @@
         <protected>true</protected>
         <shortDescription>Move a person: the org stores this person as an account</shortDescription>
         <value>This person is stored as an account, so they can only be moved when your org uses the flexible way of belonging to a household. Change that setting in Nonprofit Settings first.</value>
+    </labels>
+    <labels>
+      <fullName>Core_Households_ErrorMoveNoEditAccess</fullName>
+      <categories>Households</categories>
+      <language>en_US</language>
+      <protected>true</protected>
+      <shortDescription>Move a person: the user cannot edit the household they chose</shortDescription>
+      <value>You need edit access to the household you are moving this person into. Nothing was changed.</value>
     </labels>
     <labels>
         <fullName>Core_Households_ErrorMoveNotFound</fullName>
@@ -1809,6 +1825,14 @@
         <protected>true</protected>
         <shortDescription>A household could not be saved</shortDescription>
         <value>A household could not be saved, so its name or its member count may be out of date.</value>
+    </labels>
+    <labels>
+      <fullName>Core_Households_ErrorUnexpected</fullName>
+      <categories>Households</categories>
+      <language>en_US</language>
+      <protected>true</protected>
+      <shortDescription>Shown on a household screen when something fails for a reason the package did not expect. The technical reason goes to the Error Log, never to the screen.</shortDescription>
+      <value>Something went wrong and nothing was changed. What happened is recorded in the Error Log on the Hub home page.</value>
     </labels>
     <labels>
         <fullName>Core_Households_SkippedNativeDependents</fullName>
