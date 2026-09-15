@@ -46,6 +46,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0035](0035-shipped-setting-defaults-are-applied-in-apex.md) | A setting that ships switched on is switched on in Apex, not by its field default | Accepted |
 | [0036](0036-empty-household-delete-guard.md) | An empty household is deleted only when nothing outside Open Impact depends on it | Accepted |
 | [0037](0037-junction-mode-creates-households-automatically.md) | Junction mode creates a household for a new person, under the one setting that already says so | Accepted |
+| [0038](0038-giving-nightly-jobs-are-scheduled-from-the-settings-console.md) | The Giving nightly jobs are scheduled from the settings console | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions
@@ -70,7 +71,9 @@ locked it, collided with the sequence, and left it unreceiptable.
 ADR-0034 is a builder decision on three further defects the same review
 found in G-13, and it amends the storage sentence in ADR-0016: a `ContentDocumentLink` is an
 access control list, so a receipt document is linked only to the records a Giving permission
-set governs.
+set governs. ADR-0038 is a builder decision on a defect found in G-07: nothing in a real org
+called `GivingScheduler.scheduleAll`, so the Giving nightly jobs were built and never started;
+the schedule is now started and stopped from the Nightly Jobs page of the settings console.
 
 The ADR-NEXT placeholder at the end of the table is a builder decision on a defect found in
 C-01: junction mode created no households at all, and the setting that said it did was never
