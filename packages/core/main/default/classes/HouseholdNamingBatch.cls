@@ -17,10 +17,8 @@ public with sharing class HouseholdNamingBatch implements Database.Batchable<SOb
     }
 
     public void finish(Database.BatchableContext context) {
-        // Counts stay on the job so that the settings page can report what happened.
-        System.debug(
-            LoggingLevel.INFO,
-            'Household naming: ' + householdsRead + ' read, ' + householdsChanged + ' rewritten.'
-        );
+        // Counts stay on the job so that the settings page can report what happened; there is
+        // nothing further to do once the batch is done.
+        return;
     }
 }
