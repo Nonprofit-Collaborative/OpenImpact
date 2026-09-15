@@ -7,6 +7,14 @@
                 </div>
             </template>
 
+            <template if:true={isSaving}>
+                <lightning-spinner
+                    alternative-text={label.saving}
+                    size="small"
+                    class="saving-spinner"
+                ></lightning-spinner>
+            </template>
+
             <p class="slds-text-body_small slds-var-m-bottom_small">{label.tokenHelp}</p>
 
             <lightning-input
@@ -60,7 +68,7 @@
                 <lightning-button
                     variant="brand"
                     label={label.save}
-                    disabled={isReadOnly}
+                    disabled={isSaveDisabled}
                     onclick={handleSave}
                     class="slds-var-m-right_x-small save-button"
                 ></lightning-button>

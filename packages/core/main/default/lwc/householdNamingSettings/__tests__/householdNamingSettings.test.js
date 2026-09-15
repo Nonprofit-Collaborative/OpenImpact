@@ -133,6 +133,45 @@ describe('c-household-naming-settings', () => {
     });
   });
 
+  it('disables Save while a save is in progress, so a double click cannot write twice', async () => {
+    let resolveSave;
+    saveSettings.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSave = resolve;
+      })
+    );
+    const element = build();
+    await flush();
+
+    const saveButton = element.shadowRoot.querySelector('.save-button');
+    expect(saveButton.disabled).toBe(false);
+
+    saveButton.dispatchEvent(new CustomEvent('click'));
+    await flush();
+    expect(saveButton.disabled).toBe(true);
+
+    resolveSave();
+    await flush();
+    expect(saveButton.disabled).toBe(false);
+  });
+
+  it('dispatches a save event once the patterns are saved, so the Setup Assistant can tick its step', async () => {
+    const element = build();
+    await flush();
+
+    const handler = jest.fn();
+    element.addEventListener('save', handler);
+    element.shadowRoot.querySelector('.save-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler.mock.calls[0][0].detail.values).toEqual({
+      Household_Name_Pattern__c: '{LastName} Household',
+      Formal_Greeting_Pattern__c: '{Salutation} {LastName}',
+      Informal_Greeting_Pattern__c: '{FirstName}'
+    });
+  });
+
   it('asks for confirmation before recomputing every household', async () => {
     const element = build();
     await flush();
