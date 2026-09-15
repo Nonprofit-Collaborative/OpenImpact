@@ -261,6 +261,12 @@ public with sharing class HealthCheckService {
         }
     }
 
+    private class MembershipDataCheck implements Check {
+        public Finding run() {
+            return membershipDataFinding();
+        }
+    }
+
     private class HouseholdCreationCheck implements Check {
         public Finding run() {
             return householdCreationFinding();
@@ -371,6 +377,7 @@ public with sharing class HealthCheckService {
         steps.add(new CheckStep('org_shape', new OrgShapeCheck()));
         steps.add(new CheckStep('coexistence_mode', new CoexistenceModeCheck()));
         steps.add(new CheckStep('membership_mode', new MembershipModeCheck()));
+        steps.add(new CheckStep('membership_data', new MembershipDataCheck()));
         steps.add(new CheckStep('household_creation', new HouseholdCreationCheck()));
         steps.add(new CheckStep('connect_module', new ConnectModuleCheck()));
         steps.add(new CheckStep('multi_currency', new MultiCurrencyCheck()));
@@ -531,6 +538,13 @@ public with sharing class HealthCheckService {
         );
     }
 
+    /**
+     * Person Accounts with the simple way of belonging. An org that has never chosen a way
+     * of belonging is told, as an error, that the simple default does not fit. An org whose
+     * administrator chose the simple way on purpose is left alone while everyone is stored
+     * as a contact, and warned, with the count, once people stored as accounts appear: those
+     * people cannot join a household the simple way.
+     */
     private static Finding membershipModeFinding(OrgShapeDetector.OrgShape shape) {
         if (shape == null || shape.hasPersonAccounts != true) {
             return null;
@@ -539,14 +553,69 @@ public with sharing class HealthCheckService {
             return null;
         }
 
+        if (!CoexistenceService.membershipModeChosen()) {
+            return new Finding(
+                    'membership_mode_person_accounts',
+                    System.Label.Core_HealthCheck_MembershipTitle,
+                    System.Label.Core_HealthCheck_MembershipDetail,
+                    SEVERITY_ERROR,
+                    CATEGORY_ORG_SHAPE
+                )
+                .withFix(
+                    System.Label.Core_HealthCheck_MembershipFix,
+                    FIX_APPLY_JUNCTION_MEMBERSHIP
+                );
+        }
+
+        Integer asAccounts = CoexistenceService.countPeopleStoredAsAccounts();
+        if (asAccounts <= 0) {
+            return null;
+        }
+        List<Object> count = new List<Object>{ String.valueOf(asAccounts) };
         return new Finding(
-                'membership_mode_person_accounts',
-                System.Label.Core_HealthCheck_MembershipTitle,
-                System.Label.Core_HealthCheck_MembershipDetail,
-                SEVERITY_ERROR,
+                'membership_mode_people_as_accounts',
+                String.format(System.Label.Core_HealthCheck_PeopleAsAccountsTitle, count),
+                String.format(System.Label.Core_HealthCheck_PeopleAsAccountsDetail, count),
+                SEVERITY_WARNING,
                 CATEGORY_ORG_SHAPE
             )
             .withFix(System.Label.Core_HealthCheck_MembershipFix, FIX_APPLY_JUNCTION_MEMBERSHIP);
+    }
+
+    /**
+     * Household membership the way of belonging in force cannot see. The settings write
+     * refuses the switch that would cause this, so it is reached only by data that arrived
+     * another way: a membership record loaded into an org on the simple way, or a person
+     * linked straight to a household in an org on the flexible way. It is an error because
+     * it is silent otherwise: the households simply read as empty, or the people as
+     * belonging nowhere, and nothing else says why.
+     */
+    private static Finding membershipDataFinding() {
+        Boolean junction = CoexistenceService.MEMBERSHIP_JUNCTION.equals(
+            CoexistenceService.getMembershipMode()
+        );
+        Integer unseen = junction
+            ? CoexistenceService.countPeopleLinkedWithoutMembershipRecords()
+            : CoexistenceService.countPeopleWithMembershipRecords();
+        if (unseen <= 0) {
+            return null;
+        }
+
+        List<Object> count = new List<Object>{ String.valueOf(unseen) };
+        String detail = String.format(
+            junction
+                ? System.Label.Core_HealthCheck_MembershipHiddenByJunctionDetail
+                : System.Label.Core_HealthCheck_MembershipHiddenByContactDetail,
+            count
+        );
+        return new Finding(
+                'membership_data_hidden',
+                System.Label.Core_HealthCheck_MembershipHiddenTitle,
+                detail,
+                SEVERITY_ERROR,
+                CATEGORY_SETTINGS
+            )
+            .withFix(System.Label.Core_HealthCheck_MembershipHiddenFix, SECTION_HOUSEHOLDS);
     }
 
     /**

@@ -188,6 +188,7 @@ public with sharing class SettingsService {
             if (oldText.equals(newText)) {
                 continue;
             }
+            refuseIfMembershipDataWouldBeStranded(token, oldText, newText);
             record.put(token, newValue);
             changes.add(
                 new Setting_Change__c(
@@ -206,6 +207,28 @@ public with sharing class SettingsService {
         Database.insert(changes, AccessLevel.USER_MODE);
         clearCaches();
         return record;
+    }
+
+    /**
+     * How people belong to a household is the one setting whose change can destroy data:
+     * there is no migration between the two ways of belonging, so the records one way keeps
+     * are invisible to the other. The guard lives here because this is the only place the
+     * value is written, whether from the console, the Setup Assistant, or Health Check, and
+     * it runs before anything is saved, so a refused change leaves the org exactly as it was.
+     * CoexistenceService owns the reasoning and the wording.
+     */
+    private static void refuseIfMembershipDataWouldBeStranded(
+        Schema.SObjectField token,
+        String oldText,
+        String newText
+    ) {
+        if (token != Nonprofit_Settings__c.Household_Membership_Mode__c) {
+            return;
+        }
+        String refusal = CoexistenceService.membershipChangeRefusal(oldText, newText);
+        if (refusal != null) {
+            throw new SettingsException(refusal);
+        }
     }
 
     /**

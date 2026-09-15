@@ -148,6 +148,92 @@ private class HealthCheckServiceTest {
     }
 
     @IsTest
+    static void contactMembershipChosenOnPurposeIsNotAnErrorWhileEveryoneIsAContact() {
+        // Maria's org has Person Accounts on but stores everyone as a contact, and she chose
+        // the simple way herself. That is a choice, not a fault, until people stored as
+        // accounts appear. No test org in the CI matrix has any, so this is the quiet case.
+        OrgShapeDetector.overrideShape = shape(false, true, false, false);
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+
+        System.assertEquals(
+            null,
+            find(findings, 'membership_mode_person_accounts'),
+            'A way of belonging chosen on purpose is not reported as the default not fitting.'
+        );
+        System.assertEquals(
+            null,
+            find(findings, 'membership_mode_people_as_accounts'),
+            'And with nobody stored as an account there is nothing to warn about.'
+        );
+    }
+
+    @IsTest
+    static void membershipRecordsTheSimpleWayCannotSeeAreAnError() {
+        // Membership records exist, and the setting has been moved to the simple way by a
+        // route the settings write does not guard, here a direct upsert. The households now
+        // read as empty and nothing else says why.
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        insert HouseholdTestDataFactory.newContact('Maria', 'Garcia');
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+
+        HealthCheckService.Finding finding = find(
+            HealthCheckService.run(),
+            'membership_data_hidden'
+        );
+
+        System.assertNotEquals(null, finding, 'Membership the mode cannot see is reported.');
+        System.assertEquals(
+            HealthCheckService.SEVERITY_ERROR,
+            finding.severity,
+            'People vanishing from their households is broken, not untidy.'
+        );
+        System.assert(
+            finding.detail.contains('1 people'),
+            'The finding says how many people are affected: ' + finding.detail
+        );
+        System.assertEquals(
+            HealthCheckService.SECTION_HOUSEHOLDS,
+            finding.fixTarget,
+            'The fix opens the household settings, where the way of belonging lives.'
+        );
+    }
+
+    @IsTest
+    static void peopleLinkedStraightToAHouseholdTheFlexibleWayCannotSeeAreAnError() {
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
+        Account household = HouseholdTestDataFactory.newHousehold('The Garcia Family');
+        insert household;
+        Contact maria = HouseholdTestDataFactory.newContact('Maria', 'Garcia');
+        maria.AccountId = household.Id;
+        insert maria;
+
+        HealthCheckService.Finding finding = find(
+            HealthCheckService.run(),
+            'membership_data_hidden'
+        );
+
+        System.assertNotEquals(null, finding, 'A person the mode cannot see is reported.');
+        System.assert(
+            finding.detail.contains('1 people'),
+            'The finding says how many people are affected: ' + finding.detail
+        );
+    }
+
+    @IsTest
+    static void membershipEveryoneCanSeeIsNotReported() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        insert HouseholdTestDataFactory.newContact('Maria', 'Garcia');
+
+        System.assertEquals(
+            null,
+            find(HealthCheckService.run(), 'membership_data_hidden'),
+            'Membership records in the flexible way are exactly what that way reads.'
+        );
+    }
+
+    @IsTest
     static void junctionMembershipWithPersonAccountsIsNotReported() {
         OrgShapeDetector.overrideShape = shape(false, true, false, false);
         CoexistenceService.setMode(CoexistenceService.MODE_AGENTFORCE_NONPROFIT);
