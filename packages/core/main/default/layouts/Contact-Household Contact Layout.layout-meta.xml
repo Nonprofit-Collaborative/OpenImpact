@@ -28,6 +28,10 @@
         <behavior>Edit</behavior>
         <field>AccountId</field>
       </layoutItems>
+      <layoutItems>
+        <behavior>Readonly</behavior>
+        <field>Primary_Affiliation__c</field>
+      </layoutItems>
     </layoutColumns>
     <style>TwoColumnsTopToBottom</style>
   </layoutSections>
