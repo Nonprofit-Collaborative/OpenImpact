@@ -16,6 +16,9 @@
  * when the account is deleted and does not fill it in again when the account is restored.
  * So the delete work happens in `beforeDelete`, while the rows still say what they are
  * for, and only the settling up is left to `afterDelete`.
+ *
+ * A person stored as an account also has their standard email settled before the record is
+ * written, so that it holds whichever of their three addresses they chose (R-C6).
  */
 public with sharing class AccountTriggerHandler extends TriggerHandler {
     private static Boolean running = false;
@@ -30,10 +33,12 @@ public with sharing class AccountTriggerHandler extends TriggerHandler {
 
     public override void beforeInsert() {
         nameNewHouseholds((List<Account>) newRecords());
+        PreferredEmailService.applyToPersonRecords((List<Account>) newRecords());
     }
 
     public override void beforeUpdate() {
         nameNewHouseholds((List<Account>) newRecords());
+        PreferredEmailService.applyToPersonRecords((List<Account>) newRecords());
     }
 
     public override void afterInsert() {
