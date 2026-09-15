@@ -112,4 +112,100 @@
         <shortDescription>Household panel on a person: caption before the formal greeting</shortDescription>
         <value>Formal greeting</value>
     </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddExistingHeading</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: heading over the search box, flexible membership mode</shortDescription>
+        <value>Add someone already in Salesforce</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddExistingPlaceholder</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: placeholder text in the search box, flexible membership mode</shortDescription>
+        <value>Search by name</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddExistingResultFor</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: what a screen reader hears for a search result button, {0} is the person's name</shortDescription>
+        <value>Add {0} to this household</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddExistingNoResults</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: message when a search finds nobody, flexible membership mode</shortDescription>
+        <value>No matches. Keep typing, or add them as a new person below.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddNewHeading</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: heading over the new person form, flexible membership mode</shortDescription>
+        <value>Or add someone new</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_Salutation</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: salutation field on the new person form</shortDescription>
+        <value>Salutation</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_FirstName</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: first name field on the new person form</shortDescription>
+        <value>First name</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_LastName</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: last name field on the new person form</shortDescription>
+        <value>Last name</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddMemberMissingPerson</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: nothing was chosen to add, flexible membership mode</shortDescription>
+        <value>Choose a person to add.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddMemberMissingName</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: the new person form was saved with no last name</shortDescription>
+        <value>Enter at least a last name before saving.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddMemberFailed</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: the person could not be added, flexible membership mode</shortDescription>
+        <value>This person could not be added. Check that you can create contacts and edit this household, and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddSearchFailed</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: the search for an existing person failed, flexible membership mode</shortDescription>
+        <value>The search could not be completed. Refresh the page and try again.</value>
+    </labels>
 </CustomLabels>

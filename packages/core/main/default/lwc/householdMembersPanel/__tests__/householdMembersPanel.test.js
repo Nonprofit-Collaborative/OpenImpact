@@ -9,6 +9,9 @@ import getMembers from '@salesforce/apex/HouseholdController.getMembers';
 import getMembershipMode from '@salesforce/apex/HouseholdController.getMembershipMode';
 import moveContact from '@salesforce/apex/HouseholdController.moveContact';
 import makePrimary from '@salesforce/apex/HouseholdOfPersonController.makePrimary';
+import searchPeople from '@salesforce/apex/HouseholdOfPersonController.searchPeople';
+import addExistingPerson from '@salesforce/apex/HouseholdOfPersonController.addExistingPerson';
+import addNewPerson from '@salesforce/apex/HouseholdOfPersonController.addNewPerson';
 
 jest.mock(
   '@salesforce/apex/HouseholdController.getMembers',
@@ -36,6 +39,24 @@ jest.mock(
 
 jest.mock(
   '@salesforce/apex/HouseholdOfPersonController.makePrimary',
+  () => ({ default: jest.fn(() => Promise.resolve()) }),
+  { virtual: true }
+);
+
+jest.mock(
+  '@salesforce/apex/HouseholdOfPersonController.searchPeople',
+  () => ({ default: jest.fn(() => Promise.resolve([])) }),
+  { virtual: true }
+);
+
+jest.mock(
+  '@salesforce/apex/HouseholdOfPersonController.addExistingPerson',
+  () => ({ default: jest.fn(() => Promise.resolve()) }),
+  { virtual: true }
+);
+
+jest.mock(
+  '@salesforce/apex/HouseholdOfPersonController.addNewPerson',
   () => ({ default: jest.fn(() => Promise.resolve()) }),
   { virtual: true }
 );
@@ -114,7 +135,12 @@ function build() {
 }
 
 describe('c-household-members-panel', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
   afterEach(() => {
+    jest.useRealTimers();
     while (document.body.firstChild) {
       document.body.removeChild(document.body.firstChild);
     }
@@ -296,7 +322,7 @@ describe('c-household-members-panel', () => {
     expect(element.shadowRoot.querySelector('.member-list')).toBeNull();
   });
 
-  it('offers to add a member only where a person belongs to one household', async () => {
+  it('offers to add a member where a person belongs to one household', async () => {
     const element = build();
     getRecord.emit(recordOfType('Household'));
     getMembershipMode.emit('Contact');
@@ -304,18 +330,152 @@ describe('c-household-members-panel', () => {
     await flush();
 
     expect(element.shadowRoot.querySelector('.add-button')).not.toBeNull();
-    expect(element.shadowRoot.querySelector('.junction-message')).toBeNull();
   });
 
-  it('points to the related list instead of adding in the flexible membership mode', async () => {
+  it('offers to add a member in the flexible membership mode too', async () => {
     const element = build();
     getRecord.emit(recordOfType('Household'));
     getMembershipMode.emit('Junction');
     getMembers.emit(MEMBERS);
     await flush();
 
-    expect(element.shadowRoot.querySelector('.add-button')).toBeNull();
-    expect(element.shadowRoot.querySelector('.junction-message')).not.toBeNull();
+    expect(element.shadowRoot.querySelector('.add-button')).not.toBeNull();
+  });
+
+  it('shows the record edit form to add a member in the simple membership mode', async () => {
+    const element = build();
+    getRecord.emit(recordOfType('Household'));
+    getMembershipMode.emit('Contact');
+    getMembers.emit(MEMBERS);
+    await flush();
+
+    element.shadowRoot.querySelector('.add-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+
+    expect(element.shadowRoot.querySelector('lightning-record-edit-form')).not.toBeNull();
+    expect(element.shadowRoot.querySelector('.add-search-input')).toBeNull();
+  });
+
+  it('offers a search and a new person form to add a member in the flexible membership mode', async () => {
+    const element = build();
+    getRecord.emit(recordOfType('Household'));
+    getMembershipMode.emit('Junction');
+    getMembers.emit(MEMBERS);
+    await flush();
+
+    element.shadowRoot.querySelector('.add-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+
+    expect(element.shadowRoot.querySelector('lightning-record-edit-form')).toBeNull();
+    expect(element.shadowRoot.querySelector('.add-search-input')).not.toBeNull();
+    expect(element.shadowRoot.querySelector('.add-new-last-name')).not.toBeNull();
+  });
+
+  it('searches for an existing person and joins the one chosen', async () => {
+    searchPeople.mockResolvedValue([{ id: '003000000000009AAA', name: 'Maria Garcia' }]);
+    addExistingPerson.mockResolvedValue();
+    const element = build();
+    getRecord.emit(recordOfType('Household'));
+    getMembershipMode.emit('Junction');
+    getMembers.emit(MEMBERS);
+    await flush();
+
+    element.shadowRoot.querySelector('.add-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+    const search = element.shadowRoot.querySelector('.add-search-input');
+    search.value = 'Maria';
+    search.dispatchEvent(new CustomEvent('change', { detail: { value: 'Maria' } }));
+    jest.runAllTimers();
+    await flush();
+
+    expect(searchPeople).toHaveBeenCalledWith({ searchTerm: 'Maria' });
+    const result = element.shadowRoot.querySelector('.add-existing-button');
+    expect(result.label).toBe('Maria Garcia');
+    result.dispatchEvent(new CustomEvent('click'));
+    await flush();
+
+    expect(addExistingPerson).toHaveBeenCalledWith({
+      householdId: HOUSEHOLD_ID,
+      personId: '003000000000009AAA'
+    });
+    expect(element.shadowRoot.querySelector('.add-box')).toBeNull();
+  });
+
+  it('says so in plain words when adding an existing person is refused', async () => {
+    searchPeople.mockResolvedValue([{ id: '003000000000009AAA', name: 'Maria Garcia' }]);
+    addExistingPerson.mockRejectedValue({ body: { message: 'That person could not be added.' } });
+    const element = build();
+    getRecord.emit(recordOfType('Household'));
+    getMembershipMode.emit('Junction');
+    getMembers.emit(MEMBERS);
+    await flush();
+
+    element.shadowRoot.querySelector('.add-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+    const search = element.shadowRoot.querySelector('.add-search-input');
+    search.value = 'Maria';
+    search.dispatchEvent(new CustomEvent('change', { detail: { value: 'Maria' } }));
+    jest.runAllTimers();
+    await flush();
+    element.shadowRoot
+      .querySelector('.add-existing-button')
+      .dispatchEvent(new CustomEvent('click'));
+    await flush();
+
+    const alert = element.shadowRoot.querySelector('[role="alert"]');
+    expect(alert.textContent).toContain('That person could not be added.');
+  });
+
+  it('creates and joins a new person in the flexible membership mode', async () => {
+    addNewPerson.mockResolvedValue();
+    const element = build();
+    getRecord.emit(recordOfType('Household'));
+    getMembershipMode.emit('Junction');
+    getMembers.emit(MEMBERS);
+    await flush();
+
+    element.shadowRoot.querySelector('.add-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+    const salutation = element.shadowRoot.querySelector('.add-new-salutation');
+    salutation.value = 'Mr.';
+    salutation.dispatchEvent(new CustomEvent('change', { detail: { value: 'Mr.' } }));
+    const firstName = element.shadowRoot.querySelector('.add-new-first-name');
+    firstName.value = 'Wei';
+    firstName.dispatchEvent(new CustomEvent('change', { detail: { value: 'Wei' } }));
+    const lastName = element.shadowRoot.querySelector('.add-new-last-name');
+    lastName.value = 'Lee';
+    lastName.dispatchEvent(new CustomEvent('change', { detail: { value: 'Lee' } }));
+    element.shadowRoot
+      .querySelector('.add-new-save-button')
+      .dispatchEvent(new CustomEvent('click'));
+    await flush();
+
+    expect(addNewPerson).toHaveBeenCalledWith({
+      householdId: HOUSEHOLD_ID,
+      salutation: 'Mr.',
+      firstName: 'Wei',
+      lastName: 'Lee'
+    });
+    expect(element.shadowRoot.querySelector('.add-box')).toBeNull();
+  });
+
+  it('says so in plain words when adding a new person is refused', async () => {
+    addNewPerson.mockRejectedValue({ body: { message: 'Enter at least a last name.' } });
+    const element = build();
+    getRecord.emit(recordOfType('Household'));
+    getMembershipMode.emit('Junction');
+    getMembers.emit(MEMBERS);
+    await flush();
+
+    element.shadowRoot.querySelector('.add-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+    element.shadowRoot
+      .querySelector('.add-new-save-button')
+      .dispatchEvent(new CustomEvent('click'));
+    await flush();
+
+    const alert = element.shadowRoot.querySelector('[role="alert"]');
+    expect(alert.textContent).toContain('Enter at least a last name.');
   });
 
   it('moves a person to the household that was chosen', async () => {
