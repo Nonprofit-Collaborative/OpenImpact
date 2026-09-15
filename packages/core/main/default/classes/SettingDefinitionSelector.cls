@@ -38,6 +38,7 @@ public with sharing class SettingDefinitionSelector {
             FROM Setting_Definition__mdt
             WITH USER_MODE
             ORDER BY Section__c, Sort_Order__c, MasterLabel
+            LIMIT 500
         ];
         return cachedRows;
     }
