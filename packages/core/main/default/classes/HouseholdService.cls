@@ -765,13 +765,32 @@ public with sharing class HouseholdService {
         }
         // The household is the package's own bookkeeping, so it is saved by HouseholdWriter,
         // which explains why that one write does not run with the saving user's access.
-        List<Id> created = HouseholdWriter.createHouseholds(households);
+        List<Database.SaveResult> created = HouseholdWriter.createHouseholds(households);
         HOUSEHOLD_ID_BY_PERSON.clear();
         for (Integer i = 0; i < created.size(); i++) {
-            if (created[i] != null) {
-                waiting[i].AccountId = created[i];
+            if (created[i].isSuccess()) {
+                waiting[i].AccountId = created[i].getId();
+            } else {
+                failPersonSave(waiting[i], created[i]);
             }
         }
+    }
+
+    /**
+     * Puts a refused household creation on the person's own save. Every person gets a
+     * household (R-C1), so a person whose household could not be made is not saved
+     * quietly without one: their row fails, with the platform's reason, in the same place
+     * a data loader or a screen reports any other failed row. The Error Log entry
+     * HouseholdWriter has already written is for the administrator; this is for whoever
+     * pressed save.
+     */
+    private static void failPersonSave(SObject person, Database.SaveResult refused) {
+        person.addError(
+            String.format(
+                Label.Core_Households_ErrorCreateFailedForPerson,
+                new List<String>{ HouseholdWriter.failureReason(refused) }
+            )
+        );
     }
 
     /**
@@ -789,7 +808,10 @@ public with sharing class HouseholdService {
         ) {
             return;
         }
-        createHouseholdsAndMemberships(PersonRecordSelector.toPersons(personRecords));
+        createHouseholdsAndMemberships(
+            PersonRecordSelector.toPersons(personRecords),
+            byId(personRecords)
+        );
     }
 
     /**
@@ -811,7 +833,19 @@ public with sharing class HouseholdService {
         ) {
             return;
         }
-        createHouseholdsAndMemberships(toPersons(withoutAHousehold(contacts)));
+        List<Contact> waiting = withoutAHousehold(contacts);
+        createHouseholdsAndMemberships(toPersons(waiting), byId(waiting));
+    }
+
+    /** The records themselves, by id, so that a failure can be put back on the right one. */
+    private static Map<Id, SObject> byId(List<SObject> records) {
+        Map<Id, SObject> result = new Map<Id, SObject>();
+        for (SObject record : records) {
+            if (record.Id != null) {
+                result.put(record.Id, record);
+            }
+        }
+        return result;
     }
 
     /**
@@ -871,8 +905,15 @@ public with sharing class HouseholdService {
      * One household each, and the membership row that joins each person to theirs. The one
      * creation pass both automatic paths use, so that a person stored as a contact and a
      * person stored as an account are given the same thing in the same way.
+     *
+     * The records come along with the people so that a household that could not be
+     * created fails that person's own save (R-C1) rather than leaving them saved and
+     * quietly householdless.
      */
-    private static void createHouseholdsAndMemberships(List<Person> people) {
+    private static void createHouseholdsAndMemberships(
+        List<Person> people,
+        Map<Id, SObject> recordsByPersonId
+    ) {
         if (people == null || people.isEmpty()) {
             return;
         }
@@ -891,13 +932,20 @@ public with sharing class HouseholdService {
             for (Person person : people) {
                 households.add(newHousehold(new List<Person>{ person }, recordTypeId, settings));
             }
-            List<Id> created = HouseholdWriter.createHouseholds(households);
+            List<Database.SaveResult> created = HouseholdWriter.createHouseholds(households);
             List<Household_Member__c> memberships = new List<Household_Member__c>();
             for (Integer i = 0; i < created.size(); i++) {
-                if (created[i] == null || people[i].id == null) {
+                if (people[i].id == null) {
                     continue;
                 }
-                memberships.add(newMembership(people[i].id, created[i], ROLE_HEAD, true));
+                if (!created[i].isSuccess()) {
+                    SObject record = recordsByPersonId.get(people[i].id);
+                    if (record != null) {
+                        failPersonSave(record, created[i]);
+                    }
+                    continue;
+                }
+                memberships.add(newMembership(people[i].id, created[i].getId(), ROLE_HEAD, true));
             }
             if (!memberships.isEmpty()) {
                 HouseholdWriter.createMemberships(memberships);
@@ -940,8 +988,18 @@ public with sharing class HouseholdService {
      */
     @NamespaceAccessible
     public static void moveContact(Id contactId, Id targetHouseholdId) {
-        if (contactId == null) {
+        if (contactId == null || targetHouseholdId == null) {
             throw new HouseholdException(Label.Core_Households_ErrorMoveMissingInput);
+        }
+        // Somebody moving a person by hand is changing the household they chose, so they
+        // need edit access to it, checked against sharing the way a merge or a split checks
+        // both of its ends. The reads that follow run in system mode (ADR-0021) and would
+        // otherwise let a person be moved into a household the user cannot even see.
+        if (
+            !HouseholdSelector.getEditableIds(new Set<Id>{ targetHouseholdId })
+                .contains(targetHouseholdId)
+        ) {
+            throw new HouseholdException(Label.Core_Households_ErrorMoveNoEditAccess);
         }
         // One upkeep path, the same one the membership trigger uses, so the work is not
         // done twice when the trigger has already run for this move.
@@ -1299,9 +1357,11 @@ public with sharing class HouseholdService {
         household.Member_Count__c = 0;
         // The name, the greetings and the count on this record are the package's own
         // bookkeeping, so it is saved by HouseholdWriter for the reason ADR-0021 gives.
-        List<Id> created = HouseholdWriter.createHouseholds(new List<Account>{ household });
+        List<Database.SaveResult> created = HouseholdWriter.createHouseholds(
+            new List<Account>{ household }
+        );
         HOUSEHOLD_ID_BY_PERSON.clear();
-        Id householdId = created.isEmpty() ? null : created[0];
+        Id householdId = created.isEmpty() || !created[0].isSuccess() ? null : created[0].getId();
         if (householdId == null) {
             // HouseholdWriter has already logged why. Nobody is moved into a household
             // that does not exist, so the split stops here rather than half happening.

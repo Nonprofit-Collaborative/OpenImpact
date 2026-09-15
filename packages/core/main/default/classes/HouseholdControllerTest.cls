@@ -192,4 +192,91 @@ private class HouseholdControllerTest {
 
         Assert.areEqual('Junction', mode, 'The panel is told this org uses the flexible mode');
     }
+
+    /**
+     * The household somebody is moved into is checked against the mover's own record
+     * access, the way a merge or a split checks both of its ends: the reads behind a move
+     * run in system mode and would otherwise let a person be moved into a household the
+     * mover cannot see.
+     */
+    @IsTest
+    static void movingSomeoneIntoAHouseholdThisPersonCannotEditIsRefused() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        Contact wei = HouseholdTestDataFactory.newContact('Mr.', 'Wei', 'Lee');
+        insert new List<Contact>{ maria, wei };
+        Id fromHousehold = householdOf(maria.Id);
+        Id toHousehold = householdOf(wei.Id);
+        User reader = readOnlyUser();
+
+        String message;
+        Test.startTest();
+        System.runAs(reader) {
+            try {
+                HouseholdController.moveContact(maria.Id, toHousehold);
+            } catch (Exception e) {
+                message = e.getMessage();
+            }
+        }
+        Test.stopTest();
+
+        Assert.areEqual(
+            Label.Core_Households_ErrorMoveNoEditAccess,
+            message,
+            'The refusal says what is missing, in plain words'
+        );
+        Assert.areEqual(
+            fromHousehold,
+            householdOf(maria.Id),
+            'Nobody was moved into a household the person cannot edit'
+        );
+    }
+
+    // ------------------------------------------------------------------ helpers
+
+    private static Id householdOf(Id contactId) {
+        return [SELECT AccountId FROM Contact WHERE Id = :contactId].AccountId;
+    }
+
+    /**
+     * A user on the most restricted standard profile, the same one the merge tests use, so
+     * that a move refused for want of edit access is refused by the same record access
+     * check the merge screen asks about.
+     */
+    private static User readOnlyUser() {
+        // "Read Only" is absent from some editions and org shapes, so the first of the
+        // known profiles without edit access that this org actually has is used.
+        Map<String, Profile> byName = new Map<String, Profile>();
+        for (Profile candidate : [
+            SELECT Id, Name
+            FROM Profile
+            WHERE Name IN ('Read Only', 'Minimum Access - Salesforce')
+        ]) {
+            byName.put(candidate.Name, candidate);
+        }
+        Profile readOnly = byName.containsKey('Read Only')
+            ? byName.get('Read Only')
+            : byName.get('Minimum Access - Salesforce');
+        Assert.isNotNull(
+            readOnly,
+            'This org has no standard profile without edit access, so a move refused for ' +
+            'want of edit access cannot be exercised at all'
+        );
+        User reader = new User(
+            ProfileId = readOnly.Id,
+            LastName = 'Reader',
+            Email = 'reader@openimpact.test.invalid',
+            Username = 'reader' + DateTime.now().getTime() + '@openimpact.test.invalid',
+            Alias = 'reader',
+            TimeZoneSidKey = 'America/Los_Angeles',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        // A user is a setup record, so it is saved on its own, after the households.
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert reader;
+        }
+        return reader;
+    }
 }

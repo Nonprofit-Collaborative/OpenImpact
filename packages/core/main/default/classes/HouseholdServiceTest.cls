@@ -175,6 +175,102 @@ private class HouseholdServiceTest {
         );
     }
 
+    /**
+     * R-C1: every person gets a household. A household the platform refuses (a validation
+     * rule, a required field, here a name too long for the field) must not leave the
+     * person saved with none and nobody told: the person's own save fails, with the
+     * reason, where a data loader or a screen shows any other failed row.
+     */
+    @IsTest
+    static void aPersonWhoseHouseholdCannotBeCreatedIsNotSavedWithoutOne() {
+        Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
+            HouseholdTestDataFactory.MODE_CONTACT
+        );
+        settings.Household_Name_Pattern__c = 'Z'.repeat(240) + ' {LastName}';
+        HouseholdTestDataFactory.save(settings);
+        Contact maria = HouseholdTestDataFactory.newContact(
+            'Ms.',
+            'Maria',
+            'Garcia' + 'x'.repeat(40)
+        );
+
+        String message;
+        Test.startTest();
+        try {
+            insert maria;
+        } catch (DmlException e) {
+            message = e.getDmlMessage(0);
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(message, 'The save of the person fails rather than quietly succeeding');
+        Assert.isTrue(
+            message.startsWith(
+                Label.Core_Households_ErrorCreateFailedForPerson.substringBefore('{0}')
+            ),
+            'The failure says the household could not be created: ' + message
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Contact WHERE FirstName = 'Maria'],
+            'Nobody was saved without a household'
+        );
+        Assert.areEqual(
+            1,
+            [
+                SELECT COUNT()
+                FROM Error_Log__c
+                WHERE Context__c = :Label.Core_Households_ErrorContextMembership
+            ],
+            'The administrator still finds the refusal in the Error Log'
+        );
+    }
+
+    /**
+     * The same in junction mode, where the household is made after the person is saved
+     * and the failure has to reach back to the person's own row.
+     */
+    @IsTest
+    static void aPersonWhoseHouseholdCannotBeCreatedIsNotSavedWithoutOneInJunctionMode() {
+        Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
+            HouseholdTestDataFactory.MODE_JUNCTION
+        );
+        settings.Household_Name_Pattern__c = 'Z'.repeat(240) + ' {LastName}';
+        HouseholdTestDataFactory.save(settings);
+        Contact maria = HouseholdTestDataFactory.newContact(
+            'Ms.',
+            'Maria',
+            'Garcia' + 'x'.repeat(40)
+        );
+
+        String message;
+        Test.startTest();
+        try {
+            insert maria;
+        } catch (DmlException e) {
+            message = e.getDmlMessage(0);
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(message, 'The save of the person fails rather than quietly succeeding');
+        Assert.isTrue(
+            message.startsWith(
+                Label.Core_Households_ErrorCreateFailedForPerson.substringBefore('{0}')
+            ),
+            'The failure says the household could not be created: ' + message
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Contact WHERE FirstName = 'Maria'],
+            'Nobody was saved without a household'
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Household_Member__c],
+            'No membership row was left pointing at a household that does not exist'
+        );
+    }
+
     @IsTest
     static void noHouseholdIsCreatedWhenTheSettingIsOff() {
         Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(

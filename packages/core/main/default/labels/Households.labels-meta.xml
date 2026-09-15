@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_Households_Conjunction</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Word joining the last two names in a household name or greeting</shortDescription>
+        <value>and</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_ErrorContextMembership</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Error log context for household membership work</shortDescription>
+        <value>Household membership</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_ErrorContextNaming</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Error log context for household naming work</shortDescription>
+        <value>Household names and greetings</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_ErrorCreateFailed</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Shown when a household the package was creating could not be saved</shortDescription>
+        <value>The new household could not be created, so nobody was moved. The Error Log has the details.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_ErrorCreateFailedForPerson</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Put on a person's own save when the household being created for them was refused. {0} is the reason the platform gave.</shortDescription>
+        <value>This person could not be saved because a household could not be created for them: {0}</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_ErrorMoveMissingInput</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Move a person: nothing was chosen</shortDescription>
+        <value>Choose both a person and a household before moving someone. Nothing was changed.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_ErrorMoveNeedsJunction</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Move a person: the org stores this person as an account</shortDescription>
+        <value>This person is stored as an account, so they can only be moved when your org uses the flexible way of belonging to a household. Change that setting in Nonprofit Settings first.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_ErrorMoveNoEditAccess</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Move a person: the user cannot edit the household they chose</shortDescription>
+        <value>You need edit access to the household you are moving this person into. Nothing was changed.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_ErrorMoveNotFound</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Move a person: record not found</shortDescription>
+        <value>That person or that household could not be found. Refresh the page and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_ErrorNoSettingsPermission</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>The user may not change settings</shortDescription>
+        <value>You do not have permission to do this. Recomputing every household needs the Manage Nonprofit Settings permission: ask your administrator.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_ErrorNotAHousehold</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Move a person: the target is not a household</shortDescription>
+        <value>The record you chose is not a household. Choose a household and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_ErrorRecordTypeMissing</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>The Household record type is missing or not visible</shortDescription>
+        <value>The Household record type is missing or hidden from you, so no household could be created. Ask your administrator to check your access to household records.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_ErrorSaveFailed</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>A household could not be saved</shortDescription>
+        <value>A household could not be saved, so its name or its member count may be out of date.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_ErrorUnexpected</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Shown on a household screen when something fails for a reason the package did not expect. The technical reason goes to the Error Log, never to the screen.</shortDescription>
+        <value>Something went wrong and nothing was changed. What happened is recorded in the Error Log on the Hub home page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_SkippedNativeDependents</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>An empty household was left in place because records outside Open Impact point at it</shortDescription>
+        <value>Open Impact left the empty household {0} ({1}) in place. Nobody belongs to it in Open Impact, but records outside Open Impact still point at it, and deleting the household would delete those records too. Open the household, check what else uses it, and delete it by hand if you are sure.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_LatePrefix</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Prefix for a person who has died in a formal greeting</shortDescription>
+        <value>the late</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_ListSeparator</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Separator between names when three or more are listed</shortDescription>
+        <value>,</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_NamePlaceholder</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Name given to a household that has no members yet</shortDescription>
+        <value>New Household</value>
+    </labels>
+    <labels>
+        <fullName>Core_Households_NameSuffix</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Word ending a household name when the surnames differ</shortDescription>
+        <value>Household</value>
+    </labels>
+</CustomLabels>

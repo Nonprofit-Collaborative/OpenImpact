@@ -65,6 +65,11 @@ Maria does this from the sample data.
 That is the whole lifecycle: created for you, named for you, counted for you, and tidied
 up for you if you ask.
 
+To start from the household instead of the person, click **New household** on the Hub
+home. It opens a new household without the record-type prompt or a name to invent:
+Salesforce fills in a placeholder name that the naming automation replaces once you add
+a member.
+
 The walkthrough reads the same in the flexible way of belonging, with one difference at
 step 3: the household is not shown in the household field on the person, because in that
 mode membership is a record of its own. Open the household from the **Households** tab, or
