@@ -71,10 +71,15 @@ public with sharing class HouseholdMergeController {
 
     /**
      * Combines the two households and answers with the survivor, so that the screen can
-     * send the person there.
+     * send the person there, and with whether the survivor's name is now held as a custom
+     * one so the screen can tell the person.
      */
     @AuraEnabled
-    public static Id mergeHouseholds(Id survivorId, Id victimId, Map<String, String> fieldChoices) {
+    public static HouseholdMergeService.MergeResult mergeHouseholds(
+        Id survivorId,
+        Id victimId,
+        Map<String, String> fieldChoices
+    ) {
         try {
             return HouseholdMergeService.mergeHouseholds(
                 survivorId,

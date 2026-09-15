@@ -108,14 +108,14 @@ private class HouseholdMergeControllerTest {
         Id victimId = [SELECT AccountId FROM Contact WHERE Id = :wei.Id].AccountId;
 
         Test.startTest();
-        Id result = HouseholdMergeController.mergeHouseholds(
+        HouseholdMergeService.MergeResult result = HouseholdMergeController.mergeHouseholds(
             survivorId,
             victimId,
             new Map<String, String>()
         );
         Test.stopTest();
 
-        Assert.areEqual(survivorId, result, 'The screen is sent to the survivor');
+        Assert.areEqual(survivorId, result.survivorId, 'The screen is sent to the survivor');
         Assert.areEqual(
             2,
             [SELECT Member_Count__c FROM Account WHERE Id = :survivorId].Member_Count__c,

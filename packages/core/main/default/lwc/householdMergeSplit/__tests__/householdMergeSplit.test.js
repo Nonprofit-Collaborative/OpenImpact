@@ -61,6 +61,17 @@ jest.mock(
   { virtual: true }
 );
 
+// Stubbed to real-looking wording so a test can check the sentence reached the toast; jest's
+// default stub for a label is just its API name, which would never contain "Custom Name".
+jest.mock(
+  '@salesforce/label/c.Core_HouseholdMerge_CustomNameKept',
+  () => ({
+    default:
+      "The name you chose is kept as this household's own name; the naming automation will not change it. Clear Custom Name on the household if you want it to follow the members again."
+  }),
+  { virtual: true }
+);
+
 const HOUSEHOLD_ID = '001000000000001AAA';
 const OTHER_HOUSEHOLD_ID = '001000000000002AAA';
 const TARGET_HOUSEHOLD_ID = '001000000000003AAA';
@@ -231,7 +242,7 @@ describe('c-household-merge-split', () => {
   it('asks for confirmation and then merges with the values chosen', async () => {
     searchHouseholds.mockResolvedValue(SEARCH_RESULTS);
     getPreview.mockResolvedValue(PREVIEW);
-    mergeHouseholds.mockResolvedValue(HOUSEHOLD_ID);
+    mergeHouseholds.mockResolvedValue({ survivorId: HOUSEHOLD_ID, customNameKept: false });
     const element = await openOn('Household', true);
 
     element.shadowRoot.querySelector('.search-button').dispatchEvent(new CustomEvent('click'));
@@ -265,6 +276,58 @@ describe('c-household-merge-split', () => {
       victimId: OTHER_HOUSEHOLD_ID,
       fieldChoices: { Name: 'Victim' }
     });
+  });
+
+  it('does not mention Custom Name in the success toast when the survivor keeps an ordinary name', async () => {
+    searchHouseholds.mockResolvedValue(SEARCH_RESULTS);
+    getPreview.mockResolvedValue(PREVIEW);
+    mergeHouseholds.mockResolvedValue({ survivorId: HOUSEHOLD_ID, customNameKept: false });
+    const element = await openOn('Household', true);
+    const toastHandler = jest.fn();
+    element.addEventListener('lightning__showtoast', toastHandler);
+
+    element.shadowRoot.querySelector('.search-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+    await flush();
+    element.shadowRoot.querySelector('.pick-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+    await flush();
+    element.shadowRoot.querySelector('.merge-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+    element.shadowRoot
+      .querySelector('.merge-confirm-button')
+      .dispatchEvent(new CustomEvent('click'));
+    await flush();
+    await flush();
+
+    expect(toastHandler).toHaveBeenCalledTimes(1);
+    expect(toastHandler.mock.calls[0][0].detail.message).not.toMatch(/Custom Name/);
+  });
+
+  it('tells the person in the success toast when their chosen name is now held as a custom one', async () => {
+    searchHouseholds.mockResolvedValue(SEARCH_RESULTS);
+    getPreview.mockResolvedValue(PREVIEW);
+    mergeHouseholds.mockResolvedValue({ survivorId: HOUSEHOLD_ID, customNameKept: true });
+    const element = await openOn('Household', true);
+    const toastHandler = jest.fn();
+    element.addEventListener('lightning__showtoast', toastHandler);
+
+    element.shadowRoot.querySelector('.search-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+    await flush();
+    element.shadowRoot.querySelector('.pick-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+    await flush();
+    element.shadowRoot.querySelector('.merge-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+    element.shadowRoot
+      .querySelector('.merge-confirm-button')
+      .dispatchEvent(new CustomEvent('click'));
+    await flush();
+    await flush();
+
+    expect(toastHandler).toHaveBeenCalledTimes(1);
+    expect(toastHandler.mock.calls[0][0].detail.message).toMatch(/Custom Name/);
   });
 
   it('shows the message when a merge is refused', async () => {
