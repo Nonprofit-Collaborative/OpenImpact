@@ -9,6 +9,14 @@
                 <p class="slds-text-color_weak read-only-notice" role="status">{label.readOnly}</p>
             </template>
 
+            <template if:true={busy}>
+                <lightning-spinner
+                    alternative-text={label.loadingComparison}
+                    size="small"
+                    class="loading-spinner"
+                ></lightning-spinner>
+            </template>
+
             <template if:true={isUsable}>
                 <lightning-tabset>
                     <lightning-tab label={label.tabMerge} value="merge" class="merge-tab">
@@ -42,6 +50,7 @@
                                         <lightning-button
                                             variant="base"
                                             label={option.name}
+                                            aria-label={option.accessibleName}
                                             data-household-id={option.id}
                                             onclick={handlePickHousehold}
                                             class="pick-button"
@@ -121,8 +130,16 @@
                         </template>
 
                         <template if:true={confirmingMerge}>
-                            <div class="slds-box slds-theme_warning slds-var-m-top_medium merge-confirm" role="alertdialog">
-                                <h3 class="slds-text-heading_small">{label.confirmHeading}</h3>
+                            <!-- Not a real dialog: focus never moves here and Escape does nothing, so role="region"
+                                 with aria-labelledby describes what this actually is rather than promising modal behavior. -->
+                            <div
+                                class="slds-box slds-theme_warning slds-var-m-top_medium merge-confirm"
+                                role="region"
+                                aria-labelledby="merge-confirm-heading"
+                            >
+                                <h3 id="merge-confirm-heading" class="slds-text-heading_small">
+                                    {label.confirmHeading}
+                                </h3>
                                 <p class="slds-var-m-top_x-small confirm-body">{confirmBody}</p>
                                 <p class="slds-var-m-top_x-small confirm-names">
                                     <span class="confirm-victim">{otherHouseholdName}</span>
@@ -205,6 +222,7 @@
                                                 <lightning-button
                                                     variant="base"
                                                     label={option.name}
+                                                    aria-label={option.accessibleName}
                                                     data-household-id={option.id}
                                                     onclick={handlePickSplitTarget}
                                                     class="split-pick-button"
@@ -236,8 +254,16 @@
                         </div>
 
                         <template if:true={confirmingSplit}>
-                            <div class="slds-box slds-var-m-top_medium split-confirm" role="alertdialog">
-                                <p class="split-confirm-body">{label.splitConfirmBody}</p>
+                            <!-- Not a real dialog: focus never moves here and Escape does nothing, so role="region"
+                                 with aria-labelledby describes what this actually is rather than promising modal behavior. -->
+                            <div
+                                class="slds-box slds-var-m-top_medium split-confirm"
+                                role="region"
+                                aria-labelledby="split-confirm-heading"
+                            >
+                                <p id="split-confirm-heading" class="split-confirm-body">
+                                    {label.splitConfirmBody}
+                                </p>
                                 <div class="slds-var-m-top_small">
                                     <lightning-button
                                         variant="brand"

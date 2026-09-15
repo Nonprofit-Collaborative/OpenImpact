@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_HouseholdScreens_ResultAccessibleName</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Household search result: accessible name pairing a household with its location, since two households can share a name</shortDescription>
+        <value>{0}, {1}</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdScreens_LoadingComparison</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Merge and split panel: spinner alternative text while the comparison or the merge or split itself is in progress</shortDescription>
+        <value>Loading household comparison</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdScreens_Saving</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Naming settings panel: spinner alternative text while the naming patterns are being saved</shortDescription>
+        <value>Saving naming settings</value>
+    </labels>
+</CustomLabels>

@@ -53,6 +53,14 @@ jest.mock(
   { virtual: true }
 );
 
+// The real label is a translatable "{0}, {1}" template; jest does not evaluate label content,
+// so it is stubbed here the same way the template renders in an org.
+jest.mock(
+  '@salesforce/label/c.Core_HouseholdScreens_ResultAccessibleName',
+  () => ({ default: '{0}, {1}' }),
+  { virtual: true }
+);
+
 const HOUSEHOLD_ID = '001000000000001AAA';
 const OTHER_HOUSEHOLD_ID = '001000000000002AAA';
 const TARGET_HOUSEHOLD_ID = '001000000000003AAA';
@@ -177,6 +185,47 @@ describe('c-household-merge-split', () => {
     const choices = element.shadowRoot.querySelectorAll('.field-choice');
     expect(choices.length).toBe(1);
     expect(element.shadowRoot.querySelectorAll('.merge-member').length).toBe(2);
+  });
+
+  it('gives a search result button an accessible name that includes the location, since duplicate households can share a name', async () => {
+    searchHouseholds.mockResolvedValue(SEARCH_RESULTS);
+    const element = await openOn('Household', true);
+
+    element.shadowRoot.querySelector('.search-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+    await flush();
+
+    const pickButton = element.shadowRoot.querySelector('.pick-button');
+    expect(pickButton.getAttribute('aria-label')).toBe('Garcia Household, Oakland, CA');
+  });
+
+  it('shows a spinner while the merge preview is loading', async () => {
+    searchHouseholds.mockResolvedValue(SEARCH_RESULTS);
+    let resolvePreview;
+    getPreview.mockReturnValue(
+      new Promise((resolve) => {
+        resolvePreview = resolve;
+      })
+    );
+    const element = await openOn('Household', true);
+
+    element.shadowRoot.querySelector('.search-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+    await flush();
+
+    expect(element.shadowRoot.querySelector('.loading-spinner')).toBeNull();
+    element.shadowRoot.querySelector('.pick-button').dispatchEvent(new CustomEvent('click'));
+    await flush();
+
+    expect(element.shadowRoot.querySelector('.loading-spinner')).not.toBeNull();
+
+    resolvePreview(PREVIEW);
+    await flush();
+    await flush();
+    await flush();
+    await flush();
+
+    expect(element.shadowRoot.querySelector('.loading-spinner')).toBeNull();
   });
 
   it('asks for confirmation and then merges with the values chosen', async () => {
