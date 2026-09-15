@@ -8,6 +8,7 @@
 private class CorePostInstallTest {
     private static final String ROLLUP_CONTEXT = 'CorePostInstall.ensureRollupDefaults';
     private static final String RETRY_CONTEXT = 'CorePostInstallRetryQueueable.execute';
+    private static final String MODE_CONTEXT = 'CorePostInstall.applyRecommendedMode';
 
     /**
      * The Nonprofit Admin group as the platform leaves it in the minutes after an install:
@@ -370,6 +371,116 @@ private class CorePostInstallTest {
             1,
             countPermissionSetAssignments(UserInfo.getUserId()),
             'And the rest of the install still ran, so the installer can open the console.'
+        );
+    }
+
+    @IsTest
+    static void installPutsTheRecommendedModeInForceSoHouseholdsCanForm() {
+        // The defect this covers: applyRecommendedIfUnset was never called from the install,
+        // so a Person Accounts org stayed in contact membership, which cannot hold a person
+        // stored as an account, and households silently never formed.
+        OrgShapeDetector.OrgShape shape = new OrgShapeDetector.OrgShape();
+        shape.hasPersonAccounts = true;
+        OrgShapeDetector.overrideShape = shape;
+        CorePostInstall handler = new CorePostInstall();
+
+        Test.startTest();
+        Test.testInstall(handler, null);
+        Test.stopTest();
+
+        Assert.areEqual(
+            CoexistenceService.MODE_AGENTFORCE_NONPROFIT,
+            CoexistenceService.getCurrentMode(),
+            'A fresh install takes the mode detection recommends, so Maria is not asked first.'
+        );
+        Assert.areEqual(
+            CoexistenceService.MEMBERSHIP_JUNCTION,
+            CoexistenceService.getMembershipMode(),
+            'And in a Person Accounts org the flexible way of belonging comes with it.'
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Error_Log__c WHERE Context__c = :MODE_CONTEXT],
+            'Nothing went wrong, so nothing is logged.'
+        );
+    }
+
+    @IsTest
+    static void upgradingLeavesAModeTheAdministratorChoseAlone() {
+        // Maria chose standalone and the simple way of belonging on purpose. An upgrade that
+        // detects Person Accounts must not argue with her: that is what IfUnset means.
+        CoexistenceService.setMode(CoexistenceService.MODE_STANDALONE);
+        SettingsService.saveValues(
+            new Map<String, Object>{
+                CoexistenceService.KEY_MEMBERSHIP_MODE => CoexistenceService.MEMBERSHIP_CONTACT
+            }
+        );
+        OrgShapeDetector.OrgShape shape = new OrgShapeDetector.OrgShape();
+        shape.hasPersonAccounts = true;
+        OrgShapeDetector.overrideShape = shape;
+        CorePostInstall handler = new CorePostInstall();
+
+        Test.startTest();
+        Test.testInstall(handler, new Version(1, 0), true);
+        Test.stopTest();
+
+        Assert.areEqual(
+            CoexistenceService.MODE_STANDALONE,
+            CoexistenceService.getCurrentMode(),
+            'An upgrade leaves the coexistence mode Maria chose.'
+        );
+        Assert.areEqual(
+            CoexistenceService.MEMBERSHIP_CONTACT,
+            CoexistenceService.getMembershipMode(),
+            'And the way of belonging she chose.'
+        );
+    }
+
+    @IsTest
+    static void aModeThatCannotBeSavedIsLoggedRatherThanFailingTheInstall() {
+        // A recommendation nothing in the org can store: a settings row the console does not
+        // know is refused by SettingsService, which is the shape of any failure on this step.
+        SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
+        CorePostInstall handler = new CorePostInstall();
+
+        Test.startTest();
+        // No try/catch here on purpose: an exception escaping this call fails the test, which
+        // is the assertion that an install is never aborted by this step.
+        Test.testInstall(handler, null);
+        Test.stopTest();
+
+        Assert.areEqual(
+            null,
+            CoexistenceService.getCurrentMode(),
+            'The mode is left unset for Health Check to report.'
+        );
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Error_Log__c WHERE Context__c = :MODE_CONTEXT],
+            'The failure is in the Error Log where Maria can read it.'
+        );
+        Assert.areEqual(
+            1,
+            countPermissionSetAssignments(UserInfo.getUserId()),
+            'And the rest of the install still ran, so the installer can open the console.'
+        );
+    }
+
+    @IsTest
+    static void theHubCanCountWhatTheInstallLogged() {
+        SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
+        CorePostInstall handler = new CorePostInstall();
+
+        // The Error Log is written through a platform event, delivered at Test.stopTest, so
+        // the count is taken after it.
+        Test.startTest();
+        Test.testInstall(handler, null);
+        Test.stopTest();
+
+        Assert.areEqual(
+            1,
+            CorePostInstall.countInstallProblems(),
+            'The install step that failed is counted, so the Hub can say setup had a problem.'
         );
     }
 

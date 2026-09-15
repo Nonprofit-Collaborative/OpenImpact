@@ -1,7 +1,7 @@
 /**
  * What Open Impact Core does for itself at install and at every upgrade.
  *
- * Two things. The first is to make sure the person who installed the package can open
+ * Three things. The first is to make sure the person who installed the package can open
  * Nonprofit Settings. Without it nobody in the org holds the Manage Nonprofit Settings
  * custom permission, so the console opens read only for everyone, including the System
  * Administrator who installed it, because a custom permission is not implied by Modify All
@@ -18,7 +18,13 @@
  *    attempted, and if the group is not ready a queueable waits and tries again a few
  *    times. Either way the person is already working, thanks to step 1.
  *
- * The second is to create the Rollup Definitions the packages ship, so that a fresh org has
+ * The second is to put the coexistence mode detection recommends in force, and with it, in
+ * a Person Accounts org, the flexible way of belonging to a household, because the simple
+ * way cannot hold a person stored as an account and households would silently never form.
+ * Only an org that has never chosen a mode is touched: an upgrade of an org whose
+ * administrator has chosen is a no-op here, whatever they chose.
+ *
+ * The third is to create the Rollup Definitions the packages ship, so that a fresh org has
  * its totals without anybody being told to press a button (R-R6, ADR-0029). Core sees only
  * the shipped defaults whose source and target entities are in the org, so on a Core-only
  * install this creates Core's own rows and none of a module's; each module that ships
@@ -35,6 +41,13 @@ public with sharing class CorePostInstall implements InstallHandler {
     private static final String PERMISSION_SET_CONTEXT = 'CorePostInstall.assignPermissionSet';
     private static final String ROLE_CONTEXT = 'CorePostInstall.assignRole';
     private static final String ROLLUP_CONTEXT = 'CorePostInstall.ensureRollupDefaults';
+    private static final String MODE_CONTEXT = 'CorePostInstall.applyRecommendedMode';
+
+    /**
+     * What every Error Log entry written by an install or upgrade starts with, including the
+     * retry job's. The Hub home page counts them to say how the install went.
+     */
+    private static final String CONTEXT_PREFIX = 'CorePostInstall';
 
     /**
      * Called by the platform after the package is installed or upgraded.
@@ -45,6 +58,7 @@ public with sharing class CorePostInstall implements InstallHandler {
         if (context == null) {
             return;
         }
+        applyRecommendedMode();
         ensureRollupDefaults();
         Id installerId = context.installerId();
         if (installerId == null) {
@@ -52,6 +66,45 @@ public with sharing class CorePostInstall implements InstallHandler {
         }
         assignAdminPermissionSet(installerId);
         assignAdminRole(installerId);
+    }
+
+    /**
+     * Puts the recommended coexistence mode in force on an org that has never chosen one, and
+     * leaves an org that has exactly as its administrator left it. Like every step here it
+     * never throws: an org left in the shipped default is what Health Check exists to report,
+     * and an install the platform rolled back is not.
+     */
+    private void applyRecommendedMode() {
+        try {
+            CoexistenceService.applyRecommendedIfUnset();
+        } catch (Exception e) {
+            ErrorLogger.log(e, MODE_CONTEXT);
+        }
+    }
+
+    /**
+     * How many problems the install and its upgrades have logged that nobody has looked at,
+     * so that the Hub home page can say whether setup completed rather than looking the same
+     * after a good install and a partly failed one. Null for a person who cannot read the
+     * Error Log: what they cannot see is not evidence either way.
+     *
+     * A read shown to somebody, so it runs in user mode (ADR-0021). It sits on this class
+     * rather than on the Hub's own controller because the contexts it counts are declared
+     * here, and a count that drifted from them would be confidently wrong.
+     */
+    @AuraEnabled(cacheable=true)
+    public static Integer countInstallProblems() {
+        if (!ErrorLogCountSelector.isReadable()) {
+            return null;
+        }
+        String pattern = CONTEXT_PREFIX + '%';
+        String statusNew = ErrorLogger.STATUS_NEW;
+        return [
+            SELECT COUNT()
+            FROM Error_Log__c
+            WHERE Context__c LIKE :pattern AND Status__c = :statusNew
+            WITH USER_MODE
+        ];
     }
 
     /**

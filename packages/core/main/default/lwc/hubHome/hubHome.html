@@ -50,6 +50,28 @@
                         <p class="slds-text-heading_large" data-id="error-count">
                             {newErrorCount}
                         </p>
+                        <template lwc:if={hasInstallStatus}>
+                            <template lwc:if={installHadProblems}>
+                                <p
+                                    class="slds-text-color_error slds-text-body_small"
+                                    data-id="install-status"
+                                    role="status"
+                                    aria-live="polite"
+                                >
+                                    <lightning-icon
+                                        icon-name="utility:warning"
+                                        size="x-small"
+                                        alternative-text={labels.errorTileHeading}
+                                    ></lightning-icon>
+                                    {installStatusText}
+                                </p>
+                            </template>
+                            <template lwc:else>
+                                <p class="slds-text-body_small" data-id="install-status">
+                                    {installStatusText}
+                                </p>
+                            </template>
+                        </template>
                         <a href={errorLogUrl}>{labels.errorTileLink}</a>
                     </div>
                 </lightning-card>

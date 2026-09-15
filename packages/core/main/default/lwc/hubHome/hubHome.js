@@ -1,11 +1,14 @@
 import { LightningElement } from 'lwc';
 import getHomeModel from '@salesforce/apex/HubController.getHomeModel';
+import countInstallProblems from '@salesforce/apex/CorePostInstall.countInstallProblems';
 import WELCOME_HEADING from '@salesforce/label/c.Core_HubHome_WelcomeHeading';
 import WELCOME_MESSAGE from '@salesforce/label/c.Core_HubHome_WelcomeMessage';
 import CHECKLIST_HEADING from '@salesforce/label/c.Core_HubHome_ChecklistHeading';
 import PAUSED_BANNER from '@salesforce/label/c.Core_HubHome_AutomationPausedBanner';
 import ERROR_TILE_HEADING from '@salesforce/label/c.Core_HubHome_ErrorTileHeading';
 import ERROR_TILE_LINK from '@salesforce/label/c.Core_HubHome_ErrorTileLinkLabel';
+import INSTALL_COMPLETED from '@salesforce/label/c.Core_HubHome_InstallCompleted';
+import INSTALL_PROBLEMS from '@salesforce/label/c.Core_HubHome_InstallProblems';
 import QUICK_LINKS_HEADING from '@salesforce/label/c.Core_HubHome_QuickLinksHeading';
 import QUICK_LINK_SETTINGS from '@salesforce/label/c.Core_HubHome_QuickLinkSettings';
 import QUICK_LINK_HOUSEHOLDS from '@salesforce/label/c.Core_HubHome_QuickLinkHouseholds';
@@ -32,6 +35,8 @@ export default class HubHome extends LightningElement {
     pausedBanner: PAUSED_BANNER,
     errorTileHeading: ERROR_TILE_HEADING,
     errorTileLink: ERROR_TILE_LINK,
+    installCompleted: INSTALL_COMPLETED,
+    installProblems: INSTALL_PROBLEMS,
     quickLinksHeading: QUICK_LINKS_HEADING,
     loadError: LOAD_ERROR,
     setupCompleteHeading: SETUP_COMPLETE_HEADING,
@@ -77,12 +82,34 @@ export default class HubHome extends LightningElement {
   errorMessage;
   setupReopened = false;
 
+  // How many problems the install logged, or undefined for someone who cannot read the log.
+  installProblemCount;
+
   connectedCallback() {
     this.load();
   }
 
   get hasErrors() {
     return this.newErrorCount > 0;
+  }
+
+  /**
+   * A partly failed install used to look exactly like a good one: every step writes its
+   * failure to the Error Log and carries on. One line says which it was, and only to a person
+   * who can read the log, because a count they cannot see is not evidence either way.
+   */
+  get hasInstallStatus() {
+    return this.installProblemCount !== undefined && this.installProblemCount !== null;
+  }
+
+  get installHadProblems() {
+    return this.installProblemCount > 0;
+  }
+
+  get installStatusText() {
+    return this.installHadProblems
+      ? this.labels.installProblems.replace('{0}', this.installProblemCount)
+      : this.labels.installCompleted;
   }
 
   get hasRollupTime() {
@@ -122,6 +149,12 @@ export default class HubHome extends LightningElement {
       this.errorMessage = undefined;
     } catch {
       this.errorMessage = this.labels.loadError;
+    }
+    // Optional like every tile: a count that cannot be read costs the page one line, not the page.
+    try {
+      this.installProblemCount = await countInstallProblems();
+    } catch {
+      this.installProblemCount = undefined;
     }
   }
 
