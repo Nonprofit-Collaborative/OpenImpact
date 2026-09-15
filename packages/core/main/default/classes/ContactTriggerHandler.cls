@@ -8,6 +8,20 @@
  * the org asks for it, deleted.
  */
 public with sharing class ContactTriggerHandler extends TriggerHandler {
+    /**
+     * The households these people were leaving, worked out before their contact records
+     * went and carried across to after they are gone.
+     *
+     * `Household_Member__c.Contact__c` empties itself when the contact it points at is
+     * deleted, so by `afterDelete` the row no longer names anybody: the household it
+     * belongs to cannot be worked out from it, and it cannot be put back either, because
+     * the platform does not restore a lookup it emptied that way. Removing the rows in
+     * `beforeDelete`, while they still name the person, is what makes both the delete and
+     * the undelete paths work. This mirrors `AccountTriggerHandler`, which has always done
+     * it for a person stored as an account.
+     */
+    private static Set<Id> departingHouseholdIds = new Set<Id>();
+
     public override void beforeInsert() {
         HouseholdService.ensureHouseholds((List<Contact>) Trigger.new);
     }
@@ -23,6 +37,7 @@ public with sharing class ContactTriggerHandler extends TriggerHandler {
     public override void afterUpdate() {
         Map<Id, Contact> previousById = (Map<Id, Contact>) Trigger.oldMap;
         Set<Id> affected = new Set<Id>();
+        Set<Id> renamed = new Set<Id>();
         for (Contact record : (List<Contact>) Trigger.new) {
             Contact previous = previousById.get(record.Id);
             Boolean moved = record.AccountId != previous.AccountId;
@@ -31,17 +46,45 @@ public with sharing class ContactTriggerHandler extends TriggerHandler {
                 add(affected, record.AccountId);
             } else if (namingChanged(record, previous)) {
                 add(affected, record.AccountId);
+                renamed.add(record.Id);
             }
         }
+        // In junction mode the account a contact points at is an employer, not their
+        // household, so the households to rewrite have to be read from the membership
+        // rows. Answers empty in contact mode, where the loop above already has them.
+        affected.addAll(HouseholdService.householdIdsForPeople(renamed));
         refresh(affected, true);
     }
 
-    public override void afterDelete() {
-        refresh(householdIds((List<Contact>) Trigger.old), true);
+    /**
+     * Membership rows are taken away while they still name the person, so that the
+     * households they were in can be recounted after, and so that undelete can put them
+     * back. Does nothing in contact mode, where there are no membership rows.
+     */
+    public override void beforeDelete() {
+        departingHouseholdIds = HouseholdService.removeMembershipsFor(
+            personIdsOf((List<Contact>) Trigger.old)
+        );
     }
 
+    public override void afterDelete() {
+        Set<Id> affected = departingHouseholdIds;
+        departingHouseholdIds = new Set<Id>();
+        affected.addAll(householdIds((List<Contact>) Trigger.old));
+        refresh(affected, true);
+    }
+
+    /**
+     * A person restored from the recycle bin gets their memberships back, and the
+     * households they have rejoined are recounted and renamed. Never tidied away here:
+     * nobody has left.
+     */
     public override void afterUndelete() {
-        refresh(householdIds((List<Contact>) Trigger.new), false);
+        Set<Id> personIds = personIdsOf((List<Contact>) Trigger.new);
+        Set<Id> affected = HouseholdService.restoreMembershipsFor(personIds);
+        affected.addAll(HouseholdService.householdIdsForPeople(personIds));
+        affected.addAll(householdIds((List<Contact>) Trigger.new));
+        refresh(affected, false);
     }
 
     private static Boolean namingChanged(Contact record, Contact previous) {
@@ -59,6 +102,21 @@ public with sharing class ContactTriggerHandler extends TriggerHandler {
         Set<Id> result = new Set<Id>();
         for (Contact record : records) {
             add(result, record.AccountId);
+        }
+        return result;
+    }
+
+    /**
+     * The ids of these people. The membership calls that read them answer empty outside
+     * junction mode, so this is handed over without asking which mode the org is in.
+     */
+    private static Set<Id> personIdsOf(List<Contact> records) {
+        Set<Id> result = new Set<Id>();
+        if (records == null) {
+            return result;
+        }
+        for (Contact record : records) {
+            add(result, record.Id);
         }
         return result;
     }

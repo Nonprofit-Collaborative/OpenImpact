@@ -121,4 +121,129 @@ private class ContactTriggerHandlerTest {
             'The household Maria joined lists both surnames'
         );
     }
+
+    /**
+     * The four tests below cover a person stored as a contact in junction mode. Every
+     * other junction mode lifecycle test in this package uses a person account, so this
+     * half of the shape had no coverage at all: the contact trigger read the household
+     * from `Contact.AccountId`, which in junction mode is an employer or nothing, so a
+     * rename, a delete and an undelete all quietly did nothing.
+     *
+     * This is the only junction shape a Platform-only org can run (ADR-0013), and it is
+     * also the shape of a mixed org, where some people are accounts and some are contacts.
+     */
+    @IsTest
+    static void changingASurnameInJunctionModeRenamesTheHousehold() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        insert maria;
+        Id household = [
+            SELECT Household__c
+            FROM Household_Member__c
+            WHERE Contact__c = :maria.Id
+        ]
+        .Household__c;
+
+        Test.startTest();
+        update new Contact(Id = maria.Id, LastName = 'Garcia-Lee');
+        Test.stopTest();
+
+        Assert.areEqual(
+            'The Garcia-Lee Family',
+            [SELECT Name FROM Account WHERE Id = :household].Name,
+            'The household follows the surname when membership is a row rather than a reference'
+        );
+    }
+
+    @IsTest
+    static void deletingTheLastMemberInJunctionModeTidiesTheHouseholdAway() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        insert maria;
+        Id household = [
+            SELECT Household__c
+            FROM Household_Member__c
+            WHERE Contact__c = :maria.Id
+        ]
+        .Household__c;
+
+        Test.startTest();
+        delete maria;
+        Test.stopTest();
+
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Household_Member__c WHERE Household__c = :household],
+            'The membership row goes with the person rather than being left naming nobody'
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Account WHERE Id = :household],
+            'The household nobody is left in is tidied away'
+        );
+    }
+
+    @IsTest
+    static void deletingOneOfTwoMembersInJunctionModeRecountsAndRenames() {
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
+        Account household = HouseholdTestDataFactory.newHousehold('The Rivera Family');
+        insert household;
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Rivera');
+        Contact luis = HouseholdTestDataFactory.newContact('Mr.', 'Luis', 'Rivera');
+        insert new List<Contact>{ maria, luis };
+        insert new List<Household_Member__c>{
+            new Household_Member__c(Household__c = household.Id, Contact__c = maria.Id),
+            new Household_Member__c(Household__c = household.Id, Contact__c = luis.Id)
+        };
+
+        Test.startTest();
+        delete luis;
+        Test.stopTest();
+
+        Account after = [
+            SELECT Member_Count__c, Household_Informal_Greeting__c
+            FROM Account
+            WHERE Id = :household.Id
+        ];
+        Assert.areEqual(
+            1,
+            after.Member_Count__c,
+            'The household counts only the people still in it'
+        );
+        Assert.areEqual(
+            'Maria',
+            after.Household_Informal_Greeting__c,
+            'Luis is no longer greeted once he is gone'
+        );
+    }
+
+    @IsTest
+    static void restoringAContactInJunctionModePutsThemBackInTheHousehold() {
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
+        Account household = HouseholdTestDataFactory.newHousehold('The Rivera Family');
+        insert household;
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Rivera');
+        Contact luis = HouseholdTestDataFactory.newContact('Mr.', 'Luis', 'Rivera');
+        insert new List<Contact>{ maria, luis };
+        insert new List<Household_Member__c>{
+            new Household_Member__c(Household__c = household.Id, Contact__c = maria.Id),
+            new Household_Member__c(Household__c = household.Id, Contact__c = luis.Id)
+        };
+        delete luis;
+
+        Test.startTest();
+        undelete luis;
+        Test.stopTest();
+
+        Assert.areEqual(
+            2,
+            [SELECT COUNT() FROM Household_Member__c WHERE Household__c = :household.Id],
+            'The membership row comes back out of the recycle bin with the person'
+        );
+        Assert.areEqual(
+            2,
+            [SELECT Member_Count__c FROM Account WHERE Id = :household.Id].Member_Count__c,
+            'The household counts the restored person again'
+        );
+    }
 }
