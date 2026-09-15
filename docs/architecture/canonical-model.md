@@ -1529,7 +1529,7 @@ refund is another gift rather than an edit (ADR-0010).
 | Original Gift | reference(Gift) | conditional | The gift this one refunds or writes off; required when Amount is negative (R-G3). |
 | Refund Reason | text | no | Why the money went back or the gift was written off, typed by the person recording it and carried on the negative gift (R-G3). |
 | In-kind Description | long text | conditional | What was given, when the gift is goods or services rather than money. Required on an in-kind gift and empty on every other gift, and it is the text the receipt prints (v0.4, G-18, R-G12). |
-| Fair Market Value | decimal | no | What the goods were worth, recorded for the organization's own reporting and never printed on a receipt (v0.4, G-18, R-G12, ADR-0030). |
+| Fair Market Value | decimal | no | What the goods were worth, recorded for the organization's own reporting and never printed on a receipt or a statement (v0.4, G-18, R-G12, R-RC12, ADR-0030). |
 | Benefit Description | long text | no | What the donor received in return for the gift, described as it must be printed on the receipt (v0.4, G-13, R-RC7). |
 | Benefit Value | decimal | no | The organization's good faith estimate of what the benefit was worth, which the receipt subtracts to state the deductible amount (v0.4, G-13, R-RC7). |
 | Intangible Religious Benefits | boolean | yes (defaults false) | Whether the only thing the donor received in return was an intangible religious benefit, which is a sentence the receipt must carry instead of a value (v0.4, G-13, R-RC7). |
@@ -1643,7 +1643,7 @@ and its worth is carried on Fair Market Value instead. An in-kind gift must carr
 Description, which is what the receipt prints; a gift that is not in-kind carries neither the
 description nor the fair market value, so a type changed in error cannot leave a value behind
 that later reads as an in-kind gift. Fair Market Value is never negative and never appears on
-a rendered receipt or statement (R-RC7, ADR-0016): the donor substantiates what donated
+a rendered receipt or statement (R-RC7, R-RC12, ADR-0016): the donor substantiates what donated
 property was worth, the organization describes what it received. In-kind giving is reported on
 its own two rollups in Section 26, In-kind Value and In-kind Gift Count, so a donor of goods
 has a total and a count without either one entering Total Giving, a donor level (ADR-0028) or
@@ -1941,6 +1941,9 @@ the Setup Assistant writes them and letters other than receipts print them too.
 | `Receipt_Statement_Year__c` | integer | empty | The tax year the year end run reports on, which an administrator sets in January and leaves alone. |
 | `Receipt_Place_Of_Issue__c` | text | empty | The city and region the receipt is issued from, printed on the document. |
 | `Receipt_Renderer__c` | text | empty | Which renderer produces the PDF, as one of the two keys ADR-0016 names (`Blob PDF`, `Visualforce`) and never a class name; empty means the shipped one. A key outside that list is refused before any class is resolved or constructed. Stored as text and validated in Apex per ADR-0019. It exists because ADR-0016 names a fallback implementation and the spike that would settle the question needs an org (ADR-0016, "Consequences"). |
+| `Receipt_Print_Logo__c` | boolean | true | Whether the organization's logo is printed on receipts and statements. Off is a complete answer: a receipt with no images is a valid receipt (R-RC13), and this is also the switch an organization uses if the image path turns out not to work in its org. |
+| `Receipt_Logo_Width_Mm__c` | integer | 40 | How wide the logo prints, in millimetres. One number rather than a style sheet: a wordmark and a square crest cannot both look right at one fixed width, and the template is not the place to fix that (ADR-0016, "the admin edits text and tokens, not CSS"). |
+| `Receipt_Logo_Delivery__c` | text | empty | Which of ADR-0016's three image routes the logo is delivered by: empty means the shipped route, the file download URL. It exists for the same reason `Receipt_Renderer__c` does, and it is retired when the second spike closes (R-RC13). Stored as text under ADR-0019. |
 
 ### Rules
 
@@ -1976,6 +1979,9 @@ these keys, which is what makes a module that is off leave nothing behind.
 | Receipt Statement Year | `Receipt_Statement_Year__c` | Number(4, 0) |
 | Receipt Place Of Issue | `Receipt_Place_Of_Issue__c` | Text(80) |
 | Receipt Renderer | `Receipt_Renderer__c` | Text(60) |
+| Receipt Print Logo | `Receipt_Print_Logo__c` | Checkbox |
+| Receipt Logo Width Mm | `Receipt_Logo_Width_Mm__c` | Number(3, 0) |
+| Receipt Logo Delivery | `Receipt_Logo_Delivery__c` | Text(40) |
 | Acknowledgments Enabled | `Acknowledgments_Enabled__c` | Checkbox |
 | Acknowledgment From Address | `Acknowledgment_From_Address__c` | Text(255) |
 | Acknowledgments Last Run | `Acknowledgments_Last_Run__c` | Date/Time |
@@ -2600,6 +2606,44 @@ can read a donor, including roles that hold no Giving permission set. The link i
 InternalUsers. The donor's route to the document is the Receipts related list on their record
 (ADR-0034).
 
+**R-RC12 An in-kind gift's document states no money amount (G-18).** A receipt that puts a
+figure next to a gift of goods is read as a cash contribution of that amount, which is the one
+thing a receipt for donated property must not say. So:
+
+- On a per gift receipt for an in-kind gift, the Amount token renders as a phrase naming the
+  goods or services rather than as a currency figure, whatever the template asked for; the
+  document adds a note saying in plain words that no value has been stated, because the phrase
+  in the letter does not say that outright; and the receipt's Total Amount is zero, because a
+  receipt record states what its document states. The value the organization recorded stays on
+  the gift (R-G12), where it belongs.
+- On a consolidated statement, an in-kind gift is a line carrying its date, its type and its
+  status with no amount, it is left out of the total the statement states, and the statement
+  carries one sentence saying that gifts of goods or services are listed without a value and
+  are not part of the total. A donor who adds the lines up and gets a different number from the
+  total is owed that sentence.
+
+The description still prints, once per in-kind gift, through the sentences of R-RC7. The
+charity describes the property and the donor values it.
+
+**R-RC13 What the document is branded with, and what it is valid without.** Every document
+prints the organization's legal name and address and its tax identification number. The name
+and address come from the template where the template placed the token for them, and from a
+block the package prints above the letter where it did not, on the same reasoning as the gift
+lines of R-RC8: an administrator who deletes the letterhead out of a template has not thereby
+issued a receipt with no organization on it. The tax identification number prints in the
+signature block.
+
+The logo is optional, is printed only when the organization has uploaded one and left the
+Print Logo On Receipts setting on, and is sized by one setting.
+
+**How an image reaches the renderer is ADR-0016's second spike, and that spike is open**: it
+cannot be closed without a real org. The delivery route is therefore a setting with the three
+routes ADR-0016 names, so that settling it in an org is a settings change rather than a package
+version, exactly as the renderer itself is (`Receipt_Renderer__c`). Because **a receipt with no
+images at all is a valid receipt**, nothing in this rule is allowed to fail a document: a logo
+that cannot be resolved is written to the Error Log at Warning severity and the document is
+produced without it.
+
 ### Salesforce implementation
 
 - **Object:** `Receipt__c`, auto-number Name with format `RC-{000000}`, private
@@ -2628,8 +2672,8 @@ InternalUsers. The donor's route to the document is the Receipts related list on
 
 - **Service:** `ReceiptService`, `ReceiptSelector`, `ReceiptNumberSequence`,
   `ReceiptContentBuilder`, `ReceiptRenderer` and `BlobToPdfReceiptRenderer`,
-  `ReceiptFileWriter` (ADR-0021), batch `ReceiptStatementBatch`, LWC `receiptTemplates`
-  and `receiptRunConsole`.
+  `ReceiptLogoSource` (R-RC13), `ReceiptFileWriter` (ADR-0021), batch
+  `ReceiptStatementBatch`, LWC `receiptTemplates` and `receiptRunConsole`.
 
 ---
 
@@ -3914,6 +3958,7 @@ is closed deliberately rather than discovered.
 | v0.4 | 2026-09-09 | C-14 import defect: a row with two people in it. No object or field added. Section 16 gains R-IR1a (what a row means for households) and R-IR2a (the household is named from the row). The importer joined a row's second person to the first person's household by writing the person's account reference, which is contact mode's mechanism, and skipped the join entirely where the org stores people as accounts. In junction mode that reference joined nobody and stopped the automatic path from acting, so a couple imported into the configuration the product recommends became two households or one household and one person with none. The join now goes through `HouseholdService.addMembers`, and automatic creation is suspended while the people about to be joined are saved, so nobody is given a household and then taken out of it. |
 | v0.4 | 2026-09-09 | G-07 defect fix: nothing in a real org scheduled the Giving nightly jobs, so no installment was ever marked Overdue. `Giving_Settings__c` gains `Installment_Overdue_Last_Run__c` (Date/Time), `Installment_Overdue_Last_Run_Summary__c` (Text 255) and `Installment_Top_Up_Last_Run_Summary__c` (Text 255): the overdue pass recorded nothing at all, so "it has never run" and "it ran and found nothing overdue" were the same blank, and the top up carried a bare timestamp that said the job woke up rather than what it did. New rule R-IN5: the nightly passes are scheduled and stopped from the Nightly Jobs page of the settings console (ADR-0038), each records what it did, and a stale warning is shown only when the jobs are actually scheduled. No object added. |
 | v0.3 | 2026-09-09 | C-17 deploy defect, found by the first org run to validate `Address__c` on its own. No rule changed. `Street__c` shipped with a `length` of 255 on a `TextArea` field, which the metadata schema does not accept: `TextArea`'s 255 character limit is fixed by the type, not settable, and only `LongTextArea` takes a `length`. The `length` element is removed; the field is unchanged in every way an admin or a user sees. `Address_Compact` shipped listing `Street__c`, which the platform also refused: no text area field, long or short, can appear in a compact layout. `Street__c` is removed from `Address_Compact`, which now reads Type, City, State, Default. Street is still visible everywhere a text field can appear: the four list views in Section 29 and the page layout are unaffected. |
+| v0.4 | 2026-09-09 | G-18 receipt branding, and what a document for donated property may not print. No object added. R-RC12 says what a receipt for an in-kind gift may not say: no currency figure where the template asked for an amount, no amount on an in-kind statement line, in-kind gifts left out of the total a statement states with one sentence explaining the difference, and a Total Amount of zero on the receipt record, because a receipt record states what its document states and the fair market value stays on the gift (R-G12). R-RC13 says what a document is branded with: the legal name and address print from the template, or from a block above the letter when the template did not place them, on the same reasoning as the gift lines of R-RC8; the tax identification number prints in the signature block; the logo is optional and sized by one setting; and the image delivery route is a setting because ADR-0016's second spike cannot be closed without an org, so an unresolvable logo is logged at Warning severity and the document is produced without it. Giving Settings gains `Receipt_Print_Logo__c`, `Receipt_Logo_Width_Mm__c` and `Receipt_Logo_Delivery__c`. The two rules this branch numbered R-RC11 and R-RC12 are renumbered here, because ADR-0034 took R-RC11 first. |
 
 ---
 ## 32. Entity ownership by package

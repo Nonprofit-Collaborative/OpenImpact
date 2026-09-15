@@ -156,10 +156,53 @@ private class ReceiptContentRulesTest {
     }
 
     /**
+     * The template asked for an amount, and an in-kind gift does not give it one (R-RC12). A
+     * currency figure on a receipt for donated property reads as a cash contribution of that
+     * amount, which is the one thing the document must not say, so the token renders as a phrase
+     * whatever the letter asked for.
+     */
+    @IsTest
+    static void anInKindReceiptPrintsNoAmountWhereTheTemplateAskedForOne() {
+        Gift__c gift = ReceiptTestDataFactory.inKindGift(
+            null,
+            'a used upright piano, delivered to the community hall',
+            1200,
+            GIFT_DATE
+        );
+
+        Test.startTest();
+        String html = ReceiptContentBuilder.forGift(
+            gift,
+            'Sam Whitfield',
+            'HFH-2026-000006',
+            Date.newInstance(2027, 1, 15),
+            ReceiptTestDataFactory.perGiftTemplateBody()
+        );
+        Test.stopTest();
+
+        Assert.isFalse(
+            html.contains('$1,200.00'),
+            'No figure for the goods appears anywhere on the document: ' + html
+        );
+        Assert.isTrue(
+            html.contains(ReceiptContentBuilder.IN_KIND_AMOUNT_PHRASE),
+            'The amount token renders as a phrase naming the goods: ' + html
+        );
+        Assert.areEqual(
+            0,
+            ReceiptContentBuilder.statedAmountOf(gift),
+            'The receipt record states what the document states, which is nothing.'
+        );
+    }
+
+    /**
      * Where a cash receipt prints an amount, an in-kind receipt says that no value is stated
-     * (G-18, ADR-0030). Printing the zero the gift carries would read as a receipt for nothing,
-     * and printing the fair market value the organization recorded is the one thing ADR-0016
-     * forbids, so the document says what is true instead.
+     * (G-18, ADR-0030). Printing a zero would read as a receipt for nothing, and printing the fair
+     * market value the organization recorded is the one thing ADR-0016 forbids, so the document
+     * says what is true instead.
+     *
+     * This proves the same rule as the test above it, from the other end: that one reads the slot
+     * the template asked for, this one reads the note the document adds for itself.
      */
     @IsTest
     static void anInKindReceiptStatesNoValueWhereACashReceiptPrintsTheAmount() {
@@ -181,11 +224,11 @@ private class ReceiptContentRulesTest {
 
         Assert.isTrue(
             html.contains(ReceiptContentBuilder.AMOUNT_NOT_STATED),
-            'The amount line says no value is stated, rather than a figure: ' + html
+            'The document says no value is stated, rather than printing a figure: ' + html
         );
         Assert.isFalse(
             html.contains('$0.00'),
-            'And it does not print the zero the gift carries, which would read as nothing given.'
+            'And it does not print a zero, which would read as nothing given.'
         );
         Assert.isFalse(
             html.contains('$900.00'),
@@ -202,8 +245,60 @@ private class ReceiptContentRulesTest {
     }
 
     /**
+     * A statement lists a gift of goods without a value and leaves it out of the total, and says
+     * why, because a donor who adds the lines up and gets a different number is owed the sentence
+     * (R-RC12).
+     */
+    @IsTest
+    static void aStatementListsInKindGiftsWithoutAValueAndOutsideTheTotal() {
+        Gift__c cash = ReceiptTestDataFactory.plainCashGift(
+            null,
+            100,
+            Date.newInstance(2026, 2, 1)
+        );
+        Gift__c goods = ReceiptTestDataFactory.inKindGift(
+            null,
+            'Twelve cases of tinned food for the pantry',
+            750,
+            Date.newInstance(2026, 3, 1)
+        );
+
+        Test.startTest();
+        String html = ReceiptContentBuilder.forStatement(
+            'The Reyes Family',
+            new List<Gift__c>{ cash, goods },
+            'HFH-2026-000007',
+            2026,
+            Date.newInstance(2027, 1, 15),
+            ReceiptTestDataFactory.statementTemplateBody()
+        );
+        Test.stopTest();
+
+        Assert.areEqual(
+            100,
+            ReceiptContentBuilder.cashTotalOf(new List<Gift__c>{ cash, goods }),
+            'The stated total is the money, not the money plus a valuation of the goods.'
+        );
+        Assert.isTrue(
+            html.contains('<td class="amount">' + ReceiptContentBuilder.IN_KIND_LINE_AMOUNT),
+            'The in-kind line carries no amount: ' + html
+        );
+        Assert.isFalse(
+            html.contains('$750.00'),
+            'The value of the goods is nowhere on it: ' + html
+        );
+        Assert.isTrue(
+            html.contains(ReceiptContentBuilder.SENTENCE_IN_KIND_NOT_IN_TOTAL),
+            'The statement explains why the lines do not add up to the total: ' + html
+        );
+    }
+
+    /**
      * On a year end statement the in-kind line carries no amount either, so the total the
      * statement adds up is the money, and the goods are visibly outside it.
+     *
+     * The test above proves the same rule with a different statement: this one reads the total
+     * through `cashTotalOf` directly, and watches the fair market value stay off the page.
      */
     @IsTest
     static void aStatementLeavesAnInKindLineOutOfTheTotalItStates() {
@@ -220,7 +315,7 @@ private class ReceiptContentRulesTest {
         List<Gift__c> gifts = new List<Gift__c>{ cash, goods };
 
         Test.startTest();
-        Decimal total = ReceiptContentBuilder.totalOf(gifts);
+        Decimal total = ReceiptContentBuilder.cashTotalOf(gifts);
         String html = ReceiptContentBuilder.forStatement(
             'Ines Ferreira',
             gifts,
@@ -242,7 +337,7 @@ private class ReceiptContentRulesTest {
         );
         Assert.isTrue(
             html.contains(ReceiptContentBuilder.AMOUNT_NOT_STATED),
-            'Its line states no value rather than a figure: ' + html
+            'The statement states no value for it rather than a figure: ' + html
         );
         Assert.isFalse(
             html.contains('$900.00'),
