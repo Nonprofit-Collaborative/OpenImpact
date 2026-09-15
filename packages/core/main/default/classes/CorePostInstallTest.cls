@@ -164,6 +164,42 @@ private class CorePostInstallTest {
     }
 
     @IsTest
+    static void theRetryJobWaitsBetweenAttemptsRatherThanBurningThroughThemAtOnce() {
+        // The defect this covers: the job used to re-enqueue itself immediately, with no
+        // delay, so all MAX_ATTEMPTS attempts burned through within seconds of install,
+        // long before the platform leaves the group's Status as Updating. The fix is the
+        // delayed-execution overload of System.enqueueJob, named here by its constant: a
+        // test cannot observe wall-clock delay (Test.stopTest runs a delayed job as soon
+        // as it is reached, ignoring the delay), so this locks in the delay itself and,
+        // starting from the full attempt count, that the job re-queues rather than giving
+        // up or assigning a role the platform has not finished calculating.
+        Assert.isTrue(
+            CorePostInstallRetryQueueable.RETRY_DELAY_MINUTES > 0,
+            'Each attempt should wait before the next one runs, not retry inline.'
+        );
+        PermissionSetGroupSelector.systemModeOverride = groupStillBeingCalculated();
+        CorePostInstallRetryQueueable job = new CorePostInstallRetryQueueable(
+            UserInfo.getUserId(),
+            CorePostInstallRetryQueueable.MAX_ATTEMPTS
+        );
+
+        Test.startTest();
+        job.execute(null);
+        Assert.areEqual(
+            1,
+            countRetryJobs(),
+            'The first of several attempts should queue exactly one more.'
+        );
+        Test.stopTest();
+
+        Assert.areEqual(
+            0,
+            countRoleAssignments(UserInfo.getUserId()),
+            'A role the platform is still calculating cannot be handed out yet.'
+        );
+    }
+
+    @IsTest
     static void theRetryJobGivesUpQuietlyOnItsLastAttempt() {
         // One attempt left and a role the platform is still calculating: the job records a
         // warning and stops rather than queueing for ever or throwing. The state is stated
