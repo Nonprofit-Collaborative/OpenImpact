@@ -81,6 +81,14 @@
         <value>Choose two households to merge.</value>
     </labels>
     <labels>
+        <fullName>Core_HouseholdMerge_CustomNameKept</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Shown after a merge when the survivor's name is now held as custom</shortDescription>
+        <value>The name you chose is kept as this household's own name; the naming automation will not change it. Clear Custom Name on the household if you want it to follow the members again.</value>
+    </labels>
+    <labels>
         <fullName>Core_HouseholdMerge_ErrorNoEditAccess</fullName>
         <categories>Households</categories>
         <language>en_US</language>

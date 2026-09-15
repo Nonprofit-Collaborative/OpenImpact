@@ -72,14 +72,18 @@ private class HouseholdMergeServiceTest {
         Id victimId = householdOf(wei.Id);
 
         Test.startTest();
-        Id result = HouseholdMergeService.mergeHouseholds(
+        HouseholdMergeService.MergeResult result = HouseholdMergeService.mergeHouseholds(
             survivorId,
             victimId,
             new HouseholdMergeService.MergeChoices(null)
         );
         Test.stopTest();
 
-        Assert.areEqual(survivorId, result, 'The survivor is answered');
+        Assert.areEqual(survivorId, result.survivorId, 'The survivor is answered');
+        Assert.isFalse(
+            result.customNameKept,
+            'Nobody chose a name and neither side was custom, so naming still owns it'
+        );
         Assert.areEqual(
             survivorId,
             householdOf(wei.Id),
@@ -118,7 +122,7 @@ private class HouseholdMergeServiceTest {
         );
 
         Test.startTest();
-        HouseholdMergeService.mergeHouseholds(
+        HouseholdMergeService.MergeResult result = HouseholdMergeService.mergeHouseholds(
             survivorId,
             victimId,
             new HouseholdMergeService.MergeChoices(
@@ -142,6 +146,10 @@ private class HouseholdMergeServiceTest {
         );
         Assert.isTrue(survivor.Custom_Name__c, 'The household is now one nothing recomputes');
         Assert.areEqual(2, survivor.Member_Count__c, 'The count is still brought up to date');
+        Assert.isTrue(
+            result.customNameKept,
+            'The screen is told the name is now held as a custom one'
+        );
     }
 
     /**
@@ -160,7 +168,7 @@ private class HouseholdMergeServiceTest {
         Id victimId = householdOf(wei.Id);
 
         Test.startTest();
-        HouseholdMergeService.mergeHouseholds(
+        HouseholdMergeService.MergeResult result = HouseholdMergeService.mergeHouseholds(
             survivorId,
             victimId,
             new HouseholdMergeService.MergeChoices(
@@ -180,6 +188,10 @@ private class HouseholdMergeServiceTest {
             'A chosen name that naming would not produce is kept as a custom name'
         );
         Assert.areEqual(2, survivor.Member_Count__c, 'The count is still brought up to date');
+        Assert.isTrue(
+            result.customNameKept,
+            'The screen is told the name is now held as a custom one'
+        );
     }
 
     /**
@@ -205,7 +217,7 @@ private class HouseholdMergeServiceTest {
         );
 
         Test.startTest();
-        HouseholdMergeService.mergeHouseholds(
+        HouseholdMergeService.MergeResult result = HouseholdMergeService.mergeHouseholds(
             survivorId,
             victimId,
             new HouseholdMergeService.MergeChoices(
@@ -219,6 +231,10 @@ private class HouseholdMergeServiceTest {
         Assert.isFalse(
             survivor.Custom_Name__c,
             'Naming gives that name anyway, so the household keeps following its members'
+        );
+        Assert.isFalse(
+            result.customNameKept,
+            'The screen is not told about a lock that did not happen'
         );
     }
 

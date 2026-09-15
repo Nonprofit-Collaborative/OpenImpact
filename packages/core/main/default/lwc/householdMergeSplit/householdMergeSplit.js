@@ -30,6 +30,7 @@ import CONFIRM_BODY from '@salesforce/label/c.Core_HouseholdMerge_ConfirmBody';
 import CONFIRM_BUTTON from '@salesforce/label/c.Core_HouseholdMerge_ConfirmButton';
 import CANCEL from '@salesforce/label/c.Core_HouseholdMerge_Cancel';
 import MERGE_SUCCESS from '@salesforce/label/c.Core_HouseholdMerge_Success';
+import CUSTOM_NAME_KEPT from '@salesforce/label/c.Core_HouseholdMerge_CustomNameKept';
 import READ_ONLY from '@salesforce/label/c.Core_HouseholdMerge_ReadOnly';
 import NOT_A_HOUSEHOLD from '@salesforce/label/c.Core_HouseholdMerge_NotAHousehold';
 import SPLIT_HEADING from '@salesforce/label/c.Core_HouseholdMerge_SplitHeading';
@@ -281,11 +282,16 @@ export default class HouseholdMergeSplit extends NavigationMixin(LightningElemen
       victimId: this.otherHouseholdId,
       fieldChoices: this.choices
     })
-      .then((survivorId) => {
+      .then((result) => {
         this.confirmingMerge = false;
         this.errorMessage = undefined;
-        this.toast(MERGE_SUCCESS, 'success');
-        this.goTo(survivorId);
+        // The person is not told anywhere else that choosing a name during a merge locks
+        // it against the naming automation, so the success message is where that is said.
+        const message = result.customNameKept
+          ? `${MERGE_SUCCESS} ${CUSTOM_NAME_KEPT}`
+          : MERGE_SUCCESS;
+        this.toast(message, 'success');
+        this.goTo(result.survivorId);
       })
       .catch((error) => {
         this.confirmingMerge = false;
