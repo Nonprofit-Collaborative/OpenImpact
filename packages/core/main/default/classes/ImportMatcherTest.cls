@@ -64,6 +64,33 @@ private class ImportMatcherTest {
     }
 
     @IsTest
+    static void importOf250RowsStaysWellUnderTheQueryLimit() {
+        Set<String> emails = new Set<String>();
+        Set<String> namePostalKeys = new Set<String>();
+        Set<String> externalIds = new Set<String>();
+        for (Integer i = 0; i < 250; i++) {
+            emails.add('row' + i + '@example.org');
+            namePostalKeys.add(ImportMatcher.nameAndPostalKey('Row' + i, '9720' + Math.mod(i, 10)));
+            externalIds.add('EXT-' + i);
+        }
+
+        Test.startTest();
+        // One matching pass over a 250-row chunk, the way ImportRowProcessor drives it: every
+        // rule the chunk needs is one query, never one query per row.
+        ImportMatcher.contactsByEmail(emails);
+        ImportMatcher.contactsByNameAndPostalCode(namePostalKeys);
+        ImportMatcher.byExternalId(Contact.SObjectType, externalIds);
+        Integer queriesUsed = Limits.getQueries();
+        Test.stopTest();
+
+        Assert.isTrue(
+            queriesUsed < 20,
+            'A 250-row import chunk across several rules stays far under the query limit, got ' +
+            queriesUsed
+        );
+    }
+
+    @IsTest
     static void aCompositeKeyNeedsBothOfItsParts() {
         Assert.isNull(
             ImportMatcher.nameAndPostalKey('Ramirez', null),
