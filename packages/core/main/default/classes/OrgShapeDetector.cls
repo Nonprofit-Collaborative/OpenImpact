@@ -6,8 +6,8 @@
  * Detection is not dependency. Every package, Person Account, and Industries name used here
  * is a String constant handed to a describe call, never a compile-time reference, so Core
  * still deploys and runs on a Platform-only org (ADR-0009, ADR-0013). Those four constant
- * declarations carry the marker that scripts/ci/check-standard-objects.sh honors, and they
- * are the only place in the product where it is used.
+ * declarations carry the marker that scripts/ci/check-standard-objects.sh honors, as do the
+ * Nonprofit Cloud names in OrgShapeSelector and HouseholdSelector.
  *
  * The result is cached for the transaction because a global describe is expensive.
  */
@@ -44,6 +44,23 @@ public with sharing class OrgShapeDetector {
         public Boolean platformEncryptionPossible;
 
         /**
+         * Whether this org already models households the Nonprofit Cloud way, as an Account
+         * carrying a native household group. True unless the probe came back with a definite
+         * zero, because unknown is treated as "assume they exist": see
+         * OrgShapeSelector.nativeHouseholdGroupCount and ADR-0036.
+         */
+        @AuraEnabled
+        public Boolean hasNativeHouseholdGroups;
+
+        /**
+         * How many native households were counted, or null when the count could not be made.
+         * Null is the honest answer to an unanswerable question, and Health Check says so
+         * rather than showing a zero it does not have.
+         */
+        @AuraEnabled
+        public Integer nativeHouseholdGroupCount;
+
+        /**
          * Account record types whose describe reports them as person types. Empty unless
          * Person Accounts are enabled. HouseholdService reads this set, so it is computed
          * dynamically and never from a static record type reference.
@@ -57,6 +74,9 @@ public with sharing class OrgShapeDetector {
             this.hasSalesCloudObjects = false;
             this.isMultiCurrency = false;
             this.platformEncryptionPossible = null;
+            // Unknown until the probe answers, and unknown means assume they exist.
+            this.hasNativeHouseholdGroups = true;
+            this.nativeHouseholdGroupCount = null;
             this.personAccountRecordTypeIds = new Set<Id>();
         }
     }
@@ -82,6 +102,15 @@ public with sharing class OrgShapeDetector {
         if (shape.hasPersonAccounts == true) {
             shape.personAccountRecordTypeIds = OrgShapeSelector.personTypeRecordTypeIds();
         }
+        // Asked on its own, never inferred from the fundraising objects above: the native
+        // household group is an Industries common object that the Fundraising licence does
+        // not gate, so an org can have it without having any of them. A null count is the
+        // probe saying it could not tell, and an org that might have native households is
+        // treated as one that has them (ADR-0036).
+        shape.nativeHouseholdGroupCount = OrgShapeSelector.nativeHouseholdGroupCount();
+        shape.hasNativeHouseholdGroups =
+            shape.nativeHouseholdGroupCount == null ||
+            shape.nativeHouseholdGroupCount > 0;
         shape.isMultiCurrency = UserInfo.isMultiCurrencyOrganization();
         shape.platformEncryptionPossible = null;
 
