@@ -1,7 +1,14 @@
 /**
  * Gets Error Log entries out of the failing transaction and into the org.
  *
- * WHY THIS IS NOT AN INSERT. Almost every failure worth recording ends in a rollback: the
+ * ADR-0021 (system mode writes for package owned data) is the authority for this class and
+ * names it as one of its writers. An error must be recorded even when the running user has no
+ * create access on the Error Log object. The failures that matter most are the ones a person hits
+ * because something is missing from their access, and those are exactly the ones a user mode write
+ * would drop on the floor. Running in system mode is what ensures the entry survives to tell the
+ * administrator what went wrong.
+ *
+ * WHY THIS IS NOT A SIMPLE INSERT. Almost every failure worth recording ends in a rollback: the
  * dispatcher calls addError or rethrows, the save is refused, and everything written in that
  * transaction is undone. An ordinary insert here would be undone with it, so the entry that says
  * what went wrong would disappear exactly when Maria needs it (canonical model rule R-E4). So the
@@ -15,13 +22,6 @@
  * packaged permission sets grant Read and Create on `Error_Log_Event__e`, Nonprofit Read Only
  * included; for a user holding none of them the fallback runs and the entry survives only when the
  * transaction commits.
- *
- * DOCUMENTED EXCEPTION to the "with sharing, user mode" rule (plan Section 4.13). This class is
- * `without sharing` and its fallback insert runs in system mode, for one reason: a failure must be
- * recorded even when the running user has no create access on the Error Log object. The failures
- * that matter most are the ones a person hits because something is missing from their access, and
- * those are exactly the ones a user mode insert would drop on the floor. Nothing is read here and
- * nothing is returned to the caller, so no record data can leak through this class.
  *
  * No user input reaches this class unescaped: callers pass a message from a Custom Label or an
  * exception's own message, and both the event and the record are written with ordinary typed DML.

@@ -1,10 +1,12 @@
 /**
  * Writes the Error Log row from the event `ErrorLogWriter` published.
  *
- * DOCUMENTED EXCEPTION to the "with sharing, user mode" rule (plan Section 4.13), for the same
- * reason `ErrorLogWriter` carries one: this is the write that must happen whoever was working when
- * the failure happened, including a user with no create access on the Error Log. It runs in the
- * platform's own subscriber transaction, reads nothing, and returns nothing.
+ * ADR-0021 (system mode writes for package owned data) is the authority for this class and
+ * names it as one of its writers. This is the write that must happen whoever was working when
+ * the failure happened, including a user with no create access on the Error Log. Running in
+ * system mode ensures the entry is written even when the running user would otherwise lack
+ * permission to create it. It runs in the platform's own subscriber transaction, reads nothing,
+ * and returns nothing.
  *
  * It does not go through `TriggerDispatcher`. Recording a failure is not an automation an
  * administrator can switch off or pause: rule R-A3 says turning an automation off never suppresses
