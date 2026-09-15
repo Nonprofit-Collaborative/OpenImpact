@@ -140,15 +140,27 @@ public with sharing class SoftCreditService {
             }
         }
 
-        reconcile(
+        reconcileAutomaticCredits(
             wanted,
             SoftCreditSelector.selectAutomaticForGifts(giftById.keySet(), ROLE_HOUSEHOLD_MEMBER)
         );
     }
 
     /**
-     * Removes every credit Open Impact created for these gifts. Called before a gift is deleted so
-     * that the rollups see the removal, and by the matching gift service when a link is undone.
+     * Removes every credit Open Impact created for these gifts, and leaves alone every credit a
+     * person entered by hand (R-SC6).
+     *
+     * One caller: `GiftSoftCreditHandler.beforeDelete`. This docstring used to claim the matching
+     * gift service calls it too when a link is undone; it does not, and never has.
+     * `MatchingGiftService` has its own private `removeMatchedDonorCredits`, which deletes only
+     * the Matched Donor rows. Whether the two should share this method is a real question and a
+     * separate one.
+     *
+     * At its one call site the platform would delete these rows anyway, because `Gift__c` on
+     * `Soft_Credit__c` is a master detail field and the cascade removes the children. The call
+     * still earns its place by running `before` the delete, so anything reading credits in the
+     * same transaction sees them gone rather than half gone. That is a narrower claim than the
+     * old comment made, and it is the one the tests now prove.
      */
     public static void removeAutomaticCredits(Set<Id> giftIds) {
         if (giftIds == null || giftIds.isEmpty()) {
@@ -221,7 +233,17 @@ public with sharing class SoftCreditService {
         return (giftAmount * percent / 100).setScale(2, System.RoundingMode.HALF_UP);
     }
 
-    private static void reconcile(
+    /**
+     * Makes the automatic credits that exist for a set of gifts equal to the ones wanted:
+     * inserting what is missing, correcting an amount that has moved, and deleting what is no
+     * longer wanted, all keyed by gift and credited party.
+     *
+     * Public because `MatchingGiftService` reconciles the negative Matched Donor credits a
+     * refund of an employer's gift produces (ADR-0031), and that is the same job as this one on
+     * a different role. The two callers pass disjoint roles, so each one's existing list is its
+     * own: passing credits of one role against wanted credits of another would delete them.
+     */
+    public static void reconcileAutomaticCredits(
         Map<String, Soft_Credit__c> wanted,
         List<Soft_Credit__c> existing
     ) {
@@ -284,6 +306,16 @@ public with sharing class SoftCreditService {
             credit.Account__c = personId;
         }
         return credit;
+    }
+
+    /**
+     * The key `reconcileAutomaticCredits` compares on: one credited party, on one gift, in one
+     * role. Exposed for the callers that build a wanted map of their own. Named for the map
+     * rather than for the row, because `reconcileAutomaticCredits` already uses `creditKey` as a
+     * local.
+     */
+    public static String automaticCreditKey(Id giftId, Id personId) {
+        return key(giftId, personId);
     }
 
     private static Id donorPersonOf(Gift__c gift) {

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Running_Plans</fullName>
+  <columns>NAME</columns>
+  <columns>Stewardship_Plan_Template__c</columns>
+  <columns>Contact__c</columns>
+  <columns>Account__c</columns>
+  <columns>Started_Date__c</columns>
+  <filters>
+    <field>Status__c</field>
+    <operation>equals</operation>
+    <value>Running</value>
+  </filters>
+  <filterScope>Everything</filterScope>
+  <label>Running Plans</label>
+</ListView>

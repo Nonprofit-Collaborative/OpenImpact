@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CompactLayout xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Acknowledgment_Run_Compact</fullName>
+  <fields>Name</fields>
+  <fields>Channel__c</fields>
+  <fields>Status__c</fields>
+  <fields>Acknowledgments_Sent__c</fields>
+  <label>Acknowledgment Run Compact</label>
+</CompactLayout>

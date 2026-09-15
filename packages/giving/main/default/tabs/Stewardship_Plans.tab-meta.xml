@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>
+    The follow-up your organization repeats: the plans, their steps, and whether each one is
+    switched on.
+  </description>
+  <flexiPage>Stewardship_Plans</flexiPage>
+  <label>Stewardship Plans</label>
+  <mobileReady>true</mobileReady>
+  <motif>Custom54: Form</motif>
+</CustomTab>

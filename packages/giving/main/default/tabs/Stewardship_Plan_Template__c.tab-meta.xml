@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+  <customObject>true</customObject>
+  <description>
+    The follow up sequences this organization repeats, and what starts each one.
+  </description>
+  <label>Stewardship Plan Templates</label>
+  <motif>Custom18: Postal Delivery</motif>
+</CustomTab>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>All_Steps</fullName>
+  <columns>NAME</columns>
+  <columns>Stewardship_Plan_Template__c</columns>
+  <columns>Order__c</columns>
+  <columns>Subject__c</columns>
+  <columns>Days_After_Start__c</columns>
+  <columns>Assign_To__c</columns>
+  <filterScope>Everything</filterScope>
+  <label>All Steps</label>
+</ListView>

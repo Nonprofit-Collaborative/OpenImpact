@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+  <apiVersion>67.0</apiVersion>
+  <description>
+    The follow-up your organization repeats: every stewardship plan, the steps it lays out, the
+    order they come in, and whether the plan is switched on.
+  </description>
+  <isExposed>true</isExposed>
+  <masterLabel>Stewardship Plans</masterLabel>
+  <targets>
+    <target>lightning__AppPage</target>
+  </targets>
+</LightningComponentBundle>

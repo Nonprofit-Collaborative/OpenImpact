@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Started_Date__c</fullName>
+  <description>The day the plan started, which every step's due date is counted from (canonical model R-SP5).</description>
+  <externalId>false</externalId>
+  <inlineHelpText>The day this plan started. Task due dates are counted from it.</inlineHelpText>
+  <label>Started Date</label>
+  <required>true</required>
+  <trackTrending>false</trackTrending>
+  <type>Date</type>
+</CustomField>

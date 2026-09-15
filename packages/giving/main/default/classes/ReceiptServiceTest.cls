@@ -96,11 +96,20 @@ private class ReceiptServiceTest {
 
     @IsTest
     static void theShippedLettersAreInstalledOnceAndOnlyOneOfEachKindIsActive() {
+        ReceiptTemplateService.managePermission = true;
+        Integer before = [SELECT COUNT() FROM Receipt_Template__c];
+
         Test.startTest();
-        List<Receipt_Template__c> firstRun = ReceiptTemplateService.installDefaults();
-        List<Receipt_Template__c> secondRun = ReceiptTemplateService.installDefaults();
+        List<Receipt_Template__c> firstRun = ReceiptTemplateService.restoreDefaults();
+        List<Receipt_Template__c> secondRun = ReceiptTemplateService.restoreDefaults();
         Test.stopTest();
 
+        Assert.areEqual(0, before, 'This org started with no letters, so the first run creates.');
+        Assert.areEqual(
+            firstRun.size(),
+            [SELECT COUNT() FROM Receipt_Template__c],
+            'What the first run says it created is what the org actually has.'
+        );
         Assert.isTrue(secondRun.isEmpty(), 'Restoring defaults twice does not duplicate a letter.');
         Map<String, Integer> activeByType = new Map<String, Integer>();
         for (Receipt_Template__c template : ReceiptSelector.allTemplates()) {
@@ -118,7 +127,6 @@ private class ReceiptServiceTest {
                 'One letter of each kind is in use: ' + type
             );
         }
-        Assert.isTrue(firstRun.size() >= 0, 'The first install returns what it created.');
     }
 
     @IsTest

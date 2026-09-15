@@ -133,6 +133,13 @@ Do this after the sample data is loaded, or in an org with a couple of years of 
 
 ## Common mistakes
 
+**A donor who gives goods every year never appears on any of these reports.** That is
+correct, and it is worth knowing before somebody reports it as a bug. These reports are
+built on cash: an in-kind gift carries no amount, so it is in no fiscal year total and in no
+gift count, and a donor whose only gifts are goods has no first or last gift date to be
+retained or lapsed against. Find them through the In-kind value figure on their record or
+the In-kind Gifts This Year report instead. See [In-kind gifts](in-kind-gifts.md).
+
 **A donor is on the LYBUNT list who gave last week.** Two causes. Either the rollups have not
 run since that gift, which the Rollups Last Calculated column on their row will show, or the
 gift is dated in the future. Last Gift Date is the date on the gift, so a gift dated next

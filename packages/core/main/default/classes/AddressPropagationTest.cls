@@ -12,6 +12,8 @@
 private class AddressPropagationTest {
     private static final String WINTER_STREET = '4120 East Camelback Road';
     private static final String WINTER_CITY = 'Phoenix';
+    private static final String MEMBER_OWN_STREET = '1912 North Third Street';
+    private static final String MEMBER_OWN_CITY = 'Tucson';
 
     @IsTest
     static void contactModeMembersGetTheHouseholdAddress() {
@@ -87,10 +89,29 @@ private class AddressPropagationTest {
         );
     }
 
+    /**
+     * Only the half of the claim that this org shape can reach. A member held as an account is
+     * written through its person mailing fields, and those fields exist only where the org has
+     * person accounts, which a Platform only org (ADR-0013) does not: `personMailingCopy`
+     * returns nothing there, so there is no written value to assert. What is asserted instead
+     * is the part that holds in every org shape and that the propagation code could get wrong:
+     * a member account is never written through its billing fields, which is what would happen
+     * if it were treated as the address owner. The member therefore carries a billing address
+     * of its own before the propagation runs, so the assertion is that the propagation left it
+     * alone rather than that the field started empty.
+     *
+     * On an org that does have person accounts this method covers a second thing, which is why
+     * the member is a household record rather than a person: the member account does not hold a
+     * person, so the propagation must leave it out entirely. Before that guard existed the
+     * propagation wrote person mailing fields on it, the platform refused the update, and the
+     * address the user was saving was refused with it.
+     */
     @IsTest
-    static void aPersonAccountMemberIsWrittenOnlyWherePersonAccountsExist() {
+    static void aMemberAccountIsNeverWrittenThroughItsBillingFields() {
         Account garcia = AddressTestDataFactory.newHousehold('The Garcia Family');
         Account personLikeAccount = AddressTestDataFactory.newHousehold('Ana Garcia');
+        personLikeAccount.BillingStreet = MEMBER_OWN_STREET;
+        personLikeAccount.BillingCity = MEMBER_OWN_CITY;
         insert new List<Account>{ garcia, personLikeAccount };
 
         Test.startTest();
@@ -110,17 +131,31 @@ private class AddressPropagationTest {
         }
         Test.stopTest();
 
-        Account member = [SELECT BillingStreet FROM Account WHERE Id = :personLikeAccount.Id];
+        Account member = [
+            SELECT BillingStreet, BillingCity
+            FROM Account
+            WHERE Id = :personLikeAccount.Id
+        ];
         Assert.areEqual(
-            null,
+            MEMBER_OWN_STREET,
             member.BillingStreet,
-            'A member account is written through its person mailing fields, never through its billing fields.'
+            'The household address is never copied into a member account billing fields.'
+        );
+        Assert.areEqual(
+            MEMBER_OWN_CITY,
+            member.BillingCity,
+            'Which is true of every billing field, not just the street.'
         );
         Account household = [SELECT BillingStreet FROM Account WHERE Id = :garcia.Id];
         Assert.areEqual(
             WINTER_STREET,
             household.BillingStreet,
             'The household that owns the address still gets its billing fields.'
+        );
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Address__c WHERE Account__c = :garcia.Id],
+            'And the address was saved rather than refused on account of the member.'
         );
     }
 

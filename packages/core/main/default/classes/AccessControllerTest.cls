@@ -40,14 +40,8 @@ private class AccessControllerTest {
      * @return the inserted user, already in the Nonprofit Admin role
      */
     private static User insertAdminUser() {
-        Test.calculatePermissionSetGroup(AccessService.ADMIN_ROLE);
+        PermissionSetGroup adminGroup = TestDataFactory.prepareRoleGroup(AccessService.ADMIN_ROLE);
         User maria = insertUser('Maria', 'Alvarez');
-        PermissionSetGroup adminGroup = [
-            SELECT Id
-            FROM PermissionSetGroup
-            WHERE DeveloperName = :AccessService.ADMIN_ROLE
-            LIMIT 1
-        ];
         insert new PermissionSetAssignment(
             AssigneeId = maria.Id,
             PermissionSetGroupId = adminGroup.Id
@@ -172,7 +166,7 @@ private class AccessControllerTest {
     static void assignRoleAndRemoveRoleWorkForMaria() {
         User maria = insertAdminUser();
         User david = insertUser('David', 'Okafor');
-        Test.calculatePermissionSetGroup(FUNDRAISING_ROLE);
+        TestDataFactory.prepareRoleGroup(FUNDRAISING_ROLE);
         AccessController.AccessResult assigned;
         AccessController.AccessResult removed;
 

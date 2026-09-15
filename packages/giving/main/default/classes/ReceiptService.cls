@@ -31,9 +31,19 @@ public with sharing class ReceiptService {
      * number are not. The document is rendered next, then stored, then the receipt record is
      * written, and only then does the gift learn its receipt number, which is the point at which
      * the gift becomes locked (R-G4).
+     *
+     * **A caller must let a failure here propagate all the way out, so the transaction rolls
+     * back.** That is not style, it is the only thing accounting for the per gift number series:
+     * nothing reconciles it. `ReceiptNumberSequence.reconcile` runs for the statement series from
+     * `ReceiptStatementBatch.finish` and for nothing else, and the Health Check finding added in
+     * C-11 counts only what that pass wrote. `ReceiptController.issue` rethrows, so today the
+     * number and the receipt stand or fall together. A future caller that catches this exception
+     * and carries on, a bulk action or an async retry wrapper, consumes a number that no pass will
+     * ever explain and that the Health Check will report as zero. Build the per gift
+     * reconciliation pass before writing that caller (ADR-0016, "Numbering").
      */
     public static Receipt__c issueForGift(Id giftId) {
-        requirePermission();
+        requireIssuePermission();
         Gift__c gift = ReceiptSelector.giftForReceipting(giftId);
         if (gift == null) {
             throw new ReceiptServiceException(Label.Giving_Receipt_GiftNotFound);
@@ -69,7 +79,7 @@ public with sharing class ReceiptService {
             Donor_Account__c = gift.Donor_Account__c,
             Household__c = gift.Household__c,
             // What the document states, which for a gift of goods or services is nothing at all
-            // (R-RC11). The value the organization recorded stays on the gift.
+            // (R-RC12). The value the organization recorded stays on the gift.
             Total_Amount__c = ReceiptContentBuilder.statedAmountOf(gift),
             Issue_Date__c = Date.today(),
             Series_Key__c = ReceiptNumberSequence.seriesKeyFor(
@@ -79,11 +89,11 @@ public with sharing class ReceiptService {
         );
         ReceiptWriter.insertReceipts(new List<Receipt__c>{ receipt });
 
-        storeDocumentFor(
-            receipt,
-            html,
-            new List<Id>{ receipt.Id, gift.Id, gift.Donor_Contact__c, gift.Donor_Account__c }
-        );
+        // The receipt and the gift, and deliberately not the donor Contact or Account: a file's
+        // audience is the audience of the records it is linked to, and every Core role can read a
+        // Contact and an Account (ADR-0034). The donor still finds the document, through the
+        // Receipts related list on their record, which needs a Giving permission set.
+        storeDocumentFor(receipt, html, new List<Id>{ receipt.Id, gift.Id });
 
         GiftService.recordReceiptNumbers(new Map<Id, String>{ gift.Id => allocated });
         return receipt;
@@ -95,7 +105,7 @@ public with sharing class ReceiptService {
      * (R-RC4).
      */
     public static Receipt__c voidReceipt(Id receiptId, String reason) {
-        requirePermission();
+        requireIssuePermission();
         if (String.isBlank(reason)) {
             throw new ReceiptServiceException(Label.Giving_Receipt_VoidNeedsReason);
         }
@@ -124,7 +134,7 @@ public with sharing class ReceiptService {
      * records point at each other so that a person holding either can find the other.
      */
     public static Receipt__c voidAndReissue(Id receiptId, String reason) {
-        requirePermission();
+        requireIssuePermission();
         Receipt__c original = ReceiptSelector.byId(receiptId);
         if (original == null) {
             throw new ReceiptServiceException(Label.Giving_Receipt_NotFound);
@@ -194,7 +204,10 @@ public with sharing class ReceiptService {
             Receipt_Run__c = runId
         );
         ReceiptWriter.insertReceipts(new List<Receipt__c>{ receipt });
-        storeDocumentFor(receipt, html, new List<Id>{ receipt.Id, donor.Id }, renderer);
+        // The receipt only. A year end statement is the whole of a donor's giving, their address
+        // and the organization's tax identifiers in one document, and linking it to the donor
+        // Account put it in the Files list of a record every Core role can read (ADR-0034).
+        storeDocumentFor(receipt, html, new List<Id>{ receipt.Id }, renderer);
         return receipt;
     }
 
@@ -276,7 +289,12 @@ public with sharing class ReceiptService {
         return issuePermission;
     }
 
-    private static void requirePermission() {
+    /**
+     * The gate every issuing path passes. Public because `ReceiptTemplateService` needs the same
+     * answer before it materializes a shipped letter on the issuing path, and one gate stated once
+     * is what ADR-0021 asks for (ADR-0034).
+     */
+    public static void requireIssuePermission() {
         if (!canIssueReceipts()) {
             throw new ReceiptServiceException(Label.Giving_Receipt_NoPermission);
         }

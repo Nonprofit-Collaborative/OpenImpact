@@ -1,5 +1,5 @@
 /**
- * What a document is branded with, and what it is valid without (R-RC12).
+ * What a document is branded with, and what it is valid without (R-RC13).
  *
  * Two things are asserted here. The organization's name and address reach the document even when
  * the template does not ask for them, because an administrator who deleted the letterhead out of

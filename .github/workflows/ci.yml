@@ -13,16 +13,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -45,6 +45,9 @@ jobs:
       - name: Check standard object references
         run: bash scripts/ci/check-standard-objects.sh
 
+      - name: Check every object named in packages is on the allowlist
+        run: python3 scripts/ci/check-object-allowlist.py
+
       - name: Check custom metadata records against their types
         run: python3 scripts/ci/check-custom-metadata.py
 
@@ -60,8 +63,17 @@ jobs:
       - name: Check the decision records are numbered and indexed consistently
         run: python3 scripts/ci/check-adrs.py
 
+      - name: Check every exposed component is reachable from something
+        run: python3 scripts/ci/check-components-reachable.py
+
+      - name: Check every packaged record page is actually assigned
+        run: python3 scripts/ci/check-record-pages-assigned.py
+
       - name: Check the canonical model lists every shipped API name
         run: python3 scripts/ci/check-canonical-model.py
+
+      - name: Check every setting that ships switched on actually reads on
+        run: python3 scripts/ci/check-setting-defaults.py
 
       - name: Fail on em dash characters
         run: |
@@ -86,7 +98,7 @@ jobs:
         run: echo y | sf plugins install code-analyzer
 
       - name: Cache apex-ls (offline Apex checker)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.m2/repository
@@ -107,7 +119,7 @@ jobs:
 
       - name: Upload Code Analyzer results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: code-analyzer-results
           path: |
@@ -133,10 +145,10 @@ jobs:
       cancel-in-progress: false
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
@@ -193,7 +205,7 @@ jobs:
 
       - name: Upload test results
         if: steps.check.outputs.enabled == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: test-results
@@ -208,7 +220,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 

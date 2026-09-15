@@ -45,7 +45,10 @@ grouping, so they read the **org's** fiscal year from Setup.
    window from the other side, which is exactly why the two have to agree.
 4. Health Check does not yet compare the two. That is a candidate check, recorded here
    rather than built, because Health Check v2 (C-21) is the place for a check with a fix
-   action and this one has a one field fix.
+   action and this one has a one field fix. **Superseded 2026-09-09:** the comparison shipped
+   in C-11 rather than waiting for C-21, because the existing `withFix` pattern already carries
+   a finding to a settings console section and the check needed nothing C-21 was going to add.
+   The `fiscal_year_mismatch` finding names both months and opens General settings.
 
 ## Alternatives considered
 
@@ -77,6 +80,9 @@ and dashboard in the org reads, including reports that have nothing to do with O
   list whose Giving This Year is not zero.
 - **A future Health Check rule can close this properly** by comparing
   `Fiscal_Year_Start_Month__c` to the org's fiscal year and offering the fix. Revisit at
-  C-21, or sooner if a subscriber reports the symptom above.
+  C-21, or sooner if a subscriber reports the symptom above. **Shipped 2026-09-09** in C-11,
+  reading Setup's month from `Organization.FiscalYearStartMonth` and Open Impact's from the
+  same call the rollup engine makes, so the number compared is the number the totals were
+  computed from, January default included.
 - **Nothing else in the package changes.** The rollup engine keeps its own fiscal year, and
   R-R3 is untouched.

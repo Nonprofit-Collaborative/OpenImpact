@@ -95,7 +95,15 @@ public with sharing class SampleDataLoadQueueable implements Queueable {
                 buildContact(member, junctionMembership ? null : householdId, contactRecordTypeId)
             );
         }
-        Database.insert(contactsToInsert, AccessLevel.USER_MODE);
+        // The sample people already have the household they belong to, so the automatic
+        // creation that would otherwise give each of them one of their own is suspended for
+        // this insert and the loader joins them itself (R-H2, ADR-0037).
+        HouseholdService.suspendAutomaticCreation();
+        try {
+            Database.insert(contactsToInsert, AccessLevel.USER_MODE);
+        } finally {
+            HouseholdService.resumeAutomaticCreation();
+        }
         if (junctionMembership) {
             HouseholdService.addMembers(peopleByHousehold(contactsToInsert, householdIds));
         }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Template__c</fullName>
+  <inlineHelpText>The developer name of the email template used, as it was at the time, so a letter that has since been rewritten can still be identified.</inlineHelpText>
+  <label>Template</label>
+  <length>80</length>
+  <required>false</required>
+  <type>Text</type>
+  <trackTrending>false</trackTrending>
+  <externalId>false</externalId>
+</CustomField>

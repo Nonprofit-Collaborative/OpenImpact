@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Stewardship_Plan_Template__c</fullName>
+  <description>
+    The template this step belongs to. A step has no meaning apart from its template and is deleted
+    with it (canonical model Section 25I).
+  </description>
+  <externalId>false</externalId>
+  <inlineHelpText>The plan this step is part of.</inlineHelpText>
+  <label>Plan Template</label>
+  <referenceTo>Stewardship_Plan_Template__c</referenceTo>
+  <relationshipLabel>Steps</relationshipLabel>
+  <relationshipName>Steps</relationshipName>
+  <relationshipOrder>0</relationshipOrder>
+  <reparentableMasterDetail>false</reparentableMasterDetail>
+  <trackTrending>false</trackTrending>
+  <type>MasterDetail</type>
+  <writeRequiresMasterRead>false</writeRequiresMasterRead>
+</CustomField>

@@ -1,0 +1,9 @@
+Dear {!Contact.FirstName},
+
+Thank you for your gift of {!Gift__c.Amount__c}, received on {!Gift__c.Gift_Date__c}.
+
+Your support does real work here, and we are grateful for it.
+
+With thanks,
+
+{!Organization.Name}

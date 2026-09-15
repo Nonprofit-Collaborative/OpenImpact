@@ -6,6 +6,21 @@
  */
 public with sharing class PermissionSetGroupSelector {
     /**
+     * Injected by the tests, and never set anywhere else, so a subscriber org always runs the
+     * query below.
+     *
+     * The install path has to be provable in the state a real org is in during the minutes
+     * after an install, when the platform is still calculating the packaged groups and refuses
+     * to assign one. No test can produce that state: Status is written by the platform, Apex
+     * cannot assign it, and Test.calculatePermissionSetGroup only ever moves a group forwards
+     * to Updated. Simply not calling that method does not produce it either, because in an org
+     * where the metadata is already deployed the groups are Updated before the test starts.
+     * So the tests hand the group they want the install code to see to this field instead.
+     */
+    @TestVisible
+    private static PermissionSetGroup systemModeOverride;
+
+    /**
      * Returns the permission set groups whose DeveloperName is in the given set.
      *
      * @param developerNames the DeveloperName values to look for
@@ -37,6 +52,9 @@ public with sharing class PermissionSetGroupSelector {
     public PermissionSetGroup selectByDeveloperNameInSystemMode(String developerName) {
         if (String.isBlank(developerName)) {
             return null;
+        }
+        if (systemModeOverride != null) {
+            return systemModeOverride;
         }
         List<PermissionSetGroup> groups = [
             SELECT Id, DeveloperName, MasterLabel, Description, Status

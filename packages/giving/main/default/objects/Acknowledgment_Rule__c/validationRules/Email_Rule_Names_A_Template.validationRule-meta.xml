@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Email_Rule_Names_A_Template</fullName>
+  <active>true</active>
+  <description>
+    An email rule with no template would queue gifts that can never be sent.
+  </description>
+  <errorConditionFormula>
+    ISPICKVAL(Channel__c, "Email") &amp;&amp; ISBLANK(Email_Template__c)
+  </errorConditionFormula>
+  <errorDisplayField>Email_Template__c</errorDisplayField>
+  <errorMessage>
+    An email rule needs the developer name of the email template it sends. The Acknowledgments page
+    lists the templates your org has.
+  </errorMessage>
+</ValidationRule>

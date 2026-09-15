@@ -156,7 +156,7 @@ private class ReceiptContentRulesTest {
     }
 
     /**
-     * The template asked for an amount, and an in-kind gift does not give it one (R-RC11). A
+     * The template asked for an amount, and an in-kind gift does not give it one (R-RC12). A
      * currency figure on a receipt for donated property reads as a cash contribution of that
      * amount, which is the one thing the document must not say, so the token renders as a phrase
      * whatever the letter asked for.
@@ -196,9 +196,58 @@ private class ReceiptContentRulesTest {
     }
 
     /**
+     * Where a cash receipt prints an amount, an in-kind receipt says that no value is stated
+     * (G-18, ADR-0030). Printing a zero would read as a receipt for nothing, and printing the fair
+     * market value the organization recorded is the one thing ADR-0016 forbids, so the document
+     * says what is true instead.
+     *
+     * This proves the same rule as the test above it, from the other end: that one reads the slot
+     * the template asked for, this one reads the note the document adds for itself.
+     */
+    @IsTest
+    static void anInKindReceiptStatesNoValueWhereACashReceiptPrintsTheAmount() {
+        Gift__c gift = ReceiptTestDataFactory.inKindGift(
+            null,
+            'Sixteen folding tables, used',
+            GIFT_DATE
+        );
+
+        Test.startTest();
+        String html = ReceiptContentBuilder.forGift(
+            gift,
+            'Ines Ferreira',
+            'HFH-2026-000011',
+            Date.newInstance(2027, 1, 15),
+            ReceiptTestDataFactory.perGiftTemplateBody()
+        );
+        Test.stopTest();
+
+        Assert.isTrue(
+            html.contains(ReceiptContentBuilder.AMOUNT_NOT_STATED),
+            'The document says no value is stated, rather than printing a figure: ' + html
+        );
+        Assert.isFalse(
+            html.contains('$0.00'),
+            'And it does not print a zero, which would read as nothing given.'
+        );
+        Assert.isFalse(
+            html.contains('$900.00'),
+            'The fair market value the organization recorded reaches no rendered document.'
+        );
+        Assert.isTrue(
+            html.contains('12 April 2026'),
+            'What the receipt does state is the date the goods arrived.'
+        );
+        Assert.isTrue(
+            html.contains('Sixteen folding tables, used'),
+            'And what arrived, in the words the donor gave.'
+        );
+    }
+
+    /**
      * A statement lists a gift of goods without a value and leaves it out of the total, and says
      * why, because a donor who adds the lines up and gets a different number is owed the sentence
-     * (R-RC11).
+     * (R-RC12).
      */
     @IsTest
     static void aStatementListsInKindGiftsWithoutAValueAndOutsideTheTotal() {
@@ -241,6 +290,58 @@ private class ReceiptContentRulesTest {
         Assert.isTrue(
             html.contains(ReceiptContentBuilder.SENTENCE_IN_KIND_NOT_IN_TOTAL),
             'The statement explains why the lines do not add up to the total: ' + html
+        );
+    }
+
+    /**
+     * On a year end statement the in-kind line carries no amount either, so the total the
+     * statement adds up is the money, and the goods are visibly outside it.
+     *
+     * The test above proves the same rule with a different statement: this one reads the total
+     * through `cashTotalOf` directly, and watches the fair market value stay off the page.
+     */
+    @IsTest
+    static void aStatementLeavesAnInKindLineOutOfTheTotalItStates() {
+        Gift__c cash = ReceiptTestDataFactory.plainCashGift(
+            null,
+            100,
+            Date.newInstance(2026, 2, 1)
+        );
+        Gift__c goods = ReceiptTestDataFactory.inKindGift(
+            null,
+            'Two pallets of tinned food',
+            Date.newInstance(2026, 11, 3)
+        );
+        List<Gift__c> gifts = new List<Gift__c>{ cash, goods };
+
+        Test.startTest();
+        Decimal total = ReceiptContentBuilder.cashTotalOf(gifts);
+        String html = ReceiptContentBuilder.forStatement(
+            'Ines Ferreira',
+            gifts,
+            'HFH-2026-000012',
+            2026,
+            Date.newInstance(2027, 1, 15),
+            ReceiptTestDataFactory.statementTemplateBody()
+        );
+        Test.stopTest();
+
+        Assert.areEqual(
+            100,
+            total,
+            'The statement totals the money, and the goods add nothing to it.'
+        );
+        Assert.isTrue(
+            html.contains('Two pallets of tinned food'),
+            'The gift of goods is still on the statement, where the donor can see it.'
+        );
+        Assert.isTrue(
+            html.contains(ReceiptContentBuilder.AMOUNT_NOT_STATED),
+            'The statement states no value for it rather than a figure: ' + html
+        );
+        Assert.isFalse(
+            html.contains('$900.00'),
+            'And the fair market value is absent from the statement as well as from the receipt.'
         );
     }
 

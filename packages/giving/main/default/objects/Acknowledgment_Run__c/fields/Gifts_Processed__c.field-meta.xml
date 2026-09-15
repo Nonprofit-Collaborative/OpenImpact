@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Gifts_Processed__c</fullName>
+  <inlineHelpText>How many gifts the run examined.</inlineHelpText>
+  <label>Gifts Processed</label>
+  <defaultValue>0</defaultValue>
+  <precision>18</precision>
+  <scale>0</scale>
+  <required>false</required>
+  <type>Number</type>
+  <trackTrending>false</trackTrending>
+  <externalId>false</externalId>
+</CustomField>

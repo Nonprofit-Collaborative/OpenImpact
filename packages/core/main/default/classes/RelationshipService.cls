@@ -52,9 +52,11 @@ public with sharing class RelationshipService {
     private static Map<String, String> reciprocalByType;
 
     /**
-     * Whether the org asks Open Impact to keep both sides in step (R-RL1). An empty settings
-     * record means a fresh org that has never saved, and the shipped default is on, so
-     * anything that is not an explicit false is treated as on.
+     * Whether the org asks Open Impact to keep both sides in step (R-RL1). An org that has
+     * never saved its settings gets the shipped default, which is on, from
+     * `SettingsService.SHIPPED_DEFAULTS`: the field's own `defaultValue` is not what Apex
+     * reads back, and this feature did nothing at all on a fresh org until that was fixed
+     * (ADR-0035). Only an explicit false switches the upkeep off.
      */
     public static Boolean isAutoReciprocalOn() {
         Nonprofit_Settings__c settings = SettingsService.getSettings();

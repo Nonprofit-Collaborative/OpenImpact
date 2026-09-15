@@ -64,12 +64,16 @@ private class SettingsControllerTest {
                 Component__c = 'automationControl',
                 Sort_Order__c = 1
             ),
+            // A row from a module that is not in this org. Its key has to be one no settings
+            // object in the repo defines, because that absence is the whole test: Default_Fund__c
+            // used to be such a key and is now a real Core field, since Core records the fund
+            // Giving falls back to before Giving is installed.
             new Setting_Definition__mdt(
                 DeveloperName = 'Not_Installed_Yet',
-                MasterLabel = 'Default fund',
-                Setting_Key__c = 'Default_Fund__c',
+                MasterLabel = 'Default grant program',
+                Setting_Key__c = 'Default_Grant_Program__c',
                 Section__c = SettingSections.GIVING,
-                Module__c = 'Giving',
+                Module__c = 'Grants',
                 Data_Type__c = 'Text',
                 Sort_Order__c = 1
             )

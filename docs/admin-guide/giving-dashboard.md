@@ -96,6 +96,12 @@ before concluding a fund is short. Every gift has an allocation, because a gift 
 without one is refused until a default fund exists, so a gift can never be missing from the
 fund chart while appearing in the monthly total.
 
+**A gift of goods is nowhere on the dashboard.** Every chart here is money, and an in-kind
+gift carries no amount, so it appears in none of them and in no fund or appeal total. That
+is deliberate: goods are reported separately from cash. Use the **In-kind Gifts This Year**
+report in the same folder, or the In-kind value figure on the donor, and see
+[In-kind gifts](in-kind-gifts.md).
+
 **Someone changes the shared report.** The reports live in a shared folder and a person
 with edit access can save over them. Ask staff to use **Save As** and keep their copies in
 their own folder. If a packaged report is changed by mistake, an upgrade of the Giving

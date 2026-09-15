@@ -1,5 +1,11 @@
 /**
  * What Maria reads when something fails, and the promise that logging never makes things worse.
+ *
+ * The two bulkification tests read `Limits.getPublishImmediateDML()`, not `Limits.getDmlStatements()`.
+ * `ErrorLogWriter` records a failure by publishing an `Error_Log_Event__e` whose publish behavior is
+ * Publish Immediately, and the platform meters those publishes on their own counter rather than on
+ * the DML statement counter, which stays at zero on this path. The invariant being asserted is
+ * unchanged: however many failures go in, one call goes out.
  */
 @IsTest
 private class ErrorLoggerTest {
@@ -95,9 +101,9 @@ private class ErrorLoggerTest {
         }
 
         Test.startTest();
-        Integer statementsBefore = Limits.getDmlStatements();
+        Integer statementsBefore = Limits.getPublishImmediateDML();
         ErrorLogger.logMessages(messages, 'Spreadsheet import', ErrorLogger.SEVERITY_WARNING);
-        Integer statementsAfter = Limits.getDmlStatements();
+        Integer statementsAfter = Limits.getPublishImmediateDML();
         Test.stopTest();
 
         Assert.areEqual(1, statementsAfter - statementsBefore, 'Logging is done in one statement.');
@@ -117,9 +123,9 @@ private class ErrorLoggerTest {
         };
 
         Test.startTest();
-        Integer statementsBefore = Limits.getDmlStatements();
+        Integer statementsBefore = Limits.getPublishImmediateDML();
         ErrorLogger.log(failures, 'Spreadsheet import');
-        Integer statementsAfter = Limits.getDmlStatements();
+        Integer statementsAfter = Limits.getPublishImmediateDML();
         Test.stopTest();
 
         Assert.areEqual(1, statementsAfter - statementsBefore, 'Still one statement.');

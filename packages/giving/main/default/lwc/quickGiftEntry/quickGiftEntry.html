@@ -77,28 +77,30 @@
                 </template>
             </div>
 
-            <div class="slds-var-m-top_small">
-                <lightning-input
-                    type="number"
-                    formatter="currency"
-                    step="0.01"
-                    min="0.01"
-                    required
-                    label={labels.amountLabel}
-                    value={amount}
-                    onchange={handleAmountChange}
-                    data-id="amount"
-                ></lightning-input>
-                <template lwc:if={errorAmount}>
-                    <p
-                        class="slds-form-element__help slds-text-color_error"
-                        role="alert"
-                        data-id="error-amount"
-                    >
-                        {errorAmount}
-                    </p>
-                </template>
-            </div>
+            <template lwc:if={isMoneyGift}>
+                <div class="slds-var-m-top_small">
+                    <lightning-input
+                        type="number"
+                        formatter="currency"
+                        step="0.01"
+                        min="0.01"
+                        required
+                        label={labels.amountLabel}
+                        value={amount}
+                        onchange={handleAmountChange}
+                        data-id="amount"
+                    ></lightning-input>
+                    <template lwc:if={errorAmount}>
+                        <p
+                            class="slds-form-element__help slds-text-color_error"
+                            role="alert"
+                            data-id="error-amount"
+                        >
+                            {errorAmount}
+                        </p>
+                    </template>
+                </div>
+            </template>
 
             <div class="slds-var-m-top_small">
                 <lightning-input
@@ -140,6 +142,54 @@
                     </p>
                 </template>
             </div>
+
+            <template lwc:if={isInKindGift}>
+                <div class="slds-var-m-top_small">
+                    <lightning-textarea
+                        required
+                        max-length="32768"
+                        label={labels.inKindDescriptionLabel}
+                        field-level-help={labels.inKindDescriptionHelp}
+                        value={inKindDescription}
+                        onchange={handleInKindDescriptionChange}
+                        data-id="in-kind-description"
+                    ></lightning-textarea>
+                    <template lwc:if={errorInKindDescription}>
+                        <p
+                            class="slds-form-element__help slds-text-color_error"
+                            role="alert"
+                            data-id="error-in-kind-description"
+                        >
+                            {errorInKindDescription}
+                        </p>
+                    </template>
+                </div>
+
+                <div class="slds-var-m-top_small">
+                    <lightning-input
+                        type="number"
+                        formatter="currency"
+                        step="0.01"
+                        min="0"
+                        label={labels.fairMarketValueLabel}
+                        value={fairMarketValue}
+                        onchange={handleFairMarketValueChange}
+                        data-id="fair-market-value"
+                    ></lightning-input>
+                    <p class="slds-form-element__help" data-id="fair-market-value-help">
+                        {labels.fairMarketValueHelp}
+                    </p>
+                    <template lwc:if={errorFairMarketValue}>
+                        <p
+                            class="slds-form-element__help slds-text-color_error"
+                            role="alert"
+                            data-id="error-fair-market-value"
+                        >
+                            {errorFairMarketValue}
+                        </p>
+                    </template>
+                </div>
+            </template>
 
             <div class="slds-var-m-top_small">
                 <lightning-input

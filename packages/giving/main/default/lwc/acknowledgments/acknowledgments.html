@@ -1,0 +1,200 @@
+<template>
+  <lightning-card title={labels.title} icon-name="custom:custom25">
+    <div class="slds-var-p-horizontal_medium">
+      <p class="slds-text-body_regular slds-var-m-bottom_small">{labels.intro}</p>
+
+      <template if:true={hasError}>
+        <p data-id="error-message" class="slds-text-color_error slds-var-m-bottom_small">
+          {errorMessage}
+        </p>
+      </template>
+
+      <template if:true={hasNotice}>
+        <p data-id="notice-message" class="slds-text-body_small slds-var-m-bottom_small">
+          {noticeMessage}
+        </p>
+      </template>
+
+      <template if:true={showOffNotice}>
+        <p data-id="off-notice" class="slds-text-body_small slds-var-m-bottom_small">
+          {labels.off}
+        </p>
+      </template>
+
+      <template if:true={hasPage}>
+        <h3 class="slds-text-heading_small slds-var-m-top_small">{labels.queueHeading}</h3>
+        <dl class="slds-dl_horizontal slds-var-m-bottom_small">
+          <dt class="slds-dl_horizontal__label">{labels.emailQueue}</dt>
+          <dd data-id="email-queue" class="slds-dl_horizontal__detail">{page.emailQueue}</dd>
+          <dt class="slds-dl_horizontal__label">{labels.letterQueue}</dt>
+          <dd data-id="letter-queue" class="slds-dl_horizontal__detail">{page.letterQueue}</dd>
+          <dt class="slds-dl_horizontal__label">{labels.unmatched}</dt>
+          <dd data-id="unmatched-queue" class="slds-dl_horizontal__detail">
+            {page.unmatchedQueue}
+          </dd>
+          <dt class="slds-dl_horizontal__label">{labels.withoutRecipient}</dt>
+          <dd data-id="without-recipient" class="slds-dl_horizontal__detail">
+            {page.withoutRecipient}
+          </dd>
+          <dt class="slds-dl_horizontal__label">{labels.lastRun}</dt>
+          <dd data-id="last-run" class="slds-dl_horizontal__detail">{lastRunText}</dd>
+          <dt class="slds-dl_horizontal__label">{labels.nextRun}</dt>
+          <dd data-id="next-run" class="slds-dl_horizontal__detail">{nextRunText}</dd>
+        </dl>
+
+        <template if:true={showQueueCapped}>
+          <p data-id="queue-capped" class="slds-text-body_small slds-var-m-bottom_small">
+            {labels.queueCapped}
+          </p>
+        </template>
+
+        <div class="slds-var-m-bottom_medium">
+          <lightning-button
+            data-id="send-emails"
+            variant="brand"
+            label={labels.sendEmails}
+            disabled={sendDisabled}
+            onclick={handleSendEmails}
+          ></lightning-button>
+          <lightning-button
+            data-id="produce-letters"
+            class="slds-var-m-left_x-small"
+            label={labels.produceLetters}
+            disabled={lettersDisabled}
+            onclick={handleProduceLetters}
+          ></lightning-button>
+          <lightning-input
+            data-id="nightly"
+            class="slds-var-m-top_x-small"
+            type="toggle"
+            label={labels.nightly}
+            checked={scheduled}
+            disabled={scheduleDisabled}
+            onchange={handleScheduleChange}
+          ></lightning-input>
+        </div>
+      </template>
+
+      <h3 class="slds-text-heading_small">{labels.rulesHeading}</h3>
+      <template if:true={showNoRules}>
+        <p data-id="no-rules" class="slds-text-body_regular">{labels.noRules}</p>
+      </template>
+      <template if:true={hasRules}>
+        <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+          <thead>
+            <tr class="slds-line-height_reset">
+              <th scope="col">{labels.columnOrder}</th>
+              <th scope="col">{labels.columnRule}</th>
+              <th scope="col">{labels.columnChannel}</th>
+              <th scope="col">{labels.columnTemplate}</th>
+              <th scope="col">{labels.columnMatches}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template for:each={rules} for:item="rule">
+              <tr key={rule.id} data-id="rule">
+                <td>{rule.order}</td>
+                <td>
+                  <lightning-button
+                    data-id="rule-link"
+                    data-record-id={rule.id}
+                    variant="base"
+                    label={rule.name}
+                    onclick={handleOpenRule}
+                  ></lightning-button>
+                  <span data-id="rule-active" class="slds-text-body_small">{rule.activeText}</span>
+                </td>
+                <td>{rule.channel}</td>
+                <td>
+                  <template if:true={rule.templateMissing}>
+                    <span data-id="template-missing" class="slds-text-color_error">
+                      {rule.templateText}
+                    </span>
+                  </template>
+                  <template if:false={rule.templateMissing}>
+                    <span data-id="template-name">{rule.templateText}</span>
+                  </template>
+                </td>
+                <td data-id="rule-matches">{rule.matchesText}</td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </template>
+
+      <div class="slds-var-m-top_small slds-var-m-bottom_medium">
+        <lightning-button
+          data-id="new-rule"
+          label={labels.newRule}
+          onclick={handleNewRule}
+        ></lightning-button>
+      </div>
+
+      <h3 class="slds-text-heading_small">{labels.runsHeading}</h3>
+      <template if:true={showNoRuns}>
+        <p data-id="no-runs" class="slds-text-body_regular">{labels.noRuns}</p>
+      </template>
+      <template if:true={hasRuns}>
+        <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+          <thead>
+            <tr class="slds-line-height_reset">
+              <th scope="col">{labels.columnRun}</th>
+              <th scope="col">{labels.columnChannel}</th>
+              <th scope="col">{labels.columnStatus}</th>
+              <th scope="col">{labels.columnSent}</th>
+              <th scope="col">{labels.columnErrors}</th>
+              <th scope="col">{labels.columnFinished}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template for:each={runs} for:item="run">
+              <tr key={run.id} data-id="run">
+                <td>{run.name}</td>
+                <td>{run.channel}</td>
+                <td data-id="run-status">{run.status}</td>
+                <td data-id="run-sent">{run.sent}</td>
+                <td data-id="run-errors">{run.errors}</td>
+                <td>
+                  {run.finishedText}
+                  <template if:true={run.hasFile}>
+                    <a data-id="merge-file" href={run.fileUrl}>{labels.downloadFile}</a>
+                  </template>
+                  <template if:true={run.waitingToBeMarkedSent}>
+                    <lightning-button
+                      data-id="mark-sent"
+                      data-record-id={run.id}
+                      class="slds-var-m-left_x-small"
+                      label={labels.markSent}
+                      onclick={handleMarkSent}
+                    ></lightning-button>
+                  </template>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </template>
+
+      <h3 class="slds-text-heading_small slds-var-m-top_medium">{labels.templatesHeading}</h3>
+      <p class="slds-text-body_small slds-var-m-bottom_small">{labels.templatesIntro}</p>
+      <template if:true={hasTemplates}>
+        <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+          <thead>
+            <tr class="slds-line-height_reset">
+              <th scope="col">{labels.columnLabel}</th>
+              <th scope="col">{labels.columnDeveloperName}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template for:each={page.templates} for:item="template">
+              <tr key={template.developerName} data-id="template">
+                <td>{template.label}</td>
+                <td data-id="template-developer-name">{template.developerName}</td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </template>
+    </div>
+  </lightning-card>
+</template>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Days_After_Start_Not_Negative</fullName>
+  <active>true</active>
+  <description>
+    A step due before its plan started would arrive overdue on the day it was created (canonical
+    model R-SP5).
+  </description>
+  <errorConditionFormula>Days_After_Start__c &lt; 0</errorConditionFormula>
+  <errorDisplayField>Days_After_Start__c</errorDisplayField>
+  <errorMessage>A step cannot be due before the plan starts. Use zero for the same day.</errorMessage>
+</ValidationRule>

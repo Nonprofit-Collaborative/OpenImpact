@@ -74,7 +74,11 @@ private class SettingsServiceTest {
             changes[0].Setting_Name__c,
             'The audit record names the settings object and the setting, because each package owns one'
         );
-        Assert.areEqual('', changes[0].Old_Value__c, 'The setting had never been set');
+        Assert.areEqual(
+            null,
+            changes[0].Old_Value__c,
+            'A setting that had never been set has no old value: unset is null, not empty text'
+        );
         Assert.areEqual(
             'The {LastName} Family',
             changes[0].New_Value__c,
@@ -84,6 +88,23 @@ private class SettingsServiceTest {
             UserInfo.getUserId(),
             changes[0].Changed_By__c,
             'The audit record names who changed it'
+        );
+    }
+
+    @IsTest
+    static void savesADateAndTimeThePackageItselfHandsIn() {
+        stubDefinitions();
+        Datetime chosen = Datetime.newInstanceGmt(2026, 9, 7, 17, 0, 0);
+
+        Test.startTest();
+        SettingsService.saveValues(new Map<String, Object>{ DATETIME_KEY => chosen });
+        Test.stopTest();
+
+        Assert.areEqual(
+            chosen,
+            SettingsService.getValue(DATETIME_KEY),
+            'A Datetime handed in as a Datetime is stored as it is: the Setup Assistant records ' +
+            'when setup started this way, and text is not the only shape a value arrives in'
         );
     }
 
@@ -514,5 +535,50 @@ private class SettingsServiceTest {
         Assert.areEqual('{LastName}', audit[0].New_Value__c, 'What it is now.');
         Assert.areEqual(UserInfo.getUserId(), audit[0].Changed_By__c, 'Who changed it.');
         Assert.isNotNull(audit[0].Changed_At__c, 'And when.');
+    }
+
+    /**
+     * The trap C-15 fell into. A checkbox that ships on declares `defaultValue` true in its
+     * field metadata, but `getOrgDefaults()` on an org that has never saved returns a
+     * materialized record with every checkbox false, so a feature guarded by one did nothing
+     * on a fresh install and said nothing about it (ADR-0035).
+     */
+    @IsTest
+    static void aCheckboxThatShipsOnReadsOnBeforeTheOrgHasSavedAnything() {
+        Test.startTest();
+        Nonprofit_Settings__c settings = SettingsService.getSettings();
+        Test.stopTest();
+
+        Assert.isNull(settings.Id, 'This org has never saved its settings');
+        Assert.isTrue(
+            settings.Relationship_Auto_Reciprocal__c,
+            'A setting that ships switched on reads on before anyone has saved anything'
+        );
+    }
+
+    /**
+     * The second half of the same trap: the console writes only the keys it was given, so a
+     * record created by saving something else would carry a false for every checkbox nobody
+     * touched, and would switch a shipped feature off on the way past.
+     */
+    @IsTest
+    static void savingAnUnrelatedSettingKeepsAShippedDefaultOn() {
+        stubDefinitions();
+
+        Test.startTest();
+        SettingsService.saveValues(new Map<String, Object>{ TEXT_KEY => 'The {LastName} Family' });
+        Test.stopTest();
+
+        Nonprofit_Settings__c stored = SettingsService.getSettings();
+        Assert.isNotNull(stored.Id, 'Saving one value creates the org level record');
+        Assert.areEqual(
+            'The {LastName} Family',
+            stored.Household_Name_Pattern__c,
+            'With the value that was saved'
+        );
+        Assert.isTrue(
+            stored.Relationship_Auto_Reciprocal__c,
+            'And the shipped defaults it never asked about, rather than a false nobody chose'
+        );
     }
 }

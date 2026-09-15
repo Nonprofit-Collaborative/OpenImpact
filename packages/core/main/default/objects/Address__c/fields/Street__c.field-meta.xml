@@ -4,7 +4,6 @@
   <description>The street address, including any second line.</description>
   <inlineHelpText>The street address, including any second line.</inlineHelpText>
   <label>Street</label>
-  <length>255</length>
   <trackTrending>false</trackTrending>
   <type>TextArea</type>
 </CustomField>

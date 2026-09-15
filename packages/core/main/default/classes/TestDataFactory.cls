@@ -18,11 +18,11 @@ public class TestDataFactory {
         settings.Household_Membership_Mode__c = SettingsService.MEMBERSHIP_MODE_DEFAULT;
         settings.Auto_Create_Households__c = true;
         settings.Delete_Empty_Households__c = true;
-        settings.Create_Households_For_Person_Accounts__c = false;
         settings.Household_Name_Pattern__c = 'The {LastName} Family';
         settings.Formal_Greeting_Pattern__c = '{Salutation} {FirstName} {LastName}';
         settings.Informal_Greeting_Pattern__c = '{FirstName}';
         settings.Include_Deceased_In_Name__c = false;
+        settings.Relationship_Auto_Reciprocal__c = true;
         saveSettings(settings);
         return settings;
     }
@@ -139,6 +139,43 @@ public class TestDataFactory {
             }
         }
         return person;
+    }
+
+    /**
+     * Makes a packaged role assignable inside a test, and hands back the group behind it.
+     *
+     * Test.calculatePermissionSetGroup takes the group's record Id, not its DeveloperName:
+     * given a name it throws System.StringException: Invalid permission set group id. The
+     * package itself never refers to a group by Id (see PermissionSetGroupSelector), so every
+     * test that needs a role has to look the Id up first, which is what this does once for all
+     * of them.
+     *
+     * The group is recalculated only when the platform has not already finished with it, so
+     * this works both in an org where the metadata has just been deployed and in one where the
+     * groups have been settled for weeks.
+     *
+     * @param developerName the DeveloperName of a packaged permission set group
+     * @return the group, ready to be assigned
+     */
+    @NamespaceAccessible
+    public static PermissionSetGroup prepareRoleGroup(String developerName) {
+        List<PermissionSetGroup> groups = [
+            SELECT Id, DeveloperName, Status
+            FROM PermissionSetGroup
+            WHERE DeveloperName = :developerName
+            LIMIT 1
+        ];
+        Assert.isFalse(
+            groups.isEmpty(),
+            'This org does not have the packaged permission set group ' +
+                developerName +
+                ', so no test that hands out that role can prove anything. Deploy the package ' +
+                'metadata into the org before running the tests.'
+        );
+        if (!'Updated'.equalsIgnoreCase(groups[0].Status)) {
+            Test.calculatePermissionSetGroup(groups[0].Id);
+        }
+        return groups[0];
     }
 
     /**

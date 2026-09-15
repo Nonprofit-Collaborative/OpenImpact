@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Stewardship_Plan_Template__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>
+    A lookup rather than a master detail on purpose: a running plan keeps working when its template
+    is deleted, because the tasks it created are already real work assigned to real people
+    (canonical model R-SP8).
+  </description>
+  <externalId>false</externalId>
+  <inlineHelpText>The plan this copy was made from.</inlineHelpText>
+  <label>Plan Template</label>
+  <referenceTo>Stewardship_Plan_Template__c</referenceTo>
+  <relationshipLabel>Plans Started</relationshipLabel>
+  <relationshipName>Plans_Started</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

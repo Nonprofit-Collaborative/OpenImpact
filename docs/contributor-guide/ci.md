@@ -22,40 +22,107 @@ Salesforce org is needed for this job. Steps:
 5. `scripts/ci/check-namespace.sh`, failing the build if a hard-coded namespace prefix
    appears in source.
 6. `scripts/ci/check-standard-objects.sh`, failing the build if a standard Salesforce
-   object is referenced outside `packages/connect`.
-7. `scripts/ci/check-custom-metadata.py`, failing the build if a shipped custom metadata
+   object is referenced outside `packages/connect`, and separately if any Apex or metadata
+   file names a Nonprofit Cloud object. The second half covers the fundraising objects, the
+   objects a household is actually built out of there (`PartyRelationshipGroup`, whose Type
+   of Household is what makes an Account a native household, and `AccountContactRelation`,
+   which carries membership), and the contact point objects. It is checked in Apex and
+   metadata only, because a component's JavaScript cannot reference an SObject and several of
+   our own component names are the same words. This half was added after an audit found the
+   gate matched `GiftTransaction` alone, so Core could have named the two objects Nonprofit
+   Cloud households are made of and the build would have passed. The vendored rollup engine is
+   excluded from that half, because it names `ContactPointAddress` and `Individual` in its
+   own test classes and is not source this project rewrites line by line. It is not
+   unguarded: check 7 below covers the vendored tree with an allowlist, and the objects it
+   names are recorded, with the evidence that they are present on the Platform-only shape,
+   in `packages/core/vendor/apex-rollup/VENDOR.md`.
+7. `scripts/ci/check-object-allowlist.py`, failing the build if Apex or an `objects/`
+   folder anywhere under `packages/` names a standard object that is not on the allowlist
+   in that script. This is the other half of check 6 and the stronger shape: check 6 is a
+   denylist, so it can only fail on a name somebody thought to write down, and the failure
+   that matters is the object nobody thought of. A static Apex reference to an object a
+   subscriber org does not have is a compile error, and one compile error in one class
+   refuses the whole package, so the promise that Core installs on a Platform-only org
+   (ADR-0009, ADR-0013) needs a gate where everything is forbidden unless it is listed.
+   Each allowed name carries its reason on its own line in the script. The vendored rollup
+   engine is inside this gate rather than excluded from it, with its own `VENDOR_ONLY`
+   section: the tree is third party source, but it ships inside Core's package, so a
+   standard object it names is Core's deployment risk. The practical effect is that an
+   upstream upgrade introducing a new standard object fails here instead of in a
+   subscriber org. Names are read only from positions where a bare identifier can be an
+   SObject (`new X(`, `List<X>`, `X.SObjectType`, `FROM X`); the docstring says why that is
+   narrower than every possible reference, and an unrecognized name always fails, so
+   widening the patterns is safe.
+   A line carrying the `// detection-only:` marker is skipped, the same marker check 6
+   honours and for the same reason: a name held as a String constant, or inside the text
+   of a query only run after a describe says the object is there, is not a compile-time
+   reference and cannot refuse a deployment. That is the pattern ADR-0009 requires for an
+   object a subscriber org may not have, so the gate permits the one shape the
+   architecture insists on.
+8. `scripts/ci/check-custom-metadata.py`, failing the build if a shipped custom metadata
    record names a field its type does not define. Such a record refuses the whole
    deployment, and nothing else in the suite sees it: the offline Apex compiler does not
    read custom metadata records.
-8. `scripts/ci/check-symlinks.sh`, failing the build if a tracked file is a symlink
+9. `scripts/ci/check-symlinks.sh`, failing the build if a tracked file is a symlink
    pointing outside the repository or at an absolute path. Such a link resolves on the
    machine that committed it and dangles everywhere else, so every local check passes and
    CI fails. This ran because a stray `.tools` symlink, left in an agent worktree and swept
    in by `git add -A`, broke the offline Apex compile check on `main`.
-9. `scripts/ci/check-permission-sets.py`, failing the build if a packaged permission set
+10. `scripts/ci/check-permission-sets.py`, failing the build if a packaged permission set
    grants access to a class, tab, app, custom permission, object, record type or field that
    the repository does not ship, or a permission set group contains a set that is not there. A dangling grant refuses the whole deployment, and the
    permission sets are assembled by hand at every merge from each branch's integration
    file, so the reference and the metadata can drift apart silently. This ran because
    `Nonprofit_Admin` granted a `Household_Member__c` tab that was never created.
-10. `scripts/ci/check-help-links.py`, failing the build if a Setting Definition's Learn
+11. `scripts/ci/check-help-links.py`, failing the build if a Setting Definition's Learn
    more link points at a page that does not exist. `SettingsController` appends
    `Help_Path__c` to a base already ending in `docs/admin-guide/`, so a row storing
    `admin-guide/access.md` produces a 404 that nothing else notices: the value is a string,
    so it deploys, and it is only wrong once an administrator clicks it in an org looking for
    help. This ran because twelve of the thirty four shipped rows did exactly that.
-11. `scripts/ci/check-adrs.py`, failing the build if a decision record's number disagrees
-   with its own heading, if two records share a number, or if a record is missing from the
-   index. Parallel branches pick the next free number at the same time and collide, so
+12. `scripts/ci/check-adrs.py`, failing the build if a decision record's number disagrees
+   with its own heading, if two records share a number, if a record is missing from the
+   index, or if an `ADR-NEXT` placeholder survives to `main` (that placeholder is how a
+   parallel branch avoids guessing a number, and the integrator assigns the real one at
+   merge). Parallel branches pick the next free number at the same time and collide, so
    renumbering at merge is routine, and a renumber that renames the file but not the heading
    leaves a document that argues with itself. This ran because two branches both claimed
    0025 in one afternoon, and because ADR-0024 was written and never indexed, which is how
    the next author picks a number that is already taken.
-12. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
+13. `scripts/ci/check-components-reachable.py`, failing the build if a Lightning web
+   component marked `isExposed` is on no flexipage, in no quick action, nested in no other
+   component, and not named in the settings console import switch. Exposed means an
+   administrator *could* place it, never that the package ships anywhere that does, and an
+   unreachable component is a feature that does not exist however green its tests are. This
+   ran because it has happened four times: the three C-15 to C-17 panels while their guides
+   said "scroll to the card", `receiptSettings` named across a package boundary the console
+   cannot cross, `receiptActions` while the receipts walkthrough said "click Issue receipt",
+   and `commitmentSchedulePreview`, which no guide ever mentioned at all.
+14. `scripts/ci/check-record-pages-assigned.py`, failing the build if a packaged record page
+   flexipage is named by no `actionOverrides` assignment, or if an app assigns one for some
+   of the form factors it declares and not the others. Item 12 proves a component is on a
+   page and says so in its own header that it proves nothing about the page: a FlexiPage
+   cannot name the record type it serves, that assignment lives in the Lightning app, and a
+   page nothing assigns is never shown, so the component sits on a page nobody opens. Same
+   defect class one level up, and the same symptom: it deploys, every test passes, and the
+   administrator sees none of it until they wire it up by hand in the Lightning App Builder.
+   This ran because `Nonprofit_Hub.app-meta.xml` carried no `actionOverrides` at all, so the
+   household walkthrough failed at step 4 on every fresh install, and because
+   `Gift_Record_Page` and `Commitment_Record_Page` were stranded the same way in Fundraising.
+15. `scripts/ci/check-canonical-model.py`, failing the build if a shipped object or field
    is missing from `docs/architecture/canonical-model.md`. The canonical model is updated
    before an object or a field is added, so this is the gate that keeps it true.
-13. A grep check that fails the build if any tracked file contains an em dash character.
-14. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
+16. `scripts/ci/check-setting-defaults.py`, failing the build if a checkbox setting that
+   ships switched on is not declared in `SettingsService.SHIPPED_DEFAULTS`, or is declared
+   there with a value the field metadata disagrees with. A field's own `defaultValue` is
+   applied by the platform when a record is created through the user interface, and never
+   by `getOrgDefaults()`, which hands Apex a materialized record with every checkbox false.
+   So a feature that ships on reads as switched off on every fresh install and does nothing,
+   silently, which is a defect only an org run finds (ADR-0035). This ran because C-15 had
+   been writing one side of every relationship since it merged: the reciprocal upkeep read
+   its own shipped default as false.
+17. A grep check that fails the build if any tracked file contains an em dash character.
+18. Installs the Salesforce CLI and the `code-analyzer` plugin, then runs
    `sf code-analyzer run --workspace packages --rule-selector Recommended --severity-threshold 2`.
    The results are uploaded as a build artifact (`code-analyzer-results.html` and
    `code-analyzer-results.json`) even if the job fails, so anyone can download and read
@@ -74,12 +141,16 @@ npm run lint
 npm run test:unit
 npm run check:namespace
 npm run check:standard-objects
+npm run check:object-allowlist
 npm run check:custom-metadata
 npm run check:symlinks
 npm run check:permission-sets
 npm run check:help-links
 npm run check:adrs
+npm run check:components-reachable
+npm run check:record-pages-assigned
 npm run check:canonical-model
+npm run check:setting-defaults
 npm run check:apex
 npm run check:analyzer
 ```
@@ -172,9 +243,30 @@ packages deploy), deploys
 `packages/core` and then `packages/giving`, runs the Apex tests, and uploads the results. It
 creates nothing and deletes nothing.
 
+**What the org actually is, read from the org on 2026-09-08:** Enterprise Edition, Person
+Accounts yes, Sales Cloud yes, NPSP no, Nonprofit Cloud no. So it is the
+`person-accounts.json` shape, which is what the setup steps above recommend and the closest
+an ordinary Dev Hub gets to the Agentforce Nonprofit orgs the first customers run.
+
+That is the good news and the caveat in one line. **The Platform-only shape is never
+exercised**, and ADR-0013 makes running on a Platform-only org a requirement rather than a
+preference. This org has Sales Cloud and Person Accounts, so a Core component that
+accidentally depends on either would deploy here and pass here, and fail at the first
+customer who has neither. `scripts/ci/check-standard-objects.sh` is the only thing standing
+between the package and that mistake, and it is a grep. Testing the Platform-only shape
+means a second org and a second secret; until then, treat every green org test as evidence
+about one shape and no other.
+
 The deploy goes in stages through `scripts/org/deploy-packages.sh`: the vendored rollup
-engine, then Core, then Giving. A failed stage asks the org for the component level report,
-by job id, in human form and then as JSON.
+engine, then Core (one stage per object under `packages/core/main/default/objects`, then
+custom metadata, then labels, then static resources with custom permissions, then Apex, then
+everything that wires the two together: permission sets and groups, layouts, flexipages,
+applications, tabs, quick actions, Lightning components), then Giving. A failed stage asks the
+org for the component level report, by job id, in human form and then as JSON. After the last
+stage the script runs
+`RollupService.ensureDefaults()` as anonymous Apex, because a source deployment runs no
+post-install script and would otherwise leave the org without the rollup definitions a real
+install creates (ADR-0029).
 
 That is not tidiness. The first deploy this project ever attempted sent all 982 components in
 one request and came back with `UNKNOWN_EXCEPTION`, zero components deployed, zero component
@@ -186,12 +278,76 @@ does not call it yet, and Giving depends on Core.
 An `UNKNOWN_EXCEPTION` with zero component errors is a Salesforce side failure rather than
 something wrong with a component. Quote the ErrorId to Salesforce support.
 
-**It is not transient here, whatever the general advice says.** This failure has now come back
-four times across four separate runs, always on the Core stage, always with zero components
-deployed and zero component errors, and always with the same trailing code in the ErrorId
-(`-315522575`) behind a different leading number each time. Four identical failures is a
-deterministic fault, so re-running costs a build and proves nothing. `scripts/org/deploy-packages.sh`
-still prints the "sometimes transient" line; that advice was written before the fourth run.
+**It is not transient here, whatever the general advice says.** This failure came back four
+times across four separate runs before 2026-09-09, always on the Core stage, always with zero
+components deployed and zero component errors, and always with the same trailing code in the
+ErrorId (`-315522575`) behind a different leading number each time. It then hit that same
+undivided Core stage twice more on 2026-09-09, on two separate pushes to main, once at 904
+components. A three-way split (data model, Apex, UI and permissions) went in immediately
+after, to see whether a smaller request avoided it. The very next run failed again, on the
+data model stage alone, at 853 components: close enough to 904 and 982 that a specific bad
+file stopped being the likely explanation. Three deploys of substantially different content
+(mostly Apex the first two times, mostly custom fields and their sub-components the third)
+failing in the same shape once each got into the same few-hundred-to-thousand range reads as
+a size effect rather than a component defect, though nothing about this failure can be
+proven from the client side, so treat that as the working theory, not a settled fact.
+
+Ten occurrences, none resolved by re-running: six identical failures on Core (four documented
+before 2026-09-09, two more that day), the data-model stage's failure right after the first
+split, a further one after that, the config stage's failure once objects had been cleared, and
+custom metadata's failure alone once config had been split three ways. `scripts/org/deploy-packages.sh`
+no longer prints the old "sometimes transient" line; it now prints this count and points here.
+
+The data model stage was then split again, into two runtime-balanced halves of
+`packages/core/main/default/objects` plus a third stage for custom metadata and the remaining
+data-model metadata types. That halving is what stopped being useful evidence: across four
+consecutive pushes, all fixing real component-level errors the org had newly started
+reporting (list view defects, not deploy-shape ones), the same 10-object, 139-file half kept
+failing with the zero-component `UNKNOWN_EXCEPTION` every single time, while the other
+11-object, 144-file half deployed clean every one of those four runs. Both halves stayed the
+same size and the same content across all four runs, because `balanced_split` only reacts to
+file *counts*, which never changed; only file *content* did. Two comparably sized groups
+behaving oppositely and consistently four times running is evidence against a size effect,
+not for one: it points at something specific to one or more objects inside the failing half,
+not at the request being too big.
+
+Objects now deploy one at a time, each its own stage, rather than another same-content
+halving that would only repeat the last four results. That worked immediately: every object
+deployed clean on the next run, and Address__c's own two real component errors (an invalid
+`length` on a `TextArea` field, and that same field listed in a compact layout, which no text
+area field may be) turned out to be what the opaque failure had been hiding on that object,
+not the platform fault recurring.
+
+With every object clear, the fault moved to the next stage in line: the four config
+directories (custom metadata, labels, static resources, custom permissions), deployed
+together, hit it at 568 components. File count badly misled here: roughly 70 files across all
+four looked nowhere near a risk, but `packages/core/main/default/labels/CustomLabels.labels-meta.xml`
+is one file holding 388 individual label components, each one its own component for deploy
+purposes. Config was split into three stages: custom metadata alone, labels alone (isolating
+that one file), and static resources with custom permissions together, since both are a
+handful of components on any count.
+
+Custom metadata alone, about 60 records, failed the same way, confirmed identical on a manual
+re-run: same zero components, zero errors, same ErrorId trailing code. This is the point where
+size stops being a workable explanation for the occurrence in front of us: 61 files is nowhere
+near the few-hundred-to-thousand range every prior failure carried, and it is the first time a
+stage this small has failed on its own. The working theory shifts from request size to request
+*rate*: every stage in this script is its own blocking deploy call, run immediately after the
+previous one reports done, against the one persistent org, with no gap between them. If the
+org's deploy engine needs a moment after a deploy completes before it can safely accept the
+next one, back to back calls would reproduce exactly this. Untested and not the only remaining
+explanation, but cheap and non-destructive to try: every `deploy_stage` call now pauses (15
+seconds by default, `STAGE_PAUSE_SECONDS` to change it) after a successful deploy, before the
+next stage starts. Apex and UI/permissions are unchanged, because neither has failed yet.
+
+**If a stage fails again, keep the pattern rather than guessing at a safe size.** Read
+`scripts/org/deploy-packages.sh`'s own header, which is updated at each split with what the
+run actually showed, split whichever stage actually failed the same way (narrower, on what
+that stage carried, not a round number picked in advance, and never just another same-size,
+same-content split of a stage that has already failed that way more than once), and update
+both this section and that header with the new count before pushing. Guessing a threshold and
+pre-splitting everything to be safe is not the goal: each split should answer a question the
+previous failure actually raised.
 
 Two things constrain when it runs, both because there is one org rather than one per run.
 

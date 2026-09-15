@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
-  <fullName>Create_Households_For_Person_Accounts__c</fullName>
-  <defaultValue>false</defaultValue>
-  <description>Whether creating a person account also creates a household and a membership record.</description>
-  <inlineHelpText>Only relevant if your org uses person accounts.</inlineHelpText>
-  <label>Create Households For Person Accounts</label>
-  <type>Checkbox</type>
-</CustomField>

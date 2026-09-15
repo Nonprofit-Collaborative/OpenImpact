@@ -59,7 +59,27 @@ You need a CSV file. A small one is best for the first run: five or six rows.
 To check the tag, open one of the new households and look at **Created By Import Batch**.
 It links back to the import.
 
-## 4. Common mistakes
+## 4. Two people on one row
+
+Most donor lists give a couple one line: two names, one address, one gift. Map the second
+person's columns to **Contact 2** and Open Impact puts both people in the same household.
+You get one household with two members, not two households, and it works the same way
+whether your org keeps people as contacts or as person accounts.
+
+Three things are worth knowing about it.
+
+- **The household is named from the file if you map a name for it.** Map a column to
+  **Household: Name** and that name is used and treated as one you chose, so the naming
+  patterns will not rewrite it later. Map nothing, and the household is named from the
+  people in it in the usual way.
+- **A second person who is already in your org is not moved.** If the second name on the
+  row matches somebody you already have, they keep the household they are in today. An
+  import never takes an existing person out of their household. Move them from the
+  household page if that is what you want.
+- **A row with only a second person on it still works.** They get a household of their
+  own, the same as anybody else.
+
+## 5. Common mistakes
 
 **"No column was matched to a name or an email."** The dry run refuses to run when the
 mapping has no way to identify a person or an organization. Usually the file's header row

@@ -137,16 +137,24 @@ does.
 
 Drawn from plan Section 4.6 and the acceptance criteria in Section 10.2.
 
-**R-H1 Automatic creation.** In contact mode, inserting a Contact with no Account
-creates a Household Account named per the naming rules, in the same transaction, and
-attaches the Contact to it. This is controlled by the `Auto_Create_Households__c`
-setting, default on. Bulk safety is required: 200 Contacts inserted in one DML operation
-create their households without exceeding platform limits.
+**R-H1 Automatic creation in contact mode.** In contact mode, inserting a Contact with
+no Account creates a Household Account named per the naming rules, in the same
+transaction, and attaches the Contact to it. This is controlled by the
+`Auto_Create_Households__c` setting, default on. Bulk safety is required: 200 Contacts
+inserted in one DML operation create their households without exceeding platform limits.
 
-**R-H2 Person Accounts.** In junction mode with Person Accounts enabled, creating a
-Person Account does not create a Household unless
-`Create_Households_For_Person_Accounts__c` is on. When it is on, a Household is created
-and a Household Member record links the Person Account to it.
+**R-H2 Automatic creation in junction mode.** In junction mode, saving a new person who
+belongs to no household creates a Household Account named per the naming rules and a
+Household Member record joining them to it, with the role Head and the primary flag set.
+The same `Auto_Create_Households__c` setting governs it, so one switch answers "does a new
+person get a household" in both membership modes. The person may be stored as a Contact
+or, in an org shaped that way, as a person record on Account: both take this path. A
+person a Household Member record already joins to a household is left alone. Bulk safety
+is required here too: 200 people inserted in one DML operation get their households and
+their membership records without exceeding platform limits.
+
+This rule previously said that a person stored as an account got no household unless a
+second setting asked for it. ADR-0037 retires that setting and records why.
 
 **R-H3 Membership modes.** Membership has two modes, and both sit behind a single Apex
 service so that no other code knows which is in use:
@@ -209,12 +217,39 @@ household, the reference is cleared and the next member by ordering is proposed,
 silently assigned.
 
 **R-H11 Member count.** Member Count is recomputed on every membership change (insert,
-update, delete, undelete, reparent, merge) and counts current members only.
+update, delete, undelete, reparent, merge) and counts current members only. The field
+carries no default value: it is written by household upkeep and only ever onto a household,
+so an organization, which upkeep skips by record type, is left with an empty Member Count
+rather than a count of zero it never earned.
+
+Upkeep reads every member in system mode (ADR-0021), whichever object holds the person, so
+the count does not depend on the packaged access of whoever happened to save the record.
+A current member whose own record the upkeep read did not return is still counted, and is
+still moved by a merge or a split, because a household quietly recounted smaller is how a
+household gets renamed, emptied under R-H12, and its members lost. Such a member
+contributes nothing to the household name or the greetings, because there is no name to
+contribute. What a screen shows is read separately, with the running user's own access, and
+a member that read cannot return is not shown.
+
+This holds whichever object the person is stored on. Where people are person accounts, a
+change to the person is a membership change on the same terms as a change to a contact:
+deleting the person, restoring them from the recycle bin, and changing any of the
+attributes R-H4 builds the wording from (first name, surname, salutation, preferred name,
+deceased, household role, and the two exclusion flags) all recount and rewrite every
+household that person belongs to. The delete side of that cannot be done after the fact:
+see the note under R-M4 on what the platform does to a membership row when the person it
+names is deleted.
 
 **R-H12 Reparenting and empty households.** Moving a contact to a different household
 recalculates both households' member counts and, once Giving is installed, their giving
-rollups. The vacated household is deleted when it is empty and
-`Delete_Empty_Households__c` is on.
+rollups. The vacated household is deleted when it is empty, `Delete_Empty_Households__c`
+is on, and nothing outside Open Impact depends on the account (ADR-0036). "Empty" is
+measured in Open Impact's own membership, which is the only membership Open Impact can
+see, so a household that also carries a Salesforce Nonprofit Cloud household group or its
+membership rows reads as empty here while being anything but. The account is the master of
+that group, so deleting the account would destroy it rather than orphan it. A household
+left in place for that reason is reported to the Error Log at Info severity, naming the
+household: it is a correct outcome, not a failure.
 
 **R-H13 Merge and split.** Two households can be merged (members move to the surviving
 household, rollups recalculate, names and greetings recompute unless Custom Name is set)
@@ -228,12 +263,18 @@ so that activities, files, notes, and every lookup from another entity follow th
 that goes away. A merge is not reversible and is audited by the platform's own record
 history rather than by a log this model defines. Membership changes made by a merge or a
 split settle through one hook (member count and naming in v0.1, giving rollups from v0.2)
-so that no caller has to know what settling involves.
+so that no caller has to know what settling involves. That settle-up never tidies the
+surviving household away: the empty household rule (R-H12) is about the household somebody
+was the last to leave, and the survivor of a merge is the record the merge exists to keep,
+so two empty households merge into one empty household rather than into nothing.
 
 **R-H14 Recompute action.** Changing a naming pattern in the settings console shows a
-preview against five sample households and offers a "Recompute all households" batch
-with progress and a completion notice. Recomputation never touches households with
-Custom Name set.
+preview against five fixed sample households, computed in memory from the patterns being
+typed: nothing is read from or written to the org's own households. The console also
+offers a "Recompute all households" batch. Starting it confirms that the batch has been
+queued; the batch runs in the background and reports neither progress nor completion to
+the console, and its counts are written to the debug log only. Recomputation never touches
+households with Custom Name set.
 
 ### Salesforce implementation
 
@@ -261,14 +302,6 @@ Custom Name set.
   carries them on the person's own record. They are not shown on Household or Organization
   layouts.
 
-- **Person attributes on Account.** The five person attributes listed under Contact
-  (Section 7) are present on Account as well, with the same API names and the same
-  definitions: `Deceased__c`, `Household_Role__c`, `Exclude_From_Household_Name__c`,
-  `Exclude_From_Greetings__c`, `Preferred_Name__c`. They belong to the person, not to the
-  household, and they exist on both objects so that an org that stores people as accounts
-  carries them on the person's own record. They are not shown on Household or Organization
-  layouts.
-
 - **Service:** `HouseholdService` (membership abstraction), `HouseholdNamingService`
   (R-H4 to R-H9), `HouseholdSelector` (all SOQL).
 
@@ -287,7 +320,7 @@ history of who was in a household when.
 | Attribute | Type | Required | Definition |
 |---|---|---|---|
 | Contact | reference(Contact) | conditional | The person, when the person is represented as a Contact. |
-| Account | reference(Household) | conditional | The person, where the person is represented as an account rather than as a Contact. |
+| Account | reference(Account) | conditional | The person's own account, where the person is represented as an account rather than as a Contact (a Person Account). Never a household: the household side is the Household attribute below. |
 | Household | reference(Household) | yes | The household the person belongs to. |
 | Role | picklist(Head, Spouse or Partner, Child, Other) | no | The person's role in this household, used for greeting order and reporting. |
 | Is Primary | boolean | yes (defaults false) | Marks the member who receives correspondence when only one person can be named. |
@@ -309,12 +342,31 @@ and no automation writes to it.
 **R-M2 Current membership.** A member is current when End Date is empty or in the
 future. Only current members count toward Member Count, naming, and greetings.
 
-**R-M3 One primary.** At most one current member of a household has Is Primary true, and
-that member is mirrored to the household's Primary Contact.
+**R-M3 One primary.** At most one current member of a household has Is Primary true.
+
+The second half of this rule, that the primary member is mirrored to the household's
+Primary Contact, is **not implemented and is not implementable as written**:
+`Primary_Contact__c` is a lookup to Contact, so it cannot hold a person who is stored as a
+Person Account, which is exactly the org shape junction membership exists for. No
+automation derives the field from Is Primary; the only value household upkeep writes to it
+is null, when the person it names is no longer a current member (R-H10). A merge can carry
+an existing value to the survivor, but it never derives one. Recorded as a known gap in
+Section 30.
 
 **R-M4 Person representation.** Exactly one of Contact or Account identifies the person:
 Contact where the person is a Contact, the person's own Person Account where Person
 Accounts are enabled. Both empty, or both pointing at people, is invalid.
+
+Deleting the person record is where "both empty" would otherwise come from. Both person
+lookups clear themselves when the record they point at is deleted, which leaves a row that
+identifies nobody, and the platform does not fill the lookup in again when the person is
+restored from the recycle bin. So a membership row is removed with the person it names,
+before the deletion empties it, and brought back when that person is: membership follows
+the person, current rows and ended ones alike. Membership history therefore survives
+everything except the deletion of the household it is history of and the deletion of the
+person it is history of. Rules R-M2 and R-H11 already ignore a row that identifies nobody,
+so a row orphaned before this was so, or by a deletion made with the automation switched
+off, is counted by nothing and named in nothing; it is simply left.
 
 **R-M5 No direct callers.** All reads and writes go through `HouseholdService`. Feature
 code never branches on membership mode.
@@ -377,8 +429,9 @@ address fields are used as the platform provides them.
 ### Rules
 
 **R-C1 Every person has a household.** In contact mode a Contact inserted with no
-Account gets one created (R-H1). A Contact is never left without a household unless
-automatic creation is turned off.
+Account gets one created (R-H1). In junction mode a Contact inserted with no membership
+gets a household and the membership record that joins them to it (R-H2). A Contact is
+never left without a household unless automatic creation is turned off.
 
 **R-C2 Naming inputs.** Preferred Name, when present, replaces First Name in the
 informal greeting and in any pattern that uses a personal name. Salutation feeds the
@@ -608,8 +661,8 @@ what. Required by the C-03 acceptance criterion that every settings change is lo
 | Attribute | Type | Required | Definition |
 |---|---|---|---|
 | Setting Name | text | yes | The setting that changed, recorded by its stable key. |
-| Old Value | long text | no | The value before the change, empty when the setting had never been set. |
-| New Value | long text | no | The value after the change, empty when the setting was cleared. |
+| Old Value | long text | no | The value before the change, blank when the setting had never been set. |
+| New Value | long text | no | The value after the change, blank when the setting was cleared. |
 | Changed By | reference(User) | yes | The user who made the change. |
 | Changed At | datetime | yes | When the change was saved. |
 
@@ -620,6 +673,14 @@ record per setting actually changed. Saving a page without changing anything wri
 nothing.
 **R-S2** Setting Change records are never edited or deleted by packaged code.
 **R-S3** Values are stored as text so that any setting type can be audited uniformly.
+**R-S4** A value that is not set is recorded as nothing, never as empty text. Unset and
+cleared are the same state on a hierarchy custom setting, the platform stores empty text
+as nothing anyway, and an audit row that claimed otherwise could never read back what it
+was written with.
+**R-S5** A value arrives at the settings service in whatever Apex type its caller holds,
+not only as text. A Datetime handed in as a Datetime is stored as it is: `String.valueOf`
+of a Datetime is not the ISO 8601 form the service parses back, so a round trip through
+text would refuse the package's own writes.
 
 ### Salesforce implementation
 
@@ -648,9 +709,8 @@ may add keys, and must add them here first.
 |---|---|---|---|
 | `Coexistence_Mode__c` | picklist(Standalone, NPSP, AgentforceNonprofit) | Standalone | How this org coexists with what is already installed; set by the Setup Assistant after automatic detection and confirmable later (plan Section 4.5). |
 | `Household_Membership_Mode__c` | picklist(Contact, Junction) | Contact | Whether household membership uses the Contact's Account reference or the Household Member junction. |
-| `Auto_Create_Households__c` | boolean | true | Whether inserting a Contact with no household creates one automatically. |
+| `Auto_Create_Households__c` | boolean | true | Whether saving a new person who belongs to no household creates one automatically. Governs both membership modes, and both objects a person can be stored on (R-H1, R-H2). |
 | `Delete_Empty_Households__c` | boolean | true | Whether a household left with no members is deleted. |
-| `Create_Households_For_Person_Accounts__c` | boolean | false | Whether creating a Person Account also creates a household and a membership record. |
 | `Household_Name_Pattern__c` | text | The {LastName} Family | The pattern used to compute a household's name. |
 | `Formal_Greeting_Pattern__c` | text | {Salutation} {FirstName} {LastName} | The pattern used to compute the formal greeting. |
 | `Informal_Greeting_Pattern__c` | text | {FirstName} | The pattern used to compute the informal greeting. |
@@ -702,7 +762,7 @@ must be able to read them with no Giving package installed.
 | Key | Type | Default | Definition |
 |---|---|---|---|
 | `Contact_Address_Change_Behavior__c` | picklist(Update household, Create personal address) | Update household | What happens when a person's address is edited: the household moves, or that person gets an address of their own (R-AD5). |
-| `Relationship_Auto_Reciprocal__c` | boolean | true | Whether the package creates and maintains the other side of every relationship (R-RL1). |
+| `Relationship_Auto_Reciprocal__c` | boolean | true | Whether the package creates and maintains the other side of every relationship (R-RL1). The default is applied in Apex by `SettingsService`, not by the field's own default value (ADR-0035). |
 | `Seasonal_Address_Last_Run__c` | datetime | empty | When the seasonal address swap job last completed, shown on the Hub; written by the job (C-18, R-AD4, R-AD8). |
 | `Seasonal_Address_Last_Run_Summary__c` | text | empty | What the last seasonal swap run did, in one sentence: how many addresses moved in, how many moved back, and how many failed (R-AD8). |
 
@@ -1321,6 +1381,22 @@ and `SoftCredit` in the template's mapping document, and they are resolved in de
 order: organization, household, people, membership and affiliation, gift, allocations,
 soft credit. Resolution is idempotent per row (R-IB4).
 
+**R-IR1a What a row means for households.** A row is one household. The row's first
+person is saved first and is given a household by the ordinary creation path (R-H1 in
+contact mode, R-H2 in junction mode), which is the household the row then records. The
+row's second person is joined to that same household rather than being given one of their
+own, through `HouseholdService` (R-M5), so the join is written the way this org holds
+membership: the person's own account reference in contact mode, a Household Member record
+in junction mode, for a person stored as a Contact and for a person stored as an account
+alike. Two people on one row are therefore one household with two members in every
+membership mode and on both person objects. Three consequences follow. A second person who
+is created for a row that has no first person (the row named nobody else, or that person
+failed to save) gets a household of their own, because there is nothing to join. A second
+person who matched somebody the org already has keeps the household they already belong
+to: an import never moves an existing person into another household. And nobody is given a
+household and then taken out of it, because automatic creation is suspended while the
+people who are about to be joined are saved.
+
 **R-IR2 Giving links are identifiers, not references.** Gift and Soft Credit are stored
 as record identifiers rather than lookups. Import Row lives in Core and `Gift__c` and
 `Soft_Credit__c` live in Giving, and a base package cannot hold a reference to an object
@@ -1328,6 +1404,12 @@ in a package that depends on it. The Giving package reads and writes these two a
 by identifier. The cost is that the two links are not clickable in the standard record UI
 and cannot be reported on through a relationship; the results screen resolves and links
 them, and ADR-0014 records the deviation from the literal field list in plan Section 4.9.
+
+**R-IR2a The household is named from the row.** Where a row maps a household name, that
+name is written to the household the row resolved to and the household is marked as
+custom named, so the naming patterns leave it alone from then on (R-H8). This holds
+however the household was made, including the one junction mode creates with a membership
+record.
 
 **R-IR3 Person references.** A row resolves its people to Contacts or to person Accounts
 according to the template's Person Mode, never to both (Section 4 "Person references").
@@ -1402,7 +1484,7 @@ refund is another gift rather than an edit (ADR-0010).
 | Donor Account | reference(Organization) | conditional | The account credited with the gift: an organization, a household giving in its own name, or a person Account. |
 | Household | reference(Household) | computed | The household credited with the gift, derived from the donor (R-G2). |
 | Gift Date | date | yes | The date the gift was received, which is the date that appears on the receipt. |
-| Amount | decimal | yes | The amount received, negative for a refund or a write-off. |
+| Amount | decimal | yes | The money received, negative for a refund or a write-off, and zero on an in-kind gift, which is goods rather than money (R-G12). |
 | Type | picklist(Cash, Check, Card, ACH, Stock, In-kind, Grant, Other) | yes | How the gift arrived. |
 | Status | picklist(Received, Pending, Refunded, Written off) | yes | Where the gift stands; only Received gifts count in the packaged giving totals. |
 | Appeal | reference(Appeal) | no | The fundraising effort this gift responded to. |
@@ -1417,8 +1499,8 @@ refund is another gift rather than an edit (ADR-0010).
 | Payment Reference | text | no | The processor's transaction reference, check number, or deposit reference, for reconciliation against the bank. |
 | Original Gift | reference(Gift) | conditional | The gift this one refunds or writes off; required when Amount is negative (R-G3). |
 | Refund Reason | text | no | Why the money went back or the gift was written off, typed by the person recording it and carried on the negative gift (R-G3). |
-| In-kind Description | long text | conditional | What was given, when the gift is goods or services rather than money. Required on an in-kind gift, and empty on every other gift (v0.4, G-18, R-G12). |
-| Fair Market Value | decimal | conditional | The value the organization records for an in-kind gift, which equals the gift's Amount. Required on an in-kind gift, and empty on every other gift (v0.4, G-18, R-G12). |
+| In-kind Description | long text | conditional | What was given, when the gift is goods or services rather than money. Required on an in-kind gift and empty on every other gift, and it is the text the receipt prints (v0.4, G-18, R-G12). |
+| Fair Market Value | decimal | no | What the goods were worth, recorded for the organization's own reporting and never printed on a receipt or a statement (v0.4, G-18, R-G12, R-RC12, ADR-0030). |
 | Benefit Description | long text | no | What the donor received in return for the gift, described as it must be printed on the receipt (v0.4, G-13, R-RC7). |
 | Benefit Value | decimal | no | The organization's good faith estimate of what the benefit was worth, which the receipt subtracts to state the deductible amount (v0.4, G-13, R-RC7). |
 | Intangible Religious Benefits | boolean | yes (defaults false) | Whether the only thing the donor received in return was an intangible religious benefit, which is a sentence the receipt must carry instead of a value (v0.4, G-13, R-RC7). |
@@ -1460,8 +1542,17 @@ not edited to hold it, because editing the original is the thing this rule exist
 prevent. A partial refund leaves the original at Received, because part of it is still a
 gift the organization holds.
 
-**R-G4 Amount immutability.** Once a Receipt Number is present, Amount, Gift Date, and
-the donor references do not change, and the gift is not deleted. A correction voids the
+**R-G4 Amount immutability.** Once a Receipt Number is present, Amount, Gift Date, the
+donor references, and the In-kind Description do not change, and the gift is not deleted.
+Receipt Number itself is written only by the receipting feature, from the sequence in
+Section 25C: it is read only in every packaged permission set, a gift is never created
+carrying one, and a save that sets, changes or clears it is refused unless the receipting
+code is renumbering that gift (ADR-0033). A number typed in by hand belongs to no receipt,
+locks the gift, can be issued again later by the sequence as a year end statement, and
+leaves the gift permanently unreceiptable, so the first write is refused for the same
+reason later ones are.
+The in-kind description is in that list because it is printed on the document the donor
+holds; Fair Market Value is not, because it never is (R-G12, ADR-0030). A correction voids the
 receipt and reissues (ADR-0010). This is enforced in the domain layer from v0.2, before
 the receipting feature exists in v0.4, so no early data escapes the rule. The enforcement
 runs from its own automation, `Gift_Receipt_Lock`, which is marked Always Runs (R-A4), so
@@ -1502,33 +1593,34 @@ whose record type is Organization and the employee's gift has a person donor, an
 the employee's Employer is set, only when it names that same organization. Linking creates
 one automatic soft credit on the employer's gift, crediting the employee with Role Matched
 Donor and the employer gift's amount; unlinking clears both references and removes that
-credit. A gift matches at most one other gift. Neither gift may have been refunded or
-written off: a link that outlived the money would go on crediting the employee for a match
-the organization gave back.
+credit, together with the negative credits described below. A gift matches at most one
+other gift. Neither gift may have been refunded or written off at the moment the link is
+made: a link that outlived the money would go on crediting the employee for a match the
+organization gave back.
 
-**R-G12 In-kind gifts (G-18).** A gift of Type In-kind carries In-kind Description and Fair
-Market Value, and a gift of any other type carries neither. Both are required, because a gift
-of goods that says neither what it was nor what it was worth is not a record of anything: the
-description is what the receipt prints (R-RC7), and the value is what the organization's books
-and its rollups count.
+A refund of a linked employer gift reverses that credit rather than removing it, the way
+every other automatic credit reverses (R-SC5, ADR-0031). The negative gift recording the
+refund or the write-off carries a negative Matched Donor credit for the same person,
+prorated to the amount returned, so an employer gift of 500 with 200 returned leaves the
+employee recognized for 300 and one fully returned leaves them recognized for nothing. A
+refund of the *employee's* gift does not touch the credit: the employer's money is still
+money the organization holds. The link itself survives a refund and is not cleared
+automatically, because it is the record of what the money was.
 
-Amount equals Fair Market Value on an in-kind gift. One gift has one number, so a report of
-what the organization received and a report of what it valued cannot disagree, and the
-platform's required Amount is not left holding a different figure from the attribute the
-feature is named after. One consequence is deliberate and is stated here rather than
-discovered later: the packaged giving totals of Section 26 filter on status and not on type,
-so an in-kind gift counts in a donor's giving totals at the value the organization recorded.
-An organization that wants cash separately reports it with a filter on Type, not with a second
-total.
-
-The two requirements are on the gift that records the property, not on the negative gift that
-reverses it (R-G3). A reversal names the gift it reverses, and that gift carries the
-description and the value, so a refund or a write-off of a gift of goods is recorded the way
-every other reversal is.
-
-The value is what the organization recorded, never what it told the donor. The receipt
-describes the property and states no value at all (R-RC11), because in the United States
-valuing donated property is the donor's responsibility.
+**R-G12 In-kind gifts carry no amount (G-18, ADR-0030).** A gift of goods or services is a
+Gift with Type In-kind. Its Amount is zero, because an in-kind gift is not money the
+organization holds and no money rollup, report or dashboard may treat it as though it were,
+and its worth is carried on Fair Market Value instead. An in-kind gift must carry an In-kind
+Description, which is what the receipt prints; a gift that is not in-kind carries neither the
+description nor the fair market value, so a type changed in error cannot leave a value behind
+that later reads as an in-kind gift. Fair Market Value is never negative and never appears on
+a rendered receipt or statement (R-RC7, R-RC12, ADR-0016): the donor substantiates what donated
+property was worth, the organization describes what it received. In-kind giving is reported on
+its own two rollups in Section 26, In-kind Value and In-kind Gift Count, so a donor of goods
+has a total and a count without either one entering Total Giving, a donor level (ADR-0028) or
+a retention report (ADR-0026). Because Amount is zero and never changes, a mistaken in-kind
+gift is corrected by writing it off or by correcting the description, not by a negative gift:
+R-G3 has nothing to reverse.
 
 ### Salesforce implementation
 
@@ -1547,7 +1639,7 @@ valuing donated property is the donor's responsibility.
 | Appeal | `Appeal__c` | Lookup to `Appeal__c` |
 | Acknowledgment Status | `Acknowledgment_Status__c` | Picklist: Not required, To acknowledge, Acknowledged, Do not acknowledge |
 | Acknowledgment Date | `Acknowledgment_Date__c` | Date |
-| Receipt Number | `Receipt_Number__c` | Text, External Id, unique |
+| Receipt Number | `Receipt_Number__c` | Text, External Id, unique, package written (R-G4) |
 | Tribute | `Tribute__c` | Lookup to `Tribute__c` (v0.3) |
 | Matched Gift | `Matched_Gift__c` | Lookup to `Gift__c` (v0.3) |
 | Commitment | `Commitment__c` | Lookup to `Commitment__c` (v0.3) |
@@ -1796,6 +1888,15 @@ Moved here from Section 12 by ADR-0017, with their definitions unchanged.
 | `Donor_Levels_Enabled__c` | boolean | false | Whether donor levels are assigned at all. Off until the organization has built its ladder, because a wrong ladder is worse than none (R-DL7). |
 | `Donor_Level_Source_Field__c` | text | `Total_Giving__c` | Which giving total the ladder is measured on, named as one of the packaged rollup attributes of Section 26 (R-DL1). Stored as text under ADR-0019. |
 | `Donor_Levels_Last_Recalculated__c` | datetime | empty | When the nightly or on demand level pass last completed, shown read only on the Donor Levels page, the same freshness promise the rollups make (Principle 2). |
+
+Added by acknowledgments (G-12, ADR-0032).
+
+| Key | Type | Default | Definition |
+|---|---|---|---|
+| `Acknowledgments_Enabled__c` | boolean | false | Whether gifts are placed in the acknowledgment queue as they are saved. Off until the organization has written its rules, because a thank you that goes out with the wrong wording cannot be recalled (R-AK5). |
+| `Acknowledgment_From_Address__c` | text | empty | The organization wide email address acknowledgments are sent from, named by its address. Empty means they are sent from the user who ran the send, which is what a small organization usually wants. |
+| `Acknowledgments_Last_Run__c` | datetime | empty | When the last acknowledgment send finished, shown read only on the Acknowledgments page (R-AK12). |
+| `Acknowledgments_Last_Run_Summary__c` | text | empty | What that run did, in one sentence, because a bare timestamp says the job woke up and not that it sent anything (R-AK12). |
 Added by receipting (G-13). The organization's identity keys that a receipt prints, the
 legal name, the tax identification number, the address, the logo, the signature, and the
 signer's name and title, are Core keys and stay on `Nonprofit_Settings__c` (Section 12):
@@ -1807,10 +1908,10 @@ the Setup Assistant writes them and letters other than receipts print them too.
 | `Receipt_Next_Counter__c` | integer | 1 | The counter a new numbering series starts at, so an organization moving from another system continues its own sequence. |
 | `Receipt_Statement_Year__c` | integer | empty | The tax year the year end run reports on, which an administrator sets in January and leaves alone. |
 | `Receipt_Place_Of_Issue__c` | text | empty | The city and region the receipt is issued from, printed on the document. |
-| `Receipt_Renderer__c` | text | empty | Which `ReceiptRenderer` implementation produces the PDF; empty means the shipped one. It exists because ADR-0016 names a fallback implementation and the spike that would settle the question needs an org (ADR-0016, "Consequences"). |
-| `Receipt_Print_Logo__c` | boolean | true | Whether the organization's logo is printed on receipts and statements. Off is a complete answer: a receipt with no images is a valid receipt (R-RC12), and this is also the switch an organization uses if the image path turns out not to work in its org. |
+| `Receipt_Renderer__c` | text | empty | Which renderer produces the PDF, as one of the two keys ADR-0016 names (`Blob PDF`, `Visualforce`) and never a class name; empty means the shipped one. A key outside that list is refused before any class is resolved or constructed. Stored as text and validated in Apex per ADR-0019. It exists because ADR-0016 names a fallback implementation and the spike that would settle the question needs an org (ADR-0016, "Consequences"). |
+| `Receipt_Print_Logo__c` | boolean | true | Whether the organization's logo is printed on receipts and statements. Off is a complete answer: a receipt with no images is a valid receipt (R-RC13), and this is also the switch an organization uses if the image path turns out not to work in its org. |
 | `Receipt_Logo_Width_Mm__c` | integer | 40 | How wide the logo prints, in millimetres. One number rather than a style sheet: a wordmark and a square crest cannot both look right at one fixed width, and the template is not the place to fix that (ADR-0016, "the admin edits text and tokens, not CSS"). |
-| `Receipt_Logo_Delivery__c` | text | empty | Which of ADR-0016's three image routes the logo is delivered by: empty means the shipped route, the file download URL. It exists for the same reason `Receipt_Renderer__c` does, and it is retired when the second spike closes (R-RC12). Stored as text under ADR-0019. |
+| `Receipt_Logo_Delivery__c` | text | empty | Which of ADR-0016's three image routes the logo is delivered by: empty means the shipped route, the file download URL. It exists for the same reason `Receipt_Renderer__c` does, and it is retired when the second spike closes (R-RC13). Stored as text under ADR-0019. |
 
 ### Rules
 
@@ -1846,6 +1947,10 @@ these keys, which is what makes a module that is off leave nothing behind.
 | Receipt Print Logo | `Receipt_Print_Logo__c` | Checkbox |
 | Receipt Logo Width Mm | `Receipt_Logo_Width_Mm__c` | Number(3, 0) |
 | Receipt Logo Delivery | `Receipt_Logo_Delivery__c` | Text(40) |
+| Acknowledgments Enabled | `Acknowledgments_Enabled__c` | Checkbox |
+| Acknowledgment From Address | `Acknowledgment_From_Address__c` | Text(255) |
+| Acknowledgments Last Run | `Acknowledgments_Last_Run__c` | Date/Time |
+| Acknowledgments Last Run Summary | `Acknowledgments_Last_Run_Summary__c` | Text(255) |
 
 - **Service:** Core `SettingsService`, reading and writing this object through the
   `Settings_Object__c` field on `Setting_Definition__mdt` (ADR-0017).
@@ -2082,6 +2187,10 @@ totals correct themselves the same way giving totals do. That negative credit is
 reversal recognition gets: the gift being refunded keeps the credits it earned, and the
 two rows cancel. A gift of 250 refunded in full leaves a credit of 250 on the original and
 a credit of minus 250 on the negative gift, and the recognition total is zero (ADR-0023).
+This holds for every automatic credit, whatever its role. A household credit follows the
+donor onto the negative gift; a Matched Donor credit is mirrored onto the negative gift
+that reverses the employer's gift, prorated to the amount returned, so a partial refund
+nets to the amount the employer still holds (R-G11, ADR-0031).
 
 **R-SC3a How a membership change reaches the credits.** The recompute a membership change
 causes is queued, not done in the saving transaction: a household's giving history has no
@@ -2385,7 +2494,9 @@ nothing packaged to conflict with it (ADR-0006).
 - **Receipt to Receipt**, through Replaces and Replaced By, which point at each other.
 - **Receipt to Receipt Run**, many to one.
 - **Receipt to its stored file**, one to one, as a `ContentVersion` linked to the receipt
-  and, per type, to the gift and to the donor.
+  and, on a per gift receipt, to the gift. It is not linked to the donor: a
+  `ContentDocumentLink` grants access to a file through the record it names, and every Core
+  role can read a Contact and an Account (R-RC11, ADR-0034).
 
 ### Rules
 
@@ -2397,10 +2508,15 @@ issued receipt accepts are the void fields and Replaced By (ADR-0010).
 Section 25C. Gaplessness is not attempted at the database level, because a rolled back
 transaction cannot un-consume a number that another transaction has already moved past.
 
-**R-RC3 Every consumed number is accounted for.** A number whose generation failed is
-reconciled into a receipt with Status Void and Void Reason `Generation failed`, so an
-auditor asking what happened to number N gets a record rather than silence. Reconciliation
-runs at the end of every batch run and on demand.
+**R-RC3 Every consumed number is accounted for, by one of two mechanisms.** For the
+statement series, a number whose generation failed is reconciled into a receipt with Status
+Void and Void Reason `Generation failed`, and that reconciliation runs at the end of every
+batch run. For the per gift series there is no reconciliation pass: the allocation and the
+receipt insert share one transaction and a failure rolls both back, so a failed issue
+consumes no number. Either way an auditor asking what happened to number N gets a record
+rather than silence. A per gift caller that catches a generation failure and commits anyway
+breaks this rule, and the Health Check finding in C-11 counts only reconciled records, so it
+would not see the result (ADR-0016, "Numbering").
 
 **R-RC4 Voiding never touches the stored file.** A void writes Void Reason and Voided On
 and leaves the document exactly as the donor received it. Deleting the file is not a void.
@@ -2434,14 +2550,25 @@ possible.
 Receipt to any role, including the administrator's, and the fields above are read only in
 every packaged permission set. The package writes them; a person never does.
 
-**R-RC11 An in-kind gift's document states no money amount (G-18).** A receipt that puts a
+**R-RC11 A receipt document is reached only through Receipt and Gift.** The stored file is
+linked to its receipt, and on a per gift receipt to its gift, and to nothing else. A
+`ContentDocumentLink` grants access through the record it names rather than through
+`Receipt__c`, so linking the donor Contact or Account would give the file to every role that
+can read a donor, including roles that hold no Giving permission set. The link is written with
+`ShareType` Viewer, which caps what it can grant at reading (R-RC1), and `Visibility`
+InternalUsers. The donor's route to the document is the Receipts related list on their record
+(ADR-0034).
+
+**R-RC12 An in-kind gift's document states no money amount (G-18).** A receipt that puts a
 figure next to a gift of goods is read as a cash contribution of that amount, which is the one
 thing a receipt for donated property must not say. So:
 
 - On a per gift receipt for an in-kind gift, the Amount token renders as a phrase naming the
-  goods or services rather than as a currency figure, whatever the template asked for, and the
-  receipt's Total Amount is zero, because a receipt record states what its document states. The
-  value the organization recorded stays on the gift (R-G12), where it belongs.
+  goods or services rather than as a currency figure, whatever the template asked for; the
+  document adds a note saying in plain words that no value has been stated, because the phrase
+  in the letter does not say that outright; and the receipt's Total Amount is zero, because a
+  receipt record states what its document states. The value the organization recorded stays on
+  the gift (R-G12), where it belongs.
 - On a consolidated statement, an in-kind gift is a line carrying its date, its type and its
   status with no amount, it is left out of the total the statement states, and the statement
   carries one sentence saying that gifts of goods or services are listed without a value and
@@ -2451,7 +2578,7 @@ thing a receipt for donated property must not say. So:
 The description still prints, once per in-kind gift, through the sentences of R-RC7. The
 charity describes the property and the donor values it.
 
-**R-RC12 What the document is branded with, and what it is valid without.** Every document
+**R-RC13 What the document is branded with, and what it is valid without.** Every document
 prints the organization's legal name and address and its tax identification number. The name
 and address come from the template where the template placed the token for them, and from a
 block the package prints above the letter where it did not, on the same reasoning as the gift
@@ -2498,7 +2625,7 @@ produced without it.
 
 - **Service:** `ReceiptService`, `ReceiptSelector`, `ReceiptNumberSequence`,
   `ReceiptContentBuilder`, `ReceiptRenderer` and `BlobToPdfReceiptRenderer`,
-  `ReceiptLogoSource` (R-RC12), `ReceiptFileWriter` (ADR-0021), batch
+  `ReceiptLogoSource` (R-RC13), `ReceiptFileWriter` (ADR-0021), batch
   `ReceiptStatementBatch`, LWC `receiptTemplates` and `receiptRunConsole`.
 
 ---
@@ -2532,8 +2659,11 @@ year, and cannot be read back so that a consumed number can be accounted for.
 ### Rules
 
 **R-RS1 One locked row per series.** An allocation selects the series row `FOR UPDATE`,
-reads Next Counter, advances it by the size of the block requested, and commits. A batch
-chunk allocates its whole block in one update rather than one number at a time.
+reads Next Counter, and advances it by the size of the block requested. A batch chunk
+allocates its whole block in one update rather than one number at a time. The lock is held
+until the transaction ends, not until the allocation returns, so the block keeps the wait to
+one per chunk rather than one per document but does not make it short (ADR-0016,
+"Consequences").
 
 **R-RS2 The number format is fixed.** `{prefix}-{statement year}-{counter zero padded to
 six digits}`. Prefix and starting counter come from settings; nothing else about the format
@@ -2665,6 +2795,14 @@ proof rather than invisible on the donor's copy.
 the sentences R-RC7 requires. A template that also types them produces them twice, which is
 the administrator's to fix, and a template that omits them still produces a valid receipt.
 
+**R-RT4 The shipped letters arrive at install, and writing one needs Manage Nonprofit
+Settings.** `Receipt_Template_Default__mdt` is materialized by the Giving post-install script,
+at install and at every upgrade, creating only what the org does not have (ADR-0029). The
+Receipts page carries a Restore the shipped letters action for an install whose step failed,
+and issuing a receipt with no letter of that kind materializes the shipped one under
+`Issue_Receipts`. Saving a body, switching a letter on, and restoring the shipped letters all
+check `Manage_Nonprofit_Settings` and write in user mode (ADR-0034).
+
 ### Salesforce implementation
 
 - **Object:** `Receipt_Template__c`, Text Name.
@@ -2675,8 +2813,474 @@ the administrator's to fix, and a template that omits them still produces a vali
 | Body | `Body__c` | Long Text Area (32768) |
 | Active | `Active__c` | Checkbox |
 
+- **Shipped defaults:** `Receipt_Template_Default__mdt`, with `Template_Name__c`,
+  `Receipt_Type__c` and `Body__c`, one row per receipt type, materialized into
+  `Receipt_Template__c` by `GivingPostInstall` (R-RT4).
 - **Service:** `ReceiptTemplateService`, LWC `receiptTemplates`, reached from the Nonprofit
   Settings console as a Component row.
+
+---
+
+## 25F. Acknowledgment Rule
+
+### Definition
+
+The organization's answer to "which thank you does this gift get" (feature G-12, v0.4,
+ADR-0032). A rule matches a gift on the things a fundraising office actually sorts gifts
+by, and resolves to a channel and, for email, to the standard email template that carries
+the wording.
+
+A rule is not a filter on a report. It is evaluated on the save of every gift, first
+matching rule wins, so the order of the rules is the organization's editorial judgment
+about which thank you takes precedence.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | yes | What the organization calls this rule, for example "Major gifts, over $1,000". |
+| Description | long text | no | When this rule is meant to apply, in the organization's own words. |
+| Active | boolean | yes (defaults true) | Whether the rule takes part in matching. An inactive rule matches nothing and is kept rather than deleted. |
+| Order | integer | yes | Where the rule sits in the list. The lowest numbered matching rule wins. |
+| Channel | picklist(Email, Letter, None) | yes | How the donor is thanked, or that this kind of gift is not acknowledged. |
+| Email Template | text | conditional | The developer name of the standard email template this rule sends; required when Channel is Email. |
+| Minimum Amount | currency | no | The smallest gift this rule matches. Empty means no lower bound. |
+| Maximum Amount | currency | no | The largest gift this rule matches. Empty means no upper bound. |
+| Gift Type | picklist(Cash, Check, Card, ACH, Stock, In-kind, Grant, Other) | no | The one gift type this rule matches. Empty means any type. |
+| Appeal | reference(Appeal) | no | The one appeal this rule matches. Empty means any appeal, and no appeal. |
+| First Gift Only | boolean | yes (defaults false) | Whether the rule matches only a donor's first gift. |
+
+### Relationships
+
+- **Acknowledgment Rule to Acknowledgment**, one to many: every acknowledgment records the
+  rule that produced it, so a rule that sent the wrong letter can be traced to what it sent.
+- **Acknowledgment Rule to Appeal**, many to one, as a matching criterion.
+- Acknowledgment Rule has no reference to Gift. A gift does not carry the rule that matched
+  it, because rules are re-evaluated when the queue is sent (R-AK3).
+
+### Rules
+
+**R-AK1 First matching rule wins.** Active rules are considered in Order, lowest first, and
+the first one whose criteria all match the gift decides the channel and the template. Ties
+on Order are broken by Name, so a badly ordered list is still deterministic. A gift matching
+no rule is left exactly as it is: no channel, no send, and the status it already had.
+
+**R-AK2 What a rule can match on.** Amount range (inclusive at both ends), gift type,
+appeal, and whether the gift is the donor's first. An empty criterion is not a criterion:
+an empty Gift Type matches every type rather than matching gifts with no type. First Gift
+Only is true for a gift where the donor, the Contact or the Account that the gift credits,
+has no other gift of a positive amount, counted at the moment the gift is saved rather than
+read from a rollup, because the rollup for a gift being inserted has not been calculated
+yet.
+
+**R-AK3 Rules are evaluated twice, on purpose.** On the save of a gift, to decide whether it
+joins the queue, and again when the queue is sent, to decide which template each queued gift
+gets. Nothing is stored on the gift in between. An administrator who fixes a rule's template
+on Tuesday morning therefore fixes it for the gifts that arrived on Monday and have not gone
+out yet, which is what she expects and what a stored channel would have prevented.
+
+**R-AK4 Channel None means not required.** A rule whose channel is None sets the gift's
+Acknowledgment Status to Not required, which is the organization saying this kind of gift
+does not get a thank you. It is not the same as Do not acknowledge, which is a person's
+decision about one gift and which no rule ever overwrites (R-AK6).
+
+**R-AK5 Nothing is shipped, nothing is overwritten.** The package ships no rules. An org
+with no rules acknowledges nothing automatically, which is the correct behavior for a
+feature that sends mail to donors on the organization's letterhead.
+
+---
+
+## 25G. Acknowledgment
+
+### Definition
+
+One thank you, recorded (feature G-12, ADR-0032). The row exists so that the questions
+asked in January have answers: did this go, when, by which letter, to which address, and
+did it go twice.
+
+An acknowledgment is not a receipt (Section 25B). It carries no number, it is not
+immutable, it may legitimately happen more than once for the same gift, and it has no
+statutory content.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | computed | The record's identifier, assigned automatically. |
+| Gift | reference(Gift) | yes | The gift being acknowledged. |
+| Rule | reference(Acknowledgment Rule) | no | The rule that produced this acknowledgment; empty when a person acknowledged the gift outside the rules. |
+| Channel | picklist(Email, Letter) | yes | How this one went out. |
+| Template | text | no | The developer name of the email template used, as it was at the time, so a letter that has since been rewritten can still be identified. |
+| Status | picklist(Queued, Sent, Failed) | yes (defaults Queued) | Where this acknowledgment stands. A letter stays Queued until the letters are marked sent. |
+| Sent On | datetime | conditional | When it went; set when Status becomes Sent. |
+| Recipient Contact | reference(Contact) | no | The person it was addressed to. |
+| Recipient Email | email | no | The address it was sent to, kept because the contact's address changes and the question is where it actually went. |
+| Failure Reason | text | conditional | Why it did not go, in a sentence a person can read; required when Status is Failed. |
+| Run | reference(Acknowledgment Run) | no | The run that produced it, empty when a person produced it one at a time. |
+| Gift Key | text | no | The gift's identifier, unique, held while this acknowledgment stands and cleared when the gift is deliberately queued again (R-AK7). |
+
+### Relationships
+
+- **Acknowledgment to Gift**, many to one. A gift may hold several acknowledgments over its
+  life; at most one of them holds the Gift Key.
+- **Acknowledgment to Acknowledgment Run**, many to one.
+- **Acknowledgment to Acknowledgment Rule**, many to one.
+
+### Rules
+
+**R-AK6 The gift's two fields are the summary, the record is the truth.** Acknowledgment
+Status and Acknowledgment Date on Gift (R-G9) are written from the ledger and never the
+other way around: a row reaching Sent sets the gift to Acknowledged and stamps the date. The
+fields exist because a list view and a report need one column, not a subquery. Where they
+disagree with the ledger the ledger is right, and Do not acknowledge on a gift is a person's
+instruction that no automation and no run ever overwrites.
+
+**R-AK7 A gift is thanked once unless a person says otherwise.** Gift Key is unique and
+holds the gift's identifier from the moment the row is written, which is before anything is
+sent. A second row for the same gift therefore cannot be inserted, so a batch chunk retried
+after a partial failure resumes rather than sending again, and two people pressing Send at
+once produce one thank you. The key is cleared in exactly two cases: the send failed, so the
+gift is retried; or a person set the gift's Acknowledgment Status back to To acknowledge,
+which is the deliberate act of thanking a donor again. Both leave the earlier row in place,
+so "we sent it twice" reads as two rows rather than as silence.
+
+**R-AK8 Only a positive received gift is ever acknowledged.** A gift whose Status is
+Refunded, Written off or Pending, and any gift whose Amount is zero or negative, is never
+queued and never sent, so the negative gift that records a refund (R-G3) is outside this
+feature entirely. Refunding a gift does not withdraw its acknowledgment: the donor was
+thanked, and that happened.
+
+**R-AK9 A failure is one row, not a run.** A send that fails marks its own row Failed with
+the reason, clears its key so the next send retries it, and writes an Error Log entry naming
+the gift. The rest of the chunk goes out.
+
+A gift with nobody to email, an organization gift with no primary contact for example, gets
+no row at all. Nothing went wrong and nothing was attempted, so there is nothing to record
+about the thank you; the run counts it, names it in one Error Log entry for the whole chunk,
+and leaves the gift in the queue, where a letter rule or a corrected contact will pick it up.
+A row per night for a gift that will never have an email address is noise on the donor's
+record, which is the thing this ledger exists to keep clean.
+
+---
+
+## 25H. Acknowledgment Run
+
+### Definition
+
+One send (ADR-0032). It exists for the same reason the receipt run does, and for one more:
+a letter run owns the merge file, which is the thing the administrator actually leaves
+Salesforce with.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | computed | The run's identifier, assigned automatically. |
+| Channel | picklist(Email, Letter) | yes | What the run does. |
+| Status | picklist(Queued, Running, Ready to merge, Completed, Completed with errors, Failed) | yes | Where the run stands. Ready to merge belongs to a letter run whose file is written and whose letters have not yet been marked sent. |
+| Started | datetime | no | When the run began. |
+| Finished | datetime | no | When the run ended. |
+| Gifts Processed | integer | yes (defaults 0) | How many gifts the run examined. |
+| Acknowledgments Sent | integer | yes (defaults 0) | How many thank yous it produced. |
+| Errors | integer | yes (defaults 0) | How many failed, each of which is also in the Error Log. |
+| Async Job Id | text | no | The platform job identifier, so a stuck run can be found. |
+| Merge File Document Id | text | no | The Salesforce file identifier of the letter merge CSV, on a letter run. |
+
+### Relationships
+
+- **Acknowledgment Run to Acknowledgment**, one to many.
+
+### Rules
+
+**R-AK10 A failed send never aborts the run.** Counted, logged, and the run continues. A run
+that ends with any failure is Completed with errors, never Completed, which is the same
+promise the receipt run makes (R-RR1).
+
+**R-AK11 A letter run is finished by a person.** The run writes the merge file and stops at
+Ready to merge with its rows Queued. Marking it sent, which the Acknowledgments page offers
+and which nothing does automatically, stamps the rows and the gifts and closes the run. The
+package cannot know whether a letter was printed, so it does not pretend to.
+
+**R-AK12 The run is visible without being opened.** Last run and last run summary are held
+on Giving Settings and shown on the Acknowledgments page, the same freshness promise the
+seasonal address swap makes (R-AD8), so an administrator can see that last night's send
+happened without finding the run record.
+
+### Salesforce implementation
+
+- **Objects:** `Acknowledgment_Rule__c` (Text Name), `Acknowledgment__c` (auto-number Name
+  with format `AK-{000000}`) and `Acknowledgment_Run__c` (auto-number Name with format
+  `AR-{000000}`), all three shipped by Giving.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Description | `Description__c` | Long Text Area |
+| Active | `Active__c` | Checkbox |
+| Order | `Order__c` | Number(4, 0) |
+| Email Template | `Email_Template__c` | Text(80) |
+| Minimum Amount | `Minimum_Amount__c` | Currency |
+| Maximum Amount | `Maximum_Amount__c` | Currency |
+| Gift Type | `Gift_Type__c` | Picklist: Cash, Check, Card, ACH, Stock, In-kind, Grant, Other |
+| Appeal | `Appeal__c` | Lookup to `Appeal__c` |
+| First Gift Only | `First_Gift_Only__c` | Checkbox |
+
+- **Fields on `Acknowledgment__c`:**
+
+| Attribute | API name | Type |
+|---|---|---|
+| Gift | `Gift__c` | Lookup to `Gift__c` |
+| Rule | `Rule__c` | Lookup to `Acknowledgment_Rule__c` |
+| Template | `Template__c` | Text(80) |
+| Sent On | `Sent_On__c` | Date/Time |
+| Recipient Contact | `Recipient_Contact__c` | Lookup to Contact |
+| Recipient Email | `Recipient_Email__c` | Email |
+| Failure Reason | `Failure_Reason__c` | Text(255) |
+| Run | `Run__c` | Lookup to `Acknowledgment_Run__c` |
+| Gift Key | `Gift_Key__c` | Text(18), External Id, unique |
+
+- **Fields on `Acknowledgment_Run__c`:**
+
+| Attribute | API name | Type |
+|---|---|---|
+| Started | `Started__c` | Date/Time |
+| Finished | `Finished__c` | Date/Time |
+| Gifts Processed | `Gifts_Processed__c` | Number(18, 0) |
+| Acknowledgments Sent | `Acknowledgments_Sent__c` | Number(18, 0) |
+| Errors | `Errors__c` | Number(18, 0) |
+| Async Job Id | `Async_Job_Id__c` | Text(18) |
+| Merge File Document Id | `Merge_File_Document_Id__c` | Text(18) |
+
+  `Channel__c` (Picklist: Email, Letter, None on the rule; Email, Letter on the other two)
+  and `Status__c` (Picklist: Queued, Sent, Failed on the acknowledgment; Queued,
+  Running, Ready to merge, Completed, Completed with errors, Failed on the run) are shipped
+  on the objects named above.
+
+- **Settings keys:** `Acknowledgments_Enabled__c`, `Acknowledgment_From_Address__c`,
+  `Acknowledgments_Last_Run__c` and `Acknowledgments_Last_Run_Summary__c` on
+  `Giving_Settings__c` (Section 21A).
+- **Validation rules:** on the rule, Maximum Amount above Minimum Amount when both are
+  filled in, and an Email Template named when Channel is Email.
+- **Automation:** `Gift_Acknowledgment` in `Automation_Registry__mdt`, naming
+  `GiftAcknowledgmentHandler`, execution order 40, switchable and pausable like every other
+  convenience (R-A1, and deliberately not `Always_Runs__c`, ADR-0024).
+- **Service:** `AcknowledgmentRuleService`, `AcknowledgmentService`,
+  `AcknowledgmentSelector`, `AcknowledgmentWriter` (ADR-0021), `AcknowledgmentSender` with
+  `MessagingAcknowledgmentSender`, `AcknowledgmentBatch`, `AcknowledgmentScheduler`,
+  `AcknowledgmentLetterMerge`, and `AcknowledgmentController` for the page.
+- **Custom permission:** `Send_Acknowledgments`, granted to Giving Admin and Giving Staff.
+- **Page:** LWC `acknowledgments` on the `Acknowledgments` tab and flexipage, reached from
+  the Giving section of the Nonprofit Settings console by navigation (ADR-0020).
+
+---
+
+## 25I. Stewardship Plan Template
+
+### Definition
+
+A named sequence of follow-up work an organization repeats: the tasks that should happen
+after a first gift, after a large gift, after a pledge starts. The NPSP Engagement Plans
+successor (plan Section 5.2, feature G-15).
+
+The template is the recipe, not the work. It holds what starts the sequence and the steps
+it lays out; a `Stewardship_Plan__c` is one running copy of it on one donor, and the tasks
+belong to the people who have to do them.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | yes | What the administrator calls the plan, for example "First gift welcome". |
+| Plan Key | text | yes | A stable key, unique, so a shipped default is recognized on upgrade without matching on a name the administrator may have changed. |
+| Active | boolean | yes (defaults false) | Whether the plan can start. An inactive template keeps the plans it already started. |
+| Trigger Event | picklist(Manual, First gift, Gift received, Commitment started) | yes | What starts a plan from this template. Manual means a person starts it and nothing starts it automatically. Commitment started means a pledge or a recurring gift became active (R-SP3a). |
+| Minimum Amount | currency | no | For the two gift events, the smallest gift that starts a plan. Blank means any amount. |
+| Description | long text | no | What this plan is for, in the administrator's words, shown when a person picks a plan to start by hand. |
+
+### Relationships
+
+- **Stewardship Plan Template to Stewardship Plan Step**, one to many, master detail. A
+  template's steps have no meaning apart from it, so deleting a template takes its steps.
+- **Stewardship Plan Template to Stewardship Plan**, one to many, lookup. A running plan
+  keeps working when its template is deleted, because the tasks it created are already real
+  work assigned to real people (R-SP8).
+
+### Rules
+
+**R-SP1 A trigger event does not make a plan mandatory.** Every automatic start goes
+through `TriggerDispatcher` like every other packaged automation, so an administrator can
+switch stewardship off before a bulk import and switch it back on afterwards (rule R-A1).
+Nothing here is exempt from the automation switch.
+
+**R-SP2 Only an active template starts anything.** Deactivating a template stops new plans
+and leaves running ones alone.
+
+**R-SP3 First gift means the donor's first.** The First gift event starts a plan only when
+the gift being saved is the only gift the donor has that counts toward giving totals, using
+the same status set the giving rollups use (Section 26). A refund that arrives later does
+not retroactively unstart the plan, because the welcome has already been sent.
+
+**R-SP3a Commitment started means the commitment became active.** A plan on this event
+starts when a commitment is created already Active, and when an existing commitment moves
+into Active from any other status. Both, because a pledge entered as Active and a pledge
+entered as Paused and turned on a week later are the same event to the donor. A resumed
+commitment therefore starts a plan again only once the earlier plan has been closed, since
+R-SP6 still holds. Nothing starts for a commitment created Paused, Completed or Cancelled,
+and Minimum Amount is not read here: the amount condition belongs to the two gift events,
+which is what the Amount Only For Gift Events rule already enforces at save.
+
+### Salesforce implementation
+
+- **Object:** `Stewardship_Plan_Template__c`, Giving package.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Plan Key | `Plan_Key__c` | Text, unique, external id |
+| Active | `Active__c` | Checkbox |
+| Trigger Event | `Trigger_Event__c` | Picklist: Manual, First gift, Gift received, Commitment started |
+| Minimum Amount | `Minimum_Amount__c` | Currency (18, 2) |
+| Description | `Description__c` | Long Text Area |
+
+- **Service:** `StewardshipService`, with `StewardshipSelector` reading and
+  `StewardshipWriter` writing, following the pattern the rest of Giving uses.
+- **Settings console:** the Stewardship Plans page, component `stewardshipPlans` with
+  `StewardshipPlanController` behind it, on the `Stewardship_Plans` tab and flexipage and
+  registered as a `Setting_Definition__mdt` Component row reached by navigation (ADR-0020).
+  Templates, their steps, their order and their Active state are all administered there, so
+  no part of setting a plan up needs Setup or a raw object tab.
+
+---
+
+## 25J. Stewardship Plan Step
+
+### Definition
+
+One task a template lays out, and when it comes due relative to the day the plan starts.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | computed | The step's identifier, assigned automatically. |
+| Plan Template | reference(Stewardship Plan Template) | yes | The template this step belongs to. |
+| Order | number | yes | The order the steps are listed in and created in. |
+| Subject | text | yes | The task's subject, which is what the assignee sees in their list. |
+| Days After Start | number | yes (defaults 0) | How many days after the plan starts this task is due. |
+| Assign To | picklist(Record owner, Plan starter, Specific user) | yes | Who gets the task. Record owner is the owner of the donor record the plan runs on. |
+| Assigned User | reference(User) | conditional | Required when Assign To is Specific user, ignored otherwise. |
+| Priority | picklist(Low, Normal, High) | yes (defaults Normal) | The task's priority. |
+| Comments | long text | no | The task's description, copied onto every task the step creates. |
+
+### Relationships
+
+- **Stewardship Plan Step to Stewardship Plan Template**, many to one, master detail.
+
+### Rules
+
+**R-SP4 A step with no assignee resolves to the person who started the plan.** Where Assign
+To is Record owner and the donor record has no owner the package can read, or where
+Assigned User names a user who is inactive, the task goes to the person who started the
+plan rather than to nobody. A task nobody owns is a task nobody does.
+
+**R-SP5 A due date never lands in the past.** Days After Start is counted from the day the
+plan starts, so a plan started today with a step at day zero is due today. Negative values
+are refused at save.
+
+### Salesforce implementation
+
+- **Object:** `Stewardship_Plan_Step__c`, Giving package. Name is an auto number, `SPS-{00000000}`.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Plan Template | `Stewardship_Plan_Template__c` | Master-Detail to `Stewardship_Plan_Template__c` |
+| Order | `Order__c` | Number (3, 0) |
+| Subject | `Subject__c` | Text (255) |
+| Days After Start | `Days_After_Start__c` | Number (4, 0) |
+| Assign To | `Assign_To__c` | Picklist: Record owner, Plan starter, Specific user |
+| Assigned User | `Assigned_User__c` | Lookup to User |
+| Priority | `Priority__c` | Picklist: Low, Normal, High |
+| Comments | `Comments__c` | Long Text Area |
+
+---
+
+## 25K. Stewardship Plan
+
+### Definition
+
+One running copy of a template on one donor: what started it, when, and whether it is still
+going. It exists so that a person can see which sequences are open on a donor, and so the
+same sequence does not start twice on the same event.
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | computed | The plan's identifier, assigned automatically. |
+| Plan Template | reference(Stewardship Plan Template) | yes | The template this plan was made from. |
+| Contact | reference(Contact) | conditional | The donor, where people are Contacts. |
+| Account | reference(Organization) | conditional | The donor, where the donor is an organization or where people are person Accounts. |
+| Gift | reference(Gift) | no | The gift that started the plan, where a gift event did. |
+| Commitment | reference(Commitment) | no | The commitment that started the plan, where the Commitment started event did. |
+| Status | picklist(Running, Complete, Cancelled) | yes (defaults Running) | Where the sequence stands. |
+| Started Date | date | yes | The day the plan started, which is the day its due dates count from. |
+| Completed Date | date | no | The day the plan was marked complete or cancelled. |
+
+### Relationships
+
+- **Stewardship Plan to Contact or Organization**, many to one. Exactly one of the two is
+  set, following the person reference convention in Section 4.
+- **Stewardship Plan to Task**, one to many. Each task carries the plan on its `WhatId`, so
+  the tasks a plan created are visible from the plan without a package field on Task.
+
+### Rules
+
+**R-SP6 One running plan per template per donor.** Starting a template on a donor that
+already has a Running plan from that template is refused with a readable message rather
+than creating a second set of the same tasks. Completing or cancelling the first one frees
+the donor for another.
+
+**R-SP7 Tasks are created once, when the plan starts.** All of a template's steps become
+tasks at start, dated from Started Date. Editing a template afterwards does not reach back
+into plans already running, because the tasks are already in people's lists and rewriting
+them would move work someone has planned their week around.
+
+**R-SP8 The package never deletes a task it created.** Cancelling a plan sets its status and
+its Completed Date and leaves every task alone. A task is a person's record of their own
+work, and an open task on a cancelled plan is theirs to close. Deleting a template does not
+touch running plans or their tasks for the same reason.
+
+**R-SP9 A failure to start a plan never fails the gift.** The starter runs after the gift is
+saved and logs to Error Log (rule R-E1). A stewardship plan that could not start is a follow
+up that did not happen; a gift that could not save is money the organization lost track of,
+and the second is worse.
+
+**R-SP10 Completion is a person's judgment in v0.4.** A plan is marked Complete by whoever
+decides the sequence is done. The package does not close a plan automatically when its last
+task closes: that needs automation on Task, which the package does not ship, and the plan's
+status is a record of intent rather than a derived count. This is recorded here as a
+deliberate limit rather than an omission, and it is the first thing to revisit if plans are
+found sitting Running long after their work finished.
+
+### Salesforce implementation
+
+- **Object:** `Stewardship_Plan__c`, Giving package. Name is an auto number, `SP-{00000000}`.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Plan Template | `Stewardship_Plan_Template__c` | Lookup to `Stewardship_Plan_Template__c` |
+| Contact | `Contact__c` | Lookup to Contact |
+| Account | `Account__c` | Lookup to Account |
+| Gift | `Gift__c` | Lookup to `Gift__c` |
+| Commitment | `Commitment__c` | Lookup to `Commitment__c` |
+| Status | `Status__c` | Picklist: Running, Complete, Cancelled |
+| Started Date | `Started_Date__c` | Date |
+| Completed Date | `Completed_Date__c` | Date |
+
+- **Automation:** two `Automation_Registry__mdt` rows, both order 60 and neither always
+  running: `Stewardship_Plan_Starter`, handler `StewardshipTriggerHandler`, on `Gift__c`,
+  and `Stewardship_Plan_Starter_Commitment`, handler `StewardshipCommitmentHandler`, on
+  `Commitment__c`. Two rows rather than one because the switch is per row, and an
+  administrator loading a year of gifts has no reason to also stop the commitments she
+  enters by hand from starting their plans.
 
 ---
 
@@ -2735,6 +3339,19 @@ donor gave, and what the organization is left holding.
 | `Giving_Last_Year__c` | SUM | `Amount__c` | fiscal year offset -1 | Total given in the previous fiscal year, which is the "LY" in LYBUNT. |
 | `Giving_Two_Years_Ago__c` | SUM | `Amount__c` | fiscal year offset -2 | Total given two fiscal years ago, used by SYBUNT and retention reporting. |
 | `Gifts_Last_Year__c` | COUNT | none | `Amount__c` greater than 0, fiscal year offset -1 | How many gifts this donor gave in the previous fiscal year, counting a gift once whether or not it was later refunded. A sum cannot answer this: a donor whose only gift last year was refunded inside that same year sums to zero while having given, and a donor whose sole activity last year was a refund of an older gift sums to less than zero while having given nothing. The retention reports read this attribute to tell a retained donor from a reactivated one (G-16, ADR-0026). |
+
+### In-kind giving on Account and Contact
+
+An in-kind gift is a Gift with Type In-kind whose Amount is zero (R-G12, ADR-0030), so it
+adds nothing to any row in the table above and is excluded from every row that counts, which
+is what keeps a donated vehicle out of Total Giving, out of Largest Gift, out of a donor level
+(ADR-0028) and out of the retention reports (ADR-0026). These two rows are where it does
+appear. They take the same status set and add `Type__c` equals `In-kind`.
+
+| Target attribute | Aggregate | Source attribute | Extra filter | Definition |
+|---|---|---|---|---|
+| `In_Kind_Value__c` | SUM | `Fair_Market_Value__c` | `Type__c` equals `In-kind` | What this donor's gifts of goods and services were worth, as the organization recorded them. Reported beside Total Giving and never added to it. |
+| `In_Kind_Gift_Count__c` | COUNT | none | `Type__c` equals `In-kind` | How many gifts of goods and services this donor has given. There is no amount condition here, because a donor can give goods whose value they never told the organization and that gift still happened. |
 
 Two further definitions on the same targets use different sources:
 
@@ -2805,9 +3422,11 @@ why the definition keeps its own Last Calculated as well.
 | Pledge Balance | `Pledge_Balance__c` | Currency |
 | Total Soft Credits | `Total_Soft_Credits__c` | Currency |
 | Soft Credit Count | `Soft_Credit_Count__c` | Number |
+| In-kind Value | `In_Kind_Value__c` | Currency |
+| In-kind Gift Count | `In_Kind_Gift_Count__c` | Number |
 | Rollups Last Calculated | `Rollups_Last_Calculated__c` | DateTime |
 
-- **Fields on Contact** (shipped by Giving): the same thirteen API names, with the same
+- **Fields on Contact** (shipped by Giving): the same fifteen API names, with the same
   types and the same definitions.
 
 - **Fields on `Fund__c`:**
@@ -2893,7 +3512,10 @@ connection so that staff never enter it twice.
 record from the other person's side, with the two sides pointing at each other and the
 mirrored record's Type set from the reciprocal mapping. Editing Status, Start Date, End
 Date, or Description on either side updates the other. Deleting either side deletes both.
-This is controlled by the org's automatic reciprocal setting, which is on by default.
+This is controlled by the org's automatic reciprocal setting, which is on by default. On by
+default means on before the org has saved anything: a checkbox on a hierarchy custom setting
+reads back false, not its declared default, until Apex puts the shipped value on the record
+(ADR-0035).
 
 **R-RL2 Is Reciprocal Managed is the opt-out.** An org that needs the two sides to differ
 (a relationship described asymmetrically, or one imported from a system that already holds
@@ -2951,7 +3573,8 @@ a Spouse relationship, and the two mechanisms do not read each other.
 | Sample Data | `Sample_Data__c` | Checkbox (v0.4) |
 
 - **Shipped defaults:** `Relationship_Type__mdt` (Section 13).
-- **Settings key:** `Relationship_Auto_Reciprocal__c` (Section 12).
+- **Settings key:** `Relationship_Auto_Reciprocal__c` (Section 12), registered in
+  `SettingsService.SHIPPED_DEFAULTS` so a fresh org gets it switched on (ADR-0035).
 - **Service:** `RelationshipService`, `RelationshipDomain`, `RelationshipSelector`.
 - **Automation:** two registry rows on `Relationship__c`. `Relationship_Validation`, handler
   `RelationshipValidationHandler`, execution order 10, holds the defaults and the rules
@@ -3106,6 +3729,14 @@ Account's billing address for a household or an organization, and to the Contact
 address for a person. The copy happens on save and on the seasonal swap, and the standard
 fields are never the place a change is made.
 
+Where people are person accounts, the person's mailing fields are written instead of a
+contact's. An account is written that way only when its record type is a person type. In a
+person accounts org those mailing fields exist on every account record, but only a person
+account will accept a value in one, so the org's shape is not the question: the record's
+is. A household member, or an owner named in Person Account, that turns out to be a
+household or an organization is left out of the copy rather than written and refused, which
+would refuse the address the user was saving along with it.
+
 **R-AD4 Seasonal swap.** A daily scheduled job makes the seasonal address the default
 while today falls inside its range, and restores the previous default when the range ends.
 Ranges may wrap the end of the year, so a November to March range is one range and not two.
@@ -3200,10 +3831,8 @@ that builds it, before its metadata is created.
 
 | Entity | Package | Iteration | Plan reference |
 |---|---|---|---|
-| Acknowledgment Rule | Giving | v0.4 (G-12) | Section 4.11 |
 | Receipt | Giving | v0.4 (G-13) | Section 4.11, ADR-0010 |
 | Donor Level | Giving | v0.4 (G-14) | Section 5.2 |
-| Stewardship Plan | Giving | v0.4 (G-15) | Section 5.2 |
 | Gift Batch | Giving | v0.5 (G-17) | Section 4.11 |
 | Volunteer, Job, Shift, Sign-up, Hours, Skill | Volunteers | v0.7 | Section 5.3 |
 | Program, Service, Enrollment, Attendance, Service Delivery, Outcome | Programs | v0.8 | Section 5.4 |
@@ -3211,12 +3840,27 @@ that builds it, before its metadata is created.
 | Connect adapter entities and mirror mappings | Connect | v0.6 onward | Section 4.12 |
 
 Receipt left this table in v0.4 and is specified in Sections 25B to 25E, together with
-Receipt Number Sequence, Receipt Run and Receipt Template.
+Receipt Number Sequence, Receipt Run and Receipt Template. Acknowledgment Rule left it in
+the same iteration and is specified in Section 25F, together with Acknowledgment (25G) and
+Acknowledgment Run (25H).
+
+Stewardship Plan left this table in v0.4 as well and is specified in Sections 25I to 25K,
+as Stewardship Plan Template, Stewardship Plan Step and the running Stewardship Plan.
 
 Two v0.4 entities have attributes that already exist on `Gift__c` from v0.2, because the
 object is not worth altering later for fields this cheap: Acknowledgment Status,
 Acknowledgment Date, and Receipt Number for G-12 and G-13, and In-kind Description and
 Fair Market Value for G-18 (R-G9).
+
+### Known gaps in shipped rules
+
+Rules this document states that the shipped code does not implement. They are listed here
+so that a reader is not told the product does something it does not, and so that the gap
+is closed deliberately rather than discovered.
+
+| Rule | Gap | Why it is open |
+|---|---|---|
+| R-M3 (Section 6) | The primary member is not mirrored to the household's Primary Contact. | `Primary_Contact__c` is a lookup to Contact, so it cannot name a person stored as a Person Account, which is the org shape junction membership serves. Closing the gap means changing the field (a Contact and Account pair, per Section 4) or dropping the second half of the rule. Needs an ADR either way. |
 
 ---
 
@@ -3228,6 +3872,7 @@ Fair Market Value for G-18 (R-G9).
 | v0.1 | 2026-09-07 | C-05 review fix: Error Log entries are published as `Error_Log_Event__e` (Publish Immediately) and written by a subscriber, so an entry survives the rollback it documents (new rule R-E4). |
 | v0.1 | 2026-09-08 | C-05 review fix: all three packaged permission sets grant Read and Create on `Error_Log_Event__e`, because publishing is governed by Create on the event (rule R-E4). |
 | v0.1 | 2026-09-08 | C-01 follow-up, R-H10 enforced in code. No object or field added. Household upkeep now clears Primary Contact when the person it names is no longer a current member, in both membership modes, and promotes nobody in their place: R-H10 already said the next member is proposed and not silently assigned, so the code follows the rule rather than the rule following the code. An organization shares the Primary Contact field (R-O3) and is never touched by this upkeep. |
+| v0.1 | 2026-09-09 | C-01 documentation corrections. No object, field, or code changed. The duplicated "Person attributes on Account" bullet in Section 5 is removed. Household Member's `Account` attribute is retyped `reference(Account)` and defined as the person's own account only, because `reference(Household)` read as a second household reference and invited the confusion R-M4 exists to prevent. R-M3's Primary Contact mirror is recorded as unimplemented and unimplementable as written, and listed in Section 30 as a known gap. R-H14 now says what the console does: a preview over fixed sample households rather than the org's own, and a recompute batch that confirms it was queued and then reports nothing further. |
 | v0.1 | 2026-09-08 | C-09 merge and split build. No object or field added. R-H13 gains the paragraph above on what a merge does, in what order, and what audits it. Recorded against R-M3: a move carries a person's role and primary flag with them, but never gives a household a second primary, so a merge or a split of people who were each primary in their own household leaves the survivor with one. |
 | v0.1 | 2026-09-07 | C-04 and C-05 build. Error Log gains Object Name. Automation Setting gains Handler Class, Object Name, Execution Order, and Package Default, all copied from the shipped registry when a record is materialized. Automation Registry field API names fixed ("Object" and "Order" are reserved words). Error Log and Setting Change record names recorded as auto numbers. Nonprofit Settings picklist keys recorded as text, per ADR-0019. |
 | v0.1 | 2026-09-07 | C-01 and C-02 build. Added `Household__c` (Lookup to Account) to Household Member: the original field list named the household side and the person side with the same attribute, so junction mode had no way to say which household a membership belonged to. `Account__c` is now defined as the person side only, matching R-M4. Recorded the naming service's token forms: `{FirstName}`, `{LastName}`, and `{Salutation}`, with the `{!Token}` spelling accepted as an alias so patterns copied from formula fields keep working. |
@@ -3243,17 +3888,29 @@ Fair Market Value for G-18 (R-G9).
 | v0.3 | 2026-09-07 | Sections renumbered to keep the document in reading order: the former Section 14 "Deferred to later iterations" is now Section 30 and the former Section 15 "Change log" is now Section 31. Section 32 "Entity ownership by package" is new. |
 | v0.3 | 2026-09-07 | C-10 sample data loader: added `Sample Data` (`Sample_Data__c`, Checkbox, default false) to Household, Contact, and Organization so the sample data set can be removed in one action. |
 | v0.3 | 2026-09-08 | C-15 and C-16 automation split (product owner decision). No object or field added. Relationships and affiliations each ship two `Automation_Registry__mdt` rows instead of one: `Relationship_Validation` (order 10, `RelationshipValidationHandler`) with `Relationship_Reciprocal` (order 30, `RelationshipMaintenanceHandler`), and `Affiliation_Validation` (order 10, `AffiliationValidationHandler`) with `Affiliation_Primary` (order 30, `AffiliationMaintenanceHandler`). Switching the maintenance automation off no longer switches off that object's validation, which is what an administrator pausing automation before a bulk import needs. `applyDefaults` sits with the validation handler because the status and date rules (R-RL5, R-AF4) have to survive the upkeep being off. Both services now bypass the validation row alongside their own while they write. |
+| v0.3 | 2026-09-09 | C-15 defect found by the first org run: the reciprocal upkeep never ran on a fresh org. `Relationship_Auto_Reciprocal__c` ships on, but a checkbox on a hierarchy custom setting read through `getOrgDefaults()` before the org has saved comes back false rather than carrying its declared default, so `RelationshipService` read the feature as switched off and wrote no other side, silently. No object or field added: the shipped value is now declared in `SettingsService.SHIPPED_DEFAULTS` and applied to the unsaved record, and `scripts/ci/check-setting-defaults.py` fails the build for any checkbox that ships on and is not registered (ADR-0035). |
 | v0.3 | 2026-09-08 | C-13 rollup adapter build. `Rollup_Definition__c` and `Rollup_Definition_Default__mdt` created as Sections 14 and 13 specify, with one correction: both gain `Fiscal_Date_Field__c`. R-R3 said the fiscal window is computed from the start month and the offset but never said which date attribute it is measured on, and every fiscal definition in Section 26 sums an amount rather than a date, so the window had nothing to bound. The attribute is optional and falls back to the attribute being aggregated, which is right for a rollup that aggregates a date. `Mode__c` on the definition ships with Both as its default value, matching R-R4 and the shipped Giving rows. |
 | v0.3 | 2026-09-08 | C-17 Addresses build. `Address__c` and its fields, list views, compact layout, and validation rules created as specified in Section 29, with two recorded deviations: `Street__c` ships as Text Area (255) because the platform has no long text field that a list view or a validation rule can read, and `Contact_Address_Change_Behavior__c` ships as Text(40) on `Nonprofit_Settings__c` per ADR-0019 rather than as a picklist. `Verification_Status__c` defaults to Unverified and is left writable for a third party verification app (R-AD6); no packaged code writes it. |
 | v0.3 | 2026-09-08 | G-02 defect fix (ADR-0022). No object or field added. Section 26's base filter changes from `Status equals Received` to `Status` in `Received`, `Refunded`, `Written off`, because R-G3 moves a fully refunded gift's status while leaving the negative gifts that reverse it at Received, so the old filter kept the negatives, dropped the positive, and subtracted a refunded gift twice. The count rows, largest gift, and the two date rows additionally require `Amount__c` greater than 0, so a gift given once and refunded in full reads as one gift and a total of zero. All 38 gift sourced, Gift Allocation sourced and Soft Credit sourced `Rollup_Definition_Default__mdt` rows updated; the three Pledge Balance rows filter on Commitment status and are unaffected. R-R9 gains the sentence that makes this a consequence of the rule rather than an exception to it. |
 | v0.3 | 2026-09-08 | G-08 rule collision resolved (ADR-0023). No object, field, or rollup row changed. R-SC5 and R-SC6 collided on a full refund: R-SC5 creates a negative automatic credit on the negative gift while R-SC6 removed the original gift's automatic credits once its status became Refunded or Written off, so a fully refunded gift of 250 left a recognition total of minus 250 rather than zero. R-SC6 no longer removes credits on refund; removal is now only for a deleted gift. R-SC5 states the resulting pair explicitly and R-SC3 states that a gift keeps its household credits after its status is reversed. Section 26's soft credit rows already read gift status through the widened set from ADR-0022, so they need no further change and now carry both halves of the pair. |
 | v0.3 | 2026-09-08 | G-04 receipt lock (ADR-0024). `Automation_Registry__mdt` and `Automation_Setting__c` each gain `Always_Runs__c` (Checkbox, default false): an automation marked that way enforces a rule rather than providing a convenience, so the dispatcher ignores the bypass, the pause and the switch for it, and the console shows its switch off and disabled with a reason (new rule R-A4). Giving ships the `Gift_Receipt_Lock` automation (order 5, `GiftReceiptLockHandler`) carrying the two enforcement calls that used to run inside `Gift_Core_Rules`, and the custom permission `Override_Receipt_Lock`, which is on no permission set and in no permission set group. R-G4 restated: the lock survives the automation switch, the override is a deliberate act in Setup, and every use of it is written to the Error Log at Warning severity. No object added. |
+| v0.4 | 2026-09-08 | G-15 stewardship plans. Three objects added: `Stewardship_Plan_Template__c` (Section 25I) with `Plan_Key__c`, `Active__c`, `Trigger_Event__c`, `Minimum_Amount__c` and `Description__c`; `Stewardship_Plan_Step__c` (25J) as its master detail child; and the running `Stewardship_Plan__c` (25K), which carries the person reference pair `Contact__c` and `Account__c` with exactly one set. Rules R-SP1 to R-SP10. Two limits are recorded as decisions rather than gaps: R-SP7 does not reach back into running plans when a template is edited, and R-SP10 leaves completion to a person because closing a plan from its last task would need packaged automation on Task. Tasks hang off the plan through `WhatId`, so no package field is added to a standard object. |
+| v0.4 | 2026-09-08 | G-15 gaps closed. `Stewardship_Plan__c` gains `Commitment__c` (Lookup), because the Commitment started event now starts plans and a plan started that way had nothing recording what started it. New rule R-SP3a says what the event means: a commitment created Active, or an existing commitment moving into Active from any other status. The automation is two registry rows rather than one, `Stewardship_Plan_Starter` on `Gift__c` and `Stewardship_Plan_Starter_Commitment` on `Commitment__c`, so each is switchable on its own. Templates, steps, step order and the Active state are now administered on a Stewardship Plans page in the settings console rather than on raw object tabs, which is what the every setting in the console rule requires. R-SP10 is unchanged: completion is still a person's judgment. |
 | v0.4 | 2026-09-08 | G-16 retention reports. One attribute added: `Gifts_Last_Year__c` (Number) on Account and Contact, filled by three new `Rollup_Definition_Default__mdt` rows (`Household_Gifts_Last_Year`, `Account_Gifts_Last_Year`, `Contact_Gifts_Last_Year`) as a COUNT over Gift with the ADR-0022 count filter and fiscal year offset -1. It is the one retention question no shipped attribute could answer: whether a donor gave last fiscal year, counted rather than summed. Everything else G-16 needs was already here, so LYBUNT, SYBUNT and the conversion report add no fields and read `Last_Gift_Date__c`, `First_Gift_Date__c` and `Gift_Count__c`, which already carry the count filter. No object added (ADR-0025, ADR-0026). |
 | v0.4 | 2026-09-08 | C-18 seasonal address swap build. `Address__c` gains `Replaced_By_Seasonal__c` (Checkbox, default false): R-AD4 said the previous default is restored when a season ends but nothing recorded which address that was, so an owner with a home address, a work address and a winter address had no unambiguous address to go back to. `Nonprofit_Settings__c` gains `Seasonal_Address_Last_Run_Summary__c` (Text 255) alongside the `Seasonal_Address_Last_Run__c` timestamp already specified in v0.3: a bare timestamp says the job woke up, not that it did anything, and "visible last run" is the half of C-18 that makes the job trustworthy. R-AD4 restated with the four outcomes per owner and the inclusive boundary days; R-AD8 added for the visible run and the system mode posture (ADR-0027). |
+| v0.4 | 2026-09-09 | G-10 refund propagation (ADR-0031). No object, field, or rollup row changed. ADR-0023 left one credit unreversed: the Matched Donor credit R-G11 creates sits on the employer's gift, and the negative gift recording a refund is not half of a matching pair, so a refunded match left the employee recognized for the full amount. R-G11 and R-SC5 restated: the negative gift carries a negative Matched Donor credit for the same person, prorated to the amount returned, so an employer gift of 500 with 200 returned leaves the employee recognized for 300. Only the employer's gift reverses the credit, the link survives the refund, and unlinking removes both halves. Section 26's soft credit rows already read gift status through the widened set from ADR-0022 and need no change. |
 | v0.4 | 2026-09-08 | G-14 donor levels (ADR-0028). New Section 25A, `Donor_Level__c`, with `Minimum_Amount__c`, `Maximum_Amount__c`, `Description__c` and `Active__c`, and three fields shipped by Giving on both Account and Contact: `Donor_Level__c`, `Previous_Donor_Level__c` and `Donor_Level_Changed_Date__c`. Giving Settings gains `Donor_Levels_Enabled__c`, `Donor_Level_Source_Field__c` and `Donor_Levels_Last_Recalculated__c`. A level is a label on a giving total the rollup engine already maintains (R-DL1), never a second aggregation, so the ladder cannot disagree with the total printed beside it and the household membership modes are resolved once, by the rollup, rather than twice. Donor Level is removed from the deferred table in Section 30 and its ownership row now points at Section 25A. |
 | v0.4 | 2026-09-08 | G-13 receipting (ADR-0016). Four objects added: `Receipt__c` (Section 25B), `Receipt_Number_Sequence__c` (25C), `Receipt_Run__c` (25D) and `Receipt_Template__c` (25E), with rules R-RC1 to R-RC10, R-RS1 to R-RS3, R-RR1 to R-RR3 and R-RT1 to R-RT3. Gift gains `Benefit_Description__c`, `Benefit_Value__c` and `Intangible_Religious_Benefits__c`, which is what a receipt needs to state a quid pro quo disclosure and the intangible religious benefits sentence; the deductible amount is computed by the renderer rather than stored, because a stored copy of a subtraction is a second place for it to be wrong. Giving Settings gains `Receipt_Number_Prefix__c`, `Receipt_Next_Counter__c`, `Receipt_Statement_Year__c`, `Receipt_Place_Of_Issue__c` and `Receipt_Renderer__c`, and its implementation subsection now lists every key it holds. Receipt leaves Section 30. |
+| v0.4 | 2026-09-09 | G-18 in-kind gifts (ADR-0030). No object added. Two attributes added on both Account and Contact, `In_Kind_Value__c` (Currency) and `In_Kind_Gift_Count__c` (Number), filled by six new `Rollup_Definition_Default__mdt` rows across the three scopes of Section 26, filtered to `Type__c` equals `In-kind` on top of the ADR-0022 status set. Rule R-G12 records what an in-kind gift is: a Gift of Type In-kind whose Amount is zero, whose worth is on `Fair_Market_Value__c`, which is never printed on a receipt, and whose description is required and is printed. R-G4 gains `In_Kind_Description__c`, because it appears on the document the donor holds. The `Amount_Cannot_Be_Zero` validation rule is narrowed to gifts that are not in-kind, and `In_Kind_Needs_Description`, `In_Kind_Has_No_Amount`, `In_Kind_Fields_Need_In_Kind_Type` and `Fair_Market_Value_Not_Negative` are added. |
+| v0.4 | 2026-09-09 | G-12 acknowledgments (ADR-0032). Three objects added: `Acknowledgment_Rule__c` (Section 25F), `Acknowledgment__c` (25G) and `Acknowledgment_Run__c` (25H), with rules R-AK1 to R-AK12. No field is added to `Gift__c`: `Acknowledgment_Status__c` and `Acknowledgment_Date__c` were shipped in v0.2 for this feature (R-G9), and the rule that matched a gift is deliberately not stored on it, so that an edited rule applies to the gifts already queued (R-AK3). Giving Settings gains `Acknowledgments_Enabled__c`, `Acknowledgment_From_Address__c`, `Acknowledgments_Last_Run__c` and `Acknowledgments_Last_Run_Summary__c`. The wording of an emailed thank you lives in a standard `EmailTemplate` rather than in a packaged template object, which is what the plan's note on G-12 asks for and is the whole of the difference between this feature and receipting. Acknowledgment Rule leaves Section 30.
+| v0.4 | 2026-09-09 | G-13 receipt number tampering fixed (ADR-0033). No object or field added. `Gift__c.Receipt_Number__c` becomes read only in `Giving_Staff` and `Giving_Admin`, matching `Giving_Read_Only`, and the receipt lock refuses every write to it, including the first one and including an insert, unless the receipting code is renumbering that gift. R-G4 restated: the number comes from the sequence in Section 25C or it does not exist. A number typed on by hand belonged to no receipt, locked the gift irreversibly, could be issued again later by the sequence, and left the gift unreceiptable, which is the collision ADR-0016 says nobody can recover from. The write moves from user mode to `GiftReceiptNumberWriter` in system mode under ADR-0021, because a field nobody may edit cannot be written in user mode, and the renumbering allowance changes from a transaction wide flag to the set of gift Ids being renumbered, so it no longer reaches an unrelated gift saved in the same transaction. |
+| v0.4 | 2026-09-09 | G-13 receipting defects found by security review (ADR-0034). No object or field added. Section 25B gains R-RC11: a receipt's stored file is linked to its receipt and, on a per gift receipt, to its gift, and never to the donor Contact or Account, because a `ContentDocumentLink` grants access to a file through the record it names and every Core role can read a donor. The relationship bullet is corrected to match. Section 25E gains R-RT4: the shipped letters are materialized by the Giving post-install script rather than by a cacheable controller method, which cannot perform DML, and every write to `Receipt_Template__c` checks `Manage_Nonprofit_Settings`. |
 | v0.4 | 2026-09-08 | C-10 sample data extended to the Giving module and to connections. `Sample Data` (`Sample_Data__c`, Checkbox, default false) added to `Gift__c`, `Fund__c`, `Appeal__c`, `Commitment__c`, `Relationship__c` and `Affiliation__c`, so every record the sample loader creates can be found and removed in one action; a gift's allocations, soft credits and tributes, and a commitment's installments, are details of a flagged record and go with it. `Sample Data Key` (`Sample_Data_Key__c`, Text(20)) added to Account and Contact: it holds the key the generated file gives a household, an organization or a person, which is how the Giving sample gifts find the donor they belong to across the asynchronous chain. No object added. |
-| v0.4 | 2026-09-08 | G-18 in-kind gifts, and the receipt branding settings the v0.4 engineering row asks for. No object added. Gift's In-kind Description and Fair Market Value become conditional rather than optional and gain R-G12: an in-kind gift carries both, no other gift carries either, and Amount equals Fair Market Value so that one gift has one number and the giving totals, which filter on status and not on type, count it at the value the organization recorded. The requirements sit on the gift that records the property, not on the negative gift that reverses it. R-RC11 says what a document for donated property may not say: no currency figure where the template asked for an amount, no amount on an in-kind statement line, in-kind gifts left out of the total a statement states with one sentence explaining the difference, and a Total Amount of zero on the receipt record, because a receipt record states what its document states and the value stays on the gift. R-RC12 says what a document is branded with: the legal name and address print from the template, or from a block above the letter when the template did not place them, on the same reasoning as the gift lines of R-RC8; the tax identification number prints in the signature block; the logo is optional and sized by one setting; and the image delivery route is a setting because ADR-0016's second spike cannot be closed without an org, so an unresolvable logo is logged at Warning severity and the document is produced without it. Giving Settings gains `Receipt_Print_Logo__c`, `Receipt_Logo_Width_Mm__c` and `Receipt_Logo_Delivery__c`. |
+| v0.4 | 2026-09-09 | C-01 person account trigger defect. No object or field added. The person account path ran on insert and update only, so deleting a person left their household with a stale Member Count and stale wording and their membership row identifying nobody, undeleting them did nothing, and the only person change that rewrote a household name was the household's own custom name box. R-H11 now says plainly that a person stored as an account is a member on the same terms as a contact, and R-M4 records what happens to a membership row when the person it names is deleted, and why the row is removed with the person rather than left to the platform. |
+| v0.4 | 2026-09-09 | C-17 address propagation defect, found by the first org run on a person accounts org. No object or field added. R-AD3 gains the record type test: the person mailing fields exist on every account in a person accounts org, so `AddressService` asked the org whether it had them and then wrote them on whatever account it was holding. A household member, or an owner named in Person Account, that is a household or an organization was written through fields it cannot carry, the platform refused the update, and the address the user was saving was refused with it, with a message about permissions that named nothing true. The write is now decided by the account's record type, read once per save through `HouseholdSelector.getAccountRecordTypes` as an ADR-0021 upkeep read, and an account that holds no person is left out of the copy. Invisible on the Platform-only shape (ADR-0013), where the fields do not exist and the path returns early. |
+| v0.4 | 2026-09-09 | C-14 import defect: a row with two people in it. No object or field added. Section 16 gains R-IR1a (what a row means for households) and R-IR2a (the household is named from the row). The importer joined a row's second person to the first person's household by writing the person's account reference, which is contact mode's mechanism, and skipped the join entirely where the org stores people as accounts. In junction mode that reference joined nobody and stopped the automatic path from acting, so a couple imported into the configuration the product recommends became two households or one household and one person with none. The join now goes through `HouseholdService.addMembers`, and automatic creation is suspended while the people about to be joined are saved, so nobody is given a household and then taken out of it. |
+| v0.3 | 2026-09-09 | C-17 deploy defect, found by the first org run to validate `Address__c` on its own. No rule changed. `Street__c` shipped with a `length` of 255 on a `TextArea` field, which the metadata schema does not accept: `TextArea`'s 255 character limit is fixed by the type, not settable, and only `LongTextArea` takes a `length`. The `length` element is removed; the field is unchanged in every way an admin or a user sees. `Address_Compact` shipped listing `Street__c`, which the platform also refused: no text area field, long or short, can appear in a compact layout. `Street__c` is removed from `Address_Compact`, which now reads Type, City, State, Default. Street is still visible everywhere a text field can appear: the four list views in Section 29 and the page layout are unaffected. |
+| v0.4 | 2026-09-09 | G-18 receipt branding, and what a document for donated property may not print. No object added. R-RC12 says what a receipt for an in-kind gift may not say: no currency figure where the template asked for an amount, no amount on an in-kind statement line, in-kind gifts left out of the total a statement states with one sentence explaining the difference, and a Total Amount of zero on the receipt record, because a receipt record states what its document states and the fair market value stays on the gift (R-G12). R-RC13 says what a document is branded with: the legal name and address print from the template, or from a block above the letter when the template did not place them, on the same reasoning as the gift lines of R-RC8; the tax identification number prints in the signature block; the logo is optional and sized by one setting; and the image delivery route is a setting because ADR-0016's second spike cannot be closed without an org, so an unresolvable logo is logged at Warning severity and the document is produced without it. Giving Settings gains `Receipt_Print_Logo__c`, `Receipt_Logo_Width_Mm__c` and `Receipt_Logo_Delivery__c`. The two rules this branch numbered R-RC11 and R-RC12 are renumbered here, because ADR-0034 took R-RC11 first. |
 
 ---
 ## 32. Entity ownership by package
@@ -3292,7 +3949,9 @@ included; standard objects the packages extend are named by the entity that gove
 | Relationship Type (shipped default) | Core | v0.3 | 13 |
 | Affiliation | Core | v0.3 | 28 |
 | Address | Core | v0.3 | 29 |
-| Acknowledgment Rule | Giving | v0.4 | 30 |
+| Acknowledgment Rule | Giving | v0.4 | 25F |
+| Acknowledgment | Giving | v0.4 | 25G |
+| Acknowledgment Run | Giving | v0.4 | 25H |
 | Receipt | Giving | v0.4 | 30 |
 | Donor Level | Giving | v0.4 | 25A |
 | Receipt | Giving | v0.4 | 25A |
@@ -3300,7 +3959,9 @@ included; standard objects the packages extend are named by the entity that gove
 | Receipt Run | Giving | v0.4 | 25C |
 | Receipt Template | Giving | v0.4 | 25D |
 | Donor Level | Giving | v0.4 | 30 |
-| Stewardship Plan | Giving | v0.4 | 30 |
+| Stewardship Plan Template | Giving | v0.4 | 25I |
+| Stewardship Plan Step | Giving | v0.4 | 25J |
+| Stewardship Plan | Giving | v0.4 | 25K |
 | Gift Batch | Giving | v0.5 | 30 |
 | Gift Transaction mirror | Connect | v0.6 | 30 |
 | Opportunity mirror | Connect | v0.6 | 30 |

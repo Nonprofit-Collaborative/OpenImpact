@@ -7,9 +7,9 @@
   <columns>Custom_Name__c</columns>
   <filterScope>Everything</filterScope>
   <filters>
-    <field>RecordType.DeveloperName</field>
+    <field>ACCOUNT.RECORDTYPE</field>
     <operation>equals</operation>
-    <value>Household</value>
+    <value>Account.Household</value>
   </filters>
   <label>Households</label>
 </ListView>

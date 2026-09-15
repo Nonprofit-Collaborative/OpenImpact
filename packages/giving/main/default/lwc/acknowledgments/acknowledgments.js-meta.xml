@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+  <apiVersion>67.0</apiVersion>
+  <description>
+    The thank you queue: what is waiting to go by email and by letter, the rules that decide which
+    thank you a gift gets, the buttons that send them, and the recent runs.
+  </description>
+  <isExposed>true</isExposed>
+  <masterLabel>Acknowledgments</masterLabel>
+  <targets>
+    <target>lightning__AppPage</target>
+  </targets>
+</LightningComponentBundle>

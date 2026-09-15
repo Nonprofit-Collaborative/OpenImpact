@@ -12,7 +12,7 @@
  * service supports: no web fonts, no JavaScript, no `data:` URI images, and page furniture only
  * through `@page` margin boxes.
  *
- * The organization's branding is printed the same way, and for the same reason (R-RC12): the legal
+ * The organization's branding is printed the same way, and for the same reason (R-RC13): the legal
  * name and the address go above the letter when the template did not place them itself, so an
  * administrator cannot produce a document with no organization on it. The logo is optional and
  * comes from `ReceiptLogoSource`, whose delivery route is **unverified in an org**: ADR-0016's
@@ -34,16 +34,24 @@ public with sharing class ReceiptContentBuilder {
     public static final String SENTENCE_INTANGIBLE_RELIGIOUS = 'The only goods or services provided in exchange for this contribution were intangible religious benefits.';
 
     /**
-     * What an in-kind gift puts where the template asked for an amount (R-RC11). A currency figure
+     * What an in-kind gift puts where the template asked for an amount (R-RC12). A currency figure
      * there reads as a cash contribution of that amount, which is the one thing a document for
      * donated property must not say.
      */
     public static final String IN_KIND_AMOUNT_PHRASE = 'the goods or services described below';
 
-    /** What an in-kind gift puts in the amount column of a statement (R-RC11). */
+    /**
+     * What every document states in place of a figure, for a gift of goods (G-18, ADR-0030,
+     * R-RC12). Printing the zero a cash field would carry reads as a receipt for nothing, and
+     * printing the fair market value the organization recorded is the one thing ADR-0016 forbids.
+     * So the document says what is true: the organization has not stated a value.
+     */
+    public static final String AMOUNT_NOT_STATED = 'No value stated (gift of goods or services)';
+
+    /** What an in-kind gift puts in the amount column of a statement (R-RC12). */
     public static final String IN_KIND_LINE_AMOUNT = 'Not valued';
 
-    /** Why a statement's total is smaller than the sum of the lines above it (R-RC11). */
+    /** Why a statement's total is smaller than the sum of the lines above it (R-RC12). */
     public static final String SENTENCE_IN_KIND_NOT_IN_TOTAL = 'Gifts of goods or services are listed above without a value and are not part of the total, because determining the value of donated property is the donor\'s responsibility.';
 
     private static final String IN_KIND = 'In-kind';
@@ -98,7 +106,7 @@ public with sharing class ReceiptContentBuilder {
     public static List<String> taxSentencesFor(Gift__c gift) {
         List<String> sentences = new List<String>();
 
-        if (IN_KIND.equalsIgnoreCase(gift.Type__c)) {
+        if (isInKind(gift)) {
             String described = String.isBlank(gift.In_Kind_Description__c)
                 ? 'goods or services, described to us by the donor'
                 : gift.In_Kind_Description__c.trim();
@@ -173,7 +181,7 @@ public with sharing class ReceiptContentBuilder {
         Map<String, String> tokens = baseTokens(details, donorName, receiptNumber, issueDate);
         Date giftDate = gift.Gift_Date__c == null ? issueDate : gift.Gift_Date__c;
         tokens.put('StatementYear', String.valueOf(giftDate.year()));
-        tokens.put('Amount', isInKind(gift) ? IN_KIND_AMOUNT_PHRASE : money(gift.Amount__c));
+        tokens.put('Amount', amountText(gift));
         tokens.put('GiftDate', formatDate(giftDate));
         tokens.put('GiftType', String.isBlank(gift.Type__c) ? '' : gift.Type__c);
         tokens.put('GiftLines', '');
@@ -183,6 +191,7 @@ public with sharing class ReceiptContentBuilder {
             'Receipt ' + receiptNumber,
             brandingBlock(details, templateBody) +
                 body +
+                amountNote(isInKind(gift)) +
                 taxBlock(taxSentencesFor(gift)) +
                 signatureBlock(details)
         );
@@ -235,6 +244,7 @@ public with sharing class ReceiptContentBuilder {
             brandingBlock(details, templateBody) +
                 body +
                 (templatePlacedLines ? '' : giftLines(gifts)) +
+                amountNote(anyInKind) +
                 taxBlock(ordered) +
                 signatureBlock(details)
         );
@@ -242,8 +252,10 @@ public with sharing class ReceiptContentBuilder {
 
     /**
      * The total a statement states, which is the total of the amounts it actually prints: money
-     * only, because an in-kind gift is listed without a value and left out of the total (R-RC11).
-     * The receipt record carries this same number, so the record and the document agree.
+     * only, because an in-kind gift is listed without a value and left out of the total (R-RC12).
+     * The goods are listed as lines of their own, visibly outside the money the statement totals,
+     * and the fair market value the organization recorded stays on the gift (R-G12). The receipt
+     * record carries this same number, so the record and the document agree.
      */
     public static Decimal cashTotalOf(List<Gift__c> gifts) {
         Decimal total = 0;
@@ -255,13 +267,24 @@ public with sharing class ReceiptContentBuilder {
 
     /**
      * The amount a document states for one gift: its amount, or nothing at all for a gift of goods
-     * or services (R-RC11). The value the organization recorded stays on the gift (R-G12).
+     * or services (R-RC12). The value the organization recorded stays on the gift (R-G12).
      */
     public static Decimal statedAmountOf(Gift__c gift) {
         if (isInKind(gift) || gift.Amount__c == null) {
             return 0;
         }
         return gift.Amount__c;
+    }
+
+    /**
+     * What one gift's amount reads as where the letter asked for a figure: the money, or, for a
+     * gift of goods, the phrase that points at the description instead (R-RC12). The fair market
+     * value is never consulted here, and there is a test that asserts it never reaches the
+     * rendered document.
+     */
+    @TestVisible
+    private static String amountText(Gift__c gift) {
+        return isInKind(gift) ? IN_KIND_AMOUNT_PHRASE : money(gift.Amount__c);
     }
 
     private static Boolean isInKind(Gift__c gift) {
@@ -336,7 +359,7 @@ public with sharing class ReceiptContentBuilder {
     }
 
     /**
-     * The letterhead the package prints above the letter (R-RC12): the logo, when the organization
+     * The letterhead the package prints above the letter (R-RC13): the logo, when the organization
      * has one and has left it turned on, and the organization's name and address when the template
      * did not place them itself.
      *
@@ -362,6 +385,20 @@ public with sharing class ReceiptContentBuilder {
             }
         }
         return block + '</div>';
+    }
+
+    /**
+     * The line that states, in the document's own words, that no value has been placed on a gift
+     * of goods (G-18, ADR-0030, R-RC12). The letter's own amount slot reads as a phrase pointing
+     * at the description, and a statement's amount column reads as `Not valued`, but neither of
+     * those says outright that the organization has stated no value, and a donor reading the
+     * document is owed that in plain words. Nothing is printed for a document with no gift of
+     * goods on it.
+     */
+    private static String amountNote(Boolean anyInKind) {
+        return anyInKind == true
+            ? '<p class="amountnote">' + escape(AMOUNT_NOT_STATED) + '</p>'
+            : '';
     }
 
     private static String taxBlock(List<String> sentences) {
@@ -408,6 +445,7 @@ public with sharing class ReceiptContentBuilder {
             'div.branding img.logo { display: block; margin-bottom: 6pt; }' +
             'div.branding p.orgname { font-size: 14pt; font-weight: bold; margin: 0; }' +
             'div.branding p.orgaddress { margin: 2pt 0 0 0; }' +
+            'p.amountnote { margin: 6pt 0; font-style: italic; }' +
             'div.tax p { margin: 6pt 0; }' +
             'div.signature { margin-top: 18pt; }' +
             '</style></head><body>' +

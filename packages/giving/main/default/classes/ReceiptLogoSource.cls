@@ -1,5 +1,5 @@
 /**
- * The organization's logo, as an `img` element the receipt renderer can use (R-RC12, ADR-0016).
+ * The organization's logo, as an `img` element the receipt renderer can use (R-RC13, ADR-0016).
  *
  * **This is ADR-0016's second spike, and the spike is open.** Nobody has confirmed in a real org
  * how an image reaches the Visualforce PDF rendering service, and it cannot be confirmed without

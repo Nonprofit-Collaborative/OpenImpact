@@ -2,6 +2,8 @@ import { LightningElement, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { refreshApex } from '@salesforce/apex';
 import getTemplates from '@salesforce/apex/ReceiptController.getTemplates';
+import getCanManageTemplates from '@salesforce/apex/ReceiptController.getCanManageTemplates';
+import restoreDefaultTemplates from '@salesforce/apex/ReceiptController.restoreDefaultTemplates';
 import saveTemplate from '@salesforce/apex/ReceiptController.saveTemplate';
 import activateTemplate from '@salesforce/apex/ReceiptController.activateTemplate';
 import getRuns from '@salesforce/apex/ReceiptController.getRuns';
@@ -43,6 +45,7 @@ export default class ReceiptSettings extends LightningElement {
   statementYear;
   working = false;
   loadError;
+  canManage = false;
 
   tokens = TOKENS;
 
@@ -58,6 +61,11 @@ export default class ReceiptSettings extends LightningElement {
     } else if (result.error) {
       this.loadError = this.messageOf(result.error);
     }
+  }
+
+  @wire(getCanManageTemplates)
+  handleCanManage({ data }) {
+    this.canManage = data === true;
   }
 
   @wire(getRuns)
@@ -95,6 +103,15 @@ export default class ReceiptSettings extends LightningElement {
     return this.working;
   }
 
+  /** Saving and switching a letter on both need Manage Nonprofit Settings, so both read this. */
+  get cannotEdit() {
+    return this.working || !this.canManage;
+  }
+
+  get hasTemplates() {
+    return this.templates.length > 0;
+  }
+
   get hasRuns() {
     return this.runs.length > 0;
   }
@@ -117,6 +134,23 @@ export default class ReceiptSettings extends LightningElement {
 
   handleYearChange(event) {
     this.statementYear = parseInt(event.detail.value, 10);
+  }
+
+  /**
+   * The recovery path for an install whose bootstrap step failed. The letters are created at
+   * install (ADR-0029); this is the button that says so out loud when they are not there.
+   */
+  async handleRestore() {
+    this.working = true;
+    try {
+      await restoreDefaultTemplates();
+      this.toast('Restored', 'The letters Open Impact ships are back.', 'success');
+      await refreshApex(this.wiredTemplates);
+    } catch (error) {
+      this.toast('Not restored', this.messageOf(error), 'error');
+    } finally {
+      this.working = false;
+    }
   }
 
   async handleSave() {

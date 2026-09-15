@@ -12,7 +12,7 @@
   <filters>
     <field>Is_Automatic__c</field>
     <operation>equals</operation>
-    <value>false</value>
+    <value>0</value>
   </filters>
   <label>Entered by staff</label>
 </ListView>

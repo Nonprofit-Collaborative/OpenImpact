@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Plan_Key__c</fullName>
+  <caseSensitive>false</caseSensitive>
+  <description>
+    A stable key for this template, so a shipped default is recognized on upgrade without matching
+    on a name the administrator may have changed.
+  </description>
+  <externalId>true</externalId>
+  <inlineHelpText>A short unchanging code for this plan, for example first_gift_welcome.</inlineHelpText>
+  <label>Plan Key</label>
+  <length>80</length>
+  <required>true</required>
+  <trackTrending>false</trackTrending>
+  <type>Text</type>
+  <unique>true</unique>
+</CustomField>

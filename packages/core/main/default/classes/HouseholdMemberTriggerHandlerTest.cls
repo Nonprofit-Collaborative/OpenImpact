@@ -8,7 +8,7 @@ private class HouseholdMemberTriggerHandlerTest {
     private static Contact john;
 
     private static void setUp() {
-        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
         household = HouseholdTestDataFactory.newHousehold('Placeholder');
         insert household;
         john = HouseholdTestDataFactory.newContact('Mr.', 'John', 'Smith');

@@ -20,7 +20,8 @@ const DEFAULTS = {
   defaultAppealName: 'Spring Appeal',
   giftTypes: [
     { label: 'Cash', value: 'Cash' },
-    { label: 'Check', value: 'Check' }
+    { label: 'Check', value: 'Check' },
+    { label: 'In-kind', value: 'In-kind' }
   ]
 };
 
@@ -44,6 +45,15 @@ async function settle() {
   await Promise.resolve();
   await Promise.resolve();
   await Promise.resolve();
+}
+
+async function enterAnInKindGift(element) {
+  change(pick(element, 'donor-person'), { recordId: CONTACT_ID });
+  change(pick(element, 'gift-type'), { value: 'In-kind' });
+  await settle();
+  change(pick(element, 'in-kind-description'), { value: 'Sixteen folding tables, used' });
+  change(pick(element, 'fair-market-value'), { value: '800' });
+  await settle();
 }
 
 async function enterAGift(element) {
@@ -143,7 +153,9 @@ describe('c-quick-gift-entry', () => {
         giftType: 'Check',
         appealId: DEFAULTS.defaultAppealId,
         fundId: DEFAULTS.defaultFundId,
-        paymentReference: null
+        paymentReference: null,
+        inKindDescription: null,
+        fairMarketValue: null
       }
     });
     expect(pick(element, 'saved')).not.toBeNull();
@@ -233,6 +245,93 @@ describe('c-quick-gift-entry', () => {
     await settle();
 
     expect(focus).toHaveBeenCalled();
+  });
+
+  it('replaces the amount with a description and a value when the gift is goods', async () => {
+    const element = build();
+    await settle();
+
+    expect(pick(element, 'amount')).not.toBeNull();
+    expect(pick(element, 'in-kind-description')).toBeNull();
+
+    change(pick(element, 'gift-type'), { value: 'In-kind' });
+    await settle();
+
+    expect(pick(element, 'amount')).toBeNull();
+    expect(pick(element, 'in-kind-description')).not.toBeNull();
+    expect(pick(element, 'in-kind-description').required).toBe(true);
+    expect(pick(element, 'fair-market-value')).not.toBeNull();
+    expect(pick(element, 'fair-market-value').required).toBeFalsy();
+  });
+
+  it('shows a note beside the value box, from the packaged label rather than in the markup', async () => {
+    const element = build();
+    await settle();
+
+    change(pick(element, 'gift-type'), { value: 'In-kind' });
+    await settle();
+
+    // Jest resolves a custom label to its own name, so this asserts that the note is rendered
+    // and that it comes from the label an administrator can translate, not from English typed
+    // into the template.
+    expect(pick(element, 'fair-market-value-help').textContent).toBe(
+      'c.Giving_QuickGiftEntry_FairMarketValueHelp'
+    );
+    expect(pick(element, 'in-kind-description').fieldLevelHelp).toBe(
+      'c.Giving_QuickGiftEntry_InKindDescriptionHelp'
+    );
+  });
+
+  it('sends a gift of goods with a zero amount and the two in-kind values', async () => {
+    const element = build();
+    await settle();
+
+    await enterAnInKindGift(element);
+    pick(element, 'save').click();
+    await settle();
+
+    expect(saveGift).toHaveBeenCalledTimes(1);
+    const sent = saveGift.mock.calls[0][0].input;
+    expect(sent.amount).toBe(0);
+    expect(sent.giftType).toBe('In-kind');
+    expect(sent.inKindDescription).toBe('Sixteen folding tables, used');
+    expect(sent.fairMarketValue).toBe(800);
+  });
+
+  it('does not send an in-kind description on a gift of money', async () => {
+    const element = build();
+    await settle();
+
+    await enterAnInKindGift(element);
+    change(pick(element, 'gift-type'), { value: 'Check' });
+    await settle();
+    change(pick(element, 'amount'), { value: '250' });
+    await settle();
+
+    pick(element, 'save').click();
+    await settle();
+
+    const sent = saveGift.mock.calls[0][0].input;
+    expect(sent.amount).toBe(250);
+    expect(sent.inKindDescription).toBeNull();
+    expect(sent.fairMarketValue).toBeNull();
+  });
+
+  it('shows the controller message beside the description that is missing', async () => {
+    saveGift.mockResolvedValue({
+      success: false,
+      fieldErrors: [{ field: 'inKindDescription', message: 'Describe what was given.' }]
+    });
+    const element = build();
+    await settle();
+
+    change(pick(element, 'donor-person'), { recordId: CONTACT_ID });
+    change(pick(element, 'gift-type'), { value: 'In-kind' });
+    await settle();
+    pick(element, 'save').click();
+    await settle();
+
+    expect(pick(element, 'error-in-kind-description').textContent).toBe('Describe what was given.');
   });
 
   it('says so when the gift saved but the fund chosen could not be applied', async () => {

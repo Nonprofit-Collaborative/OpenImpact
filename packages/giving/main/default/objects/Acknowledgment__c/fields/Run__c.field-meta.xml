@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Run__c</fullName>
+  <inlineHelpText>The run that produced it. Empty when a person produced it one at a time.</inlineHelpText>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <label>Run</label>
+  <referenceTo>Acknowledgment_Run__c</referenceTo>
+  <relationshipLabel>Acknowledgments</relationshipLabel>
+  <relationshipName>Acknowledgments</relationshipName>
+  <required>false</required>
+  <type>Lookup</type>
+  <trackTrending>false</trackTrending>
+  <externalId>false</externalId>
+</CustomField>

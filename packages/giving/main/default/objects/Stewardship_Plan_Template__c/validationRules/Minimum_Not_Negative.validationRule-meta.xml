@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Minimum_Not_Negative</fullName>
+  <active>true</active>
+  <description>
+    A threshold below zero would start the plan on every refund, which is not what anybody means by
+    a minimum gift.
+  </description>
+  <errorConditionFormula>Minimum_Amount__c &lt; 0</errorConditionFormula>
+  <errorDisplayField>Minimum_Amount__c</errorDisplayField>
+  <errorMessage>The minimum amount cannot be less than zero.</errorMessage>
+</ValidationRule>

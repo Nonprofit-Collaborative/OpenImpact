@@ -23,6 +23,9 @@ public with sharing class SettingSections {
     public static final String ORGANIZATION = 'Organization';
     @NamespaceAccessible
     public static final String GIVING = 'Giving';
+    /** Receipts, which Giving ships: its own section because a receipt run is its own job. */
+    @NamespaceAccessible
+    public static final String RECEIPTS = 'Receipts';
     @NamespaceAccessible
     public static final String ROLLUPS = 'Rollups';
     @NamespaceAccessible
@@ -40,6 +43,7 @@ public with sharing class SettingSections {
             RELATIONSHIPS,
             ADDRESSES,
             GIVING,
+            RECEIPTS,
             ROLLUPS,
             AUTOMATION,
             ACCESS,

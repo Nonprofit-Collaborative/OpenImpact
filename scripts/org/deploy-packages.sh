@@ -12,9 +12,75 @@
 # It also matches how the packages actually depend on each other: the vendored engine is
 # self contained, Core does not call it yet, and Giving depends on Core.
 #
+# WHY CORE IS SEVERAL STAGES. docs/contributor-guide/ci.md records this same failure
+# hitting the undivided Core stage four times across four separate runs before 2026-09-09:
+# always UNKNOWN_EXCEPTION, always zero components deployed, always zero component errors,
+# always the same trailing code -315522575 behind a different leading number, which is why
+# that page calls it a deterministic fault rather than a flake and says a re-run proves
+# nothing. It recurred twice more on 2026-09-09, on two separate pushes to main, both times
+# on the same undivided Core stage, which by then held 904 components in one request: the
+# same shape as the original 982-component failure this file was written to avoid, just
+# smaller.
+#
+# Splitting Core into three (data model, Apex, UI and permissions) followed Salesforce's own
+# deploy dependency order and named a stage instead of nothing: the very next run, still on
+# 2026-09-09, failed on data model alone, at 853 components. That is the load-bearing data
+# point. 853 is close enough to 904 and 982 that a specific bad component stopped being the
+# more likely explanation: three deploys of very different content (mostly Apex classes the
+# first time, mostly custom fields the second) all failed in the same shape once they got
+# into the same few-hundred-to-thousand range. That reads as a size effect, not a component
+# defect, though it is still not proven, because nothing about this failure can be proven
+# from the client side. It just stopped being a coin flip.
+#
+# So data model became three stages of its own: `balanced_split` divided
+# packages/core/main/default/objects by file count into two roughly equal halves at runtime
+# (a hand-written list of object names would go stale the first time someone adds one), and
+# customMetadata, labels, static resources and custom permissions formed a third, smaller
+# stage. That halving stopped being useful evidence on 2026-09-09: the two halves it produces
+# are stable across runs (nothing but file *content* changed in between, and balanced_split
+# only looks at file *counts*), and across four consecutive pushes that all fixed real
+# component-level errors in "objects B" (139 files, 10 objects), that stage kept failing with
+# the same zero-component UNKNOWN_EXCEPTION every single time, while "objects A" (144 files,
+# 11 objects, comparable size) deployed clean every one of those four runs. Two same-sized
+# groups behaving oppositely and consistently is not a size effect; it is evidence the fault
+# tracks something specific to one or more objects inside "objects B".
+#
+# Objects now deploy one at a time, each its own stage, rather than split into another pair
+# of same-content halves that would just repeat this result. That worked immediately: every
+# object deployed clean, and it was Address__c's own real component errors (Street__c's
+# invalid length, a text area field in a compact layout) that had been hiding behind the
+# opaque failure the whole time, not the platform fault recurring on an object.
+#
+# With objects clear, the platform fault moved to the next stage in line: the four config
+# directories (customMetadata, labels, staticresources, customPermissions), deployed together,
+# hit it at 568 components. File count there is a badly misleading proxy: around 70 files
+# across all four looked nothing like a risk, but `packages/core/main/default/labels/CustomLabels.labels-meta.xml`
+# is one file holding 388 individual label components. Config is now three stages: custom
+# metadata, labels (isolating that one file), and static resources with custom permissions
+# together, since both are a handful of components on any count.
+#
+# Apex and UI/permissions are unchanged, because neither has failed yet and there is no
+# evidence pointing at either.
+#
+# WHY A PAUSE BETWEEN STAGES. Custom metadata alone, split out from the rest of config,
+# still hit the same zero-component UNKNOWN_EXCEPTION at 61 files, confirmed identical on a
+# manual re-run (same ErrorId trailing code, same zero components, zero errors). 61 is nowhere
+# near the few-hundred-to-thousand range every prior failure has carried, and this is the
+# first time a stage that small has failed on its own, so size stops being a workable
+# explanation for this occurrence specifically: something else has to be going on. Every stage
+# in this script runs as its own blocking `sf project deploy start --wait 30` call, one after
+# another, against the one persistent org, with no gap between a stage finishing and the next
+# one starting. If the org's deploy engine needs a moment to settle after reporting a deploy
+# Done before it can safely accept the next one, back to back calls with no pause would be
+# exactly the condition to trigger that. Untested, and not the only remaining explanation, but
+# cheap and non-destructive to try: every deploy_stage call now pauses for
+# $STAGE_PAUSE_SECONDS after a successful deploy, before the next stage starts.
+#
 # Exit codes: 0 = every stage deployed, non-zero = the first stage that failed.
 
 set -uo pipefail
+
+STAGE_PAUSE_SECONDS="${STAGE_PAUSE_SECONDS:-15}"
 
 ALIAS="${1:-}"
 if [[ -z "$ALIAS" ]]; then
@@ -26,23 +92,31 @@ shift || true
 CORE_ONLY=0
 [[ "${1:-}" == "--core-only" ]] && CORE_ONLY=1
 
-# Deploy one directory, and on failure ask the org what actually went wrong. A deploy can
-# report only "Status: Failed" with no detail, which is why the report is asked for by job
-# id and then again as JSON: the JSON carries errorMessage and every component error.
+# Deploy one or more directories as a single stage, and on failure ask the org what actually
+# went wrong. A deploy can report only "Status: Failed" with no detail, which is why the
+# report is asked for by job id and then again as JSON: the JSON carries errorMessage and
+# every component error.
 deploy_stage() {
   local label="$1"
-  local dir="$2"
+  shift
+  local dirs=()
+  local dir
+  for dir in "$@"; do
+    if [[ -d "$dir" ]]; then
+      dirs+=(--source-dir "$dir")
+    fi
+  done
 
-  if [[ ! -d "$dir" ]]; then
-    echo "== Skipping ${label}: ${dir} does not exist =="
+  if [[ "${#dirs[@]}" -eq 0 ]]; then
+    echo "== Skipping ${label}: none of the given directories exist =="
     return 0
   fi
 
   echo ""
-  echo "== Deploying ${label} (${dir}) to ${ALIAS} =="
+  echo "== Deploying ${label} ($*) to ${ALIAS} =="
   local log status job_id
   log="$(mktemp)"
-  sf project deploy start --source-dir "$dir" --wait 30 --ignore-conflicts --target-org "$ALIAS" 2>&1 | tee "$log"
+  sf project deploy start "${dirs[@]}" --wait 30 --ignore-conflicts --target-org "$ALIAS" 2>&1 | tee "$log"
   status="${PIPESTATUS[0]}"
 
   if [[ "$status" -ne 0 ]]; then
@@ -57,21 +131,85 @@ deploy_stage() {
     fi
     echo ""
     echo "The stage that failed is ${label}. An UNKNOWN_EXCEPTION with zero component errors"
-    echo "is a Salesforce side failure: quote the ErrorId in the JSON above to support, and"
-    echo "note that it is sometimes transient, so a re-run is worth one attempt."
+    echo "is a Salesforce side failure, not a component to fix here: quote the ErrorId in the"
+    echo "JSON above to Salesforce support. Re-running is not worth trying on its own account:"
+    echo "this exact failure (same trailing code -315522575, zero components, zero errors) has"
+    echo "hit an undivided or partly divided Core at least ten times now. See"
+    echo "docs/contributor-guide/ci.md, \"It is not transient here\", for the count and the"
+    echo "component totals each occurrence carried. If ${label} is small (comfortably under"
+    echo "the few hundred components the smallest confirmed failure has carried so far), do not"
+    echo "just split it again on faith: the objects data model stage already tried a same-size"
+    echo "split four times running and it named nothing, because both halves stayed the same"
+    echo "size and content on every run. Look at what is actually in this specific stage, or,"
+    echo "if it is still large, split it narrower on the number this run actually carried."
     rm -f "$log"
     return "$status"
   fi
 
   rm -f "$log"
+  echo "== Pausing ${STAGE_PAUSE_SECONDS}s before the next stage =="
+  sleep "$STAGE_PAUSE_SECONDS"
   return 0
 }
 
 deploy_stage "the vendored rollup engine" "packages/core/vendor" || exit $?
-deploy_stage "Core" "packages/core/main" || exit $?
+
+# One stage per object, not a file-count split. The two-way file-count split this replaced
+# produced the same two groups every run, since only file content had been changing, not
+# file counts, and one of those two groups (10 objects, 139 files) failed with the platform's
+# zero-component UNKNOWN_EXCEPTION on four consecutive pushes while the other (11 objects, 144
+# files, comparable size) deployed clean every time. Same size, opposite and consistent
+# outcomes: that is evidence against a size effect, not for one, so splitting into another
+# same-content pair would not have told us anything the last four runs did not already show.
+# Each object is small enough on its own (a handful of files to a few dozen) that the next
+# failure, if there is one, names the exact object; if every object deploys clean individually,
+# that is itself the finding, that it takes several specific objects deployed together in one
+# request to trigger this.
+for dir in packages/core/main/default/objects/*/; do
+  [[ -d "$dir" ]] || continue
+  deploy_stage "Core (data model, $(basename "$dir"))" "$dir" || exit $?
+done
+# One stage per config directory, not one stage for all four. Every object deployed clean
+# individually (the finding the per-object split above was designed to produce), so the very
+# next stage in line, the four config directories deployed together, is what hit the platform
+# fault this time: 568 components in one request from a directory set whose file count (about
+# 70 across all four) looked nowhere near that. The gap is CustomLabels.labels-meta.xml, one
+# file holding 388 individual label components; file count is a proxy for component count,
+# not the same number, and a single label file is the sharpest case yet of that proxy failing.
+# Splitting by directory isolates that file's stage from the other three, which are small on
+# any count (customMetadata's ~60 files are ~60 components, one per record; static resources
+# and custom permissions are a handful each).
+deploy_stage "Core (data model, custom metadata)" "packages/core/main/default/customMetadata" || exit $?
+deploy_stage "Core (data model, labels)" "packages/core/main/default/labels" || exit $?
+deploy_stage "Core (data model, static resources and custom permissions)" \
+  "packages/core/main/default/staticresources" \
+  "packages/core/main/default/customPermissions" || exit $?
+deploy_stage "Core (Apex)" \
+  "packages/core/main/default/classes" \
+  "packages/core/main/default/triggers" || exit $?
+deploy_stage "Core (UI and permissions)" \
+  "packages/core/main/default/permissionsets" \
+  "packages/core/main/default/permissionsetgroups" \
+  "packages/core/main/default/layouts" \
+  "packages/core/main/default/flexipages" \
+  "packages/core/main/default/applications" \
+  "packages/core/main/default/tabs" \
+  "packages/core/main/default/quickActions" \
+  "packages/core/main/default/lwc" || exit $?
 
 if [[ "$CORE_ONLY" -eq 0 ]]; then
   deploy_stage "Giving" "packages/giving" || exit $?
+fi
+
+# A deployment is not an install, so neither post-install script runs here and the shipped
+# rollup definitions would not exist in a development org (ADR-0029). This is the same call
+# CorePostInstall and GivingPostInstall make, run once the last stage is in, so a development
+# org holds the rollups a real install would have. It creates only what is missing.
+echo ""
+echo "== Creating the shipped rollup definitions =="
+if ! printf '%s\n' 'RollupService.ensureDefaults();' | sf apex run --target-org "$ALIAS"; then
+  echo "The rollup definitions were not created. Nothing else is affected: the Restore shipped"
+  echo "rollups button on the Rollups page runs exactly the same step."
 fi
 
 echo ""

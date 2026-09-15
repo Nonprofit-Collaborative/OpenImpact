@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Maximum_Amount__c</fullName>
+  <inlineHelpText>The largest gift this rule matches, included. Leave it empty for no upper bound.</inlineHelpText>
+  <label>Maximum Amount</label>
+  <precision>18</precision>
+  <scale>2</scale>
+  <required>false</required>
+  <type>Currency</type>
+  <trackTrending>false</trackTrending>
+  <externalId>false</externalId>
+</CustomField>

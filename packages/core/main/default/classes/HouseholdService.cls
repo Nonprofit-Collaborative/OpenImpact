@@ -28,7 +28,14 @@ public with sharing class HouseholdService {
     @TestVisible
     private static Boolean personAccountOverride;
 
-    private static Boolean creatingPersonHouseholds = false;
+    /**
+     * One guard for both automatic creation paths (ADR-0037). Creating a household is an
+     * Account insert, which fires the Account trigger, and the membership row that follows
+     * fires the Household Member trigger, so either path can arrive back here inside its own
+     * write. It is set for the whole of one creation pass and read at both entry points.
+     */
+    private static Boolean creatingAutomaticHouseholds = false;
+    private static Boolean automaticCreationSuspended = false;
 
     /**
      * Answers already worked out in this transaction, so that a caller asking about the
@@ -309,8 +316,16 @@ public with sharing class HouseholdService {
                 peopleById.put(record.Id, new Person(record));
             }
         }
+        // Everybody the rows named and this org can read through: in an org that does not
+        // store people as accounts, an account named by a membership row is not a person
+        // and is not looked for at all.
+        Set<Id> lookedFor = new Set<Id>(contactIds);
         if (!personRecordIds.isEmpty() && isPersonAccountOrg()) {
-            for (Person person : PersonRecordSelector.getPersons(personRecordIds)) {
+            lookedFor.addAll(personRecordIds);
+            List<Person> people = asUser
+                ? PersonRecordSelector.getPersonsForDisplay(personRecordIds)
+                : PersonRecordSelector.getPersons(personRecordIds);
+            for (Person person : people) {
                 peopleById.put(person.id, person);
             }
         }
@@ -321,8 +336,20 @@ public with sharing class HouseholdService {
             Id householdId = idValue(values, 'Household__c');
             Person source = peopleById.get(personId);
             List<Person> bucket = householdId == null ? null : result.get(householdId);
-            if (source == null || bucket == null) {
+            if (bucket == null) {
                 continue;
+            }
+            if (source == null) {
+                if (asUser || !lookedFor.contains(personId)) {
+                    // A screen shows the people this user can read and nothing standing in
+                    // for the ones they cannot, and a row naming nobody the org stores
+                    // people on names no member at all.
+                    continue;
+                }
+                source = unresolvedMember(
+                    personId,
+                    contactId != null ? SOURCE_CONTACT : SOURCE_ACCOUNT
+                );
             }
             Person member = source.copy();
             String role = textValue(values, 'Role__c');
@@ -332,6 +359,28 @@ public with sharing class HouseholdService {
             member.isPrimary = flagValue(values, 'Is_Primary__c');
             bucket.add(member);
         }
+    }
+
+    /**
+     * A member whose own record the upkeep read did not return, kept as a member anyway.
+     *
+     * That read runs in system mode (ADR-0021), so field level access is not why the record
+     * is missing: either it has been deleted while the membership row still names it, or
+     * sharing withholds it from the running user. Dropping the member would recount the
+     * household smaller than it is, could rename it, could have it deleted as empty, and in
+     * a merge would leave the member behind on the household the merge deletes. So the
+     * member is counted. There is no name to put in the household name or the greetings,
+     * and the naming service would read a blank surname as a real one, so the placeholder
+     * is kept out of both: the wording a household ends up with is the wording it has
+     * today, and only the count and the moves change.
+     */
+    private static Person unresolvedMember(Id personId, String source) {
+        Person result = new Person();
+        result.id = personId;
+        result.sourceObject = source;
+        result.excludeFromName = true;
+        result.excludeFromGreetings = true;
+        return result;
     }
 
     /**
@@ -376,6 +425,42 @@ public with sharing class HouseholdService {
     }
 
     /**
+     * Every household these people currently belong to, all of them rather than only the
+     * one they are primary in.
+     *
+     * `getHouseholdIdsFor` answers "which household is this person's", which is the right
+     * question when crediting a gift. This answers "which households does a change to this
+     * person show up in", which is the right question when settling up after that person
+     * has been renamed, deleted or restored: somebody in two households is named in two
+     * household names, and both have to be rewritten.
+     *
+     * Junction mode only. In contact mode a person's household is the account their
+     * contact record points at, and the contact trigger reads it from the record itself.
+     */
+    @NamespaceAccessible
+    public static Set<Id> householdIdsForPeople(Set<Id> personIds) {
+        Set<Id> result = new Set<Id>();
+        if (personIds == null || personIds.isEmpty() || !isJunctionMode()) {
+            return result;
+        }
+        for (
+            Household_Member__c membership : HouseholdSelector.getMembershipsForPeople(personIds)
+        ) {
+            Id personId = membership.Contact__c != null
+                ? membership.Contact__c
+                : membership.Account__c;
+            if (
+                personId != null &&
+                personIds.contains(personId) &&
+                membership.Household__c != null
+            ) {
+                result.add(membership.Household__c);
+            }
+        }
+        return result;
+    }
+
+    /**
      * The people who currently belong to each household given, by household id. The
      * counterpart of getHouseholdIdsFor, for callers rolling values up to a household.
      */
@@ -399,6 +484,84 @@ public with sharing class HouseholdService {
             result.put(householdId, personIds);
         }
         return result;
+    }
+
+    /**
+     * Takes the membership rows that join these people to their households out of the way,
+     * for the one caller that needs it: the person records themselves are being deleted.
+     *
+     * Called from a `before delete` context, while the rows still say whose membership
+     * they are. Two things follow from that, and neither works from `after delete`. The
+     * households the deletion affects can still be read off the rows, and they are what
+     * this returns. And the rows go into the recycle bin still naming the person, so that
+     * restoring the person can put the membership back (`restoreMembershipsFor`).
+     *
+     * Ended memberships go too. A membership that has ended is history of a person, and
+     * once that person is gone it is history of nobody: left behind, the platform empties
+     * its person lookup and the row says nothing at all (R-M4).
+     */
+    @NamespaceAccessible
+    public static Set<Id> removeMembershipsFor(Set<Id> personIds) {
+        Set<Id> affected = new Set<Id>();
+        if (personIds == null || personIds.isEmpty() || !isJunctionMode()) {
+            return affected;
+        }
+        List<Household_Member__c> removing = new List<Household_Member__c>();
+        for (
+            Household_Member__c membership : HouseholdSelector.getAllMembershipsForPeople(personIds)
+        ) {
+            Id personId = membership.Contact__c != null
+                ? membership.Contact__c
+                : membership.Account__c;
+            if (personId == null || !personIds.contains(personId)) {
+                continue;
+            }
+            if (membership.Household__c != null) {
+                affected.add(membership.Household__c);
+            }
+            removing.add(new Household_Member__c(Id = membership.Id));
+        }
+        HouseholdWriter.deleteMemberships(removing);
+        HOUSEHOLD_ID_BY_PERSON.clear();
+        return affected;
+    }
+
+    /**
+     * Puts back the membership rows that were removed when these people were deleted, and
+     * answers with the households that has changed.
+     *
+     * The platform cannot do this for us. A lookup that was emptied because the record it
+     * pointed at was deleted is not restored when that record comes back, so a membership
+     * row left to the platform would come out of the deletion naming nobody and stay that
+     * way. Removing the row first, while it still names the person, is what makes the
+     * restore possible at all.
+     */
+    @NamespaceAccessible
+    public static Set<Id> restoreMembershipsFor(Set<Id> personIds) {
+        Set<Id> affected = new Set<Id>();
+        if (personIds == null || personIds.isEmpty() || !isJunctionMode()) {
+            return affected;
+        }
+        List<Household_Member__c> restoring = new List<Household_Member__c>();
+        for (
+            Household_Member__c membership : HouseholdSelector.getDeletedMembershipsForPeople(
+                personIds
+            )
+        ) {
+            Id personId = membership.Contact__c != null
+                ? membership.Contact__c
+                : membership.Account__c;
+            if (personId == null || !personIds.contains(personId)) {
+                continue;
+            }
+            if (membership.Household__c != null) {
+                affected.add(membership.Household__c);
+            }
+            restoring.add(new Household_Member__c(Id = membership.Id));
+        }
+        HouseholdWriter.undeleteMemberships(restoring);
+        HOUSEHOLD_ID_BY_PERSON.clear();
+        return affected;
     }
 
     /**
@@ -521,19 +684,63 @@ public with sharing class HouseholdService {
     }
 
     /**
+     * Set while package code is inserting people it is going to join to households itself,
+     * so that automatic creation does not give each of them one of their own first (the
+     * sample data loader is the caller this exists for). It suspends the automatic path
+     * only: everything a person does by hand is unaffected, and the flag lasts for one
+     * transaction.
+     */
+    @NamespaceAccessible
+    public static void suspendAutomaticCreation() {
+        automaticCreationSuspended = true;
+    }
+
+    @NamespaceAccessible
+    public static void resumeAutomaticCreation() {
+        automaticCreationSuspended = false;
+    }
+
+    /**
+     * Whether the org asks for a household to be made for a new person who has none. One
+     * setting answers it for both membership modes and for both objects a person can be
+     * stored on (R-H1, R-H2, ADR-0037).
+     */
+    private static Boolean automaticCreationEnabled() {
+        if (automaticCreationSuspended) {
+            return false;
+        }
+        Nonprofit_Settings__c settings = SettingsService.getSettings();
+        return settings != null && settings.Auto_Create_Households__c == true;
+    }
+
+    /**
+     * Turns automatic household creation on, which is what the Health Check fix for
+     * "no new person is getting a household" does. The setting is saved the way every
+     * setting is saved, so the change is cached, invalidated and audited like any other.
+     */
+    @NamespaceAccessible
+    public static void enableAutomaticHouseholds() {
+        SettingsService.saveValues(new Map<String, Object>{ 'Auto_Create_Households__c' => true });
+    }
+
+    /**
      * Gives every contact that arrives without a household one of its own, named from the
      * org's pattern. Runs before insert, so the new household id is simply assigned to the
      * contact and no second pass over contacts is needed. R-H1.
+     *
+     * Contact mode only. In junction mode the household is a membership row rather than a
+     * reference on the contact, and a membership row needs an id the contact does not have
+     * yet, so that mode is served after insert by createHouseholdsForNewContacts.
      */
     @NamespaceAccessible
     public static void ensureHouseholds(List<Contact> contacts) {
-        if (contacts == null || contacts.isEmpty()) {
+        if (contacts == null || contacts.isEmpty() || isJunctionMode()) {
+            return;
+        }
+        if (!automaticCreationEnabled()) {
             return;
         }
         Nonprofit_Settings__c settings = SettingsService.getSettings();
-        if (settings == null || settings.Auto_Create_Households__c != true || isJunctionMode()) {
-            return;
-        }
         Id recordTypeId = householdRecordTypeId();
         if (recordTypeId == null) {
             ErrorLogger.log(
@@ -569,12 +776,104 @@ public with sharing class HouseholdService {
 
     /**
      * Creates a household and a membership row for each new person that the org stores as
-     * an account. R-H2. Called only when the org has person records, membership is in
-     * junction mode, and the setting is on.
+     * an account. R-H2. Called only when the org has person records and membership is in
+     * junction mode; the caller has already read the automatic creation setting.
      */
     @NamespaceAccessible
     public static void createHouseholdsForPersonAccounts(List<SObject> personRecords) {
-        if (personRecords == null || personRecords.isEmpty() || creatingPersonHouseholds) {
+        if (
+            personRecords == null ||
+            personRecords.isEmpty() ||
+            creatingAutomaticHouseholds ||
+            automaticCreationSuspended
+        ) {
+            return;
+        }
+        createHouseholdsAndMemberships(PersonRecordSelector.toPersons(personRecords));
+    }
+
+    /**
+     * Creates a household and a membership row for each contact that has just been saved
+     * into junction mode with no household of their own. R-H2, ADR-0037.
+     *
+     * This is the junction mode counterpart of ensureHouseholds, and it runs after insert
+     * rather than before it, because the membership row that joins a person to a household
+     * needs the person's id.
+     */
+    @NamespaceAccessible
+    public static void createHouseholdsForNewContacts(List<Contact> contacts) {
+        if (
+            contacts == null ||
+            contacts.isEmpty() ||
+            creatingAutomaticHouseholds ||
+            !isJunctionMode() ||
+            !automaticCreationEnabled()
+        ) {
+            return;
+        }
+        createHouseholdsAndMemberships(toPersons(withoutAHousehold(contacts)));
+    }
+
+    /**
+     * The contacts among these that belong to no household yet.
+     *
+     * Two ways of belonging count, so that automatic creation never makes a second household
+     * for somebody who already has one: a membership row that already joins them to one, and
+     * a household account they were saved against directly, which is how a person arrives
+     * from the merge and split screens and from an import that names their household.
+     */
+    private static List<Contact> withoutAHousehold(List<Contact> contacts) {
+        Set<Id> personIds = new Set<Id>();
+        Set<Id> accountIds = new Set<Id>();
+        for (Contact record : contacts) {
+            if (record.Id == null) {
+                continue;
+            }
+            personIds.add(record.Id);
+            if (record.AccountId != null) {
+                accountIds.add(record.AccountId);
+            }
+        }
+        List<Contact> result = new List<Contact>();
+        if (personIds.isEmpty()) {
+            return result;
+        }
+        Map<Id, Id> householdByPerson = getHouseholdIdsFor(personIds);
+        Set<Id> households = householdsAmong(accountIds);
+        for (Contact record : contacts) {
+            if (record.Id == null || householdByPerson.get(record.Id) != null) {
+                continue;
+            }
+            if (record.AccountId != null && households.contains(record.AccountId)) {
+                continue;
+            }
+            result.add(record);
+        }
+        return result;
+    }
+
+    /** Which of these accounts are households rather than organizations. */
+    private static Set<Id> householdsAmong(Set<Id> accountIds) {
+        Set<Id> result = new Set<Id>();
+        Id recordTypeId = householdRecordTypeId();
+        if (accountIds.isEmpty() || recordTypeId == null) {
+            return result;
+        }
+        for (Account record : HouseholdSelector.getAccountRecordTypes(accountIds)) {
+            if (record.RecordTypeId == recordTypeId) {
+                result.add(record.Id);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * One household each, and the membership row that joins each person to theirs. The one
+     * creation pass both automatic paths use, so that a person stored as a contact and a
+     * person stored as an account are given the same thing in the same way.
+     */
+    private static void createHouseholdsAndMemberships(List<Person> people) {
+        if (people == null || people.isEmpty()) {
             return;
         }
         Id recordTypeId = householdRecordTypeId();
@@ -586,11 +885,7 @@ public with sharing class HouseholdService {
             return;
         }
         Nonprofit_Settings__c settings = SettingsService.getSettings();
-        List<Person> people = PersonRecordSelector.toPersons(personRecords);
-        if (people.isEmpty()) {
-            return;
-        }
-        creatingPersonHouseholds = true;
+        creatingAutomaticHouseholds = true;
         try {
             List<Account> households = new List<Account>();
             for (Person person : people) {
@@ -599,25 +894,17 @@ public with sharing class HouseholdService {
             List<Id> created = HouseholdWriter.createHouseholds(households);
             List<Household_Member__c> memberships = new List<Household_Member__c>();
             for (Integer i = 0; i < created.size(); i++) {
-                if (created[i] == null) {
+                if (created[i] == null || people[i].id == null) {
                     continue;
                 }
-                memberships.add(
-                    new Household_Member__c(
-                        Household__c = created[i],
-                        Account__c = people[i].id,
-                        Role__c = ROLE_HEAD,
-                        Is_Primary__c = true,
-                        Start_Date__c = Date.today()
-                    )
-                );
+                memberships.add(newMembership(people[i].id, created[i], ROLE_HEAD, true));
             }
             if (!memberships.isEmpty()) {
                 HouseholdWriter.createMemberships(memberships);
                 HOUSEHOLD_ID_BY_PERSON.clear();
             }
         } finally {
-            creatingPersonHouseholds = false;
+            creatingAutomaticHouseholds = false;
         }
     }
 
@@ -1114,8 +1401,15 @@ public with sharing class HouseholdService {
     }
 
     /**
-     * Deletes households that have been left with no members, when the org asks for that.
-     * R-H12.
+     * Deletes households that have been left with no members, when the org asks for that and
+     * nothing outside Open Impact still depends on the account. R-H12, ADR-0036.
+     *
+     * "Empty" is decided from Open Impact's own membership, which is the only membership Open
+     * Impact can see. In an org running Salesforce Nonprofit Cloud a household account can
+     * carry a native household group and native membership rows as well, and the account is
+     * the master of that group, so deleting it would destroy the group rather than orphan it.
+     * Such a household is left alone and the skip is reported, because a tidy-up that quietly
+     * deletes somebody else's data is worse than a tidy-up left undone.
      */
     @NamespaceAccessible
     public static void deleteEmptyHouseholds(Set<Id> householdIds) {
@@ -1133,11 +1427,42 @@ public with sharing class HouseholdService {
             List<Person> members = membersByHousehold.get(household.Id);
             Boolean isHousehold = recordTypeId != null && household.RecordTypeId == recordTypeId;
             if (isHousehold && (members == null || members.isEmpty())) {
-                empties.add(new Account(Id = household.Id));
+                empties.add(household);
             }
         }
-        if (!empties.isEmpty()) {
-            HouseholdWriter.deleteHouseholds(empties);
+        if (empties.isEmpty()) {
+            return;
+        }
+        // One probe for the whole batch, so a split of fifty households still asks once.
+        Set<Id> dependent = HouseholdSelector.getAccountsWithNativeDependents(
+            new Map<Id, Account>(empties).keySet()
+        );
+        List<Account> deletable = new List<Account>();
+        List<String> skipped = new List<String>();
+        for (Account household : empties) {
+            if (dependent.contains(household.Id)) {
+                skipped.add(
+                    String.format(
+                        Label.Core_Households_SkippedNativeDependents,
+                        new List<String>{ household.Name, String.valueOf(household.Id) }
+                    )
+                );
+            } else {
+                deletable.add(new Account(Id = household.Id));
+            }
+        }
+        if (!skipped.isEmpty()) {
+            // Not an error: an administrator is being told what was deliberately left alone,
+            // and why, so that the empty household on their list is explained rather than
+            // mysterious.
+            ErrorLogger.logMessages(
+                skipped,
+                Label.Core_Households_ErrorContextMembership,
+                ErrorLogger.SEVERITY_INFO
+            );
+        }
+        if (!deletable.isEmpty()) {
+            HouseholdWriter.deleteHouseholds(deletable);
         }
     }
 }

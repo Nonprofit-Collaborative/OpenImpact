@@ -4,6 +4,7 @@ import { NavigationMixin } from 'lightning/navigation';
 import getReport from '@salesforce/apex/HealthCheckController.getReport';
 import applyRecommendedMode from '@salesforce/apex/HealthCheckController.applyRecommendedMode';
 import applyJunctionMembership from '@salesforce/apex/HealthCheckController.applyJunctionMembership';
+import enableAutomaticHouseholds from '@salesforce/apex/HealthCheckController.enableAutomaticHouseholds';
 
 import CATEGORY_ACCESS from '@salesforce/label/c.Core_HealthCheck_CategoryAccess';
 import CATEGORY_LICENSES from '@salesforce/label/c.Core_HealthCheck_CategoryLicenses';
@@ -27,6 +28,7 @@ import USE_RECOMMENDED from '@salesforce/label/c.Core_HealthCheck_UseRecommended
 const ACTION_PREFIX = 'action:';
 const ACTION_RECOMMENDED_MODE = 'action:applyRecommendedMode';
 const ACTION_JUNCTION_MEMBERSHIP = 'action:applyJunctionMembership';
+const ACTION_AUTOMATIC_HOUSEHOLDS = 'action:enableAutomaticHouseholds';
 
 const SEVERITY_DISPLAY = {
   Error: { icon: 'utility:error', variant: 'error', order: 0 },
@@ -204,6 +206,10 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
     }
     if (target === ACTION_JUNCTION_MEMBERSHIP) {
       this.runAction(applyJunctionMembership);
+      return;
+    }
+    if (target === ACTION_AUTOMATIC_HOUSEHOLDS) {
+      this.runAction(enableAutomaticHouseholds);
       return;
     }
     if (target.startsWith(ACTION_PREFIX)) {

@@ -1,0 +1,443 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+  <labels>
+    <fullName>Giving_Acknowledgment_NoPermission</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments: the permission a send needs</shortDescription>
+    <value>Sending thank yous needs the Send Acknowledgments permission. Ask your administrator to add you to Giving Staff or Giving Admin.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgment_UnexpectedError</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments: an unexpected failure, with the log pointed at</shortDescription>
+    <value>Something went wrong on the acknowledgments page. It has been written to the Error Log with the detail.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgment_SendFailedUnknown</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments: a send failed with no message</shortDescription>
+    <value>The email could not be sent and Salesforce gave no reason.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgment_TemplateNotFound</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments: a rule names a template that does not exist</shortDescription>
+    <value>The email template {0} is not in this org. Check the developer name on the rule against the list on the Acknowledgments page.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgment_TemplatesMissing</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments: the log entry for missing templates in one chunk</shortDescription>
+    <value>{0} thank yous could not be sent because their rule names an email template this org does not have.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgment_NoRecipient</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments: the log entry for gifts with no recipient</shortDescription>
+    <value>{0} gifts in this send had nobody to email, so they were left in the queue: {1}. Give the donor a contact with an email address, or write a rule that sends these by letter.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgment_EmailRunSummary</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments: the last run summary for an email run</shortDescription>
+    <value>Emailed thank yous: {0} sent, {1} did not go.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgment_LetterRunSummary</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments: the last run summary for a letter run</shortDescription>
+    <value>Letters to merge: {0} ready to print.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgment_LetterRunFailed</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments: the letter run failed</shortDescription>
+    <value>The letter merge file could not be produced. The reason is in the Error Log.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgment_RunNotFound</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments: the run was not found</shortDescription>
+    <value>That acknowledgment run no longer exists.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgment_RunNotWaiting</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments: the run is not ready to be marked sent</shortDescription>
+    <value>That run is not waiting to be marked sent. Only a letter run whose file has been produced can be marked sent.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_Title</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: heading</shortDescription>
+    <value>Acknowledgments</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_Intro</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: what the page is for</shortDescription>
+    <value>Your thank you rules and what is waiting to go out. Emails are sent from here or overnight; letters come out as a spreadsheet you merge with your own letter and print.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_Off</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the feature is off</shortDescription>
+    <value>Acknowledging gifts is switched off, so nothing is joining the queue. Turn on Acknowledge gifts in Nonprofit Settings, under Giving.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_NoRules</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: no rules exist</shortDescription>
+    <value>You have no rules yet, so no gift is being queued for a thank you. Add one with New rule.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_QueueHeading</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the queue section heading</shortDescription>
+    <value>Waiting to go</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_EmailQueue</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the email queue count</shortDescription>
+    <value>Emails ready to send</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_LetterQueue</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the letter queue count</shortDescription>
+    <value>Letters ready to merge</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_Unmatched</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: gifts in the queue that no rule matches</shortDescription>
+    <value>Waiting, matched by no rule</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_WithoutRecipient</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: gifts with no email recipient</shortDescription>
+    <value>Could not be sent, nobody to email</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_QueueCapped</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the queue is longer than the page limit</shortDescription>
+    <value>The queue is longer than this page counts. Send what is here and the rest will be counted next time.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_SendEmails</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the button that starts an email run</shortDescription>
+    <value>Send emails now</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_EmailsStarted</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the email run has been queued</shortDescription>
+    <value>The email send has started. The run below shows how it goes.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_ProduceLetters</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the button that produces the letter file</shortDescription>
+    <value>Download letters to merge</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_LettersReady</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the letter file has been produced</shortDescription>
+    <value>The letter file is ready on the run below. Merge it, print it, and then choose Mark as sent.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_MarkSent</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the button that closes a letter run</shortDescription>
+    <value>Mark as sent</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_LettersMarkedSent</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the letters were marked sent</shortDescription>
+    <value>Those letters are recorded as sent.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_Nightly</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the nightly schedule toggle</shortDescription>
+    <value>Send emails nightly</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_NextRun</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: when the nightly send is next due</shortDescription>
+    <value>Next run</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_NotScheduled</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the nightly send is off</shortDescription>
+    <value>Not scheduled. Nothing goes out until you press Send.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_LastRun</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: when the last send finished</shortDescription>
+    <value>Last run</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_NeverRun</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: no run has happened</shortDescription>
+    <value>Nothing has been sent yet.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_RulesHeading</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the rules section heading</shortDescription>
+    <value>Your rules, in the order they are considered</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_NewRule</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the button that creates a rule</shortDescription>
+    <value>New rule</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_TemplatesHeading</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the templates section heading</shortDescription>
+    <value>Email templates in this org</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_TemplatesIntro</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: how a rule names a template</shortDescription>
+    <value>A rule names its template by developer name, the one on the right. Edit the wording of a template in Salesforce Setup, under Email Templates.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_RunsHeading</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the runs section heading</shortDescription>
+    <value>Recent runs</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_NoRuns</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: no runs exist</shortDescription>
+    <value>No sends yet.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_TemplateNotFound</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: a rule names a template the org does not have</shortDescription>
+    <value>Template not found</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_Inactive</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: an inactive rule</shortDescription>
+    <value>Inactive</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_ActionFailed</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: an action failed</shortDescription>
+    <value>That did not work.</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_ColumnRule</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the rule name column</shortDescription>
+    <value>Rule</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_ColumnOrder</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the rule order column</shortDescription>
+    <value>Order</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_ColumnChannel</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the channel column</shortDescription>
+    <value>Channel</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_ColumnTemplate</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the template column</shortDescription>
+    <value>Template</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_ColumnMatches</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the column describing what a rule matches</shortDescription>
+    <value>Matches</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_ColumnLabel</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the template label column</shortDescription>
+    <value>Template name</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_ColumnDeveloperName</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the template developer name column</shortDescription>
+    <value>Developer name</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_ColumnRun</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the run column</shortDescription>
+    <value>Run</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_ColumnStatus</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the run status column</shortDescription>
+    <value>Status</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_ColumnSent</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the count sent column</shortDescription>
+    <value>Sent</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_ColumnErrors</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the error count column</shortDescription>
+    <value>Did not go</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_ColumnFinished</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the finished column</shortDescription>
+    <value>Finished</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_DownloadFile</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: the link to a letter run's merge file</shortDescription>
+    <value>Download the file</value>
+  </labels>
+  <labels>
+    <fullName>Giving_Acknowledgments_AnyAmount</fullName>
+    <categories>Giving, Acknowledgments</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Acknowledgments page: a rule with no criteria</shortDescription>
+    <value>Any gift</value>
+  </labels>
+</CustomLabels>

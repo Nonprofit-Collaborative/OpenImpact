@@ -6,9 +6,9 @@
   <columns>Primary_Contact__c</columns>
   <filterScope>Everything</filterScope>
   <filters>
-    <field>RecordType.DeveloperName</field>
+    <field>ACCOUNT.RECORDTYPE</field>
     <operation>equals</operation>
-    <value>Organization</value>
+    <value>Account.Organization</value>
   </filters>
   <label>Organizations</label>
 </ListView>

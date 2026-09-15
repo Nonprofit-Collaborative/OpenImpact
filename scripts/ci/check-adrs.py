@@ -33,6 +33,29 @@ HEADING = re.compile(r"^# ADR-(\d{4}):")
 
 
 def main():
+    # ADR-NEXT is the placeholder a parallel branch uses instead of guessing a number
+    # (see the folder README). It is correct on a branch and never correct on main, so the
+    # gate is what stops an unassigned one shipping.
+    placeholders = sorted(glob.glob(f"{DECISIONS}/NEXT*.md"))
+    # These files explain the placeholder, so they name it on purpose and are the only
+    # places the string is allowed to survive. Keep the list short: a file that merely uses
+    # an ADR citation never belongs here, only one that teaches the convention.
+    explains_the_convention = {
+        os.path.join(DECISIONS, "README.md"),
+        "CLAUDE.md",
+        os.path.join("docs", "contributor-guide", "ci.md"),
+    }
+    stray = []
+    for path in glob.glob(f"{DECISIONS}/*.md") + glob.glob("docs/**/*.md", recursive=True):
+        if os.path.normpath(path) in explains_the_convention:
+            continue
+        try:
+            with open(path, encoding="utf-8") as handle:
+                if "ADR-NEXT" in handle.read():
+                    stray.append(path)
+        except OSError:
+            continue
+
     paths = sorted(glob.glob(f"{DECISIONS}/0*.md"))
     index_path = os.path.join(DECISIONS, "README.md")
     if not os.path.isfile(index_path):
@@ -41,6 +64,14 @@ def main():
 
     problems = []
     by_number = {}
+
+    for path in placeholders:
+        problems.append(
+            f"{os.path.basename(path)}: still an ADR-NEXT placeholder. The integrator assigns "
+            "the number at merge: rename the file, the heading and every citation together."
+        )
+    for path in sorted(set(stray)):
+        problems.append(f"{path}: cites ADR-NEXT, which was never assigned a number")
 
     for path in paths:
         name = os.path.basename(path)

@@ -3,6 +3,25 @@
 private class RollupCalculatorTests {
   // use these tests when DML is not required, or only *light* DML is necessary
 
+  // PATCH E, continued. The upstream file gives its stub records literal Ids carrying the key
+  // prefix of the sales object this fork replaced with RollupCalcItem__c, and a literal from one
+  // object's key space is not a valid Id for another: the platform refuses it with "Invalid id
+  // value for this SObject type". A custom object's key prefix is assigned by the org, so it
+  // cannot be written down in source, and these are built from the describe at run time instead.
+  // They are four fixed constants rather than four RollupTestUtils.createId calls because the
+  // tests below depend on two stubs written with the same literal being the same record.
+  private static final Id CALC_ITEM_ID_1 = stubCalcItemId(1);
+  private static final Id CALC_ITEM_ID_2 = stubCalcItemId(2);
+  private static final Id CALC_ITEM_ID_3 = stubCalcItemId(3);
+  private static final Id CALC_ITEM_ID_4 = stubCalcItemId(4);
+
+  private static Id stubCalcItemId(Integer sequence) {
+    String suffix = String.valueOf(sequence);
+    return RollupCalcItem__c.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() +
+      '0'.repeat(12 - suffix.length()) +
+      suffix;
+  }
+
   @TestSetup
   static void setup() {
     insert as system new Account(Name = RollupCalculatorTests.class.getName());
@@ -39,9 +58,9 @@ private class RollupCalculatorTests {
     // this will be true for all the first/last tests in this class
     calc.performRollup(
       new List<RollupCalcItem__c>{
-        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1, CloseDate__c = System.today().addDays(2)),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2, CloseDate__c = System.today()),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15, CloseDate__c = System.today().addDays(1))
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 1, CloseDate__c = System.today().addDays(2)),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Amount__c = 2, CloseDate__c = System.today()),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_3, Amount__c = 15, CloseDate__c = System.today().addDays(1))
       },
       new Map<Id, SObject>()
     );
@@ -56,9 +75,9 @@ private class RollupCalculatorTests {
 
     calc.performRollup(
       new List<RollupCalcItem__c>{
-        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1, CloseDate__c = System.today().addDays(-15)),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2, CloseDate__c = System.today()),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15, CloseDate__c = System.today().addDays(-2))
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 1, CloseDate__c = System.today().addDays(-15)),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Amount__c = 2, CloseDate__c = System.today()),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_3, Amount__c = 15, CloseDate__c = System.today().addDays(-2))
       },
       new Map<Id, SObject>()
     );
@@ -74,9 +93,9 @@ private class RollupCalculatorTests {
 
     calc.performRollup(
       new List<RollupCalcItem__c>{
-        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2, CloseDate__c = System.today()),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15, CloseDate__c = System.today().addDays(2))
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 1),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Amount__c = 2, CloseDate__c = System.today()),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_3, Amount__c = 15, CloseDate__c = System.today().addDays(2))
       },
       new Map<Id, SObject>()
     );
@@ -92,9 +111,9 @@ private class RollupCalculatorTests {
     Date today = System.today();
     calc.performRollup(
       new List<RollupCalcItem__c>{
-        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1, CloseDate__c = today.addDays(1)),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2, CloseDate__c = today),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15, CloseDate__c = today.addDays(1))
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 1, CloseDate__c = today.addDays(1)),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Amount__c = 2, CloseDate__c = today),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_3, Amount__c = 15, CloseDate__c = today.addDays(1))
       },
       new Map<Id, SObject>()
     );
@@ -110,9 +129,9 @@ private class RollupCalculatorTests {
 
     calc.performRollup(
       new List<RollupCalcItem__c>{
-        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1, CloseDate__c = System.today()),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15)
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 1, CloseDate__c = System.today()),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Amount__c = 2),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_3, Amount__c = 15)
       },
       new Map<Id, SObject>()
     );
@@ -128,9 +147,9 @@ private class RollupCalculatorTests {
 
     calc.performRollup(
       new List<RollupCalcItem__c>{
-        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2, CloseDate__c = System.today()),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15)
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 1),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Amount__c = 2, CloseDate__c = System.today()),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_3, Amount__c = 15)
       },
       new Map<Id, SObject>()
     );
@@ -144,9 +163,9 @@ private class RollupCalculatorTests {
     RollupCalculator calc = getCalculator(0, RollupOperation.FIRST, RollupCalcItem__c.Amount__c, Account.AnnualRevenue, metadata, '0011g00003VDGbF002', Account.Id);
 
     List<RollupCalcItem__c> opps = new List<RollupCalcItem__c>{
-      new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1),
-      new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2),
-      new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15)
+      new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 1),
+      new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Amount__c = 2),
+      new RollupCalcItem__c(Id = CALC_ITEM_ID_3, Amount__c = 15)
     };
 
     calc.performRollup(opps, new Map<Id, SObject>());
@@ -161,9 +180,9 @@ private class RollupCalculatorTests {
 
     calc.performRollup(
       new List<RollupCalcItem__c>{
-        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1, Name = 'b'),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2, Name = 'a'),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15, Name = 'c')
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 1, Name = 'b'),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Amount__c = 2, Name = 'a'),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_3, Amount__c = 15, Name = 'c')
       },
       new Map<Id, SObject>()
     );
@@ -178,9 +197,9 @@ private class RollupCalculatorTests {
 
     calc.performRollup(
       new List<RollupCalcItem__c>{
-        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 1, Name = 'b'),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 2, Name = 'c'),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15, Name = 'a')
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 1, Name = 'b'),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Amount__c = 2, Name = 'c'),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_3, Amount__c = 15, Name = 'a')
       },
       new Map<Id, SObject>()
     );
@@ -195,9 +214,9 @@ private class RollupCalculatorTests {
 
     calc.performRollup(
       new List<RollupCalcItem__c>{
-        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 1),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 15)
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 2),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Amount__c = 1),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_3, Amount__c = 15)
       },
       new Map<Id, SObject>()
     );
@@ -212,9 +231,9 @@ private class RollupCalculatorTests {
 
     calc.performRollup(
       new List<RollupCalcItem__c>{
-        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 16),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 1)
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 2),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Amount__c = 16),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_3, Amount__c = 1)
       },
       new Map<Id, SObject>()
     );
@@ -229,9 +248,9 @@ private class RollupCalculatorTests {
 
     calc.performRollup(
       new List<RollupCalcItem__c>{
-        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Name = 'b'),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 16, Name = 'a'),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 1, Name = 'c')
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 2, Name = 'b'),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Amount__c = 16, Name = 'a'),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_3, Amount__c = 1, Name = 'c')
       },
       new Map<Id, SObject>()
     );
@@ -251,9 +270,9 @@ private class RollupCalculatorTests {
 
     calc.performRollup(
       new List<RollupCalcItem__c>{
-        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Name = 'c'),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 16, Name = 'b'),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF003', Amount__c = 1, Name = 'c')
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 2, Name = 'c'),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Amount__c = 16, Name = 'b'),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_3, Amount__c = 1, Name = 'c')
       },
       new Map<Id, SObject>()
     );
@@ -337,10 +356,10 @@ private class RollupCalculatorTests {
 
     calc.performRollup(
       new List<RollupCalcItem__c>{
-        new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF002'),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF003'),
-        new RollupCalcItem__c(Id = '0066g00003VDGbF004', Amount__c = 2)
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 2),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_2),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_3),
+        new RollupCalcItem__c(Id = CALC_ITEM_ID_4, Amount__c = 2)
       },
       new Map<Id, SObject>()
     );
@@ -382,7 +401,7 @@ private class RollupCalculatorTests {
       '0011g00003VDGbF002',
       RollupCalcItem__c.Account__c
     );
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 2, Account__c = '0016g00003VDGbF001');
     calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>{ opp.Id => new RollupCalcItem__c(Account__c = '0016g00003VDGbF002') });
 
     System.assertEquals(1, (Decimal) calc.getReturnValue(), 'If record is reparented, it should count towards count for new record!');
@@ -399,7 +418,7 @@ private class RollupCalculatorTests {
       '0011g00003VDGbF002',
       RollupCalcItem__c.Account__c
     );
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 2, Account__c = '0016g00003VDGbF001');
     calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c != ' + opp.Amount__c, RollupCalcItem__c.SObjectType));
 
     calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
@@ -435,7 +454,7 @@ private class RollupCalculatorTests {
       '0011g00003VDGbF002',
       RollupCalcItem__c.Account__c
     );
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 2, Account__c = '0016g00003VDGbF001');
     calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c != ' + opp.Amount__c, RollupCalcItem__c.SObjectType));
 
     calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
@@ -454,7 +473,7 @@ private class RollupCalculatorTests {
       '0011g00003VDGbF002',
       RollupCalcItem__c.Account__c
     );
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 2, Account__c = '0016g00003VDGbF001');
     calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c != ' + opp.Amount__c, RollupCalcItem__c.SObjectType));
 
     calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
@@ -474,7 +493,7 @@ private class RollupCalculatorTests {
       RollupCalcItem__c.Account__c
     );
 
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2);
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 2);
 
     calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
 
@@ -500,7 +519,7 @@ private class RollupCalculatorTests {
       RollupCalcItem__c.Account__c
     );
 
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = acc.Id);
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 2, Account__c = acc.Id);
     calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
 
     System.assertEquals(null, calc.getReturnValue(), 'Null amount should be excluded');
@@ -565,7 +584,7 @@ private class RollupCalculatorTests {
       '0011g00003VDGbF002',
       RollupCalcItem__c.Account__c
     );
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 2, Account__c = '0016g00003VDGbF001');
     RollupCalcItem__c oldOpp = opp.clone(true, true);
     oldOpp.Amount__c = 1;
     calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c != ' + oldOpp.Amount__c, RollupCalcItem__c.SObjectType));
@@ -586,7 +605,7 @@ private class RollupCalculatorTests {
       RollupCalcItem__c.Account__c
     );
 
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = 'Something else', Account__c = '0011g00003VDGbF002');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Name = 'Something else', Account__c = '0011g00003VDGbF002');
     RollupCalcItem__c oldOpp = opp.clone(true, true);
     oldOpp.Name = ''; // string default
 
@@ -607,8 +626,8 @@ private class RollupCalculatorTests {
     );
 
     // use two calc items to ensure full recalc AND for loop in calculator are hit
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = 'Something else', Account__c = '0011g00003VDGbF002');
-    RollupCalcItem__c two = new RollupCalcItem__c(Id = '0066g00003VDGbF002', Name = 'matching', Account__c = '0011g00003VDGbF002');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Name = 'Something else', Account__c = '0011g00003VDGbF002');
+    RollupCalcItem__c two = new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Name = 'matching', Account__c = '0011g00003VDGbF002');
     RollupCalcItem__c oldOpp = opp.clone(true, true);
     oldOpp.Name = 'matching';
     RollupCalcItem__c secondOldOpp = two.clone(true, true);
@@ -669,7 +688,7 @@ private class RollupCalculatorTests {
       '0011g00003VDGbF002',
       RollupCalcItem__c.Account__c
     );
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 2, Account__c = '0016g00003VDGbF001');
     calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c != ' + opp.Amount__c, RollupCalcItem__c.SObjectType));
 
     calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
@@ -688,7 +707,7 @@ private class RollupCalculatorTests {
       '0011g00003VDGbF002',
       RollupCalcItem__c.Account__c
     );
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 2, Account__c = '0016g00003VDGbF001');
     calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c != ' + opp.Amount__c, RollupCalcItem__c.SObjectType));
 
     calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
@@ -762,7 +781,7 @@ private class RollupCalculatorTests {
       '0011g00003VDGbF002',
       RollupCalcItem__c.Account__c
     );
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 2, Account__c = '0016g00003VDGbF001');
     calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c != ' + opp.Amount__c, RollupCalcItem__c.SObjectType));
 
     calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
@@ -806,7 +825,7 @@ private class RollupCalculatorTests {
       '0011g00003VDGbF002',
       RollupCalcItem__c.Account__c
     );
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 2, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 2, Account__c = '0016g00003VDGbF001');
     RollupCalcItem__c oldOpp = opp.clone(true, true);
     oldOpp.Amount__c = 1;
     calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c != ' + oldOpp.Amount__c, RollupCalcItem__c.SObjectType));
@@ -910,8 +929,8 @@ private class RollupCalculatorTests {
     info.value = value;
     calc.setState(outerState);
 
-    RollupCalcItem__c one = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 5, Account__c = accountKey);
-    RollupCalcItem__c two = new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 5, Account__c = accountKey);
+    RollupCalcItem__c one = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 5, Account__c = accountKey);
+    RollupCalcItem__c two = new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Amount__c = 5, Account__c = accountKey);
 
     calc.performRollup(new List<RollupCalcItem__c>{ one, two }, new Map<Id, SObject>());
 
@@ -933,8 +952,8 @@ private class RollupCalculatorTests {
     calc.setFullRecalc(true);
     calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c = 0', RollupCalcItem__c.SObjectType));
 
-    RollupCalcItem__c one = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Amount__c = 5, Account__c = accountKey);
-    RollupCalcItem__c two = new RollupCalcItem__c(Id = '0066g00003VDGbF002', Amount__c = 5, Account__c = accountKey);
+    RollupCalcItem__c one = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Amount__c = 5, Account__c = accountKey);
+    RollupCalcItem__c two = new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Amount__c = 5, Account__c = accountKey);
 
     calc.performRollup(new List<RollupCalcItem__c>{ one, two }, new Map<Id, SObject>());
 
@@ -957,7 +976,7 @@ private class RollupCalculatorTests {
       RollupCalcItem__c.Account__c
     );
 
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = distinct, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Name = distinct, Account__c = '0016g00003VDGbF001');
     calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Name != ' + opp.Name, RollupCalcItem__c.SObjectType));
 
     calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>());
@@ -993,7 +1012,7 @@ private class RollupCalculatorTests {
 
   @IsTest
   static void shouldProperlyRemoveConcatOnUpdateIfOldItemMatchesAndNewOneDoesNot() {
-    RollupCalcItem__c opp = new RollupCalcItem__c(Account__c = '0011g00003VDGbF002', Id = '0066g00003VDGbF001', Name = 'CDC', Amount__c = 0);
+    RollupCalcItem__c opp = new RollupCalcItem__c(Account__c = '0011g00003VDGbF002', Id = CALC_ITEM_ID_1, Name = 'CDC', Amount__c = 0);
 
     RollupCalculator calc = getCalculator(
       'GISS, CDC',
@@ -1024,8 +1043,8 @@ private class RollupCalculatorTests {
       '0011g00003VDGbF002',
       RollupCalcItem__c.Account__c
     );
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = distinct, Account__c = '0016g00003VDGbF001');
-    RollupCalcItem__c nonDistinctOpp = new RollupCalcItem__c(Id = '0066g00003VDGbF002', Name = 'non' + distinct, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Name = distinct, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c nonDistinctOpp = new RollupCalcItem__c(Id = CALC_ITEM_ID_2, Name = 'non' + distinct, Account__c = '0016g00003VDGbF001');
     calc.performRollup(new List<RollupCalcItem__c>{ opp, nonDistinctOpp }, new Map<Id, SObject>());
 
     System.assertEquals(
@@ -1050,8 +1069,8 @@ private class RollupCalculatorTests {
       RollupCalcItem__c.Account__c
     );
 
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = secondVal, Account__c = accountId);
-    RollupCalcItem__c oldOpp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = firstVal, Account__c = accountId);
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Name = secondVal, Account__c = accountId);
+    RollupCalcItem__c oldOpp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Name = firstVal, Account__c = accountId);
     calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, SObject>{ oldOpp.Id => oldOpp });
 
     System.assertEquals(secondVal, calc.getReturnValue(), 'Old value should be removed');
@@ -1069,8 +1088,8 @@ private class RollupCalculatorTests {
       '0011g00003VDGbF002',
       RollupCalcItem__c.Account__c
     );
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = distinct, Account__c = '0016g00003VDGbF001');
-    RollupCalcItem__c nonDistinctOpp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = 'non' + distinct, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Name = distinct, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c nonDistinctOpp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Name = 'non' + distinct, Account__c = '0016g00003VDGbF001');
     calc.performRollup(new List<RollupCalcItem__c>{ opp, nonDistinctOpp }, new Map<Id, SObject>());
 
     System.assertEquals(distinct + ' -- ' + nonDistinctOpp.Name, calc.getReturnValue(), 'distinct values should be concatenated with custom delimiter!');
@@ -1088,8 +1107,8 @@ private class RollupCalculatorTests {
       '0011g00003VDGbF002',
       RollupCalcItem__c.Account__c
     );
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = distinct, Account__c = '0016g00003VDGbF001');
-    RollupCalcItem__c nonDistinctOpp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = 'non' + distinct, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Name = distinct, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c nonDistinctOpp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Name = 'non' + distinct, Account__c = '0016g00003VDGbF001');
     calc.performRollup(new List<RollupCalcItem__c>{ opp, nonDistinctOpp }, new Map<Id, SObject>());
 
     System.assertEquals(distinct + '\n' + nonDistinctOpp.Name, String.valueOf(calc.getReturnValue()).trim());
@@ -1106,8 +1125,8 @@ private class RollupCalculatorTests {
       '0011g00003VDGbF002',
       RollupCalcItem__c.Account__c
     );
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = '2017, 2018, 2019', Account__c = '0016g00003VDGbF001');
-    RollupCalcItem__c secondOpp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = '2019, 2020, 2021', Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Name = '2017, 2018, 2019', Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c secondOpp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Name = '2019, 2020, 2021', Account__c = '0016g00003VDGbF001');
     calc.performRollup(new List<RollupCalcItem__c>{ opp, secondOpp }, new Map<Id, SObject>());
 
     System.assertEquals('2017, 2018, 2019, 2020, 2021', calc.getReturnValue());
@@ -1124,8 +1143,8 @@ private class RollupCalculatorTests {
       '0011g00003VDGbF002',
       RollupCalcItem__c.Account__c
     );
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = '2019, 2020, 2021', Account__c = '0016g00003VDGbF001');
-    RollupCalcItem__c secondOpp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = '2019, 2020, 2021', Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Name = '2019, 2020, 2021', Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c secondOpp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Name = '2019, 2020, 2021', Account__c = '0016g00003VDGbF001');
     calc.performRollup(new List<RollupCalcItem__c>{ opp, secondOpp }, new Map<Id, SObject>());
 
     System.assertEquals('', calc.getReturnValue());
@@ -1147,7 +1166,7 @@ private class RollupCalculatorTests {
       RollupCalcItem__c.Account__c
     );
     calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
-    RollupCalcItem__c opp = new RollupCalcItem__c(Amount__c = 0, Id = '0066g00003VDGbF001', Name = 'CDC', Account__c = acc.Id);
+    RollupCalcItem__c opp = new RollupCalcItem__c(Amount__c = 0, Id = CALC_ITEM_ID_1, Name = 'CDC', Account__c = acc.Id);
     Map<Id, RollupCalcItem__c> oldOppMap = new Map<Id, RollupCalcItem__c>{ opp.Id => new RollupCalcItem__c(Amount__c = 5, Name = 'CDC') };
 
     calc.performRollup(new List<RollupCalcItem__c>{ opp }, oldOppMap);
@@ -1172,7 +1191,7 @@ private class RollupCalculatorTests {
     );
     calc.setEvaluator(new RollupEvaluator.WhereFieldEvaluator('Amount__c > 0', RollupCalcItem__c.SObjectType));
 
-    RollupCalcItem__c opp = new RollupCalcItem__c(Amount__c = 0, Id = '0066g00003VDGbF001', Name = 'CDC', Account__c = acc.Id);
+    RollupCalcItem__c opp = new RollupCalcItem__c(Amount__c = 0, Id = CALC_ITEM_ID_1, Name = 'CDC', Account__c = acc.Id);
 
     calc.performRollup(new List<RollupCalcItem__c>{ opp }, new Map<Id, RollupCalcItem__c>());
 
@@ -1191,8 +1210,8 @@ private class RollupCalculatorTests {
       RollupCalcItem__c.Account__c
     );
 
-    RollupCalcItem__c opp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = null, Account__c = '0016g00003VDGbF001');
-    RollupCalcItem__c nonDistinctOpp = new RollupCalcItem__c(Id = '0066g00003VDGbF001', Name = 'non', Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c opp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Name = null, Account__c = '0016g00003VDGbF001');
+    RollupCalcItem__c nonDistinctOpp = new RollupCalcItem__c(Id = CALC_ITEM_ID_1, Name = 'non', Account__c = '0016g00003VDGbF001');
     calc.performRollup(new List<RollupCalcItem__c>{ opp, nonDistinctOpp }, new Map<Id, SObject>{ opp.Id => opp });
 
     System.assertEquals(nonDistinctOpp.Name, (String) calc.getReturnValue(), 'should not blow up on null!');

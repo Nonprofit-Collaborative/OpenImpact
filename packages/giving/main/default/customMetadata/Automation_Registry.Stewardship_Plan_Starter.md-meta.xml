@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <label>Gift: stewardship plan starter</label>
+    <protected>true</protected>
+    <values>
+        <field>Object_Name__c</field>
+        <value xsi:type="xsd:string">Gift__c</value>
+    </values>
+    <values>
+        <field>Handler_Class__c</field>
+        <value xsi:type="xsd:string">StewardshipTriggerHandler</value>
+    </values>
+    <values>
+        <field>Execution_Order__c</field>
+        <value xsi:type="xsd:double">60</value>
+    </values>
+    <values>
+        <field>Enabled_By_Default__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>Always_Runs__c</field>
+        <value xsi:type="xsd:boolean">false</value>
+    </values>
+    <values>
+        <field>Description__c</field>
+        <value
+      xsi:type="xsd:string"
+    >Starts a stewardship plan when a gift arrives that an active plan template is waiting for, and creates that plan's tasks. Runs last among the gift automations, so the plan is started against a gift whose totals and links are already settled. Switch it off before a bulk import and the gifts load without starting hundreds of plans; switch it back on and later gifts start plans again. Nothing is started retroactively for the gifts loaded while it was off, which is deliberate: a welcome sequence for a gift from three weeks ago is not a welcome.</value>
+    </values>
+</CustomMetadata>

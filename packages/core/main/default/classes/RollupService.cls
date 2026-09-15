@@ -41,6 +41,7 @@ public with sharing class RollupService {
 
     private static final String CONTEXT_REAL_TIME = 'RollupService.runRealTime';
     private static final String CONTEXT_RECALCULATE = 'RollupService.recalculate';
+    private static final String CONTEXT_ENSURE_DEFAULTS = 'RollupService.ensureDefaults';
 
     private static final Set<String> REAL_TIME_MODES = new Set<String>{ MODE_REAL_TIME, MODE_BOTH };
     private static final Set<String> SCHEDULED_MODES = new Set<String>{ MODE_SCHEDULED, MODE_BOTH };
@@ -183,6 +184,10 @@ public with sharing class RollupService {
      * Creates a Rollup Definition for every shipped default that does not have one yet, and leaves
      * every existing definition exactly as the administrator left it (R-R6). Safe on every install,
      * every upgrade, and twice in a row. Returns how many it created.
+     *
+     * This is called from a post-install script as well as from the Rollups page (ADR-0029), so it
+     * is written for that context: one query for the shipped rows, one for the existing ones, one
+     * describe per distinct entity name however many rows mention it, and a single insert.
      */
     @NamespaceAccessible
     public static Integer ensureDefaults() {
@@ -197,12 +202,13 @@ public with sharing class RollupService {
             }
         }
         List<Rollup_Definition__c> toCreate = new List<Rollup_Definition__c>();
+        Map<String, Boolean> presentByName = new Map<String, Boolean>();
         for (Rollup_Definition_Default__mdt shippedDefault : shipped) {
             String key = shippedDefault.Definition_Key__c;
             if (String.isBlank(key) || existingKeys.contains(key.toLowerCase())) {
                 continue;
             }
-            if (!isShippableHere(shippedDefault)) {
+            if (!isShippableHere(shippedDefault, presentByName)) {
                 continue;
             }
             existingKeys.add(key.toLowerCase());
@@ -213,15 +219,57 @@ public with sharing class RollupService {
     }
 
     /**
+     * The same thing, called from a post-install script, where nothing may throw (ADR-0029).
+     *
+     * A package's install must not fail because its totals could not be created: an org with
+     * blank totals is recoverable from the Rollups page in two clicks, and an install that the
+     * platform rolled back is not. So a failure is written to the Error Log and the caller is
+     * told nothing was created.
+     *
+     * @param context the calling script, so the Error Log entry names it
+     * @return how many definitions were created, and zero when the step failed
+     */
+    @NamespaceAccessible
+    public static Integer ensureDefaultsDuringInstall(String context) {
+        try {
+            return ensureDefaults();
+        } catch (Exception failed) {
+            ErrorLogger.log(failed, String.isBlank(context) ? CONTEXT_ENSURE_DEFAULTS : context);
+            return 0;
+        }
+    }
+
+    /**
      * Whether a shipped default can be materialized in this org. A row shipped by a module that is
      * not installed has neither its source nor its target entity here, so it is skipped rather
      * than creating a definition that names objects nobody has (R-R6, plan Principle 3). Asking
      * the org what exists is the general answer: it needs no list of package names, and it is
      * right for a module Core has never heard of.
      */
-    private static Boolean isShippableHere(Rollup_Definition_Default__mdt shippedDefault) {
-        return SettingsService.typeByName(shippedDefault.Source_Object__c) != null &&
-            SettingsService.typeByName(shippedDefault.Target_Object__c) != null;
+    private static Boolean isShippableHere(
+        Rollup_Definition_Default__mdt shippedDefault,
+        Map<String, Boolean> presentByName
+    ) {
+        return isPresent(shippedDefault.Source_Object__c, presentByName) &&
+            isPresent(shippedDefault.Target_Object__c, presentByName);
+    }
+
+    /**
+     * Whether the org has an entity with this name, answered once per name.
+     *
+     * The answer is remembered because the shipped rows name a handful of entities between them
+     * (every giving total on a donor names Gift and Account), and each miss walks the org's whole
+     * describe. Forty rows asking twice each is eighty walks in a post-install transaction that
+     * has no user to wait for it.
+     */
+    private static Boolean isPresent(String apiName, Map<String, Boolean> presentByName) {
+        if (String.isBlank(apiName)) {
+            return false;
+        }
+        if (!presentByName.containsKey(apiName)) {
+            presentByName.put(apiName, SettingsService.typeByName(apiName) != null);
+        }
+        return presentByName.get(apiName);
     }
 
     private static Rollup_Definition__c materialize(Rollup_Definition_Default__mdt shippedDefault) {

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Fair_Market_Value_Not_Negative</fullName>
+  <active>true</active>
+  <description>
+    R-G12: goods are worth nothing or something, never less than nothing, and a negative value
+    would subtract from the in-kind total of a donor who gave.
+  </description>
+  <errorConditionFormula>
+    Fair_Market_Value__c &lt; 0
+  </errorConditionFormula>
+  <errorDisplayField>Fair_Market_Value__c</errorDisplayField>
+  <errorMessage>
+    Fair Market Value cannot be negative. Leave it empty if you do not have a figure yet.
+  </errorMessage>
+</ValidationRule>

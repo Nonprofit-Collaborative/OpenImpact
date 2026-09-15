@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Contact__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>
+    The donor, where people are Contacts. Exactly one of Contact and Account is set (canonical model
+    Section 4, R-SP6).
+  </description>
+  <externalId>false</externalId>
+  <inlineHelpText>The person this plan is running for.</inlineHelpText>
+  <label>Contact</label>
+  <referenceTo>Contact</referenceTo>
+  <relationshipLabel>Stewardship Plans</relationshipLabel>
+  <relationshipName>Stewardship_Plans</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

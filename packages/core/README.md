@@ -136,12 +136,14 @@ two handlers, their triggers, and their `Automation_Registry__mdt` records in on
 ## Post-install script
 
 `CorePostInstall` implements `InstallHandler`. It runs after the package is installed and
-after every upgrade, and it makes sure the installing user can open Nonprofit Settings.
-Without it, a fresh install leaves the console read only for everybody, including the
-System Administrator who installed it, because a custom permission is not implied by Modify
-All Data.
+after every upgrade, and it does two things: it makes sure the installing user can open
+Nonprofit Settings, and it creates the Rollup Definitions the packages ship.
 
-It does that in two steps, because the platform makes the obvious one unreliable:
+Without the first, a fresh install leaves the console read only for everybody, including
+the System Administrator who installed it, because a custom permission is not implied by
+Modify All Data.
+
+That takes two steps, because the platform makes the obvious one unreliable:
 
 1. **Assign the `Nonprofit_Admin` permission set.** A permission set has no calculation
    status, so this works the moment the install finishes. This is the step that matters:
@@ -159,6 +161,22 @@ left alone, so an upgrade is a no-op for an org that is already set up. Nothing 
 install must never fail because of a bootstrap step, so every failure goes to the Error Log
 instead.
 
+The second thing it does is call `RollupService.ensureDefaultsDuringInstall`, which creates
+a `Rollup_Definition__c` for every shipped default that does not have one and leaves every
+existing definition exactly as the administrator left it (R-R6, ADR-0029). Without it a
+fresh org has no totals at all: the method's only other caller is the Restore shipped
+rollups button, and nothing leads an administrator to press Restore for something that has
+never existed.
+
+Core sees only the shipped rows whose source and target entities are in the org, so on a
+Core-only install it creates Core's own and none of a module's. **A module that ships
+`Rollup_Definition_Default__mdt` rows needs its own post-install script**, because Core
+installs first and cannot describe objects that are not there yet: Giving has
+`GivingPostInstall`, and any later module that ships rollups adds the same one line. That
+entry point never throws; it records a failure in the Error Log and returns, because an
+install that the platform rolled back is worse than an org whose totals are two clicks
+away.
+
 Once package versions exist, `sfdx-project.json` names it for the Core package directory:
 
 ```json
@@ -167,8 +185,9 @@ Once package versions exist, `sfdx-project.json` names it for the Core package d
 
 That line is not in `sfdx-project.json` yet, because no package version has been created
 (the namespace is deferred, plan Section 4.3). Whoever creates the first Core package
-version adds it then. Until then the same effect is achieved by the scratch org script,
-which assigns the permission sets after deploying.
+version adds it then. Until then the same effect is achieved by the org scripts, which
+assign the permission sets and create the shipped rollup definitions after deploying:
+a source deployment runs no post-install script.
 
 ## Vendored code
 

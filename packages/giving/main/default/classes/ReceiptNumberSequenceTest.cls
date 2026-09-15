@@ -156,6 +156,80 @@ private class ReceiptNumberSequenceTest {
         );
     }
 
+    /**
+     * The invariant that accounts for the per gift series, asserted rather than assumed.
+     *
+     * Nothing reconciles the per gift series: `reconcile` runs from `ReceiptStatementBatch.finish`
+     * for the statement series and from nowhere else. What accounts for a per gift number is that
+     * the allocation and the receipt live in one transaction, so a failed generation rolls the
+     * allocation back and no number is consumed at all. This test is that sentence: a rendering
+     * failure leaves the counter exactly where it was and no receipt behind. A future caller that
+     * catches the failure and commits anyway breaks it, which is why the code says so at
+     * `ReceiptService.issueForGift`, `ReceiptNumberSequence.allocateOne` and
+     * `ReceiptController.issue`.
+     */
+    @IsTest
+    static void aFailedPerGiftIssueRollsItsNumberBackRatherThanLeavingItUnaccountedFor() {
+        ReceiptService.issuePermission = true;
+        ReceiptRendererFactory.overrideRenderer = new ReceiptTestDataFactory.FailingRenderer();
+        Contact donor = GivingTestDataFactory.insertHouseholdContact(
+            'The Okafor Family',
+            'Ada',
+            'Okafor'
+        );
+        Gift__c gift = ReceiptTestDataFactory.plainCashGift(
+            donor.Id,
+            120,
+            Date.newInstance(YEAR, 3, 4)
+        );
+        insert gift;
+
+        String key = ReceiptNumberSequence.seriesKeyFor(ReceiptNumberSequence.TYPE_PER_GIFT, YEAR);
+        // One good allocation first, so there is a series row to compare against.
+        ReceiptNumberSequence.allocateOne(ReceiptNumberSequence.TYPE_PER_GIFT, YEAR);
+        Decimal before = nextCounterOf(key);
+
+        Test.startTest();
+        System.Savepoint beforeIssue = Database.setSavepoint();
+        try {
+            ReceiptService.issueForGift(gift.Id);
+            Assert.fail('A receipt was issued although the renderer failed.');
+        } catch (Exception generationFailed) {
+            // The caller lets the failure end the transaction. Rolling back to the savepoint is
+            // this test standing in for that, since a test method catching an exception does not
+            // otherwise undo the DML that ran before it.
+            Database.rollback(beforeIssue);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(
+            before,
+            nextCounterOf(key),
+            'The counter is where it was: a failed issue consumes no number, which is what makes ' +
+            'a series with no reconciliation pass answerable.'
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Receipt__c WHERE Gift__c = :gift.Id],
+            'No receipt survives the failure, so there is no number to account for.'
+        );
+        Assert.isNull(
+            [SELECT Receipt_Number__c FROM Gift__c WHERE Id = :gift.Id].Receipt_Number__c,
+            'The gift is left unreceipted and unlocked, so the person can simply try again.'
+        );
+    }
+
+    /** Where the series has got to, read from the row rather than from a returned value. */
+    private static Decimal nextCounterOf(String key) {
+        return [
+            SELECT Next_Counter__c
+            FROM Receipt_Number_Sequence__c
+            WHERE Series_Key__c = :key
+            LIMIT 1
+        ]
+        .Next_Counter__c;
+    }
+
     /** The counter part of a formatted number, so a test can compare two of them. */
     private static Integer counterOf(String receiptNumber) {
         return Integer.valueOf(receiptNumber.substringAfterLast('-'));

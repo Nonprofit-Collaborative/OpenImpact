@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Commitment__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>The commitment that started the plan, where the Commitment started event did (canonical model Section 25K, R-SP3a).</description>
+  <externalId>false</externalId>
+  <inlineHelpText>The pledge or recurring gift that started this plan, if one did.</inlineHelpText>
+  <label>Commitment</label>
+  <referenceTo>Commitment__c</referenceTo>
+  <relationshipLabel>Stewardship Plans</relationshipLabel>
+  <relationshipName>Stewardship_Plans</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

@@ -7,6 +7,13 @@
  */
 @IsTest
 public class ReceiptTestDataFactory {
+    /**
+     * How many times `ConstructionProbe` has been constructed in this transaction. A test resets
+     * it and then reads it to tell "the factory refused the name" from "the factory built the
+     * class and then refused it", which is the whole difference the renderer allow-list makes.
+     */
+    public static Integer probeConstructions = 0;
+
     /** The renderer a test uses: it keeps what it was asked to render, and returns something. */
     public class RecordingRenderer implements ReceiptRenderer {
         public List<String> renderedHtml = new List<String>();
@@ -26,10 +33,44 @@ public class ReceiptTestDataFactory {
         }
     }
 
+    /** A renderer that fails, so a test can watch what a failed generation leaves behind. */
+    public class FailingRenderer implements ReceiptRenderer {
+        public Blob render(String html) {
+            throw new RendererFailureException('The PDF service was unavailable.');
+        }
+
+        public String describe() {
+            return 'Failing renderer (test)';
+        }
+    }
+
+    public class RendererFailureException extends Exception {
+    }
+
+    /**
+     * A renderer that records the fact of its own construction. It genuinely implements
+     * `ReceiptRenderer`, so an interface check after the fact would accept it: the only thing that
+     * stops it being constructed inside somebody else's transaction is that its class name is not
+     * on `ReceiptRendererFactory`'s allow-list.
+     */
+    public class ConstructionProbe implements ReceiptRenderer {
+        public ConstructionProbe() {
+            ReceiptTestDataFactory.probeConstructions++;
+        }
+
+        public Blob render(String html) {
+            return Blob.valueOf(html);
+        }
+
+        public String describe() {
+            return 'Construction probe (test)';
+        }
+    }
+
     /**
      * Everything a receipt needs before it can be issued: an organization to issue it, a numbering
-     * prefix, a letter of each kind, permission to issue, and a renderer that does not need a PDF
-     * engine. Returns the renderer so a test can read what was composed.
+     * prefix, a letter of each kind, permission to issue and to manage the letters, and a renderer
+     * that does not need a PDF engine. Returns the renderer so a test can read what was composed.
      */
     public static RecordingRenderer setUpReceipting() {
         Nonprofit_Settings__c core = Nonprofit_Settings__c.getOrgDefaults();
@@ -64,6 +105,10 @@ public class ReceiptTestDataFactory {
         };
 
         ReceiptService.issuePermission = true;
+        // Maria configures Open Impact, so the tests that edit a letter run as somebody who may.
+        // A custom permission cannot be granted to the user a test runs as without assigning a
+        // permission set, which would make every receipting test a test of that assignment.
+        ReceiptTemplateService.managePermission = true;
         RecordingRenderer renderer = new RecordingRenderer();
         ReceiptRendererFactory.overrideRenderer = renderer;
         return renderer;
@@ -102,20 +147,24 @@ public class ReceiptTestDataFactory {
     }
 
     /**
-     * A gift of goods, whose receipt describes and never values them. The amount and the fair
-     * market value are the same number, which is what R-G12 requires of a real one.
+     * A gift of goods, whose receipt describes and never values them. Its amount is zero, which
+     * is what R-G12 requires of a real one, and what it was worth is on Fair Market Value.
      */
     public static Gift__c inKindGift(Id donorContactId, String description, Date giftDate) {
         return inKindGift(donorContactId, description, 900, giftDate);
     }
 
+    /**
+     * The same gift with the fair market value named, so a test can assert that its own figure
+     * reaches no rendered document (R-RC12).
+     */
     public static Gift__c inKindGift(
         Id donorContactId,
         String description,
         Decimal value,
         Date giftDate
     ) {
-        Gift__c gift = GivingTestDataFactory.buildGift(donorContactId, value);
+        Gift__c gift = GivingTestDataFactory.buildGift(donorContactId, 0);
         gift.Type__c = 'In-kind';
         gift.Gift_Date__c = giftDate;
         gift.In_Kind_Description__c = description;

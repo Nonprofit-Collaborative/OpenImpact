@@ -167,6 +167,13 @@ know when to use it." Fill in the four boxes, or change the type to Other if the
 not really seasonal. A range that crosses New Year, such as November 1 to March 31, is one
 range: enter it exactly that way, do not split it into two addresses.
 
+**Putting an organization or another household in a household.** In an org that stores
+people as person accounts, an address is copied into a household member's own mailing boxes.
+A member that is not a person, for example an organization record that has been added to a
+household by mistake, has no mailing boxes to copy into, so Open Impact skips it and copies
+the address to everyone else. The address still saves. If someone should have received the
+address and did not, check that they are a person rather than an organization.
+
 **Choosing more than one owner for an address.** An address belongs to a household, to an
 organization, or to one person, never to two at once. If you fill in both a household and a
 person you get "An address belongs to one household, one organization, or one person.

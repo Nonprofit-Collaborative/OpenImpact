@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Assigned_User_Required</fullName>
+  <active>true</active>
+  <description>
+    Specific user means a named person, so the person is required. Without this the step falls back
+    to the plan starter at run time and the administrator never learns the setting did nothing.
+  </description>
+  <errorConditionFormula>
+    AND( ISPICKVAL(Assign_To__c, &quot;Specific user&quot;), ISBLANK(Assigned_User__c) )
+  </errorConditionFormula>
+  <errorDisplayField>Assigned_User__c</errorDisplayField>
+  <errorMessage>Choose the person this task goes to, or change Assign To.</errorMessage>
+</ValidationRule>

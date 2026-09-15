@@ -4,8 +4,9 @@
 
 Open Impact produces the numbered PDF a donor needs at tax time: one receipt for one gift,
 or one consolidated statement listing everything a donor gave in a year. Each document
-carries a number that is used once and never again, and the file is stored on the gift and
-on the donor so anyone can find the exact copy the donor received.
+carries a number that is used once and never again, and the file is stored on the receipt
+record, and on the gift for a single gift receipt, so anyone working with giving can find
+the exact copy the donor received.
 
 A receipt never changes after it is issued. If something on it is wrong, you void it and
 issue a new one; both stay on the record, so you can always answer the question "which
@@ -39,9 +40,19 @@ In the Receipts section:
 - **Receipt number prefix.** Two or three letters, usually your initials. The number is
   built as prefix, year, counter: `HFH-2026-000001`.
 - **Next counter.** Leave it at 1 unless you are moving from another system and want to
-  carry on from where it stopped. Set it once, before you issue anything.
+  carry on from where it stopped. Set it once, before you issue anything. This is the only
+  place a receipt number is ever chosen by a person: Open Impact issues every number itself,
+  from this counter, when it creates the receipt.
 - **Statement year.** The tax year the year-end run covers. Set it in January to last year.
 - **Place of issue.** The city and region you issue from. Optional in the United States.
+
+One piece of first-time setup needs Salesforce Setup: the **Receipts** panel, which is where
+you issue, void and reissue, lives on a gift's record page, and Open Impact ships a page
+called **Gift Record Page** with the panel already on it. Assign it once, as your org default
+for Gift, and every gift shows the panel from then on. If your organization has built a gift
+record page of its own, add the **Receipts** component to that page instead. This is the same
+one-time assignment the soft credits and tributes panels need, so if you have already done it
+for those, the Receipts panel is there too.
 
 ### 3. Choose how your logo prints
 
@@ -53,17 +64,23 @@ Still in the Receipts section:
 - **Logo width in millimetres.** Forty is about a third of the width of the page, which suits
   a wide wordmark. A tall square logo usually wants twenty five.
 - **Logo delivery route.** Leave it empty. It exists because how an image reaches the PDF has
-  not been confirmed in a real org yet (see "Two things that are not settled yet" below), and
-  it lets you or Open Impact support try another route without waiting for a new version. The
-  three values it accepts are `File download`, `Embedded image` and `Document server`.
+  not been confirmed in a real org yet (see the last section of this page), and it lets you or
+  Open Impact support try another route without waiting for a new version. The three values it
+  accepts are `File download`, `Embedded image` and `Document server`.
 
 ### 4. Write your two letters
 
-Also in the Receipts section, **Receipt letters and year end statements** opens a panel with
-two tabs. On the **Receipt templates** tab, Open Impact ships one letter of each kind:
+Also in the Receipts section, **Receipt letters and year end statements** opens the Receipts
+page, which has two tabs. It opens as its own page rather than inside the settings console,
+which is how every page the Giving module adds behaves. On the **Receipt templates** tab,
+Open Impact ships one letter of each kind:
 
 - **Per gift receipt**, for a single gift.
 - **Consolidated statement**, for a donor's whole year.
+
+Both letters are created when the package is installed. If the list is empty, that step did
+not finish: click **Restore the shipped letters** and the two come back. Restoring is safe to
+run at any time, and it never touches a letter you have already edited.
 
 Pick a letter, edit the wording, keep the tokens (`{{DonorName}}`, `{{Amount}}`,
 `{{GiftDate}}` and the rest, listed under the editor), and click **Save**. If the letter you
@@ -81,6 +98,24 @@ receipts and start a run. Everyone with any Giving permission set can read recei
 the stored files. **Nobody can edit or delete an issued receipt or its file**, including
 Nonprofit Admin. That is not an oversight, and there is no switch for it.
 
+**Who can open a receipt PDF, exactly.** The file is attached to the **Receipt** record, and
+for a single gift receipt to the **Gift** as well. It is not attached to the donor's household
+or contact record. So a person can open a receipt PDF if, and only if, they hold one of the
+three Giving permission sets: Giving Admin, Giving Staff or Giving Read Only. Somebody with
+only a Core role, for example Program Staff or Volunteer Coordinator, can open the donor and
+cannot open the donor's receipts or year-end statement. That is deliberate: a year-end
+statement is a donor's whole giving history plus your tax identification number, and it should
+not be in the Files list of a record that everybody reads.
+
+To get to a donor's documents, open the donor, then the **Receipts** related list, then the
+receipt, then the file on it.
+
+**Editing the letters needs the Nonprofit Admin role.** Writing the letter every donor
+receives is configuration, so saving a letter, switching one on, and restoring the shipped
+letters all need the Manage Nonprofit Settings permission, exactly like every other page in
+Nonprofit Settings. Issuing receipts does not: that is day to day work and needs only Giving
+Staff.
+
 ## A five-minute walkthrough
 
 Start from the sample data.
@@ -90,26 +125,30 @@ Start from the sample data.
 2. Open **Receipt letters and year end statements**, and on the **Receipt templates** tab
    check that a letter of each kind is in use. If one is not, pick it and click **Use this
    letter**.
-3. Open any gift from the sample data. Click **Issue receipt**. You will see a receipt
-   number appear on the gift, and a PDF in the Files list on the gift and on the donor.
+3. Open any gift from the sample data. Click **Issue receipt** on the **Receipts** panel.
+   You will see a receipt number appear on the gift, and a PDF in the Files list on the gift
+   and on the receipt. Deliberately not on the donor's household: see "Give people access"
+   above.
 4. Open the PDF. It states your organization's name and address at the top, the amount, the
    date, your tax identification number, and the sentence "No goods or services were provided
    in exchange for this contribution." If you have uploaded a logo, it is above the name; if
    it is missing, read the last section of this page before you go looking for a mistake.
 5. Now break it on purpose. Try to change the gift's amount. The save is refused with "This
-   gift has a receipt number, so its amount, date and donor cannot change. Void the receipt
-   and reissue it, or record a refund."
+   gift has a receipt number, so its amount, date, donor and in-kind description cannot
+   change. Void the receipt and reissue it, or record a refund."
 6. On the gift, click **Void and reissue**. Type a reason, for example "Amount was entered
    wrongly". You get a second receipt with the next number, the first one is marked Void with
    your reason and today's date, and **the original PDF is still there, untouched**. Open
    both files and compare them.
 7. Go to the **Receipts** tab and look at the two records. The voided one points at its
    replacement, the replacement points back at what it replaces.
-8. Back in Nonprofit Settings, under Receipts, open the **Year end statements** tab, check
+8. Back in Nonprofit Settings, under Receipts, choose **Receipt letters and year end
+   statements** again, open the **Year end statements** tab, check
    the statement year, and click **Generate**. A run appears in the list below and counts up
    as it goes; **Refresh** updates it. When it finishes, open a household with several gifts
-   in that year and read its statement: every gift is a line, each line carries its own
-   status, and the total at the bottom is the sum of the lines.
+   in that year, open its **Receipts** related list, open the statement, and read the file:
+   every gift is a line, each line carries its own status, and the total at the bottom is the
+   sum of the lines.
 
 That is the whole feature. Steps 5 and 6 are the ones worth doing twice, because they are
 what makes the rest trustworthy.
@@ -130,6 +169,21 @@ Void and the reason "Generation failed", so if an auditor asks what happened to 
 you can show them. A gap you cannot explain would be the problem; a gap with a Void record
 against it is an answer.
 
+**Typing a receipt number onto a gift.** You cannot, and there is nothing to fix: the
+Receipt Number on a gift is read only for everyone, and a save that tries to fill it in is
+refused with "A receipt number is issued by Open Impact when it creates the receipt, and
+cannot be filled in by hand." A number typed in belongs to no receipt, so there is no PDF and
+nothing to send; it locks the gift's amount, date and donor as if a donor were holding a
+document; the same number can still come out of the counter later and land on somebody's
+year-end statement; and the gift itself can never be receipted afterwards, because Open Impact
+sees a number already there. Use **Issue receipt** on the gift instead. If a gift in your org
+already carries a number that no receipt matches, see "Lifting the receipt lock" in
+[Gifts](gifts.md): clearing the number there puts the gift back in reach of Issue receipt.
+**Looking for a receipt in the Files list on a donor's household.** It is not there, and it
+is not missing. A receipt PDF lives on the Receipt record, and on the Gift for a single gift
+receipt, so that reading it takes a Giving permission set rather than read access to a contact.
+Open the donor, then the **Receipts** related list.
+
 **Deleting a receipt's file to "cancel" it.** Voiding is the way to cancel a receipt, and it
 deliberately leaves the file alone: the donor still has their copy, so the org should too.
 Nobody has delete access on receipts or their files, so this mostly shows up as a puzzled
@@ -142,16 +196,20 @@ everything. Running the batch twice is safe and cheap; it is only the donors alr
 receipted that are skipped.
 
 **Putting a value on an in-kind gift's receipt.** You cannot, and you should not want to. For
-a gift of goods, Open Impact prints the description you recorded and never a value, because
+a gift of goods, Open Impact prints the description the donor gave and never a value, because
 in the United States valuing a donated item is the donor's responsibility and not yours. Where
 your letter asks for an amount, an in-kind receipt says "the goods or services described
-below" instead. On a year-end statement the gift is a line with no amount, it is left out of
-the total, and the statement says why. The fair market value you record stays in Open Impact
-for your own reporting. See [In-kind gifts](in-kind-gifts.md).
+below" instead, and the document states in plain words that no value has been stated. On a
+year-end statement the gift is a line with no amount, it is left out of the total, and the
+statement says why. The fair market value you record stays in Open Impact for your own
+reporting. The description on a receipted in-kind gift is locked from then on, exactly as the
+amount is on a cash gift, because it is printed on the document the donor holds; the fair
+market value stays editable, because it is on no document. See
+[In-kind gifts](in-kind-gifts.md).
 
-## Two things that are not settled yet
+## Three things to know before you rely on this
 
-Recorded here rather than hidden, because both may change what you see:
+Recorded here rather than hidden, because each may change what you see:
 
 1. **Logos and signature images on the PDF may not appear yet.** How an image reaches the PDF
    renderer has not been confirmed in a real org (ADR-0016). A receipt with no logo and no
@@ -162,7 +220,13 @@ Recorded here rather than hidden, because both may change what you see:
    Log warning saying so; try the other two values of **Logo delivery route**; and if none of
    them works, turn **Print the logo on receipts** off so your documents are deliberately
    plain rather than accidentally so.
-2. **The speed of a very large year-end run has not been measured.** If you have tens of
+2. **Two people cannot issue receipts at the same instant.** Receipt numbers come from one
+   counter, and whoever is using it holds it until their receipt or their statement run
+   finishes. A second person issuing at that moment waits, and if the wait reaches ten seconds
+   they see a "record is currently locked" error. Nothing is lost and no number is duplicated:
+   try again. This matters most while a year-end run is going, so issue single receipts before
+   or after the run rather than during it.
+3. **The speed of a very large year-end run has not been measured.** If you have tens of
    thousands of donors, run your statements early in January rather than the night before you
    want to post them, and watch the Receipt Run record.
 

@@ -129,8 +129,8 @@ private class GiftTriggerHandlerTest {
         Contact person = donor();
         Gift__c gift = GivingTestDataFactory.buildGift(person.Id, 250);
         insert gift;
+        GiftService.recordReceiptNumbers(new Map<Id, String>{ gift.Id => 'R-000001' });
         gift.Receipt_Number__c = 'R-000001';
-        update gift;
 
         String message = '';
         Test.startTest();
@@ -231,8 +231,8 @@ private class GiftTriggerHandlerTest {
         Contact person = donor();
         Gift__c gift = GivingTestDataFactory.buildGift(person.Id, 250);
         insert gift;
+        GiftService.recordReceiptNumbers(new Map<Id, String>{ gift.Id => 'R-000002' });
         gift.Receipt_Number__c = 'R-000002';
-        update gift;
 
         String message = '';
         Test.startTest();
@@ -258,7 +258,7 @@ private class GiftTriggerHandlerTest {
     }
 
     @IsTest
-    static void issuingANumberAndChangingTheAmountInOneSaveIsRefused() {
+    static void typingAReceiptNumberOntoAGiftIsRefused() {
         Contact person = donor();
         Gift__c gift = GivingTestDataFactory.buildGift(person.Id, 250);
         insert gift;
@@ -274,9 +274,16 @@ private class GiftTriggerHandlerTest {
         }
         Test.stopTest();
 
+        System.assertEquals(
+            null,
+            [SELECT Receipt_Number__c FROM Gift__c WHERE Id = :gift.Id].Receipt_Number__c,
+            'Neither value was saved, so the gift is still unreceipted and Issue Receipt can ' +
+            'still receipt it.'
+        );
         System.assert(
             message.contains('receipt number'),
-            'A save cannot issue a receipt and restate the amount at the same time: ' + message
+            'A receipt number comes from the sequence, never from a person typing one in: ' +
+            message
         );
     }
 
@@ -285,17 +292,10 @@ private class GiftTriggerHandlerTest {
         Contact person = donor();
         Gift__c gift = GivingTestDataFactory.buildGift(person.Id, 250);
         insert gift;
-        gift.Receipt_Number__c = 'R-000004';
-        update gift;
+        GiftService.recordReceiptNumbers(new Map<Id, String>{ gift.Id => 'R-000004' });
 
         Test.startTest();
-        GiftService.allowReceiptNumberChange = true;
-        try {
-            gift.Receipt_Number__c = 'R-000005';
-            update gift;
-        } finally {
-            GiftService.allowReceiptNumberChange = false;
-        }
+        GiftService.recordReceiptNumbers(new Map<Id, String>{ gift.Id => 'R-000005' });
         Test.stopTest();
 
         System.assertEquals(
@@ -310,8 +310,7 @@ private class GiftTriggerHandlerTest {
         Contact person = donor();
         Gift__c gift = GivingTestDataFactory.buildGift(person.Id, 250);
         insert gift;
-        gift.Receipt_Number__c = 'R-000006';
-        update gift;
+        GiftService.recordReceiptNumbers(new Map<Id, String>{ gift.Id => 'R-000006' });
 
         String message = '';
         Test.startTest();

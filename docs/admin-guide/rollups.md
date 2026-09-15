@@ -20,9 +20,9 @@ looking fresh.
 
 ## What Open Impact calculates for you
 
-Every total below is created by **Restore shipped rollups** on the Rollups page, and every
-one of them can then be switched to another mode, made inactive, or recalculated on its
-own. Three of the giving totals exist once for each kind of record, because a household,
+Every total below is created when you install the module that owns it, switched on and
+ready to calculate, and every one of them can then be switched to another mode, made
+inactive, or recalculated on its own. Three of the giving totals exist once for each kind of record, because a household,
 an organization or person account, and a person each reach their gifts differently. You see the household one on a household, the account one
 on an organization, and the contact one on a person, so on any one record there is a
 single number.
@@ -42,6 +42,8 @@ single number.
 | Pledge balance | Promised and not yet paid. |
 | Total soft credits | What this donor is recognized for without being hard credited. |
 | Soft credit count | How many gifts this donor is recognized on. |
+| In-kind value | What this donor's gifts of goods and services were worth. Never added into total giving. |
+| In-kind gift count | How many gifts of goods and services this donor has given. |
 
 **On a fund, an appeal, a pledge, and a scheduled payment**
 
@@ -69,7 +71,12 @@ about a number that looks wrong:
   **1 gift** and **$0 total giving**. That is deliberate: they did give, once, and the
   organization is holding none of it. The consequence is that dividing total giving by
   gift count is not a meaningful average gift for a donor with refunds. A gift recorded at
-  $0, such as an in-kind gift with no value entered, is not counted either.
+  $0 is not counted either.
+- **In-kind gifts are in none of the money totals.** A gift of goods carries no amount, so
+  it adds nothing to total giving, to a gift count, to a fund or appeal total, or to a
+  donor level. It has two totals of its own, In-kind value and In-kind gift count, kept by
+  this same engine. Total giving is cash and in-kind value is goods: two answers to two
+  questions, not two halves of one. See [In-kind gifts](in-kind-gifts.md).
 - **Soft credits are never added into a giving total.** A soft credit is recognition, not
   money the organization received, so it is counted only in Total soft credits and Soft
   credit count. If it were in Total giving as well, every household gift would be counted
@@ -80,23 +87,36 @@ about a number that looks wrong:
 
 ## How to turn it on
 
-The rollup engine is installed with Open Impact, but an org starts with no rollups in it
-and nothing calculating. Two clicks set that right, and neither of them happens on its own:
+Most of it is already on. Installing a module creates its rollups: the giving totals
+arrive with the Giving module, active and ready to calculate, and an upgrade adds anything
+newly shipped without touching a rollup you have changed. An org with Core alone has no
+giving totals because it has no gifts, and they appear when the Giving module is installed.
+
+One step is left for you, and nothing in the app does it on your behalf:
 
 1. Open the **Nonprofit Hub** app and choose the **Nonprofit Settings** tab.
-2. Choose **Rollups** in the left navigation. On a new org the page says "No rollups are
-   set up yet."
-3. Click **Restore shipped rollups**. Every total listed above is created, active, and
-   ready to calculate. The same button is how you get one back later: it creates only the
-   shipped rollups this org does not have, and leaves every rollup you have edited alone.
-   The totals themselves come from the modules, so an org with Core alone has nothing to
-   restore until the Giving module is installed.
-4. Click **Schedule nightly recalculation**. The page then shows "Nightly recalculation
+2. Choose **Rollups** in the left navigation. You should see every total listed above, one
+   row each.
+3. Click **Schedule nightly recalculation**. The page then shows "Nightly recalculation
    is scheduled for 2:00 AM."
 
-Do both on the day you install. Nothing else in the app does either of them for you: the
-Setup Assistant has no rollup step, so an org whose administrator never opened this page
-has no totals at all.
+Do that on the day you install. The Setup Assistant has no rollup step, so until you click
+it nothing recalculates overnight and the Hub tile stays in warning.
+
+### If a rollup is missing
+
+**Restore shipped rollups** at the top of the page creates the shipped rollups this org
+does not have and leaves every other rollup exactly as it is, including ones you have
+edited or switched off. Press it if the page is empty on a fresh install, which means the
+install-time step failed and the Error Log will say why, or if a rollup you need is not
+listed.
+
+It is also the reason to switch a rollup off rather than delete it. Open Impact cannot
+tell a rollup you deleted on purpose from one that has never existed, so a deleted rollup
+comes back the next time the package is upgraded or the next time somebody presses this
+button. Clearing the **Active** box is the durable way to say no to a total: an inactive
+rollup stays inactive across every upgrade, and the values it has already calculated stay
+on the records.
 
 Two settings on the same page change how every rollup behaves:
 
@@ -162,6 +182,11 @@ stops it being recalculated; it does not erase the values already on the records
 deliberate, so that turning something off never destroys data. If you want the field
 empty, clear it after you make the rollup inactive.
 
+**Deleting a rollup you do not want.** Deleting it works until the next upgrade, which
+creates it again, because a rollup that is gone is indistinguishable from one that was
+never created. Clear its **Active** box instead. That is remembered, and it leaves the
+numbers already calculated on the records.
+
 **Never starting the nightly schedule.** If nobody clicks **Schedule nightly
 recalculation**, nothing recalculates overnight and the Hub tile stays in warning. Nothing
 schedules it for you. The tile is the only warning you get, so act on it.
@@ -187,6 +212,7 @@ For report builders only. Nothing on this page requires you to know these.
 | Giving this year, last year, two years ago | `Giving_This_Year__c`, `Giving_Last_Year__c`, `Giving_Two_Years_Ago__c` |
 | Pledge balance | `Pledge_Balance__c` |
 | Total soft credits, soft credit count | `Total_Soft_Credits__c`, `Soft_Credit_Count__c` |
+| In-kind value, in-kind gift count | `In_Kind_Value__c`, `In_Kind_Gift_Count__c` |
 | Total raised, on a fund or an appeal | `Total_Raised__c` |
 | Total raised this year, on a fund | `Total_Raised_This_Year__c` |
 | Paid to date, on a commitment | `Paid_To_Date__c` |

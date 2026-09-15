@@ -21,16 +21,20 @@ Naming is on as soon as Core is installed, with patterns that work out of the bo
 change them:
 
 1. Open the **Nonprofit Hub** app and click the **Nonprofit Settings** tab.
-2. Click **Household names and greetings** in the left navigation.
+2. Click **Households** in the left navigation. The naming panel is in that section.
 3. Change any of the three patterns. A preview of five sample households updates as you
-   type, so you can see the result before you save.
+   type, so you can see the result before you save. The samples ship with the product; they
+   are not your own households.
 4. Choose whether people who have died stay in the household name. They are always left
    out of the informal greeting.
 5. Click **Save**.
-6. Saving changes the pattern for households named from then on. To bring existing
-   households up to date, click **Recompute all households** and confirm. The page tells you
-   the recompute has started; it then runs in the background, and households are renamed a
-   few hundred at a time. A large org takes a few minutes.
+6. Saving changes the pattern everywhere it is used next. Every household is renamed from
+   the current patterns the next time anything touches it, so an org that does not recompute
+   drifts into the new pattern one household at a time. To bring every household up to date
+   at once, click **Recompute all households** and confirm. The page tells you the recompute
+   has started; it then runs in the background, and households are renamed a few hundred at
+   a time. A large org takes a few minutes. The page does not report progress or tell you
+   when the batch has finished.
 
 You need the "Manage Nonprofit Settings" permission to change these. Without it the page
 opens read only and says so.
@@ -79,8 +83,8 @@ Maria does steps 1 to 5. David does step 6.
 3. Open Wei's record, check **Deceased**, and save. Refresh the household: the informal
    greeting reads **Maria** again. The household name still mentions Lee only if you chose
    to keep people who have died in household names.
-4. Open **Nonprofit Settings**, click **Household names and greetings**, and change the
-   household name pattern to `{LastName} Household`. Watch the preview change as you type.
+4. Open **Nonprofit Settings**, click **Households**, and change the household name
+   pattern to `{LastName} Household`. Watch the sample preview change as you type.
    Click **Save**, then **Recompute all households**, and confirm.
 5. Go back to a household with one surname. It now reads **Garcia Household**.
 6. David opens the household for the Reverend and Mrs. Smith, checks **Custom name**, and
@@ -99,8 +103,10 @@ enter the person.
 ## Common mistakes
 
 **"I changed the pattern and nothing changed."**
-Saving a pattern affects households named from then on. Existing households keep their
-names until you click **Recompute all households**.
+An existing household keeps its old name only until something touches it: naming reads the
+current patterns every time it runs, so the household is renamed the next time a member is
+added, changed, or moved. Click **Recompute all households** to rename them all now instead
+of household by household.
 
 **"One household refuses to update."**
 Its **Custom name** box is checked, which is exactly what that box is for. Uncheck it and

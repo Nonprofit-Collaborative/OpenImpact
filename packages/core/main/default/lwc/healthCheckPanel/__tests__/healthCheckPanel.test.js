@@ -3,6 +3,7 @@ import HealthCheckPanel from 'c/healthCheckPanel';
 import getReport from '@salesforce/apex/HealthCheckController.getReport';
 import applyRecommendedMode from '@salesforce/apex/HealthCheckController.applyRecommendedMode';
 import applyJunctionMembership from '@salesforce/apex/HealthCheckController.applyJunctionMembership';
+import enableAutomaticHouseholds from '@salesforce/apex/HealthCheckController.enableAutomaticHouseholds';
 
 jest.mock('@salesforce/apex/HealthCheckController.getReport', () => ({ default: jest.fn() }), {
   virtual: true
@@ -14,6 +15,11 @@ jest.mock(
 );
 jest.mock(
   '@salesforce/apex/HealthCheckController.applyJunctionMembership',
+  () => ({ default: jest.fn() }),
+  { virtual: true }
+);
+jest.mock(
+  '@salesforce/apex/HealthCheckController.enableAutomaticHouseholds',
   () => ({ default: jest.fn() }),
   { virtual: true }
 );
@@ -73,6 +79,15 @@ function agentforceReport(overrides = {}) {
         fixTarget: 'action:applyJunctionMembership'
       },
       {
+        key: 'household_creation_disabled',
+        title: 'No new person is getting a household',
+        detail: 'Household membership uses membership records and automatic creation is off.',
+        severity: 'Error',
+        category: 'Settings',
+        fixLabel: 'Turn on automatic households',
+        fixTarget: 'action:enableAutomaticHouseholds'
+      },
+      {
         key: 'no_nonprofit_admin',
         title: 'No one is assigned the Nonprofit Admin role',
         detail: 'Nobody has the role.',
@@ -130,7 +145,7 @@ describe('c-health-check-panel', () => {
     expect(summary.textContent).toContain('Person Accounts enabled');
 
     const findings = element.shadowRoot.querySelectorAll('[data-id="finding"]');
-    expect(findings.length).toBe(4);
+    expect(findings.length).toBe(5);
 
     const groups = element.shadowRoot.querySelectorAll('[data-id="group"]');
     expect(groups.length).toBe(3);
@@ -167,6 +182,22 @@ describe('c-health-check-panel', () => {
     await flush();
 
     expect(applyJunctionMembership).toHaveBeenCalled();
+  });
+
+  it('runs the automatic households fix from the finding', async () => {
+    getReport.mockResolvedValue(agentforceReport());
+    enableAutomaticHouseholds.mockResolvedValue(agentforceReport({ findings: [] }));
+    const element = createPanel();
+    await flush();
+
+    const fixes = element.shadowRoot.querySelectorAll('[data-id="fix"]');
+    const households = Array.from(fixes).find(
+      (button) => button.dataset.target === 'action:enableAutomaticHouseholds'
+    );
+    households.click();
+    await flush();
+
+    expect(enableAutomaticHouseholds).toHaveBeenCalled();
   });
 
   it('navigates to a relative URL fix', async () => {

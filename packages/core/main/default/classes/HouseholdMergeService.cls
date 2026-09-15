@@ -272,7 +272,13 @@ public with sharing class HouseholdMergeService {
         if (keepsCustomName) {
             HouseholdService.recalculateMemberCounts(survivorOnly);
         } else {
-            HouseholdService.afterMembershipChange(survivorOnly);
+            // The household a merge has just folded the other one into is never tidied
+            // away by the merge's own settle-up. Tidying away an empty household is what
+            // happens when the last person leaves one (R-H12); the survivor of a merge is
+            // the record the merge exists to keep, and everything the other household
+            // carried has just been moved onto it. Two households that were both empty
+            // would otherwise merge into nothing at all.
+            HouseholdService.afterMembershipChange(survivorOnly, false);
         }
         return survivorId;
     }

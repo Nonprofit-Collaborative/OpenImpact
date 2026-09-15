@@ -242,17 +242,22 @@ private class HouseholdNamingServiceTest {
         HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
         Account household = HouseholdTestDataFactory.newHousehold('Placeholder');
         insert household;
+        // Household Role is what decides the order members are named in, so the couple are
+        // given theirs: without a role these two are ordered by the tie breaks that follow
+        // it, and the greeting would name whichever of them those happen to put first.
         insert new List<Contact>{
             new Contact(
                 Salutation = 'Mr.',
                 FirstName = 'John',
                 LastName = 'Smith',
+                Household_Role__c = 'Head',
                 AccountId = household.Id
             ),
             new Contact(
                 Salutation = 'Mrs.',
                 FirstName = 'Jane',
                 LastName = 'Smith',
+                Household_Role__c = 'Spouse or Partner',
                 AccountId = household.Id
             )
         };

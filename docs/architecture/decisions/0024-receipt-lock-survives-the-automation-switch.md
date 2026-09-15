@@ -95,7 +95,12 @@ The escalation ADR-0010 called for was therefore made, and the owner decided.
   to each other and are not the same rule.
 - `Override_Receipt_Lock` is a permission an org can misuse by simply leaving it assigned.
   Health Check should report it as a finding when anyone holds it, which is recorded as
-  follow-up work rather than shipped here.
+  follow-up work rather than shipped here. **Shipped 2026-09-09** under C-11: the
+  `override_receipt_lock` finding names the active people holding it, at Warning severity, with
+  a fix that opens Custom Permissions in Setup. Core does not compile against Giving to do it:
+  `CustomPermissionSelector` matches the permission on `DeveloperName` through
+  `CustomPermission` and `SetupEntityAccess`, which are platform setup objects every org has,
+  so an org without Giving answers "nobody" rather than failing (ADR-0009, ADR-0013).
 - **Unverified in an org.** No Apex test in this repository has been executed, so the
   behaviour above is reasoned from the code and enforced by tests that have been written
   and not run.

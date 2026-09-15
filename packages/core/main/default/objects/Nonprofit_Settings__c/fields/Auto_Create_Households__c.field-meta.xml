@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
   <fullName>Auto_Create_Households__c</fullName>
   <defaultValue>true</defaultValue>
-  <description>Whether inserting a Contact with no household creates one automatically.</description>
+  <description>Whether saving a new person who belongs to no household creates one automatically, in both membership modes and whichever object stores the person.</description>
   <inlineHelpText>Create a household automatically for a new person.</inlineHelpText>
   <label>Auto Create Households</label>
   <type>Checkbox</type>

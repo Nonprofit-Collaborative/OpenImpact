@@ -9,7 +9,7 @@
   <filters>
     <field>Active__c</field>
     <operation>equals</operation>
-    <value>true</value>
+    <value>1</value>
   </filters>
   <filters>
     <field>Last_Calculated__c</field>
