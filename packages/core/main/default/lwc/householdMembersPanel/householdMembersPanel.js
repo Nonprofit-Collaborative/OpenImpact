@@ -1,11 +1,12 @@
 import { LightningElement, api, wire, track } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
-import { getRecord } from 'lightning/uiRecordApi';
+import { getRecord, updateRecord } from 'lightning/uiRecordApi';
 import { getObjectInfo } from 'lightning/uiObjectInfoApi';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getMembers from '@salesforce/apex/HouseholdController.getMembers';
 import getMembershipMode from '@salesforce/apex/HouseholdController.getMembershipMode';
 import moveContact from '@salesforce/apex/HouseholdController.moveContact';
+import makePrimaryMembership from '@salesforce/apex/HouseholdOfPersonController.makePrimary';
 
 import TITLE from '@salesforce/label/c.Core_HouseholdMembersPanel_Title';
 import EMPTY from '@salesforce/label/c.Core_HouseholdMembersPanel_Empty';
@@ -20,10 +21,18 @@ import MOVE_SUCCESS from '@salesforce/label/c.Core_HouseholdMembersPanel_MoveSuc
 import ADD_SUCCESS from '@salesforce/label/c.Core_HouseholdMembersPanel_AddSuccess';
 import SAVE from '@salesforce/label/c.Core_HouseholdMembersPanel_Save';
 import CANCEL from '@salesforce/label/c.Core_HouseholdMembersPanel_Cancel';
+import MAKE_PRIMARY from '@salesforce/label/c.Core_HouseholdPanel_MakePrimary';
+import MAKE_PRIMARY_FOR from '@salesforce/label/c.Core_HouseholdPanel_MakePrimaryFor';
+import MOVE_FOR from '@salesforce/label/c.Core_HouseholdPanel_MoveFor';
+import MAKE_PRIMARY_SUCCESS from '@salesforce/label/c.Core_HouseholdPanel_MakePrimarySuccess';
+import MAKE_PRIMARY_FAILED from '@salesforce/label/c.Core_HouseholdPanel_MakePrimaryFailed';
+import LOADING from '@salesforce/label/c.Core_HouseholdPanel_Loading';
 
 const RECORD_TYPE_FIELD = 'Account.RecordType.DeveloperName';
+const PRIMARY_CONTACT_FIELD = 'Account.Primary_Contact__c';
 const HOUSEHOLD = 'Household';
 const JUNCTION = 'Junction';
+const SOURCE_ACCOUNT = 'Account';
 
 export default class HouseholdMembersPanel extends LightningElement {
   @api recordId;
@@ -39,26 +48,35 @@ export default class HouseholdMembersPanel extends LightningElement {
     moveMember: MOVE_MEMBER,
     moveHelp: MOVE_HELP,
     save: SAVE,
-    cancel: CANCEL
+    cancel: CANCEL,
+    makePrimary: MAKE_PRIMARY,
+    loading: LOADING
   };
 
   @track members = [];
   membershipMode;
   recordTypeName;
   householdRecordTypeId;
+  primaryContactId;
   errorMessage;
   isAdding = false;
   movingPersonId;
   targetHouseholdId;
+  busy = false;
+  membersLoaded = false;
 
   membersResult;
 
-  @wire(getRecord, { recordId: '$recordId', fields: [RECORD_TYPE_FIELD] })
+  @wire(getRecord, { recordId: '$recordId', fields: [RECORD_TYPE_FIELD, PRIMARY_CONTACT_FIELD] })
   wiredAccount({ data, error }) {
     if (data) {
       const recordType = data.fields.RecordType;
       this.recordTypeName =
         recordType && recordType.value ? recordType.value.fields.DeveloperName.value : undefined;
+      // In the simple way of belonging the primary contact is the household's own field, which
+      // the server does not put on a member, so the badge is worked out here.
+      const primary = data.fields.Primary_Contact__c;
+      this.primaryContactId = primary ? primary.value : undefined;
     } else if (error) {
       this.errorMessage = this.readError(error);
     }
@@ -91,14 +109,13 @@ export default class HouseholdMembersPanel extends LightningElement {
   wiredMembers(result) {
     this.membersResult = result;
     if (result.data) {
-      this.members = result.data.map((member) => ({
-        ...member,
-        badges: this.badgesFor(member)
-      }));
+      this.members = result.data;
       this.errorMessage = undefined;
+      this.membersLoaded = true;
     } else if (result.error) {
       this.members = [];
       this.errorMessage = this.readError(result.error);
+      this.membersLoaded = true;
     }
   }
 
@@ -116,6 +133,41 @@ export default class HouseholdMembersPanel extends LightningElement {
 
   get hasMembers() {
     return this.members.length > 0;
+  }
+
+  get isLoading() {
+    return this.busy || !this.membersLoaded;
+  }
+
+  /**
+   * The members as the rows draw them: who is primary, which actions each row offers, and
+   * what a screen reader hears for each action. Worked out on the way to the screen because
+   * the primary contact and the way of belonging arrive from wires of their own.
+   */
+  get rows() {
+    return this.members.map((member) => {
+      const isPrimary = this.isPrimary(member);
+      const storedAsAccount = member.source === SOURCE_ACCOUNT;
+      return {
+        ...member,
+        isPrimary,
+        badges: this.badgesFor(member, isPrimary),
+        // A person stored as an account can only be moved, or named primary, where their
+        // membership is a record of its own. Offering the button elsewhere only lets the
+        // user click and be refused.
+        canMove: this.isJunctionMode || !storedAsAccount,
+        canMakePrimary: !isPrimary && (this.isJunctionMode || !storedAsAccount),
+        moveLabel: MOVE_FOR.replace('{0}', member.name),
+        makePrimaryLabel: MAKE_PRIMARY_FOR.replace('{0}', member.name)
+      };
+    });
+  }
+
+  isPrimary(member) {
+    if (this.isJunctionMode) {
+      return member.isPrimary === true;
+    }
+    return !!this.primaryContactId && member.personId === this.primaryContactId;
   }
 
   get isMoving() {
@@ -138,9 +190,9 @@ export default class HouseholdMembersPanel extends LightningElement {
     };
   }
 
-  badgesFor(member) {
+  badgesFor(member, isPrimary) {
     const badges = [];
-    if (member.isPrimary) {
+    if (isPrimary) {
       badges.push({ key: `${member.personId}-primary`, text: PRIMARY });
     }
     if (member.isDeceased) {
@@ -182,6 +234,7 @@ export default class HouseholdMembersPanel extends LightningElement {
   handleMoveSave() {
     const personId = this.movingPersonId;
     const targetId = this.targetHouseholdId;
+    this.busy = true;
     return moveContact({ contactId: personId, targetHouseholdId: targetId })
       .then(() => {
         this.movingPersonId = undefined;
@@ -192,6 +245,36 @@ export default class HouseholdMembersPanel extends LightningElement {
       })
       .catch((error) => {
         this.errorMessage = this.readError(error);
+      })
+      .finally(() => {
+        this.busy = false;
+      });
+  }
+
+  /**
+   * In the simple way of belonging the primary contact is a field on the household, written
+   * through the platform so that the user's own access decides whether it is allowed. In the
+   * flexible way it is a mark on the membership record, which the server moves.
+   */
+  handleMakePrimary(event) {
+    const personId = event.target.dataset.personId;
+    const member = this.members.find((row) => row.personId === personId);
+    const name = member ? member.name : '';
+    this.busy = true;
+    const write = this.isJunctionMode
+      ? makePrimaryMembership({ householdId: this.recordId, personId })
+      : updateRecord({ fields: { Id: this.recordId, Primary_Contact__c: personId } });
+    return write
+      .then(() => {
+        this.errorMessage = undefined;
+        this.toast(MAKE_PRIMARY_SUCCESS.replace('{0}', name), 'success');
+        return this.refresh();
+      })
+      .catch((error) => {
+        this.errorMessage = this.isJunctionMode ? this.readError(error) : MAKE_PRIMARY_FAILED;
+      })
+      .finally(() => {
+        this.busy = false;
       });
   }
 

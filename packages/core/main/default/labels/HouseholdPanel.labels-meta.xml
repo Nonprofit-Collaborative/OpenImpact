@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_HouseholdPanel_MakePrimary</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: button that makes a person the primary contact</shortDescription>
+        <value>Make primary</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_MakePrimaryFor</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: what a screen reader hears for the make primary button, {0} is the person's name</shortDescription>
+        <value>Make {0} the primary contact</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_MoveFor</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: what a screen reader hears for the move button, {0} is the person's name</shortDescription>
+        <value>Move {0} to another household</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_MakePrimarySuccess</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: toast after the primary contact was changed, {0} is the person's name</shortDescription>
+        <value>{0} is now the primary contact.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_MakePrimaryFailed</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: message when the primary contact could not be changed</shortDescription>
+        <value>The primary contact could not be changed. Check that you can edit this household and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_NotAMember</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: message when the person chosen as primary is not in the household</shortDescription>
+        <value>That person is not in this household, so they cannot be its primary contact.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_Loading</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: what a screen reader hears while the panel loads or saves</shortDescription>
+        <value>Loading household members</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_OfPersonTitle</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Household panel on a person: card title</shortDescription>
+        <value>Household</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_OfPersonEmpty</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Household panel on a person: message when the person is in no household</shortDescription>
+        <value>This person is not in a household yet</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_OfPersonLoading</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Household panel on a person: what a screen reader hears while it loads</shortDescription>
+        <value>Loading household</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_OfPersonLoadFailed</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Household panel on a person: message when the household could not be read</shortDescription>
+        <value>The household could not be loaded. Refresh the page and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_MemberCountOne</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Household panel on a person: member count for a household of one</shortDescription>
+        <value>1 member</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_MemberCountMany</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Household panel on a person: member count, {0} is the number</shortDescription>
+        <value>{0} members</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_FormalGreeting</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Household panel on a person: caption before the formal greeting</shortDescription>
+        <value>Formal greeting</value>
+    </labels>
+</CustomLabels>

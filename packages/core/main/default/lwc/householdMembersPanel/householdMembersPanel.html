@@ -1,17 +1,21 @@
 <template>
     <lightning-card title={label.title} icon-name="standard:people">
-        <div class="slds-var-m-around_medium">
+        <div class="slds-var-m-around_medium slds-is-relative">
             <template if:false={isHousehold}>
                 <p class="slds-text-color_weak not-a-household">{label.notAHousehold}</p>
             </template>
 
             <template if:true={isHousehold}>
+                <template if:true={isLoading}>
+                    <lightning-spinner alternative-text={label.loading} size="small"></lightning-spinner>
+                </template>
+
                 <template if:false={hasMembers}>
                     <p class="slds-text-color_weak empty-message">{label.empty}</p>
                 </template>
 
                 <ul class="slds-has-dividers_bottom-space member-list">
-                    <template for:each={members} for:item="member">
+                    <template for:each={rows} for:item="member">
                         <li key={member.personId} class="slds-item member-row">
                             <span class="slds-text-body_regular member-name">{member.name}</span>
                             <template if:true={member.role}>
@@ -22,13 +26,30 @@
                             <template for:each={member.badges} for:item="badge">
                                 <lightning-badge key={badge.key} label={badge.text}></lightning-badge>
                             </template>
-                            <lightning-button
-                                variant="base"
-                                label={label.moveMember}
-                                data-person-id={member.personId}
-                                onclick={handleMoveClick}
-                                class="slds-var-m-left_x-small move-button"
-                            ></lightning-button>
+                            <template if:true={member.canMakePrimary}>
+                                <lightning-button
+                                    variant="base"
+                                    label={label.makePrimary}
+                                    aria-label={member.makePrimaryLabel}
+                                    title={member.makePrimaryLabel}
+                                    data-person-id={member.personId}
+                                    disabled={busy}
+                                    onclick={handleMakePrimary}
+                                    class="slds-var-m-left_x-small make-primary-button"
+                                ></lightning-button>
+                            </template>
+                            <template if:true={member.canMove}>
+                                <lightning-button
+                                    variant="base"
+                                    label={label.moveMember}
+                                    aria-label={member.moveLabel}
+                                    title={member.moveLabel}
+                                    data-person-id={member.personId}
+                                    disabled={busy}
+                                    onclick={handleMoveClick}
+                                    class="slds-var-m-left_x-small move-button"
+                                ></lightning-button>
+                            </template>
                         </li>
                     </template>
                 </ul>
@@ -49,6 +70,7 @@
                             <lightning-button
                                 variant="brand"
                                 label={label.save}
+                                disabled={busy}
                                 onclick={handleMoveSave}
                                 class="slds-var-m-right_x-small move-save-button"
                             ></lightning-button>
