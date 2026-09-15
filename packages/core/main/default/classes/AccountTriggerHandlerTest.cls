@@ -44,6 +44,34 @@ private class AccountTriggerHandlerTest {
     }
 
     @IsTest
+    static void clearingTheCustomNameBoxLeavesANativeHouseholdAlone() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Account household = HouseholdTestDataFactory.newHousehold('Name kept by Nonprofit Cloud');
+        household.Custom_Name__c = true;
+        insert household;
+        insert new Contact(
+            Salutation = 'Mr.',
+            FirstName = 'John',
+            LastName = 'Smith',
+            AccountId = household.Id
+        );
+        OrgShapeDetector.OrgShape shape = new OrgShapeDetector.OrgShape();
+        shape.hasNativeHouseholdGroups = true;
+        OrgShapeDetector.overrideShape = shape;
+        HouseholdSelector.accountsWithNativeDependentsOverride = new Set<Id>{ household.Id };
+
+        Test.startTest();
+        update new Account(Id = household.Id, Custom_Name__c = false);
+        Test.stopTest();
+
+        Assert.areEqual(
+            'Name kept by Nonprofit Cloud',
+            [SELECT Name FROM Account WHERE Id = :household.Id].Name,
+            'A household Nonprofit Cloud manages is never renamed, even once its custom name is released'
+        );
+    }
+
+    @IsTest
     static void checkingTheCustomNameBoxLeavesTheWordingAlone() {
         HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
         Contact john = HouseholdTestDataFactory.newContact('Mr.', 'John', 'Smith');

@@ -56,6 +56,10 @@ public with sharing class AccountTriggerHandler extends TriggerHandler {
             }
         }
         if (!released.isEmpty()) {
+            // Mutual exclusion (product-plan Section 11.2 item 9): clearing Custom Name on a
+            // household that Nonprofit Cloud manages natively must not hand its name to Open
+            // Impact's naming, the same guard the other two naming callers apply.
+            released.removeAll(HouseholdSelector.nativeHouseholdAccountsAmong(released));
             HouseholdNamingService.applyNaming(released);
         }
         // R-H4 and R-H11. A person renamed, marked deceased, given a preferred name, moved
