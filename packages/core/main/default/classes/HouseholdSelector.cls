@@ -30,6 +30,21 @@ public with sharing class HouseholdSelector {
     private static final String NATIVE_MEMBERSHIP_QUERY = 'SELECT AccountId FROM AccountContactRelation WHERE AccountId IN :accountIds LIMIT 10000'; // detection-only: the delete guard has to notice native household membership rows on the Account it is about to delete, because they make a household that reads as empty to Open Impact
     private static final String ACCOUNT_FIELD = 'AccountId';
 
+    // The one question Health Check asks that getAccountsWithNativeDependents cannot answer:
+    // not "do any of these accounts have a native dependent" but "how many accounts across the
+    // whole org carry both models at once", which is exactly the collision the mutual
+    // exclusion decision (product-plan Section 11.2 item 9) exists to prevent. A second query
+    // text, never concatenated, the same shape as the others in this class.
+    private static final String NATIVE_HOUSEHOLD_GROUP_TYPE = 'PartyRelationshipGroup'; // detection-only: describe key, so Health Check's collision count can tell whether the object exists before it asks about it
+    private static final String NATIVE_HOUSEHOLD_COLLISION_COUNT_QUERY = 'SELECT COUNT() FROM Account WHERE RecordTypeId = :recordTypeId AND Id IN (SELECT AccountId FROM PartyRelationshipGroup WHERE Type = \'Household\')'; // detection-only: counts Accounts that are an Open Impact household and a native Nonprofit Cloud household at once
+
+    /**
+     * Set only by tests, so the collision count can be exercised on an org where the native
+     * object does not exist. Production code always runs the probe.
+     */
+    @TestVisible
+    private static Integer nativeHouseholdCollisionCountOverride;
+
     /**
      * Set only by tests, so that both outcomes of the delete guard are exercised on an org
      * where neither Nonprofit Cloud object exists. Production code always runs the probe.
