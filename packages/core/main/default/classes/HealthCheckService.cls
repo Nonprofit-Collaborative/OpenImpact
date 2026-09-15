@@ -273,6 +273,18 @@ public with sharing class HealthCheckService {
         }
     }
 
+    private class NativeHouseholdsCheck implements Check {
+        public Finding run() {
+            return nativeHouseholdsFinding(OrgShapeDetector.detect());
+        }
+    }
+
+    private class NativeHouseholdCollisionCheck implements Check {
+        public Finding run() {
+            return nativeHouseholdCollisionFinding();
+        }
+    }
+
     private class ConnectModuleCheck implements Check {
         public Finding run() {
             return connectModuleFinding(OrgShapeDetector.detect());
@@ -379,6 +391,8 @@ public with sharing class HealthCheckService {
         steps.add(new CheckStep('membership_mode', new MembershipModeCheck()));
         steps.add(new CheckStep('membership_data', new MembershipDataCheck()));
         steps.add(new CheckStep('household_creation', new HouseholdCreationCheck()));
+        steps.add(new CheckStep('native_households', new NativeHouseholdsCheck()));
+        steps.add(new CheckStep('native_household_collision', new NativeHouseholdCollisionCheck()));
         steps.add(new CheckStep('connect_module', new ConnectModuleCheck()));
         steps.add(new CheckStep('multi_currency', new MultiCurrencyCheck()));
 
@@ -651,6 +665,53 @@ public with sharing class HealthCheckService {
                 System.Label.Core_HealthCheck_NoHouseholdCreationFix,
                 FIX_ENABLE_AUTOMATIC_HOUSEHOLDS
             );
+    }
+
+    /**
+     * How many households here are already the Salesforce Nonprofit Cloud way: an Account
+     * carrying a native household group. Informational, because it is not a problem, it is
+     * mutual exclusion working (product-plan Section 11.2 item 9): Open Impact leaves these
+     * households alone rather than renaming, re-greeting, or re-addressing them.
+     */
+    private static Finding nativeHouseholdsFinding(OrgShapeDetector.OrgShape shape) {
+        if (shape == null || shape.hasNativeHouseholdGroups != true) {
+            return null;
+        }
+        String detail = shape.nativeHouseholdGroupCount != null
+            ? String.format(
+                  System.Label.Core_HealthCheck_NativeHouseholdsDetail,
+                  new List<Object>{ String.valueOf(shape.nativeHouseholdGroupCount) }
+              )
+            : System.Label.Core_HealthCheck_NativeHouseholdsUnknownDetail;
+        return new Finding(
+            'native_households',
+            System.Label.Core_HealthCheck_NativeHouseholdsTitle,
+            detail,
+            SEVERITY_INFO,
+            CATEGORY_ORG_SHAPE
+        );
+    }
+
+    /**
+     * How many Accounts carry a native Nonprofit Cloud household group and the Open Impact
+     * Household record type at once, the collision mutual exclusion exists to prevent
+     * (product-plan Section 11.2 item 9). A warning, unlike the informational count above:
+     * such an Account is one where Open Impact used to write the name, greetings, or
+     * address before this guard, and an administrator should look at it.
+     */
+    private static Finding nativeHouseholdCollisionFinding() {
+        Integer collisions = HouseholdSelector.nativeHouseholdCollisionCount();
+        if (collisions == null || collisions <= 0) {
+            return null;
+        }
+        List<Object> count = new List<Object>{ String.valueOf(collisions) };
+        return new Finding(
+            'native_household_collision',
+            String.format(System.Label.Core_HealthCheck_NativeHouseholdCollisionTitle, count),
+            String.format(System.Label.Core_HealthCheck_NativeHouseholdCollisionDetail, count),
+            SEVERITY_WARNING,
+            CATEGORY_ORG_SHAPE
+        );
     }
 
     private static Finding connectModuleFinding(OrgShapeDetector.OrgShape shape) {

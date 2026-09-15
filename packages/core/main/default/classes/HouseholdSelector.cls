@@ -294,6 +294,66 @@ public with sharing class HouseholdSelector {
      * so in the log, while deleting on a probe that never ran destroys the native household
      * this guard was added to protect.
      */
+    /**
+     * Of these Accounts, the ones that already carry a native Nonprofit Cloud household
+     * group or native membership rows: the single predicate every mutual exclusion guard
+     * asks (product-plan Section 11.2 item 9), built on `getAccountsWithNativeDependents`
+     * rather than a second per-record query.
+     *
+     * The cheap check comes first: `OrgShapeDetector.OrgShape.hasNativeHouseholdGroups` is
+     * already computed once per transaction, and an org it reports as having no native
+     * groups at all needs no per-record probe, so every caller of this method pays for the
+     * query only in an org where it can matter.
+     */
+    @NamespaceAccessible
+    public static Set<Id> nativeHouseholdAccountsAmong(Set<Id> accountIds) {
+        if (accountIds == null || accountIds.isEmpty()) {
+            return new Set<Id>();
+        }
+        if (OrgShapeDetector.detect().hasNativeHouseholdGroups != true) {
+            return new Set<Id>();
+        }
+        return getAccountsWithNativeDependents(accountIds);
+    }
+
+    /**
+     * How many Accounts are, at once, an Open Impact household and a Nonprofit Cloud native
+     * household, the collision the mutual exclusion decision exists to prevent
+     * (product-plan Section 11.2 item 9). Health Check reports this as a warning distinct
+     * from the informational native household count.
+     *
+     * Wrapped in the same probe-and-assume pattern as `addNativeDependents`: an object the
+     * org does not have contributes zero, because an object that is not there cannot
+     * collide with anything, and a probe that fails for any other reason is treated as
+     * unknown by returning null, the same way OrgShapeSelector.nativeHouseholdGroupCount
+     * treats an unanswerable question as unknown rather than as zero, so Health Check says
+     * so rather than showing a count it does not have.
+     */
+    @NamespaceAccessible
+    public static Integer nativeHouseholdCollisionCount() {
+        if (nativeHouseholdCollisionCountOverride != null) {
+            return nativeHouseholdCollisionCountOverride;
+        }
+        if (!Schema.getGlobalDescribe().containsKey(NATIVE_HOUSEHOLD_GROUP_TYPE)) {
+            return 0;
+        }
+        Id recordTypeId = HouseholdService.householdRecordTypeId();
+        if (recordTypeId == null) {
+            return 0;
+        }
+        try {
+            return Database.countQueryWithBinds(
+                NATIVE_HOUSEHOLD_COLLISION_COUNT_QUERY,
+                new Map<String, Object>{ 'recordTypeId' => recordTypeId },
+                AccessLevel.SYSTEM_MODE
+            );
+        } catch (Exception probeFailed) {
+            // No logging from a selector: not being able to answer is unknown, not zero,
+            // and the caller (Health Check) decides what to say about unknown.
+            return null;
+        }
+    }
+
     private static void addNativeDependents(
         Set<Id> dependent,
         String objectName,

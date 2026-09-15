@@ -1509,4 +1509,120 @@ private class HouseholdServiceTest {
             'The message carries the household record identifier'
         );
     }
+
+    // ---------------------------------------------------------- native household guards
+
+    /**
+     * Mutual exclusion (product-plan Section 11.2 item 9). afterMembershipChange still
+     * recalculates the member count, which is Open Impact's own bookkeeping, but leaves the
+     * name and greetings of a household that already carries a native Nonprofit Cloud
+     * household group exactly as they were.
+     */
+    @IsTest
+    static void namingIsSkippedForAHouseholdWithANativeGroupButMemberCountStillUpdates() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        insert maria;
+        Account native = HouseholdTestDataFactory.newHousehold('Old native name');
+        insert native;
+        OrgShapeDetector.OrgShape shape = new OrgShapeDetector.OrgShape();
+        shape.hasNativeHouseholdGroups = true;
+        OrgShapeDetector.overrideShape = shape;
+        HouseholdSelector.accountsWithNativeDependentsOverride = new Set<Id>{ native.Id };
+
+        Test.startTest();
+        HouseholdService.moveContact(maria.Id, native.Id);
+        Test.stopTest();
+
+        Account after = [SELECT Name, Member_Count__c FROM Account WHERE Id = :native.Id];
+        Assert.areEqual(
+            'Old native name',
+            after.Name,
+            'The name of a household with a native group is never rewritten'
+        );
+        Assert.areEqual(
+            1,
+            after.Member_Count__c,
+            'The member count is Open Impact\'s own bookkeeping and still updates'
+        );
+    }
+
+    /**
+     * Auto-creation, junction mode, contact stored as a person. The weaker but safe rule:
+     * a contact whose AccountId already points at an Account carrying a native household
+     * group gets no Open Impact household.
+     */
+    @IsTest
+    static void aContactAlreadyLinkedToANativeHouseholdGetsNoNewHouseholdInJunctionMode() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        Account native = new Account(Name = 'Native household account');
+        insert native;
+        OrgShapeDetector.OrgShape shape = new OrgShapeDetector.OrgShape();
+        shape.hasNativeHouseholdGroups = true;
+        OrgShapeDetector.overrideShape = shape;
+        HouseholdSelector.accountsWithNativeDependentsOverride = new Set<Id>{ native.Id };
+        Contact maria = new Contact(
+            Salutation = 'Ms.',
+            FirstName = 'Maria',
+            LastName = 'Garcia',
+            AccountId = native.Id
+        );
+
+        Test.startTest();
+        insert maria;
+        Test.stopTest();
+
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Household_Member__c WHERE Contact__c = :maria.Id],
+            'No Open Impact household was created for a contact already linked to a native household'
+        );
+    }
+
+    /**
+     * Auto-creation, junction mode, person stored as an account. Here the person's own
+     * Account is the person, so the same rule is asked of the Account itself.
+     */
+    @IsTest
+    static void aPersonAccountThatAlreadyCarriesANativeGroupGetsNoOpenImpactHousehold() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        HouseholdService.personAccountOverride = true;
+        Account person = new Account(Name = 'Maria Garcia');
+        insert person;
+        OrgShapeDetector.OrgShape shape = new OrgShapeDetector.OrgShape();
+        shape.hasNativeHouseholdGroups = true;
+        OrgShapeDetector.overrideShape = shape;
+        HouseholdSelector.accountsWithNativeDependentsOverride = new Set<Id>{ person.Id };
+
+        Test.startTest();
+        HouseholdService.createHouseholdsForPersonAccounts(new List<SObject>{ person });
+        Test.stopTest();
+
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Household_Member__c WHERE Account__c = :person.Id],
+            'No Open Impact household was created for a person account that already carries a native household group'
+        );
+    }
+
+    /**
+     * The short circuit: an org OrgShapeDetector reports as having no native household
+     * groups at all is never asked the per-record question.
+     */
+    @IsTest
+    static void theNativePredicateShortCircuitsWhenTheOrgHasNoNativeGroupsAtAll() {
+        OrgShapeDetector.OrgShape shape = new OrgShapeDetector.OrgShape();
+        shape.hasNativeHouseholdGroups = false;
+        OrgShapeDetector.overrideShape = shape;
+        Set<Id> candidates = new Set<Id>{ UserInfo.getUserId() };
+
+        Test.startTest();
+        Integer before = Limits.getQueries();
+        Set<Id> result = HouseholdSelector.nativeHouseholdAccountsAmong(candidates);
+        Integer after = Limits.getQueries();
+        Test.stopTest();
+
+        Assert.isTrue(result.isEmpty(), 'No accounts are treated as native when the org has none');
+        Assert.areEqual(before, after, 'The short circuit runs no query at all');
+    }
 }
