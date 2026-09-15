@@ -1,11 +1,12 @@
 /**
  * The server side of two small household screens: the Household panel on a person's record,
- * and the Make primary action on the household's members panel.
+ * and the Make primary and Add member actions on the household's members panel.
  *
  * Everything here is something a person asked for by clicking, so every read and every
  * write runs with that person's own access (ADR-0021). A household this user cannot see is
- * not shown, and a primary contact this user cannot set is refused with a message they can
- * read rather than a raw platform error.
+ * not shown, a primary contact this user cannot set is refused with a message they can read
+ * rather than a raw platform error, and a person this user cannot create or join stays that
+ * way for the same reason.
  */
 public with sharing class HouseholdOfPersonController {
     /**
@@ -20,6 +21,16 @@ public with sharing class HouseholdOfPersonController {
         public Integer memberCount;
         @AuraEnabled
         public String formalGreeting;
+    }
+
+    /**
+     * One person the Add existing person search offers, in the flexible way of belonging.
+     */
+    public class PersonResult {
+        @AuraEnabled
+        public Id id;
+        @AuraEnabled
+        public String name;
     }
 
     /**
@@ -84,6 +95,89 @@ public with sharing class HouseholdOfPersonController {
         }
     }
 
+    /**
+     * People the Add member search on the members panel offers, in the flexible way of
+     * belonging: contacts, and where the org stores some people as accounts, those too. Read
+     * in user mode, so a person this user cannot see is never offered.
+     *
+     * Two or more characters are asked for before a query runs, the same floor
+     * SettingsController.search uses, so a single keystroke never fires a query.
+     */
+    @AuraEnabled(cacheable=true)
+    public static List<PersonResult> searchPeople(String searchTerm) {
+        List<PersonResult> result = new List<PersonResult>();
+        String trimmed = searchTerm == null ? '' : searchTerm.trim();
+        if (trimmed.length() < 2) {
+            return result;
+        }
+        try {
+            String likeTerm = '%' + trimmed + '%';
+            result.addAll(searchContacts(likeTerm));
+            if (HouseholdService.isPersonAccountOrg()) {
+                result.addAll(searchPersonAccounts(likeTerm));
+            }
+            return result;
+        } catch (Exception e) {
+            throw asUserError(Label.Core_HouseholdPanel_AddSearchFailed);
+        }
+    }
+
+    /**
+     * Joins a person who already exists to this household, in the flexible way of belonging.
+     * HouseholdService.addMembers does the join and enforces the rules (R-M5): who this is
+     * refuses cleanly when the household is not a household, or when the person cannot join
+     * this way.
+     */
+    @AuraEnabled
+    public static void addExistingPerson(Id householdId, Id personId) {
+        try {
+            if (householdId == null || personId == null) {
+                throw new HouseholdException(Label.Core_HouseholdPanel_AddMemberMissingPerson);
+            }
+            HouseholdService.addMembers(new Map<Id, Set<Id>>{ householdId => new Set<Id>{ personId } });
+        } catch (HouseholdException e) {
+            throw asUserError(e.getMessage());
+        } catch (Exception e) {
+            ErrorLogger.log(e, Label.Core_Households_ErrorContextMembership, householdId);
+            throw asUserError(Label.Core_HouseholdPanel_AddMemberFailed);
+        }
+    }
+
+    /**
+     * Creates a new contact and joins them to this household, in the flexible way of
+     * belonging. The contact is created with this user's own access (ADR-0021 does not cover
+     * an ordinary Contact save, only package-owned data), so the save succeeds exactly when
+     * the user could have created the contact by hand. The join that follows is the same one
+     * addExistingPerson uses.
+     */
+    @AuraEnabled
+    public static void addNewPerson(
+        Id householdId,
+        String salutation,
+        String firstName,
+        String lastName
+    ) {
+        try {
+            if (householdId == null || String.isBlank(lastName)) {
+                throw new HouseholdException(Label.Core_HouseholdPanel_AddMemberMissingName);
+            }
+            Contact person = new Contact(
+                Salutation = salutation,
+                FirstName = firstName,
+                LastName = lastName
+            );
+            Database.insert(person, AccessLevel.USER_MODE);
+            HouseholdService.addMembers(
+                new Map<Id, Set<Id>>{ householdId => new Set<Id>{ person.Id } }
+            );
+        } catch (HouseholdException e) {
+            throw asUserError(e.getMessage());
+        } catch (Exception e) {
+            ErrorLogger.log(e, Label.Core_Households_ErrorContextMembership, householdId);
+            throw asUserError(Label.Core_HouseholdPanel_AddMemberFailed);
+        }
+    }
+
     // ------------------------------------------------------------------ helpers
 
     /**
@@ -133,6 +227,49 @@ public with sharing class HouseholdOfPersonController {
             WITH USER_MODE
             LIMIT 10000
         ];
+    }
+
+    private static List<PersonResult> searchContacts(String likeTerm) {
+        List<PersonResult> result = new List<PersonResult>();
+        for (Contact record : [
+            SELECT Id, Name
+            FROM Contact
+            WHERE Name LIKE :likeTerm
+            WITH USER_MODE
+            ORDER BY Name
+            LIMIT 10
+        ]) {
+            result.add(toPersonResult(record.Id, record.Name));
+        }
+        return result;
+    }
+
+    /**
+     * People this org stores as accounts, matched by name. The field that tells such an
+     * account apart from an organization exists on the account object only in an org shaped
+     * that way, exactly as PersonRecordSelector reads it, so the query is built as text and
+     * never names that field at compile time.
+     */
+    private static List<PersonResult> searchPersonAccounts(String likeTerm) {
+        List<PersonResult> result = new List<PersonResult>();
+        if (!Schema.SObjectType.Account.isAccessible()) {
+            return result;
+        }
+        String query =
+            'SELECT Id, Name FROM Account WHERE Name LIKE :likeTerm AND LastName != NULL ' +
+            'ORDER BY Name LIMIT 10';
+        Map<String, Object> binds = new Map<String, Object>{ 'likeTerm' => likeTerm };
+        for (SObject record : Database.queryWithBinds(query, binds, AccessLevel.USER_MODE)) {
+            result.add(toPersonResult(record.Id, (String) record.get('Name')));
+        }
+        return result;
+    }
+
+    private static PersonResult toPersonResult(Id personId, String name) {
+        PersonResult result = new PersonResult();
+        result.id = personId;
+        result.name = name;
+        return result;
     }
 
     private static List<HouseholdView> toViews(List<Account> households) {
