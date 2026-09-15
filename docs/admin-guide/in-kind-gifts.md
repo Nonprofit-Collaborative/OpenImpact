@@ -47,6 +47,44 @@ If you want in-kind gifts on paper, the report **In-kind Gifts This Year** is in
 reports folder. It lists each gift with its description, its fair market value and its donor,
 which is the list a finance team asks for at year end.
 
+### Recording one
+
+1. Create a gift the way you record any other, from the **Gifts** tab or from **Quick Gift
+   Entry**.
+2. Set **Type** to **In-kind**. The amount box disappears, because an in-kind gift has none.
+3. Fill in **What was given**, written the way the donor should read it on their receipt. "A
+   used minibus in working order" is a description. "Vehicle" is not.
+4. Fill in **Fair market value**: what your organization values it at, for your own
+   reporting. Leave it empty if you do not have a figure yet, and add it later.
+
+Open Impact refuses the entries that would produce a wrong record or a wrong receipt:
+
+- An in-kind gift with an amount that is not zero, because that figure would land in the
+  donor's total giving and in the money on your dashboard.
+- An in-kind gift with no description, because the receipt would have nothing to print in
+  place of an amount.
+- A gift of money carrying an in-kind description or a fair market value, because its receipt
+  would describe goods nobody gave.
+- A negative fair market value, because goods are worth nothing or something, never less than
+  nothing.
+
+### What the donor sees
+
+Issue the receipt from the gift the usual way (see [Receipts and year-end
+statements](receipts.md)). On the document:
+
+- Where your letter asks for the amount, the receipt says "the goods or services described
+  below" instead of a figure, and a line under the letter states in plain words that no value
+  has been stated.
+- Below that, Open Impact prints the description you typed, followed by the sentence that
+  says the organization has not placed a value on the gift and that valuing donated property
+  is the donor's responsibility.
+- On a year-end statement, the gift is a line with its date, its type and its status, and the
+  amount column says "Not valued". The statement's total is the money only, and the statement
+  says so in one sentence, so a donor who adds the lines up is not left puzzled.
+- Your organization's name and address are at the top and your tax identification number is
+  at the bottom, exactly as on a cash receipt.
+
 ## A five-minute walkthrough
 
 Start from the sample data (see `sample-data.md`), which includes about twenty in-kind gifts.
@@ -75,8 +113,12 @@ Start from the sample data (see `sample-data.md`), which includes about twenty i
    that no value is stated; and it carries the sentence describing what you received and
    saying that your organization has not placed a value on it. There is no `$800` anywhere on
    the document, and there is no way to put one there.
+9. Open a household that has both cash gifts and an in-kind gift in the same year, and issue
+   or open its year-end statement. The in-kind line has no amount, and the total at the
+   bottom is the cash only.
 
-That is the feature. Steps 5 and 8 are the two that matter.
+Steps 5, 8 and 9 are the ones worth reading closely: they are what an auditor or an
+accountant would look at.
 
 ## Common mistakes
 
@@ -87,6 +129,12 @@ largest gift, possibly promote them to a donor level, and appear in the money on
 dashboard, and none of those numbers would match what your finance team reports. If you find
 old in-kind gifts imported with the value in the amount, fix them by moving the figure to
 fair market value and setting the amount to zero, and recalculate the rollups afterwards.
+
+**Putting a value on the receipt anyway, by typing it into your letter.** You cannot type a
+donor's number into a packaged letter, but you can write "we valued your gift at" and a merge
+token into the template. Do not. The sentence Open Impact adds says the organization has not
+placed a value on the gift, and a letter that contradicts it in the paragraph above is worse
+than either sentence alone.
 
 **Recording one gift when there were two.** A donor who buys a 500 dollar table at your gala
 and also donates the centrepieces has given you two gifts, not one: a 500 dollar cash gift
@@ -111,3 +159,12 @@ in error, set the gift's status to **Written off**. If a receipt has already bee
 the receipt first; the description on a receipted in-kind gift is locked, exactly as the
 amount is on a cash one, because it is printed on a document the donor is holding. The fair
 market value stays editable at all times, because it is on no document.
+
+## Fields, for a report builder
+
+| What you want to report on | Object | Field |
+|---|---|---|
+| Which gifts were goods or services | Gift | Type, value In-kind |
+| What was given | Gift | In-kind Description |
+| What your organization valued it at | Gift | Fair Market Value, never Amount, which is zero |
+| What a donor gave in goods over time | Household, Organization, Person | In-kind Value, In-kind Gift Count |

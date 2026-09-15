@@ -27,6 +27,12 @@ title of whoever signs your letters. A receipt prints these. If you completed th
 Assistant they are already filled in. If your legal name is blank, receipts will not
 generate and Open Impact tells you which field is missing.
 
+Your legal name and address print at the top of every document even if your letter does not
+ask for them, and your tax identification number prints at the bottom. That is deliberate:
+deleting the letterhead out of your template should not produce a receipt with no
+organization on it. If your letter does print the name itself, Open Impact does not print it
+a second time.
+
 ### 2. Set your numbering
 
 In the Receipts section:
@@ -48,7 +54,21 @@ record page of its own, add the **Receipts** component to that page instead. Thi
 one-time assignment the soft credits and tributes panels need, so if you have already done it
 for those, the Receipts panel is there too.
 
-### 3. Write your two letters
+### 3. Choose how your logo prints
+
+Still in the Receipts section:
+
+- **Print the logo on receipts.** On by default, and only does anything once a logo has been
+  uploaded in the Organization section. Turn it off to send plain documents. **A receipt with
+  no logo is a valid receipt**, so this costs you nothing legally.
+- **Logo width in millimetres.** Forty is about a third of the width of the page, which suits
+  a wide wordmark. A tall square logo usually wants twenty five.
+- **Logo delivery route.** Leave it empty. It exists because how an image reaches the PDF has
+  not been confirmed in a real org yet (see the last section of this page), and it lets you or
+  Open Impact support try another route without waiting for a new version. The three values it
+  accepts are `File download`, `Embedded image` and `Document server`.
+
+### 4. Write your two letters
 
 Also in the Receipts section, **Receipt letters and year end statements** opens the Receipts
 page, which has two tabs. It opens as its own page rather than inside the settings console,
@@ -71,7 +91,7 @@ its kind off. Only one letter of each kind is in use at a time.
 them to every document regardless of what the letter says. That is deliberate: those
 sentences are what makes the document a valid receipt.
 
-### 4. Give people access
+### 5. Give people access
 
 On the Access page, **Giving Staff** and **Giving Admin** can issue, void and reissue
 receipts and start a run. Everyone with any Giving permission set can read receipts and open
@@ -109,8 +129,10 @@ Start from the sample data.
    You will see a receipt number appear on the gift, and a PDF in the Files list on the gift
    and on the receipt. Deliberately not on the donor's household: see "Give people access"
    above.
-4. Open the PDF. It states your organization's name, the amount, the date, and the sentence
-   "No goods or services were provided in exchange for this contribution."
+4. Open the PDF. It states your organization's name and address at the top, the amount, the
+   date, your tax identification number, and the sentence "No goods or services were provided
+   in exchange for this contribution." If you have uploaded a logo, it is above the name; if
+   it is missing, read the last section of this page before you go looking for a mistake.
 5. Now break it on purpose. Try to change the gift's amount. The save is refused with "This
    gift has a receipt number, so its amount, date, donor and in-kind description cannot
    change. Void the receipt and reissue it, or record a refund."
@@ -175,13 +197,15 @@ receipted that are skipped.
 
 **Putting a value on an in-kind gift's receipt.** You cannot, and you should not want to. For
 a gift of goods, Open Impact prints the description the donor gave and never a value, because
-in the United States valuing a donated item is the donor's responsibility and not yours. The
-Fair Market Value you record stays in Open Impact for your own reporting. Where a cash receipt
-prints the amount, an in-kind receipt says that no value is stated, and on a year-end statement
-an in-kind gift is a line with no amount, outside the total the statement adds up. The
-description on a receipted in-kind gift is locked from then on, exactly as the amount is on a
-cash gift, because it is printed on the document the donor holds; the fair market value stays
-editable, because it is on no document. See [In-kind gifts](in-kind-gifts.md).
+in the United States valuing a donated item is the donor's responsibility and not yours. Where
+your letter asks for an amount, an in-kind receipt says "the goods or services described
+below" instead, and the document states in plain words that no value has been stated. On a
+year-end statement the gift is a line with no amount, it is left out of the total, and the
+statement says why. The fair market value you record stays in Open Impact for your own
+reporting. The description on a receipted in-kind gift is locked from then on, exactly as the
+amount is on a cash gift, because it is printed on the document the donor holds; the fair
+market value stays editable, because it is on no document. See
+[In-kind gifts](in-kind-gifts.md).
 
 ## Three things to know before you rely on this
 
@@ -190,7 +214,12 @@ Recorded here rather than hidden, because each may change what you see:
 1. **Logos and signature images on the PDF may not appear yet.** How an image reaches the PDF
    renderer has not been confirmed in a real org (ADR-0016). A receipt with no logo and no
    signature is a legally valid receipt, so this does not stop you sending them. If your logo
-   does not print, that is this, not your setup.
+   does not print, that is this, not your setup. Three things are worth trying before you
+   conclude anything: check that the logo file is shared with the people who issue receipts,
+   because Open Impact will not print a file the running user cannot see and writes an Error
+   Log warning saying so; try the other two values of **Logo delivery route**; and if none of
+   them works, turn **Print the logo on receipts** off so your documents are deliberately
+   plain rather than accidentally so.
 2. **Two people cannot issue receipts at the same instant.** Receipt numbers come from one
    counter, and whoever is using it holds it until their receipt or their statement run
    finishes. A second person issuing at that moment waits, and if the wait reaches ten seconds

@@ -48,6 +48,13 @@ KNOWN_UNREGISTERED = {
     ): "Read through SettingsService.getValue by SoftCreditService."
     "automaticHouseholdCreditsEnabled, which treats null as on. Same gap as "
     "Auto_Apply_Gifts_To_Installments__c.",
+    (
+        "Giving_Settings__c",
+        "Receipt_Print_Logo__c",
+    ): "Read through SettingsService.getValue by ReceiptLogoSource.printLogo, which treats null "
+    "as on, because an organization that uploaded a logo in the Setup Assistant expects to see "
+    "it and the setting exists to turn that off rather than on. Same gap as "
+    "Auto_Apply_Gifts_To_Installments__c, and it closes with the same mechanism.",
 }
 
 
