@@ -54,8 +54,13 @@ public with sharing class ImportMapping {
         @NamespaceAccessible
         public String target;
 
+        // JSON.deserialize requires a no-arg constructor to build this class from the stored
+        // mapping document (see parse below); the fields it fills in are set afterward by the
+        // deserializer, so this constructor only states that starting point explicitly.
         @NamespaceAccessible
         public Column() {
+            this.source = null;
+            this.target = null;
         }
 
         @NamespaceAccessible
@@ -75,8 +80,13 @@ public with sharing class ImportMapping {
         @NamespaceAccessible
         public String value;
 
+        // JSON.deserialize requires a no-arg constructor to build this class from the stored
+        // mapping document (see parse below); the fields it fills in are set afterward by the
+        // deserializer, so this constructor only states that starting point explicitly.
         @NamespaceAccessible
         public Assignment() {
+            this.target = null;
+            this.value = null;
         }
 
         @NamespaceAccessible

@@ -858,6 +858,7 @@ public with sharing class HealthCheckService {
             }
             ErrorLogger.log(e, System.Label.Core_HealthCheck_ErrorContext);
         } catch (Exception loggingFailed) {
+            // Deliberate last resort: ErrorLogger.log itself failed, so the debug log is the only remaining place to note it. Kept intentionally (PMD AvoidDebugStatements finding accepted, not suppressed).
             System.debug(LoggingLevel.ERROR, loggingFailed);
         }
     }
