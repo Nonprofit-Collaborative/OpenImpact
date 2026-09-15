@@ -38,6 +38,8 @@ import SPLIT_EXISTING from '@salesforce/label/c.Core_HouseholdMerge_SplitExistin
 import SPLIT_BUTTON from '@salesforce/label/c.Core_HouseholdMerge_SplitButton';
 import SPLIT_CONFIRM_BODY from '@salesforce/label/c.Core_HouseholdMerge_SplitConfirmBody';
 import SPLIT_SUCCESS from '@salesforce/label/c.Core_HouseholdMerge_SplitSuccess';
+import RESULT_ACCESSIBLE_NAME from '@salesforce/label/c.Core_HouseholdScreens_ResultAccessibleName';
+import LOADING_COMPARISON from '@salesforce/label/c.Core_HouseholdScreens_LoadingComparison';
 
 const RECORD_TYPE_FIELD = 'Account.RecordType.DeveloperName';
 const HOUSEHOLD = 'Household';
@@ -71,7 +73,8 @@ export default class HouseholdMergeSplit extends NavigationMixin(LightningElemen
     splitNew: SPLIT_NEW,
     splitExisting: SPLIT_EXISTING,
     splitButton: SPLIT_BUTTON,
-    splitConfirmBody: SPLIT_CONFIRM_BODY
+    splitConfirmBody: SPLIT_CONFIRM_BODY,
+    loadingComparison: LOADING_COMPARISON
   };
 
   recordTypeName;
@@ -207,7 +210,7 @@ export default class HouseholdMergeSplit extends NavigationMixin(LightningElemen
     this.searchedOnce = true;
     return searchHouseholds({ term: this.searchTerm, excludeId: this.recordId })
       .then((results) => {
-        this.searchResults = results || [];
+        this.searchResults = this.withAccessibleNames(results);
         this.errorMessage = undefined;
       })
       .catch((error) => {
@@ -324,7 +327,7 @@ export default class HouseholdMergeSplit extends NavigationMixin(LightningElemen
     this.splitSearchedOnce = true;
     return searchHouseholds({ term: this.splitSearchTerm, excludeId: this.recordId })
       .then((results) => {
-        this.splitSearchResults = results || [];
+        this.splitSearchResults = this.withAccessibleNames(results);
         this.errorMessage = undefined;
       })
       .catch((error) => {
@@ -371,6 +374,19 @@ export default class HouseholdMergeSplit extends NavigationMixin(LightningElemen
   }
 
   // ---------------------------------------------------------------- helpers
+
+  // Duplicate households are the whole reason this panel exists, so two search results can
+  // read out identically ("The Garcia Family" twice) to a screen reader unless the location
+  // is folded into the name each result button announces.
+  withAccessibleNames(results) {
+    return (results || []).map((result) => ({
+      ...result,
+      accessibleName: RESULT_ACCESSIBLE_NAME.replace('{0}', result.name || '').replace(
+        '{1}',
+        result.location || ''
+      )
+    }));
+  }
 
   goTo(recordId) {
     this[NavigationMixin.Navigate]({
