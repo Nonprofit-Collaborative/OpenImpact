@@ -412,6 +412,10 @@ address fields are used as the platform provides them.
 | Household Role | picklist(Head, Spouse or Partner, Child, Other) | no | The person's role in their household, used for greeting order. |
 | Exclude From Household Name | boolean | yes (defaults false) | Leaves this person out of the computed household name. |
 | Exclude From Greetings | boolean | yes (defaults false) | Leaves this person out of both computed greetings. |
+| Personal Email | email | no | The person's own email address, the one they read at home. |
+| Work Email | email | no | The email address this person uses at work. |
+| Alternate Email | email | no | A third email address for a person who has one, for example a seasonal or a school address. |
+| Preferred Email | picklist(Personal, Work, Alternate) | no | Which of the three addresses the nonprofit should write to. Leaving it empty means the org is not using the three addresses at all. |
 | Employer | reference(Organization) | no | The organization this person works for, used to recognize the employer when a matching gift arrives (G-10). |
 | Household | reference(Household) | conditional | The household this person belongs to; in contact mode this is the person's Account. |
 | Sample Data | boolean | yes (defaults false) | True when the record was created by the sample data loader so it can be removed in one action. |
@@ -447,6 +451,15 @@ Contact, so that an org can add its own record types without colliding with ours
 as a Person Account rather than a Contact. `HouseholdService` presents both uniformly;
 no feature code branches on it.
 
+**R-C6 Preferred email.** The standard email is the address the platform and every email
+tool reads, so it is kept in step with the choice. When Preferred Email names one of the
+three addresses, the standard email is copied from that address on every save of the
+person, before the record is written. When Preferred Email is empty nothing is copied and
+the standard email is left exactly as it was entered, so an org that never fills the three
+addresses in sees no change in behavior at all. When Preferred Email names an address that
+is empty the save is refused with a message that says which address to fill in: blanking
+the standard email would quietly cut the person off from every mailing.
+
 ### Salesforce implementation
 
 - **Object:** Contact, record type `Household Contact`.
@@ -468,6 +481,22 @@ no feature code branches on it.
 The seven above are person attributes, present on both Contact and Account with the same
 API names so that Person Accounts carry them (Section 5). `HouseholdService.Person` is the
 shape naming and greetings read, so no naming code knows which object a person came from.
+
+- **Email fields on Contact, and on Account with the same API names (v0.5):**
+
+| Attribute | API name | Type |
+|---|---|---|
+| Personal Email | `Personal_Email__c` | Email |
+| Work Email | `Work_Email__c` | Email |
+| Alternate Email | `Alternate_Email__c` | Email |
+| Preferred Email | `Preferred_Email__c` | Picklist: Personal, Work, Alternate (restricted) |
+
+These four are person attributes like the seven above and are carried on Account for the
+same reason. The standard email R-C6 keeps in step is `Email` on Contact and, where the org
+stores people as accounts, the account object's own person email field.
+`PreferredEmailService` is the only class that touches the account one, and it names it as
+text and checks that the object has it before writing, exactly as `PersonRecordSelector`
+does with the person name fields (Section 4 "Person references", ADR-0009).
 
 - **Employer on the Account side:** in Person Account orgs the same attribute exists on
   Account as `Employer__c`, added there with the other person attributes (Section 4
@@ -3933,4 +3962,4 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.1 | 2026-09-07 | C-03, following ADR-0017: added `Settings_Object__c` to Setting Definition, so each package owns its own protected hierarchy custom setting and the console reads and writes any registered one. |
 | v0.1 | 2026-09-07 | C-03, following ADR-0020: added `Navigation_Target__c` to Setting Definition, so a module's settings page is reached by navigation while Core's own panels are imported by name. |
 | v0.2 | 2026-09-07 | C-12: added the Nonprofit Settings keys that the full Setup Assistant fills in (Section 12): the organization identity keys used on receipts (`Organization_Legal_Name__c`, `Organization_EIN__c`, `Organization_Address__c`, `Receipt_Logo_Document_Id__c`, `Receipt_Signature_Document_Id__c`, `Receipt_Signer_Name__c`, `Receipt_Signer_Title__c`), the giving defaults written only when the Giving module is present (`Default_Fund__c`, `Default_Appeal__c`), and the assistant's own progress keys `Setup_Steps_Skipped__c` and `Setup_Started_At__c`. The v0.2 key planned as `Setup_Assistant_Steps_Complete__c` shipped as `Setup_Steps_Completed__c` plus `Setup_Steps_Skipped__c`. |
-
+| v0.5 | 2026-09-15 | C-25: added the email attributes `Personal_Email__c`, `Work_Email__c`, `Alternate_Email__c` and `Preferred_Email__c` to the person attributes (Section 7), on both Contact and Account, with rule R-C6. When Preferred Email is set, the standard email is copied from the address it names on every save; when it is empty nothing is copied; when the address it names is empty the save is refused rather than the standard email being blanked. |
