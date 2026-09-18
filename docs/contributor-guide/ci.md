@@ -368,7 +368,7 @@ already passed, which showed up as a cancelled build on a commit that was fine.
 ### `dco`
 
 Checks that every commit being merged (or every pushed commit, on a push to `main`) has
-a `Signed-off-by:` trailer. See "Signing off commits" below.
+a `Signed-off-by:` trailer. Merge commits are exempt. See "Signing off commits" below.
 
 ## Offline Apex checking
 
@@ -545,3 +545,11 @@ signed off before it reaches CI.
 The `dco` CI job checks every commit in a pull request (or every pushed commit, on a
 push to `main`) for the trailer and fails with a list of offending commits and a fix
 hint if any are missing.
+
+Merge commits are the one exception: the job passes `--no-merges`, so a commit that git
+wrote to join two branches is not checked. A merge commit carries no authored content,
+so there is nothing for anybody to certify the origin of; the certification belongs on
+the commits the merge brings in, and every one of those is still checked. The Developer
+Certificate of Origin's own tooling makes the same exemption. Signing a merge anyway,
+with `git merge --signoff`, is harmless and costs nothing, so integrators who want an
+unbroken chain of trailers can keep doing it.
