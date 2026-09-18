@@ -1,17 +1,21 @@
 <template>
     <lightning-card title={label.title} icon-name="standard:people">
-        <div class="slds-var-m-around_medium">
+        <div class="slds-var-m-around_medium slds-is-relative">
             <template if:false={isHousehold}>
                 <p class="slds-text-color_weak not-a-household">{label.notAHousehold}</p>
             </template>
 
             <template if:true={isHousehold}>
+                <template if:true={isLoading}>
+                    <lightning-spinner alternative-text={label.loading} size="small"></lightning-spinner>
+                </template>
+
                 <template if:false={hasMembers}>
                     <p class="slds-text-color_weak empty-message">{label.empty}</p>
                 </template>
 
                 <ul class="slds-has-dividers_bottom-space member-list">
-                    <template for:each={members} for:item="member">
+                    <template for:each={rows} for:item="member">
                         <li key={member.personId} class="slds-item member-row">
                             <span class="slds-text-body_regular member-name">{member.name}</span>
                             <template if:true={member.role}>
@@ -22,13 +26,30 @@
                             <template for:each={member.badges} for:item="badge">
                                 <lightning-badge key={badge.key} label={badge.text}></lightning-badge>
                             </template>
-                            <lightning-button
-                                variant="base"
-                                label={label.moveMember}
-                                data-person-id={member.personId}
-                                onclick={handleMoveClick}
-                                class="slds-var-m-left_x-small move-button"
-                            ></lightning-button>
+                            <template if:true={member.canMakePrimary}>
+                                <lightning-button
+                                    variant="base"
+                                    label={label.makePrimary}
+                                    aria-label={member.makePrimaryLabel}
+                                    title={member.makePrimaryLabel}
+                                    data-person-id={member.personId}
+                                    disabled={busy}
+                                    onclick={handleMakePrimary}
+                                    class="slds-var-m-left_x-small make-primary-button"
+                                ></lightning-button>
+                            </template>
+                            <template if:true={member.canMove}>
+                                <lightning-button
+                                    variant="base"
+                                    label={label.moveMember}
+                                    aria-label={member.moveLabel}
+                                    title={member.moveLabel}
+                                    data-person-id={member.personId}
+                                    disabled={busy}
+                                    onclick={handleMoveClick}
+                                    class="slds-var-m-left_x-small move-button"
+                                ></lightning-button>
+                            </template>
                         </li>
                     </template>
                 </ul>
@@ -49,6 +70,7 @@
                             <lightning-button
                                 variant="brand"
                                 label={label.save}
+                                disabled={busy}
                                 onclick={handleMoveSave}
                                 class="slds-var-m-right_x-small move-save-button"
                             ></lightning-button>
@@ -71,36 +93,106 @@
                     </div>
                 </template>
 
-                <template if:true={isJunctionMode}>
-                    <p class="slds-text-body_small slds-var-m-top_small junction-message">
-                        {label.addMemberJunction}
-                    </p>
-                </template>
-
                 <template if:true={isAdding}>
                     <div class="slds-box slds-var-m-top_small add-box">
-                        <lightning-record-edit-form object-api-name="Contact" onsuccess={handleAddSuccess}>
-                            <lightning-messages></lightning-messages>
-                            <lightning-input-field field-name="Salutation"></lightning-input-field>
-                            <lightning-input-field field-name="FirstName"></lightning-input-field>
-                            <lightning-input-field field-name="LastName"></lightning-input-field>
-                            <div class="slds-hide">
-                                <lightning-input-field field-name="AccountId" value={recordId}></lightning-input-field>
+                        <template if:false={isJunctionMode}>
+                            <lightning-record-edit-form object-api-name="Contact" onsuccess={handleAddSuccess}>
+                                <lightning-messages></lightning-messages>
+                                <lightning-input-field field-name="Salutation"></lightning-input-field>
+                                <lightning-input-field field-name="FirstName"></lightning-input-field>
+                                <lightning-input-field field-name="LastName"></lightning-input-field>
+                                <div class="slds-hide">
+                                    <lightning-input-field field-name="AccountId" value={recordId}></lightning-input-field>
+                                </div>
+                                <div class="slds-var-m-top_x-small">
+                                    <lightning-button
+                                        variant="brand"
+                                        type="submit"
+                                        label={label.save}
+                                        class="slds-var-m-right_x-small add-save-button"
+                                    ></lightning-button>
+                                    <lightning-button
+                                        label={label.cancel}
+                                        onclick={handleAddCancel}
+                                        class="add-cancel-button"
+                                    ></lightning-button>
+                                </div>
+                            </lightning-record-edit-form>
+                        </template>
+
+                        <template if:true={isJunctionMode}>
+                            <div class="add-existing-section">
+                                <h3 class="slds-text-heading_small">{label.addExistingHeading}</h3>
+                                <lightning-input
+                                    type="search"
+                                    label={label.addExistingHeading}
+                                    variant="label-hidden"
+                                    placeholder={label.addExistingPlaceholder}
+                                    onchange={handleSearchInput}
+                                    class="slds-var-m-top_x-small add-search-input"
+                                ></lightning-input>
+                                <template if:true={hasSearchResults}>
+                                    <ul class="slds-var-m-top_x-small search-results">
+                                        <template for:each={searchResultRows} for:item="person">
+                                            <li key={person.id} class="slds-item search-result-row">
+                                                <lightning-button
+                                                    variant="base"
+                                                    label={person.name}
+                                                    aria-label={person.resultLabel}
+                                                    title={person.resultLabel}
+                                                    data-person-id={person.id}
+                                                    disabled={busy}
+                                                    onclick={handleAddExisting}
+                                                    class="add-existing-button"
+                                                ></lightning-button>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </template>
+                                <template if:true={showNoSearchResults}>
+                                    <p class="slds-text-color_weak slds-var-m-top_x-small no-results-message">
+                                        {label.addExistingNoResults}
+                                    </p>
+                                </template>
                             </div>
-                            <div class="slds-var-m-top_x-small">
-                                <lightning-button
-                                    variant="brand"
-                                    type="submit"
-                                    label={label.save}
-                                    class="slds-var-m-right_x-small add-save-button"
-                                ></lightning-button>
-                                <lightning-button
-                                    label={label.cancel}
-                                    onclick={handleAddCancel}
-                                    class="add-cancel-button"
-                                ></lightning-button>
+
+                            <div class="add-new-section slds-var-m-top_medium">
+                                <h3 class="slds-text-heading_small">{label.addNewHeading}</h3>
+                                <lightning-input
+                                    label={label.salutation}
+                                    value={newSalutation}
+                                    onchange={handleNewSalutationChange}
+                                    class="slds-var-m-top_x-small add-new-salutation"
+                                ></lightning-input>
+                                <lightning-input
+                                    label={label.firstName}
+                                    value={newFirstName}
+                                    onchange={handleNewFirstNameChange}
+                                    class="slds-var-m-top_x-small add-new-first-name"
+                                ></lightning-input>
+                                <lightning-input
+                                    label={label.lastName}
+                                    required
+                                    value={newLastName}
+                                    onchange={handleNewLastNameChange}
+                                    class="slds-var-m-top_x-small add-new-last-name"
+                                ></lightning-input>
+                                <div class="slds-var-m-top_x-small">
+                                    <lightning-button
+                                        variant="brand"
+                                        label={label.save}
+                                        disabled={busy}
+                                        onclick={handleAddNewSave}
+                                        class="slds-var-m-right_x-small add-new-save-button"
+                                    ></lightning-button>
+                                    <lightning-button
+                                        label={label.cancel}
+                                        onclick={handleAddCancel}
+                                        class="add-cancel-button"
+                                    ></lightning-button>
+                                </div>
                             </div>
-                        </lightning-record-edit-form>
+                        </template>
                     </div>
                 </template>
             </template>

@@ -30,6 +30,7 @@ import CONFIRM_BODY from '@salesforce/label/c.Core_HouseholdMerge_ConfirmBody';
 import CONFIRM_BUTTON from '@salesforce/label/c.Core_HouseholdMerge_ConfirmButton';
 import CANCEL from '@salesforce/label/c.Core_HouseholdMerge_Cancel';
 import MERGE_SUCCESS from '@salesforce/label/c.Core_HouseholdMerge_Success';
+import CUSTOM_NAME_KEPT from '@salesforce/label/c.Core_HouseholdMerge_CustomNameKept';
 import READ_ONLY from '@salesforce/label/c.Core_HouseholdMerge_ReadOnly';
 import NOT_A_HOUSEHOLD from '@salesforce/label/c.Core_HouseholdMerge_NotAHousehold';
 import SPLIT_HEADING from '@salesforce/label/c.Core_HouseholdMerge_SplitHeading';
@@ -38,6 +39,8 @@ import SPLIT_EXISTING from '@salesforce/label/c.Core_HouseholdMerge_SplitExistin
 import SPLIT_BUTTON from '@salesforce/label/c.Core_HouseholdMerge_SplitButton';
 import SPLIT_CONFIRM_BODY from '@salesforce/label/c.Core_HouseholdMerge_SplitConfirmBody';
 import SPLIT_SUCCESS from '@salesforce/label/c.Core_HouseholdMerge_SplitSuccess';
+import RESULT_ACCESSIBLE_NAME from '@salesforce/label/c.Core_HouseholdScreens_ResultAccessibleName';
+import LOADING_COMPARISON from '@salesforce/label/c.Core_HouseholdScreens_LoadingComparison';
 
 const RECORD_TYPE_FIELD = 'Account.RecordType.DeveloperName';
 const HOUSEHOLD = 'Household';
@@ -71,7 +74,8 @@ export default class HouseholdMergeSplit extends NavigationMixin(LightningElemen
     splitNew: SPLIT_NEW,
     splitExisting: SPLIT_EXISTING,
     splitButton: SPLIT_BUTTON,
-    splitConfirmBody: SPLIT_CONFIRM_BODY
+    splitConfirmBody: SPLIT_CONFIRM_BODY,
+    loadingComparison: LOADING_COMPARISON
   };
 
   recordTypeName;
@@ -207,7 +211,7 @@ export default class HouseholdMergeSplit extends NavigationMixin(LightningElemen
     this.searchedOnce = true;
     return searchHouseholds({ term: this.searchTerm, excludeId: this.recordId })
       .then((results) => {
-        this.searchResults = results || [];
+        this.searchResults = this.withAccessibleNames(results);
         this.errorMessage = undefined;
       })
       .catch((error) => {
@@ -278,11 +282,16 @@ export default class HouseholdMergeSplit extends NavigationMixin(LightningElemen
       victimId: this.otherHouseholdId,
       fieldChoices: this.choices
     })
-      .then((survivorId) => {
+      .then((result) => {
         this.confirmingMerge = false;
         this.errorMessage = undefined;
-        this.toast(MERGE_SUCCESS, 'success');
-        this.goTo(survivorId);
+        // The person is not told anywhere else that choosing a name during a merge locks
+        // it against the naming automation, so the success message is where that is said.
+        const message = result.customNameKept
+          ? `${MERGE_SUCCESS} ${CUSTOM_NAME_KEPT}`
+          : MERGE_SUCCESS;
+        this.toast(message, 'success');
+        this.goTo(result.survivorId);
       })
       .catch((error) => {
         this.confirmingMerge = false;
@@ -324,7 +333,7 @@ export default class HouseholdMergeSplit extends NavigationMixin(LightningElemen
     this.splitSearchedOnce = true;
     return searchHouseholds({ term: this.splitSearchTerm, excludeId: this.recordId })
       .then((results) => {
-        this.splitSearchResults = results || [];
+        this.splitSearchResults = this.withAccessibleNames(results);
         this.errorMessage = undefined;
       })
       .catch((error) => {
@@ -371,6 +380,19 @@ export default class HouseholdMergeSplit extends NavigationMixin(LightningElemen
   }
 
   // ---------------------------------------------------------------- helpers
+
+  // Duplicate households are the whole reason this panel exists, so two search results can
+  // read out identically ("The Garcia Family" twice) to a screen reader unless the location
+  // is folded into the name each result button announces.
+  withAccessibleNames(results) {
+    return (results || []).map((result) => ({
+      ...result,
+      accessibleName: RESULT_ACCESSIBLE_NAME.replace('{0}', result.name || '').replace(
+        '{1}',
+        result.location || ''
+      )
+    }));
+  }
 
   goTo(recordId) {
     this[NavigationMixin.Navigate]({

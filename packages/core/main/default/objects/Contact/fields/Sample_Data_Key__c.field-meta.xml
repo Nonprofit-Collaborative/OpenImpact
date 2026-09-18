@@ -14,7 +14,7 @@
     created. Empty on every record an administrator entered.
   </description>
   <inlineHelpText>
-    Set by the sample data loader (C-10) on each person it creates, so sample gifts and pledges
+    Set by the sample data loader on each person it creates, so sample gifts and pledges
     attach to the right sample record. Leave it empty on your own records.
   </inlineHelpText>
 </CustomField>

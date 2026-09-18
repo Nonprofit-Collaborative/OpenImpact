@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_HouseholdPanel_MakePrimary</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: button that makes a person the primary contact</shortDescription>
+        <value>Make primary</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_MakePrimaryFor</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: what a screen reader hears for the make primary button, {0} is the person's name</shortDescription>
+        <value>Make {0} the primary contact</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_MoveFor</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: what a screen reader hears for the move button, {0} is the person's name</shortDescription>
+        <value>Move {0} to another household</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_MakePrimarySuccess</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: toast after the primary contact was changed, {0} is the person's name</shortDescription>
+        <value>{0} is now the primary contact.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_MakePrimaryFailed</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: message when the primary contact could not be changed</shortDescription>
+        <value>The primary contact could not be changed. Check that you can edit this household and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_NotAMember</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: message when the person chosen as primary is not in the household</shortDescription>
+        <value>That person is not in this household, so they cannot be its primary contact.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_Loading</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: what a screen reader hears while the panel loads or saves</shortDescription>
+        <value>Loading household members</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_OfPersonTitle</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Household panel on a person: card title</shortDescription>
+        <value>Household</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_OfPersonEmpty</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Household panel on a person: message when the person is in no household</shortDescription>
+        <value>This person is not in a household yet</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_OfPersonLoading</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Household panel on a person: what a screen reader hears while it loads</shortDescription>
+        <value>Loading household</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_OfPersonLoadFailed</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Household panel on a person: message when the household could not be read</shortDescription>
+        <value>The household could not be loaded. Refresh the page and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_MemberCountOne</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Household panel on a person: member count for a household of one</shortDescription>
+        <value>1 member</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_MemberCountMany</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Household panel on a person: member count, {0} is the number</shortDescription>
+        <value>{0} members</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_FormalGreeting</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Household panel on a person: caption before the formal greeting</shortDescription>
+        <value>Formal greeting</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddExistingHeading</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: heading over the search box, flexible membership mode</shortDescription>
+        <value>Add someone already in Salesforce</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddExistingPlaceholder</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: placeholder text in the search box, flexible membership mode</shortDescription>
+        <value>Search by name</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddExistingResultFor</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: what a screen reader hears for a search result button, {0} is the person's name</shortDescription>
+        <value>Add {0} to this household</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddExistingNoResults</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: message when a search finds nobody, flexible membership mode</shortDescription>
+        <value>No matches. Keep typing, or add them as a new person below.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddNewHeading</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: heading over the new person form, flexible membership mode</shortDescription>
+        <value>Or add someone new</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_Salutation</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: salutation field on the new person form</shortDescription>
+        <value>Salutation</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_FirstName</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: first name field on the new person form</shortDescription>
+        <value>First name</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_LastName</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: last name field on the new person form</shortDescription>
+        <value>Last name</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddMemberMissingPerson</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: nothing was chosen to add, flexible membership mode</shortDescription>
+        <value>Choose a person to add.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddMemberMissingName</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: the new person form was saved with no last name</shortDescription>
+        <value>Enter at least a last name before saving.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddMemberFailed</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: the person could not be added, flexible membership mode</shortDescription>
+        <value>This person could not be added. Check that you can create contacts and edit this household, and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdPanel_AddSearchFailed</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Members panel: the search for an existing person failed, flexible membership mode</shortDescription>
+        <value>The search could not be completed. Refresh the page and try again.</value>
+    </labels>
+</CustomLabels>

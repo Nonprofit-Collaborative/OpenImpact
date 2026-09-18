@@ -29,24 +29,34 @@
  */
 public with sharing class HouseholdWriter {
     /**
-     * Creates households the package is making on the user's behalf and returns the ids
-     * in the same order, with null where one could not be created.
+     * Creates households the package is making on the user's behalf and returns one save
+     * result per household, in the same order.
+     *
+     * The whole result comes back rather than just the ids, because a household that could
+     * not be created leaves a person with no household (R-C1), and only the caller knows
+     * which person each row was for. The failure is logged here so that an administrator
+     * can find it; the caller puts it on the person's own save so that whoever saved them
+     * sees it too.
      */
-    public static List<Id> createHouseholds(List<Account> households) {
-        List<Id> result = new List<Id>();
+    public static List<Database.SaveResult> createHouseholds(List<Account> households) {
         if (households == null || households.isEmpty()) {
-            return result;
+            return new List<Database.SaveResult>();
         }
         List<Database.SaveResult> saves = Database.insert(
             households,
             false,
             AccessLevel.SYSTEM_MODE
         );
-        for (Database.SaveResult save : saves) {
-            result.add(save.isSuccess() ? save.getId() : null);
-        }
         logFailures(saves, Label.Core_Households_ErrorContextMembership);
-        return result;
+        return saves;
+    }
+
+    /**
+     * The platform's own reason a save was refused, for putting on the record the save was
+     * made for. Empty when the save succeeded.
+     */
+    public static String failureReason(Database.SaveResult save) {
+        return save.isSuccess() ? '' : firstMessage(save.getErrors());
     }
 
     /**

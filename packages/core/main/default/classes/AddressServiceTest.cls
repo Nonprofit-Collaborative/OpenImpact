@@ -382,6 +382,50 @@ private class AddressServiceTest {
         );
     }
 
+    /**
+     * Mutual exclusion (product-plan Section 11.2 item 9). A household Account that already
+     * carries a native Nonprofit Cloud household group never has its billing address written
+     * from a default Address__c, and the address is never propagated from it to household
+     * members either.
+     */
+    @IsTest
+    static void billingAndMemberAddressesAreNotWrittenForAHouseholdWithANativeGroup() {
+        Account nativeHousehold = AddressTestDataFactory.newHousehold('Native Household');
+        insert nativeHousehold;
+        Contact member = AddressTestDataFactory.newContact('Maria', 'Garcia', nativeHousehold.Id);
+        insert member;
+        OrgShapeDetector.OrgShape shape = new OrgShapeDetector.OrgShape();
+        shape.hasNativeHouseholdGroups = true;
+        OrgShapeDetector.overrideShape = shape;
+        HouseholdSelector.accountsWithNativeDependentsOverride = new Set<Id>{ nativeHousehold.Id };
+        Address__c address = new Address__c(
+            Account__c = nativeHousehold.Id,
+            Type__c = 'Home',
+            Street__c = HOME_STREET,
+            City__c = HOME_CITY,
+            Is_Default__c = true
+        );
+
+        Test.startTest();
+        insert address;
+        Test.stopTest();
+
+        Account untouchedHousehold = [
+            SELECT BillingStreet, BillingCity
+            FROM Account
+            WHERE Id = :nativeHousehold.Id
+        ];
+        Assert.isNull(
+            untouchedHousehold.BillingStreet,
+            'The billing address of a household with a native group is never written'
+        );
+        Contact untouchedMember = [SELECT MailingStreet FROM Contact WHERE Id = :member.Id];
+        Assert.isNull(
+            untouchedMember.MailingStreet,
+            'The address of a household with a native group is never propagated to its members'
+        );
+    }
+
     @IsTest
     static void seasonalRangeInsideOneYearIsActiveOnlyInsideIt() {
         Address__c winter = new Address__c(

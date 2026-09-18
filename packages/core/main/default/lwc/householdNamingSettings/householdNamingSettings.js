@@ -24,6 +24,7 @@ import RECOMPUTE_STARTED from '@salesforce/label/c.Core_HouseholdNamingSettings_
 import READ_ONLY from '@salesforce/label/c.Core_HouseholdNamingSettings_ReadOnly';
 import CANCEL from '@salesforce/label/c.Core_HouseholdNamingSettings_Cancel';
 import CONFIRM from '@salesforce/label/c.Core_HouseholdNamingSettings_Confirm';
+import SAVING from '@salesforce/label/c.Core_HouseholdScreens_Saving';
 
 const DEBOUNCE_MILLISECONDS = 300;
 // What the package ships. Used only until this org's own saved patterns arrive, and where
@@ -52,7 +53,8 @@ export default class HouseholdNamingSettings extends LightningElement {
     recomputeConfirm: RECOMPUTE_CONFIRM,
     readOnly: READ_ONLY,
     cancel: CANCEL,
-    confirm: CONFIRM
+    confirm: CONFIRM,
+    saving: SAVING
   };
 
   namePattern = SHIPPED_NAME_PATTERN;
@@ -76,6 +78,10 @@ export default class HouseholdNamingSettings extends LightningElement {
 
   get hasSamples() {
     return this.samples.length > 0;
+  }
+
+  get isSaveDisabled() {
+    return this.isReadOnly || this.isSaving;
   }
 
   connectedCallback() {
@@ -150,6 +156,9 @@ export default class HouseholdNamingSettings extends LightningElement {
       .then(() => {
         this.errorMessage = undefined;
         this.toast(SAVED, 'success');
+        // The Setup Assistant embeds this panel and listens for "save" to tick its naming
+        // step, the same event name setupStepIdentity dispatches for the same purpose.
+        this.dispatchEvent(new CustomEvent('save', { detail: { values } }));
       })
       .catch((error) => {
         this.errorMessage = this.readError(error);

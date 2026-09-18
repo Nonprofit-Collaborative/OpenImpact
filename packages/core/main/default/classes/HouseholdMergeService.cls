@@ -122,6 +122,21 @@ public with sharing class HouseholdMergeService {
     }
 
     /**
+     * The survivor of a merge, and whether its name is now held as a custom one that the
+     * naming automation will leave alone. The screen tells the person about the second
+     * part; nothing else here needs it.
+     */
+    @NamespaceAccessible
+    public class MergeResult {
+        @AuraEnabled
+        @NamespaceAccessible
+        public Id survivorId;
+        @AuraEnabled
+        @NamespaceAccessible
+        public Boolean customNameKept;
+    }
+
+    /**
      * Which household each contested field is taken from. A field left out is taken from
      * the survivor, which is what the screen preselects.
      */
@@ -176,7 +191,10 @@ public with sharing class HouseholdMergeService {
             result.fields.add(choice);
         }
 
-        Map<Id, List<HouseholdService.Person>> membersByHousehold = HouseholdService.getMembers(
+        // The preview is shown to somebody, so the members are read with that person's own
+        // access (ADR-0021): a deceased flag, a preferred name or a role they cannot read
+        // on the record itself does not reach them through the comparison either.
+        Map<Id, List<HouseholdService.Person>> membersByHousehold = HouseholdService.getMembersAsUser(
             new Set<Id>{ survivorId, victimId }
         );
         addMembers(result, membersByHousehold.get(survivorId), true);
@@ -221,10 +239,11 @@ public with sharing class HouseholdMergeService {
      *
      * A merge is not reversible and it is not logged by this class: the platform records
      * an account merge in the survivor's own history, which is the audit trail a person
-     * can actually read. Only a failure is logged, by the caller.
+     * can actually read. Only a failure is logged: the platform's refusal of the merge
+     * here, with its own wording, and anything unexpected by the caller.
      */
     @NamespaceAccessible
-    public static Id mergeHouseholds(Id survivorId, Id victimId, MergeChoices choices) {
+    public static MergeResult mergeHouseholds(Id survivorId, Id victimId, MergeChoices choices) {
         Map<Id, Account> households = loadPair(survivorId, victimId);
         Account survivor = households.get(survivorId);
         Account victim = households.get(victimId);
@@ -246,6 +265,7 @@ public with sharing class HouseholdMergeService {
         }
 
         Boolean keepsCustomName = applyChoices(survivor, victim, choices);
+        String chosenName = chosenOtherName(victim, choices);
 
         // The platform's own merge, so that activities, files, notes, and every lookup
         // another package points at this household follow the record that goes away.
@@ -259,16 +279,23 @@ public with sharing class HouseholdMergeService {
             // The people have already moved. Throwing here rolls the whole transaction
             // back, so a merge that cannot finish leaves both households as they were
             // rather than emptying one and keeping it.
+            // The platform's own wording is for the administrator reading the Error Log,
+            // which survives the rollback; the person at the screen gets the plain message.
             List<String> reasons = new List<String>();
             for (Database.Error problem : merged.getErrors()) {
                 reasons.add(problem.getMessage());
             }
-            throw new HouseholdException(
-                Label.Core_HouseholdMerge_ErrorMergeFailed + ' ' + String.join(reasons, ' ')
+            ErrorLogger.logMessage(
+                Label.Core_HouseholdMerge_ErrorMergeFailed + ' ' + String.join(reasons, ' '),
+                Label.Core_HouseholdMerge_ErrorContext,
+                ErrorLogger.SEVERITY_ERROR,
+                survivorId
             );
+            throw new HouseholdException(Label.Core_HouseholdMerge_ErrorMergeFailed);
         }
 
         Set<Id> survivorOnly = new Set<Id>{ survivorId };
+        Boolean customNameKept = keepsCustomName;
         if (keepsCustomName) {
             HouseholdService.recalculateMemberCounts(survivorOnly);
         } else {
@@ -279,8 +306,68 @@ public with sharing class HouseholdMergeService {
             // carried has just been moved onto it. Two households that were both empty
             // would otherwise merge into nothing at all.
             HouseholdService.afterMembershipChange(survivorOnly, false);
+            customNameKept = keepChosenName(survivorId, chosenName);
         }
-        return survivorId;
+        MergeResult result = new MergeResult();
+        result.survivorId = survivorId;
+        // The screen offers this back so a person is told when the name they chose has
+        // stopped following the naming automation, instead of finding out later by
+        // wondering why the household never renames itself.
+        result.customNameKept = customNameKept;
+        return result;
+    }
+
+    /**
+     * The other household's name, when the person chose to keep it, on the same terms
+     * applyChoices wrote it: the field is theirs to update and the value is not empty.
+     */
+    private static String chosenOtherName(Account victim, MergeChoices choices) {
+        Boolean chosen =
+            choices != null &&
+            choices.keepFrom != null &&
+            KEEP_VICTIM.equalsIgnoreCase(choices.keepFrom.get('Name'));
+        if (!chosen || String.isBlank(victim.Name)) {
+            return null;
+        }
+        return Schema.SObjectType.Account.fields.Name.isUpdateable() ? victim.Name : null;
+    }
+
+    /**
+     * Makes the name the person chose stick when the settle-up has just written a
+     * different one over it.
+     *
+     * The screen offers the other household's name as a choice. On a household whose
+     * wording is not custom, the settle-up above recomputes the name from everyone now in
+     * it and would throw that choice away, so a choice the screen offers has to be
+     * honored rather than quietly discarded. Where the recomputed name is the very name
+     * the person chose there is nothing to do, and the household stays one that naming
+     * keeps up to date. Where it differs, the person has chosen wording that naming would
+     * not produce, which is what a custom name is (R-H8), so the household is marked as
+     * one, exactly as if they had typed that name in by hand. Written with their own
+     * access, like every other choice on this screen: a person who may not take over a
+     * household's wording is not given that power by a merge.
+     *
+     * Answers whether the household is now one whose name is held as a custom one, so the
+     * caller can pass that on to the screen.
+     */
+    private static Boolean keepChosenName(Id survivorId, String chosenName) {
+        if (chosenName == null) {
+            return false;
+        }
+        if (!Schema.SObjectType.Account.fields.Custom_Name__c.isUpdateable()) {
+            return false;
+        }
+        List<Account> settled = HouseholdSelector.getHouseholdsByIds(new Set<Id>{ survivorId });
+        if (settled.isEmpty() || settled[0].Name == chosenName) {
+            return false;
+        }
+        Database.update(
+            new List<Account>{
+                new Account(Id = survivorId, Name = chosenName, Custom_Name__c = true)
+            },
+            AccessLevel.USER_MODE
+        );
+        return true;
     }
 
     /**

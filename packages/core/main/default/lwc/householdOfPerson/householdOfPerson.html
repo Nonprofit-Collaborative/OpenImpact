@@ -1,0 +1,30 @@
+<template>
+    <lightning-card title={label.title} icon-name="standard:household">
+        <div class="slds-var-m-around_medium slds-is-relative">
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text={label.loading} size="small"></lightning-spinner>
+            </template>
+
+            <template if:true={isEmpty}>
+                <p class="slds-text-color_weak empty-message">{label.empty}</p>
+            </template>
+
+            <template for:each={households} for:item="household">
+                <div key={household.householdId} class="slds-var-m-bottom_small household-row">
+                    <a href={household.url} class="slds-text-heading_small household-link">{household.name}</a>
+                    <p class="slds-text-body_small member-count">{household.memberCountText}</p>
+                    <template if:true={household.formalGreeting}>
+                        <p class="slds-text-body_small formal-greeting">
+                            <span class="slds-text-title">{label.formalGreeting}:</span>
+                            {household.formalGreeting}
+                        </p>
+                    </template>
+                </div>
+            </template>
+
+            <template if:true={errorMessage}>
+                <div class="slds-text-color_error slds-var-m-top_small" role="alert">{errorMessage}</div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

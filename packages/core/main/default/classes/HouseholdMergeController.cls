@@ -44,7 +44,7 @@ public with sharing class HouseholdMergeController {
             }
             return result;
         } catch (Exception e) {
-            throw asUserError(e);
+            throw asUserError(e, excludeId);
         }
     }
 
@@ -65,16 +65,21 @@ public with sharing class HouseholdMergeController {
         try {
             return HouseholdMergeService.preview(survivorId, victimId);
         } catch (Exception e) {
-            throw asUserError(e);
+            throw asUserError(e, survivorId);
         }
     }
 
     /**
      * Combines the two households and answers with the survivor, so that the screen can
-     * send the person there.
+     * send the person there, and with whether the survivor's name is now held as a custom
+     * one so the screen can tell the person.
      */
     @AuraEnabled
-    public static Id mergeHouseholds(Id survivorId, Id victimId, Map<String, String> fieldChoices) {
+    public static HouseholdMergeService.MergeResult mergeHouseholds(
+        Id survivorId,
+        Id victimId,
+        Map<String, String> fieldChoices
+    ) {
         try {
             return HouseholdMergeService.mergeHouseholds(
                 survivorId,
@@ -82,8 +87,7 @@ public with sharing class HouseholdMergeController {
                 new HouseholdMergeService.MergeChoices(fieldChoices)
             );
         } catch (Exception e) {
-            ErrorLogger.log(e, Label.Core_HouseholdMerge_ErrorContext, survivorId);
-            throw asUserError(e);
+            throw asUserError(e, survivorId);
         }
     }
 
@@ -100,8 +104,7 @@ public with sharing class HouseholdMergeController {
             }
             return HouseholdMergeService.split(householdId, people, targetHouseholdId);
         } catch (Exception e) {
-            ErrorLogger.log(e, Label.Core_HouseholdMerge_ErrorContext, householdId);
-            throw asUserError(e);
+            throw asUserError(e, householdId);
         }
     }
 
@@ -118,9 +121,23 @@ public with sharing class HouseholdMergeController {
         return String.join(parts, ', ');
     }
 
-    private static AuraHandledException asUserError(Exception e) {
-        AuraHandledException error = new AuraHandledException(e.getMessage());
-        error.setMessage(e.getMessage());
+    /**
+     * What the screen is told. A HouseholdException already says in plain words what went
+     * wrong and what to do, so its message goes through as it is. Anything else is a
+     * platform failure whose wording is for an administrator reading the Error Log, not
+     * for the person at the screen: the whole exception is logged and the screen gets the
+     * generic message.
+     */
+    private static AuraHandledException asUserError(Exception e, Id recordId) {
+        String message;
+        if (e instanceof HouseholdException) {
+            message = e.getMessage();
+        } else {
+            ErrorLogger.log(e, Label.Core_HouseholdMerge_ErrorContext, recordId);
+            message = Label.Core_Households_ErrorUnexpected;
+        }
+        AuraHandledException error = new AuraHandledException(message);
+        error.setMessage(message);
         return error;
     }
 }

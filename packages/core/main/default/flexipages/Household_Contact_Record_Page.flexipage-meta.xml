@@ -13,6 +13,9 @@
   </flexiPageRegions>
   <flexiPageRegions>
     <componentInstances>
+      <componentName>householdOfPerson</componentName>
+    </componentInstances>
+    <componentInstances>
       <componentName>relationshipPanel</componentName>
     </componentInstances>
     <componentInstances>

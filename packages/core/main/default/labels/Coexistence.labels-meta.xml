@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_Coexistence_SwitchToContactRefused</fullName>
+        <categories>Coexistence</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Settings save refused: moving to the simple way of belonging would hide the people who belong to a household through a membership record. Names how many.</shortDescription>
+        <value>You cannot switch to the simple way of belonging yet. {0} people belong to a household through a membership record, and the simple way cannot see those records: their households would be counted as empty, renamed, and possibly deleted. Moving them needs a migration, which Open Impact does not do yet, so keep the flexible way for now.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Coexistence_SwitchToJunctionRefused</fullName>
+        <categories>Coexistence</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Settings save refused: moving to the flexible way of belonging would strand the people linked straight to their household with no membership record. Names how many.</shortDescription>
+        <value>You cannot switch to the flexible way of belonging yet. {0} people are linked straight to their household and have no membership record, so the flexible way would not show them in any household. Moving them needs a migration, which Open Impact does not do yet, so keep the simple way for now.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MembershipHiddenTitle</fullName>
+        <categories>Coexistence</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check finding: the way of belonging in force cannot see some of the household membership already in the org</shortDescription>
+        <value>Some household members cannot be seen</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MembershipHiddenByContactDetail</fullName>
+        <categories>Coexistence</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check finding detail: the simple way of belonging is on, and membership records exist that it cannot see. Names how many.</shortDescription>
+        <value>{0} people belong to a household through a membership record, but the simple way of belonging is on and cannot see those records. Their households read as empty, and an empty household can be renamed or deleted. Switch back to the flexible way, or plan a migration before changing the setting again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MembershipHiddenByJunctionDetail</fullName>
+        <categories>Coexistence</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check finding detail: the flexible way of belonging is on, and people are linked straight to a household with no membership record. Names how many.</shortDescription>
+        <value>{0} people are linked straight to their household but have no membership record, and the flexible way of belonging only sees membership records. They do not appear in any household. Switch back to the simple way, or plan a migration before changing the setting again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_MembershipHiddenFix</fullName>
+        <categories>Coexistence</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check finding: button that opens the household settings</shortDescription>
+        <value>Open household settings</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_PeopleAsAccountsTitle</fullName>
+        <categories>Coexistence</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check finding: the simple way of belonging was chosen on purpose, and people stored as accounts have since appeared. Names how many.</shortDescription>
+        <value>{0} people are stored as accounts and cannot join a household</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_PeopleAsAccountsDetail</fullName>
+        <categories>Coexistence</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check finding detail: the simple way of belonging cannot put a person stored as an account into a household. Names how many.</shortDescription>
+        <value>You chose the simple way of belonging, which is fine while everyone is stored as a contact. This org now stores {0} people as accounts, and the simple way cannot put a person stored as an account into a household. Switch to the flexible way, or keep storing people as contacts.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HubHome_InstallCompleted</fullName>
+        <categories>Coexistence</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Hub home: the install and every upgrade finished without logging a problem</shortDescription>
+        <value>Setup completed.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HubHome_InstallProblems</fullName>
+        <categories>Coexistence</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Hub home: the install or an upgrade logged problems nobody has looked at. Names how many.</shortDescription>
+        <value>Setup finished with {0} problems, see the Error Log.</value>
+    </labels>
+</CustomLabels>

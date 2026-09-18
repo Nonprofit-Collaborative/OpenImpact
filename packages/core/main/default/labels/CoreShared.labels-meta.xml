@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_Automation_AlwaysRuns</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation that always runs</shortDescription>
+        <value>This automation enforces a rule, so it always runs. It cannot be switched off here and a pause does not suspend it.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Automation_HandlerUnavailable</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation handler unavailable</shortDescription>
+        <value>Open Impact could not start one of its automations ({0}), so it was skipped. Everything else ran as usual. Send this entry to whoever supports your Salesforce.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Automation_NameRequired</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation name required</shortDescription>
+        <value>Pick an automation before switching it on or off.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Automation_NoPermission</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation change not permitted</shortDescription>
+        <value>You do not have permission to change automation. Ask your administrator for the Manage Nonprofit Settings permission.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Automation_NotFound</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation not found</shortDescription>
+        <value>That automation is not in this org's list. Refresh the Automation page and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Automation_PauseHoursInvalid</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Pause length not allowed</shortDescription>
+        <value>Choose how long to pause automation: 1, 2, 4, 8, or 24 hours.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Automation_UnexpectedError</fullName>
+        <categories>Core, Automation</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Automation unexpected error</shortDescription>
+        <value>Something went wrong while Open Impact was updating this record, so the record was not saved. The details are in the Error Log. Try again, and if it keeps happening, send the newest Error Log entry to whoever supports your Salesforce.</value>
+    </labels>
+    <labels>
+        <fullName>Core_CoexistenceMode_AgentforceNonprofit</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>The name of the Agentforce Nonprofit coexistence mode.</shortDescription>
+        <value>Agentforce Nonprofit coexistence</value>
+    </labels>
+    <labels>
+        <fullName>Core_CoexistenceMode_InvalidMode</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when a coexistence mode value is not one of the three.</shortDescription>
+        <value>{0} is not a coexistence mode. Choose Standalone, NPSP coexistence, or Agentforce Nonprofit coexistence.</value>
+    </labels>
+    <labels>
+        <fullName>Core_CoexistenceMode_Npsp</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>The name of the NPSP coexistence mode.</shortDescription>
+        <value>NPSP coexistence</value>
+    </labels>
+    <labels>
+        <fullName>Core_CoexistenceMode_Standalone</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>The name of the Standalone coexistence mode.</shortDescription>
+        <value>Standalone</value>
+    </labels>
+    <labels>
+        <fullName>Core_CoexistenceMode_Unset</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown where a coexistence mode is expected and none has been confirmed.</shortDescription>
+        <value>not confirmed yet</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLog_ActionFailed</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error log action failed</shortDescription>
+        <value>That did not work. Refresh the page and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLog_EntryNotFound</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error log entry not found</shortDescription>
+        <value>That entry is no longer in the Error Log. Refresh the page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLog_UnexpectedFailure</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error log default message</shortDescription>
+        <value>Open Impact hit a problem it did not expect. The technical detail on this entry is what a support contact needs to work out why.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLogTile_Acknowledge</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Acknowledge action</shortDescription>
+        <value>Mark acknowledged</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLogTile_Empty</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error log tile empty state</shortDescription>
+        <value>Nothing has gone wrong. There is nothing to read here.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLogTile_NewCount</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error log tile new count</shortDescription>
+        <value>new</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLogTile_OpenEntry</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Open an error log entry</shortDescription>
+        <value>Open this entry</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLogTile_ReadOnly</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error log tile read only notice</shortDescription>
+        <value>You can read these entries but not change them.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLogTile_Title</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error log tile title</shortDescription>
+        <value>Error Log</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorLogTile_ViewAll</fullName>
+        <categories>Core, Error Log</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Open the error log</shortDescription>
+        <value>Open the Error Log</value>
+    </labels>
+    <labels>
+        <fullName>Core_HouseholdNaming_SampleHouseholds</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription
+    >Sample households used by the naming preview. Translate the names and titles only. The bar, semicolon and comma are structure, not punctuation: one bar between households, one semicolon between people, and six comma separated values per person (title, first name, last name, preferred name, role, Y or N for deceased). A row with fewer than six values is left out of the preview.</shortDescription>
+        <value>Mr.,John,Smith,,Head,N;Mrs.,Jane,Smith,,Spouse or Partner,N|Ms.,Maria,Garcia,,Head,N|Ms.,Maria,Garcia,,Head,N;Mr.,Wei,Lee,,Spouse or Partner,N|Dr.,David,Okonkwo,Dave,Head,N;Ms.,Amara,Okonkwo,,Spouse or Partner,N;,Chidi,Okonkwo,,Child,N|Mrs.,Priya,Rivera,,Head,N;Mr.,Tom,Rivera,,Spouse or Partner,Y</value>
+    </labels>
+    <labels>
+        <fullName>Core_SettingsSearch_InputLabel</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Settings search: the accessible label of the search box</shortDescription>
+        <value>Search settings</value>
+    </labels>
+    <labels>
+        <fullName>Core_SettingsSearch_NoResultsMessage</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Settings search: message shown when nothing matches</shortDescription>
+        <value>No settings match that search. Try a shorter word, for example greeting.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SettingsSearch_Placeholder</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Settings search: the placeholder inside the search box</shortDescription>
+        <value>Search settings</value>
+    </labels>
+    <labels>
+        <fullName>Core_SettingsSearch_ResultsHeading</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Settings search: heading above the result list</shortDescription>
+        <value>Search results</value>
+    </labels>
+</CustomLabels>

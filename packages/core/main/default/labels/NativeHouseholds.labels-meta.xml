@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_HealthCheck_NativeHouseholdsTitle</fullName>
+        <categories>HealthCheck</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Health Check: title for the informational native households finding</shortDescription>
+        <value>Nonprofit Cloud households detected</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_NativeHouseholdsDetail</fullName>
+        <categories>HealthCheck</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Health Check: detail for the informational native households finding, with the count</shortDescription>
+        <value>{0} households here are managed by Salesforce Nonprofit Cloud (an Account carrying a native household group). Open Impact leaves them alone: it never writes their name, greetings, or address.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_NativeHouseholdsUnknownDetail</fullName>
+        <categories>HealthCheck</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Health Check: detail for the informational native households finding when the count could not be made</shortDescription>
+        <value>This org appears to have households managed by Salesforce Nonprofit Cloud, but the count could not be made. Open Impact still leaves any such household alone: it never writes its name, greetings, or address.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_NativeHouseholdCollisionTitle</fullName>
+        <categories>HealthCheck</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Health Check: title for the native household collision warning, with the count</shortDescription>
+        <value>{0} households carry both household models</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_NativeHouseholdCollisionDetail</fullName>
+        <categories>HealthCheck</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Health Check: detail for the native household collision warning, with the count</shortDescription>
+        <value>{0} Accounts are an Open Impact household and a Salesforce Nonprofit Cloud household at the same time. Open Impact leaves each one's name, greetings, and address alone rather than guess which model should win. Review these Accounts and settle each on one household model.</value>
+    </labels>
+</CustomLabels>

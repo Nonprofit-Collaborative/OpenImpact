@@ -284,9 +284,24 @@ public with sharing class HealthCheckService {
             new CheckStep('membership_mode', new HealthCheckOrgShapeChecks.MembershipModeCheck())
         );
         steps.add(
+            new CheckStep('membership_data', new HealthCheckOrgShapeChecks.MembershipDataCheck())
+        );
+        steps.add(
             new CheckStep(
                 'household_creation',
                 new HealthCheckOrgShapeChecks.HouseholdCreationCheck()
+            )
+        );
+        steps.add(
+            new CheckStep(
+                'native_households',
+                new HealthCheckOrgShapeChecks.NativeHouseholdsCheck()
+            )
+        );
+        steps.add(
+            new CheckStep(
+                'native_household_collision',
+                new HealthCheckOrgShapeChecks.NativeHouseholdCollisionCheck()
             )
         );
         steps.add(

@@ -30,6 +30,21 @@ public with sharing class HouseholdSelector {
     private static final String NATIVE_MEMBERSHIP_QUERY = 'SELECT AccountId FROM AccountContactRelation WHERE AccountId IN :accountIds LIMIT 10000'; // detection-only: the delete guard has to notice native household membership rows on the Account it is about to delete, because they make a household that reads as empty to Open Impact
     private static final String ACCOUNT_FIELD = 'AccountId';
 
+    // The one question Health Check asks that getAccountsWithNativeDependents cannot answer:
+    // not "do any of these accounts have a native dependent" but "how many accounts across the
+    // whole org carry both models at once", which is exactly the collision the mutual
+    // exclusion decision (product-plan Section 11.2 item 9) exists to prevent. A second query
+    // text, never concatenated, the same shape as the others in this class.
+    private static final String NATIVE_HOUSEHOLD_GROUP_TYPE = 'PartyRelationshipGroup'; // detection-only: describe key, so Health Check's collision count can tell whether the object exists before it asks about it
+    private static final String NATIVE_HOUSEHOLD_COLLISION_COUNT_QUERY = 'SELECT COUNT() FROM Account WHERE RecordTypeId = :recordTypeId AND Id IN (SELECT AccountId FROM PartyRelationshipGroup WHERE Type = \'Household\')'; // detection-only: counts Accounts that are an Open Impact household and a native Nonprofit Cloud household at once
+
+    /**
+     * Set only by tests, so the collision count can be exercised on an org where the native
+     * object does not exist. Production code always runs the probe.
+     */
+    @TestVisible
+    private static Integer nativeHouseholdCollisionCountOverride;
+
     /**
      * Set only by tests, so that both outcomes of the delete guard are exercised on an org
      * where neither Nonprofit Cloud object exists. Production code always runs the probe.
@@ -279,6 +294,66 @@ public with sharing class HouseholdSelector {
      * so in the log, while deleting on a probe that never ran destroys the native household
      * this guard was added to protect.
      */
+    /**
+     * Of these Accounts, the ones that already carry a native Nonprofit Cloud household
+     * group or native membership rows: the single predicate every mutual exclusion guard
+     * asks (product-plan Section 11.2 item 9), built on `getAccountsWithNativeDependents`
+     * rather than a second per-record query.
+     *
+     * The cheap check comes first: `OrgShapeDetector.OrgShape.hasNativeHouseholdGroups` is
+     * already computed once per transaction, and an org it reports as having no native
+     * groups at all needs no per-record probe, so every caller of this method pays for the
+     * query only in an org where it can matter.
+     */
+    @NamespaceAccessible
+    public static Set<Id> nativeHouseholdAccountsAmong(Set<Id> accountIds) {
+        if (accountIds == null || accountIds.isEmpty()) {
+            return new Set<Id>();
+        }
+        if (OrgShapeDetector.detect().hasNativeHouseholdGroups != true) {
+            return new Set<Id>();
+        }
+        return getAccountsWithNativeDependents(accountIds);
+    }
+
+    /**
+     * How many Accounts are, at once, an Open Impact household and a Nonprofit Cloud native
+     * household, the collision the mutual exclusion decision exists to prevent
+     * (product-plan Section 11.2 item 9). Health Check reports this as a warning distinct
+     * from the informational native household count.
+     *
+     * Wrapped in the same probe-and-assume pattern as `addNativeDependents`: an object the
+     * org does not have contributes zero, because an object that is not there cannot
+     * collide with anything, and a probe that fails for any other reason is treated as
+     * unknown by returning null, the same way OrgShapeSelector.nativeHouseholdGroupCount
+     * treats an unanswerable question as unknown rather than as zero, so Health Check says
+     * so rather than showing a count it does not have.
+     */
+    @NamespaceAccessible
+    public static Integer nativeHouseholdCollisionCount() {
+        if (nativeHouseholdCollisionCountOverride != null) {
+            return nativeHouseholdCollisionCountOverride;
+        }
+        if (!Schema.getGlobalDescribe().containsKey(NATIVE_HOUSEHOLD_GROUP_TYPE)) {
+            return 0;
+        }
+        Id recordTypeId = HouseholdService.householdRecordTypeId();
+        if (recordTypeId == null) {
+            return 0;
+        }
+        try {
+            return Database.countQueryWithBinds(
+                NATIVE_HOUSEHOLD_COLLISION_COUNT_QUERY,
+                new Map<String, Object>{ 'recordTypeId' => recordTypeId },
+                AccessLevel.SYSTEM_MODE
+            );
+        } catch (Exception probeFailed) {
+            // No logging from a selector: not being able to answer is unknown, not zero,
+            // and the caller (Health Check) decides what to say about unknown.
+            return null;
+        }
+    }
+
     private static void addNativeDependents(
         Set<Id> dependent,
         String objectName,
@@ -344,9 +419,12 @@ public with sharing class HouseholdSelector {
         if (recordTypeId == null || String.isBlank(term)) {
             return new List<Account>();
         }
-        // The term is a bind variable, not string concatenation, so it needs no escaping.
-        // Escaping it would put a backslash into the pattern and lose every O'Brien.
-        String pattern = '%' + term.trim() + '%';
+        // The term is a bind variable, not string concatenation, so quotes need no escaping
+        // and escapeSingleQuotes would lose every O'Brien. The LIKE wildcards are another
+        // matter: a typed % or _ would match every household, so each is escaped with the
+        // backslash LIKE understands, after any backslash of the person's own.
+        String literal = term.trim().replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_');
+        String pattern = '%' + literal + '%';
         Integer rows = maxRows == null || maxRows <= 0 ? 20 : maxRows;
         Id skip = excludeId;
         return [
