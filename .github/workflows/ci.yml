@@ -231,7 +231,11 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           missing=0
-          for sha in $(git rev-list "$BASE_SHA..$HEAD_SHA"); do
+          # Merge commits carry no authored content, so nobody certifies their origin: the
+          # certification belongs on the commits a merge brings in, every one of which this
+          # loop still checks. The Developer Certificate of Origin's own tooling skips them
+          # for the same reason.
+          for sha in $(git rev-list --no-merges "$BASE_SHA..$HEAD_SHA"); do
             if ! git show -s --format=%B "$sha" | grep -q '^Signed-off-by: '; then
               echo "Commit $sha is missing a Signed-off-by trailer:"
               git show -s --format='  %h %s' "$sha"
@@ -256,7 +260,8 @@ jobs:
             exit 0
           fi
           missing=0
-          for sha in $(git rev-list "$BEFORE_SHA..$AFTER_SHA"); do
+          # Merge commits are exempt here for the same reason as above.
+          for sha in $(git rev-list --no-merges "$BEFORE_SHA..$AFTER_SHA"); do
             if ! git show -s --format=%B "$sha" | grep -q '^Signed-off-by: '; then
               echo "Commit $sha is missing a Signed-off-by trailer:"
               git show -s --format='  %h %s' "$sha"
