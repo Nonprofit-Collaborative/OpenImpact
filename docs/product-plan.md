@@ -580,7 +580,7 @@ Because the first customers are Nonprofit Cloud / Agentforce Nonprofit orgs (Sec
 
 ### 8.2 Open source governance
 
-- **License:** Apache-2.0 recommended (patent grant protects contributors and adopters); BSD-3-Clause is the NPSP precedent and an acceptable alternative. Record as Decision D-08 once Brandon chooses.
+- **License:** Apache-2.0 recommended (patent grant protects contributors and adopters); BSD-3-Clause is the NPSP precedent and an acceptable alternative. Decided 2026-09-22 (Brandon): Apache-2.0, recorded as Decision D-08.
 - **Contribution:** Developer Certificate of Origin (DCO sign-off on commits) rather than a CLA; lower friction, adequate protection for a free product.
 - **Steward entity:** the project needs a legal owner for the namespace, the PBO, the AppExchange listing, and the trademark. Options are a nonprofit (a revived Nonprofit Collaborative is a natural fit and aligns with "given to nonprofits for free"), an LLC, or a fiscal sponsor. This is a decision for Brandon, not the builder; it must be made before the PBO is created because the PBO is tied to a legal entity.
 - **Governance model:** BDFL (Brandon) for v0.x; a maintainers group with a documented decision process by v1.0; a public roadmap in GitHub Projects.
@@ -770,7 +770,7 @@ Adding any package dependency; adding a standard-object reference outside Connec
 | D-05 | Household as Account record type with two membership modes behind one service | Custom Household object; Party Relationship Groups | Standard object benefits and NPSP compatibility, while junction mode handles Person Accounts and multi-household membership |
 | D-06 | Settings storage: protected hierarchy custom settings for toggles, custom objects for structured lists, custom metadata for shipped defaults materialized on install | All custom metadata (asynchronous writes, poor admin editing); all custom settings (not reportable, not versioned) | Synchronous front-end edits, upgrade-safe defaults, reportable configuration |
 | D-07 | `sf` CLI plus GitHub Actions; CumulusCI optional later | CumulusCI from the start | Lower contributor barrier; revisit if multi-package orchestration becomes painful |
-| D-08 | License: Apache-2.0 (proposed, pending Brandon) | BSD-3-Clause (NPSP precedent) | Explicit patent grant protects adopters and contributors |
+| D-08 | License: Apache-2.0 (confirmed by Brandon 2026-09-22) | BSD-3-Clause (NPSP precedent) | Explicit patent grant protects adopters and contributors |
 | D-09 | No Person Account, Industries, OmniStudio, Data Cloud, or Experience Cloud dependency anywhere | Building on NPC primitives | Principle 4; the target customer cannot afford or administer them |
 | D-10 | Receipts are immutable; corrections void and reissue; refunds are negative linked gifts | Editable amounts | Audit integrity; tax receipt correctness |
 | D-11 | Rollup engine: evaluate vendoring a proven MIT-licensed Apex rollup library before building | Build from scratch first | Principle 8; correctness risk is highest in rollups |
