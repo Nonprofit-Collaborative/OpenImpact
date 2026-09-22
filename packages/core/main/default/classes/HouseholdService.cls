@@ -594,7 +594,15 @@ public with sharing class HouseholdService {
             HOUSEHOLD_ID_BY_PERSON.clear();
             clearDepartedPrimaryContacts(householdIds);
             recalculateMemberCounts(householdIds);
-            HouseholdNamingService.applyNaming(householdIds);
+            // Mutual exclusion (product-plan Section 11.2 item 9): a household that already
+            // carries a native Nonprofit Cloud household group keeps the name and greetings
+            // the customer maintains there. The member count above is Open Impact's own
+            // bookkeeping and is left alone; only the naming write is guarded.
+            Set<Id> namableHouseholds = new Set<Id>(householdIds);
+            namableHouseholds.removeAll(
+                HouseholdSelector.nativeHouseholdAccountsAmong(householdIds)
+            );
+            HouseholdNamingService.applyNaming(namableHouseholds);
             if (mayTidyAway == true) {
                 deleteEmptyHouseholds(householdIds);
             }
@@ -731,6 +739,11 @@ public with sharing class HouseholdService {
      * Contact mode only. In junction mode the household is a membership row rather than a
      * reference on the contact, and a membership row needs an id the contact does not have
      * yet, so that mode is served after insert by createHouseholdsForNewContacts.
+     *
+     * Mutual exclusion (product-plan Section 11.2 item 9) needs no extra check here: only a
+     * contact with no AccountId at all reaches the loop below, so a contact whose AccountId
+     * already points at an Account carrying a native Nonprofit Cloud household group, or at
+     * anything else, is never a candidate for a new household in the first place.
      */
     @NamespaceAccessible
     public static void ensureHouseholds(List<Contact> contacts) {
@@ -765,19 +778,46 @@ public with sharing class HouseholdService {
         }
         // The household is the package's own bookkeeping, so it is saved by HouseholdWriter,
         // which explains why that one write does not run with the saving user's access.
-        List<Id> created = HouseholdWriter.createHouseholds(households);
+        List<Database.SaveResult> created = HouseholdWriter.createHouseholds(households);
         HOUSEHOLD_ID_BY_PERSON.clear();
         for (Integer i = 0; i < created.size(); i++) {
-            if (created[i] != null) {
-                waiting[i].AccountId = created[i];
+            if (created[i].isSuccess()) {
+                waiting[i].AccountId = created[i].getId();
+            } else {
+                failPersonSave(waiting[i], created[i]);
             }
         }
+    }
+
+    /**
+     * Puts a refused household creation on the person's own save. Every person gets a
+     * household (R-C1), so a person whose household could not be made is not saved
+     * quietly without one: their row fails, with the platform's reason, in the same place
+     * a data loader or a screen reports any other failed row. The Error Log entry
+     * HouseholdWriter has already written is for the administrator; this is for whoever
+     * pressed save.
+     */
+    private static void failPersonSave(SObject person, Database.SaveResult refused) {
+        person.addError(
+            String.format(
+                Label.Core_Households_ErrorCreateFailedForPerson,
+                new List<String>{ HouseholdWriter.failureReason(refused) }
+            )
+        );
     }
 
     /**
      * Creates a household and a membership row for each new person that the org stores as
      * an account. R-H2. Called only when the org has person records and membership is in
      * junction mode; the caller has already read the automatic creation setting.
+     *
+     * Mutual exclusion (product-plan Section 11.2 item 9): here the person's own Account is
+     * the person, so a person account that already carries a native Nonprofit Cloud
+     * household group gets no Open Impact household of its own. Membership in a native
+     * group is really carried on the native membership object HouseholdSelector already
+     * names, which is forbidden to query (ADR-0009, ADR-0013); this is the weaker, safe
+     * question this file's guards all ask instead: whether the Account itself carries the
+     * group.
      */
     @NamespaceAccessible
     public static void createHouseholdsForPersonAccounts(List<SObject> personRecords) {
@@ -789,7 +829,35 @@ public with sharing class HouseholdService {
         ) {
             return;
         }
-        createHouseholdsAndMemberships(PersonRecordSelector.toPersons(personRecords));
+        List<SObject> eligible = withoutNativeHouseholds(personRecords);
+        if (eligible.isEmpty()) {
+            return;
+        }
+        createHouseholdsAndMemberships(PersonRecordSelector.toPersons(eligible), byId(eligible));
+    }
+
+    /**
+     * The person account records among these whose own Account does not already carry a
+     * native Nonprofit Cloud household group. One predicate query for the whole batch.
+     */
+    private static List<SObject> withoutNativeHouseholds(List<SObject> personRecords) {
+        Set<Id> personIds = new Set<Id>();
+        for (SObject record : personRecords) {
+            if (record.Id != null) {
+                personIds.add(record.Id);
+            }
+        }
+        Set<Id> nativeHouseholds = HouseholdSelector.nativeHouseholdAccountsAmong(personIds);
+        if (nativeHouseholds.isEmpty()) {
+            return personRecords;
+        }
+        List<SObject> result = new List<SObject>();
+        for (SObject record : personRecords) {
+            if (!nativeHouseholds.contains(record.Id)) {
+                result.add(record);
+            }
+        }
+        return result;
     }
 
     /**
@@ -811,16 +879,38 @@ public with sharing class HouseholdService {
         ) {
             return;
         }
-        createHouseholdsAndMemberships(toPersons(withoutAHousehold(contacts)));
+        List<Contact> waiting = withoutAHousehold(contacts);
+        createHouseholdsAndMemberships(toPersons(waiting), byId(waiting));
+    }
+
+    /** The records themselves, by id, so that a failure can be put back on the right one. */
+    private static Map<Id, SObject> byId(List<SObject> records) {
+        Map<Id, SObject> result = new Map<Id, SObject>();
+        for (SObject record : records) {
+            if (record.Id != null) {
+                result.put(record.Id, record);
+            }
+        }
+        return result;
     }
 
     /**
      * The contacts among these that belong to no household yet.
      *
-     * Two ways of belonging count, so that automatic creation never makes a second household
-     * for somebody who already has one: a membership row that already joins them to one, and
-     * a household account they were saved against directly, which is how a person arrives
-     * from the merge and split screens and from an import that names their household.
+     * Three ways of belonging count, so that automatic creation never makes a second
+     * household for somebody who already has one: a membership row that already joins them
+     * to one, a household account they were saved against directly (which is how a person
+     * arrives from the merge and split screens and from an import that names their
+     * household), and mutual exclusion (product-plan Section 11.2 item 9): an Account that
+     * already carries a native Nonprofit Cloud household group.
+     *
+     * Membership in a native group is really carried on the native membership object
+     * HouseholdSelector already names, which is forbidden to query (ADR-0009, ADR-0013), so
+     * this asks the weaker, safe question instead: whether the contact's own AccountId
+     * already points at an Account carrying a native group at all. A person truly
+     * native-only and not yet linked to that Account by an AccountId still gets an Open
+     * Impact household from this method; that gap is smaller
+     * than the harm of a duplicate, and no migration or sync is in scope here.
      */
     private static List<Contact> withoutAHousehold(List<Contact> contacts) {
         Set<Id> personIds = new Set<Id>();
@@ -840,11 +930,17 @@ public with sharing class HouseholdService {
         }
         Map<Id, Id> householdByPerson = getHouseholdIdsFor(personIds);
         Set<Id> households = householdsAmong(accountIds);
+        // One predicate query for the whole batch, never one per contact.
+        Set<Id> nativeHouseholds = HouseholdSelector.nativeHouseholdAccountsAmong(accountIds);
         for (Contact record : contacts) {
             if (record.Id == null || householdByPerson.get(record.Id) != null) {
                 continue;
             }
-            if (record.AccountId != null && households.contains(record.AccountId)) {
+            if (
+                record.AccountId != null &&
+                (households.contains(record.AccountId) ||
+                nativeHouseholds.contains(record.AccountId))
+            ) {
                 continue;
             }
             result.add(record);
@@ -871,8 +967,15 @@ public with sharing class HouseholdService {
      * One household each, and the membership row that joins each person to theirs. The one
      * creation pass both automatic paths use, so that a person stored as a contact and a
      * person stored as an account are given the same thing in the same way.
+     *
+     * The records come along with the people so that a household that could not be
+     * created fails that person's own save (R-C1) rather than leaving them saved and
+     * quietly householdless.
      */
-    private static void createHouseholdsAndMemberships(List<Person> people) {
+    private static void createHouseholdsAndMemberships(
+        List<Person> people,
+        Map<Id, SObject> recordsByPersonId
+    ) {
         if (people == null || people.isEmpty()) {
             return;
         }
@@ -891,13 +994,20 @@ public with sharing class HouseholdService {
             for (Person person : people) {
                 households.add(newHousehold(new List<Person>{ person }, recordTypeId, settings));
             }
-            List<Id> created = HouseholdWriter.createHouseholds(households);
+            List<Database.SaveResult> created = HouseholdWriter.createHouseholds(households);
             List<Household_Member__c> memberships = new List<Household_Member__c>();
             for (Integer i = 0; i < created.size(); i++) {
-                if (created[i] == null || people[i].id == null) {
+                if (people[i].id == null) {
                     continue;
                 }
-                memberships.add(newMembership(people[i].id, created[i], ROLE_HEAD, true));
+                if (!created[i].isSuccess()) {
+                    SObject record = recordsByPersonId.get(people[i].id);
+                    if (record != null) {
+                        failPersonSave(record, created[i]);
+                    }
+                    continue;
+                }
+                memberships.add(newMembership(people[i].id, created[i].getId(), ROLE_HEAD, true));
             }
             if (!memberships.isEmpty()) {
                 HouseholdWriter.createMemberships(memberships);
@@ -940,8 +1050,18 @@ public with sharing class HouseholdService {
      */
     @NamespaceAccessible
     public static void moveContact(Id contactId, Id targetHouseholdId) {
-        if (contactId == null) {
+        if (contactId == null || targetHouseholdId == null) {
             throw new HouseholdException(Label.Core_Households_ErrorMoveMissingInput);
+        }
+        // Somebody moving a person by hand is changing the household they chose, so they
+        // need edit access to it, checked against sharing the way a merge or a split checks
+        // both of its ends. The reads that follow run in system mode (ADR-0021) and would
+        // otherwise let a person be moved into a household the user cannot even see.
+        if (
+            !HouseholdSelector.getEditableIds(new Set<Id>{ targetHouseholdId })
+                .contains(targetHouseholdId)
+        ) {
+            throw new HouseholdException(Label.Core_Households_ErrorMoveNoEditAccess);
         }
         // One upkeep path, the same one the membership trigger uses, so the work is not
         // done twice when the trigger has already run for this move.
@@ -1299,9 +1419,11 @@ public with sharing class HouseholdService {
         household.Member_Count__c = 0;
         // The name, the greetings and the count on this record are the package's own
         // bookkeeping, so it is saved by HouseholdWriter for the reason ADR-0021 gives.
-        List<Id> created = HouseholdWriter.createHouseholds(new List<Account>{ household });
+        List<Database.SaveResult> created = HouseholdWriter.createHouseholds(
+            new List<Account>{ household }
+        );
         HOUSEHOLD_ID_BY_PERSON.clear();
-        Id householdId = created.isEmpty() ? null : created[0];
+        Id householdId = created.isEmpty() || !created[0].isSuccess() ? null : created[0].getId();
         if (householdId == null) {
             // HouseholdWriter has already logged why. Nobody is moved into a household
             // that does not exist, so the split stops here rather than half happening.

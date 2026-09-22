@@ -8,6 +8,11 @@
  */
 @IsTest
 private class OrgShapeDetectorTest {
+    // Held as text here for the same reason it is held as text in OrgShapeSelector: these
+    // tests have to pass on a Platform-only org, where the object does not exist, so they may
+    // not compile against it either.
+    private static final String NATIVE_HOUSEHOLD_GROUP = 'PartyRelationshipGroup'; // detection-only: describe key, so the absent-object path can be asserted on an org that does not have the object
+
     @IsTest
     static void detectPopulatesTheWholeShape() {
         OrgShapeDetector.reset();
@@ -48,6 +53,126 @@ private class OrgShapeDetectorTest {
             shape.personAccountRecordTypeIds,
             'The person account record type set is always present, empty when there are none.'
         );
+        System.assertNotEquals(
+            null,
+            shape.hasNativeHouseholdGroups,
+            'hasNativeHouseholdGroups should be answered, not left null.'
+        );
+        if (shape.nativeHouseholdGroupCount == null) {
+            System.assertEquals(
+                true,
+                shape.hasNativeHouseholdGroups,
+                'An uncounted org is assumed to have native households, never assumed not to.'
+            );
+        } else {
+            System.assertEquals(
+                shape.nativeHouseholdGroupCount > 0,
+                shape.hasNativeHouseholdGroups,
+                'A counted org reports exactly what was counted.'
+            );
+        }
+    }
+
+    /**
+     * The four probe outcomes. Three of them are injected, because the object they are about
+     * cannot be made to exist in an Apex test and Core has to pass its tests on a
+     * Platform-only org. The fourth is the real probe on an org without the object.
+     */
+    @IsTest
+    static void anAbsentObjectIsUnknownRatherThanNone() {
+        if (Schema.getGlobalDescribe().containsKey(NATIVE_HOUSEHOLD_GROUP)) {
+            // This org has the object, so there is no absent path to exercise here. The
+            // injected tests below cover the rest.
+            return;
+        }
+        OrgShapeDetector.reset();
+
+        OrgShapeDetector.OrgShape shape = OrgShapeDetector.detect();
+
+        System.assertEquals(
+            null,
+            shape.nativeHouseholdGroupCount,
+            'An object this org does not describe leaves the count unknown, not zero.'
+        );
+        System.assertEquals(
+            true,
+            shape.hasNativeHouseholdGroups,
+            'Unknown is assumed to be yes, so a later guard stays cautious (ADR-0036).'
+        );
+    }
+
+    @IsTest
+    static void aFailedProbeIsUnknownRatherThanNone() {
+        OrgShapeDetector.reset();
+        OrgShapeSelector.failNativeHouseholdGroupProbe = true;
+
+        OrgShapeDetector.OrgShape shape = OrgShapeDetector.detect();
+
+        System.assertEquals(
+            null,
+            shape.nativeHouseholdGroupCount,
+            'A probe that threw has counted nothing, so the count stays unknown.'
+        );
+        System.assertEquals(
+            true,
+            shape.hasNativeHouseholdGroups,
+            'Not being able to answer is not the same as answering no (ADR-0036).'
+        );
+    }
+
+    @IsTest
+    static void aCountedOrgReportsTheCount() {
+        OrgShapeDetector.reset();
+        OrgShapeSelector.nativeHouseholdGroupCountOverride = 7;
+
+        OrgShapeDetector.OrgShape shape = OrgShapeDetector.detect();
+
+        System.assertEquals(
+            7,
+            shape.nativeHouseholdGroupCount,
+            'A counted org reports the number it counted.'
+        );
+        System.assertEquals(
+            true,
+            shape.hasNativeHouseholdGroups,
+            'An org with native households has native households.'
+        );
+    }
+
+    @IsTest
+    static void aCountedZeroIsTheOneWayToGetNo() {
+        OrgShapeDetector.reset();
+        OrgShapeSelector.nativeHouseholdGroupCountOverride = 0;
+
+        OrgShapeDetector.OrgShape shape = OrgShapeDetector.detect();
+
+        System.assertEquals(
+            0,
+            shape.nativeHouseholdGroupCount,
+            'A probe that ran and found nothing reports zero, not unknown.'
+        );
+        System.assertEquals(
+            false,
+            shape.hasNativeHouseholdGroups,
+            'Only a count that actually ran and came back empty answers no.'
+        );
+    }
+
+    @IsTest
+    static void theProbeIsNotRunTwiceInOneTransaction() {
+        OrgShapeDetector.reset();
+        OrgShapeSelector.nativeHouseholdGroupCountOverride = 3;
+
+        OrgShapeDetector.OrgShape first = OrgShapeDetector.detect();
+        OrgShapeSelector.nativeHouseholdGroupCountOverride = 99;
+        OrgShapeDetector.OrgShape second = OrgShapeDetector.detect();
+
+        System.assertEquals(
+            3,
+            second.nativeHouseholdGroupCount,
+            'The count is part of the cached shape, so it is asked once per transaction.'
+        );
+        System.assert(first === second, 'The shape should be computed once per transaction.');
     }
 
     @IsTest

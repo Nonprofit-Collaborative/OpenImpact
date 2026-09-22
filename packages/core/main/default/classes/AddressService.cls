@@ -275,6 +275,27 @@ public with sharing class AddressService {
             return;
         }
 
+        // Mutual exclusion (product-plan Section 11.2 item 9): an owner that is itself an
+        // Account, household or person account alike, is left out here when it already
+        // carries a native Nonprofit Cloud household group, so its billing or person
+        // mailing fields are never overwritten and its address is never propagated to
+        // household members from this default. A Contact owner cannot carry a native group,
+        // so only Account and person-account owners are asked. One predicate query for the
+        // whole batch.
+        Set<Id> accountOwnerIds = new Set<Id>();
+        for (Id ownerId : byOwner.keySet()) {
+            Address__c owned = byOwner.get(ownerId);
+            if (owned.Account__c != null || owned.Person_Account__c != null) {
+                accountOwnerIds.add(ownerId);
+            }
+        }
+        for (Id nativeHousehold : HouseholdSelector.nativeHouseholdAccountsAmong(accountOwnerIds)) {
+            byOwner.remove(nativeHousehold);
+        }
+        if (byOwner.isEmpty()) {
+            return;
+        }
+
         Map<Id, Account> accountUpdates = new Map<Id, Account>();
         Map<Id, Contact> contactUpdates = new Map<Id, Contact>();
         Map<Id, Address__c> addressByHousehold = new Map<Id, Address__c>();

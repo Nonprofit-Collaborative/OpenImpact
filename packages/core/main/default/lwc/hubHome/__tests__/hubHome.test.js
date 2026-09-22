@@ -1,10 +1,67 @@
+// The test wire adapter below is emitted to on purpose, which is how a wired
+// component is driven from a test.
+/* eslint-disable @lwc/lwc/no-unexpected-wire-adapter-usages */
 import { createElement } from 'lwc';
+import { getObjectInfo } from 'lightning/uiObjectInfoApi';
 import HubHome from 'c/hubHome';
 import getHomeModel from '@salesforce/apex/HubController.getHomeModel';
+import countInstallProblems from '@salesforce/apex/CorePostInstall.countInstallProblems';
 
 jest.mock('@salesforce/apex/HubController.getHomeModel', () => ({ default: jest.fn() }), {
   virtual: true
 });
+jest.mock('@salesforce/apex/CorePostInstall.countInstallProblems', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+
+const mockNavigate = jest.fn();
+jest.mock(
+  'lightning/navigation',
+  () => {
+    const Navigate = Symbol('Navigate');
+    const NavigationMixin = (Base) =>
+      class extends Base {
+        [Navigate](...args) {
+          mockNavigate(...args);
+        }
+      };
+    NavigationMixin.Navigate = Navigate;
+    return { NavigationMixin, CurrentPageReference: null, __esModule: true };
+  },
+  { virtual: true }
+);
+
+const mockEncodeDefaultFieldValues = jest.fn(
+  (fields) =>
+    `encoded:${Object.keys(fields)
+      .map((key) => `${key}=${fields[key]}`)
+      .join(',')}`
+);
+jest.mock(
+  'lightning/pageReferenceUtils',
+  () => ({
+    encodeDefaultFieldValues: (...args) => mockEncodeDefaultFieldValues(...args)
+  }),
+  { virtual: true }
+);
+
+const HOUSEHOLD_RECORD_TYPE_ID = '012000000000001AAA';
+
+const ACCOUNT_INFO = {
+  createable: true,
+  recordTypeInfos: {
+    [HOUSEHOLD_RECORD_TYPE_ID]: {
+      recordTypeId: HOUSEHOLD_RECORD_TYPE_ID,
+      developerName: 'Household',
+      name: 'Household'
+    },
+    '012000000000002AAA': {
+      recordTypeId: '012000000000002AAA',
+      developerName: 'Organization',
+      name: 'Organization'
+    }
+  }
+};
 
 function model(overrides) {
   return {
@@ -53,10 +110,13 @@ function settle() {
 describe('c-hub-home', () => {
   beforeEach(() => {
     getHomeModel.mockResolvedValue(model());
+    countInstallProblems.mockResolvedValue(0);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+    mockNavigate.mockClear();
+    mockEncodeDefaultFieldValues.mockClear();
     while (document.body.firstChild) {
       document.body.removeChild(document.body.firstChild);
     }
@@ -81,6 +141,46 @@ describe('c-hub-home', () => {
     expect(element.shadowRoot.querySelector('[data-id="error-count"]').textContent).toBe('3');
     const link = element.shadowRoot.querySelector('a[href="/lightning/o/Error_Log__c/list"]');
     expect(link).not.toBeNull();
+  });
+
+  it('says setup completed when the install logged nothing', async () => {
+    countInstallProblems.mockResolvedValue(0);
+    const element = build();
+    await settle();
+
+    const status = element.shadowRoot.querySelector('[data-id="install-status"]');
+    expect(status.textContent).toContain('Core_HubHome_InstallCompleted');
+    expect(status.querySelector('lightning-icon')).toBeNull();
+  });
+
+  it('says setup had problems when the install logged some, and not by color alone', async () => {
+    // A partly failed install used to look exactly like a good one: every step logs and
+    // carries on, and the page only offered the Error Log link.
+    countInstallProblems.mockResolvedValue(2);
+    const element = build();
+    await settle();
+
+    const status = element.shadowRoot.querySelector('[data-id="install-status"]');
+    expect(status.textContent).toContain('Core_HubHome_InstallProblems');
+    expect(status.getAttribute('aria-live')).toBe('polite');
+    expect(status.querySelector('lightning-icon')).not.toBeNull();
+  });
+
+  it('says nothing about the install to someone who cannot read the Error Log', async () => {
+    countInstallProblems.mockResolvedValue(null);
+    const element = build();
+    await settle();
+
+    expect(element.shadowRoot.querySelector('[data-id="install-status"]')).toBeNull();
+  });
+
+  it('still loads the page when the install count cannot be read', async () => {
+    countInstallProblems.mockRejectedValue(new Error('no'));
+    const element = build();
+    await settle();
+
+    expect(element.shadowRoot.querySelector('[data-id="install-status"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="error-count"]').textContent).toBe('0');
   });
 
   it('says so while automation is paused', async () => {
@@ -202,5 +302,47 @@ describe('c-hub-home', () => {
     expect(warning.querySelector('lightning-icon')).not.toBeNull();
     // One message at a time: an overdue run is the fault worth reading, not the schedule.
     expect(element.shadowRoot.querySelector('[data-id="seasonal-not-scheduled"]')).toBeNull();
+  });
+
+  it('hides the New household button until the record type is resolved', async () => {
+    const element = build();
+    await settle();
+
+    expect(element.shadowRoot.querySelector('[data-id="new-household"]')).toBeNull();
+  });
+
+  it('hides the New household button when the user cannot create accounts', async () => {
+    const element = build();
+    await settle();
+    getObjectInfo.emit({ ...ACCOUNT_INFO, createable: false });
+    await settle();
+
+    expect(element.shadowRoot.querySelector('[data-id="new-household"]')).toBeNull();
+  });
+
+  it('navigates straight to a new household, skipping the record-type chooser', async () => {
+    const element = build();
+    await settle();
+    getObjectInfo.emit(ACCOUNT_INFO);
+    await settle();
+
+    const button = element.shadowRoot.querySelector('[data-id="new-household"]');
+    expect(button).not.toBeNull();
+    button.click();
+
+    expect(mockEncodeDefaultFieldValues).toHaveBeenCalledWith({
+      Name: 'c.Core_Households_NamePlaceholder'
+    });
+    expect(mockNavigate).toHaveBeenCalledWith({
+      type: 'standard__objectPage',
+      attributes: {
+        objectApiName: 'Account',
+        actionName: 'new'
+      },
+      state: {
+        recordTypeId: HOUSEHOLD_RECORD_TYPE_ID,
+        defaultFieldValues: 'encoded:Name=c.Core_Households_NamePlaceholder'
+      }
+    });
   });
 });

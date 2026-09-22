@@ -34,7 +34,10 @@ Nonprofit Settings page, so nobody needs to open Salesforce Setup.
 
 Choose the flexible way if you need one person in two households: a child of divorced
 parents, or a student with a family address and a campus address. The rest of the product
-behaves the same either way, so it is safe to start simple and change your mind later.
+behaves the same either way, so it is safe to start simple. Change your mind early, though:
+each way keeps its own record of who belongs where, and the other way cannot see it, so
+once people are in households Open Impact refuses the switch and tells you how many people
+it would affect. Moving them across is a migration, which Open Impact does not do yet.
 
 ## A five-minute walkthrough
 
@@ -54,16 +57,23 @@ Maria does this from the sample data.
 7. Open Wei's record, check **Deceased**, and save. Return to the household: the greetings
    no longer mention Wei.
 8. Back on the Members panel, use **Move to another household** on Maria and move her to
-   any other household. Return to the first household: it is gone, because it had no
-   members left and "delete a household when the last person leaves" is on.
+   any other household. Return to the first household: it is still there, with nobody in
+   it and a member count of 0, because "delete a household when the last person leaves"
+   ships off. Switch that setting on in Nonprofit Settings if you would rather it were
+   removed, and the next household left empty is.
 
 That is the whole lifecycle: created for you, named for you, counted for you, and tidied
-up for you.
+up for you if you ask.
+
+To start from the household instead of the person, click **New household** on the Hub
+home. It opens a new household without the record-type prompt or a name to invent:
+Salesforce fills in a placeholder name that the naming automation replaces once you add
+a member.
 
 The walkthrough reads the same in the flexible way of belonging, with one difference at
 step 3: the household is not shown in the household field on the person, because in that
 mode membership is a record of its own. Open the household from the **Households** tab, or
-from the Members panel on the person, and everything from step 4 on is identical.
+from the Household panel on the person, and everything from step 4 on is identical.
 
 One thing the tidy-up will not do: it never deletes a household that something outside
 Open Impact still points at, even when the setting is on and nobody is left in it. It
@@ -75,8 +85,11 @@ can look at it and decide for yourself.
 Some orgs, including most Nonprofit Cloud and Agentforce Nonprofit orgs, store each person
 as an account rather than as a contact. Households work there too, with one difference:
 choose the flexible way of belonging to a household. It is the only mode that can hold a
-person who is stored as an account, and Open Impact selects it for you when it notices your
-org is shaped that way.
+person who is stored as an account, and Open Impact selects it for you when it is installed
+and notices your org is shaped that way. It does that only when nobody has chosen a way of
+belonging yet: if you chose the simple way on purpose, because your org has Person Accounts
+switched on but stores everyone as a contact, an install or upgrade leaves your choice
+alone, and Health Check warns you if people stored as accounts appear later.
 
 Automatic creation is the same setting and the same behavior as anywhere else. When "create
 a household automatically" is on, saving a new person creates their household and the
@@ -101,6 +114,15 @@ household: you filled the household in yourself when you created them, or a memb
 record already joins them to one. Turn the setting back on in Nonprofit Settings, then open
 the person and pick or create a household. Health Check reports the setting being off as a
 red finding, with a button that turns it on.
+
+**"I cannot change how people belong to a household."**
+The two ways of belonging keep separate records of who is in which household, and each is
+invisible to the other. Switching with people already in households would make their
+households read as empty, or leave the people belonging nowhere, so Open Impact refuses
+and tells you how many people it would affect. Moving them across is a migration, which
+Open Impact does not do yet. If the setting was changed some other way and Health Check
+reports household members it cannot see, switch back to the way of belonging the records
+were made in.
 
 **"I deleted the last person and the household is still there."**
 Either "Delete a household when the last person leaves" is off, or Open Impact deliberately

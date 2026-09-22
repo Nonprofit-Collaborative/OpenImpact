@@ -1,13 +1,13 @@
 /**
  * Every query the nightly seasonal address swap makes (C-18).
  *
- * DOCUMENTED EXCEPTION to the user-mode query rule (plan Section 7.2), recorded in ADR-0027.
- * The swap is a scheduled reconciliation: it runs as whoever pressed the button that scheduled
- * it, in a transaction no user is in. A `WITH USER_MODE` query returns fewer rows rather than
- * failing, so a household whose records that user cannot see would not be reported as skipped,
- * it would simply not be there, and their winter mail would keep going to the wrong state with
- * nothing to look at afterwards. Reading in system mode is what makes "nothing to do" mean
- * nothing to do.
+ * ADR-0021 (system mode writes for package owned data) extends to scheduled reconciliation of
+ * package owned data, recorded in ADR-0027. The swap is a scheduled reconciliation: it runs as
+ * whoever pressed the button that scheduled it, in a transaction no user is in. A `WITH USER_MODE`
+ * query returns fewer rows rather than failing, so a household whose records that user cannot see
+ * would not be reported as skipped, it would simply not be there, and their winter mail would keep
+ * going to the wrong state with nothing to look at afterwards. Reading in system mode is what makes
+ * "nothing to do" mean nothing to do.
  *
  * Nothing here is reachable from an LWC, and nothing here takes user-supplied input: the batch
  * hands it identifiers that came from its own query locator.

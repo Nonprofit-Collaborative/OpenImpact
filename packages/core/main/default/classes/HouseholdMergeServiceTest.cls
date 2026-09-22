@@ -72,14 +72,18 @@ private class HouseholdMergeServiceTest {
         Id victimId = householdOf(wei.Id);
 
         Test.startTest();
-        Id result = HouseholdMergeService.mergeHouseholds(
+        HouseholdMergeService.MergeResult result = HouseholdMergeService.mergeHouseholds(
             survivorId,
             victimId,
             new HouseholdMergeService.MergeChoices(null)
         );
         Test.stopTest();
 
-        Assert.areEqual(survivorId, result, 'The survivor is answered');
+        Assert.areEqual(survivorId, result.survivorId, 'The survivor is answered');
+        Assert.isFalse(
+            result.customNameKept,
+            'Nobody chose a name and neither side was custom, so naming still owns it'
+        );
         Assert.areEqual(
             survivorId,
             householdOf(wei.Id),
@@ -118,7 +122,7 @@ private class HouseholdMergeServiceTest {
         );
 
         Test.startTest();
-        HouseholdMergeService.mergeHouseholds(
+        HouseholdMergeService.MergeResult result = HouseholdMergeService.mergeHouseholds(
             survivorId,
             victimId,
             new HouseholdMergeService.MergeChoices(
@@ -142,6 +146,135 @@ private class HouseholdMergeServiceTest {
         );
         Assert.isTrue(survivor.Custom_Name__c, 'The household is now one nothing recomputes');
         Assert.areEqual(2, survivor.Member_Count__c, 'The count is still brought up to date');
+        Assert.isTrue(
+            result.customNameKept,
+            'The screen is told the name is now held as a custom one'
+        );
+    }
+
+    /**
+     * The other household's name is offered as a choice, so choosing it has to mean
+     * something. The settle-up after a merge rewrites an ordinary household's name from
+     * everyone now in it, which would throw the choice away; a chosen name that naming
+     * would not produce is therefore kept as a custom name (R-H8).
+     */
+    @IsTest
+    static void mergeKeepsTheOtherHouseholdsNameWhenThePersonChoosesIt() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        Contact wei = HouseholdTestDataFactory.newContact('Mr.', 'Wei', 'Lee');
+        insert new List<Contact>{ maria, wei };
+        Id survivorId = householdOf(maria.Id);
+        Id victimId = householdOf(wei.Id);
+
+        Test.startTest();
+        HouseholdMergeService.MergeResult result = HouseholdMergeService.mergeHouseholds(
+            survivorId,
+            victimId,
+            new HouseholdMergeService.MergeChoices(
+                new Map<String, String>{ 'Name' => HouseholdMergeService.KEEP_VICTIM }
+            )
+        );
+        Test.stopTest();
+
+        Account survivor = [
+            SELECT Name, Custom_Name__c, Member_Count__c
+            FROM Account
+            WHERE Id = :survivorId
+        ];
+        Assert.areEqual('The Lee Family', survivor.Name, 'The name the person chose stands');
+        Assert.isTrue(
+            survivor.Custom_Name__c,
+            'A chosen name that naming would not produce is kept as a custom name'
+        );
+        Assert.areEqual(2, survivor.Member_Count__c, 'The count is still brought up to date');
+        Assert.isTrue(
+            result.customNameKept,
+            'The screen is told the name is now held as a custom one'
+        );
+    }
+
+    /**
+     * The counterpart: a chosen name that naming produces anyway is not frozen, so the
+     * household stays one whose name follows its members.
+     */
+    @IsTest
+    static void aChosenNameThatNamingWouldGiveAnywayStaysAnOrdinaryName() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        insert maria;
+        Id victimId = householdOf(maria.Id);
+        Contact wei = HouseholdTestDataFactory.newContact('Mr.', 'Wei', 'Lee');
+        insert wei;
+        Id survivorId = householdOf(wei.Id);
+        Contact sam = HouseholdTestDataFactory.newContact('Mr.', 'Sam', 'Lee');
+        sam.AccountId = victimId;
+        insert sam;
+        Assert.areEqual(
+            'Garcia and Lee Household',
+            [SELECT Name FROM Account WHERE Id = :victimId].Name,
+            'The other household is named from both surnames before the merge'
+        );
+
+        Test.startTest();
+        HouseholdMergeService.MergeResult result = HouseholdMergeService.mergeHouseholds(
+            survivorId,
+            victimId,
+            new HouseholdMergeService.MergeChoices(
+                new Map<String, String>{ 'Name' => HouseholdMergeService.KEEP_VICTIM }
+            )
+        );
+        Test.stopTest();
+
+        Account survivor = [SELECT Name, Custom_Name__c FROM Account WHERE Id = :survivorId];
+        Assert.areEqual('Garcia and Lee Household', survivor.Name, 'The chosen name stands');
+        Assert.isFalse(
+            survivor.Custom_Name__c,
+            'Naming gives that name anyway, so the household keeps following its members'
+        );
+        Assert.isFalse(
+            result.customNameKept,
+            'The screen is not told about a lock that did not happen'
+        );
+    }
+
+    /**
+     * The preview is shown to somebody, so it is built from what that person may read
+     * (ADR-0021): a deceased flag they cannot read on the record does not reach them
+     * through the merge comparison.
+     */
+    @IsTest
+    static void previewShowsOnlyWhatThePersonCanRead() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        User staff = HouseholdTestDataFactory.standardUser('mfls');
+        grantHouseholdFieldRead('C01_Merge_Display_Test', staff.Id);
+        Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
+        Contact wei = HouseholdTestDataFactory.newContact('Mr.', 'Wei', 'Lee');
+        // Saved by the same user who will read them back, so that what this test measures
+        // is field level access and not the org's sharing model.
+        System.runAs(staff) {
+            insert new List<Contact>{ maria, wei };
+        }
+        update new Contact(Id = wei.Id, Deceased__c = true);
+        Id survivorId = householdOf(maria.Id);
+        Id victimId = householdOf(wei.Id);
+        Assert.isTrue(
+            memberNamed(HouseholdMergeService.preview(survivorId, victimId), 'Wei Lee').isDeceased,
+            'A user who can read the field is told that he died'
+        );
+
+        HouseholdMergeService.MergePreview shown;
+        Test.startTest();
+        System.runAs(staff) {
+            shown = HouseholdMergeService.preview(survivorId, victimId);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(2, shown.members.size(), 'Both people are still listed');
+        Assert.isFalse(
+            memberNamed(shown, 'Wei Lee').isDeceased,
+            'A user with no access to the deceased field is not told that he died'
+        );
     }
 
     @IsTest
@@ -565,6 +698,53 @@ private class HouseholdMergeServiceTest {
 
     private static Id householdOf(Id contactId) {
         return [SELECT AccountId FROM Contact WHERE Id = :contactId].AccountId;
+    }
+
+    private static HouseholdMergeService.MemberChoice memberNamed(
+        HouseholdMergeService.MergePreview preview,
+        String name
+    ) {
+        for (HouseholdMergeService.MemberChoice member : preview.members) {
+            if (member.name == name) {
+                return member;
+            }
+        }
+        Assert.fail('The preview does not list ' + name);
+        return null;
+    }
+
+    /**
+     * Read access to the household fields the merge comparison reads, and nothing on
+     * Contact: the shape of a user who can open the merge screen and still cannot read a
+     * person's deceased flag on the record itself. Setup objects are saved on their own so
+     * that granting access and creating records never mix in one transaction.
+     */
+    private static void grantHouseholdFieldRead(String name, Id userId) {
+        List<String> fields = new List<String>{
+            'Anniversary__c',
+            'Custom_Name__c',
+            'Household_Formal_Greeting__c',
+            'Household_Informal_Greeting__c',
+            'Member_Count__c',
+            'Primary_Contact__c'
+        };
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            PermissionSet grant = new PermissionSet(Name = name, Label = name);
+            insert grant;
+            List<FieldPermissions> reads = new List<FieldPermissions>();
+            for (String field : fields) {
+                reads.add(
+                    new FieldPermissions(
+                        ParentId = grant.Id,
+                        SobjectType = 'Account',
+                        Field = 'Account.' + field,
+                        PermissionsRead = true
+                    )
+                );
+            }
+            insert reads;
+            insert new PermissionSetAssignment(AssigneeId = userId, PermissionSetId = grant.Id);
+        }
     }
 
     private static Map<String, HouseholdMergeService.FieldChoice> byFieldName(

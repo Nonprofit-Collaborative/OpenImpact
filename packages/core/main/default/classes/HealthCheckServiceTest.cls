@@ -148,6 +148,92 @@ private class HealthCheckServiceTest {
     }
 
     @IsTest
+    static void contactMembershipChosenOnPurposeIsNotAnErrorWhileEveryoneIsAContact() {
+        // Maria's org has Person Accounts on but stores everyone as a contact, and she chose
+        // the simple way herself. That is a choice, not a fault, until people stored as
+        // accounts appear. No test org in the CI matrix has any, so this is the quiet case.
+        OrgShapeDetector.overrideShape = shape(false, true, false, false);
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+
+        System.assertEquals(
+            null,
+            find(findings, 'membership_mode_person_accounts'),
+            'A way of belonging chosen on purpose is not reported as the default not fitting.'
+        );
+        System.assertEquals(
+            null,
+            find(findings, 'membership_mode_people_as_accounts'),
+            'And with nobody stored as an account there is nothing to warn about.'
+        );
+    }
+
+    @IsTest
+    static void membershipRecordsTheSimpleWayCannotSeeAreAnError() {
+        // Membership records exist, and the setting has been moved to the simple way by a
+        // route the settings write does not guard, here a direct upsert. The households now
+        // read as empty and nothing else says why.
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        insert HouseholdTestDataFactory.newContact('Maria', 'Garcia');
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+
+        HealthCheckService.Finding finding = find(
+            HealthCheckService.run(),
+            'membership_data_hidden'
+        );
+
+        System.assertNotEquals(null, finding, 'Membership the mode cannot see is reported.');
+        System.assertEquals(
+            HealthCheckService.SEVERITY_ERROR,
+            finding.severity,
+            'People vanishing from their households is broken, not untidy.'
+        );
+        System.assert(
+            finding.detail.contains('1 people'),
+            'The finding says how many people are affected: ' + finding.detail
+        );
+        System.assertEquals(
+            HealthCheckService.SECTION_HOUSEHOLDS,
+            finding.fixTarget,
+            'The fix opens the household settings, where the way of belonging lives.'
+        );
+    }
+
+    @IsTest
+    static void peopleLinkedStraightToAHouseholdTheFlexibleWayCannotSeeAreAnError() {
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
+        Account household = HouseholdTestDataFactory.newHousehold('The Garcia Family');
+        insert household;
+        Contact maria = HouseholdTestDataFactory.newContact('Maria', 'Garcia');
+        maria.AccountId = household.Id;
+        insert maria;
+
+        HealthCheckService.Finding finding = find(
+            HealthCheckService.run(),
+            'membership_data_hidden'
+        );
+
+        System.assertNotEquals(null, finding, 'A person the mode cannot see is reported.');
+        System.assert(
+            finding.detail.contains('1 people'),
+            'The finding says how many people are affected: ' + finding.detail
+        );
+    }
+
+    @IsTest
+    static void membershipEveryoneCanSeeIsNotReported() {
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        insert HouseholdTestDataFactory.newContact('Maria', 'Garcia');
+
+        System.assertEquals(
+            null,
+            find(HealthCheckService.run(), 'membership_data_hidden'),
+            'Membership records in the flexible way are exactly what that way reads.'
+        );
+    }
+
+    @IsTest
     static void junctionMembershipWithPersonAccountsIsNotReported() {
         OrgShapeDetector.overrideShape = shape(false, true, false, false);
         CoexistenceService.setMode(CoexistenceService.MODE_AGENTFORCE_NONPROFIT);
@@ -1059,5 +1145,103 @@ private class HealthCheckServiceTest {
             }
         }
         return null;
+    }
+
+    // ---------------------------------------------------------- native household findings
+
+    /**
+     * Informational: an org with native Nonprofit Cloud households is told how many, and
+     * that Open Impact leaves them alone (product-plan Section 11.2 item 9).
+     */
+    @IsTest
+    static void anOrgWithNativeHouseholdsReportsHowManyInformationally() {
+        OrgShapeDetector.OrgShape orgShape = shape(false, false, false, false);
+        orgShape.hasNativeHouseholdGroups = true;
+        orgShape.nativeHouseholdGroupCount = 3;
+        OrgShapeDetector.overrideShape = orgShape;
+        HouseholdSelector.nativeHouseholdCollisionCountOverride = 0;
+
+        Test.startTest();
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+        Test.stopTest();
+
+        HealthCheckService.Finding finding = find(findings, 'native_households');
+        System.assertNotEquals(null, finding, 'The native households finding is reported');
+        System.assertEquals(
+            HealthCheckService.SEVERITY_INFO,
+            finding.severity,
+            'A native household is not a problem, it is mutual exclusion working'
+        );
+        System.assert(finding.detail.contains('3'), 'The finding names how many were found');
+    }
+
+    /**
+     * An org OrgShapeDetector reports as having no native households at all gets no finding.
+     */
+    @IsTest
+    static void anOrgWithNoNativeHouseholdsReportsNothing() {
+        OrgShapeDetector.OrgShape orgShape = shape(false, false, false, false);
+        orgShape.hasNativeHouseholdGroups = false;
+        orgShape.nativeHouseholdGroupCount = 0;
+        OrgShapeDetector.overrideShape = orgShape;
+        HouseholdSelector.nativeHouseholdCollisionCountOverride = 0;
+
+        Test.startTest();
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+        Test.stopTest();
+
+        System.assertEquals(
+            null,
+            find(findings, 'native_households'),
+            'Nothing is reported about native households when there are none'
+        );
+    }
+
+    /**
+     * Warning: an Account that is an Open Impact household and a native Nonprofit Cloud
+     * household at once, the collision mutual exclusion exists to prevent.
+     */
+    @IsTest
+    static void anAccountCarryingBothHouseholdModelsIsReportedAsAWarning() {
+        OrgShapeDetector.OrgShape orgShape = shape(false, false, false, false);
+        orgShape.hasNativeHouseholdGroups = true;
+        orgShape.nativeHouseholdGroupCount = 1;
+        OrgShapeDetector.overrideShape = orgShape;
+        HouseholdSelector.nativeHouseholdCollisionCountOverride = 1;
+
+        Test.startTest();
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+        Test.stopTest();
+
+        HealthCheckService.Finding finding = find(findings, 'native_household_collision');
+        System.assertNotEquals(null, finding, 'The collision finding is reported');
+        System.assertEquals(
+            HealthCheckService.SEVERITY_WARNING,
+            finding.severity,
+            'A collision is a problem, an administrator should look at'
+        );
+        System.assert(finding.detail.contains('1'), 'The finding names how many Accounts collide');
+    }
+
+    /**
+     * No collision, no warning, even in an org that does have native households.
+     */
+    @IsTest
+    static void noCollisionMeansNoWarning() {
+        OrgShapeDetector.OrgShape orgShape = shape(false, false, false, false);
+        orgShape.hasNativeHouseholdGroups = true;
+        orgShape.nativeHouseholdGroupCount = 2;
+        OrgShapeDetector.overrideShape = orgShape;
+        HouseholdSelector.nativeHouseholdCollisionCountOverride = 0;
+
+        Test.startTest();
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+        Test.stopTest();
+
+        System.assertEquals(
+            null,
+            find(findings, 'native_household_collision'),
+            'No warning is raised when nothing collides'
+        );
     }
 }

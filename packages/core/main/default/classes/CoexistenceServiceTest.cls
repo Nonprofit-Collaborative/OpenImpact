@@ -236,6 +236,163 @@ private class CoexistenceServiceTest {
     }
 
     @IsTest
+    static void anExplicitContactChoiceSurvivesAgentforceNonprofitDetection() {
+        // Maria's org has Person Accounts switched on but stores everyone as a contact, and
+        // she chose the simple way of belonging on purpose. Neither detection nor choosing
+        // the Agentforce Nonprofit mode by hand is allowed to override that choice.
+        SettingsService.saveValues(
+            new Map<String, Object>{
+                CoexistenceService.KEY_MEMBERSHIP_MODE => CoexistenceService.MEMBERSHIP_CONTACT
+            }
+        );
+        OrgShapeDetector.OrgShape shape = new OrgShapeDetector.OrgShape();
+        shape.hasPersonAccounts = true;
+        OrgShapeDetector.overrideShape = shape;
+
+        Test.startTest();
+        CoexistenceService.applyRecommendedIfUnset();
+        System.assertEquals(
+            CoexistenceService.MEMBERSHIP_CONTACT,
+            CoexistenceService.getMembershipMode(),
+            'Detection proposes the flexible way only where nobody has chosen.'
+        );
+
+        CoexistenceService.setMode(CoexistenceService.MODE_AGENTFORCE_NONPROFIT);
+        Test.stopTest();
+
+        System.assertEquals(
+            CoexistenceService.MODE_AGENTFORCE_NONPROFIT,
+            CoexistenceService.getCurrentMode(),
+            'The coexistence mode itself is still set.'
+        );
+        System.assertEquals(
+            CoexistenceService.MEMBERSHIP_CONTACT,
+            CoexistenceService.getMembershipMode(),
+            'And the way of belonging Maria chose is left alone.'
+        );
+    }
+
+    @IsTest
+    static void switchingToTheSimpleWayIsRefusedWhileMembershipRecordsExist() {
+        // In the flexible way, saving a person creates their household and the membership
+        // record joining them to it. The simple way cannot see that record, so switching
+        // would make the household read as empty.
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        insert HouseholdTestDataFactory.newContact('Maria', 'Garcia');
+        System.assertEquals(
+            1,
+            CoexistenceService.countPeopleWithMembershipRecords(),
+            'Maria belongs to her household through a membership record.'
+        );
+
+        Test.startTest();
+        String refusal = attemptMembershipMode(CoexistenceService.MEMBERSHIP_CONTACT);
+        Test.stopTest();
+
+        System.assertNotEquals(null, refusal, 'The switch is refused rather than saved.');
+        System.assert(
+            refusal.contains('1 people'),
+            'The message says how many people would be affected: ' + refusal
+        );
+        System.assert(
+            refusal.contains('migration'),
+            'And that a migration is what it would take: ' + refusal
+        );
+        System.assertEquals(
+            CoexistenceService.MEMBERSHIP_JUNCTION,
+            CoexistenceService.getMembershipMode(),
+            'Nothing was written on the way to being refused.'
+        );
+    }
+
+    @IsTest
+    static void switchingToTheFlexibleWayIsRefusedWhilePeopleAreLinkedStraightToAHousehold() {
+        // In the simple way, a person sits on their household account. Automatic creation
+        // in the flexible way leaves such a person alone, so they would never get a
+        // membership record and would belong to no household the flexible way can see.
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Account household = HouseholdTestDataFactory.newHousehold('The Garcia Family');
+        insert household;
+        Contact maria = HouseholdTestDataFactory.newContact('Maria', 'Garcia');
+        maria.AccountId = household.Id;
+        insert maria;
+
+        Test.startTest();
+        String refusal = attemptMembershipMode(CoexistenceService.MEMBERSHIP_JUNCTION);
+        Test.stopTest();
+
+        System.assertNotEquals(null, refusal, 'The switch is refused rather than saved.');
+        System.assert(
+            refusal.contains('1 people'),
+            'The message says how many people would be affected: ' + refusal
+        );
+        System.assertEquals(
+            CoexistenceService.MEMBERSHIP_CONTACT,
+            CoexistenceService.getMembershipMode(),
+            'Nothing was written on the way to being refused.'
+        );
+    }
+
+    @IsTest
+    static void theHealthCheckFixIsRefusedWithTheSameReason() {
+        // The Health Check button goes through applyJunctionMembership, which has to carry
+        // the reason back as this class's own exception for the panel to show it.
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        Account household = HouseholdTestDataFactory.newHousehold('The Garcia Family');
+        insert household;
+        Contact maria = HouseholdTestDataFactory.newContact('Maria', 'Garcia');
+        maria.AccountId = household.Id;
+        insert maria;
+
+        String refusal;
+        try {
+            CoexistenceService.applyJunctionMembership();
+        } catch (CoexistenceService.CoexistenceException e) {
+            refusal = e.getMessage();
+        }
+
+        System.assertNotEquals(null, refusal, 'The fix is refused rather than applied.');
+        System.assert(refusal.contains('1 people'), 'With the count: ' + refusal);
+    }
+
+    @IsTest
+    static void anOrgWithNoHouseholdDataMaySwitchEitherWay() {
+        Test.startTest();
+        System.assertEquals(
+            null,
+            attemptMembershipMode(CoexistenceService.MEMBERSHIP_JUNCTION),
+            'A fresh org may choose the flexible way.'
+        );
+        System.assertEquals(
+            null,
+            attemptMembershipMode(CoexistenceService.MEMBERSHIP_CONTACT),
+            'And back to the simple way, because there is nobody to strand.'
+        );
+        Test.stopTest();
+
+        System.assertEquals(
+            CoexistenceService.MEMBERSHIP_CONTACT,
+            CoexistenceService.getMembershipMode(),
+            'The last choice is the one in force.'
+        );
+    }
+
+    /**
+     * Tries to save the given way of belonging the way the settings console does, and
+     * returns the reason it was refused, or null when it was saved.
+     */
+    private static String attemptMembershipMode(String mode) {
+        try {
+            SettingsService.saveValues(
+                new Map<String, Object>{ CoexistenceService.KEY_MEMBERSHIP_MODE => mode }
+            );
+            return null;
+        } catch (SettingsService.SettingsException refused) {
+            return refused.getMessage();
+        }
+    }
+
+    @IsTest
     static void junctionMembershipCanBeAppliedOnItsOwn() {
         Test.startTest();
         CoexistenceService.applyJunctionMembership();
