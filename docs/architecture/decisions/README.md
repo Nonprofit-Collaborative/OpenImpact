@@ -16,7 +16,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0005](0005-household-as-account-record-type.md) | Household as an Account record type with two membership modes behind one service | Accepted |
 | [0006](0006-settings-storage-strategy.md) | Settings storage: custom settings, custom objects, and custom metadata | Accepted |
 | [0007](0007-sf-cli-and-github-actions.md) | Salesforce CLI plus GitHub Actions, CumulusCI optional later | Accepted |
-| [0008](0008-license-apache-2-0.md) | License: Apache-2.0 | Proposed, pending Brandon |
+| [0008](0008-license-apache-2-0.md) | License: Apache-2.0 | Accepted |
 | [0009](0009-no-industries-or-paid-add-on-dependency.md) | No Person Account, Industries, OmniStudio, Data Cloud, or Experience Cloud dependency | Accepted |
 | [0010](0010-receipt-immutability.md) | Receipts are immutable; corrections void and reissue; refunds are negative linked gifts | Accepted |
 | [0011](0011-evaluate-vendoring-a-rollup-library.md) | Evaluate vendoring a proven Apex rollup library before building one | Accepted |

@@ -136,4 +136,4 @@ Participation is covered by our [Code of Conduct](CODE_OF_CONDUCT.md). Please re
 
 ## License
 
-The project license is being confirmed: see [LICENSE](LICENSE). Apache-2.0 is the recommendation (Decision D-08) and BSD-3-Clause is the alternative. By contributing with a DCO sign-off, you agree that your contribution is offered under the project's license once it is confirmed.
+Open Impact is licensed under the [Apache License, Version 2.0](LICENSE) (Decision D-08). By contributing with a DCO sign-off, you agree that your contribution is offered under that license.

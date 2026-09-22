@@ -1,6 +1,6 @@
 # ADR-0008: License: Apache-2.0
 
-**Status:** Proposed, pending Brandon
+**Status:** Accepted (confirmed by Brandon on 2026-09-22)
 **Date:** 2026-09-06
 **Source:** plan Section 12, decision D-08
 
@@ -34,9 +34,9 @@ item 2 tells the builder to confirm it on day one.
 installing the package) and contributors (a developer whose employer holds patents) in a
 way BSD-3-Clause does not.
 
-This ADR stays in **Proposed** status until Brandon confirms. It is one of two blocking
-decisions in plan Section 9.1 item 2, alongside the Dev Hub choice. Development proceeds
-in the meantime; only making the repository public depends on it.
+Brandon confirmed Apache-2.0 on 2026-09-22. `LICENSE` now carries the full license text
+and `NOTICE` carries the project's attribution and the apex-rollup MIT notice. Making the
+repository public no longer waits on this decision.
 
 ## Alternatives considered
 
