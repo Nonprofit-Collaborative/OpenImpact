@@ -158,7 +158,7 @@
       <sortOrder>0</sortOrder>
     </platformActionListItems>
     <platformActionListItems>
-      <actionName>Refund_Gift</actionName>
+      <actionName>Gift__c.Refund_Gift</actionName>
       <actionType>QuickAction</actionType>
       <sortOrder>1</sortOrder>
     </platformActionListItems>
