@@ -61,7 +61,7 @@
         <categories>Addresses</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Message when a user without Manage Nonprofit Settings tries to change the schedule</shortDescription>
+        <shortDescription>Schedule change refused without Manage Nonprofit Settings</shortDescription>
         <value>You need the Manage Nonprofit Settings permission to start, stop, or run the seasonal address swap. Ask your administrator for the Nonprofit Admin access level.</value>
     </labels>
     <labels>

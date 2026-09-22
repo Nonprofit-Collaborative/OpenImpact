@@ -29,7 +29,7 @@
         <categories>Relationships</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Save refused: this relationship is already on file. Names both people and the record number.</shortDescription>
+        <shortDescription>Save refused: relationship already on file; names both people and the record</shortDescription>
         <value>{0} already has this relationship with {1}. Open {2} to change it.</value>
     </labels>
     <labels>
@@ -37,7 +37,7 @@
         <categories>Relationships</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Save refused: the same relationship appears twice in one save, so there is no record number to name</shortDescription>
+        <shortDescription>Save refused: the same relationship appears twice in one save</shortDescription>
         <value>The same relationship is in this save twice. Remove one of them and save again.</value>
     </labels>
     <labels>
@@ -77,7 +77,7 @@
         <categories>Relationships</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Save refused: both the contact and the account lookup are filled in for one person</shortDescription>
+        <shortDescription>Save refused: both contact and account lookup filled in for one person</shortDescription>
         <value>A relationship names one record for each person. Fill in either the person or the person account on each side, not both.</value>
     </labels>
     <labels>
@@ -109,7 +109,7 @@
         <categories>Relationships</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Relationship card: confirmation after a relationship and its other side are deleted</shortDescription>
+        <shortDescription>Relationship card: confirmation after both sides are deleted</shortDescription>
         <value>Relationship removed from both people.</value>
     </labels>
     <labels>

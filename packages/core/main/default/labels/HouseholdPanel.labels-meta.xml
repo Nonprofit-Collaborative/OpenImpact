@@ -13,7 +13,7 @@
         <categories>Households</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Members panel: what a screen reader hears for the make primary button, {0} is the person's name</shortDescription>
+        <shortDescription>Members panel: screen reader name for make primary; {0} is the person</shortDescription>
         <value>Make {0} the primary contact</value>
     </labels>
     <labels>
@@ -21,7 +21,7 @@
         <categories>Households</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Members panel: what a screen reader hears for the move button, {0} is the person's name</shortDescription>
+        <shortDescription>Members panel: screen reader name for move; {0} is the person</shortDescription>
         <value>Move {0} to another household</value>
     </labels>
     <labels>
@@ -29,7 +29,7 @@
         <categories>Households</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Members panel: toast after the primary contact was changed, {0} is the person's name</shortDescription>
+        <shortDescription>Members panel: toast after primary contact changed; {0} is the person</shortDescription>
         <value>{0} is now the primary contact.</value>
     </labels>
     <labels>
@@ -133,7 +133,7 @@
         <categories>Households</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Members panel: what a screen reader hears for a search result button, {0} is the person's name</shortDescription>
+        <shortDescription>Members panel: screen reader name for a search result; {0} is the person</shortDescription>
         <value>Add {0} to this household</value>
     </labels>
     <labels>
@@ -205,7 +205,7 @@
         <categories>Households</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Members panel: the search for an existing person failed, flexible membership mode</shortDescription>
+        <shortDescription>Members panel: search for an existing person failed (flexible mode)</shortDescription>
         <value>The search could not be completed. Refresh the page and try again.</value>
     </labels>
 </CustomLabels>

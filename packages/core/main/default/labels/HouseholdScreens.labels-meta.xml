@@ -5,7 +5,7 @@
         <categories>Households</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Household search result: accessible name pairing a household with its location, since two households can share a name</shortDescription>
+        <shortDescription>Household search result: accessible name with location, as names can repeat</shortDescription>
         <value>{0}, {1}</value>
     </labels>
     <labels>
@@ -13,7 +13,7 @@
         <categories>Households</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Merge and split panel: spinner alternative text while the comparison or the merge or split itself is in progress</shortDescription>
+        <shortDescription>Merge and split panel: spinner text while comparing, merging or splitting</shortDescription>
         <value>Loading household comparison</value>
     </labels>
     <labels>
@@ -21,7 +21,7 @@
         <categories>Households</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Naming settings panel: spinner alternative text while the naming patterns are being saved</shortDescription>
+        <shortDescription>Naming settings panel: spinner text while patterns are saved</shortDescription>
         <value>Saving naming settings</value>
     </labels>
 </CustomLabels>

@@ -77,7 +77,7 @@
         <categories>Addresses</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Address automation: the default address could not be copied to the standard fields</shortDescription>
+        <shortDescription>Address automation: default address could not be copied to standard fields</shortDescription>
         <value>We could not copy this address to the standard address fields, so nothing was saved. Check that you can edit the household and its people, then try again. If it happens again ask your administrator to check the Error Log.</value>
     </labels>
     <labels>

@@ -65,6 +65,9 @@ Salesforce org is needed for this job. Steps:
    read custom metadata records. It also fails a record that uses the `xsd:` prefix
    without declaring `xmlns:xsd`, a label over 40 characters, and a missing label (see
    "Resolved 2026-09-22" below).
+   `scripts/ci/check-labels.py` does the same for custom labels: a name or short
+   description over 80 characters, a value over 1000, or any of them missing, each of
+   which only an org would otherwise report.
 9. `scripts/ci/check-symlinks.sh`, failing the build if a tracked file is a symlink
    pointing outside the repository or at an absolute path. Such a link resolves on the
    machine that committed it and dangles everywhere else, so every local check passes and
@@ -287,8 +290,9 @@ parsing, before any component is examined, and reports it as `UNKNOWN_EXCEPTION`
 component errors. Deploying each custom metadata type on its own with the prefix declared
 (run 170 on `experiment/cmdt-by-type`) got past "Preparing" for the first time and reported
 ordinary component errors instead: 16 labels over the 40 character limit and one label given
-as an attribute. All are fixed, and `check-custom-metadata.py` now fails on each of the three
-before a deploy is attempted. The history below is kept because the size theory it describes
+as an attribute. The next stage then named 44 custom labels whose short descriptions ran past
+80 characters. All are fixed, and `check-custom-metadata.py` and `check-labels.py` now fail on each
+of these before a deploy is attempted. The history below is kept because the size theory it describes
 was wrong, and the way it was wrong is worth remembering: a failure with no component errors
 can still be a defect in a component, when the defect stops the file being read at all.
 
@@ -310,7 +314,7 @@ Ten occurrences, none resolved by re-running: six identical failures on Core (fo
 before 2026-09-09, two more that day), the data-model stage's failure right after the first
 split, a further one after that, the config stage's failure once objects had been cleared, and
 custom metadata's failure alone once config had been split three ways. `scripts/org/deploy-packages.sh`
-no longer prints the old "sometimes transient" line; it now prints this count and points here.
+now prints only the component failures on a failed stage, and points at the resolution above.
 
 The data model stage was then split again, into two runtime-balanced halves of
 `packages/core/main/default/objects` plus a third stage for custom metadata and the remaining

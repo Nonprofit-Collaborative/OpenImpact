@@ -181,7 +181,7 @@
         <categories>Core</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Explains that the Setup fiscal year and the Open Impact fiscal year start in different months.</shortDescription>
+        <shortDescription>Health Check detail: Setup and Open Impact fiscal year start months differ</shortDescription>
         <value
     >Open Impact starts its fiscal year in {0}, and the fiscal year in Setup starts in {1}. Every year based total on a donor is measured from the first, and the packaged retention reports (LYBUNT, SYBUNT, new versus retained, conversion) are measured from the second, so the two disagree and nothing else in the app will say so. Set both to the same month, then recalculate rollups.</value>
     </labels>
@@ -414,7 +414,7 @@
         <categories>Core</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Explains that somebody holds the Override Receipt Lock permission, and names who.</shortDescription>
+        <shortDescription>Health Check detail: who holds the Override Receipt Lock permission</shortDescription>
         <value
     >The Override Receipt Lock permission lets a person change or delete a gift that already carries a receipt number. Open Impact grants it to nobody: it is meant to be assigned in Setup for one correction and taken away again. It is held by {0}. If nobody is correcting a receipted gift right now, remove it in Setup, Custom Permissions. Every change made with it is in the Error Log.</value>
     </labels>
@@ -431,7 +431,7 @@
         <categories>Core</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Ends the list of people holding a permission when there are more than the finding names.</shortDescription>
+        <shortDescription>Health Check: ends a list of permission holders longer than it shows</shortDescription>
         <value>and {0} others</value>
     </labels>
     <labels>
@@ -439,7 +439,7 @@
         <categories>Core</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Title of the finding shown when anyone holds the Override Receipt Lock permission.</shortDescription>
+        <shortDescription>Health Check title: someone holds the Override Receipt Lock permission</shortDescription>
         <value>Someone can override the receipt lock</value>
     </labels>
     <labels>
