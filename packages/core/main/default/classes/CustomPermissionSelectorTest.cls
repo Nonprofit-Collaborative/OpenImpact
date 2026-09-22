@@ -43,7 +43,7 @@ private class CustomPermissionSelectorTest {
     @IsTest
     static void theReceiptLockOverrideIsGrantedToNobodyByThePackage() {
         List<CustomPermission> shipped = [
-            SELECT Id, NamespaceName
+            SELECT Id, NamespacePrefix
             FROM CustomPermission
             WHERE DeveloperName = :HealthCheckService.OVERRIDE_RECEIPT_LOCK
         ];

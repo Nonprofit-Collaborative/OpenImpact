@@ -14,7 +14,7 @@
  * org where Giving is not installed the first query simply returns no rows and the answer is
  * "nobody", which is the truth in that org. The name is deliberately not namespace qualified:
  * a packaged custom permission keeps its bare `DeveloperName` and carries the namespace in
- * `NamespaceName`, so qualifying it would find nothing once the namespace is registered.
+ * `NamespacePrefix`, so qualifying it would find nothing once the namespace is registered.
  *
  * All SOQL for the question lives here (plan Section 7.1) and runs in user mode, like every
  * other Health Check query.
