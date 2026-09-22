@@ -43,11 +43,8 @@
     <field>Account.Rollups_Last_Calculated__c</field>
   </columns>
   <description>
-    Everyone who has given this fiscal year, split three ways. The first grouping is the fiscal
-    year of their first gift: the current fiscal year means a new donor. The second grouping
-    says whether they also gave last fiscal year, counted as gifts rather than added as money:
-    an earlier first gift plus a gift last year is a retained donor, and an earlier first gift
-    with nothing last year is a reactivated donor. Record count is donors, not gifts.
+    This fiscal year's donors, split into new, retained (also gave last year) and reactivated (gave
+    before, not last year). Record count is donors, not gifts. See the Retention reports page.
   </description>
   <filter>
     <criteriaItems>

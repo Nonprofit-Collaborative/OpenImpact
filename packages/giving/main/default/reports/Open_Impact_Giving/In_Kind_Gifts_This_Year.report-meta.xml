@@ -23,9 +23,8 @@
     <field>Gift__c.Status__c</field>
   </columns>
   <description>
-    Gifts of goods and services received this year, with what was given and what it was worth.
-    Fair market value is the organization's own figure for its reporting: it is never printed on a
-    donor's receipt, and it is never added into a giving total.
+    Goods and services received this year, with their fair market value. That value is the
+    organization's own reporting figure: never printed on a receipt, never added to giving totals.
   </description>
   <filter>
     <criteriaItems>

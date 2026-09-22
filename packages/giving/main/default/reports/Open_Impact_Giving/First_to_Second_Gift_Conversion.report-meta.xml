@@ -39,11 +39,9 @@
     <field>Account.Rollups_Last_Calculated__c</field>
   </columns>
   <description>
-    Of the donors whose first gift fell in one of the two completed fiscal years, how many have
-    given a second gift since. The cohort is the fiscal year of the first gift; the second
-    grouping is whether the donor's gift count has ever passed one. The window is from the first
-    gift until today, which is between twelve and twenty four months for the newer cohort and
-    longer for the older one, so read the two cohorts as two numbers rather than one trend.
+    Donors whose first gift fell in one of the last two completed fiscal years, and whether they
+    have given again. Read the two cohorts separately. See the Retention reports page of the admin
+    guide.
   </description>
   <filter>
     <criteriaItems>

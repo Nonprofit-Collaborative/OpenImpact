@@ -27,10 +27,9 @@
     <field>Account.Rollups_Last_Calculated__c</field>
   </columns>
   <description>
-    LYBUNT: gave last fiscal year, has not given this fiscal year. A donor is on this list when
-    their most recent gift of more than zero, in status Received, Refunded or Written off, falls
-    in the last fiscal year. A gift refunded afterwards still counts as a gift, and a refund
-    itself never counts as one, because it is a negative amount.
+    LYBUNT: gave last fiscal year, not this one. Counts the most recent gift over
+    zero (Received, Refunded or Written off); a refund itself is never a gift. See the Retention
+    reports page.
   </description>
   <filter>
     <criteriaItems>
