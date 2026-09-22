@@ -752,6 +752,7 @@ Brandon directed the build session to run features from several iterations at on
 - Text-to-give.
 - Multi-org or affiliate roll-up reporting.
 - An "AI assistant" inside the app (the clean model is the AI strategy for v1).
+- A community Households edition for organizations that are not nonprofits (direction set by Brandon, 2026-09-22; not before Core's first package version). Nonprofits stay on one Core install with no extra step; Core is the primary product and is never split into a base package it depends on. The community edition is a separate unlocked package, installed from a link rather than listed as the nonprofit product, built by CI from Core's household source (a manifest names the shared files; nothing is maintained twice), with its own neutral labels. The two need different namespaces, so the community namespace is chosen when Core's is (D-01). One-way conversion from community to Core is a hidden or manual Setup Assistant step in Core that copies household data into Core's model, written with instructions when the edition exists; no conversion the other way.
 
 ### 11.4 Decisions the builder must escalate rather than make
 
