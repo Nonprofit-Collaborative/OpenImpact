@@ -12,6 +12,10 @@
       </layoutItems>
       <layoutItems>
         <behavior>Edit</behavior>
+        <field>ParentId</field>
+      </layoutItems>
+      <layoutItems>
+        <behavior>Edit</behavior>
         <field>Primary_Contact__c</field>
       </layoutItems>
     </layoutColumns>

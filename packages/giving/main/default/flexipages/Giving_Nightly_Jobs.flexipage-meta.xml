@@ -10,7 +10,6 @@
         <identifier>givingNightlyJobsPageComponent</identifier>
       </componentInstance>
     </itemInstances>
-    <mode>Replace</mode>
     <name>main</name>
     <type>Region</type>
   </flexiPageRegions>

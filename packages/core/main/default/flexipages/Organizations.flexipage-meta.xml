@@ -26,7 +26,6 @@
         <identifier>force_listViewManagerOrganizations</identifier>
       </componentInstance>
     </itemInstances>
-    <mode>Replace</mode>
     <name>main</name>
     <type>Region</type>
   </flexiPageRegions>

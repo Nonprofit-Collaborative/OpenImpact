@@ -5,6 +5,6 @@
     Settings, the Error Log, and assigning roles. Most organizations need one or two.
   </description>
   <hasActivationRequired>false</hasActivationRequired>
-  <label>Nonprofit Admin</label>
+  <label>Nonprofit Admin Group</label>
   <permissionSets>Nonprofit_Admin</permissionSets>
 </PermissionSetGroup>

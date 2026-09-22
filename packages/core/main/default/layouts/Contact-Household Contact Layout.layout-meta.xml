@@ -7,16 +7,8 @@
     <label>Person</label>
     <layoutColumns>
       <layoutItems>
-        <behavior>Edit</behavior>
-        <field>Salutation</field>
-      </layoutItems>
-      <layoutItems>
-        <behavior>Edit</behavior>
-        <field>FirstName</field>
-      </layoutItems>
-      <layoutItems>
         <behavior>Required</behavior>
-        <field>LastName</field>
+        <field>Name</field>
       </layoutItems>
     </layoutColumns>
     <layoutColumns>

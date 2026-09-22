@@ -12,7 +12,6 @@
         <identifier>commitmentHighlightsPanel</identifier>
       </componentInstance>
     </itemInstances>
-    <mode>Replace</mode>
     <name>header</name>
     <type>Region</type>
   </flexiPageRegions>
@@ -29,7 +28,6 @@
         <identifier>commitmentDetailPanel</identifier>
       </componentInstance>
     </itemInstances>
-    <mode>Replace</mode>
     <name>main</name>
     <type>Region</type>
   </flexiPageRegions>
@@ -40,7 +38,6 @@
         <identifier>commitmentRelatedLists</identifier>
       </componentInstance>
     </itemInstances>
-    <mode>Replace</mode>
     <name>sidebar</name>
     <type>Region</type>
   </flexiPageRegions>

@@ -72,5 +72,8 @@
   </flexiPageRegions>
   <masterLabel>Household Contact Record Page</masterLabel>
   <sobjectType>Contact</sobjectType>
+  <template>
+    <name>flexipage:recordHomeTemplateDesktop</name>
+  </template>
   <type>RecordPage</type>
 </FlexiPage>

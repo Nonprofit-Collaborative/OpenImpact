@@ -1074,19 +1074,4 @@
     <tab>Relationship__c</tab>
     <visibility>Visible</visibility>
   </tabSettings>
-  <layoutAssignments>
-    <layout>Account-Household Layout</layout>
-    <recordType>Account.Household</recordType>
-  </layoutAssignments>
-  <layoutAssignments>
-    <layout>Account-Organization Layout</layout>
-    <recordType>Account.Organization</recordType>
-  </layoutAssignments>
-  <layoutAssignments>
-    <layout>Contact-Household Contact Layout</layout>
-    <recordType>Contact.Household_Contact</recordType>
-  </layoutAssignments>
-  <layoutAssignments>
-    <layout>Household_Member__c-Household Member Layout</layout>
-  </layoutAssignments>
 </PermissionSet>
