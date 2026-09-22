@@ -179,7 +179,32 @@ done
 # Splitting by directory isolates that file's stage from the other three, which are small on
 # any count (customMetadata's ~60 files are ~60 components, one per record; static resources
 # and custom permissions are a handful each).
-deploy_stage "Core (data model, custom metadata)" "packages/core/main/default/customMetadata" || exit $?
+# Experiment (2026-09-22): the custom metadata records, deployed as one batch of 59, are the
+# only Core stage that fails, with the same UNKNOWN_EXCEPTION every time, while all five
+# custom metadata types themselves deploy clean in the stages above. Deploy the records one
+# type at a time instead, and keep going past a failure, so that one run says which type
+# (if any) the platform rejects on its own, or shows that only the combined batch fails.
+cmdt_failed=0
+for cmdt_type in Automation_Registry Import_Template_Default Naming_Pattern Relationship_Type Setting_Definition; do
+  cmdt_args=()
+  for f in packages/core/main/default/customMetadata/"${cmdt_type}".*.md-meta.xml; do
+    [[ -f "$f" ]] && cmdt_args+=(--source-dir "$f")
+  done
+  echo ""
+  echo "== Deploying Core (custom metadata records, ${cmdt_type}, $(( ${#cmdt_args[@]} / 2 )) records) to ${ALIAS} =="
+  if sf project deploy start "${cmdt_args[@]}" --wait 30 --ignore-conflicts --target-org "$ALIAS"; then
+    echo "== RESULT ${cmdt_type}: Succeeded =="
+  else
+    echo "== RESULT ${cmdt_type}: Failed =="
+    sf project deploy report --use-most-recent --target-org "$ALIAS" --json || true
+    cmdt_failed=1
+  fi
+  sleep 15
+done
+if [[ "$cmdt_failed" -ne 0 ]]; then
+  echo "At least one custom metadata type failed on its own; see the RESULT lines above."
+  exit 1
+fi
 deploy_stage "Core (data model, labels)" "packages/core/main/default/labels" || exit $?
 deploy_stage "Core (data model, static resources and custom permissions)" \
   "packages/core/main/default/staticresources" \
