@@ -1,6 +1,6 @@
 /**
- * Account trigger handler, registered as "Keep the address a household or organization
- * was created with" in the automation registry and dispatched by TriggerDispatcher on the
+ * Account trigger handler, registered as "Keep the address an account started with" in
+ * the automation registry and dispatched by TriggerDispatcher on the
  * one Account trigger.
  *
  * A household or organization created with its billing address already filled in, by

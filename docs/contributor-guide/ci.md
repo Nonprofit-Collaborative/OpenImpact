@@ -62,7 +62,9 @@ Salesforce org is needed for this job. Steps:
 8. `scripts/ci/check-custom-metadata.py`, failing the build if a shipped custom metadata
    record names a field its type does not define. Such a record refuses the whole
    deployment, and nothing else in the suite sees it: the offline Apex compiler does not
-   read custom metadata records.
+   read custom metadata records. It also fails a record that uses the `xsd:` prefix
+   without declaring `xmlns:xsd`, a label over 40 characters, and a missing label (see
+   "Resolved 2026-09-22" below).
 9. `scripts/ci/check-symlinks.sh`, failing the build if a tracked file is a symlink
    pointing outside the repository or at an absolute path. Such a link resolves on the
    machine that committed it and dangles everywhere else, so every local check passes and
@@ -277,6 +279,18 @@ does not call it yet, and Giving depends on Core.
 
 An `UNKNOWN_EXCEPTION` with zero component errors is a Salesforce side failure rather than
 something wrong with a component. Quote the ErrorId to Salesforce support.
+
+**Resolved 2026-09-22: the cause was in our files, not the platform.** 146 of the custom
+metadata records wrote `xsi:type="xsd:string"` (and `xsd:boolean`, `xsd:double`) without
+declaring the `xsd` prefix on the root element. The metadata API rejects such a record while
+parsing, before any component is examined, and reports it as `UNKNOWN_EXCEPTION` with zero
+component errors. Deploying each custom metadata type on its own with the prefix declared
+(run 170 on `experiment/cmdt-by-type`) got past "Preparing" for the first time and reported
+ordinary component errors instead: 16 labels over the 40 character limit and one label given
+as an attribute. All are fixed, and `check-custom-metadata.py` now fails on each of the three
+before a deploy is attempted. The history below is kept because the size theory it describes
+was wrong, and the way it was wrong is worth remembering: a failure with no component errors
+can still be a defect in a component, when the defect stops the file being read at all.
 
 **It is not transient here, whatever the general advice says.** This failure came back four
 times across four separate runs before 2026-09-09, always on the Core stage, always with zero

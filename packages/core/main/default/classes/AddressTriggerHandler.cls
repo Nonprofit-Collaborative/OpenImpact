@@ -1,6 +1,6 @@
 /**
- * Address__c trigger handler, registered as "Copy the default address to the standard
- * address fields" in the automation registry and dispatched by TriggerDispatcher, so an
+ * Address__c trigger handler, registered as "Copy default address to standard fields"
+ * in the automation registry and dispatched by TriggerDispatcher, so an
  * administrator can switch it off from Nonprofit Settings without touching Setup.
  *
  * After insert and after update it copies the default address into the standard address
