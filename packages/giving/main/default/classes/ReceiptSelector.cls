@@ -158,33 +158,38 @@ public with sharing class ReceiptSelector {
      * The donors a year end run covers: every household or organization account that received at
      * least one qualifying gift in the statement year. The batch iterates accounts rather than
      * gifts so that one donor produces one document.
+     *
+     * The donor ids are collected first and the locator reads them back, because SOQL does not
+     * allow a semi join inside an `OR`, and a gift can name its donor through either the household
+     * or the donor account.
      */
     public static Database.QueryLocator donorLocator(Integer statementYear) {
         Date firstDay = Date.newInstance(statementYear, 1, 1);
         Date firstDayAfter = Date.newInstance(statementYear + 1, 1, 1);
+        Set<Id> donorIds = new Set<Id>();
+        for (Gift__c gift : [
+            SELECT Household__c, Donor_Account__c
+            FROM Gift__c
+            WHERE
+                Gift_Date__c >= :firstDay
+                AND Gift_Date__c < :firstDayAfter
+                AND Status__c = :STATUS_RECEIVED
+                AND (Household__c != NULL
+                OR Donor_Account__c != NULL)
+            WITH SYSTEM_MODE
+        ]) {
+            if (gift.Household__c != null) {
+                donorIds.add(gift.Household__c);
+            }
+            if (gift.Donor_Account__c != null) {
+                donorIds.add(gift.Donor_Account__c);
+            }
+        }
         return Database.getQueryLocator(
             [
                 SELECT Id, Name
                 FROM Account
-                WHERE
-                    Id IN (
-                        SELECT Household__c
-                        FROM Gift__c
-                        WHERE
-                            Gift_Date__c >= :firstDay
-                            AND Gift_Date__c < :firstDayAfter
-                            AND Status__c = :STATUS_RECEIVED
-                            AND Household__c != NULL
-                    )
-                    OR Id IN (
-                        SELECT Donor_Account__c
-                        FROM Gift__c
-                        WHERE
-                            Gift_Date__c >= :firstDay
-                            AND Gift_Date__c < :firstDayAfter
-                            AND Status__c = :STATUS_RECEIVED
-                            AND Donor_Account__c != NULL
-                    )
+                WHERE Id IN :donorIds
                 WITH SYSTEM_MODE
                 ORDER BY Id
             ]

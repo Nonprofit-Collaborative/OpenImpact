@@ -5,7 +5,7 @@
     <developerName>BucketField_Gave_Last_Year</developerName>
     <masterLabel>Gave last fiscal year</masterLabel>
     <nullTreatment>z</nullTreatment>
-    <sourceColumnName>Account.Gifts_Last_Year__c</sourceColumnName>
+    <sourceColumnName>Account$Gifts_Last_Year__c</sourceColumnName>
     <values>
       <sourceValues>
         <to>0.5</to>
@@ -20,27 +20,27 @@
     </values>
   </buckets>
   <columns>
-    <field>Account.Name</field>
+    <field>Account$Name</field>
   </columns>
   <columns>
-    <field>Account.First_Gift_Date__c</field>
+    <field>Account$First_Gift_Date__c</field>
   </columns>
   <columns>
-    <field>Account.Gifts_Last_Year__c</field>
-  </columns>
-  <columns>
-    <aggregateTypes>Sum</aggregateTypes>
-    <field>Account.Giving_This_Year__c</field>
+    <field>Account$Gifts_Last_Year__c</field>
   </columns>
   <columns>
     <aggregateTypes>Sum</aggregateTypes>
-    <field>Account.Giving_Last_Year__c</field>
+    <field>Account$Giving_This_Year__c</field>
   </columns>
   <columns>
-    <field>Account.Last_Gift_Date__c</field>
+    <aggregateTypes>Sum</aggregateTypes>
+    <field>Account$Giving_Last_Year__c</field>
   </columns>
   <columns>
-    <field>Account.Rollups_Last_Calculated__c</field>
+    <field>Account$Last_Gift_Date__c</field>
+  </columns>
+  <columns>
+    <field>Account$Rollups_Last_Calculated__c</field>
   </columns>
   <description>
     This fiscal year's donors, split into new, retained (also gave last year) and reactivated (gave
@@ -48,7 +48,7 @@
   </description>
   <filter>
     <criteriaItems>
-      <column>Account.Last_Gift_Date__c</column>
+      <column>Account$Last_Gift_Date__c</column>
       <operator>equals</operator>
       <value>THIS_FISCAL_YEAR</value>
     </criteriaItems>
@@ -56,7 +56,7 @@
   <format>Summary</format>
   <groupingsDown>
     <dateGranularity>FiscalYear</dateGranularity>
-    <field>Account.First_Gift_Date__c</field>
+    <field>Account$First_Gift_Date__c</field>
     <sortOrder>Desc</sortOrder>
   </groupingsDown>
   <groupingsDown>
@@ -64,7 +64,7 @@
     <sortOrder>Asc</sortOrder>
   </groupingsDown>
   <name>New Versus Retained Donors</name>
-  <reportType>Donors_with_Giving</reportType>
+  <reportType>Donors_with_Giving__c</reportType>
   <scope>organization</scope>
   <showDetails>false</showDetails>
 </Report>
