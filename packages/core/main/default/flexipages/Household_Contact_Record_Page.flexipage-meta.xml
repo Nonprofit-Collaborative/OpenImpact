@@ -63,6 +63,10 @@
     </itemInstances>
     <itemInstances>
       <componentInstance>
+        <componentInstanceProperties>
+          <name>context</name>
+          <value>RECORD</value>
+        </componentInstanceProperties>
         <componentName>forceChatter:publisher</componentName>
         <identifier>forceChatter_publisher</identifier>
       </componentInstance>

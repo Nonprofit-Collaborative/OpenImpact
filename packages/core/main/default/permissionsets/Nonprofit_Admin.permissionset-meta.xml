@@ -689,11 +689,6 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
-    <field>Household_Member__c.Household__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>true</editable>
     <field>Household_Member__c.Is_Primary__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -1252,6 +1247,10 @@
   <userPermissions>
     <enabled>true</enabled>
     <name>ViewAllUsers</name>
+  </userPermissions>
+  <userPermissions>
+    <enabled>true</enabled>
+    <name>ViewRoles</name>
   </userPermissions>
   <userPermissions>
     <enabled>true</enabled>
