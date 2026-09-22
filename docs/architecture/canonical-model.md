@@ -842,21 +842,6 @@ corresponding records by the post-install script on first install and on "Restor
 defaults." Upgrades update the shipped defaults without touching the admin's records.
 This is how upgrade safety (Principle 6) is achieved (Decision D-06).
 
-### Naming Pattern
-
-`Naming_Pattern__mdt`: the household naming and greeting patterns the package ships, so
-that a fresh org has working names on install and so that "Restore defaults" has
-something to restore to.
-
-| Field | Type | Definition |
-|---|---|---|
-| DeveloperName | text | The stable identifier of the shipped pattern. |
-| Label | text | The name shown to the admin when choosing a pattern. |
-| Description | long text | What this pattern produces, with an example. |
-| Default Enabled | boolean | Whether this pattern is the one selected on a fresh install. |
-| Pattern Type | picklist(Household Name, Formal Greeting, Informal Greeting) | Which of the three computed values this pattern produces. |
-| Pattern | text | The pattern string itself, using the tokens the naming service understands. |
-
 ### Setting Definition
 
 `Setting_Definition__mdt`: the catalog of everything the Nonprofit Settings console shows,
@@ -4031,3 +4016,4 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.4 | 2026-09-15 | C-01 defect, found by a Sales Cloud readiness audit. No object or field added. In junction mode a person's household is a `Household_Member__c` row, not the account their contact points at, but `ContactTriggerHandler` read the household from `Contact.AccountId` in every context, which in junction mode is an employer or nothing. So renaming, deleting and restoring a person stored as a contact quietly did nothing to their household: the count stayed stale, the dead person stayed in the name and both greetings, the membership row survived naming nobody because `Contact__c` empties itself on delete, and undelete never put them back. `AccountTriggerHandler` had always handled the account half of this correctly (see the 2026-09-09 C-01 person account row above); only the contact half was missing. `ContactTrigger` now declares before delete, and the handler mirrors the account one: memberships are removed in before delete while they still name the person, the departing households are carried to after delete, after undelete restores them, and a rename asks `householdIdsForPeople` which households to rewrite. Contact mode is unchanged by construction, since each of those calls answers empty outside junction mode. R-M4 and R-H11 now hold for both representations of a person, which matters because a Platform-only org (ADR-0013) can only run junction mode with contacts, and a mixed org holds both. |
 | v0.4 | 2026-09-15 | Deploy stability: `packages/core/main/default/labels/CustomLabels.labels-meta.xml` (391 labels, 141 KB) split into per-feature label files, following the pattern already used for Address, Import, CoreRollups, Relationship, SeasonalAddress and Affiliation. No label was renamed, so no Apex or LWC reference changed. Groups of 8 or more labels, grouped by the second underscore-separated segment of `fullName`, became their own file: Access (33), AutomationControl (16), HealthCheck (73), HouseholdMembersPanel (13), HouseholdMerge (39), HouseholdNamingSettings (18), Households (19), HubHome (11), SampleData (31), Settings (23), SetupAssistant (84, after the four removals below). Groups under 8 (Automation, CoexistenceMode, ErrorLog, ErrorLogTile, HouseholdNaming, SettingsSearch, 27 labels total) were merged into `CoreShared.labels-meta.xml`. Four unreferenced Setup Assistant labels were deleted in the same pass, each re-verified with a grep of `packages/` for `.cls`, `.js` and `.html` consumers before removal: `Core_SetupAssistant_AllDoneMessage`, `Core_SetupAssistant_MarkDoneButton`, `Core_SetupAssistant_MarkNotDoneButton`, `Core_SetupAssistant_OpenButton`. Two label values were reworded without renaming the label: `Core_HouseholdNamingSettings_Recompute` from "Recompute all households" to "Update all household names", and `Core_HouseholdNamingSettings_RecomputeStarted` from "Recompute started. Households are being brought up to date in the background." to "Updating household names in the background." Verified: the 387 labels written across the new and shared files plus the 4 deleted equal the original 391, no label name is duplicated across files, and all 486 distinct `System.Label.X` and `@salesforce/label/c.X` references under `packages/core/` resolve to exactly one file. |
 | v0.5 | 2026-09-15 | C-25: added the email attributes `Personal_Email__c`, `Work_Email__c`, `Alternate_Email__c` and `Preferred_Email__c` to the person attributes (Section 7), on both Contact and Account, with rule R-C6. When Preferred Email is set, the standard email is copied from the address it names on every save; when it is empty nothing is copied; when the address it names is empty the save is refused rather than the standard email being blanked. |
+| v0.5 | 2026-09-22 | Removed the Naming Pattern custom metadata type (its four fields and six shipped records) before the first package version, by the owner's decision. Nothing read it: household naming reads the three pattern fields on Nonprofit Settings. A custom metadata type is effectively permanent once packaged, so it goes now rather than never. |
