@@ -1,39 +1,60 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata">
   <flexiPageRegions>
-    <componentInstances>
-      <componentName>force:highlightsPanel</componentName>
-      <componentInstanceProperties>
-        <name>collapsed</name>
-        <value>false</value>
-      </componentInstanceProperties>
-    </componentInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentInstanceProperties>
+          <name>collapsed</name>
+          <value>false</value>
+        </componentInstanceProperties>
+        <componentName>force:highlightsPanel</componentName>
+        <identifier>force_highlightsPanel</identifier>
+      </componentInstance>
+    </itemInstances>
     <name>header</name>
     <type>Region</type>
   </flexiPageRegions>
   <flexiPageRegions>
-    <componentInstances>
-      <componentName>affiliationPanel</componentName>
-    </componentInstances>
-    <componentInstances>
-      <componentName>addressPanel</componentName>
-    </componentInstances>
-    <componentInstances>
-      <componentName>force:detailPanel</componentName>
-    </componentInstances>
-    <componentInstances>
-      <componentName>force:relatedListContainer</componentName>
-    </componentInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>affiliationPanel</componentName>
+        <identifier>affiliationPanel</identifier>
+      </componentInstance>
+    </itemInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>addressPanel</componentName>
+        <identifier>addressPanel</identifier>
+      </componentInstance>
+    </itemInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>force:detailPanel</componentName>
+        <identifier>force_detailPanel</identifier>
+      </componentInstance>
+    </itemInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>force:relatedListContainer</componentName>
+        <identifier>force_relatedListContainer</identifier>
+      </componentInstance>
+    </itemInstances>
     <name>main</name>
     <type>Region</type>
   </flexiPageRegions>
   <flexiPageRegions>
-    <componentInstances>
-      <componentName>runtime_sales_activities:activityPanel</componentName>
-    </componentInstances>
-    <componentInstances>
-      <componentName>forceChatter:publisher</componentName>
-    </componentInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>runtime_sales_activities:activityPanel</componentName>
+        <identifier>runtime_sales_activities_activityPanel</identifier>
+      </componentInstance>
+    </itemInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>forceChatter:publisher</componentName>
+        <identifier>forceChatter_publisher</identifier>
+      </componentInstance>
+    </itemInstances>
     <name>sidebar</name>
     <type>Region</type>
   </flexiPageRegions>

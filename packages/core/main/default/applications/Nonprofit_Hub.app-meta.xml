@@ -5,54 +5,54 @@
     <comment>Household</comment>
     <content>Household_Record_Page</content>
     <formFactor>Large</formFactor>
+    <type>Flexipage</type>
     <pageOrSobjectType>Account</pageOrSobjectType>
     <recordType>Account.Household</recordType>
-    <type>Flexipage</type>
   </actionOverrides>
   <actionOverrides>
     <actionName>View</actionName>
     <comment>Household</comment>
     <content>Household_Record_Page</content>
     <formFactor>Small</formFactor>
+    <type>Flexipage</type>
     <pageOrSobjectType>Account</pageOrSobjectType>
     <recordType>Account.Household</recordType>
-    <type>Flexipage</type>
   </actionOverrides>
   <actionOverrides>
     <actionName>View</actionName>
     <comment>Organization</comment>
     <content>Organization_Record_Page</content>
     <formFactor>Large</formFactor>
+    <type>Flexipage</type>
     <pageOrSobjectType>Account</pageOrSobjectType>
     <recordType>Account.Organization</recordType>
-    <type>Flexipage</type>
   </actionOverrides>
   <actionOverrides>
     <actionName>View</actionName>
     <comment>Organization</comment>
     <content>Organization_Record_Page</content>
     <formFactor>Small</formFactor>
+    <type>Flexipage</type>
     <pageOrSobjectType>Account</pageOrSobjectType>
     <recordType>Account.Organization</recordType>
-    <type>Flexipage</type>
   </actionOverrides>
   <actionOverrides>
     <actionName>View</actionName>
     <comment>Household Contact</comment>
     <content>Household_Contact_Record_Page</content>
     <formFactor>Large</formFactor>
+    <type>Flexipage</type>
     <pageOrSobjectType>Contact</pageOrSobjectType>
     <recordType>Contact.Household_Contact</recordType>
-    <type>Flexipage</type>
   </actionOverrides>
   <actionOverrides>
     <actionName>View</actionName>
     <comment>Household Contact</comment>
     <content>Household_Contact_Record_Page</content>
     <formFactor>Small</formFactor>
+    <type>Flexipage</type>
     <pageOrSobjectType>Contact</pageOrSobjectType>
     <recordType>Contact.Household_Contact</recordType>
-    <type>Flexipage</type>
   </actionOverrides>
   <brand>
     <headerColor>#1B5E20</headerColor>

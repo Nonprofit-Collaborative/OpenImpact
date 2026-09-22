@@ -4,10 +4,12 @@
     The giving ladder, reached from the Giving section of Nonprofit Settings.
   </description>
   <flexiPageRegions>
-    <componentInstances>
-      <componentName>donorLevels</componentName>
-      <identifier>donorLevelsPageComponent</identifier>
-    </componentInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>donorLevels</componentName>
+        <identifier>donorLevelsPageComponent</identifier>
+      </componentInstance>
+    </itemInstances>
     <mode>Replace</mode>
     <name>main</name>
     <type>Region</type>

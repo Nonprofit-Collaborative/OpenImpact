@@ -5,40 +5,52 @@
     the tribute. Assign it once as the org default for Gift.
   </description>
   <flexiPageRegions>
-    <componentInstances>
-      <componentName>force:highlightsPanel</componentName>
-      <identifier>giftHighlightsPanel</identifier>
-    </componentInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>force:highlightsPanel</componentName>
+        <identifier>giftHighlightsPanel</identifier>
+      </componentInstance>
+    </itemInstances>
     <mode>Replace</mode>
     <name>header</name>
     <type>Region</type>
   </flexiPageRegions>
   <flexiPageRegions>
-    <componentInstances>
-      <componentName>force:detailPanel</componentName>
-      <identifier>giftDetailPanel</identifier>
-    </componentInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>force:detailPanel</componentName>
+        <identifier>giftDetailPanel</identifier>
+      </componentInstance>
+    </itemInstances>
     <mode>Replace</mode>
     <name>main</name>
     <type>Region</type>
   </flexiPageRegions>
   <flexiPageRegions>
-    <componentInstances>
-      <componentName>receiptActions</componentName>
-      <identifier>giftReceiptActionsPanel</identifier>
-    </componentInstances>
-    <componentInstances>
-      <componentName>giftSoftCredits</componentName>
-      <identifier>giftSoftCreditsPanel</identifier>
-    </componentInstances>
-    <componentInstances>
-      <componentName>tributeNotification</componentName>
-      <identifier>giftTributePanel</identifier>
-    </componentInstances>
-    <componentInstances>
-      <componentName>force:relatedListContainer</componentName>
-      <identifier>giftRelatedLists</identifier>
-    </componentInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>receiptActions</componentName>
+        <identifier>giftReceiptActionsPanel</identifier>
+      </componentInstance>
+    </itemInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>giftSoftCredits</componentName>
+        <identifier>giftSoftCreditsPanel</identifier>
+      </componentInstance>
+    </itemInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>tributeNotification</componentName>
+        <identifier>giftTributePanel</identifier>
+      </componentInstance>
+    </itemInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>force:relatedListContainer</componentName>
+        <identifier>giftRelatedLists</identifier>
+      </componentInstance>
+    </itemInstances>
     <mode>Replace</mode>
     <name>sidebar</name>
     <type>Region</type>

@@ -5,32 +5,32 @@
     <comment>Gift</comment>
     <content>Gift_Record_Page</content>
     <formFactor>Large</formFactor>
-    <pageOrSobjectType>Gift__c</pageOrSobjectType>
     <type>Flexipage</type>
+    <pageOrSobjectType>Gift__c</pageOrSobjectType>
   </actionOverrides>
   <actionOverrides>
     <actionName>View</actionName>
     <comment>Gift</comment>
     <content>Gift_Record_Page</content>
     <formFactor>Small</formFactor>
-    <pageOrSobjectType>Gift__c</pageOrSobjectType>
     <type>Flexipage</type>
+    <pageOrSobjectType>Gift__c</pageOrSobjectType>
   </actionOverrides>
   <actionOverrides>
     <actionName>View</actionName>
     <comment>Commitment</comment>
     <content>Commitment_Record_Page</content>
     <formFactor>Large</formFactor>
-    <pageOrSobjectType>Commitment__c</pageOrSobjectType>
     <type>Flexipage</type>
+    <pageOrSobjectType>Commitment__c</pageOrSobjectType>
   </actionOverrides>
   <actionOverrides>
     <actionName>View</actionName>
     <comment>Commitment</comment>
     <content>Commitment_Record_Page</content>
     <formFactor>Small</formFactor>
-    <pageOrSobjectType>Commitment__c</pageOrSobjectType>
     <type>Flexipage</type>
+    <pageOrSobjectType>Commitment__c</pageOrSobjectType>
   </actionOverrides>
   <brand>
     <headerColor>#0B5CAB</headerColor>

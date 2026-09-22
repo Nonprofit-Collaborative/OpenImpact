@@ -2,10 +2,12 @@
 <FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata">
   <description>One screen for entering a gift that has just arrived.</description>
   <flexiPageRegions>
-    <componentInstances>
-      <componentName>quickGiftEntry</componentName>
-      <identifier>quickGiftEntryPageComponent</identifier>
-    </componentInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>quickGiftEntry</componentName>
+        <identifier>quickGiftEntryPageComponent</identifier>
+      </componentInstance>
+    </itemInstances>
     <mode>Replace</mode>
     <name>main</name>
     <type>Region</type>

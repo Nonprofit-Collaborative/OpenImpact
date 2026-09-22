@@ -5,10 +5,12 @@
     own because the settings console renders only components Core imports (ADR-0020).
   </description>
   <flexiPageRegions>
-    <componentInstances>
-      <componentName>receiptSettings</componentName>
-      <identifier>receiptSettingsPageComponent</identifier>
-    </componentInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>receiptSettings</componentName>
+        <identifier>receiptSettingsPageComponent</identifier>
+      </componentInstance>
+    </itemInstances>
     <mode>Replace</mode>
     <name>main</name>
     <type>Region</type>
