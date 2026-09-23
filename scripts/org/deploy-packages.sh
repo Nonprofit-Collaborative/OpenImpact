@@ -162,10 +162,45 @@ deploy_stage "the vendored rollup engine" "packages/core/vendor" || exit $?
 # failure, if there is one, names the exact object; if every object deploys clean individually,
 # that is itself the finding, that it takes several specific objects deployed together in one
 # request to trigger this.
-for dir in packages/core/main/default/objects/*/; do
-  [[ -d "$dir" ]] || continue
-  deploy_stage "Core (data model, $(basename "$dir"))" "$dir" || exit $?
-done
+#
+# ORDER. The stages run in dependency order, not alphabetical order. A lookup field can only
+# deploy once the object it points at exists, and one object per stage means nothing else in
+# the request can supply it. Alphabetical order put Account before Import_Batch__c, which
+# Account.Created_By_Import_Batch__c references, and a persistent org hid that for weeks
+# because Import_Batch__c was already there from an earlier run: the first fresh org failed on
+# it (2026-09-23). The order is computed from each field's referenceTo, not written down, so an
+# object added later cannot reintroduce the same failure. Ties stay alphabetical, so the order
+# is stable run to run. Standard objects are always in the org already, so a reference to one
+# never constrains the order.
+OBJECTS_DIR="packages/core/main/default/objects"
+if ! OBJECT_ORDER=$(python3 - "$OBJECTS_DIR" <<'PYEOF'
+import glob, os, re, sys
+base = sys.argv[1]
+objects = sorted(d for d in os.listdir(base) if os.path.isdir(os.path.join(base, d)))
+needs = {o: set() for o in objects}
+for o in objects:
+    for f in glob.glob(os.path.join(base, o, "fields", "*.field-meta.xml")):
+        for ref in re.findall(r"<referenceTo>([^<]+)</referenceTo>", open(f, encoding="utf-8").read()):
+            # A custom object (its API name carries "__") has to be deployed first; a standard one is already there.
+            if ref in needs and ref != o and "__" in ref:
+                needs[o].add(ref)
+done = []
+while len(done) < len(objects):
+    ready = [o for o in objects if o not in done and needs[o] <= set(done)]
+    if not ready:
+        left = [o for o in objects if o not in done]
+        sys.exit("These objects look up each other in a cycle, so no one-object-per-stage "
+                 "order can deploy them: " + ", ".join(left))
+    done.append(ready[0])
+print("\n".join(done))
+PYEOF
+); then
+  echo "Could not work out a deploy order for ${OBJECTS_DIR}." >&2
+  exit 1
+fi
+while IFS= read -r object; do
+  deploy_stage "Core (data model, ${object})" "${OBJECTS_DIR}/${object}/" || exit $?
+done <<< "$OBJECT_ORDER"
 # One stage per config directory, not one stage for all four. Every object deployed clean
 # individually (the finding the per-object split above was designed to produce), so the very
 # next stage in line, the four config directories deployed together, is what hit the platform
