@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Posted_Batch_Is_Final</fullName>
+  <active>true</active>
+  <description>
+    R-GB4: a posted batch is the record of a deposit whose gifts exist. Nothing on it changes
+    again, which also keeps its status from returning to Open and the batch from posting twice.
+  </description>
+  <errorConditionFormula>
+    AND(NOT(ISNEW()), ISPICKVAL(PRIORVALUE(Status__c), &quot;Posted&quot;))
+  </errorConditionFormula>
+  <errorMessage>
+    This batch has been posted and can no longer be changed. To correct one of its gifts, refund or write off that gift.
+  </errorMessage>
+</ValidationRule>

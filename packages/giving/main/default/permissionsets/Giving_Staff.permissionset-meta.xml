@@ -701,6 +701,41 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
+    <field>Gift_Batch__c.Control_Total__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Gift_Batch__c.Default_Appeal__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Gift_Batch__c.Default_Fund__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Gift_Batch__c.Default_Gift_Date__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Gift_Batch__c.Default_Payment_Method__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Gift_Batch__c.Description__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Gift_Batch__c.Status__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
     <field>Gift__c.Acknowledgment_Date__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -1152,6 +1187,15 @@
     <allowEdit>true</allowEdit>
     <allowRead>true</allowRead>
     <modifyAllRecords>false</modifyAllRecords>
+    <object>Gift_Batch__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>true</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>true</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
     <object>Gift__c</object>
     <viewAllRecords>false</viewAllRecords>
   </objectPermissions>
@@ -1279,6 +1323,10 @@
   </tabSettings>
   <tabSettings>
     <tab>Gift_Allocation__c</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Gift_Batch__c</tab>
     <visibility>Visible</visibility>
   </tabSettings>
   <tabSettings>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Default_Appeal__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <inlineHelpText>
+    The appeal every gift in this batch responded to, unless a line says otherwise.
+  </inlineHelpText>
+  <label>Default Appeal</label>
+  <referenceTo>Appeal__c</referenceTo>
+  <relationshipLabel>Gift Batches (Default Appeal)</relationshipLabel>
+  <relationshipName>Gift_Batches_Defaulted</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

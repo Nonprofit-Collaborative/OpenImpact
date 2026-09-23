@@ -32,6 +32,22 @@
     <type>Flexipage</type>
     <pageOrSobjectType>Commitment__c</pageOrSobjectType>
   </actionOverrides>
+  <actionOverrides>
+    <actionName>View</actionName>
+    <comment>Gift batch</comment>
+    <content>Gift_Batch_Record_Page</content>
+    <formFactor>Large</formFactor>
+    <type>Flexipage</type>
+    <pageOrSobjectType>Gift_Batch__c</pageOrSobjectType>
+  </actionOverrides>
+  <actionOverrides>
+    <actionName>View</actionName>
+    <comment>Gift batch</comment>
+    <content>Gift_Batch_Record_Page</content>
+    <formFactor>Small</formFactor>
+    <type>Flexipage</type>
+    <pageOrSobjectType>Gift_Batch__c</pageOrSobjectType>
+  </actionOverrides>
   <brand>
     <headerColor>#0B5CAB</headerColor>
     <shouldOverrideOrgTheme>false</shouldOverrideOrgTheme>
@@ -47,6 +63,7 @@
   <label>Fundraising</label>
   <navType>Standard</navType>
   <tabs>Quick_Gift_Entry</tabs>
+  <tabs>Gift_Batch__c</tabs>
   <tabs>Gift__c</tabs>
   <tabs>Fund__c</tabs>
   <tabs>Appeal__c</tabs>
