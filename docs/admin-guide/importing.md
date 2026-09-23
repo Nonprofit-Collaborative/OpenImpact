@@ -121,7 +121,26 @@ Select **Undo** again: it finishes the job without repeating what it already did
 1 to 365 days. The window is fixed when an import is committed, so changing the setting only
 affects imports you commit afterwards.
 
-## 6. Common mistakes
+## 6. Files that arrive every month
+
+Some files come back on a schedule: a monthly export from your payment processor, a
+quarterly list from a partner. Mark the mapping you use for one as recurring and the Hub
+keeps track of it for you.
+
+1. Open the **Import** tab and choose the mapping.
+2. Select **This file arrives regularly**, and give the source a name you will recognize,
+   for example "Monthly processor export". The name is required while the box is ticked.
+3. Select **Next** and import the file as usual.
+
+The Nonprofit Hub home page then lists every recurring source with the date it was last
+imported, oldest first, and **Never** for one you have not loaded yet. When a date is older
+than you expect, that file has not been loaded this month.
+
+Marking a mapping recurring changes nothing about how its files are imported. Open Impact
+never fetches or loads a file on its own: every file is still uploaded, dry run and
+committed by a person, because an import nobody watched is an import nobody checked.
+
+## 7. Common mistakes
 
 **"No column was matched to a name or an email."** The dry run refuses to run when the
 mapping has no way to identify a person or an organization. Usually the file's header row
@@ -161,5 +180,6 @@ For building a report on your imports.
 | One row of the file | Import Row | Row Number, Status, Error Message |
 | The records a row resolved to | Import Row | Household, Contact 1, Contact 2, Organization |
 | The import a record came from | Account, Contact | Created By Import Batch |
+| Which mappings are for a recurring file, and when each was last used | Import Template | Is Recurring, Source Name, Last Import Date |
 | When an import can be undone until | Import Batch | Undo Deadline |
 | What an import changed on existing records, and what an undo kept | Import Journal | Phase, Entry Count, Entries |
