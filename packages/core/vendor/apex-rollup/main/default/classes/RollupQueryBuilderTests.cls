@@ -34,7 +34,7 @@ private class RollupQueryBuilderTests {
       '='
     );
 
-    List<SObject> records = Database.query(queryString);
+    List<SObject> records = Database.query(queryString, System.AccessLevel.SYSTEM_MODE);
 
     System.assertEquals(true, queryString.contains('Id'));
     System.assertEquals(true, queryString.contains('Account__c'));
@@ -45,7 +45,7 @@ private class RollupQueryBuilderTests {
   static void shouldNotBlowUpIfPassedInFieldsAreNullOrBlank() {
     String queryString = RollupQueryBuilder.Current.getQuery(RollupCalcItem__c.SObjectType, new List<String>{ '', null, ' ', 'Id' }, 'Account__c', '=');
 
-    List<SObject> records = Database.query(queryString);
+    List<SObject> records = Database.query(queryString, System.AccessLevel.SYSTEM_MODE);
 
     System.assertEquals(true, queryString.contains('Id'));
     System.assertEquals(RollupCalcItem__c.SObjectType, records.getSObjectType());
@@ -168,7 +168,7 @@ private class RollupQueryBuilderTests {
 
     String actualQuery = RollupQueryBuilder.Current.getQuery(RollupCalcItem__c.SObjectType, new List<String>{ 'COUNT()' }, 'Id', '!=', whereClause);
 
-    System.assertEquals(0, Database.countQuery(actualQuery), 'Validation that query is syntactically valid');
+    System.assertEquals(0, Database.countQuery(actualQuery, System.AccessLevel.SYSTEM_MODE), 'Validation that query is syntactically valid');
     System.assertEquals(
       'SELECT count()\nFROM RollupCalcItem__c\nWHERE Id != :objIds\nAND ((StageName__c = \'one\' AND CloseDate__c = TODAY) OR (StageName__c = \'four\' AND CloseDate__c = TODAY))',
       actualQuery

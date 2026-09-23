@@ -143,7 +143,9 @@ private class RollupParentResetProcessorTests {
 
     processor.runCalc();
 
-    Account resetAccount = [SELECT AnnualRevenue, AccountNumber FROM Account WITH SYSTEM_MODE];
+    // Open Impact patch H: the host org may give the unparented contact above an account of its own
+    // (Open Impact Core creates a household for it), so the account under test is found by name.
+    Account resetAccount = [SELECT AnnualRevenue, AccountNumber FROM Account WHERE Name = 'Account With Null' WITH SYSTEM_MODE];
     System.assertEquals(0, resetAccount.AnnualRevenue);
     System.assertEquals('a', resetAccount.AccountNumber);
   }

@@ -104,7 +104,7 @@ than adding a package directory entry.
 
 ## Local patches
 
-Six patches are applied on top of the vendored commit, and the mapping to ADR-0015 is not one to
+Eight patches are applied on top of the vendored commit, and the mapping to ADR-0015 is not one to
 one. Patch A carries out ADR patches (a) and (b) together. Patch B is ADR patch (c). Patch C is not
 ADR patch (d): (d) is an adapter default and is deferred to `RollupAdapter` in C-14, where the
 correction below to what those two settings actually do applies to it. Patch D implements an ADR
@@ -112,7 +112,9 @@ consequence, which said to settle DataWeave in the first packaging build; it is 
 Patch E is a port the ADR did not anticipate: the ADR counted the forbidden standard object
 references in upstream's non-test source and missed the far larger count in upstream's tests.
 Patch F strips the metadata references that point at deliberately excluded files and closes the
-packaged visibility of the upstream configuration.
+packaged visibility of the upstream configuration. Patches G and H came out of the first run of the
+vendored tests in a real org: G names system mode on queries that relied on the pre-API 67.0
+default, and H makes one test independent of the host org's own automation.
 
 Every patch is a separate commit on `feature/c-13-vendor-apex-rollup`, so `git log` on any vendored
 file shows exactly what Open Impact changed.
@@ -285,8 +287,11 @@ test-support custom object, `RollupCalcItem__c`, stands in for all of them:
 | `Name`, `Id`, `OwnerId` | unchanged, standard on a custom object |
 | marketing or agreement object as activity parent | `RollupCalcItem__c`, which has activities enabled |
 
-Three field labels ("Amount", "Stage", "Name") were chosen to match the labels the group-by table
-formatting test asserts on, so that assertion is unchanged rather than rewritten.
+Two field labels ("Stage", "Name") were chosen to match the labels the group-by table formatting
+test asserts on. The third header in that assertion is not a label: `TableGroupingFormatter` heads
+the rolled-up column with the field's API name (`targetField.toString()`), so the expected header
+became `Amount__c`, a kind 3 substitution. An earlier version of this paragraph said the "Amount"
+label kept that assertion unchanged; the first org run showed it did not.
 
 Everything else about the tests is unchanged: same assertions, same shapes of data, same counts. No
 upstream test performed DML on the sales object, which is what made most of the substitution
@@ -318,6 +323,25 @@ the org rather than written in metadata. The file now derives four constants fro
 keeps them as four fixed constants rather than four `RollupTestUtils.createId` calls because several
 tests depend on two stubs written with the same literal being the same record. Any future upstream
 version of this file needs the same substitution.
+
+The first run of the whole Core suite in the persistent test org (2026-09-23) found the rest of what
+the first pass missed, all in strings or Id literals that no offline check reads:
+
+- kind 5 again, in `RollupEvaluatorTests`: 19 stub Ids (`0066g000000000000X`, `...Y`, `...Z`,
+  `...T`) carried the sales object's key prefix, one of them inside a where clause string. 13
+  methods failed with `Invalid id value for this SObject type`. The file now builds four constants,
+  `CALC_ITEM_ID_T` to `CALC_ITEM_ID_Z`, from `RollupCalcItem__c`'s key prefix plus the upstream
+  literal's remaining characters, so stubs that shared a literal still share an Id;
+- kind 4, in `RollupEvaluatorTests`: four where clauses evaluated against `RollupCalcItem__c` still
+  said `Account.Name`. On the vendored object that path does not resolve, and the evaluator falls
+  back to the child's own `Name`, so three of the four tests passed by coincidence of their test
+  data and the `NOT ... LIKE` one failed. All four now say `Account__r.Name`;
+- kind 3 applied where it should not have been, in `RollupTests`
+  `rollupGroupingOperationOccursIndependentlyOfDownstreamRollups`: the `Contact` rollup row's
+  `LookupFieldOnCalcItem__c` had been changed to `Account__c` along with the sales object row next
+  to it, and the engine refused the row as a misspelled config. The calc item on that row is
+  `Contact`, so it is `AccountId` again, as upstream has it;
+- the table-format header described above.
 
 Two further changes in this patch exist only to satisfy the offline checker, and change no behavior:
 every `sort` call in `RollupCalcItemSorterTests` now goes through a `List<SObject>` reference,
@@ -410,6 +434,68 @@ every file in `customMetadata/`. None of the five checks below catches the Flexi
 `sf project deploy start -d packages/core` or `sf package version create` is the only thing that
 does, and one of them must be run before the import is called finished.
 
+### Patch G: system mode named on queries that relied on the pre-API 67.0 default
+
+**Files:** `RollupState.cls`, `Rollup.cls`, `RollupEvaluatorTests.cls`, `RollupQueryBuilderTests.cls`,
+`RollupTests.cls`
+
+**What changed.** Engine: the three `RollupState__c` queries in `RollupState` and the one in
+`Rollup.getBatchRollupStatus` now carry `WITH SYSTEM_MODE`. Tests: the `validateQuery` syntax check
+in `RollupEvaluatorTests`, two `Database.query` calls and one `Database.countQuery` call on
+`RollupCalcItem__c` in `RollupQueryBuilderTests`, and the setup query in
+`RollupTests.shouldClearConcatDistinctOnDetachToNull` now pass `System.AccessLevel.SYSTEM_MODE` or
+`WITH SYSTEM_MODE`. Nothing else changed; no assertion moved.
+
+**Why.** From API version 67.0, which every vendored class is on, a SOQL query or DML statement that
+names no access level runs in user mode, enforcing the running user's object and field permissions.
+A field the user cannot read is reported as `No such column`. Upstream's code was written for the
+old system mode default, and upstream's own scratch org hides the difference because it deploys an
+`Admin.profile-meta.xml` granting field access to everything, including `RollupState__c`; that file
+is excluded here. The first org run failed ten `RollupStateTests` methods, three
+`RollupQueryBuilderTests` methods, two `RollupEvaluatorTests` methods and one `RollupTests` method
+this way.
+
+**Why system mode, not a permission set.** `RollupState__c` is the engine's own chained-job
+scratchpad. It is written with `System.AccessLevel.SYSTEM_MODE` on every DML statement already
+(patch C), and the reads are the other half of the same operation. The user who triggers a rollup
+is whoever saved a child record, a fundraiser as often as an administrator, so granting field
+access in `Nonprofit_Admin` would fix the test run and leave the engine failing for everyone else;
+granting it in every permission set would expose an internal object that no one should read.
+Naming system mode on the reads is what upstream's design intends and what its old default did.
+The test queries are syntax checks and setup reads on the test-support object and on `Account`,
+where the running user's field access is not what the test is about; upstream's own tests already
+query this way in most places (`RollupTestUtils`, the sibling tests in `RollupTests`), and these
+were the ones it had missed. `RollupCalcItem__c` stays out of every permission set (patch E).
+
+**Not changed.** `RollupRepository` issues every engine query on calculation items and parents
+with an explicit `System.AccessLevel` from `Rollup__mdt.SharingMode__c` (patch C), so it was never
+affected. The `AsyncApexJob` read beside the patched line in `Rollup.getBatchRollupStatus` still
+names no mode; it does not fail for an administrator and nothing in Open Impact calls it.
+
+**Re-applying on the next pull.** `grep -n "FROM RollupState__c" main/default/classes/*.cls`:
+every hit outside the tests must carry `WITH SYSTEM_MODE`. For the tests, run the suite in an org
+whose administrator has no field access to the vendored objects; any `No such column` on a vendored
+object or on a setup read is this patch again. If upstream has added the access level itself, take
+theirs and drop ours.
+
+### Patch H: a test independent of the host org's contact automation
+
+**Files:** `RollupParentResetProcessorTests.cls`
+
+**What changed.** `usesOverrideValueWhenApplicable` inserts an Account and an unparented Contact,
+runs the parent reset over every Account, then read "the" Account with a query that expects one
+row. It now reads the Account by the name it inserted.
+
+**Why.** Open Impact Core gives a contact saved with no household an account of its own
+(`Auto_Create_Households__c`, R-H1), so in any org carrying Core the insert creates two Accounts and
+the unfiltered query failed with `List has more than 1 row for assignment to SObject`. That is the
+host doing its job, not a defect in either side. The reset processor still runs over every Account,
+and the assertions on the Account under test are unchanged.
+
+**Re-applying on the next pull.** Re-add the `WHERE Name = 'Account With Null'` filter if upstream's
+test is unchanged. Any other vendored test that inserts an unparented Contact and then reads a
+single Account is exposed the same way.
+
 ### Tooling adjustments (not upstream behavior)
 
 - `packages/core/vendor/` is listed in `.prettierignore`. Upstream formats with its own Prettier
@@ -423,7 +509,9 @@ does, and one of them must be run before the import is called finished.
 
 ## Counts, and what the checks say
 
-Measured on `packages/core/vendor/apex-rollup/` after all six patches.
+Measured on `packages/core/vendor/apex-rollup/` after patches A to F. Patches G and H and the later
+patch E corrections changed a few dozen lines and added or removed no class and no test method;
+the line counts below were not re-measured.
 
 | | |
 | --- | --- |
@@ -522,7 +610,7 @@ compile time and an org without multicurrency never reaches them.
 The vendored tests have never been executed in any org by this project (the same admission
 as under "Counts"), and no Open Impact scratch org has ever been created from
 `platform-only.json`. Upstream's build proves that the types compile on that shape; it does
-not prove that Open Impact's copy of them, after patches A through F, deploys and passes.
+not prove that Open Impact's copy of them, after patches A through H, deploys and passes.
 Only `sf project deploy start -d packages/core` followed by the Core Apex suite against a
 scratch org created from `config/scratch-defs/platform-only.json` proves that.
 
@@ -570,7 +658,7 @@ a security advisory names it. To take a new version:
 3. Copy the new `rollup/core` and `rollup/tests` over `main/default/`, keeping the exclusion list
    above. Commit that as an unmodified import, exactly as this branch did, so the patches read as
    diffs.
-4. Re-apply patches A through F in order, one commit each. The "Re-applying on the next pull"
+4. Re-apply patches A through H in order, one commit each. The "Re-applying on the next pull"
    paragraph in each section says what to look for. Where upstream has made a patch unnecessary,
    drop it and say so here. Patch F is the one that is easy to forget and expensive to miss: strip
    the two Flexipage `actionOverrides` from `RollupState__c.object-meta.xml`, and restore

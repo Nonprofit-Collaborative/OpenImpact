@@ -273,6 +273,9 @@ public without sharing virtual class RollupState implements System.Queueable, Sy
     return System.enqueueJob(this);
   }
 
+  // Open Impact patch G, see packages/core/vendor/apex-rollup/VENDOR.md. The three RollupState__c
+  // queries in this class name their access level. From API 67.0 a query without one runs in user
+  // mode, and no user is granted field access to this internal object.
   @SuppressWarnings('PMD.ApexCRUDViolation')
   public void execute(System.QueueableContext qc) {
     System.attachFinalizer(this);
@@ -280,13 +283,14 @@ public without sharing virtual class RollupState implements System.Queueable, Sy
       SELECT Id
       FROM RollupState__c
       WHERE RelatedJobId__c = :this.jobIds
+      WITH SYSTEM_MODE
       LIMIT :Limits.getLimitDmlRows() - Limits.getDmlRows()
     ];
     Database.delete(matchingState, false, System.AccessLevel.SYSTEM_MODE);
   }
 
   public void execute(System.FinalizerContext fc) {
-    if ([SELECT COUNT() FROM RollupState__c WHERE Id = :this.jobIds LIMIT 1] > 0) {
+    if ([SELECT COUNT() FROM RollupState__c WHERE Id = :this.jobIds WITH SYSTEM_MODE LIMIT 1] > 0) {
       new RollupState().cleanup(this.jobIds);
     }
   }
@@ -321,6 +325,7 @@ public without sharing virtual class RollupState implements System.Queueable, Sy
         AND RelatedJobId__c = :jobId
         AND IsDeleted = FALSE
         AND Id != :this.statefulPreviouslyRetrievedStateIds
+      WITH SYSTEM_MODE
       ORDER BY CreatedDate DESC
     ];
     CACHED_STATES.put(cacheKey, states);
