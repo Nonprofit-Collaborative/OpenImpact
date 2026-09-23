@@ -3,7 +3,7 @@
   <fullName>Parent_Appeal_Not_Self</fullName>
   <active>true</active>
   <description>R-AP2: an appeal cannot be its own parent.</description>
-  <errorConditionFormula>Parent_Appeal__c = Id</errorConditionFormula>
+  <errorConditionFormula>AND(NOT(ISBLANK(Parent_Appeal__c)), Parent_Appeal__c = Id)</errorConditionFormula>
   <errorDisplayField>Parent_Appeal__c</errorDisplayField>
   <errorMessage>An appeal cannot be its own parent appeal.</errorMessage>
 </ValidationRule>

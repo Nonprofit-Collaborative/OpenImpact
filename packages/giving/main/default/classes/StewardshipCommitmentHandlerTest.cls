@@ -204,6 +204,9 @@ private class StewardshipCommitmentHandlerTest {
     static void switchingTheAutomationOffStopsPlansStarting() {
         activeTemplate();
         Contact person = donor();
+        // The switch is a row the post-install script writes from the registry; a test
+        // sees none of the org's rows, so it writes them the same way first.
+        AutomationControl.ensureDefaults();
         AutomationControl.setEnabled('Stewardship_Plan_Starter_Commitment', false);
         AutomationControl.clearCache();
 

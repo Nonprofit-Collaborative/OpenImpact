@@ -2588,7 +2588,8 @@ linked to its receipt, and on a per gift receipt to its gift, and to nothing els
 `Receipt__c`, so linking the donor Contact or Account would give the file to every role that
 can read a donor, including roles that hold no Giving permission set. The link is written with
 `ShareType` Viewer, which caps what it can grant at reading (R-RC1), and `Visibility`
-InternalUsers. The donor's route to the document is the Receipts related list on their record
+InternalUsers (AllUsers on an org with no external users, where the platform refuses
+InternalUsers and AllUsers reaches the same internal users). The donor's route to the document is the Receipts related list on their record
 (ADR-0034).
 
 **R-RC12 An in-kind gift's document states no money amount (G-18).** A receipt that puts a

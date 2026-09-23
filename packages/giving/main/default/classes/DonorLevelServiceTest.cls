@@ -110,9 +110,15 @@ private class DonorLevelServiceTest {
             'The ladder assignment reads is the active rungs only (R-DL8).'
         );
         Assert.areEqual(
-            [SELECT Id FROM Donor_Level__c WHERE Name = :FRIEND].Id,
+            null,
             DonorLevelService.levelFor(2000, ladder),
-            'With Sustainer retired, 2000 falls back to the highest active rung it reaches.'
+            'With Sustainer retired, 2000 is held by no rung: Friend stops at 1000 and Leadership ' +
+            'starts at 5000, and a band is never stretched to cover the gap (R-DL2).'
+        );
+        Assert.areEqual(
+            [SELECT Id FROM Donor_Level__c WHERE Name = :FRIEND].Id,
+            DonorLevelService.levelFor(750, ladder),
+            'The active rungs either side still hold their own bands.'
         );
     }
 

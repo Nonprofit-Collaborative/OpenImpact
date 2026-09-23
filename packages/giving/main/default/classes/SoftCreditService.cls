@@ -262,9 +262,15 @@ public with sharing class SoftCreditService {
             }
             seen.add(creditKey);
             if (credit.Amount__c != target.Amount__c || credit.Percent__c != target.Percent__c) {
-                credit.Amount__c = target.Amount__c;
-                credit.Percent__c = target.Percent__c;
-                toUpdate.add(credit);
+                // Only the fields being changed: a user mode update of the row as read would
+                // also carry the master detail to the gift, which nobody may edit.
+                toUpdate.add(
+                    new Soft_Credit__c(
+                        Id = credit.Id,
+                        Amount__c = target.Amount__c,
+                        Percent__c = target.Percent__c
+                    )
+                );
             }
         }
 

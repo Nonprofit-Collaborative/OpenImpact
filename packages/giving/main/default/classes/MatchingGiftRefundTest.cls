@@ -105,6 +105,8 @@ private class MatchingGiftRefundTest {
             FROM Contact
             WHERE Id = :data.ana.Id
         ];
+
+        GivingTestDataFactory.assertRollupWrote(recalculated.Total_Soft_Credits__c);
         Assert.areEqual(
             300,
             recalculated.Total_Soft_Credits__c,
@@ -281,6 +283,7 @@ private class MatchingGiftRefundTest {
         List<Rollup_Definition__c> definitions = [
             SELECT
                 Id,
+                Name,
                 Definition_Key__c,
                 Source_Object__c,
                 Target_Object__c,

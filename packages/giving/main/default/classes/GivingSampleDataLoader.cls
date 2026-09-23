@@ -431,9 +431,10 @@ public with sharing class GivingSampleDataLoader {
     }
 
     /**
-     * Deletes every Giving sample record, in dependency order: gifts first, because a
-     * commitment whose installments have been paid refuses to be deleted while those gifts
-     * are still there, then commitments (their installments go with them), then appeals and
+     * Deletes every Giving sample record, in dependency order: refunds and write-offs first,
+     * because a gift that a reversal points at refuses to be deleted (ADR-0010), then the other
+     * gifts, because a commitment whose installments have been paid refuses to be deleted while
+     * those gifts are still there, then commitments (their installments go with them), then appeals and
      * funds, which the gifts pointed at.
      *
      * The two protection rules are stood down for this transaction. They exist to stop a
@@ -449,6 +450,7 @@ public with sharing class GivingSampleDataLoader {
         AutomationControl.bypass(COMMITMENT_AUTOMATION);
         AutomationControl.bypass(INSTALLMENT_AUTOMATION);
         try {
+            removed += deleteAll(selector.sampleReversalIds());
             removed += deleteAll(selector.sampleGiftIds());
             removed += deleteAll(selector.sampleCommitmentIds());
             removed += deleteAll(selector.sampleAppealIds());

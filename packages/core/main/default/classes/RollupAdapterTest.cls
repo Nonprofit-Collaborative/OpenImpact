@@ -61,6 +61,29 @@ private class RollupAdapterTest {
         System.Assert.isFalse(meta.IsDisabled__c, 'An active definition is not disabled');
     }
 
+    /**
+     * The engine returns a rollup's default in place of a sum of exactly zero, so a sum with no
+     * default left a fully refunded donor's total blank instead of zero (ADR-0022). A count has
+     * no such rule, so it keeps no default.
+     */
+    @IsTest
+    static void aSumDefaultsToZeroAndACountDoesNot() {
+        Rollup__mdt sum = RollupAdapter.toMetadata(givingTotal());
+        System.Assert.areEqual(
+            0,
+            sum.FullRecalculationDefaultNumberValue__c,
+            'A sum of nothing left is zero, which the engine only writes when zero is the default'
+        );
+
+        Rollup_Definition__c countDefinition = givingTotal();
+        countDefinition.Aggregate__c = 'COUNT';
+        Rollup__mdt count = RollupAdapter.toMetadata(countDefinition);
+        System.Assert.isNull(
+            count.FullRecalculationDefaultNumberValue__c,
+            'A count gets no default: only a sum has a rule that says nothing left is zero'
+        );
+    }
+
     @IsTest
     static void anAverageBecomesTheOperationTheEngineCallsIt() {
         Rollup_Definition__c definition = givingTotal();

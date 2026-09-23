@@ -255,6 +255,7 @@ describe('c-setup-assistant', () => {
       userId: '005000000000001',
       roleDeveloperName: 'Fundraising_Staff'
     });
+    expect(completeStep).toHaveBeenCalledWith({ stepKey: 'access' });
   });
 
   it('offers each role by its label, not its developer name', async () => {

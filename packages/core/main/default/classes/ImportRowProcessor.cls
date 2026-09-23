@@ -782,7 +782,7 @@ public with sharing class ImportRowProcessor {
                 ? (SObject) new Account(RecordTypeId = personRecordTypeId)
                 : (SObject) new Contact();
             Schema.SObjectType type = personAccounts ? Account.SObjectType : Contact.SObjectType;
-            applyValues(person, type, item.byEntity.get(entity), new Set<String>(), outcome);
+            applyValues(person, type, item.byEntity.get(entity), notWrittenToPeople(type), outcome);
             person.put('Created_By_Import_Batch__c', batch.Id);
             // Nobody is saved into a household here. A person saved straight into a household
             // account is saying "contact mode", which is one of two ways an org can hold
@@ -994,7 +994,27 @@ public with sharing class ImportRowProcessor {
         Map<String, String> held,
         Outcome outcome
     ) {
-        applyValues(change, type, differences(stored, held), new Set<String>(), outcome);
+        applyValues(change, type, differences(stored, held), notWrittenToPeople(type), outcome);
+    }
+
+    /**
+     * Attributes a person record never takes from a row. A person stored as an account in an
+     * org with person accounts is named by its own first and last name fields, and the
+     * business account Name is not one of its fields, so a column mapped to Name is left to
+     * the name parts beside it rather than failing the person's save. Where Account has no
+     * person name fields (a Platform only org) nothing is left out.
+     */
+    private static Set<String> notWrittenToPeople(Schema.SObjectType type) {
+        Set<String> skipped = new Set<String>();
+        if (
+            type == Account.SObjectType &&
+            type.getDescribe(SObjectDescribeOptions.DEFERRED)
+                .fields.getMap()
+                .containsKey('lastname')
+        ) {
+            skipped.add('Name');
+        }
+        return skipped;
     }
 
     // -------------------------------------------------------------------------------------

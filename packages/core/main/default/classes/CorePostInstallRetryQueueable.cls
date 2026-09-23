@@ -1,12 +1,19 @@
 /**
- * Waits for the platform to finish calculating the Nonprofit Admin permission set group,
- * then gives it to the person who installed the package.
+ * Gives the person who installed the package the Nonprofit Admin permission set, then waits
+ * for the platform to finish calculating the Nonprofit Admin permission set group and gives
+ * them that too.
+ *
+ * The install queues this rather than doing it itself because both are setup object writes,
+ * and the install transaction also writes ordinary records, which the platform refuses to mix
+ * (CorePostInstall says more). The permission set is given on every attempt, which changes
+ * nothing once it is held, so the installer can open Nonprofit Settings as soon as the first
+ * attempt runs.
  *
  * Salesforce recalculates a packaged permission set group in the background after an
- * install or an upgrade, and it refuses to assign one while that is running. The install
- * has already given the installer the permission set itself, so they are not blocked; this
- * job exists to finish the job properly, so that the Access page lists them under the
- * Nonprofit Admin role rather than showing an org where nobody holds it.
+ * install or an upgrade, and it refuses to assign one while that is running. The installer
+ * already has the permission set by then, so they are not blocked; the waiting exists to
+ * finish the job properly, so that the Access page lists them under the Nonprofit Admin role
+ * rather than showing an org where nobody holds it.
  *
  * It re-checks a few times, a job at a time, a minute apart, and then stops. It never
  * throws: an install or an upgrade must not fail because of a background tidy-up.
@@ -54,16 +61,18 @@ public with sharing class CorePostInstallRetryQueueable implements Queueable {
     }
 
     /**
-     * Looks once. Assigns the role if the group is ready, queues another look if it is
-     * not, and writes a warning to the Error Log if the attempts run out.
+     * Looks once. Gives the permission set, assigns the role if the group is ready, queues
+     * another look if it is not, and writes a warning to the Error Log if the attempts run
+     * out.
      *
      * @param jobContext the platform's queueable context, not used
      */
     public void execute(QueueableContext jobContext) {
+        if (installerId == null) {
+            return;
+        }
+        assignPermissionSet();
         try {
-            if (installerId == null) {
-                return;
-            }
             if (AccessService.tryAssignRoleDuringInstall(installerId, AccessService.ADMIN_ROLE)) {
                 return;
             }
@@ -75,6 +84,21 @@ public with sharing class CorePostInstallRetryQueueable implements Queueable {
                 return;
             }
             giveUp();
+        } catch (Exception e) {
+            ErrorLogger.log(e, CONTEXT);
+        }
+    }
+
+    /**
+     * The permission set, on its own, so that a failure here still leaves the role to be
+     * tried: the role carries the same permission set, so either one gets the installer in.
+     */
+    private void assignPermissionSet() {
+        try {
+            AccessService.assignPermissionSetDuringInstall(
+                installerId,
+                AccessService.ADMIN_PERMISSION_SET
+            );
         } catch (Exception e) {
             ErrorLogger.log(e, CONTEXT);
         }

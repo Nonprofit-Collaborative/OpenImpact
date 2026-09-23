@@ -87,22 +87,32 @@ public virtual with sharing class TriggerHandler {
      */
     @NamespaceAccessible
     public List<SObject> newRecords() {
-        return testNew != null ? testNew : Trigger.new;
+        return useTestOverrides() && testNew != null ? testNew : Trigger.new;
     }
 
     @NamespaceAccessible
     public Map<Id, SObject> newRecordsById() {
-        return testNewMap != null ? testNewMap : Trigger.newMap;
+        return useTestOverrides() && testNewMap != null ? testNewMap : Trigger.newMap;
     }
 
     @NamespaceAccessible
     public List<SObject> oldRecords() {
-        return testOld != null ? testOld : Trigger.old;
+        return useTestOverrides() && testOld != null ? testOld : Trigger.old;
     }
 
     @NamespaceAccessible
     public Map<Id, SObject> oldRecordsById() {
-        return testOldMap != null ? testOldMap : Trigger.oldMap;
+        return useTestOverrides() && testOldMap != null ? testOldMap : Trigger.oldMap;
+    }
+
+    /**
+     * The overrides stand in for a trigger only where there is none. A handler a test drives
+     * directly can save records, and the triggers that save fires are real: were the overrides
+     * read there too, a contact trigger would be handed the affiliations the test put in front of
+     * the first handler, and fail on them.
+     */
+    private static Boolean useTestOverrides() {
+        return !Trigger.isExecuting;
     }
 
     /**

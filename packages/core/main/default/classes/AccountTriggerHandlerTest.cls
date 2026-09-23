@@ -349,8 +349,16 @@ private class AccountTriggerHandlerTest {
     /**
      * One person, held as an account, joined to one household. The two overrides are what
      * lets an org with no person accounts run the person account path at all.
+     *
+     * The membership is built by hand, so automatic creation is switched off first, as
+     * `HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds` does for the
+     * contact tests. Left on, it would give Maria a household of her own as well, and,
+     * because the record override declares every account a person, the household too.
      */
     private static Account personInAHousehold() {
+        Nonprofit_Settings__c settings = Nonprofit_Settings__c.getOrgDefaults();
+        settings.Auto_Create_Households__c = false;
+        HouseholdTestDataFactory.save(settings);
         HouseholdService.personAccountOverride = true;
         PersonRecordSelector.personRecordOverride = true;
         Account household = HouseholdTestDataFactory.newHousehold('The Garcia Family');

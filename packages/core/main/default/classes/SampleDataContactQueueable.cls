@@ -23,6 +23,9 @@ public with sharing class SampleDataContactQueueable implements Queueable {
             SampleDataSet data = SampleDataSet.parse(SampleDataLoader.getSampleDataJson());
             data.householdIdsByKey = householdIdsByKey;
             SampleDataLoadQueueable.loadContactChunk(data, chunkIndex);
+            if (!SampleDataLoader.mayQueueNextStage()) {
+                return;
+            }
             if (chunkIndex + 1 < data.chunkCount()) {
                 System.enqueueJob(
                     new SampleDataContactQueueable(householdIdsByKey, chunkIndex + 1)

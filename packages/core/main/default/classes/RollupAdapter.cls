@@ -68,6 +68,14 @@ public with sharing class RollupAdapter {
         meta.RollupOperation__c = ENGINE_OPERATION_BY_AGGREGATE.get(
             definition.Aggregate__c.toUpperCase()
         );
+        if (definition.Aggregate__c.toUpperCase() == 'SUM') {
+            // The engine hands back a rollup's default in place of a sum of exactly zero, and
+            // with no default set that is blank, which it then declines to write over a blank
+            // field. A donor whose only gift was refunded in full has a total of zero, not an
+            // empty one (canonical model Section 26, ADR-0022), so a sum defaults to zero. Only
+            // a sum: a count, a minimum or a maximum of nothing has no value to report.
+            meta.FullRecalculationDefaultNumberValue__c = 0;
+        }
         meta.CalcItemWhereClause__c = whereClauseFor(definition);
         meta.IsDisabled__c = definition.Active__c != true;
         // Open Impact's own Active checkbox is the switch an administrator uses, so the engine's
@@ -94,6 +102,27 @@ public with sharing class RollupAdapter {
             // `toMetadata(List)` below does.
             throw new RollupAdapterException(System.Label.Core_Rollups_ErrorInvalidFilter);
         }
+        return withEngineNames(meta);
+    }
+
+    /**
+     * Copies each `...Text__c` value onto the attribute the engine actually reads.
+     *
+     * The engine reads `CalcItem__c`, `LookupObject__c`, `LookupFieldOnCalcItem__c` and the rest
+     * everywhere it runs. Only its own custom metadata query fills those from the `...Text__c`
+     * variants (`RollupRepository`), and metadata built here in memory never goes through that
+     * query, so without this the engine was handed a rollup with no source object, no target and
+     * no attributes: a real-time run failed and was logged, and a full recalculation wrote
+     * nothing. The `...Text__c` values stay the ones this class sets, so a namespace prefix is
+     * still applied in one place.
+     */
+    private static Rollup__mdt withEngineNames(Rollup__mdt meta) {
+        meta.CalcItem__c = meta.CalcItemText__c;
+        meta.LookupObject__c = meta.LookupObjectText__c;
+        meta.LookupFieldOnCalcItem__c = meta.LookupFieldOnCalcItemText__c;
+        meta.LookupFieldOnLookupObject__c = meta.LookupFieldOnLookupObjectText__c;
+        meta.RollupFieldOnCalcItem__c = meta.RollupFieldOnCalcItemText__c;
+        meta.RollupFieldOnLookupObject__c = meta.RollupFieldOnLookupObjectText__c;
         return meta;
     }
 

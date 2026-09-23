@@ -26,13 +26,21 @@ public class RecognitionTestData {
     }
 
     /**
-     * Switches the org to junction membership, the mode a Person Account org runs in.
+     * Switches the org to junction membership, the mode a Person Account org runs in, with
+     * automatic household creation off.
+     *
+     * The tests that use this build the household by hand: who is in the Garcia household is
+     * what they are about. Automatic creation would first give every person they insert a
+     * household of their own (R-H2, ADR-0037), and the gift would then be credited within that
+     * one, so it is switched off rather than worked around, as the Core household tests do.
      */
     public static void useJunctionMembership() {
         Nonprofit_Settings__c settings = Nonprofit_Settings__c.getOrgDefaults();
         settings.SetupOwnerId = UserInfo.getOrganizationId();
         settings.Household_Membership_Mode__c = 'Junction';
+        settings.Auto_Create_Households__c = false;
         upsert settings;
+        SettingsService.clearCaches();
     }
 
     public static Account household(String name) {
@@ -65,8 +73,9 @@ public class RecognitionTestData {
     }
 
     public static Household_Member__c membership(Id householdId, Id contactId, String role) {
+        // Household__c is the household; Account__c is the person, for a Person Account org.
         Household_Member__c member = new Household_Member__c(
-            Account__c = householdId,
+            Household__c = householdId,
             Contact__c = contactId,
             Role__c = role
         );
@@ -87,6 +96,7 @@ public class RecognitionTestData {
     }
 
     public static Gift__c gift(Id donorContactId, Id donorAccountId, Decimal amount) {
+        GivingTestDataFactory.ensureDefaultFund();
         Gift__c gift = newGift(donorContactId, donorAccountId, amount);
         insert gift;
         return gift;

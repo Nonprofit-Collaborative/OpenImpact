@@ -190,10 +190,20 @@ private class ImportTemplateServiceTest {
 
     @IsTest
     static void personModeFollowsTheOrgShape() {
-        Assert.areEqual(
-            ImportTemplateService.PERSON_MODE_CONTACTS,
-            ImportTemplateService.defaultPersonMode(),
-            'A platform-only org stores people as contacts.'
-        );
+        // Asked of the org this test runs in, so that it holds on a Platform-only org and on
+        // one with person accounts alike (ADR-0013).
+        if (OrgShapeDetector.detect().hasPersonAccounts) {
+            Assert.areEqual(
+                ImportTemplateService.PERSON_MODE_PERSON_ACCOUNTS,
+                ImportTemplateService.defaultPersonMode(),
+                'An org with person accounts stores people as accounts.'
+            );
+        } else {
+            Assert.areEqual(
+                ImportTemplateService.PERSON_MODE_CONTACTS,
+                ImportTemplateService.defaultPersonMode(),
+                'A platform-only org stores people as contacts.'
+            );
+        }
     }
 }
