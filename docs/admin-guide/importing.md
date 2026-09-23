@@ -37,10 +37,11 @@ list**. You can edit either one, and your edits are never overwritten by an upgr
 
 ## 3. A five-minute walkthrough (as Maria)
 
-You need a CSV file. A small one is best for the first run: five or six rows.
+You need a CSV file or an Excel workbook (.xlsx). A small one is best for the first run: five
+or six rows.
 
 1. Open the **Import** tab. Select **Generic donor list**, then **Next**.
-2. Select **Upload file** and choose your CSV. Open Impact reads the header row and shows
+2. Select **Upload file** and choose your file. Open Impact reads the header row and shows
    you every column it found, with the first few values from the file underneath each one.
 3. Check the columns. Each column shows what Open Impact thinks it is, for example
    "Email" for a column headed `Donor Email`. Change anything that is wrong from the
@@ -141,6 +142,13 @@ never fetches or loads a file on its own: every file is still uploaded, dry run 
 committed by a person, because an import nobody watched is an import nobody checked.
 
 ## 7. Common mistakes
+
+**An Excel file shows the wrong columns, or none.** Only the **first sheet** of a workbook is
+read, and its first row must be the column headings. Move the sheet you want to the front, or
+copy it into a workbook of its own. A formula is read as the value Excel last saved for it,
+and a date as the date, whatever format the cell shows. An older .xls file, or a
+password-protected workbook, cannot be read: save it as .xlsx or CSV and upload that. A
+browser too old to open a workbook says so; save the sheet as CSV instead.
 
 **"No column was matched to a name or an email."** The dry run refuses to run when the
 mapping has no way to identify a person or an organization. Usually the file's header row
