@@ -72,6 +72,14 @@ contact is the membership marked primary. **Make primary** marks the person you 
 unmarks everyone else in that household, again using your own access, so you need to be
 able to edit the membership records of that household.
 
+The household's **Primary Contact** field follows along by itself, so reports, the compact
+layout and thank-you emails all see the same person. A person your org stores as an account
+(a person account) appears in that field under their own name, as the contact record
+Salesforce keeps behind every person account. Because the field follows the membership
+records, you cannot type a different Primary Contact on a household in this way of
+belonging: the save is refused with a message pointing you back to **Make primary**. An
+organization's Primary Contact is yours to set by hand either way.
+
 ## The Household panel on a person
 
 Open any person and the **Household** panel shows the household's name as a link, how many
@@ -119,6 +127,11 @@ household and try again." You need edit access on the household in the simple wa
 belonging, and on that household's membership records in the flexible way. Ask whoever
 manages access, or ask them to make the change.
 
+**"The household will not let me change its Primary Contact."**
+Your org uses the flexible way of belonging, where the field follows whoever is marked
+primary on the household's members. Use **Make primary** on the **Household Members** panel
+instead; the field updates on its own.
+
 **"I cannot move this person."**
 There is no **Move to another household** button on a person your org stores as an account
 while the org uses the simple way of belonging, because that move cannot be carried out.
@@ -136,7 +149,7 @@ For report builders only.
 
 | Where | Field label | Purpose |
 |---|---|---|
-| Household | Primary Contact | The primary contact in the simple way of belonging. Written by Make primary |
+| Household | Primary Contact | The primary contact. In the simple way of belonging, written by Make primary. In the flexible way, kept in step with the member marked primary (a person account appears as its person contact) |
 | Household | Member Count | The number shown on the Household panel of a person |
 | Household | Formal Greeting | The greeting shown on the Household panel of a person |
 | Household Member | Is Primary | The primary contact in the flexible way of belonging. Written by Make primary |
