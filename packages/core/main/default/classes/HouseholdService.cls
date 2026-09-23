@@ -45,6 +45,13 @@ public with sharing class HouseholdService {
     private static Boolean upkeepRunning = false;
 
     /**
+     * Households already reported in this transaction as kept for their native dependents.
+     * A single move settles up twice, once from the trigger on the person's save and once
+     * from the caller, and the administrator is told about a kept household once.
+     */
+    private static final Set<Id> REPORTED_KEPT_HOUSEHOLDS = new Set<Id>();
+
+    /**
      * One member of a household, whichever object the person is stored on.
      */
     @NamespaceAccessible
@@ -1563,6 +1570,9 @@ public with sharing class HouseholdService {
         List<String> skipped = new List<String>();
         for (Account household : empties) {
             if (dependent.contains(household.Id)) {
+                if (!REPORTED_KEPT_HOUSEHOLDS.add(household.Id)) {
+                    continue;
+                }
                 skipped.add(
                     String.format(
                         Label.Core_Households_SkippedNativeDependents,

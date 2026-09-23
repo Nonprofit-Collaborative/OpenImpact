@@ -457,6 +457,9 @@ export default class SetupAssistant extends NavigationMixin(LightningElement) {
       () => {
         this.accessGranted = true;
         this.chosenUserId = undefined;
+        // Recorded in a call of its own: the role is a setup object write, and the step's
+        // progress cannot be saved in the same transaction as one.
+        this.call(completeStep, { stepKey: 'access' }, false);
         // The picker holds its own selection, so clearing the property is not enough:
         // the admin guide promises the person box empties for the next colleague.
         const picker = this.template.querySelector('[data-id="user-picker"]');

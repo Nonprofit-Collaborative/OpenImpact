@@ -88,8 +88,8 @@ private class SetupAssistantControllerTest {
 
     @IsTest
     static void confirmsTheCoexistenceModeAndMarksStepOneDone() {
-        SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
-
+        // The shipped Setting Definition rows, not an empty stub: the coexistence mode is an
+        // ordinary setting, and a save of a key with no row is refused.
         Test.startTest();
         SetupAssistantController.SetupState state = SetupAssistantController.applyCoexistence(
             SetupAssistantService.MODE_STANDALONE
@@ -160,20 +160,34 @@ private class SetupAssistantControllerTest {
         Assert.isTrue(refused, 'Only the seven identity keys are accepted, and nothing else');
     }
 
+    /**
+     * Asked of the org the test runs in, because Core is tested both on its own and with
+     * Giving installed beside it (ADR-0013), and each org has one right answer.
+     */
     @IsTest
     static void refusesGivingDefaultsWhileTheGivingModuleIsAbsent() {
+        Boolean givingPresent = ModuleDetectionService.isGivingPresent();
         Boolean refused = false;
         String message;
+        SetupAssistantController.SetupState state;
 
         Test.startTest();
         try {
-            SetupAssistantController.saveDefaults(null, null);
+            state = SetupAssistantController.saveDefaults(null, null);
         } catch (AuraHandledException e) {
             refused = true;
             message = e.getMessage();
         }
         Test.stopTest();
 
+        if (givingPresent) {
+            Assert.isFalse(refused, 'With Giving installed the step is open: ' + message);
+            Assert.isFalse(
+                stepByKey(state.steps, 'funddefaults').completed,
+                'And saving no fund does not finish it'
+            );
+            return;
+        }
         Assert.isTrue(refused, 'There is no fund to point at until Giving is installed');
         Assert.areEqual(
             System.Label.Core_SetupAssistant_GivingRequiredError,
@@ -185,14 +199,18 @@ private class SetupAssistantControllerTest {
     @IsTest
     static void marksTheGivingStepUnavailableWhileGivingIsAbsent() {
         SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
+        Boolean givingPresent = ModuleDetectionService.isGivingPresent();
 
         Test.startTest();
         SetupAssistantController.SetupState state = SetupAssistantController.getState();
         Test.stopTest();
 
-        Assert.isFalse(
+        Assert.areEqual(
+            givingPresent,
             stepByKey(state.steps, 'funddefaults').isAvailable,
-            'Step three waits for the Giving module'
+            givingPresent
+                ? 'Step three is offered once the Giving module is here'
+                : 'Step three waits for the Giving module'
         );
         Assert.isTrue(
             stepByKey(state.steps, 'coexistence').isAvailable,
@@ -250,14 +268,30 @@ private class SetupAssistantControllerTest {
     @IsTest
     static void givesAColleagueARoleAndFinishesStepFour() {
         SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
+        TestDataFactory.prepareRoleGroup(AccessService.ADMIN_ROLE);
 
+        // The page makes two calls, as it must: the role is a setup object write, and the
+        // step's progress cannot be saved in the same transaction. The role is given in a
+        // context of its own here for the same reason.
         Test.startTest();
-        SetupAssistantController.SetupState state = SetupAssistantController.assignAccess(
-            UserInfo.getUserId(),
-            'Nonprofit_Admin'
-        );
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            SetupAssistantController.assignAccess(UserInfo.getUserId(), AccessService.ADMIN_ROLE);
+        }
+        SetupAssistantController.SetupState state = SetupAssistantController.completeStep('access');
         Test.stopTest();
 
+        String adminRole = AccessService.ADMIN_ROLE;
+        Assert.areEqual(
+            1,
+            [
+                SELECT COUNT()
+                FROM PermissionSetAssignment
+                WHERE
+                    AssigneeId = :UserInfo.getUserId()
+                    AND PermissionSetGroup.DeveloperName = :adminRole
+            ],
+            'The colleague holds the role'
+        );
         Assert.isTrue(
             stepByKey(state.steps, 'access').completed,
             'Giving someone a role is what finishes step four'

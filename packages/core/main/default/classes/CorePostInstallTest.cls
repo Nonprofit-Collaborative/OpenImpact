@@ -33,7 +33,7 @@ private class CorePostInstallTest {
     @IsTest
     static void installAlwaysGivesTheInstallerTheAdminPermissionSet() {
         // The permission set is the step that must never depend on timing: it has no
-        // calculation status, so it works the moment the install finishes.
+        // calculation status, so it works the moment the job the install queues runs.
         CorePostInstall handler = new CorePostInstall();
 
         Test.startTest();
@@ -59,11 +59,15 @@ private class CorePostInstallTest {
         Assert.areEqual(
             1,
             countRoleAssignments(UserInfo.getUserId()),
-            'A prepared role should be given during the install itself.'
+            'A prepared role should be given by the job the install queued, on its first look.'
         );
+        // The install queues exactly one job, because giving access is a setup object write
+        // that cannot share the install's transaction. A second job would mean the role was
+        // not given on the first look; queueing it fails inside a test and is logged.
+        Assert.areEqual(1, countRetryJobs(), 'Only the job the install itself queued.');
         Assert.areEqual(
             0,
-            countRetryJobs(),
+            [SELECT COUNT() FROM Error_Log__c WHERE Context__c = :RETRY_CONTEXT],
             'Nothing needs to wait in the background when the role is already prepared.'
         );
     }
@@ -79,8 +83,8 @@ private class CorePostInstallTest {
         PermissionSetGroupSelector.systemModeOverride = groupStillBeingCalculated();
         CorePostInstall handler = new CorePostInstall();
 
-        // The queued job runs at Test.stopTest, finds the group still not ready, and tries to
-        // queue the next attempt. The platform does not allow a queueable to chain inside a
+        // The queued job runs at Test.stopTest, gives the permission set, finds the group
+        // still not ready, and tries to queue the next attempt. The platform does not allow a queueable to chain inside a
         // test, so that attempt fails and the job logs it, which is why this asserts on the
         // one job the install itself queued rather than on the whole chain.
         Test.startTest();
@@ -504,6 +508,10 @@ private class CorePostInstallTest {
 
     @IsTest
     static void theHubCanCountWhatTheInstallLogged() {
+        // The role is prepared so that the one failure counted is the one this test causes: a
+        // role still being calculated would have the access job try to wait, which a test
+        // cannot do, and log that as well.
+        TestDataFactory.prepareRoleGroup(AccessService.ADMIN_ROLE);
         SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
         CorePostInstall handler = new CorePostInstall();
 

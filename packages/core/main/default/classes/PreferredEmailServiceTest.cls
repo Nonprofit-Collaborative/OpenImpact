@@ -142,8 +142,14 @@ private class PreferredEmailServiceTest {
         HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
         // Both overrides on, so the account half runs as far as it can on an org shape that
         // has no person email field to write: it must leave the save alone rather than fail.
-        HouseholdService.personAccountOverride = true;
-        PersonRecordSelector.personRecordOverride = true;
+        // An org that has the field is an org with person accounts, where declaring the
+        // household a person would make the test write a person field onto a business
+        // account; there the household is left as what it is, and the account half must leave
+        // it alone for that reason instead (ADR-0013).
+        if (!Schema.SObjectType.Account.fields.getMap().containsKey('PersonEmail')) {
+            HouseholdService.personAccountOverride = true;
+            PersonRecordSelector.personRecordOverride = true;
+        }
         Account household = HouseholdTestDataFactory.newHousehold('The Garcia Family');
         household.Personal_Email__c = PERSONAL;
         household.Preferred_Email__c = 'Personal';

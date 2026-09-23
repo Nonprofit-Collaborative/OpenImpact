@@ -195,7 +195,13 @@ public with sharing class SetupAssistantController {
         }
     }
 
-    /** Step four: give one colleague one packaged role, without leaving the assistant. */
+    /**
+     * Step four: give one colleague one packaged role, without leaving the assistant.
+     *
+     * Only the role is written here. A role is a setup object record and the step's progress
+     * is an ordinary one, and the platform refuses both in one transaction (mixed DML), so
+     * the page records the step with completeStep once this has succeeded.
+     */
     @AuraEnabled
     public static SetupState assignAccess(Id userId, String roleDeveloperName) {
         requireEdit();
@@ -203,9 +209,7 @@ public with sharing class SetupAssistantController {
             throw asAuraException(System.Label.Core_SetupAssistant_NothingToSaveError);
         }
         try {
-            SetupAssistantService.ensureStarted();
             AccessService.assignRole(userId, roleDeveloperName);
-            SetupAssistantService.markComplete('access');
             return buildState();
         } catch (Exception e) {
             throw logged(e, System.Label.Core_SetupAssistant_AccessErrorMessage);

@@ -79,8 +79,13 @@ public with sharing class AutomationControl {
         if (previous == target) {
             return;
         }
-        setting.Enabled__c = target;
-        Database.update(setting, AccessLevel.USER_MODE);
+        // Only the switch is sent. The record read above also carries Always_Runs__c, which
+        // no packaged permission set may edit, and a user mode update of a record carrying a
+        // field the user cannot edit is refused even when its value has not changed.
+        Database.update(
+            new Automation_Setting__c(Id = setting.Id, Enabled__c = target),
+            AccessLevel.USER_MODE
+        );
         clearCache();
         SettingsService.logChange(
             'Automation: ' + setting.Automation_Name__c,
