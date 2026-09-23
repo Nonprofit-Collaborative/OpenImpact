@@ -278,7 +278,7 @@ NPC has no address object; NPSP's was one of its most valued features for donor 
 
 ### 4.8 Settings, Setup Assistant, and Module Manager (Core)
 
-- **Nonprofit Hub app** (Lightning app) with tabs: Home (Setup Assistant and health), Households, Contacts, Organizations, Gifts (from Giving), Import, Reports, and **Nonprofit Settings**.
+- **Nonprofit Hub app** (Lightning app) with tabs: Home (Setup Assistant and health), Households, Contacts, Organizations, Gifts (from Giving), Data (import, find and bulk update, Section 4.9), Reports, and **Nonprofit Settings**.
 - **Nonprofit Settings** is a single LWC-based settings console with a left navigation grouped by module, search across all settings, and plain-language descriptions with "Learn more" links to the admin guide. Access is governed by the `Manage_Nonprofit_Settings` custom permission (packaged in the Admin permission set).
 - **Storage strategy** (settled, Decision D-06):
   - *Simple org-wide toggles and values* (feature flags, naming rule selections, default record types): **protected hierarchy Custom Settings**, written synchronously by Apex from the console. Cached in Platform Cache with cache invalidation on write.
@@ -292,20 +292,56 @@ NPC has no address object; NPSP's was one of its most valued features for donor 
 - **Error Log** (`Error_Log__c`): every caught exception with context, user, record, and a plain-language message; surfaced as a Hub tile and an optional daily digest email to the admin.
 - **Health Check**: detects org shape, license shape, missing permission assignments, rollup schedules not running, orphaned records, and coexistence conflicts; each finding has a fix action where possible.
 
-### 4.9 Import framework (Core; the "NPSP data importer, done right")
+### 4.9 Data management (Core; import, bulk update, and find)
 
-**Purpose:** let Maria load the old spreadsheet, and every future event list and payment processor export, without a consultant.
+**Purpose:** let Maria load the old spreadsheet and every later export, fix many records at once, and find and export exactly the records she needs, without a consultant, Setup, API names or an outside tool, and with every change previewed, recorded and reversible. The engine is neutral and lives in Core, so the Community Suite gets import, update and find; gift meaning, donation matching and gift templates live in Giving. Tags **[v1]** and **[later]** mark what ships before 1.0 and what is planned after it (Section 6). The scope and its phasing are an owner decision (Brandon, 2026-09-23; D-13): NPSP Data Importer parity, a Jetstream-style find and bulk update, and the useful dataimporter.io capabilities, with the most useful in v1 and the rest later.
 
-- **Objects:** `Import_Template__c` (a reusable mapping definition: source columns to canonical targets, matching rules, defaults), `Import_Batch__c` (one upload: file, template, status, counts, run log), `Import_Row__c` (the staging row: raw column values stored as JSON plus a fixed set of resolved lookups such as `Household__c`, `Contact1__c`, `Contact2__c`, `Organization__c`, `Gift__c`, status, and error message).
-- **Flow:** upload CSV or XLSX in an LWC (client-side parsing with SheetJS, chunked to the server) → auto-detect columns and suggest a mapping from a library of known column names (NPSP export, common processors, generic donor lists) → the admin adjusts the mapping in a two-column picker with sample values shown → choose matching rules (email exact, name plus postal code, external ID) with a plain-language explanation → **dry run** producing a preview of what would be created, matched, updated, or rejected, with a downloadable exceptions file → commit → results page with links → **undo** for a batch within a retention window (records created by the batch are tagged with the batch ID and can be deleted; updates are journaled for reversal).
-- **Row semantics** (the NPSP insight): one row can describe a household, up to two contacts, an organization, an affiliation, a gift with allocations, a soft credit, and a payment. The processor resolves in dependency order and is idempotent per row.
-- **Templates ship for**: NPSP (Contacts, Accounts, Opportunities, Payments, Allocations, Recurring Donations, Relationships, Affiliations, Addresses), Agentforce Nonprofit (Gift Transaction and related), a generic donor list, a generic gift list, an event attendee list, and a volunteer hours sheet. Templates are custom object records and can be shared as JSON files in the repository's `data/import-templates/` so the community can contribute processor-specific templates.
-- **Ongoing imports**: a template can be marked "recurring" with a named source; the Hub shows last import date per source so Maria knows what she has not loaded.
-- **Bulk performance**: Batch Apex with configurable chunk size; large files (up to hundreds of thousands of rows) are processed asynchronously with progress.
+**What we deliberately do not build.** Metadata deploy, anonymous Apex, permission management, API exploration, org-wide automation switches, org-to-org migration and backup. Setup, Data Loader and Jetstream do these well for the rare technical user; inside a package they would add security review risk and nothing Maria needs. Jetstream's code is not reused (Apache-2.0 with the Commons Clause, not an open source license); its ideas are.
+
+**Objects.**
+- `Import_Template__c`: a reusable mapping (source columns to canonical targets, matching rules, defaults) [v1, built].
+- `Import_Batch__c`: one data job, whether a file import or a bulk update, with status, counts, run log, undo deadline, and a new `Operation__c` (Import, Update; Delete [later]). A bulk update stores its definition (the query document and the assignments) in `Operation_JSON__c` and has no template [v1]. The API names stay as they are; only the tab and labels change, to "Data jobs" (owner decision, 2026-09-23).
+- `Import_Row__c`: the staging row for a file import: raw values as JSON plus resolved lookups to Core records (`Household__c`, `Contact_1__c`, `Contact_2__c`, `Person_1_Account__c`, `Person_2_Account__c`, `Organization__c`) and **record identifiers, not lookups**, for Giving records (`Gift_Id__c`, `Soft_Credit_Id__c`, ADR-0014) [built].
+- `Import_Journal__c`: per-chunk pages recording every value a job changed on a record it did not create, before and after, and what an undo kept or could not put back (canonical model Section 17A) [built in C-19]. A bulk update journals through the same pages and adds a Failed entry per record that did not save.
+- `Saved_Query__c`: a named query document, owner, object, and a shared flag [v1].
+
+**Import flow** (unchanged where built): upload CSV or XLSX, read in the browser with no third-party script (the C-19 XLSX ADR) → suggested mapping from the column library → two-column picker with sample values → matching rules in plain language → **per-file values** ("every row is appeal Gala 2026") [v1] → **dry run** with counts and an exceptions file → commit → results with links → **undo** within the stamped window.
+
+**Row semantics** (the NPSP insight): one row can describe a household, up to two people, an organization, an affiliation, and, with Giving installed, a gift with allocations, a soft credit and a tribute. Core resolves organization, household, people and affiliation [v1: affiliation moves into Core, C-32]; Giving resolves the rest through `ImportEntityProcessor` [v1: G-23, in v0.5]. Resolution is idempotent per row. Gift import comes early because it does not work today: no package implements `ImportEntityProcessor` (Core looks up a `GiftImportProcessor` class that does not exist), and the first customers must migrate their gifts. Undoing a gift import keeps any gift with an issued receipt and journals the reason (ADR-0010, ADR-0024).
+
+**Templates ship for:** NPSP (Contacts, Accounts, Opportunities, Payments, Allocations, Recurring Donations, Relationships, Affiliations, Addresses), Agentforce Nonprofit (Gift Transaction and related), a generic donor list, a generic gift list, an event attendee list, and a volunteer hours sheet. Templates are custom object records and can be shared as JSON files in the repository's `data/import-templates/` so the community can contribute processor-specific templates. Gift templates load gifts once G-23 exists; module templates (volunteer hours, program rosters) load through C-33.
+
+**Matching** [v1, C-32]: per entity (people, organizations), choose Email exact, Name plus postal code, or an external ID field picked from the object's external ID and unique fields; for organizations, Name exact or an external ID field. Every rule says in one sentence what it risks. When a key finds more than one record, the template says what happens: **reject the row** (the default, by owner decision 2026-09-23, because a wrong merge is harder to notice than a rejected row) or **use the most recently changed record**; the dry run lists every such row either way. Matching through the org's own duplicate rules [later, C-37].
+
+**Donation matching (Giving)** [v1: G-24, in v0.5]: an incoming gift is matched, in order, to an existing gift by external ID (idempotence), then to an open installment of the same donor (Contact or Account, or anyone in the household) whose expected date is within the template's date window (default 7 days) and whose amount is within its tolerance (default exact). The template's behaviour is one of **Always create**, **Match or create** (default), **Match only** (reject when nothing matches) or **Never match** (reject when something does); among several candidates the closest date wins, and a tie is rejected with both named. A matched installment is linked and its commitment's paid-to-date and balance update through the normal rollups. Control totals (expected count and amount for the file) are optional and checked in the dry run (G-23).
+
+**Load one object** [v1, C-33]: a template can instead load one object, including custom objects: insert, update by record Id, or upsert by an external ID field. A lookup column can name its parent by Id, by an external ID, or by any unique field the admin picks, with the same "none or several matches" choice. This is the path for exports fixed in Excel, for the Community Suite, and for module templates such as volunteer hours and program rosters. It uses the same batch, dry run, journal and undo.
+
+**Find** [v1, C-34]: a visual builder over one object at a time: fields and parent fields (two levels), filters in the rollup filter document (canonical model R-R2) extended with relative dates (this year, last N days) and parent fields, sort, and a row limit. The generated SOQL is shown read only, so a trained admin can check it or copy it into another tool; v1 accepts no typed SOQL (owner decision, 2026-09-23). Results show in a grid; Maria can save the query, share it with other users of the tool (each person still sees only what their own access allows), **export to CSV** (UTF-8 with a byte-order mark so Excel opens it cleanly; CSV is the only export format in v1, by owner decision 2026-09-23), or **send the results to bulk update**. Child subqueries, "with or without related records" filters, aggregates, typed SOQL, inline edit of results and XLSX export are [later, C-36].
+
+**Bulk update** [v1, C-35]: choose records with a Find query (or a saved one), then for up to five fields choose **set to a value**, **clear**, or **copy from another field** of a compatible type on the same record. The preview shows the number of records and a sample of before and after values; Maria confirms that number. The job then runs in Batch Apex under her own permissions, processes only records that still match, and refuses to start if more records match than she confirmed. Every change is journaled; undo puts back each value nobody has changed since, within the same window as imports. Formulas and find-and-replace [later, C-37]. Bulk delete is [later, C-37] by owner decision (2026-09-23), and only with the journal recording each deleted Id so an undo can undelete from the recycle bin, a hard cap per job, and its own permission.
+
+**Fields that can never be bulk updated or imported over:** fields the package computes (every Rollup Definition target, household name and greetings, `Last calculated` values), fields locked by an issued receipt (the receipt lock triggers still run and refuse the change), formula, auto-number and system fields, and the package's own bookkeeping objects (import, journal, error log, settings, setting changes, receipts). The list is built at run time from describe and the Rollup Definitions, so a new rollup is protected without code.
+
+**Ongoing imports:** a recurring template names its source and the Hub shows the last load date (R-IT6); a person still uploads, dry-runs and commits. **Scheduled imports and connections to other systems** (SFTP, cloud storage, databases, other orgs) are a planned post-1.0 release (C-38) by owner decision (2026-09-23); they supersede R-IT6's "nothing loads on a schedule" only for that release and will need Named Credentials, outbound callouts documented for security review, and an unattended-run safety design (a scheduled dry run that commits only when its counts fall inside limits the admin set).
+
+**Architecture decisions.**
+- **Everything runs inside the org, with no call to Salesforce's own APIs** [v1]. A Lightning session cannot call the REST or Bulk API, and the workaround (a Named Credential with an External Client App calling the org from Apex) needs Setup steps Section 2.3 forbids, a stored token, and a documented self-callout at security review. Batch Apex is enough at our scale (the Section 7.3 scale test is a 250,000-row file): 200 rows a chunk is 1,250 executions, well inside the daily asynchronous limit. No Bulk API or Named Credential path is built in v1 or 1.x (owner decision, 2026-09-23); it is revisited only with C-38, which needs Named Credentials anyway, and only if the 1M-gift scale test shows Batch Apex too slow.
+- **Staging only where it earns its storage.** File imports stage rows because dry run, exceptions and explanation need them. Staged rows are purged when the job commits, except rejected rows, which stay for the undo window: undo reads the tags and the journal, never the rows (C-19), and 250,000 staged rows would hold roughly half a gigabyte of a small nonprofit's data storage. Bulk update stages nothing: its criteria, its confirmed count and the journal are the record.
+- **Queries are built from a document, never from text.** Find, bulk update and saved queries share one Core query document (object, fields, filter per R-R2, order, limit). A `QueryCompiler` turns it into SOQL only from names taken out of describe results (an object or field not in the running user's describe is refused), puts every value in a bind variable, and runs `Database.queryWithBinds` with `AccessLevel.USER_MODE`, so CRUD, FLS and sharing apply to every read. Updates run `Database.update(records, false, AccessLevel.USER_MODE)`. The only system-mode writes are the job record and the journal, under ADR-0021. The SOQL the admin sees is rendered from the document for display; the server never accepts SOQL text. Typed SOQL is not in v1 (owner decision, 2026-09-23). If C-36 allows it later, it is parsed into the same document in the browser and the server checks it exactly as before, so there is no second enforcement path; it needs its own ADR, because it is the first exception to Section 4.10's rule against SOQL typed by admins.
+- **Core names no standard object.** The object list comes from describe at run time, so an org with Opportunity or Campaign can find and update them, and Core still compiles and runs on a Platform-only org (Section 4.2, ADR-0013).
+- **Export is paged by the browser** in Id order through the same selector, up to an export limit set in the console (default 50,000 rows); a server-side export for larger sets is [later, C-36].
+- **Automation still runs.** Imports and bulk updates fire triggers, flows, validation rules and duplicate rules as any save does. They never pause automation themselves; the admin's pause (C-23) remains a deliberate, expiring choice.
+
+**Settings (Nonprofit Settings console, Data section):** rows per chunk [built], days a job can be undone [built], maximum records per bulk update (default 50,000), export row limit (default 50,000), default date window and amount tolerance for donation matching (Giving).
+
+**Permissions** (owner decision, 2026-09-23): import stays with the settings permission (`Manage_Nonprofit_Settings`) for now. Two new custom permissions, in the admin permission set and assignable alone: `Find_And_Export_Records` and `Bulk_Update_Records`, so an organization can let staff export without letting them update. Neither grants access to any record: both only open tools that act with the user's own access.
+
+**Bulk performance:** Batch Apex with the configurable chunk size; progress on the job record; results and undo on the History page.
 
 ### 4.10 Rollup engine (Core; used by every module)
 
-- `Rollup_Definition__c`: source object, target object, relationship path (supports the household membership abstraction), aggregate (SUM, COUNT, MIN, MAX, FIRST, LAST, AVG), filters (declarative, with a filter builder UI, no SOQL typed by admins), fiscal-year awareness (fiscal year start month setting), and **mode**: Real-time (trigger-driven, for small volumes), Scheduled (batch, default nightly), or Both (real-time with nightly reconciliation). Every target field shows a `Last calculated` sibling value in the rollup UI.
+- `Rollup_Definition__c`: source object, target object, relationship path (supports the household membership abstraction), aggregate (SUM, COUNT, MIN, MAX, FIRST, LAST, AVG), filters (declarative, with a filter builder UI, no SOQL typed by admins; Find (Section 4.9) likewise compiles its queries from a document and does not accept typed SOQL in v1, and typed SOQL (C-36) would need its own ADR), fiscal-year awareness (fiscal year start month setting), and **mode**: Real-time (trigger-driven, for small volumes), Scheduled (batch, default nightly), or Both (real-time with nightly reconciliation). Every target field shows a `Last calculated` sibling value in the rollup UI.
 - Packaged default definitions for households, contacts, organizations, funds, appeals, and commitments are shipped as custom metadata and materialized as records on install (Section 4.8).
 - The engine must be governor-limit safe (queueable chaining, platform events for fan-out) and idempotent (a recalculation of any record set produces the same result).
 - **Build vs. reuse decision:** before writing a rollup engine, evaluate vendoring an existing well-maintained open source Apex rollup library under a compatible license (MIT-licensed libraries exist). Criteria: 2GP-packageable as source, supports parent-child and lookup rollups, has a declarative metadata model we can drive from our UI, and has tests. Record the outcome as a decision. Do not build a lesser version of something that already exists.
@@ -375,7 +411,7 @@ Priority: **P0** must ship before v1.0; **P1** should ship before v1.0 if the it
 | C-11 | Health Check v1 (org shape, license shape, access gaps) | m | P0 | 0.1 | |
 | C-12 | Setup Assistant (guided, resumable checklist) | M | P0 | 0.2 | Skeleton in 0.1, full in 0.2 |
 | C-13 | Rollup engine with declarative definitions, modes, filter builder, freshness | M | P0 | 0.2 | Section 4.10; build-vs-vendor decision first |
-| C-14 | Import framework v1: upload, auto-mapping, dry run, commit, results | M | P0 | 0.2 | Section 4.9 |
+| C-14 | Import framework v1: upload, auto-mapping, dry run, commit, results | M | P0 | 0.2 | Section 4.9; gift rows need G-23 |
 | C-15 | Relationships (contact to contact, reciprocal, typed) | M | P0 | 0.3 | NPSP `npe4` successor |
 | C-16 | Affiliations (contact to organization, role, primary, dates) | m | P0 | 0.3 | NPSP `npe5` successor |
 | C-17 | Addresses object with default propagation to standard fields | M | P0 | 0.3 | Section 4.7 |
@@ -385,15 +421,22 @@ Priority: **P0** must ship before v1.0; **P1** should ship before v1.0 if the it
 | C-21 | Health Check v2 with fix actions | m | P0 | 0.5 | |
 | C-22 | Junction membership hardening with Person Accounts (Agentforce Nonprofit coexistence) | M | P0 | 0.5 | |
 | C-23 | Automation pause with auto-expiry; error digest email | m | P0 | 0.6 | |
-| C-24 | Module Manager (install links, on, off, uninstall pre-flight) | M | P0 | 0.7 | Needed once a second package exists |
+| C-24 | Module Manager (install links, on, off, uninstall pre-flight) | M | P0 | 0.8 | Needed once a second package exists |
 | C-25 | Multiple email addresses on a person (personal, work, alternate, with a preferred choice that keeps the standard Email in step) | S | P1 | 0.5 | Added 2026-09-15 for Sales Cloud readiness; built on `feature/c-25-multiple-emails` |
-| C-25 | Interaction notes (lightweight major-gift contact reports on Contact and Account) | m | P1 | 0.8 | Copies the useful part of NPC Interaction Summaries |
-| C-26 | Telemetry, opt-in, anonymous (installed modules, org shape, error counts) | m | P1 | 0.10 | Informs the roadmap; default off |
-| C-27 | In-app "What's new" after upgrade | m | P1 | 0.11 | |
-| C-28 | Data hygiene console (orphans, missing households, bad addresses) | m | P2 | 1.x | |
+| C-26 | Telemetry, opt-in, anonymous (installed modules, org shape, error counts) | m | P1 | 0.11 | Informs the roadmap; default off |
+| C-27 | In-app "What's new" after upgrade | m | P1 | 0.12 | |
+| C-28 | Data hygiene console (orphans, missing households, bad addresses) | m | P2 | 1.x | Uses C-34 saved queries |
 | C-29 | Neutral Core: nonprofit wording, the nonprofit app, the giving and receipt settings, and the nonprofit Setup Assistant steps move out of Core into Giving, so Core alone is the Community Suite | M | P0 | 0.6 | Owner decision (Brandon, 2026-09-23), Section 3 "Suites and packaging" |
-| C-30 | Suite choice in the Setup Assistant: the first step asks Impact Suite or Community Suite; the Nonprofit Edition toggle opens Salesforce's installer for Giving and then offers the other modules | m | P0 | 0.7 | Built with C-24; a package cannot install another silently |
-| C-31 | Unlocked-to-managed migration kit for production pilots: export, uninstall the unlocked packages, install the managed ones, reimport, verified against a pilot copy | M | P0 | 0.10 | Salesforce offers no conversion of an installed unlocked package |
+| C-30 | Suite choice in the Setup Assistant: the first step asks Impact Suite or Community Suite; the Nonprofit Edition toggle opens Salesforce's installer for Giving and then offers the other modules | m | P0 | 0.8 | Built with C-24; a package cannot install another silently |
+| C-31 | Unlocked-to-managed migration kit for production pilots: export, uninstall the unlocked packages, install the managed ones, reimport, verified against a pilot copy | M | P0 | 0.11 | Salesforce offers no conversion of an installed unlocked package |
+| C-32 | Import matching and per-file values: matching per entity with a chosen external ID field, organization matching, a rule for several matches (reject the row by default), per-file values, Affiliation resolved in Core, staged rows purged on commit except rejects | m | P0 | 0.7 | **[v1]** Amends C-14 and C-19 scope; NPSP Data Importer parity for Core |
+| C-33 | Load one object: insert, update by Id, upsert by external ID, for any object including custom ones, lookups by Id, external ID or any unique field; same dry run, journal and undo | M | P0 | 0.7 | **[v1]** Jetstream and dataimporter.io load; Community Suite import; used by V-06 and P-06 templates |
+| C-34 | Find: visual query builder over one object with parent fields, R-R2 filters with relative dates, sort and limit; SOQL shown read only; saved and shared queries; CSV export; send to bulk update | M | P1 | 0.7 | **[v1]** Jetstream query builder, narrowed; no typed SOQL (owner decision 2026-09-23); `Find_And_Export_Records` permission |
+| C-35 | Bulk update: set, clear or copy up to five fields on the records a Find query returns; count preview and confirmation; Batch Apex in user mode; journaled and undoable with the C-19 journal | M | P1 | 0.7 | **[v1]** Jetstream Update Records plus undo; `Import_Batch__c.Operation__c`; `Bulk_Update_Records` permission |
+| C-36 | Find, advanced: typed SOQL checked through the same query document, child subqueries and "with or without related" filters, aggregates, XLSX export, inline edit of results, server-side export | M | P2 | 1.x | **[later]** Owner decision 2026-09-23; typed SOQL needs its own ADR (Section 4.10) |
+| C-37 | Data transforms and dedupe: formulas and find-and-replace in mappings and bulk update; matching through the org's duplicate rules; bulk delete with undelete from the journal | M | P2 | 1.x | **[later]** dataimporter.io and Jetstream; bulk delete later by owner decision 2026-09-23 |
+| C-38 | Scheduled imports and external sources (SFTP, cloud storage, databases, other systems), with a scheduled dry run that commits only inside admin-set limits | M | P2 | 1.x | **[later]** Owner decision 2026-09-23; Section 6.1 theme; supersedes R-IT6 for that release; the only path that may add Named Credentials or the Bulk API |
+| C-39 | Interaction notes (lightweight major-gift contact reports on Contact and Account) | m | P1 | 0.9 | Copies the useful part of NPC Interaction Summaries |
 
 ### 5.2 Giving package
 
@@ -417,51 +460,53 @@ Priority: **P0** must ship before v1.0; **P1** should ship before v1.0 if the it
 | G-16 | Retention reports: LYBUNT, SYBUNT, new vs retained, first-to-second conversion | m | P0 | 0.4 | Correct by construction; definitions documented |
 | G-17 | Gift batch entry grid with control totals | M | P0 | 0.5 | Own batch line object, not the Import framework (ADR-0045) |
 | G-18 | In-kind gifts with fair-market value and description | m | P0 | 0.4 | Receipt language differs |
-| G-19 | Donor scoring (recency, frequency, monetary) as rollups | m | P1 | 0.8 | Copies NPC's good idea |
+| G-19 | Donor scoring (recency, frequency, monetary) as rollups | m | P1 | 0.9 | Copies NPC's good idea |
 | G-20 | Accounting posting flag and period lock | m | P1 | 0.6 | Prevents edits to posted gifts |
 | G-21 | Stock and planned gift types with extra fields | m | P2 | 1.x | |
 | G-22 | Membership tracking (levels with expiry, renewal reminders) | M | P2 | 1.x | Common ask; separate module candidate |
+| G-23 | Gift import: Giving's `ImportEntityProcessor` resolves gift, allocations (split across funds by amount or percent), soft credit and tribute; tags and undoes its own records, keeping any gift with an issued receipt; control totals (expected count and amount) | M | P0 | 0.5 | **[v1]** Completes C-14's gift promise; Agentforce Nonprofit and NPSP gift templates depend on it; brought into v0.5 by owner decision (2026-09-23) because gift import does not work today |
+| G-24 | Donation matching: match an incoming gift to an existing gift by external ID or to an open installment within a date window and amount tolerance; four behaviours; closest date wins, a tie is rejected | m | P0 | 0.5 | **[v1]** NPSP Donation Matching parity; owner decision 2026-09-23 |
 
 ### 5.3 Volunteers package
 
 | ID | Feature | Size | Pri | Iter | Notes |
 |---|---|---|---|---|---|
-| V-01 | Volunteer profile on Contact; Jobs; Shifts | M | P0 | 0.7 | |
-| V-02 | Sign-ups and staff-entered hours with approval | M | P0 | 0.7 | No portal in v1 |
-| V-03 | Hours rollups to contact and household; coordinator dashboard | M | P0 | 0.7 | |
-| V-04 | Skills, availability, interests | m | P0 | 0.7 | |
-| V-05 | Onboarding status (application, background check, orientation) | m | P0 | 0.7 | |
-| V-06 | Volunteer hours import template | m | P0 | 0.7 | |
-| V-07 | Recurring shifts | m | P0 | 0.7 | |
-| V-08 | Hour letters and certificates via the receipts engine | m | P0 | 0.7 | |
+| V-01 | Volunteer profile on Contact; Jobs; Shifts | M | P0 | 0.8 | |
+| V-02 | Sign-ups and staff-entered hours with approval | M | P0 | 0.8 | No portal in v1 |
+| V-03 | Hours rollups to contact and household; coordinator dashboard | M | P0 | 0.8 | |
+| V-04 | Skills, availability, interests | m | P0 | 0.8 | |
+| V-05 | Onboarding status (application, background check, orientation) | m | P0 | 0.8 | |
+| V-06 | Volunteer hours import template | m | P0 | 0.8 | Built on C-33 load one object |
+| V-07 | Recurring shifts | m | P0 | 0.8 | |
+| V-08 | Hour letters and certificates via the receipts engine | m | P0 | 0.8 | |
 | V-09 | Public sign-up page (Sites, unauthenticated) | M | P2 | 1.x | Guest user security review burden |
 
 ### 5.4 Programs package
 
 | ID | Feature | Size | Pri | Iter | Notes |
 |---|---|---|---|---|---|
-| P-01 | Program, Service, Enrollment | M | P0 | 0.8 | |
-| P-02 | Attendance and service delivery logging (grid, mobile) | M | P0 | 0.8 | |
+| P-01 | Program, Service, Enrollment | M | P0 | 0.9 | |
+| P-02 | Attendance and service delivery logging (grid, mobile) | M | P0 | 0.9 | |
 | P-03 | Moved to the Logic Models package as L-02 (owner decision, Brandon, 2026-09-23) | | | | Outcomes live in Logic Models only, so there is one outcome model |
-| P-04 | Case notes (dated, typed, private by default) | m | P0 | 0.8 | Sharing preset for participant privacy |
-| P-05 | Program dashboard | m | P0 | 0.8 | |
-| P-06 | Program import template (roster) | m | P0 | 0.8 | |
-| P-07 | Intake and eligibility fields with configurable picklists | m | P0 | 0.8 | |
-| P-08 | Participant privacy sharing preset | m | P0 | 0.8 | |
+| P-04 | Case notes (dated, typed, private by default) | m | P0 | 0.9 | Sharing preset for participant privacy |
+| P-05 | Program dashboard | m | P0 | 0.9 | |
+| P-06 | Program import template (roster) | m | P0 | 0.9 | Built on C-33 load one object |
+| P-07 | Intake and eligibility fields with configurable picklists | m | P0 | 0.9 | |
+| P-08 | Participant privacy sharing preset | m | P0 | 0.9 | |
 | P-09 | Waitlists and capacity | m | P2 | 1.x | |
 
 ### 5.5 Funders package
 
 | ID | Feature | Size | Pri | Iter | Notes |
 |---|---|---|---|---|---|
-| F-01 | Funder pipeline: opportunities applied for, awards, stages, amounts, decision dates | M | P0 | 0.9 | Funder is an Organization Account |
-| F-02 | Reporting requirements and deadlines with reminders | M | P0 | 0.9 | Serves market need #1 |
-| F-03 | Restricted fund tracking: received, released or spent entries, balance | M | P0 | 0.9 | Simple ledger, not accounting |
-| F-04 | Government award fields (assistance listing number, award number, period, drawdowns) | m | P0 | 0.9 | |
-| F-05 | Multi-year award schedules | m | P0 | 0.9 | Reuses Commitment and Installment |
-| F-06 | Funder report merge template | m | P0 | 0.9 | |
-| F-07 | Board dashboard (revenue mix, concentration, restricted balances) | m | P0 | 0.9 | |
-| F-08 | Deadline calendar view | m | P0 | 0.9 | |
+| F-01 | Funder pipeline: opportunities applied for, awards, stages, amounts, decision dates | M | P0 | 0.10 | Funder is an Organization Account |
+| F-02 | Reporting requirements and deadlines with reminders | M | P0 | 0.10 | Serves market need #1 |
+| F-03 | Restricted fund tracking: received, released or spent entries, balance | M | P0 | 0.10 | Simple ledger, not accounting |
+| F-04 | Government award fields (assistance listing number, award number, period, drawdowns) | m | P0 | 0.10 | |
+| F-05 | Multi-year award schedules | m | P0 | 0.10 | Reuses Commitment and Installment |
+| F-06 | Funder report merge template | m | P0 | 0.10 | |
+| F-07 | Board dashboard (revenue mix, concentration, restricted balances) | m | P0 | 0.10 | |
+| F-08 | Deadline calendar view | m | P0 | 0.10 | |
 
 ### 5.6 Connect package
 
@@ -473,7 +518,7 @@ Priority: **P0** must ship before v1.0; **P1** should ship before v1.0 if the it
 | X-04 | Accounting export (CSV by fund, date, method) | m | P0 | 0.6 | |
 | X-05 | NPSP coexistence: adopt household accounts, map record types | m | P0 | 0.6 | |
 | X-06 | API documentation and sample payloads | m | P0 | 0.6 | |
-| X-07 | Gift Transaction mirror (Agentforce Nonprofit) | M | P0 | 0.9 | Dynamic Apex only |
+| X-07 | Gift Transaction mirror (Agentforce Nonprofit) | M | P0 | 0.10 | Dynamic Apex only |
 | X-08 | Webhook receivers for common processors (community-contributed) | m | P2 | 1.x | Belongs to the community |
 
 ### 5.7 Logic Models package
@@ -482,12 +527,12 @@ Owner decision (Brandon, 2026-09-23): Logic Models is its own package, working a
 
 | ID | Feature | Size | Pri | Iter | Notes |
 |---|---|---|---|---|---|
-| L-01 | Logic model builder in the app: inputs, activities, outputs, outcomes (short, intermediate and long term), impact, and the assumptions between them; one for the organization and optionally one per program | M | P0 | 0.8 | Built in the Nonprofit Hub, never in Setup |
-| L-02 | Indicators on outputs and outcomes: unit, baseline, target and result per period | M | P0 | 0.8 | Absorbs P-03 |
-| L-03 | Indicator sources: manual entry, import, or computed from any object (service deliveries, attendance, volunteer hours, gifts) | M | P0 | 0.8 | No dependency on Programs, Volunteers or Giving. The computed source must be proven before v0.8 starts: the audit of 2026-09-23 found Core's rollup engine needs a lookup from the source record to the indicator period, which no source object has; try a standard report as the source first |
-| L-04 | Logic model report, comparing periods, ready to send to a funder | m | P0 | 0.8 | |
+| L-01 | Logic model builder in the app: inputs, activities, outputs, outcomes (short, intermediate and long term), impact, and the assumptions between them; one for the organization and optionally one per program | M | P0 | 0.9 | Built in the Nonprofit Hub, never in Setup |
+| L-02 | Indicators on outputs and outcomes: unit, baseline, target and result per period | M | P0 | 0.9 | Absorbs P-03 |
+| L-03 | Indicator sources: manual entry, import, or computed from any object (service deliveries, attendance, volunteer hours, gifts) | M | P0 | 0.9 | No dependency on Programs, Volunteers or Giving. The computed source must be proven before v0.9 starts: the audit of 2026-09-23 found Core's rollup engine needs a lookup from the source record to the indicator period, which no source object has; try a standard report as the source first |
+| L-04 | Logic model report, comparing periods, ready to send to a funder | m | P0 | 0.9 | |
 | L-05 | Evidence log: what supports each assumption, with its source | m | P1 | 1.x | |
-| L-06 | Link outcomes to grant deliverables when Funders is installed | m | P1 | 0.9 | No hard dependency in either direction |
+| L-06 | Link outcomes to grant deliverables when Funders is installed | m | P1 | 0.10 | No hard dependency in either direction |
 
 ---
 
@@ -501,14 +546,15 @@ Each iteration targets about three major and five minor features, plus engineeri
 | **v0.2** | Giving core | G-01, C-13, C-14 | G-02, G-03, G-04, G-05, G-06 (plus C-12 Setup Assistant full) | Rollup build-vs-vendor decision recorded; performance baseline (10k gifts) |
 | **v0.3** | Commitments, relationships, addresses | G-07, C-15, C-17 | C-16, G-08, G-09, G-10, G-11 | NPSP import templates; second package (Giving) published |
 | **v0.4** | Stewardship and receipting | G-12, G-13, G-14 | G-15, G-16, G-18, C-18, gift receipt PDF branding settings | PDF generation approach settled (Visualforce render as PDF vs LWC print) |
-| **v0.5** | Import 2.0 and coexistence hardening | C-19, G-17, C-22 | C-20, C-21, NPC import templates, XLSX support, undo retention setting | Person Account scratch org shape in CI |
+| **v0.5** | Import 2.0, gift import, and coexistence hardening | C-19, G-17, C-22, G-23 gift import | C-20, C-21, G-24 donation matching, NPC import templates, XLSX support, undo retention setting | Person Account scratch org shape in CI. Four major features, above the usual three, because gift import does not work today (no package implements `ImportEntityProcessor`; the Core class looks up `GiftImportProcessor`, which does not exist) and the first customers must migrate gifts (owner decision, 2026-09-23) |
 | **v0.6** | Connect | X-01, X-03, C-23 (as the third major-sized effort) | X-02, X-04, X-05, X-06, G-20, C-29 neutral Core | Connect package published; dynamic Apex conventions documented; Core installs alone with no nonprofit wording |
-| **v0.7** | Volunteers | V-01, V-02, V-03, C-24 Module Manager with C-30 suite choice | V-04, V-05, V-06, V-07, V-08 | Volunteers package published; Module Manager and suite choice tested with install links |
-| **v0.8** | Programs and Logic Models | P-01, P-02, L-01, L-02, L-03 | P-04, P-05, P-06, P-07, P-08, L-04 (plus C-25, G-19 if capacity) | Programs and Logic Models packages published; participant privacy sharing verified. Five major features, above the usual three, because Logic Models ships with Programs by owner decision (2026-09-23) |
-| **v0.9** | Funders and Agentforce Nonprofit mirror | F-01, F-02, F-03, X-07 | F-04, F-05, F-06, F-07, F-08, L-06 | Funders package published |
-| **v0.10** | Hardening | Security review remediation; scale test (100k contacts, 1M gifts) and fixes; complete admin and contributor docs; C-31 migration kit for production pilots | Accessibility fixes; mobile audit; translation readiness; upgrade-path tests from every prior version; C-26 telemetry | Code Analyzer and manual security checklist clean; security review submission prepared |
-| **v0.11** | Beta | Beta cohort of at least ten orgs with structured feedback; Setup Assistant polish against measured time-to-first-gift; NPSP self-migration playbook validated on real orgs | C-27, release-notes automation, support triage process, community forum, sample data v2 | Security review submitted; Trailblazer Community group; issue templates tuned |
-| **v0.12** | AppExchange | Listing content, screenshots, demo org; final review fixes; launch communications | Whatever the beta surfaced | **v1.0 tagged on listing approval** |
+| **v0.7** | Data management | C-33, C-34, C-35 | C-32, admin-guide pages for Find and Bulk update | Security review notes for the query compiler; a 250,000-row import and a 50,000-record bulk update with undo in the scale org (owner decision, 2026-09-23) |
+| **v0.8** | Volunteers | V-01, V-02, V-03, C-24 Module Manager with C-30 suite choice | V-04, V-05, V-06, V-07, V-08 | Volunteers package published; Module Manager and suite choice tested with install links |
+| **v0.9** | Programs and Logic Models | P-01, P-02, L-01, L-02, L-03 | P-04, P-05, P-06, P-07, P-08, L-04 (plus C-39, G-19 if capacity) | Programs and Logic Models packages published; participant privacy sharing verified. Five major features, above the usual three, because Logic Models ships with Programs by owner decision (2026-09-23) |
+| **v0.10** | Funders and Agentforce Nonprofit mirror | F-01, F-02, F-03, X-07 | F-04, F-05, F-06, F-07, F-08, L-06 | Funders package published |
+| **v0.11** | Hardening | Security review remediation; scale test (100k contacts, 1M gifts) and fixes; complete admin and contributor docs; C-31 migration kit for production pilots | Accessibility fixes; mobile audit; translation readiness; upgrade-path tests from every prior version; C-26 telemetry | Code Analyzer and manual security checklist clean; security review submission prepared |
+| **v0.12** | Beta | Beta cohort of at least ten orgs with structured feedback; Setup Assistant polish against measured time-to-first-gift; NPSP self-migration playbook validated on real orgs | C-27, release-notes automation, support triage process, community forum, sample data v2 | Security review submitted; Trailblazer Community group; issue templates tuned |
+| **v0.13** | AppExchange | Listing content, screenshots, demo org; final review fixes; launch communications | Whatever the beta surfaced | **v1.0 tagged on listing approval** |
 
 ### 6.1 Post-1.0 themes (parking, ordered by expected demand)
 
@@ -521,6 +567,9 @@ Each iteration targets about three major and five minor features, plus engineeri
 7. AI-readiness pack: documented export schemas and a canonical-model JSON export so any AI tool can be grounded in clean data.
 8. Localization (Spanish first).
 9. CMDT Manager (for consideration, not scheduled; Brandon, 2026-09-22): an in-app tab, in both editions, where holders of a CMDT Admin permission set add, edit and archive custom metadata records through a familiar list view and record view. Known constraints: saving a record is an asynchronous metadata deployment; an unlocked package needs the org setting "Deploy Metadata from Non-Certified Package Versions via Apex"; the editor needs Customize Application and Modify Metadata, which is why the permission set is an admin one; standard list views and record pages do not support custom metadata, so the UI is custom; the Apex Metadata API cannot delete records, so archive is a field on each editable type. Moving user-editable configuration to custom objects was offered as the simpler alternative and is not accepted yet.
+10. Analytics module, with field utilization as its first feature (for consideration, not scheduled; Brandon, 2026-09-23). For each object, and each record type where one is used, the share of records that hold a value in each field, with trends from saved snapshots, so an administrator can see which fields nobody fills in, which are worth making required, and which can be retired. A batch job counts field values in the org and stores each run as snapshot records, reported through standard reports and dashboards, with no CRM Analytics dependency. It is neutral, so both suites get it. It works with the data hygiene console (C-28) and the data management tools: a low-use field can go straight into a query or a bulk update. "Where is this field used" (page layouts, record pages, reports, flows) needs the Tooling or Metadata API, which means a callout to the org's own API; that part waits for the same decision as connections to other systems.
+11. Data management 2 (C-36 typed SOQL, subqueries, aggregates, XLSX export, inline edit; C-37 transforms, dedupe on import, bulk delete).
+12. Scheduled imports and connections to other systems (C-38), owner decision 2026-09-23.
 
 ### 6.2 Priority rules used (so future re-prioritization stays consistent)
 
@@ -539,7 +588,7 @@ Because the first customers are Nonprofit Cloud / Agentforce Nonprofit orgs (Sec
 
 - C-22 (junction membership hardening with Person Accounts) moves from v0.5 into v0.1 and v0.2: v0.1 ships junction mode as a working, tested path (Household_Member__c with Person Account members through dynamic field access, naming and greetings from Person Account name fields, sample data that loads as Person Accounts when they are enabled); v0.2 finishes hardening (merge, split, rollups through the junction).
 - The Person Accounts org shape is the primary CI shape; a true Nonprofit Cloud scratch org shape (Industries features) is added as soon as the feature name is verified (owner follow-up).
-- X-07 (Gift Transaction mirror) moves from v0.9 to v0.6; X-05 (NPSP coexistence: adopt household accounts) moves from v0.6 to v0.9. The NPSP org shape stays in CI but is not gating for v0.1 to v0.5 acceptance.
+- X-07 (Gift Transaction mirror) moves from v0.10 to v0.6; X-05 (NPSP coexistence: adopt household accounts) moves from v0.6 to v0.10. The NPSP org shape stays in CI but is not gating for v0.1 to v0.5 acceptance.
 - Import templates: Agentforce Nonprofit (Gift Transaction and related) ship with C-14 in v0.2; NPSP templates move to v0.5.
 - Every entity that references a person (Household Member, Gift donor, Soft Credit, Relationship, Affiliation, Address personal owner, Tribute honoree and recipient) carries both a Contact reference and an Account reference with the rule that exactly one is set, so Person Account people work everywhere without a compile-time dependency (Section 4.2 hard rules still apply: no Person Account field is referenced statically in Core).
 - **Dependency rule reaffirmed by the owner (2026-09-07):** focusing on Nonprofit Cloud / Agentforce Nonprofit customers does not create a dependency on them. All core functionality depends only on this product and on functionality included with the Salesforce platform: no additional cloud, Industries object, permission set license, or add-on product is ever required (Principle 4, D-09). Integrations with other solutions (Nonprofit Cloud objects, NPSP, payment processors, accounting) live in the Connect package or later adapters and are optional. Vendored open source code is included as source under the project license, never as a package dependency.
@@ -560,7 +609,7 @@ Because the first customers are Nonprofit Cloud / Agentforce Nonprofit orgs (Sec
 - Every trigger goes through the trigger framework; one trigger per object; handlers are bypassable.
 - Every `@AuraEnabled` method validates input and returns a typed result or a structured error the UI can render.
 - Governor-limit safety proven by tests that insert 200 records per DML context.
-- LWC: no third-party JS except vetted static resources (SheetJS for import parsing is the only pre-approved one; record any addition as a decision). Jest tests for every component with logic.
+- LWC: no third-party JS except vetted static resources. None is used today: SheetJS's pre-approval for import parsing is unused, since C-19 reads XLSX in the browser without it (the C-19 XLSX ADR). Record any addition as a decision. Jest tests for every component with logic.
 - Salesforce Code Analyzer (PMD, ESLint, retire-js, Graph Engine for FLS/CRUD) must pass with zero high or critical findings on every pull request. This is the single best predictor of passing security review.
 - Apex test coverage target 90% per package; 75% is the platform minimum and is not the target.
 
@@ -569,7 +618,7 @@ Because the first customers are Nonprofit Cloud / Agentforce Nonprofit orgs (Sec
 - **Unit tests** per class, data created through a shared `TestDataFactory` in Core (exposed `@IsTest global` so module packages can use it).
 - **Org-shape matrix in CI:** every pull request runs tests on four scratch org definitions: Platform-only, Sales Cloud, Sales Cloud with NPSP installed, and Person Accounts enabled (simulating Agentforce Nonprofit shape; a true Nonprofit Cloud scratch org needs the Industries features flag, add it when available). Connect's dynamic Apex is verified by the Platform-only shape where the objects are absent.
 - **Upgrade tests:** install version N-1, load sample data, upgrade to N, run assertions. Automated from v0.3 onward.
-- **Scale tests** (v0.10): 100k contacts, 40k households, 1M gifts, rollup full recalculation within platform limits; import of a 250k-row file.
+- **Scale tests** (v0.11): 100k contacts, 40k households, 1M gifts, rollup full recalculation within platform limits; import of a 250k-row file.
 - **Manual acceptance:** each feature has a scripted walkthrough in its admin-guide page that a human (Brandon) performs before the iteration is promoted. Playwright end-to-end tests are optional and post-0.6.
 
 ### 7.4 Definition of done (per feature)
@@ -598,7 +647,7 @@ Because the first customers are Nonprofit Cloud / Agentforce Nonprofit orgs (Sec
 
 ## 8. AppExchange and open source readiness
 
-### 8.1 AppExchange path (start in v0.1, not v0.10)
+### 8.1 AppExchange path (start in v0.1, not v0.11)
 
 - Join the Salesforce Partner Program as an ISV and obtain the Partner Business Org; use it as the Dev Hub for all promoted package versions. (Verify current program terms and whether the security review fee is waived for free listings; historically it has been reduced or waived for free apps, but confirm in writing.)
 - Package versions must be created from the Dev Hub that will own the listing; creating early versions from a throwaway Dev Hub means re-creating the package with new IDs later. Decide the Dev Hub before v0.1's first package version.
@@ -618,6 +667,8 @@ Because the first customers are Nonprofit Cloud / Agentforce Nonprofit orgs (Sec
 ### 8.3 Name and trademark
 
 **Update 2026-09-23 (Brandon):** "Open Impact" is not available. The tentative new name is BarnCRM, covering the Impact Suite (nonprofits) and the Community Suite (for-profit and other organizations). The same checks apply before any public use. The repository, labels and docs keep the working title until the name is verified, then are renamed in one pass.
+
+**Name vetting behind BarnCRM (2026-09-23, Brandon with Claude).** About 900 candidates were screened by web search and DNS (not a legal clearance). Brandon's criteria: short, memorable, meaningful, natural (a word people already say; no suffix formulas such as -ly, no glued compounds, no uncommon words). His legal gate: any conflict, including a caution, rejects a name, because the project will not risk a legal dispute. Barn was the only strong name to pass. Story: the barn raising, where the whole community builds what no one could alone; also where you keep what matters and get work done. Positioning: simple and human, a calm contrast to AI-agent fatigue; pitched as simple, never as anti-AI, because the product lives on Salesforce's platform. Mascot: sea otters. Open items before public use: a full trademark search (USPTO classes 9, 35, 42, state and common law) with attention to Barnfox (a members app) and BARN OWL (computer services); register barncrm.org and barncrm.com (both showed no DNS on 2026-09-23); confirm the namespace in the Dev Hub; use "BarnCRM" consistently because "barn" alone is unsearchable. Rejected finalists, so they are not screened again: Raft (Raftr sells engagement software to nonprofits), Potluck (Potluck Inc software filing), Kindred (KINDRED software mark, Kindred CRM app), Hearth (Hearth sells CRM features), Meadow (MEADOW software registration, Meadow CRM), Kelp (Kelp Global CRM module), Nimbus (S-Nimbus AppExchange partner, TIBCO mark), Tend (TEND class 9 mark), Steward (Steward nonprofit CRM), Bandly (Naver BAND, getbandly.com), Barnly (barnly.app, barnly.life), Moyo (MOYO Salesforce partner), Comun (Común fintech), Impactly, OpenCRM; Skein, Everyhand, Manykin, Holdfast and the -ly coinages failed Brandon's taste; Stockpot, Bakesale, Clambake, Pledgehog and Lull passed the gate but scored lower.
 
 **Re-opened 2026-09-06 (later the same day):** Brandon found that "Open Impact" is already in use, including by a foundation that funds open source work, which is too close to this project to share a name. "Open Impact" is now only a placeholder working title in the repository until a replacement is chosen and thoroughly vetted (USPTO, AppExchange, GitHub, npm, domains, social handles, Salesforce namespace). D-01 is therefore open again; the fallback "OpenCause" must go through the same vetting before use.
 
@@ -749,7 +800,7 @@ Brandon directed the build session to run features from several iterations at on
 |---|---|---|---|
 | Namespace or Dev Hub chosen wrong early, forcing package re-creation | Medium | High | Blocking decision before any package version (Section 9.1) |
 | Custom `Gift__c` instead of Opportunity alienates NPSP-dependent apps and consultants | Medium | Medium | Opportunity mirror (X-01) in v0.6; document clearly; the Platform-license win is worth it |
-| Security review takes months and finds structural issues | Medium | High | Code Analyzer gate from v0.1; user-mode everywhere; review-readiness in v0.10, not at the end |
+| Security review takes months and finds structural issues | Medium | High | Code Analyzer gate from v0.1; user-mode everywhere; review-readiness in v0.11, not at the end |
 | Multi-package install friction confuses Maria | High | Medium | Module Manager (C-24); Core plus Giving may ship as a bundled install link; measure time-to-first-gift in beta |
 | Rollup engine correctness bugs damage trust | Medium | Very high | Vendor a proven library if criteria met; exhaustive path tests; nightly reconciliation mode |
 | Salesforce changes the platform or Power of Us terms | Low | High | No Industries dependency; Platform-license floor is the hedge |
@@ -807,6 +858,7 @@ Adding any package dependency; adding a standard-object reference outside Connec
 | D-10 | Receipts are immutable; corrections void and reissue; refunds are negative linked gifts | Editable amounts | Audit integrity; tax receipt correctness |
 | D-11 | Rollup engine: evaluate vendoring a proven MIT-licensed Apex rollup library before building | Build from scratch first | Principle 8; correctness risk is highest in rollups |
 | D-12 | Trunk-based development, squash merges, `main` always releasable | Git flow | Simplicity for a small team with AI agents |
+| D-13 | Data management scope and phasing (Brandon, 2026-09-23; ADR-0047): an in-org tool with NPSP Data Importer parity, a Jetstream-style find and bulk update, and the useful dataimporter.io capabilities, the most useful in v1. Everything runs in the org with no call to Salesforce's own APIs; queries are compiled from a document and run in user mode, with no typed SOQL in v1 (C-36 later); bulk update is a journaled data job on `Import_Batch__c`, undoable through the import journal; gift import and donation matching (G-23, G-24) move to v0.5; a new v0.7 Data management iteration holds C-32 to C-35; bulk delete (C-37) and scheduled imports and connections to other systems (C-38) come after 1.0. Never built: Jetstream's metadata, Apex, permission and API tools, and dataimporter.io's org-to-org migration and backup | Leave data management to Data Loader, Jetstream and dataimporter.io; a Bulk API path through a Named Credential; typed SOQL from v1; bulk update with no undo; reusing Jetstream's code; folding C-34 and C-35 into Hardening instead of a new iteration | Maria works in labels, not API names, and needs a preview and an undo; every read and write runs with her own access and sharing; no connected app, stored token or third party holds donor data; a Lightning session cannot call the REST or Bulk API; Jetstream is Apache-2.0 with the Commons Clause, not open source, so its ideas are used and its code is not; a new iteration keeps the three-major rule and puts the tools in front of the beta cohort |
 
 ---
 
