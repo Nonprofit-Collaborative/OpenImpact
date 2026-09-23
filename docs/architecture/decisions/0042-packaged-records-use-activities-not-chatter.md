@@ -1,4 +1,4 @@
-# ADR-NEXT: Packaged records use activities, not Chatter
+# ADR-0042: Packaged records use activities, not Chatter
 
 **Status:** Accepted
 **Date:** 2026-09-23

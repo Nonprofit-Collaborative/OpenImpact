@@ -1,4 +1,4 @@
-# ADR-NEXT: Core ships no Contact record type
+# ADR-0041: Core ships no Contact record type
 
 **Status:** Accepted
 **Date:** 2026-09-23
