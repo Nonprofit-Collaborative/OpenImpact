@@ -195,6 +195,22 @@ jobs:
         if: steps.check.outputs.enabled == 'true'
         run: bash scripts/org/deploy-packages.sh testorg
 
+      # A real install gives the installing administrator the admin roles, and the tests run
+      # as that user in user mode. Deploying metadata grants no field access by itself, so
+      # without this every test that writes a packaged field fails as "inaccessible". An
+      # assignment that already exists is reported and ignored; any other failure shows here.
+      - name: Give the test user the packaged admin roles
+        if: steps.check.outputs.enabled == 'true'
+        run: |
+          for ps in Nonprofit_Admin Giving_Admin; do
+            sf org assign permset --name "$ps" --target-org testorg --json > assign.json || true
+            if jq -e '.result.failures[]? | select(.message | test("Duplicate") | not)' assign.json > /dev/null; then
+              cat assign.json
+              exit 1
+            fi
+            echo "$ps assigned (or already assigned)"
+          done
+
       - name: Run Apex tests
         if: steps.check.outputs.enabled == 'true'
         run: |
@@ -207,7 +223,7 @@ jobs:
             --wait 30
 
       - name: Upload test results
-        if: steps.check.outputs.enabled == 'true'
+        if: always() && steps.check.outputs.enabled == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: test-results
