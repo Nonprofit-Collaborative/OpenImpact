@@ -246,7 +246,7 @@ Detection is automatic in the Setup Assistant (describe calls for `npsp__` objec
 
 **Purpose:** give nonprofits an easier alternative to Party Relationship Groups and a faithful, improved successor to NPSP households.
 
-- **Household = Account with record type `Household`.** Organizations are Accounts with record type `Organization`. Both record types are packaged with default page layouts and compact layouts.
+- **Household = Account with record type `Household`.** Organizations are Accounts with record type `Organization`. Both record types are packaged with compact layouts and share one Lightning record page built with Dynamic Forms, whose field sections show or hide by record type where Household and Organization differ. Each object keeps one minimal fallback page layout, and no profile layout assignments are packaged (owner decision, Brandon, 2026-09-23).
 - **Membership has two modes**, abstracted behind one Apex service (`HouseholdService`) so no other code cares which is in use:
   - **Contact mode** (default): `Contact.AccountId` points to the Household Account. Simple, reportable, NPSP-compatible, compatible with every AppExchange app that assumes Contact belongs to Account.
   - **Junction mode** (required when Person Accounts are enabled; optional otherwise): `Household_Member__c` junction with lookups to Contact (for business contacts) or Account (for Person Accounts), plus `Role__c`, `Is_Primary__c`, `Start_Date__c`, `End_Date__c`. Enables one person in multiple households (divorced parents, students) and full history.
@@ -359,7 +359,7 @@ Priority: **P0** must ship before v1.0; **P1** should ship before v1.0 if the it
 | C-05 | Error Log object, Hub tile, daily digest | m | P0 | 0.1 | |
 | C-06 | Packaged permission sets and groups; in-app access assignment page | m | P0 | 0.1 | Never require cloning |
 | C-07 | Coexistence mode setting with automatic detection | m | P0 | 0.1 | Section 4.5 |
-| C-08 | Record types, page layouts, compact layouts, list views for Contact and Account | m | P0 | 0.1 | Dynamic Forms where supported |
+| C-08 | Record types, page layouts, compact layouts, list views for Contact and Account | m | P0 | 0.1 | Lightning record pages with Dynamic Forms; one minimal fallback layout per object; no Chatter feed, activity panel kept |
 | C-09 | Household merge and split tools | m | P0 | 0.1 | Recalculates rollups |
 | C-10 | Sample data loader (a realistic 200-household demo set) | m | P0 | 0.1 | Used by tests, demos, and the Setup Assistant |
 | C-11 | Health Check v1 (org shape, license shape, access gaps) | m | P0 | 0.1 | |
@@ -700,7 +700,7 @@ Brandon directed the build session to run features from several iterations at on
 
 ### 10.3 v0.1 metadata inventory (starting point; the canonical model governs)
 
-- Account record types: Household, Organization. Contact: one record type (Household Contact) so orgs can add their own.
+- Account record types: Household, Organization. Contact: no packaged record type (owner decision, Brandon, 2026-09-23). The former Household Contact record type drove no behavior, and an org can add its own Contact record types without one.
 - Account fields: `Household_Formal_Greeting__c`, `Household_Informal_Greeting__c`, `Custom_Name__c`, `Primary_Contact__c`, `Member_Count__c`, `Anniversary__c`.
 - Contact fields: `Deceased__c`, `Household_Role__c` (Head, Spouse or Partner, Child, Other), `Exclude_From_Household_Name__c`, `Exclude_From_Greetings__c`, `Preferred_Name__c`.
 - Objects: `Household_Member__c` (junction, used only in junction mode), `Error_Log__c`, `Automation_Setting__c` (or custom metadata plus custom setting per D-06), `Setting_Change__c` (audit).
