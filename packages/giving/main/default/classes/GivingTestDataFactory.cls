@@ -159,12 +159,12 @@ public class GivingTestDataFactory {
             );
         }
         for (Error_Log__c entry : [
-            SELECT Context__c, Message__c
+            SELECT Context__c, Message__c, Technical_Detail__c
             FROM Error_Log__c
             ORDER BY CreatedDate
             LIMIT 20
         ]) {
-            facts.add(entry.Context__c + ': ' + entry.Message__c);
+            facts.add(entry.Context__c + ': ' + entry.Technical_Detail__c);
         }
         Assert.fail(
             'The rollup engine wrote nothing to the total. Jobs and Error Log: ' +

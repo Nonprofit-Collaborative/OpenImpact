@@ -98,6 +98,7 @@ private class GiftRollupRefundTest {
         List<Rollup_Definition__c> definitions = [
             SELECT
                 Id,
+                Name,
                 Definition_Key__c,
                 Source_Object__c,
                 Target_Object__c,
