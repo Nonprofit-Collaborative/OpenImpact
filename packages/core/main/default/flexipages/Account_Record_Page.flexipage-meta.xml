@@ -17,20 +17,28 @@
   <flexiPageRegions>
     <itemInstances>
       <componentInstance>
-        <componentName>householdOfPerson</componentName>
-        <identifier>householdOfPerson</identifier>
-      </componentInstance>
-    </itemInstances>
-    <itemInstances>
-      <componentInstance>
-        <componentName>relationshipPanel</componentName>
-        <identifier>relationshipPanel</identifier>
+        <componentName>householdMembersPanel</componentName>
+        <identifier>householdMembersPanel</identifier>
+        <visibilityRule>
+          <criteria>
+            <leftValue>{!Record.RecordType.DeveloperName}</leftValue>
+            <operator>EQUAL</operator>
+            <rightValue>Household</rightValue>
+          </criteria>
+        </visibilityRule>
       </componentInstance>
     </itemInstances>
     <itemInstances>
       <componentInstance>
         <componentName>affiliationPanel</componentName>
         <identifier>affiliationPanel</identifier>
+        <visibilityRule>
+          <criteria>
+            <leftValue>{!Record.RecordType.DeveloperName}</leftValue>
+            <operator>EQUAL</operator>
+            <rightValue>Organization</rightValue>
+          </criteria>
+        </visibilityRule>
       </componentInstance>
     </itemInstances>
     <itemInstances>
@@ -74,8 +82,8 @@
     <name>sidebar</name>
     <type>Region</type>
   </flexiPageRegions>
-  <masterLabel>Household Contact Record Page</masterLabel>
-  <sobjectType>Contact</sobjectType>
+  <masterLabel>Account Record Page</masterLabel>
+  <sobjectType>Account</sobjectType>
   <template>
     <name>flexipage:recordHomeTemplateDesktop</name>
   </template>

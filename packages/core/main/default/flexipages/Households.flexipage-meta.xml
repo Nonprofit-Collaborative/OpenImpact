@@ -14,19 +14,10 @@
           <name>filterName</name>
           <value>Households</value>
         </componentInstanceProperties>
-        <componentInstanceProperties>
-          <name>showActionBar</name>
-          <value>true</value>
-        </componentInstanceProperties>
-        <componentInstanceProperties>
-          <name>showListViewSelector</name>
-          <value>true</value>
-        </componentInstanceProperties>
-        <componentName>force:listViewManager</componentName>
-        <identifier>force_listViewManagerHouseholds</identifier>
+        <componentName>flexipage:filterListCard</componentName>
+        <identifier>flexipage_filterListCardHouseholds</identifier>
       </componentInstance>
     </itemInstances>
-    <mode>Replace</mode>
     <name>main</name>
     <type>Region</type>
   </flexiPageRegions>

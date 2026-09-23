@@ -14,19 +14,10 @@
           <name>filterName</name>
           <value>Organizations</value>
         </componentInstanceProperties>
-        <componentInstanceProperties>
-          <name>showActionBar</name>
-          <value>true</value>
-        </componentInstanceProperties>
-        <componentInstanceProperties>
-          <name>showListViewSelector</name>
-          <value>true</value>
-        </componentInstanceProperties>
-        <componentName>force:listViewManager</componentName>
-        <identifier>force_listViewManagerOrganizations</identifier>
+        <componentName>flexipage:filterListCard</componentName>
+        <identifier>flexipage_filterListCardOrganizations</identifier>
       </componentInstance>
     </itemInstances>
-    <mode>Replace</mode>
     <name>main</name>
     <type>Region</type>
   </flexiPageRegions>

@@ -306,11 +306,6 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
-    <field>Acknowledgment_Rule__c.Channel__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
     <field>Acknowledgment_Rule__c.Description__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -341,22 +336,12 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
-    <field>Acknowledgment_Rule__c.Order__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
     <field>Acknowledgment_Run__c.Acknowledgments_Sent__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
     <field>Acknowledgment_Run__c.Async_Job_Id__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Acknowledgment_Run__c.Channel__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -386,27 +371,12 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
-    <field>Acknowledgment_Run__c.Status__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Acknowledgment__c.Channel__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
     <field>Acknowledgment__c.Failure_Reason__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
     <field>Acknowledgment__c.Gift_Key__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Acknowledgment__c.Gift__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -432,11 +402,6 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Acknowledgment__c.Sent_On__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Acknowledgment__c.Status__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -672,11 +637,6 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Donor_Level__c.Maximum_Amount__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Donor_Level__c.Minimum_Amount__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -1016,37 +976,12 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
-    <field>Stewardship_Plan_Step__c.Assign_To__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
     <field>Stewardship_Plan_Step__c.Assigned_User__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
     <field>Stewardship_Plan_Step__c.Comments__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Stewardship_Plan_Step__c.Days_After_Start__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Stewardship_Plan_Step__c.Order__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Stewardship_Plan_Step__c.Stewardship_Plan_Template__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Stewardship_Plan_Step__c.Subject__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -1062,16 +997,6 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Stewardship_Plan_Template__c.Minimum_Amount__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Stewardship_Plan_Template__c.Plan_Key__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>false</editable>
-    <field>Stewardship_Plan_Template__c.Trigger_Event__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -1097,16 +1022,6 @@
   <fieldPermissions>
     <editable>true</editable>
     <field>Stewardship_Plan__c.Gift__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>true</editable>
-    <field>Stewardship_Plan__c.Started_Date__c</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>true</editable>
-    <field>Stewardship_Plan__c.Status__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>

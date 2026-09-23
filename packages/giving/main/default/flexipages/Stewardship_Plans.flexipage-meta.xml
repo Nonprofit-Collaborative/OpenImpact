@@ -4,11 +4,12 @@
     The stewardship plan templates, reached from the Giving section of Nonprofit Settings.
   </description>
   <flexiPageRegions>
-    <componentInstances>
-      <componentName>stewardshipPlans</componentName>
-      <identifier>stewardshipPlansPageComponent</identifier>
-    </componentInstances>
-    <mode>Replace</mode>
+    <itemInstances>
+      <componentInstance>
+        <componentName>stewardshipPlans</componentName>
+        <identifier>stewardshipPlansPageComponent</identifier>
+      </componentInstance>
+    </itemInstances>
     <name>main</name>
     <type>Region</type>
   </flexiPageRegions>

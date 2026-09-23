@@ -17,50 +17,65 @@
       <drillEnabled>true</drillEnabled>
       <footer>Gifts received since the first of this month</footer>
       <header>Gifts this month</header>
+      <indicatorHighColor>#54C254</indicatorHighColor>
+      <indicatorLowColor>#C25454</indicatorLowColor>
+      <indicatorMiddleColor>#C2C254</indicatorMiddleColor>
       <report>Open_Impact_Giving/Gifts_This_Month_by_Day</report>
     </components>
     <components>
+      <chartAxisRange>Auto</chartAxisRange>
       <componentType>Column</componentType>
       <drillEnabled>true</drillEnabled>
       <header>This month, day by day</header>
       <legendPosition>Bottom</legendPosition>
       <report>Open_Impact_Giving/Gifts_This_Month_by_Day</report>
+      <sortBy>RowLabelAscending</sortBy>
     </components>
   </leftSection>
   <middleSection>
     <columnSize>Medium</columnSize>
     <components>
+      <chartAxisRange>Auto</chartAxisRange>
       <componentType>Column</componentType>
       <drillEnabled>true</drillEnabled>
       <footer>The last twelve months, this month at the right</footer>
       <header>Giving by month</header>
       <legendPosition>Bottom</legendPosition>
       <report>Open_Impact_Giving/Giving_by_Month</report>
+      <sortBy>RowLabelAscending</sortBy>
     </components>
     <components>
+      <chartAxisRange>Auto</chartAxisRange>
       <componentType>Bar</componentType>
       <drillEnabled>true</drillEnabled>
       <header>Giving by fund, this year</header>
       <legendPosition>Bottom</legendPosition>
       <report>Open_Impact_Giving/Giving_by_Fund_This_Year</report>
+      <sortBy>RowValueDescending</sortBy>
     </components>
   </middleSection>
   <rightSection>
     <columnSize>Medium</columnSize>
     <components>
+      <chartAxisRange>Auto</chartAxisRange>
       <componentType>Bar</componentType>
       <drillEnabled>true</drillEnabled>
       <header>Giving by appeal, this year</header>
       <legendPosition>Bottom</legendPosition>
       <report>Open_Impact_Giving/Giving_by_Appeal_This_Year</report>
+      <sortBy>RowValueDescending</sortBy>
     </components>
     <components>
       <componentType>Table</componentType>
       <drillEnabled>true</drillEnabled>
       <footer>Organizations give without a household, so they are not on this list</footer>
       <header>Top donors, this year</header>
+      <indicatorHighColor>#54C254</indicatorHighColor>
+      <indicatorLowColor>#C25454</indicatorLowColor>
+      <indicatorMiddleColor>#C2C254</indicatorMiddleColor>
       <maxValuesDisplayed>10</maxValuesDisplayed>
       <report>Open_Impact_Giving/Top_Donors_This_Year</report>
+      <sortBy>RowValueDescending</sortBy>
     </components>
   </rightSection>
   <textColor>#000000</textColor>

@@ -176,13 +176,18 @@
         <shortDescription>Open the error log</shortDescription>
         <value>Open the Error Log</value>
     </labels>
+    <!-- Core_HouseholdNaming_SampleHouseholds, for translators: translate the names and titles
+         only. The bar, semicolon and comma are structure, not punctuation: one bar between
+         households, one semicolon between people, and six comma separated values per person
+         (title, first name, last name, preferred name, role, Y or N for deceased). A row with
+         fewer than six values is left out of the preview. The short description is capped at
+         80 characters, so the full rule lives here. -->
     <labels>
         <fullName>Core_HouseholdNaming_SampleHouseholds</fullName>
         <categories>Households</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription
-    >Sample households used by the naming preview. Translate the names and titles only. The bar, semicolon and comma are structure, not punctuation: one bar between households, one semicolon between people, and six comma separated values per person (title, first name, last name, preferred name, role, Y or N for deceased). A row with fewer than six values is left out of the preview.</shortDescription>
+        <shortDescription>Naming preview samples: translate names and titles only; keep | ; and ,</shortDescription>
         <value>Mr.,John,Smith,,Head,N;Mrs.,Jane,Smith,,Spouse or Partner,N|Ms.,Maria,Garcia,,Head,N|Ms.,Maria,Garcia,,Head,N;Mr.,Wei,Lee,,Spouse or Partner,N|Dr.,David,Okonkwo,Dave,Head,N;Ms.,Amara,Okonkwo,,Spouse or Partner,N;,Chidi,Okonkwo,,Child,N|Mrs.,Priya,Rivera,,Head,N;Mr.,Tom,Rivera,,Spouse or Partner,Y</value>
     </labels>
     <labels>

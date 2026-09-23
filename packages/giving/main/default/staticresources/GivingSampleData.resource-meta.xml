@@ -3,9 +3,8 @@
   <cacheControl>Private</cacheControl>
   <contentType>application/json</contentType>
   <description>
-    C-10 sample data set, Giving half: funds, appeals, three years of gifts with their
-    allocations, pledges and recurring commitments, soft credits, and tributes, loaded and
-    removed by GivingSampleData alongside Core's households. Regenerate with
-    scripts/data/generate-sample-data.py; see data/sample/README.md.
+    C-10 sample data, Giving half: funds, appeals, three years of gifts, pledges, recurring
+    commitments, soft credits and tributes, loaded by GivingSampleData. Regenerate with
+    scripts/data/generate-sample-data.py.
   </description>
 </StaticResource>

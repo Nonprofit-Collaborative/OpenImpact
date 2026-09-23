@@ -754,6 +754,7 @@ Brandon directed the build session to run features from several iterations at on
 - Text-to-give.
 - Multi-org or affiliate roll-up reporting.
 - An "AI assistant" inside the app (the clean model is the AI strategy for v1).
+- A community Households edition for organizations that are not nonprofits (direction set by Brandon, 2026-09-22; not before Core's first package version). Nonprofits stay on one Core install with no extra step; Core is the primary product and is never split into a base package it depends on. The community edition is a separate unlocked package, installed from a link rather than listed as the nonprofit product, built by CI from Core's household source (a manifest names the shared files; nothing is maintained twice), with its own neutral labels. Packages start as unlocked packages with a registered namespace (Brandon, 2026-09-22), so a later move to managed keeps API names. Both editions use the same neutral namespace: several unlocked packages may share one, Salesforce recommends it, and it keeps the household objects' API names identical so conversion moves no data between objects. Whether Core can take ownership of the community edition's components in place is to be proven in a scratch org before the edition ships. One-way conversion from community to Core is a hidden or manual Setup Assistant step in Core that copies household data into Core's model, written with instructions when the edition exists; no conversion the other way.
 
 ### 11.4 Decisions the builder must escalate rather than make
 

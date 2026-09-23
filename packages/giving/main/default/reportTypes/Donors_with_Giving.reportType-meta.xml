@@ -4,10 +4,9 @@
   <category>other</category>
   <deployed>true</deployed>
   <description>
-    Donors, one row each, with the packaged giving rollups: first and last gift date, gift
-    count, gifts last year, and the fiscal year totals. Households, organizations and person
-    accounts are all here, because the rollups fill the same fields on all three. This is the
-    report type the retention reports are built on.
+    Donors, one row each, with the packaged giving rollups (first and last gift, gift count, fiscal
+    year totals). Covers households, organizations and person accounts. The retention reports are
+    built on it.
   </description>
   <label>Donors with Giving</label>
   <sections>
@@ -18,7 +17,7 @@
     </columns>
     <columns>
       <checkedByDefault>false</checkedByDefault>
-      <field>RecordTypeId</field>
+      <field>RecordType</field>
       <table>Account</table>
     </columns>
     <columns>

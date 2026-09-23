@@ -4,11 +4,12 @@
     The acknowledgment queue and its rules, reached from the Giving section of Nonprofit Settings.
   </description>
   <flexiPageRegions>
-    <componentInstances>
-      <componentName>acknowledgments</componentName>
-      <identifier>acknowledgmentsPageComponent</identifier>
-    </componentInstances>
-    <mode>Replace</mode>
+    <itemInstances>
+      <componentInstance>
+        <componentName>acknowledgments</componentName>
+        <identifier>acknowledgmentsPageComponent</identifier>
+      </componentInstance>
+    </itemInstances>
     <name>main</name>
     <type>Region</type>
   </flexiPageRegions>

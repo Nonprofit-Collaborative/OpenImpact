@@ -3,6 +3,5 @@
   <description>Enter a gift that has just arrived, from a phone or a desk.</description>
   <flexiPage>Quick_Gift_Entry</flexiPage>
   <label>Quick Gift Entry</label>
-  <mobileReady>true</mobileReady>
   <motif>Custom36: Coins</motif>
 </CustomTab>

@@ -26,7 +26,7 @@ Three settings control how the schedules behave. Open **Nonprofit Settings** and
 |---|---|---|
 | Installment generation horizon (months) | How far ahead payments are created for a recurring gift, so an open-ended schedule does not fill the org with rows | 12 |
 | Overdue grace days | How many days an unpaid payment waits after its due date before it is marked Overdue | 5 |
-| Apply gifts to installments automatically | When a gift names a commitment but not a particular payment, whether Open Impact links it to the oldest unpaid payment | On |
+| Auto-apply gifts to installments | When a gift names a commitment but not a particular payment, whether Open Impact links it to the oldest unpaid payment | On |
 
 Change a value and choose **Save**. The new value applies to the next commitment you
 create or change; existing schedules are left alone until you edit them.

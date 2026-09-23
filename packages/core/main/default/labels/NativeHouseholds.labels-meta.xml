@@ -13,7 +13,7 @@
         <categories>HealthCheck</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Health Check: detail for the informational native households finding, with the count</shortDescription>
+        <shortDescription>Health Check detail: native households finding, with the count</shortDescription>
         <value>{0} households here are managed by Salesforce Nonprofit Cloud (an Account carrying a native household group). Open Impact leaves them alone: it never writes their name, greetings, or address.</value>
     </labels>
     <labels>
@@ -21,7 +21,7 @@
         <categories>HealthCheck</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Health Check: detail for the informational native households finding when the count could not be made</shortDescription>
+        <shortDescription>Health Check detail: native households finding when the count failed</shortDescription>
         <value>This org appears to have households managed by Salesforce Nonprofit Cloud, but the count could not be made. Open Impact still leaves any such household alone: it never writes its name, greetings, or address.</value>
     </labels>
     <labels>

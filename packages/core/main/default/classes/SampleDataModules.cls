@@ -11,6 +11,7 @@
  * its name, which starts the module after it. With one module shipped that call is a no-op,
  * and it is what keeps a second module from needing a change in Core.
  */
+@NamespaceAccessible
 public with sharing class SampleDataModules {
     /**
      * Module sample data classes in load order. Each must be public, `@NamespaceAccessible`,

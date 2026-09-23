@@ -7,8 +7,7 @@
     plan it reads as a condition that is silently never applied.
   </description>
   <errorConditionFormula>
-    AND( NOT(ISBLANK(Minimum_Amount__c)), NOT(ISPICKVAL(Trigger_Event__c, &quot;First
-    gift&quot;)), NOT(ISPICKVAL(Trigger_Event__c, &quot;Gift received&quot;)) )
+    AND( NOT(ISBLANK(Minimum_Amount__c)), NOT(ISPICKVAL(Trigger_Event__c, &quot;First gift&quot;)), NOT(ISPICKVAL(Trigger_Event__c, &quot;Gift received&quot;)) )
   </errorConditionFormula>
   <errorDisplayField>Minimum_Amount__c</errorDisplayField>
   <errorMessage>

@@ -141,7 +141,7 @@
         <categories>Core</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Setup assistant: notice shown on the giving defaults step when the Giving module is absent</shortDescription>
+        <shortDescription>Setup assistant: giving defaults step notice when Giving is not installed</shortDescription>
         <value>Install the Giving module to choose defaults. This step waits for you until then.</value>
     </labels>
     <labels>
@@ -309,7 +309,7 @@
         <categories>Core</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Setup assistant: link from a step to where its answers live in Nonprofit Settings</shortDescription>
+        <shortDescription>Setup assistant: link to where a step's answers live in Nonprofit Settings</shortDescription>
         <value>Where this lives in Settings</value>
     </labels>
     <labels>
@@ -333,7 +333,7 @@
         <categories>Core</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Setup assistant: notice for a person who may read the assistant but not change anything</shortDescription>
+        <shortDescription>Setup assistant: notice for someone who can read but not change it</shortDescription>
         <value>You can read the setup steps but not change them. Ask whoever installed Open Impact to add you to the Nonprofit Admin role on the Access page.</value>
     </labels>
     <labels>
@@ -629,7 +629,7 @@
         <categories>Core</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Setup assistant: error when a coexistence mode sent from the page is not one of the three</shortDescription>
+        <shortDescription>Setup assistant: coexistence mode from the page is not one of the three</shortDescription>
         <value>That is not a way Open Impact can fit an org, so nothing changed. Refresh the page and try again.</value>
     </labels>
     <labels>
@@ -637,7 +637,7 @@
         <categories>Core</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Setup assistant: error when a step key sent from the page is not one of the shipped steps</shortDescription>
+        <shortDescription>Setup assistant: step key from the page is not a shipped step</shortDescription>
         <value>That setup step is not one Open Impact knows about, so nothing was recorded. Refresh the page and try again.</value>
     </labels>
     <labels>
@@ -669,7 +669,7 @@
         <categories>Core</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Setup assistant: error when a chosen record is not the kind of record the step asks for</shortDescription>
+        <shortDescription>Setup assistant: chosen record is not the kind the step asks for</shortDescription>
         <value>That is not the kind of record this step is choosing, so nothing was saved. Pick again from the list.</value>
     </labels>
 </CustomLabels>

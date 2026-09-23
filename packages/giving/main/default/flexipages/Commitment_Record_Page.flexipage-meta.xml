@@ -6,33 +6,38 @@
     appears wherever a commitment is opened.
   </description>
   <flexiPageRegions>
-    <componentInstances>
-      <componentName>force:highlightsPanel</componentName>
-      <identifier>commitmentHighlightsPanel</identifier>
-    </componentInstances>
-    <mode>Replace</mode>
+    <itemInstances>
+      <componentInstance>
+        <componentName>force:highlightsPanel</componentName>
+        <identifier>commitmentHighlightsPanel</identifier>
+      </componentInstance>
+    </itemInstances>
     <name>header</name>
     <type>Region</type>
   </flexiPageRegions>
   <flexiPageRegions>
-    <componentInstances>
-      <componentName>commitmentSchedulePreview</componentName>
-      <identifier>commitmentSchedulePanel</identifier>
-    </componentInstances>
-    <componentInstances>
-      <componentName>force:detailPanel</componentName>
-      <identifier>commitmentDetailPanel</identifier>
-    </componentInstances>
-    <mode>Replace</mode>
+    <itemInstances>
+      <componentInstance>
+        <componentName>commitmentSchedulePreview</componentName>
+        <identifier>commitmentSchedulePanel</identifier>
+      </componentInstance>
+    </itemInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>force:detailPanel</componentName>
+        <identifier>commitmentDetailPanel</identifier>
+      </componentInstance>
+    </itemInstances>
     <name>main</name>
     <type>Region</type>
   </flexiPageRegions>
   <flexiPageRegions>
-    <componentInstances>
-      <componentName>force:relatedListContainer</componentName>
-      <identifier>commitmentRelatedLists</identifier>
-    </componentInstances>
-    <mode>Replace</mode>
+    <itemInstances>
+      <componentInstance>
+        <componentName>force:relatedListContainer</componentName>
+        <identifier>commitmentRelatedLists</identifier>
+      </componentInstance>
+    </itemInstances>
     <name>sidebar</name>
     <type>Region</type>
   </flexiPageRegions>

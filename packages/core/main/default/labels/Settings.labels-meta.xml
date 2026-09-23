@@ -69,7 +69,7 @@
         <categories>Core</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Settings console: error when a value cannot be read in the format the setting expects</shortDescription>
+        <shortDescription>Settings console: a value is not in the format the setting expects</shortDescription>
         <value>One of the values is not in the format this setting expects, so nothing was saved. Check the value and save again.</value>
     </labels>
     <labels>
@@ -181,7 +181,7 @@
         <categories>Core</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Settings console: error when a setting sent from the page does not exist in this org</shortDescription>
+        <shortDescription>Settings console: a setting sent from the page does not exist in this org</shortDescription>
         <value>That setting does not exist in this org, so nothing was saved. Refresh the page and try again.</value>
     </labels>
 </CustomLabels>

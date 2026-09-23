@@ -48,10 +48,8 @@ public with sharing class ImportMapping {
     @NamespaceAccessible
     public class Column {
         @AuraEnabled
-        @NamespaceAccessible
         public String source;
         @AuraEnabled
-        @NamespaceAccessible
         public String target;
 
         // JSON.deserialize requires a no-arg constructor to build this class from the stored
@@ -74,10 +72,8 @@ public with sharing class ImportMapping {
     @NamespaceAccessible
     public class Assignment {
         @AuraEnabled
-        @NamespaceAccessible
         public String target;
         @AuraEnabled
-        @NamespaceAccessible
         public String value;
 
         // JSON.deserialize requires a no-arg constructor to build this class from the stored
@@ -97,13 +93,10 @@ public with sharing class ImportMapping {
     }
 
     @AuraEnabled
-    @NamespaceAccessible
     public Integer version;
     @AuraEnabled
-    @NamespaceAccessible
     public List<Column> columns;
     @AuraEnabled
-    @NamespaceAccessible
     public List<Assignment> defaults;
 
     @NamespaceAccessible

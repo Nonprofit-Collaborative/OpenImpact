@@ -101,7 +101,7 @@
         <categories>Relationships</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Save refused: the dates overlap an affiliation already on file. Names the person, the organization, the role, and the record number.</shortDescription>
+        <shortDescription>Save refused: dates overlap an affiliation on file; names it</shortDescription>
         <value>{0} already has an affiliation with {1} as {2} covering those dates. Open {3} to change it.</value>
     </labels>
     <labels>
@@ -109,7 +109,7 @@
         <categories>Relationships</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Save refused: two affiliations in the same save cover the same dates, so there is no record number to name</shortDescription>
+        <shortDescription>Save refused: two affiliations in one save cover the same dates</shortDescription>
         <value>Two affiliations in this save cover the same dates for the same person, organization, and role. Give them dates that do not overlap.</value>
     </labels>
     <labels>
@@ -125,7 +125,7 @@
         <categories>Relationships</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Save refused: both the contact and the account lookup are filled in for the person</shortDescription>
+        <shortDescription>Save refused: both contact and account lookup filled in for the person</shortDescription>
         <value>An affiliation names one record for the person. Fill in either the person or the person account, not both.</value>
     </labels>
     <labels>
@@ -141,7 +141,7 @@
         <categories>Relationships</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Affiliation card: badge on the organization the person is chiefly associated with</shortDescription>
+        <shortDescription>Affiliation card: badge on the person's chief organization</shortDescription>
         <value>Primary</value>
     </labels>
     <labels>

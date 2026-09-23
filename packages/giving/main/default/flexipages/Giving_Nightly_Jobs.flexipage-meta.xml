@@ -4,11 +4,12 @@
     The Giving module's nightly jobs, reached from the Giving section of Nonprofit Settings.
   </description>
   <flexiPageRegions>
-    <componentInstances>
-      <componentName>givingNightlyJobs</componentName>
-      <identifier>givingNightlyJobsPageComponent</identifier>
-    </componentInstances>
-    <mode>Replace</mode>
+    <itemInstances>
+      <componentInstance>
+        <componentName>givingNightlyJobs</componentName>
+        <identifier>givingNightlyJobsPageComponent</identifier>
+      </componentInstance>
+    </itemInstances>
     <name>main</name>
     <type>Region</type>
   </flexiPageRegions>

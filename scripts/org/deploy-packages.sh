@@ -125,23 +125,20 @@ deploy_stage() {
     job_id="$(grep -oE 'Deploy ID: [0-9A-Za-z]+' "$log" | head -1 | awk '{print $3}')"
     if [[ -n "$job_id" ]]; then
       sf project deploy report --job-id "$job_id" --target-org "$ALIAS" || true
-      sf project deploy report --job-id "$job_id" --target-org "$ALIAS" --json || true
+      # Only the failures and the overall message: the full JSON lists every deployed
+      # component first, which pushed the failures out of reach of a log tail.
+      sf project deploy report --job-id "$job_id" --target-org "$ALIAS" --json \
+        | jq '.result | {status, errorMessage, numberComponentErrors, componentFailures: .details.componentFailures}' \
+        || true
     else
       sf project deploy report --use-most-recent --target-org "$ALIAS" || true
     fi
     echo ""
-    echo "The stage that failed is ${label}. An UNKNOWN_EXCEPTION with zero component errors"
-    echo "is a Salesforce side failure, not a component to fix here: quote the ErrorId in the"
-    echo "JSON above to Salesforce support. Re-running is not worth trying on its own account:"
-    echo "this exact failure (same trailing code -315522575, zero components, zero errors) has"
-    echo "hit an undivided or partly divided Core at least ten times now. See"
-    echo "docs/contributor-guide/ci.md, \"It is not transient here\", for the count and the"
-    echo "component totals each occurrence carried. If ${label} is small (comfortably under"
-    echo "the few hundred components the smallest confirmed failure has carried so far), do not"
-    echo "just split it again on faith: the objects data model stage already tried a same-size"
-    echo "split four times running and it named nothing, because both halves stayed the same"
-    echo "size and content on every run. Look at what is actually in this specific stage, or,"
-    echo "if it is still large, split it narrower on the number this run actually carried."
+    echo "The stage that failed is ${label}. If the report above lists component failures,"
+    echo "fix those components: that is an ordinary deploy error. If it shows UNKNOWN_EXCEPTION"
+    echo "with zero component errors, suspect a file the metadata API could not parse at all"
+    echo "(on 2026-09-22 that was an undeclared xsd prefix in custom metadata records) before"
+    echo "suspecting the platform. See docs/contributor-guide/ci.md, \"Resolved 2026-09-22\"."
     rm -f "$log"
     return "$status"
   fi

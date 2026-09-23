@@ -2,11 +2,7 @@
 <ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
   <fullName>Amount_Cannot_Be_Zero</fullName>
   <active>true</active>
-  <description>
-    A gift of money that is zero is not a transaction. Refunds and write-offs are negative, which
-    is allowed. An in-kind gift is exempt: it is goods rather than money, so its amount is always
-    zero and its worth is on Fair Market Value (R-G12, ADR-0030).
-  </description>
+  <description>A money gift of zero is not a transaction. Refunds and write-offs are negative, which is allowed. In-kind gifts are exempt: their amount is always zero and their worth is on Fair Market Value (R-G12, ADR-0030).</description>
   <errorConditionFormula>
     AND(Amount__c = 0, NOT(ISPICKVAL(Type__c, "In-kind")))
   </errorConditionFormula>

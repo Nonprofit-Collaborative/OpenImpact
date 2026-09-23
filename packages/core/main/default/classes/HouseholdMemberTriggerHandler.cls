@@ -1,5 +1,5 @@
 /**
- * Household upkeep when a membership changes, which is how people join and leave a
+ * Household upkeep on membership changes, which is how people join and leave a
  * household in the flexible membership mode.
  *
  * Every path (added, changed, ended, removed, restored) recounts the households on both

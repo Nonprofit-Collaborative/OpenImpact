@@ -170,7 +170,9 @@ public with sharing class ReceiptTemplateService {
             WITH SYSTEM_MODE
             LIMIT 500
         ]) {
-            if (typesPresent.contains(shipped.Receipt_Type__c)) {
+            // A long text area cannot be required on custom metadata, so a default with no body
+            // is skipped here rather than copied into an active template that could not be sent.
+            if (typesPresent.contains(shipped.Receipt_Type__c) || String.isBlank(shipped.Body__c)) {
                 continue;
             }
             created.add(

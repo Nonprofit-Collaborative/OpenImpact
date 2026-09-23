@@ -21,6 +21,13 @@ import switch, because dynamic imports must be statically analyzable. A row
 naming a component the console does not import deploys cleanly and then shows
 "not installed" to the administrator, which is a defect only a person opening
 that page in an org would ever see.
+
+It also checks the shape of every record, because the metadata API reports these
+badly or not at all. A record that writes xsi:type="xsd:string" without declaring
+the xsd prefix fails the whole deployment with UNKNOWN_EXCEPTION and no component
+error, which is what kept every org run red at the custom metadata stage until
+2026-09-22. A label longer than 40 characters, or one given as an attribute
+instead of a <label> element, fails only in an org.
 """
 
 import glob
@@ -28,6 +35,8 @@ import os
 import re
 import sys
 
+LABEL = re.compile(r"<label>([^<]*)</label>")
+LABEL_LIMIT = 40
 FIELD = re.compile(r"<field>([^<]+)</field>")
 VALUE_FOR = (
     lambda field: re.compile(
@@ -161,7 +170,19 @@ def main():
             continue
         fields = defined_fields(type_path)
         checked += 1
-        for named in FIELD.findall(open(record, encoding="utf-8").read()):
+        text = open(record, encoding="utf-8").read()
+        if "xsd:" in text and 'xmlns:xsd="http://www.w3.org/2001/XMLSchema"' not in text:
+            problems.append(f"{record}: uses the xsd: prefix without declaring xmlns:xsd on the root element")
+        label = LABEL.search(text)
+        if label is None:
+            problems.append(f"{record}: has no <label> element")
+        elif not label.group(1).strip():
+            problems.append(f"{record}: has an empty label")
+        elif len(label.group(1)) > LABEL_LIMIT:
+            problems.append(
+                f"{record}: label is {len(label.group(1))} characters, over the platform limit of {LABEL_LIMIT}"
+            )
+        for named in FIELD.findall(text):
             if named not in fields:
                 problems.append(f"{record}: names {named}, which {type_name}__mdt does not define")
 

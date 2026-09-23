@@ -48,19 +48,14 @@ public with sharing class HouseholdMergeService {
     @NamespaceAccessible
     public class FieldChoice {
         @AuraEnabled
-        @NamespaceAccessible
         public String fieldName;
         @AuraEnabled
-        @NamespaceAccessible
         public String label;
         @AuraEnabled
-        @NamespaceAccessible
         public String survivorValue;
         @AuraEnabled
-        @NamespaceAccessible
         public String victimValue;
         @AuraEnabled
-        @NamespaceAccessible
         public Boolean inConflict;
     }
 
@@ -71,25 +66,18 @@ public with sharing class HouseholdMergeService {
     @NamespaceAccessible
     public class MemberChoice {
         @AuraEnabled
-        @NamespaceAccessible
         public Id personId;
         @AuraEnabled
-        @NamespaceAccessible
         public String name;
         @AuraEnabled
-        @NamespaceAccessible
         public String role;
         @AuraEnabled
-        @NamespaceAccessible
         public String source;
         @AuraEnabled
-        @NamespaceAccessible
         public Boolean isPrimary;
         @AuraEnabled
-        @NamespaceAccessible
         public Boolean isDeceased;
         @AuraEnabled
-        @NamespaceAccessible
         public Boolean fromSurvivor;
     }
 
@@ -99,25 +87,18 @@ public with sharing class HouseholdMergeService {
     @NamespaceAccessible
     public class MergePreview {
         @AuraEnabled
-        @NamespaceAccessible
         public Id survivorId;
         @AuraEnabled
-        @NamespaceAccessible
         public String survivorName;
         @AuraEnabled
-        @NamespaceAccessible
         public Id victimId;
         @AuraEnabled
-        @NamespaceAccessible
         public String victimName;
         @AuraEnabled
-        @NamespaceAccessible
         public Boolean canEdit;
         @AuraEnabled
-        @NamespaceAccessible
         public List<FieldChoice> fields = new List<FieldChoice>();
         @AuraEnabled
-        @NamespaceAccessible
         public List<MemberChoice> members = new List<MemberChoice>();
     }
 
@@ -129,10 +110,8 @@ public with sharing class HouseholdMergeService {
     @NamespaceAccessible
     public class MergeResult {
         @AuraEnabled
-        @NamespaceAccessible
         public Id survivorId;
         @AuraEnabled
-        @NamespaceAccessible
         public Boolean customNameKept;
     }
 
@@ -143,7 +122,6 @@ public with sharing class HouseholdMergeService {
     @NamespaceAccessible
     public class MergeChoices {
         @AuraEnabled
-        @NamespaceAccessible
         public Map<String, String> keepFrom = new Map<String, String>();
 
         /**
