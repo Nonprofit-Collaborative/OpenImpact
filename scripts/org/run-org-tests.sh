@@ -2,7 +2,7 @@
 # run-org-tests.sh <org alias>
 #
 # The merge gate for main. Deploys the commit you have checked out to an org, runs every
-# local Apex test there, and posts the result to GitHub as the commit status
+# Apex test class in that commit's source there, and posts the result to GitHub as the commit status
 # "Org tests (local)" on that exact commit. The main branch ruleset requires that status,
 # so a pull request that changes deployable source cannot merge until this has passed on
 # its head commit. See docs/contributor-guide/ci.md, "The org test gate".
@@ -79,11 +79,28 @@ for ps in Nonprofit_Admin Giving_Admin; do
   fi
 done
 
+# Run the test classes this commit holds, not every test class in the org. The test org is
+# shared: another branch's deploy can leave its own test classes there, and its permission sets
+# are overwritten by the next deploy, so a run of everything fails on code this commit does not
+# contain. Naming the classes from the tracked source makes the status vouch for exactly the
+# tests at HEAD.
+TEST_ARGS=()
+while IFS= read -r file; do
+  if grep -qi "@istest" "$file"; then
+    TEST_ARGS+=(--class-names "$(basename "$file" .cls)")
+  fi
+done < <(git ls-files 'packages/*.cls')
+if [[ ${#TEST_ARGS[@]} -eq 0 ]]; then
+  post_status failure "No test classes found in the source at ${SHA:0:7}"
+  exit 1
+fi
+
 RESULTS_DIR="test-results"
 mkdir -p "$RESULTS_DIR"
 sf apex run test \
   --target-org "$ALIAS" \
-  --test-level RunLocalTests \
+  --test-level RunSpecifiedTests \
+  "${TEST_ARGS[@]}" \
   --code-coverage \
   --result-format json \
   --wait 90 > "${RESULTS_DIR}/org-tests.json" || true
