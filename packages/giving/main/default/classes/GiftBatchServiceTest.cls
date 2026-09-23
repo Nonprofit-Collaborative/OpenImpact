@@ -221,10 +221,17 @@ private class GiftBatchServiceTest {
             Test.stopTest();
 
             Assert.isFalse(shortOutcome.success, 'A short batch does not post.');
-            Assert.isTrue(shortOutcome.formError.contains('12.5'), shortOutcome.formError);
-            Assert.isTrue(shortOutcome.formError.contains('less'), 'It says which way it is out.');
+            Assert.areEqual(
+                Label.Giving_GiftBatch_ErrorShortOfControlTotal.replace('{0}', '12.50'),
+                shortOutcome.formError,
+                'It says how far out, to the cent, and which way, as the grid does.'
+            );
             Assert.isFalse(overOutcome.success, 'An over batch does not post.');
-            Assert.isTrue(overOutcome.formError.contains('more'), 'It says which way it is out.');
+            Assert.areEqual(
+                Label.Giving_GiftBatch_ErrorOverControlTotal.replace('{0}', '10.00'),
+                overOutcome.formError,
+                'A whole number of dollars still shows its cents.'
+            );
             Assert.areEqual(0, [SELECT COUNT() FROM Gift__c], 'Nothing was created.');
         }
     }

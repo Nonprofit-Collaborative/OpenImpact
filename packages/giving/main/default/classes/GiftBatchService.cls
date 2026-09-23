@@ -167,7 +167,9 @@ public with sharing class GiftBatchService {
         String template = gap > 0
             ? Label.Giving_GiftBatch_ErrorShortOfControlTotal
             : Label.Giving_GiftBatch_ErrorOverControlTotal;
-        return template.replace('{0}', gap.abs().setScale(2).format());
+        // Two decimals, no grouping, whatever the locale: the same text the grid shows for the
+        // same gap (toFixed(2)), so the message a person searches for is the one on the screen.
+        return template.replace('{0}', String.valueOf(gap.abs().setScale(2)));
     }
 
     /**
