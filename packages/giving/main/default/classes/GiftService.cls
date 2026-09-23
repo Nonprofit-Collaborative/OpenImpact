@@ -679,9 +679,15 @@ public with sharing class GiftService {
             List<Gift_Allocation__c> allocations = byGift.get(giftId);
             Gift__c gift = changed.get(giftId);
             if (allocations.size() == 1) {
-                allocations[0].Amount__c = gift.Amount__c;
-                allocations[0].Percent__c = 100;
-                toUpdate.add(allocations[0]);
+                // Only the fields being changed: a user mode update of the row as read would
+                // also carry the master detail to the gift, which nobody may edit.
+                toUpdate.add(
+                    new Gift_Allocation__c(
+                        Id = allocations[0].Id,
+                        Amount__c = gift.Amount__c,
+                        Percent__c = 100
+                    )
+                );
             } else {
                 gift.addError(Label.Giving_Gift_AmountChangeSplit);
             }
