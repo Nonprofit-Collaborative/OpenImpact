@@ -279,7 +279,8 @@ households with Custom Name set.
 ### Salesforce implementation
 
 - **Object:** Account, record type `Household`. Organizations use record type
-  `Organization`. Both record types ship with packaged page layouts and compact layouts.
+  `Organization`. Both record types ship with compact layouts and share one Lightning
+  record page built with Dynamic Forms and one fallback page layout (ADR-0043).
 - **Standard fields used:** `Name` (the computed household name).
 - **Custom fields on Account:**
 
@@ -542,7 +543,7 @@ never implicitly from a Contact insert.
 **R-O3 Shared fields.** Primary Contact is the same Account field the Household entity
 uses; the field is shared across record types and its meaning differs by record type as
 defined above. Member Count, Anniversary, the two greeting fields, and Custom Name are
-not shown on Organization layouts.
+not shown for Organization records on the Account record page.
 
 ### Salesforce implementation
 
@@ -4019,3 +4020,4 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.5 | 2026-09-15 | C-25: added the email attributes `Personal_Email__c`, `Work_Email__c`, `Alternate_Email__c` and `Preferred_Email__c` to the person attributes (Section 7), on both Contact and Account, with rule R-C6. When Preferred Email is set, the standard email is copied from the address it names on every save; when it is empty nothing is copied; when the address it names is empty the save is refused rather than the standard email being blanked. |
 | v0.5 | 2026-09-22 | Removed the Naming Pattern custom metadata type (its four fields and six shipped records) before the first package version, by the owner's decision. Nothing read it: household naming reads the three pattern fields on Nonprofit Settings. A custom metadata type is effectively permanent once packaged, so it goes now rather than never. |
 | v0.5 | 2026-09-23 | Removed the packaged Contact record type, its compact layout, and the list view that filtered on it, by the owner's decision (R-C4, ADR-0041). It drove no behavior: no code, rule or page branched on it, and the sample data loader was the only code that set it. People are now created with the org's default Contact record type. No field changed; the `Household_Role__c` picklist values it listed are all active on the master record type. |
+| v0.5 | 2026-09-23 | No object or field added. The Account and Contact record pages show their fields with Dynamic Forms (ADR-0043). R-O3 now holds on the Account record page: the Name and Greetings section, which carries Member Count, Anniversary, Custom Name and the two greetings, shows only for the Household record type. Account keeps one fallback page layout for both record types, and no layout is assigned to a profile. |

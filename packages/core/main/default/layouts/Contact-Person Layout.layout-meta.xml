@@ -20,10 +20,6 @@
         <behavior>Edit</behavior>
         <field>AccountId</field>
       </layoutItems>
-      <layoutItems>
-        <behavior>Readonly</behavior>
-        <field>Primary_Affiliation__c</field>
-      </layoutItems>
     </layoutColumns>
     <style>TwoColumnsTopToBottom</style>
   </layoutSections>
@@ -100,25 +96,6 @@
       <layoutItems>
         <behavior>Edit</behavior>
         <field>Preferred_Email__c</field>
-      </layoutItems>
-    </layoutColumns>
-    <style>TwoColumnsTopToBottom</style>
-  </layoutSections>
-  <layoutSections>
-    <customLabel>true</customLabel>
-    <detailHeading>true</detailHeading>
-    <editHeading>true</editHeading>
-    <label>System Information</label>
-    <layoutColumns>
-      <layoutItems>
-        <behavior>Edit</behavior>
-        <field>OwnerId</field>
-      </layoutItems>
-    </layoutColumns>
-    <layoutColumns>
-      <layoutItems>
-        <behavior>Readonly</behavior>
-        <field>Created_By_Import_Batch__c</field>
       </layoutItems>
     </layoutColumns>
     <style>TwoColumnsTopToBottom</style>
