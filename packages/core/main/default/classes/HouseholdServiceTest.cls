@@ -834,7 +834,6 @@ private class HouseholdServiceTest {
         HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
         User staff = HouseholdTestDataFactory.standardUser('fls');
         Contact john = HouseholdTestDataFactory.newContact('Mr.', 'John', 'Smith');
-        john.Deceased__c = true;
         // Saved by the same user who will read it back, so that what this test measures is
         // field level access and nothing else. Whether a user can see a person somebody
         // else entered is the org's sharing model, which differs from org to org, and a
@@ -842,6 +841,9 @@ private class HouseholdServiceTest {
         System.runAs(staff) {
             insert john;
         }
+        // Marked deceased afterwards, by the administrator: this user cannot edit the field,
+        // which is the point, so his own save cannot carry it.
+        update new Contact(Id = john.Id, Deceased__c = true);
         Id householdId = [SELECT AccountId FROM Contact WHERE Id = :john.Id].AccountId;
         Assert.isTrue(
             HouseholdService.getMembers(new Set<Id>{ householdId }).get(householdId)[0].isDeceased,
@@ -875,12 +877,19 @@ private class HouseholdServiceTest {
      * personOverridesByName are both left unset, so the query really runs, really selects
      * Deceased__c and Household_Role__c on Account, and the person really is built from
      * what came back. This test therefore measures the product and not the override.
+     *
+     * The user is given create access to the membership row and nothing else. The platform
+     * checks the user's own access on the save itself, so a user who may not create a
+     * membership at all is refused by the platform, correctly, before any upkeep runs. What
+     * this test holds the product to is that upkeep never adds a refusal of its own: no
+     * access to the packaged fields on Account is granted.
      */
     @IsTest
     static void aStandardUserWithNoPackagedAccessCanStillSaveAJunctionMembership() {
         HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
         HouseholdService.personAccountOverride = true;
         User staff = HouseholdTestDataFactory.standardUser('junc');
+        HouseholdTestDataFactory.grantMembershipCreate('C01_Junction_Save_Test', staff.Id);
         // The household and the person are made by an administrator: a record type and a
         // packaged field are not what this test is about, and the save it measures is the
         // membership row.

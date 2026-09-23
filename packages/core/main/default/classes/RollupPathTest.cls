@@ -104,7 +104,10 @@ private class RollupPathTest {
 
     @IsTest
     static void aHouseholdTokenResolvesThroughHouseholdServiceInContactMode() {
-        Account household = new Account(Name = 'Test household');
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_CONTACT);
+        // A household account, not any account: in contact mode HouseholdService answers with
+        // the account a person points at only when that account is a household.
+        Account household = HouseholdTestDataFactory.newHousehold('Test household');
         insert household;
         Contact person = new Contact(LastName = 'Rivera', AccountId = household.Id);
         insert person;
