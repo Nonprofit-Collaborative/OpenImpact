@@ -520,4 +520,92 @@
         <shortDescription>Import run log: a new household could not be tagged</shortDescription>
         <value>A household this import created could not be marked with the import, so an undo will not remove it: {0}</value>
     </labels>
+    <labels>
+        <fullName>Core_Import_UndoErrorDryRun</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo: refused for a dry run</shortDescription>
+        <value>This was a dry run, so it wrote nothing and there is nothing to undo.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoErrorAlreadyUndone</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo: refused because already undone</shortDescription>
+        <value>This import has already been undone, or is being undone now. Refresh the list to see where it has got to.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoErrorNotCommitted</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo: refused before a commit</shortDescription>
+        <value>Only an import that has been committed can be undone. Commit it, or leave it: a dry run changes nothing.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoErrorWindowClosed</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo: refused after the deadline</shortDescription>
+        <value>The time to undo this import ended on {0}. The records it created are ordinary records now; delete any you do not want by hand.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoErrorNothingToUndo</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo: nothing left to undo</shortDescription>
+        <value>This import has nothing left to undo: no record still carries its mark and it changed no existing record.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoErrorCountChanged</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo: refused because the count changed</shortDescription>
+        <value>You confirmed {0} records, but {1} now carry this import's mark. Nothing was deleted. Look at the new count and confirm again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoKeptGained</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: kept, something was added since</shortDescription>
+        <value>Kept: something recorded after the import points at this record, such as a gift or a relationship.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoKeptHasPeople</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: kept, a person is still here</shortDescription>
+        <value>Kept: a person the undo did not remove is still in this household or organization.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoKeptNativeDependents</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: kept for Nonprofit Cloud records</shortDescription>
+        <value>Kept: Salesforce Nonprofit Cloud records depend on this account.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoKeptNotChecked</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: kept, could not be checked</shortDescription>
+        <value>Kept: the undo could not check whether anything depends on this record, so it left it in place. The Error Log has the details.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogUndone</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: the undo line</shortDescription>
+        <value>Undone by {0} on {1}: {2} records deleted, {3} kept, {4} values put back.</value>
+    </labels>
 </CustomLabels>
