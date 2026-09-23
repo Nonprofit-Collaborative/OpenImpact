@@ -158,7 +158,12 @@ private class HouseholdPrimaryContactTest {
             // Proven on every shape by the test above; this one needs real person accounts.
             return;
         }
-        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
+            HouseholdTestDataFactory.MODE_JUNCTION
+        );
+        // Kept when emptied, so the household is still there for the person to come back to.
+        settings.Delete_Empty_Households__c = false;
+        HouseholdTestDataFactory.save(settings);
         SObject person = Account.SObjectType.newSObject();
         person.put('RecordTypeId', new List<Id>(personTypes)[0]);
         person.put('LastName', 'Okafor');
