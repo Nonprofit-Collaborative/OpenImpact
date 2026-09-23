@@ -19,7 +19,7 @@
   <actionOverrides>
     <actionName>View</actionName>
     <comment>People</comment>
-    <content>Household_Contact_Record_Page</content>
+    <content>Contact_Record_Page</content>
     <formFactor>Large</formFactor>
     <type>Flexipage</type>
     <pageOrSobjectType>Contact</pageOrSobjectType>
@@ -27,7 +27,7 @@
   <actionOverrides>
     <actionName>View</actionName>
     <comment>People</comment>
-    <content>Household_Contact_Record_Page</content>
+    <content>Contact_Record_Page</content>
     <formFactor>Small</formFactor>
     <type>Flexipage</type>
     <pageOrSobjectType>Contact</pageOrSobjectType>

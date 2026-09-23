@@ -49,6 +49,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0038](0038-giving-nightly-jobs-are-scheduled-from-the-settings-console.md) | The Giving nightly jobs are scheduled from the settings console | Accepted |
 | [0039](0039-health-check-findings-are-grouped-by-the-question-they-ask.md) | Health Check findings are grouped by the question they ask, not registered one by one | Accepted |
 | [0040](0040-simple-rules-in-flow-engine-logic-in-apex.md) | Simple rules in Flow, engine logic in Apex, and customers switch ours off to run theirs | Accepted |
+| [NEXT](NEXT-remove-contact-record-type.md) | Core ships no Contact record type | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions
@@ -81,9 +82,8 @@ Health Check finding goes.
 ADR-0040 is a product owner decision on how automation is built and customized while the
 packages are unlocked.
 
-The ADR-NEXT placeholder at the end of the table is a builder decision on a defect found in
-C-01: junction mode created no households at all, and the setting that said it did was never
-read. The integrator assigns its number at merge.
+The ADR-NEXT placeholders at the end of the table are product owner decisions on the record
+pages (plan Section 4). The integrator assigns their numbers at merge.
 
 ## Adding a new ADR
 

@@ -1196,10 +1196,6 @@
     <recordType>Account.Organization</recordType>
     <visible>true</visible>
   </recordTypeVisibilities>
-  <recordTypeVisibilities>
-    <recordType>Contact.Household_Contact</recordType>
-    <visible>true</visible>
-  </recordTypeVisibilities>
   <tabSettings>
     <tab>Address__c</tab>
     <visibility>Visible</visibility>

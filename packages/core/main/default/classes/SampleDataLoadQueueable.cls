@@ -85,15 +85,12 @@ public with sharing class SampleDataLoadQueueable implements Queueable {
         }
 
         Boolean junctionMembership = HouseholdService.isJunctionMode();
-        Id contactRecordTypeId = recordTypeId(Contact.SObjectType, 'Household_Contact');
         List<Contact> contactsToInsert = new List<Contact>();
         List<Id> householdIds = new List<Id>();
         for (Map<String, Object> member : chunk) {
             Id householdId = data.householdIdsByKey.get((String) member.get('householdKey'));
             householdIds.add(householdId);
-            contactsToInsert.add(
-                buildContact(member, junctionMembership ? null : householdId, contactRecordTypeId)
-            );
+            contactsToInsert.add(buildContact(member, junctionMembership ? null : householdId));
         }
         // The sample people already have the household they belong to, so the automatic
         // creation that would otherwise give each of them one of their own is suspended for
@@ -192,13 +189,10 @@ public with sharing class SampleDataLoadQueueable implements Queueable {
         return acct;
     }
 
-    private static Contact buildContact(
-        Map<String, Object> member,
-        Id householdId,
-        Id recordTypeId
-    ) {
+    private static Contact buildContact(Map<String, Object> member, Id householdId) {
+        // No record type is set: the package ships none for Contact, so each person gets the
+        // running user's default, which is whatever the org has chosen.
         Contact con = new Contact();
-        con.RecordTypeId = recordTypeId;
         con.Sample_Data__c = true;
         con.Sample_Data_Key__c = (String) member.get('key');
         // Null in junction mode: the household is named by the membership row instead, and

@@ -27,8 +27,8 @@ rather than pretending it worked. Moving a person out of the household needs edi
 that person as well.
 
 **Where the panels are.** Core ships the placement: the Members panel sits on the packaged
-Household record page, and the Household panel sits on the packaged Household Contact
-record page, both of which the Nonprofit Hub app uses. If either is missing, you are most
+Household record page, and the Household panel sits on the packaged Contact record page,
+both of which the Nonprofit Hub app uses. If either is missing, you are most
 likely looking at the record outside the **Nonprofit Hub** app, or somebody has overridden
 the page assignment in the Lightning App Builder.
 
@@ -100,8 +100,8 @@ Maria does this from the sample data.
    Family**, says how many members it has, and shows the formal greeting.
 4. Click the household name. You are back on the household, and Luis still carries the
    **Primary** badge.
-5. Open the **Contacts** tab, click **New**, choose the **Household Contact** record type,
-   enter the first name `Wei` and the last name `Lee`, leave the household blank, and save.
+5. Open the **Contacts** tab, click **New**, enter the first name `Wei` and the last name
+   `Lee`, leave the household blank, and save.
    His **Household** panel names **The Lee Family**, the household that was created for him,
    with one member.
 

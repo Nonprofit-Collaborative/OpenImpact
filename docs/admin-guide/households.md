@@ -44,8 +44,8 @@ it would affect. Moving them across is a migration, which Open Impact does not d
 Maria does this from the sample data.
 
 1. Open the **Nonprofit Hub** app and click the **Contacts** tab.
-2. Click **New**, choose the **Household Contact** record type, and enter the first name
-   `Maria` and the last name `Garcia`. Leave the household blank. Click **Save**.
+2. Click **New** and enter the first name `Maria` and the last name `Garcia`. Leave the
+   household blank. Click **Save**.
 3. Look at the household field on the new person. It is filled in, and the household is
    called **The Garcia Family**. Maria did not create it.
 4. Click through to the household. The **Members** panel lists Maria, and the member count
