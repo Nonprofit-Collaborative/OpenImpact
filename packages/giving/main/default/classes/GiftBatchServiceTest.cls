@@ -337,6 +337,80 @@ private class GiftBatchServiceTest {
     }
 
     @IsTest
+    static void twoHundredLinesPostInOneGo() {
+        fund('General', true);
+        User fundraiser = david();
+
+        System.runAs(fundraiser) {
+            Contact ana = person();
+            Gift_Batch__c yearEnd = batch(200 * 25, null, null);
+            List<Gift_Batch_Row__c> rows = new List<Gift_Batch_Row__c>();
+            for (Integer index = 0; index < 200; index++) {
+                rows.add(line(yearEnd.Id, ana.Id, null, 25));
+            }
+            insert rows;
+
+            Test.startTest();
+            GiftBatchService.PostOutcome outcome = GiftBatchService.post(yearEnd.Id);
+            Test.stopTest();
+
+            Assert.isTrue(outcome.success, 'A full stack posts: ' + outcome.formError);
+            Assert.areEqual(200, outcome.giftCount, 'One gift per line.');
+            Assert.areEqual(200, [SELECT COUNT() FROM Gift__c], 'Every gift exists.');
+            Assert.areEqual(
+                200,
+                [SELECT COUNT() FROM Gift_Batch_Row__c WHERE Gift__c != NULL],
+                'Every line links to its gift.'
+            );
+        }
+    }
+
+    @IsTest
+    static void twoHundredLinesWithOneRefusedLineNameItAndPostNothing() {
+        // A donor David cannot see: a colleague's contact he has no access to. The platform
+        // refuses the one gift that names it, and the partial-success insert retries the other
+        // 199, which has to fit in the limits before everything is rolled back.
+        fund('General', true);
+        User fundraiser = david();
+        Contact hidden = new Contact(FirstName = 'Private', LastName = 'Donor');
+        insert hidden;
+        Gift_Batch__c yearEnd;
+        Contact ana;
+        System.runAs(fundraiser) {
+            Assert.areEqual(
+                0,
+                [SELECT COUNT() FROM Contact WHERE Id = :hidden.Id WITH USER_MODE],
+                'Precondition: David cannot see the hidden donor in this org.'
+            );
+            ana = person();
+            yearEnd = batch(200 * 25, null, null);
+        }
+        List<Gift_Batch_Row__c> rows = new List<Gift_Batch_Row__c>();
+        for (Integer index = 0; index < 200; index++) {
+            rows.add(line(yearEnd.Id, ana.Id, null, 25));
+        }
+        rows[136].Donor_Contact__c = hidden.Id;
+        insert rows;
+
+        System.runAs(fundraiser) {
+            Test.startTest();
+            GiftBatchService.PostOutcome outcome = GiftBatchService.post(yearEnd.Id);
+            Test.stopTest();
+
+            Assert.isFalse(outcome.success, 'One refused line stops the post.');
+            Assert.areEqual(Label.Giving_GiftBatch_ErrorPostFailed, outcome.formError, 'Why.');
+            Assert.areEqual(1, outcome.lineProblems.size(), 'Only the refused line is named.');
+            Assert.areEqual(137, outcome.lineProblems[0].lineNumber, 'It is line 137.');
+        }
+        Assert.areEqual(0, [SELECT COUNT() FROM Gift__c], 'No gift survives the rollback.');
+        Assert.areEqual(
+            'Open',
+            [SELECT Status__c FROM Gift_Batch__c WHERE Id = :yearEnd.Id].Status__c,
+            'The batch is still open.'
+        );
+    }
+
+    @IsTest
     static void aPostedBatchPostsOnceAndStaysAsItWas() {
         fund('General', true);
         User fundraiser = david();
