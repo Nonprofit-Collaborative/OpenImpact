@@ -7,16 +7,21 @@
  * Administrator who installed it, because a custom permission is not implied by Modify All
  * Data. The only way out would be Salesforce Setup, which Principle 1 does not allow.
  *
- * That takes two steps, because the platform makes the obvious one unreliable:
+ * Both assignments are setup object writes, and the other two things below write ordinary
+ * records, which the platform will not allow in one transaction (mixed DML): whichever came
+ * second was refused, so the installer was left without access and with only an Error Log
+ * entry to show for it. So the install queues one job for the access, which runs as soon as
+ * the install has committed, and does the rest itself. The job takes two steps, because the
+ * platform makes the obvious one unreliable:
  *
  * 1. Assign the Nonprofit Admin permission set. A permission set has no calculation
- *    status, so this works the moment the install finishes. This is the step that matters:
- *    after it, the installer can use the app.
+ *    status, so this works the moment the job runs. This is the step that matters: after
+ *    it, the installer can use the app.
  * 2. Assign the Nonprofit Admin role, which is a permission set group. The platform
  *    recalculates packaged groups in the background after an install and refuses to assign
  *    one while that is running, which is the usual state in the first minutes. So this is
- *    attempted, and if the group is not ready a queueable waits and tries again a few
- *    times. Either way the person is already working, thanks to step 1.
+ *    attempted, and if the group is not ready the job waits and tries again a few times.
+ *    Either way the person is already working, thanks to step 1.
  *
  * The second is to put the coexistence mode detection recommends in force, and with it, in
  * a Person Accounts org, the flexible way of belonging to a household, because the simple
@@ -38,8 +43,7 @@
  * Error Log instead.
  */
 public with sharing class CorePostInstall implements InstallHandler {
-    private static final String PERMISSION_SET_CONTEXT = 'CorePostInstall.assignPermissionSet';
-    private static final String ROLE_CONTEXT = 'CorePostInstall.assignRole';
+    private static final String ACCESS_CONTEXT = 'CorePostInstall.grantInstallerAccess';
     private static final String ROLLUP_CONTEXT = 'CorePostInstall.ensureRollupDefaults';
     private static final String MODE_CONTEXT = 'CorePostInstall.applyRecommendedMode';
 
@@ -64,8 +68,7 @@ public with sharing class CorePostInstall implements InstallHandler {
         if (installerId == null) {
             return;
         }
-        assignAdminPermissionSet(installerId);
-        assignAdminRole(installerId);
+        grantInstallerAccess(installerId);
     }
 
     /**
@@ -122,36 +125,17 @@ public with sharing class CorePostInstall implements InstallHandler {
     }
 
     /**
-     * Step one: give the installer the Nonprofit Admin permission set, so that they can
-     * open Nonprofit Settings straight away.
+     * Queues the job that gives the installer the Nonprofit Admin permission set and then the
+     * Nonprofit Admin role. Queued rather than done here because both are setup object writes
+     * and this transaction has already written ordinary records (see the class comment).
      *
      * @param installerId the person who installed or upgraded the package
      */
-    private void assignAdminPermissionSet(Id installerId) {
+    private void grantInstallerAccess(Id installerId) {
         try {
-            AccessService.assignPermissionSetDuringInstall(
-                installerId,
-                AccessService.ADMIN_PERMISSION_SET
-            );
-        } catch (Exception e) {
-            ErrorLogger.log(e, PERMISSION_SET_CONTEXT);
-        }
-    }
-
-    /**
-     * Step two: give the installer the Nonprofit Admin role, waiting in the background if
-     * the platform is still calculating it.
-     *
-     * @param installerId the person who installed or upgraded the package
-     */
-    private void assignAdminRole(Id installerId) {
-        try {
-            if (AccessService.tryAssignRoleDuringInstall(installerId, AccessService.ADMIN_ROLE)) {
-                return;
-            }
             System.enqueueJob(new CorePostInstallRetryQueueable(installerId));
         } catch (Exception e) {
-            ErrorLogger.log(e, ROLE_CONTEXT);
+            ErrorLogger.log(e, ACCESS_CONTEXT);
         }
     }
 }
