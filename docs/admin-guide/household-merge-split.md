@@ -63,8 +63,10 @@ Maria does this from the sample data, after an import left her with the Garcia f
    one you picked on the right.
 5. Read the comparison. Where the two households disagree, you get a choice: the name, the
    "custom name" box, the formal and informal greetings, the primary contact, the
-   anniversary, and each line of the billing address. Where they agree, the value is simply
-   shown. Under the comparison, the **Members after the merge** list shows everyone who will
+   anniversary, and each line of the billing address. In the flexible way of belonging the
+   primary contact is not offered: the household you keep keeps its primary member, and the
+   other household's primary member stays primary only when the one you keep has none.
+   Where they agree, the value is simply shown. Under the comparison, the **Members after the merge** list shows everyone who will
    be in the household when you are done.
 6. Choose the values you want to keep. Take the name **The Garcia Family**, the anniversary
    from the duplicate (the import brought it in and the original never had one), and the
@@ -140,4 +142,4 @@ For report builders only. Maria never needs this to use the feature.
 |---|---|---|
 | Household | Custom Name | When ticked, the name and greetings are never recalculated |
 | Household | Member Count | Recalculated on both households after a merge or a split |
-| Household | Primary Contact | One of the values a merge offers a choice about, and cleared on a household a split moves that person out of |
+| Household | Primary Contact | One of the values a merge offers a choice about in the simple way of belonging (in the flexible way it follows the primary member), and cleared on a household a split moves that person out of |
