@@ -116,6 +116,9 @@ private class ReceiptFileAccessTest {
         Receipt__c statement = issueOneStatement();
         Id household = osei.AccountId;
         Id documentId = statement.Content_Document_Id__c;
+        // Whether staff can open a household somebody else entered is the org's sharing model,
+        // so Priya is given this one: what is under test is the file, not the household.
+        update new Account(Id = household, OwnerId = coordinator.Id);
 
         List<Account> householdsSheCanSee;
         List<ContentDocumentLink> linksOnTheHousehold;

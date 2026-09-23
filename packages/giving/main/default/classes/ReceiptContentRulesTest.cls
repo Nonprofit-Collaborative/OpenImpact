@@ -287,8 +287,10 @@ private class ReceiptContentRulesTest {
             html.contains('$750.00'),
             'The value of the goods is nowhere on it: ' + html
         );
+        // The sentence says "donor's", and every sentence is HTML escaped on its way into the
+        // document, so the document carries the escaped form.
         Assert.isTrue(
-            html.contains(ReceiptContentBuilder.SENTENCE_IN_KIND_NOT_IN_TOTAL),
+            html.contains(ReceiptContentBuilder.SENTENCE_IN_KIND_NOT_IN_TOTAL.escapeHtml4()),
             'The statement explains why the lines do not add up to the total: ' + html
         );
     }

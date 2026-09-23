@@ -65,8 +65,9 @@ public class RecognitionTestData {
     }
 
     public static Household_Member__c membership(Id householdId, Id contactId, String role) {
+        // Household__c is the household; Account__c is the person, for a Person Account org.
         Household_Member__c member = new Household_Member__c(
-            Account__c = householdId,
+            Household__c = householdId,
             Contact__c = contactId,
             Role__c = role
         );

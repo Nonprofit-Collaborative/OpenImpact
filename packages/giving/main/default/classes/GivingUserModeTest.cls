@@ -72,6 +72,32 @@ private class GivingUserModeTest {
         return person;
     }
 
+    /**
+     * Makes records belong to the person a test runs as. Gifts and commitments ship private, and
+     * who can reach a person somebody else entered is the org's sharing model, which differs from
+     * org to org. Handing the person the records keeps these tests about the permission sets, not
+     * about sharing. A contact's household account goes with the contact, for an org where
+     * contacts are shared through their account.
+     */
+    private static void handTo(User person, List<Id> recordIds) {
+        List<Account> households = new List<Account>();
+        for (Contact record : [
+            SELECT AccountId
+            FROM Contact
+            WHERE Id IN :recordIds AND AccountId != NULL
+        ]) {
+            households.add(new Account(Id = record.AccountId, OwnerId = person.Id));
+        }
+        update households;
+        List<SObject> handed = new List<SObject>();
+        for (Id recordId : recordIds) {
+            SObject owned = recordId.getSObjectType().newSObject(recordId);
+            owned.put('OwnerId', person.Id);
+            handed.add(owned);
+        }
+        update handed;
+    }
+
     private static QuickGiftEntryController.GiftInput giftOf(Id donorContactId, Id fundId) {
         QuickGiftEntryController.GiftInput input = new QuickGiftEntryController.GiftInput();
         input.donorContactId = donorContactId;
@@ -127,6 +153,7 @@ private class GivingUserModeTest {
         User david = fundraiser();
         Fund__c fund = defaultFund();
         Contact ana = donor();
+        handTo(david, new List<Id>{ ana.Id });
         QuickGiftEntryController.SaveResult result;
 
         Test.startTest();
@@ -199,6 +226,7 @@ private class GivingUserModeTest {
         Contact ana = donor();
         Gift__c gift = GivingTestDataFactory.buildGift(ana.Id, 100);
         insert gift;
+        handTo(david, new List<Id>{ ana.Id, gift.Id });
         Id reversalId;
 
         Test.startTest();
@@ -268,6 +296,8 @@ private class GivingUserModeTest {
             Amount__c = 100,
             Is_Automatic__c = false
         );
+        // Tom can reach the gift, so what stops him adding a credit is his permission set.
+        handTo(tom, new List<Id>{ ana.Id, luis.Id, gift.Id });
         SoftCreditController.SoftCreditPanel panel;
         String refusal = null;
 
@@ -317,6 +347,7 @@ private class GivingUserModeTest {
             'Luis Garcia'
         );
         insert tribute;
+        handTo(david, new List<Id>{ ana.Id, gift.Id });
         TributeController.TributeView view;
 
         Test.startTest();
@@ -381,6 +412,7 @@ private class GivingUserModeTest {
         defaultFund();
         Contact ana = donor();
         Commitment__c pledge = pledgeFor(ana.Id);
+        handTo(david, new List<Id>{ ana.Id, pledge.Id });
 
         Test.startTest();
         System.runAs(david) {
