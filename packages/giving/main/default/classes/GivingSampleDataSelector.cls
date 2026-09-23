@@ -79,6 +79,23 @@ public with sharing class GivingSampleDataSelector {
         return ids;
     }
 
+    /**
+     * The sample refunds and write-offs: the negative gifts that point back at an original. They
+     * go before the rest, because a gift a reversal points at refuses to be deleted.
+     */
+    public List<Id> sampleReversalIds() {
+        List<Id> ids = new List<Id>();
+        for (Gift__c gift : [
+            SELECT Id
+            FROM Gift__c
+            WHERE Sample_Data__c = TRUE AND Original_Gift__c != NULL
+            WITH USER_MODE
+        ]) {
+            ids.add(gift.Id);
+        }
+        return ids;
+    }
+
     public List<Id> sampleCommitmentIds() {
         List<Id> ids = new List<Id>();
         for (Commitment__c commitment : [

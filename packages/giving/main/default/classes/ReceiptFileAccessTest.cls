@@ -188,8 +188,11 @@ private class ReceiptFileAccessTest {
                 'Viewer, so record edit access can never become file edit access on a document ' +
                 'that is immutable once issued.'
             );
+            // An org with external users is given InternalUsers. An org with none refuses that
+            // value, and AllUsers there reaches the same internal users (ADR-0034), so AllUsers is
+            // accepted only when the platform refused InternalUsers in this very run.
             Assert.areEqual(
-                'InternalUsers',
+                ReceiptWriter.orgRefusesInternalOnlyLinks == true ? 'AllUsers' : 'InternalUsers',
                 link.Visibility,
                 'A receipt is an internal document: no external user reaches one through a link ' +
                 'this package created.'

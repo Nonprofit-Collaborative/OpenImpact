@@ -44,11 +44,32 @@ private class InstallmentTopUpBatchTest {
 
         Assert.isTrue(chunks > 1, 'Sixty commitments take more chunks than one: ' + chunks);
         Assert.areEqual(60, batch.commitmentsProcessed(), 'Every chunk was counted.');
+        // Reached is counted per commitment, not per installment. A yearly gift that started
+        // in the last sixty days has two installments inside the twelve month horizon: the one
+        // on its start date and the one a year on, which the horizon still reaches.
+        Map<Id, Integer> installmentsByCommitment = new Map<Id, Integer>();
+        for (AggregateResult row : [
+            SELECT Commitment__c commitment, COUNT(Id) installments
+            FROM Installment__c
+            GROUP BY Commitment__c
+        ]) {
+            installmentsByCommitment.put(
+                (Id) row.get('commitment'),
+                (Integer) row.get('installments')
+            );
+        }
         Assert.areEqual(
-            60,
-            [SELECT COUNT() FROM Installment__c],
+            new Map<Id, Commitment__c>(recurring).keySet(),
+            installmentsByCommitment.keySet(),
             'Every one of the sixty commitments was reached, across more chunks than one.'
         );
+        for (Integer installments : installmentsByCommitment.values()) {
+            Assert.areEqual(
+                2,
+                installments,
+                'Each was extended to the horizon: its start date and a year on.'
+            );
+        }
         Assert.areNotEqual(
             null,
             Giving_Settings__c.getOrgDefaults().Installment_Top_Up_Last_Run__c,

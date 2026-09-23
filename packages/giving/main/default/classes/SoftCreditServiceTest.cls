@@ -317,6 +317,11 @@ private class SoftCreditServiceTest {
     @IsTest
     static void removesTheAutomaticCreditsAndLeavesTheOnesStaffEnteredAlone() {
         RecognitionTestData.setAutomaticHouseholdCredits(true);
+        // Putting Ana and Luis in the household queues a recompute of its credits (R-SC3). The
+        // setup runs inside its own start and stop so that recompute has finished before the
+        // removal: left queued, it ran after the removal and put Luis's credit straight back,
+        // which is the household rule working, not the removal failing.
+        Test.startTest();
         Account garcias = RecognitionTestData.household('The Garcia Family');
         Contact ana = RecognitionTestData.person('Ana', 'Garcia', garcias.Id);
         Contact luis = RecognitionTestData.person('Luis', 'Garcia', garcias.Id);
@@ -328,6 +333,7 @@ private class SoftCreditServiceTest {
             'Solicitor',
             500
         );
+        Test.stopTest();
         Map<Id, Soft_Credit__c> before = new Map<Id, Soft_Credit__c>(
             RecognitionTestData.creditsFor(gift.Id)
         );
@@ -338,9 +344,7 @@ private class SoftCreditServiceTest {
             'And the automatic one is the household member credit'
         );
 
-        Test.startTest();
         SoftCreditService.removeAutomaticCredits(new Set<Id>{ gift.Id });
-        Test.stopTest();
 
         System.assertEquals(
             1,

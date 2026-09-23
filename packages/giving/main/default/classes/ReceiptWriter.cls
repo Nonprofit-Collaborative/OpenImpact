@@ -104,9 +104,12 @@ public without sharing class ReceiptWriter {
      * is what an immutable document needs (ADR-0010, R-RC1): `'I'` would infer the permission from
      * the linked record instead, and Giving Staff holds Edit on `Gift__c`. `Visibility` separates
      * internal users from external ones rather than one internal role from another, so
-     * `InternalUsers` is not the fix for anything here; it is set because a receipt is an internal
-     * document and no Experience Cloud user should ever reach one through a link this package
-     * created (ADR-0009).
+     * `InternalUsers` is not the fix for anything here; it is asked for because a receipt is an
+     * internal document and no Experience Cloud user should ever reach one through a link this
+     * package created (ADR-0009). An org with no external users has nothing to separate, and the
+     * platform refuses `InternalUsers` there ("Visibility InternalUsers is not permitted for this
+     * linked record"); on that refusal alone the links are written with `AllUsers`, which in such
+     * an org reaches exactly the internal users `InternalUsers` would have (ADR-0034).
      *
      * The bytes are passed in and dropped on return: nothing here holds a PDF beyond the call,
      * which is what keeps a batch chunk inside the async heap limit.
@@ -135,25 +138,69 @@ public without sharing class ReceiptWriter {
         ]
         .ContentDocumentId;
 
-        List<ContentDocumentLink> links = new List<ContentDocumentLink>();
-        Set<Id> seen = new Set<Id>();
+        Set<Id> targets = new Set<Id>();
         for (Id target : linkTo) {
-            if (target == null || !seen.add(target)) {
-                continue;
+            if (target != null) {
+                targets.add(target);
             }
+        }
+        if (targets.isEmpty()) {
+            return documentId;
+        }
+        if (orgRefusesInternalOnlyLinks != true) {
+            try {
+                insertLinks(documentId, targets, VISIBILITY_INTERNAL);
+                orgRefusesInternalOnlyLinks = false;
+                return documentId;
+            } catch (DmlException refused) {
+                if (!refusedVisibility(refused)) {
+                    throw refused;
+                }
+                // The whole insert rolled back, so nothing is half linked. Remembered for the
+                // transaction, so a year end chunk asks the platform once rather than per donor.
+                orgRefusesInternalOnlyLinks = true;
+            }
+        }
+        insertLinks(documentId, targets, VISIBILITY_ALL);
+        return documentId;
+    }
+
+    private static final String VISIBILITY_INTERNAL = 'InternalUsers';
+    private static final String VISIBILITY_ALL = 'AllUsers';
+
+    /**
+     * True once the platform has refused an `InternalUsers` link in this transaction, which it
+     * does on an org with no external users. Null until the first link is written.
+     */
+    @TestVisible
+    private static Boolean orgRefusesInternalOnlyLinks;
+
+    private static void insertLinks(Id documentId, Set<Id> targets, String visibility) {
+        List<ContentDocumentLink> links = new List<ContentDocumentLink>();
+        for (Id target : targets) {
             links.add(
                 new ContentDocumentLink(
                     ContentDocumentId = documentId,
                     LinkedEntityId = target,
                     ShareType = 'V',
-                    Visibility = 'InternalUsers'
+                    Visibility = visibility
                 )
             );
         }
-        if (!links.isEmpty()) {
-            Database.insert(links, true, AccessLevel.SYSTEM_MODE);
+        Database.insert(links, true, AccessLevel.SYSTEM_MODE);
+    }
+
+    /** True when the save was refused over the Visibility value and nothing else. */
+    private static Boolean refusedVisibility(DmlException refused) {
+        for (Integer i = 0; i < refused.getNumDml(); i++) {
+            if (
+                refused.getDmlType(i) != StatusCode.INVALID_FIELD_FOR_INSERT_UPDATE ||
+                !refused.getDmlFieldNames(i).contains('Visibility')
+            ) {
+                return false;
+            }
         }
-        return documentId;
+        return refused.getNumDml() > 0;
     }
 
     /** Raised when a caller asks for a link that would widen who can read a receipt. */

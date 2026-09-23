@@ -349,9 +349,13 @@ private class GivingUserModeTest {
         insert tribute;
         handTo(david, new List<Id>{ ana.Id, gift.Id });
         TributeController.TributeView view;
+        // Today as David's own clock has it. The date is stamped in the running user's time zone,
+        // and the administrator running the suite can be on the other side of midnight from him.
+        Date davidsToday;
 
         Test.startTest();
         System.runAs(david) {
+            davidsToday = Date.today();
             view = TributeController.markNotificationSent(tribute.Id);
         }
         Test.stopTest();
@@ -363,7 +367,7 @@ private class GivingUserModeTest {
             WHERE Id = :tribute.Id
         ];
         Assert.isTrue(saved.Notification_Sent__c, 'David recorded that the letter went out.');
-        Assert.areEqual(Date.today(), saved.Notification_Sent_Date__c, 'Dated today.');
+        Assert.areEqual(davidsToday, saved.Notification_Sent_Date__c, 'Dated today.');
     }
 
     @IsTest

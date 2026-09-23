@@ -34,6 +34,10 @@ private class QuickGiftEntryControllerTest {
         settings.Default_Fund__c = fundId;
         settings.Default_Appeal__c = appealId;
         upsert settings;
+        // Every writer of a settings object clears the settings cache after it writes. Saving
+        // the fund and the appeal above has already read the settings once in this transaction,
+        // so without this the controller is answered from the copy taken before the write.
+        SettingsService.clearCaches();
     }
 
     private static QuickGiftEntryController.GiftInput baseInput() {
