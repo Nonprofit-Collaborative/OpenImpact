@@ -4,7 +4,9 @@
     <aggregateTypes>Sum</aggregateTypes>
     <field>Gift__c$Amount__c</field>
   </columns>
-  <description>Households by what they have given this year, largest first.</description>
+  <description>
+    Households by what they have given this year. The dashboard table lists them largest first.
+  </description>
   <filter>
     <criteriaItems>
       <column>Gift__c$Status__c</column>
@@ -20,9 +22,7 @@
   <format>Summary</format>
   <groupingsDown>
     <field>Gift__c$Household__c</field>
-    <sortByName>s!Gift__c$Amount__c</sortByName>
-    <sortOrder>Desc</sortOrder>
-    <sortType>Aggregate</sortType>
+    <sortOrder>Asc</sortOrder>
   </groupingsDown>
   <name>Top Donors This Year</name>
   <reportType>Gifts__c</reportType>

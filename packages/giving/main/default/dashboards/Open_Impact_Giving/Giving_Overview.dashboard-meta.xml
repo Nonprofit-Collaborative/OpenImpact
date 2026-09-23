@@ -23,6 +23,7 @@
       <report>Open_Impact_Giving/Gifts_This_Month_by_Day</report>
     </components>
     <components>
+      <chartAxisRange>Auto</chartAxisRange>
       <componentType>Column</componentType>
       <drillEnabled>true</drillEnabled>
       <header>This month, day by day</header>
@@ -34,6 +35,7 @@
   <middleSection>
     <columnSize>Medium</columnSize>
     <components>
+      <chartAxisRange>Auto</chartAxisRange>
       <componentType>Column</componentType>
       <drillEnabled>true</drillEnabled>
       <footer>The last twelve months, this month at the right</footer>
@@ -43,6 +45,7 @@
       <sortBy>RowLabelAscending</sortBy>
     </components>
     <components>
+      <chartAxisRange>Auto</chartAxisRange>
       <componentType>Bar</componentType>
       <drillEnabled>true</drillEnabled>
       <header>Giving by fund, this year</header>
@@ -54,6 +57,7 @@
   <rightSection>
     <columnSize>Medium</columnSize>
     <components>
+      <chartAxisRange>Auto</chartAxisRange>
       <componentType>Bar</componentType>
       <drillEnabled>true</drillEnabled>
       <header>Giving by appeal, this year</header>
@@ -71,6 +75,7 @@
       <indicatorMiddleColor>#C2C254</indicatorMiddleColor>
       <maxValuesDisplayed>10</maxValuesDisplayed>
       <report>Open_Impact_Giving/Top_Donors_This_Year</report>
+      <sortBy>RowValueDescending</sortBy>
     </components>
   </rightSection>
   <textColor>#000000</textColor>
