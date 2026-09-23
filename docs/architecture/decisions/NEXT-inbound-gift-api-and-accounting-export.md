@@ -74,3 +74,10 @@ Export Run object, reasoning that Connect cannot mark a gift. Giving now owns G-
 - Setting up the REST endpoint needs Setup (an integration user and its authentication),
   which the platform owns; the admin guide says so. The Flow action needs none.
 - Plan Section 4.12's "posting flag per gift" is delivered by G-20, not X-04.
+- The export reads ADR-0022's money statuses (Received, Refunded, Written off), so its net
+  agrees with the Fund and donor totals. A Pending gift that is later written off therefore
+  enters its own, possibly already exported, period, cancelled by the write-off on the day
+  it is recorded. Gifts keep no status history, so the export cannot tell such a gift from a
+  Received one that was written off; the admin guide says how to handle it.
+- The Error Log line for a refusal names the external id and the error code only. The
+  message goes to the caller, not the log, because it can repeat what the caller sent.

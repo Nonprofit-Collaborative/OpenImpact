@@ -144,6 +144,27 @@ private class AccountingExportServiceTest {
     }
 
     @IsTest
+    static void aRangeOverTheRowLimitIsRefusedInWords() {
+        AccountingExportService.maxRows = 4;
+        String refusal;
+        try {
+            AccountingExportService.build(AUGUST_FIRST, AUGUST_LAST, null, null);
+        } catch (AccountingExportService.ExportException refused) {
+            refusal = refused.getMessage();
+        }
+        AccountingExportService.maxRows = 5;
+        AccountingExportService.ExportFile atTheLimit = AccountingExportService.build(
+            AUGUST_FIRST,
+            AUGUST_LAST,
+            null,
+            null
+        );
+
+        Assert.areEqual(Label.Connect_AccountingExport_ErrorTooManyRows, refusal);
+        Assert.areEqual(5, atTheLimit.rowCount, 'Exactly the limit is still a file.');
+    }
+
+    @IsTest
     static void anEmptyRangeHasNoFile() {
         AccountingExportService.ExportFile file = AccountingExportService.build(
             Date.newInstance(2030, 1, 1),

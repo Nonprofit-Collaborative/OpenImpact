@@ -17,7 +17,8 @@
  * labels so that an import mapping saved once in an accounting system keeps working.
  */
 public with sharing class AccountingExportService {
-    public static final Integer MAX_ROWS = 10000;
+    @TestVisible
+    private static Integer maxRows = 10000;
     public static final List<String> HEADER = new List<String>{
         'Date',
         'Gift Number',
@@ -122,7 +123,7 @@ public with sharing class AccountingExportService {
         }
 
         private Boolean add(Id giftId, Gift__c gift, String fund, String code, Decimal amount) {
-            if (result.rowCount >= MAX_ROWS) {
+            if (result.rowCount >= maxRows) {
                 overLimit = true;
                 return false;
             }

@@ -27,8 +27,10 @@ spreadsheet keeps working:
 Only money is exported: gifts that are Received, Refunded or Written off. A Pending gift has
 not arrived yet, and an in-kind gift is goods, not money, so neither is in the file.
 
-The export changes nothing. Running it twice for the same dates gives the same file, and
-nothing on a gift records that it was exported.
+The export changes nothing, and nothing on a gift records that it was exported. Running it
+twice for the same dates gives the same file unless a gift in those dates changed in
+between: a gift added or edited late, or a Pending gift that was written off (see Common
+mistakes).
 
 ## How to turn it on
 
@@ -77,6 +79,23 @@ will not hand over a file that is missing rows. Export a quarter or a month at a
 **A fund with no accounting code.** Its rows have an empty Accounting Code, which your
 accounting system will not know where to put. Add the code on the fund (see
 [Funds](funds.md)) and export again.
+
+**A month changed after you exported it, because a Pending gift was written off.** A
+Pending gift is not in the file. Writing it off makes it Written off, and the export counts
+Written off gifts the way Open Impact's totals do (a write-off cancels its gift, so both
+rows are money rows). The gift then appears on its own date, in the month you already
+exported, and the write-off appears as a negative row on the day you recorded it. The two
+cancel out, so the year's net is right, but the earlier month gains a row. Add that row in
+your accounting system, or export the month again. To avoid it, delete a Pending gift that
+will never be paid instead of writing it off; write off only gifts that were recorded as
+Received. Open Impact cannot tell afterwards which of the two a written-off gift was, so the
+export cannot leave one out and keep the other.
+
+**A value in the file starts with an apostrophe.** A cell that begins with `=`, `+`, `-` or
+`@` gets an apostrophe in front, so a spreadsheet does not run it as a formula. This also
+applies to a reference such as `-123` or `+44 20 7946 0000`, which appears as `'-123`.
+Amounts never get one: they are written as plain numbers. Remove the apostrophe in your
+accounting system's import mapping if a reference must match exactly.
 
 **Looking for an "exported" mark on a gift.** There is none. Keep track of which periods are
 in the books by date range. A posting flag and period lock on gifts are planned as a

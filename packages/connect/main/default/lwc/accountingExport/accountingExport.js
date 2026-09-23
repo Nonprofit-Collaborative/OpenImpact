@@ -19,6 +19,9 @@ import noGifts from '@salesforce/label/c.Connect_AccountingExport_NoGifts';
 import errorDatesRequired from '@salesforce/label/c.Connect_AccountingExport_ErrorDatesRequired';
 import errorFailed from '@salesforce/label/c.Connect_AccountingExport_ErrorFailed';
 
+const BYTE_ORDER_MARK = '\uFEFF';
+const REVOKE_DELAY_MS = 1000;
+
 /**
  * The Accounting Export page (feature X-04). The service decides what is in the file and
  * refuses a bad range in words; the page only collects the choices, saves the file and says
@@ -117,13 +120,21 @@ export default class AccountingExport extends LightningElement {
     );
   }
 
-  /** A Blob, not a data URI: 10,000 rows is over a megabyte, past what browsers take in a URL. */
+  /**
+   * A Blob, not a data URI: 10,000 rows is over a megabyte, past what browsers take in a URL.
+   * The byte-order mark tells a spreadsheet the file is UTF-8, so a name like Muñoz arrives
+   * intact. The address is released a moment after the click, because some browsers start the
+   * download only after the click handler returns.
+   */
   save(fileName, csv) {
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const url = URL.createObjectURL(
+      new Blob([BYTE_ORDER_MARK, csv], { type: 'text/csv;charset=utf-8' })
+    );
     const link = document.createElement('a');
     link.href = url;
     link.download = fileName;
     link.click();
-    URL.revokeObjectURL(url);
+    // eslint-disable-next-line @lwc/lwc/no-async-operation
+    setTimeout(() => URL.revokeObjectURL(url), REVOKE_DELAY_MS);
   }
 }

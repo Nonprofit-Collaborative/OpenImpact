@@ -75,7 +75,17 @@ function text(element, id) {
 describe('c-accounting-export', () => {
   let clicked;
 
+  let blobParts;
+  const RealBlob = global.Blob;
+
   beforeEach(() => {
+    jest.useFakeTimers();
+    blobParts = [];
+    global.Blob = class {
+      constructor(parts) {
+        blobParts.push(parts);
+      }
+    };
     clicked = [];
     global.URL.createObjectURL = jest.fn(() => 'blob:export');
     global.URL.revokeObjectURL = jest.fn();
@@ -85,6 +95,8 @@ describe('c-accounting-export', () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
+    global.Blob = RealBlob;
     while (document.body.firstChild) {
       document.body.removeChild(document.body.firstChild);
     }
@@ -130,6 +142,10 @@ describe('c-accounting-export', () => {
     expect(clicked).toEqual([
       { href: 'blob:export', download: 'accounting-export-2026-08-01-to-2026-08-31.csv' }
     ]);
+    expect(blobParts).toEqual([['\uFEFF', 'Date,Gift Number\r\n']]);
+    expect(global.URL.revokeObjectURL).not.toHaveBeenCalled();
+    jest.runAllTimers();
+    expect(global.URL.revokeObjectURL).toHaveBeenCalledWith('blob:export');
     expect(text(element, 'message')).toBe('5 rows from 4 gifts. Net total $410.00.');
   });
 
