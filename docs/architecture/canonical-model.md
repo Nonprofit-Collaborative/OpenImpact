@@ -1342,7 +1342,8 @@ first batch. The undo action itself, and the journal of updates it needs, are C-
 and are specified in R-IB7 to R-IB9 and Section 17A.
 
 **R-IB7 The undo window is stamped, not computed.** At commit, Undo Deadline is written as
-the commit time plus `Import_Undo_Retention_Days__c`. It is read from the batch from then
+the commit time plus `Import_Undo_Retention_Days__c`, for a commit that failed part way as
+well as one that completed, because the chunks that ran did write. It is read from the batch from then
 on, so lengthening the setting does not reopen an import whose window has closed and
 shortening it does not close a window an administrator was told they had. An undo asked for
 after the deadline is refused, in a sentence naming the date it passed.

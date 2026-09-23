@@ -289,6 +289,10 @@ private class ImportBatchServiceTest {
         Test.stopTest();
         Assert.areEqual(ImportBatchService.STATUS_FAILED, after.Status__c, 'Marked as failed.');
         Assert.isTrue(after.Run_Log__c.contains('Chunk 1 failed'), 'With the reason in the log.');
+        Assert.isNotNull(
+            after.Undo_Deadline__c,
+            'The chunks that ran did write, so a failed commit can be undone too (R-IB7).'
+        );
     }
 
     @IsTest

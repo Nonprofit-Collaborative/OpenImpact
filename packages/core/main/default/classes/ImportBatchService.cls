@@ -239,9 +239,12 @@ public with sharing class ImportBatchService {
             batch.Status__c = STATUS_DRY_RUN_COMPLETE;
         } else {
             batch.Status__c = STATUS_COMPLETE;
+        }
+        if (dryRun != true) {
+            // A commit that failed part way still wrote the chunks that ran, so it is as
+            // undoable as one that finished. The deadline is stamped here rather than
+            // computed at undo, so changing the setting never moves it (R-IB7).
             batch.Committed_By__c = UserInfo.getUserId();
-            // Stamped here rather than computed at undo, so changing the setting never moves
-            // the deadline of an import that has already run (R-IB7).
             batch.Undo_Deadline__c = Datetime.now().addDays(undoWindowDays());
         }
         Database.update(batch, AccessLevel.SYSTEM_MODE);
