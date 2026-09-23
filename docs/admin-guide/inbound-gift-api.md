@@ -89,6 +89,13 @@ fund goes to your default fund.
 gift with its refund action (see [Refunds](refunds.md)). The API refuses an amount of zero
 or less.
 
+**The integration user cannot see the donors.** The API finds a donor only among the people
+and organizations its user can see, the same as a search by that user would. If contacts
+and accounts are private in your organization, every gift is refused with
+`donor_not_found` even though the donor is there. Give the integration user a role above
+the staff who own donor records, or a sharing rule that shares them with it; both are in
+Setup, under Roles and Sharing Settings.
+
 **The integration user cannot see older gifts.** Gifts are private by default, and the API
 checks for an earlier copy only among gifts its user can see. A gift entered by hand with
 the same identifier is still never duplicated: the platform refuses the second copy and the

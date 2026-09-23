@@ -69,7 +69,7 @@ Every response body has the same shape, with empty fields left out:
 | `400` | `rejected` | `invalid_request` | The body is not JSON, has a field this API does not know, or has a value of the wrong type. Fix the request. |
 | `400` | `rejected` | `invalid_field` | A field is missing, too long or not an allowed value, or two fields that exclude each other were both sent. The message names the field. |
 | `409` | `rejected` | `external_id_conflict` | This `externalId` already belongs to a gift with a different amount, or to a gift the integration user cannot see. Nothing changed. Find out which of the two is right in your system; do not retry. |
-| `422` | `rejected` | `donor_not_found` | No donor matches. Add the person or organization, then send the same request again. |
+| `422` | `rejected` | `donor_not_found` | No donor the integration user can see matches. Add the person or organization (or ask the nonprofit to share its donors with the integration user), then send the same request again. |
 | `422` | `rejected` | `fund_not_found` | No active fund has this `fundCode` or `fundId`. |
 | `422` | `rejected` | `appeal_not_found` | No appeal has this `appealId`. |
 | `422` | `rejected` | `gift_not_saved` | The gift broke a rule of the organization's own, for example a validation rule they added, or no default fund is set. The message is the rule's. |
