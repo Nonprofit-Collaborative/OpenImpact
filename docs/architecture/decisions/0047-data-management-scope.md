@@ -1,4 +1,4 @@
-# ADR-NEXT: Data management runs in the org, compiles queries from a document, and is phased
+# ADR-0047: Data management runs in the org, compiles queries from a document, and is phased
 
 **Status:** Accepted
 **Date:** 2026-09-23
