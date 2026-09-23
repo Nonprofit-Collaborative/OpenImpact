@@ -150,8 +150,10 @@ is simply absent from it.
 **"The primary contact went blank when I moved someone out."**
 That is deliberate. The primary contact has to be somebody who is still in the household,
 so when that person leaves, Open Impact clears the field rather than leaving a name that no
-longer belongs there. It does not choose a replacement for you: pick the new primary
-contact yourself on the household record.
+longer belongs there. It does not choose a replacement for you: click **Make primary**
+on the right person in the household's **Household Members** panel. In the flexible way of
+belonging the field always follows the member marked primary, so that panel is the only
+place to change it.
 
 **"I moved someone and their gifts stayed behind."**
 That is deliberate. Moving a person moves the person, not the giving history of the
@@ -165,7 +167,7 @@ For report builders only. Maria never needs this to use the feature.
 | Where | Field label | Purpose |
 |---|---|---|
 | Household | Member Count | Current members of this household |
-| Household | Primary Contact | The person named when only one person can be. Cleared when that person leaves the household |
+| Household | Primary Contact | The person named when only one person can be. Cleared when that person leaves the household. In the flexible way of belonging it follows the member marked primary, and a person account appears as its person contact |
 | Household | Anniversary | A household date you steward, most often a wedding anniversary |
 | Person | Household Role | Head, Spouse or Partner, Child, or Other |
 | Household Member | Start Date and End Date | When the person joined and left (flexible mode only) |

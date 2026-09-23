@@ -52,6 +52,12 @@ public with sharing class HouseholdService {
     private static final Set<Id> REPORTED_KEPT_HOUSEHOLDS = new Set<Id>();
 
     /**
+     * Set while this service writes Primary Contact itself, so that the guard against a hand
+     * edit in junction mode (refuseHandSetPrimaryContacts) lets the package's own write through.
+     */
+    private static Boolean writingPrimaryContacts = false;
+
+    /**
      * One member of a household, whichever object the person is stored on.
      */
     @NamespaceAccessible
@@ -599,7 +605,8 @@ public with sharing class HouseholdService {
         try {
             // Who belongs to what has just changed, so any answer already given is stale.
             HOUSEHOLD_ID_BY_PERSON.clear();
-            clearDepartedPrimaryContacts(householdIds);
+            // Before naming, so that the naming pass reads the primary as it now stands.
+            settlePrimaryContacts(householdIds);
             recalculateMemberCounts(householdIds);
             // Mutual exclusion (product-plan Section 11.2 item 9): a household that already
             // carries a native Nonprofit Cloud household group keeps the name and greetings
@@ -1440,6 +1447,147 @@ public with sharing class HouseholdService {
     }
 
     /**
+     * Brings each household's Primary Contact into line with its membership, in whichever
+     * membership mode the org uses (R-M3, R-H10, ADR-0044 primary contact mirrors the primary
+     * member). Part of every membership change's upkeep; public for the one caller that
+     * settles a household without the rest of that upkeep (a merge that keeps a custom name).
+     *
+     * In contact mode the field is the mark itself, set by a person, so it is only cleared
+     * when the person it names has left. In junction mode the field mirrors the membership
+     * marked Is Primary, and this is the only thing that writes it.
+     */
+    @NamespaceAccessible
+    public static void settlePrimaryContacts(Set<Id> householdIds) {
+        if (householdIds == null || householdIds.isEmpty()) {
+            return;
+        }
+        if (isJunctionMode()) {
+            mirrorPrimaryMembers(householdIds);
+        } else {
+            clearDepartedPrimaryContacts(householdIds);
+        }
+    }
+
+    /**
+     * Junction mode: Primary Contact names the current member marked Is Primary. A member
+     * stored as a contact is named as that contact. A member stored as a person account is
+     * named as the contact the platform keeps behind that account, which a Contact lookup
+     * accepts; PersonRecordSelector reads it without naming it at compile time. No primary
+     * member means no Primary Contact: nobody is promoted (R-H10). More than one, which only a
+     * data load can produce, mirrors the first in member order and leaves the rows alone.
+     *
+     * Only households: an organization shares the field (R-O3) and is never touched. The
+     * member read is upkeep (ADR-0021), the same system mode read naming and counting use.
+     */
+    private static void mirrorPrimaryMembers(Set<Id> householdIds) {
+        Id recordTypeId = householdRecordTypeId();
+        Map<Id, Account> households = new Map<Id, Account>();
+        for (Account household : HouseholdSelector.getHouseholdsByIds(householdIds)) {
+            if (recordTypeId != null && household.RecordTypeId == recordTypeId) {
+                households.put(household.Id, household);
+            }
+        }
+        if (households.isEmpty()) {
+            return;
+        }
+        Map<Id, List<Person>> membersByHousehold = getMembers(households.keySet());
+        Map<Id, Id> primaryByHousehold = new Map<Id, Id>();
+        Set<Id> primariesStoredAsAccounts = new Set<Id>();
+        for (Id householdId : households.keySet()) {
+            Id primaryId = firstPrimaryId(membersByHousehold.get(householdId));
+            primaryByHousehold.put(householdId, primaryId);
+            if (primaryId != null && primaryId.getSObjectType() == Account.SObjectType) {
+                primariesStoredAsAccounts.add(primaryId);
+            }
+        }
+        // One read for every household in the pass, and none when no primary is an account.
+        Map<Id, Id> personContactByAccount = PersonRecordSelector.getPersonContactIds(
+            primariesStoredAsAccounts
+        );
+        List<Account> updates = new List<Account>();
+        for (Account household : households.values()) {
+            Id primaryId = primaryByHousehold.get(household.Id);
+            Id mirrored = primaryId == null
+                ? null
+                : primaryId.getSObjectType() == Contact.SObjectType
+                      ? primaryId
+                      : personContactByAccount.get(primaryId);
+            if (household.Primary_Contact__c != mirrored) {
+                updates.add(new Account(Id = household.Id, Primary_Contact__c = mirrored));
+            }
+        }
+        writePrimaryContacts(updates);
+    }
+
+    /** The id of the first current member marked primary, in member order (R-H5). */
+    private static Id firstPrimaryId(List<Person> members) {
+        List<Person> primaries = new List<Person>();
+        if (members != null) {
+            for (Person member : members) {
+                if (member.isPrimary == true && member.id != null) {
+                    primaries.add(member);
+                }
+            }
+        }
+        if (primaries.isEmpty()) {
+            return null;
+        }
+        primaries.sort();
+        return primaries[0].id;
+    }
+
+    /**
+     * Package upkeep of a household, saved the way every other piece of household upkeep is
+     * saved, for the reason ADR-0021 gives: an ordinary membership save must not fail because
+     * the saving user cannot edit the household. Marked as the package's own write, so the
+     * junction mode guard against a hand edit lets it through.
+     */
+    private static void writePrimaryContacts(List<Account> updates) {
+        if (updates.isEmpty()) {
+            return;
+        }
+        writingPrimaryContacts = true;
+        try {
+            HouseholdWriter.updateHouseholds(updates);
+        } finally {
+            writingPrimaryContacts = false;
+        }
+    }
+
+    /**
+     * Refuses a hand edit of Primary Contact on a household in junction mode, where the field
+     * mirrors the member marked primary and this service is its only writer (R-M3). Setting it
+     * on a new household counts as an edit. The refusal names the place to make the change
+     * instead. An organization, contact mode, and this service's own write are all left alone.
+     * Called from the Account trigger before insert and before update.
+     */
+    @NamespaceAccessible
+    public static void refuseHandSetPrimaryContacts(
+        List<Account> records,
+        Map<Id, Account> previousById
+    ) {
+        if (writingPrimaryContacts || records == null || records.isEmpty()) {
+            return;
+        }
+        Id recordTypeId = householdRecordTypeId();
+        if (recordTypeId == null || !isJunctionMode()) {
+            return;
+        }
+        for (Account record : records) {
+            if (record.RecordTypeId != recordTypeId) {
+                continue;
+            }
+            Account previous = previousById == null ? null : previousById.get(record.Id);
+            Id before = previous == null ? null : previous.Primary_Contact__c;
+            if (record.Primary_Contact__c != before) {
+                record.Primary_Contact__c.addError(
+                    Label.Core_Households_PrimaryContactFollowsMembers
+                );
+            }
+        }
+    }
+
+    /**
      * Clears Primary Contact on any household whose primary contact is no longer one of
      * its current members. R-H10.
      *
@@ -1449,11 +1597,8 @@ public with sharing class HouseholdService {
      * contact out therefore leaves the household with no primary contact rather than with
      * a reference to somebody who has left.
      *
-     * Both membership modes are covered by asking the one question "is this person still a
-     * current member", which getMembers answers whichever way the org stores membership. A
-     * person held as an account cannot be a household's Primary Contact at all (the field
-     * is a lookup to Contact), so in junction mode a household whose members are all held
-     * as accounts simply has no primary contact to keep.
+     * Contact mode only: in junction mode the field is a mirror, settled by
+     * mirrorPrimaryMembers instead.
      */
     private static void clearDepartedPrimaryContacts(Set<Id> householdIds) {
         Id recordTypeId = householdRecordTypeId();
@@ -1493,12 +1638,7 @@ public with sharing class HouseholdService {
                 updates.add(new Account(Id = household.Id, Primary_Contact__c = null));
             }
         }
-        if (!updates.isEmpty()) {
-            // Package upkeep of a household, saved the way every other piece of household
-            // upkeep is saved, for the reason ADR-0021 gives: an ordinary contact save
-            // must not fail because the saving user cannot edit the household.
-            HouseholdWriter.updateHouseholds(updates);
-        }
+        writePrimaryContacts(updates);
     }
 
     /**
