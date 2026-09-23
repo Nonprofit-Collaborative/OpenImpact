@@ -2,6 +2,8 @@
 
 **Status:** Re-opened (name); Accepted (namespace deferral). On 2026-09-06 the owner found "Open Impact" already in use, including by a foundation funding open source work, too close to this project to share a name. "Open Impact" remains only a placeholder working title until a replacement is chosen and vetted (USPTO, AppExchange, GitHub, npm, domains, social handles, namespace). The fallback "OpenCause" needs the same vetting. A new ADR will record the final name.
 **Date:** 2026-09-06
+**Amended by:** ADR-NEXT, which records BarnCRM as the tentative name, subject to the plan
+  Section 8.3 checks. The namespace deferral below stands.
 **Source:** plan Section 12, decision D-01
 
 ## Context
