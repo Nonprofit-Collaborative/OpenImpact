@@ -11,14 +11,14 @@
  *
  * Both stages are static and take an already parsed SampleDataSet, so tests call them
  * directly and assert chunk boundaries without relying on queueable chaining, which an
- * Apex test context does not run.
+ * Apex test context refuses (SampleDataLoader.mayQueueNextStage).
  */
 public with sharing class SampleDataLoadQueueable implements Queueable {
     public void execute(QueueableContext context) {
         try {
             SampleDataSet data = SampleDataSet.parse(SampleDataLoader.getSampleDataJson());
             loadHouseholdsAndOrganizations(data);
-            if (data.chunkCount() > 0) {
+            if (data.chunkCount() > 0 && SampleDataLoader.mayQueueNextStage()) {
                 System.enqueueJob(new SampleDataContactQueueable(data.householdIdsByKey, 0));
             }
         } catch (Exception e) {
@@ -55,7 +55,7 @@ public with sharing class SampleDataLoadQueueable implements Queueable {
         allAccounts.addAll(householdAccounts);
         allAccounts.addAll(organizationAccounts);
         if (!allAccounts.isEmpty()) {
-            Database.insert(allAccounts, AccessLevel.USER_MODE);
+            Database.insert(allAccounts, sampleSaveOptions(), AccessLevel.USER_MODE);
         }
 
         Map<String, Id> keysToIds = new Map<String, Id>();
@@ -100,7 +100,7 @@ public with sharing class SampleDataLoadQueueable implements Queueable {
         // this insert and the loader joins them itself (R-H2, ADR-0037).
         HouseholdService.suspendAutomaticCreation();
         try {
-            Database.insert(contactsToInsert, AccessLevel.USER_MODE);
+            Database.insert(contactsToInsert, sampleSaveOptions(), AccessLevel.USER_MODE);
         } finally {
             HouseholdService.resumeAutomaticCreation();
         }
@@ -108,6 +108,20 @@ public with sharing class SampleDataLoadQueueable implements Queueable {
             HouseholdService.addMembers(peopleByHousehold(contactsToInsert, householdIds));
         }
         return contactsToInsert.size();
+    }
+
+    /**
+     * All or nothing, as an ordinary insert is, and saved past a duplicate rule that only
+     * alerts. Sample people share streets, phone patterns and surnames with each other and
+     * may resemble people already in the org, and an org's standard duplicate rules (on by
+     * default in most editions) would otherwise refuse the load part way through. A rule the
+     * org set to block still blocks: that is the administrator's decision, not an alert.
+     */
+    private static Database.DMLOptions sampleSaveOptions() {
+        Database.DMLOptions options = new Database.DMLOptions();
+        options.OptAllOrNone = true;
+        options.DuplicateRuleHeader.AllowSave = true;
+        return options;
     }
 
     /**

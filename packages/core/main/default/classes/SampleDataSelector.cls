@@ -76,8 +76,26 @@ public with sharing class SampleDataSelector {
         return ids;
     }
 
+    /**
+     * How many sample connections there are, as the admin guide counts them: one for each
+     * pair of people, not one for each side. The loader flags both sides of a connection it
+     * made (the other side is built by the relationship automation), so a pair whose two sides
+     * are both flagged is counted once, and a side standing alone still counts as one.
+     */
     public Integer countSampleRelationships() {
-        return [SELECT COUNT() FROM Relationship__c WHERE Sample_Data__c = TRUE WITH USER_MODE];
+        Integer sides = [
+            SELECT COUNT()
+            FROM Relationship__c
+            WHERE Sample_Data__c = TRUE
+            WITH USER_MODE
+        ];
+        Integer pairedSides = [
+            SELECT COUNT()
+            FROM Relationship__c
+            WHERE Sample_Data__c = TRUE AND Reciprocal_Relationship__r.Sample_Data__c = TRUE
+            WITH USER_MODE
+        ];
+        return sides - pairedSides / 2;
     }
 
     public Integer countSampleAffiliations() {

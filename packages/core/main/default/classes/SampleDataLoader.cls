@@ -112,6 +112,16 @@ public with sharing class SampleDataLoader {
     }
 
     /**
+     * Whether a stage of the load may queue the next one. The platform refuses a queueable
+     * that queues another inside an Apex test (it throws "Maximum stack depth has been
+     * reached"), so there the chain stops after the job the test started, and each stage is
+     * tested by calling it directly. Everywhere else the chain always continues.
+     */
+    public static Boolean mayQueueNextStage() {
+        return !Test.isRunningTest();
+    }
+
+    /**
      * Deletes every record flagged Sample_Data__c, and returns the counts that were
      * removed: each installed module's own records first (a gift points at a person and a
      * household), then connections and affiliations, then contacts, then the accounts, so
