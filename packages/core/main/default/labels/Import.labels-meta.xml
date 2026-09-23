@@ -624,4 +624,100 @@
         <shortDescription>Import undo journal: a value that can no longer be written</shortDescription>
         <value>Not put back: the record or its field no longer exists, or cannot be edited.</value>
     </labels>
+    <labels>
+        <fullName>Core_Import_HistoryHeading</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: card title</shortDescription>
+        <value>Recent imports</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_HistoryEmpty</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: nothing imported yet</shortDescription>
+        <value>Nothing has been imported yet.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_HistoryUndoUntil</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: before the undo deadline</shortDescription>
+        <value>Can be undone until</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoButton</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: the undo button</shortDescription>
+        <value>Undo</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoConfirmHeading</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: confirm heading, {0} is the import</shortDescription>
+        <value>Undo {0}?</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoConfirmPeople</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: count of people to remove</shortDescription>
+        <value>People to remove</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoConfirmHouseholds</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: count of households to remove</shortDescription>
+        <value>Households to remove</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoConfirmOrganizations</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: count of organizations to remove</shortDescription>
+        <value>Organizations to remove</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoConfirmUpdates</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: count of values to put back</shortDescription>
+        <value>Changed values to put back</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoConfirmButton</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: the button that starts the undo</shortDescription>
+        <value>Undo this import</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoCancelButton</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: leave the undo</shortDescription>
+        <value>Cancel</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoStarted</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: the undo has started</shortDescription>
+        <value>The undo has started. The import shows Undone when it has finished; refresh the page to check.</value>
+    </labels>
 </CustomLabels>
