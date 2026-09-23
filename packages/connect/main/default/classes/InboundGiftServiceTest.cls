@@ -11,6 +11,7 @@
 private class InboundGiftServiceTest {
     private static final String LUIS_EMAIL = 'luis.garcia.inbound@example.org';
     private static final String BUILDING_CODE = '4100';
+    private static final String OWN_DONOR_EMAIL = 'luis.garcia.owned@example.org';
 
     @TestSetup
     static void setup() {
@@ -33,6 +34,15 @@ private class InboundGiftServiceTest {
             'Integration',
             new List<String>{ 'Nonprofit_Staff', 'Giving_Staff' }
         );
+    }
+
+    /**
+     * A donor the integration user can see. It finds donors only among what it can see, and on
+     * an org whose contacts are private it sees only its own (the admin guide says how to share
+     * donors with it), so a test that runs as that user adds the donor as that user.
+     */
+    private static void addOwnDonor() {
+        insert new Contact(FirstName = 'Luis', LastName = 'Garcia', Email = OWN_DONOR_EMAIL);
     }
 
     private static InboundGift gift(String externalId, Decimal amount) {
@@ -58,8 +68,10 @@ private class InboundGiftServiceTest {
         request.fundCode = BUILDING_CODE;
         request.paymentReference = ' ch_1 ';
         request.giftDate = Date.newInstance(2026, 9, 20);
+        request.donorEmail = OWN_DONOR_EMAIL;
         InboundGiftResult result;
         System.runAs(integrationUser()) {
+            addOwnDonor();
             Test.startTest();
             result = recordOne(request);
             Test.stopTest();
@@ -82,7 +94,7 @@ private class InboundGiftServiceTest {
             WHERE Id = :result.giftId
         ];
         Assert.areEqual(
-            [SELECT Id FROM Contact WHERE Email = :LUIS_EMAIL].Id,
+            [SELECT Id FROM Contact WHERE Email = :OWN_DONOR_EMAIL].Id,
             recorded.Donor_Contact__c
         );
         Assert.isNull(recorded.Donor_Account__c);
@@ -277,7 +289,10 @@ private class InboundGiftServiceTest {
         );
         InboundGiftResult result;
         System.runAs(integrationUser()) {
-            result = recordOne(gift('dup:1', 10));
+            addOwnDonor();
+            InboundGift request = gift('dup:1', 10);
+            request.donorEmail = OWN_DONOR_EMAIL;
+            result = recordOne(request);
         }
 
         Assert.areEqual(InboundGiftResult.ERROR_CONFLICT, result.errorCode, result.message);
