@@ -3,11 +3,22 @@
   <fullName>Posted_Batch_Is_Final</fullName>
   <active>true</active>
   <description>
-    R-GB4: a posted batch is the record of a deposit whose gifts exist. Nothing on it changes
-    again, which also keeps its status from returning to Open and the batch from posting twice.
+    R-GB4: a posted batch is the record of a deposit whose gifts exist. Its business fields never change again, which also keeps its status from returning to Open and the batch from posting twice. The owner is left out on purpose, so an administrator can reassign a departed person's batches.
   </description>
   <errorConditionFormula>
-    AND(NOT(ISNEW()), ISPICKVAL(PRIORVALUE(Status__c), &quot;Posted&quot;))
+    AND(
+  NOT(ISNEW()),
+  ISPICKVAL(PRIORVALUE(Status__c), &quot;Posted&quot;),
+  OR(
+    ISCHANGED(Status__c),
+    ISCHANGED(Description__c),
+    ISCHANGED(Control_Total__c),
+    ISCHANGED(Default_Gift_Date__c),
+    ISCHANGED(Default_Payment_Method__c),
+    ISCHANGED(Default_Fund__c),
+    ISCHANGED(Default_Appeal__c)
+  )
+)
   </errorConditionFormula>
   <errorMessage>
     This batch has been posted and can no longer be changed. To correct one of its gifts, refund or write off that gift.

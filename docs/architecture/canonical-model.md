@@ -3380,7 +3380,9 @@ already Posted, and sets Status to Posted in the transaction that inserts the gi
 second post, from a second tab or a double click, waits on the lock and then finds the
 batch Posted. Status is read only in every packaged permission set and is written only by
 posting (ADR-0021), so no one can close a batch by hand without its gifts. Once Posted, the
-batch's attributes do not change again, which also means Status never returns to Open.
+batch's business attributes (description, control total, status and the four defaults) do not
+change again, which also means Status never returns to Open. Its owner still can, so an
+administrator can reassign a departed person's batches.
 Deleting a batch is granted only to the Giving admin permission set; deleting a posted
 batch removes the record of the deposit and leaves its gifts untouched.
 

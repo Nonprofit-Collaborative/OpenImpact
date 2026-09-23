@@ -368,6 +368,38 @@ private class GiftBatchServiceTest {
     }
 
     @IsTest
+    static void anAdministratorCanReassignAPostedBatchButNotChangeIt() {
+        fund('General', true);
+        User fundraiser = david();
+        Gift_Batch__c tuesday;
+        System.runAs(fundraiser) {
+            Contact ana = person();
+            tuesday = batch(100, null, null);
+            insert line(tuesday.Id, ana.Id, null, 100);
+            Assert.isTrue(GiftBatchService.post(tuesday.Id).success, 'The batch posts.');
+        }
+
+        Test.startTest();
+        Database.SaveResult reassigned = Database.update(
+            new Gift_Batch__c(Id = tuesday.Id, OwnerId = UserInfo.getUserId()),
+            false
+        );
+        Database.SaveResult edited = Database.update(
+            new Gift_Batch__c(Id = tuesday.Id, Description__c = 'Wednesday mail'),
+            false
+        );
+        Test.stopTest();
+
+        Assert.isTrue(reassigned.isSuccess(), 'A departed person\'s batch can change hands.');
+        Assert.areEqual(
+            UserInfo.getUserId(),
+            [SELECT OwnerId FROM Gift_Batch__c WHERE Id = :tuesday.Id].OwnerId,
+            'The new owner holds it.'
+        );
+        Assert.isFalse(edited.isSuccess(), 'What the batch says stays as it was posted.');
+    }
+
+    @IsTest
     static void nobodyClosesABatchByHand() {
         User fundraiser = david();
 
