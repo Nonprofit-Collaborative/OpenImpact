@@ -235,11 +235,15 @@ private class SoftCreditServiceTest {
         Contact ana = RecognitionTestData.person('Ana', 'Garcia', garcias.Id);
         Contact luis = RecognitionTestData.person('Luis', 'Garcia', garcias.Id);
 
+        // A negative gift is only ever the reversal of an original one (R-G3), so the refund is
+        // made the way staff make it rather than typed in by hand.
+        Gift__c gift = RecognitionTestData.gift(ana.Id, null, 500);
+
         Test.startTest();
-        Gift__c refund = RecognitionTestData.gift(ana.Id, null, -500);
+        Id refundId = GiftService.refund(gift.Id, 500, 'Donor asked for the gift back');
         Test.stopTest();
 
-        List<Soft_Credit__c> credits = RecognitionTestData.creditsFor(refund.Id);
+        List<Soft_Credit__c> credits = RecognitionTestData.creditsFor(refundId);
         System.assertEquals(1, credits.size(), 'The refund recognizes the household too');
         System.assertEquals(luis.Id, credits[0].Contact__c, 'The same person is recognized');
         System.assertEquals(
@@ -368,6 +372,7 @@ private class SoftCreditServiceTest {
     @IsTest
     static void creditsTwoHundredGiftsInOneInsert() {
         RecognitionTestData.setAutomaticHouseholdCredits(true);
+        GivingTestDataFactory.ensureDefaultFund();
         Account garcias = RecognitionTestData.household('The Garcia Family');
         Contact ana = RecognitionTestData.person('Ana', 'Garcia', garcias.Id);
         RecognitionTestData.person('Luis', 'Garcia', garcias.Id);

@@ -280,6 +280,7 @@ private class MatchingGiftServiceTest {
     @IsTest
     static void linksTwoHundredPairsInOneUpdate() {
         RecognitionTestData.setAutomaticHouseholdCredits(false);
+        GivingTestDataFactory.ensureDefaultFund();
         Account garcias = RecognitionTestData.household('The Garcia Family');
         Account riverbend = RecognitionTestData.organization('Riverbend Manufacturing');
         List<Contact> people = new List<Contact>();
