@@ -286,7 +286,7 @@
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>Import wizard: what kind of file to upload</shortDescription>
-        <value>A CSV file whose first row is the column headings.</value>
+        <value>A CSV file or an Excel workbook (.xlsx) whose first row is the column headings. Only the first sheet of a workbook is read.</value>
     </labels>
     <labels>
         <fullName>Core_Import_ColumnHeader</fullName>
@@ -751,5 +751,21 @@
         <protected>false</protected>
         <shortDescription>Import wizard: the name of a regular file</shortDescription>
         <value>Source name</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_XlsxUnreadable</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: an Excel file that cannot be read</shortDescription>
+        <value>Open Impact cannot read this Excel file. It may be an older .xls file or protected by a password. Save it as .xlsx or CSV and upload that.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_XlsxUnsupportedBrowser</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: the browser cannot open workbooks</shortDescription>
+        <value>This browser cannot open Excel files. Save the sheet as CSV and upload that, or use a current version of Chrome, Edge, Firefox or Safari.</value>
     </labels>
 </CustomLabels>

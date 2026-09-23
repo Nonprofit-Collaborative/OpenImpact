@@ -1,5 +1,6 @@
 import { LightningElement } from 'lwc';
 import { parseCsv, toRecords, toCsv } from './csv';
+import { isXlsx, readXlsx, XLSX_ERRORS } from './xlsx';
 
 import canImport from '@salesforce/apex/ImportController.canImport';
 import getTemplates from '@salesforce/apex/ImportController.getTemplates';
@@ -40,6 +41,8 @@ import readOnlyMessage from '@salesforce/label/c.Core_Import_ReadOnlyMessage';
 import loadingAltText from '@salesforce/label/c.Core_Import_LoadingAltText';
 import parsingMessage from '@salesforce/label/c.Core_Import_ParsingMessage';
 import noHeaderRow from '@salesforce/label/c.Core_Import_NoHeaderRow';
+import xlsxUnreadable from '@salesforce/label/c.Core_Import_XlsxUnreadable';
+import xlsxUnsupportedBrowser from '@salesforce/label/c.Core_Import_XlsxUnsupportedBrowser';
 import recurringLabel from '@salesforce/label/c.Core_Import_RecurringLabel';
 import recurringHelp from '@salesforce/label/c.Core_Import_RecurringHelp';
 import sourceNameLabel from '@salesforce/label/c.Core_Import_SourceNameLabel';
@@ -259,8 +262,10 @@ export default class ImportWizard extends LightningElement {
     this.parsing = true;
     this.fileName = file.name;
     try {
-      const text = await this.readText(file);
-      const { headers, records } = toRecords(parseCsv(text));
+      const rows = isXlsx(file.name)
+        ? await this.readWorkbook(file)
+        : parseCsv(await this.readText(file));
+      const { headers, records } = toRecords(rows);
       if (headers.length === 0 || records.length === 0) {
         this.message = noHeaderRow;
         return;
@@ -283,6 +288,23 @@ export default class ImportWizard extends LightningElement {
       reader.onerror = () => reject(reader.error);
       reader.readAsText(file);
     });
+  }
+
+  /** The first sheet of an Excel workbook, as rows; a file it cannot read says what to do. */
+  async readWorkbook(file) {
+    const buffer = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(file);
+    });
+    try {
+      return await readXlsx(buffer);
+    } catch (error) {
+      throw new Error(
+        error.reason === XLSX_ERRORS.unsupportedBrowser ? xlsxUnsupportedBrowser : xlsxUnreadable
+      );
+    }
   }
 
   readBase64(file) {

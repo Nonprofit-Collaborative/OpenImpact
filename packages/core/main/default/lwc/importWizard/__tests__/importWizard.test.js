@@ -89,9 +89,9 @@ function render() {
 }
 
 /** Feeds the wizard a file the way the browser's file input does. */
-async function chooseFile(element, text = FILE_TEXT) {
+async function chooseFile(element, text = FILE_TEXT, name = 'donors.csv') {
   const input = element.shadowRoot.querySelector('[data-id="file"]');
-  const file = new File([text], 'donors.csv', { type: 'text/csv' });
+  const file = new File([text], name, { type: 'text/csv' });
   Object.defineProperty(input, 'files', { value: [file], configurable: true });
   input.dispatchEvent(new CustomEvent('change'));
   await flush();
@@ -231,6 +231,18 @@ describe('the import wizard', () => {
     // Import.labels-meta.xml and is quoted in the admin guide.
     expect(element.shadowRoot.querySelector('[data-id="message"]').textContent).toBe(
       'c.Core_Import_NoHeaderRow'
+    );
+    expect(element.shadowRoot.querySelectorAll('[data-id="column-row"]')).toHaveLength(0);
+  });
+
+  it('reads a file named .xlsx as a workbook, and says so when it is not one', async () => {
+    const element = render();
+    await flush();
+    click(element, 'next');
+    await flush();
+    await chooseFile(element, 'not really a workbook', 'donors.xlsx');
+    expect(element.shadowRoot.querySelector('[data-id="message"]').textContent).toBe(
+      'c.Core_Import_XlsxUnreadable'
     );
     expect(element.shadowRoot.querySelectorAll('[data-id="column-row"]')).toHaveLength(0);
   });
