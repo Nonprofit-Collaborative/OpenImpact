@@ -28,6 +28,21 @@ public class GivingTestDataFactory {
     }
 
     /**
+     * The default fund, inserted only if the org has no active default fund yet. A gift saves
+     * only when there is a default fund to allocate it to, so any test that inserts gifts
+     * without choosing funds itself calls this first.
+     */
+    public static Fund__c ensureDefaultFund() {
+        List<Fund__c> existing = [
+            SELECT Id, Name, Active__c, Is_Default__c
+            FROM Fund__c
+            WHERE Is_Default__c = TRUE AND Active__c = TRUE
+            LIMIT 1
+        ];
+        return existing.isEmpty() ? insertDefaultFund() : existing[0];
+    }
+
+    /**
      * An appeal, active, with no goal unless the test sets one.
      */
     public static Appeal__c buildAppeal(String name) {

@@ -87,6 +87,7 @@ public class RecognitionTestData {
     }
 
     public static Gift__c gift(Id donorContactId, Id donorAccountId, Decimal amount) {
+        GivingTestDataFactory.ensureDefaultFund();
         Gift__c gift = newGift(donorContactId, donorAccountId, amount);
         insert gift;
         return gift;
