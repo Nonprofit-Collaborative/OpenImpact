@@ -55,12 +55,21 @@ const CATEGORY_ORDER = ['OrgShape', 'Licenses', 'Access', 'Settings'];
  * panel shows what it will do, taken from the finding, and waits for Confirm (C-21,
  * ADR-NEXT). A fix that only opens a page runs at once, because opening a page changes
  * nothing.
+ *
+ * The confirm box is a dialog: opening it moves focus into it and scrolls it into view,
+ * because on a long report it appears far above the button that opened it; Escape or Cancel
+ * closes it and returns focus to that button. The fix request carries the finding's fix
+ * scope, so Apex runs it only if it would still change exactly what the box showed. When a
+ * fix fails for any reason the panel runs Health Check again, so what it shows is current.
  */
 export default class HealthCheckPanel extends NavigationMixin(LightningElement) {
   report;
   loading = false;
   errorMessage;
   pendingFix;
+  fixOutcome;
+  focusConfirmOnRender = false;
+  returnFocusTo;
 
   labels = {
     confirmHeading: CONFIRM_HEADING,
@@ -83,11 +92,33 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
     this.load();
   }
 
+  renderedCallback() {
+    if (this.focusConfirmOnRender) {
+      const dialog = this.template.querySelector('[data-id="confirm"]');
+      if (dialog) {
+        this.focusConfirmOnRender = false;
+        if (typeof dialog.scrollIntoView === 'function') {
+          dialog.scrollIntoView({ block: 'center' });
+        }
+        dialog.focus();
+      }
+    }
+    if (this.returnFocusTo && !this.pendingFix) {
+      const selector = this.returnFocusTo;
+      this.returnFocusTo = undefined;
+      const trigger = this.template.querySelector(selector);
+      if (trigger) {
+        trigger.focus();
+      }
+    }
+  }
+
   /** Run Health Check again. Also the Re-run button's handler. */
   @api
   async load() {
     this.loading = true;
     this.errorMessage = undefined;
+    this.fixOutcome = undefined;
     try {
       this.report = await getReport();
     } catch (error) {
@@ -203,24 +234,43 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
   }
 
   handleUseRecommended() {
-    this.pendingFix = {
-      target: ACTION_RECOMMENDED_MODE,
-      title: USE_RECOMMENDED,
-      detail: CONFIRM_MODE_DETAIL.replace('{0}', this.currentModeLabel).replace(
-        '{1}',
-        this.recommendedModeLabel
-      )
-    };
+    this.openConfirm(
+      {
+        target: ACTION_RECOMMENDED_MODE,
+        title: USE_RECOMMENDED,
+        detail: CONFIRM_MODE_DETAIL.replace('{0}', this.currentModeLabel).replace(
+          '{1}',
+          this.recommendedModeLabel
+        )
+      },
+      '[data-id="use-recommended"]'
+    );
+  }
+
+  /** Show the confirm box for a fix, and move focus into it once it has rendered. */
+  openConfirm(pending, triggerSelector) {
+    this.fixOutcome = undefined;
+    this.pendingFix = pending;
+    this.returnFocusTo = triggerSelector;
+    this.focusConfirmOnRender = true;
   }
 
   handleCancelFix() {
     this.pendingFix = undefined;
   }
 
+  handleConfirmKeydown(event) {
+    if (event.key === 'Escape' || event.key === 'Esc') {
+      event.preventDefault();
+      this.handleCancelFix();
+    }
+  }
+
   /** Run the fix the viewer has just seen described and confirmed. */
   handleConfirmFix() {
     const pending = this.pendingFix;
     this.pendingFix = undefined;
+    this.returnFocusTo = undefined;
     if (!pending) {
       return;
     }
@@ -237,7 +287,7 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
       return;
     }
     const fixKey = pending.target.substring(ACTION_PREFIX.length);
-    this.runAction(() => applyFix({ fixKey }));
+    this.runAction(() => applyFix({ fixKey, expectedScope: pending.scope || [] }));
   }
 
   /** The finding a Fix button belongs to, so the confirm box can repeat what it says. */
@@ -257,8 +307,23 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
     }
 
     if (target.startsWith(ACTION_PREFIX)) {
-      const finding = this.findingFor(event.currentTarget.dataset.key) || {};
-      this.pendingFix = { target, title: finding.title, detail: finding.detail };
+      const key = event.currentTarget.dataset.key;
+      const finding = this.findingFor(key);
+      if (!finding || !finding.title) {
+        // Nothing to show means nothing the administrator could confirm: the report on screen
+        // is not the one this button came from. Run Health Check again instead.
+        this.load();
+        return;
+      }
+      this.openConfirm(
+        {
+          target,
+          title: finding.title,
+          detail: finding.detail,
+          scope: finding.fixScope
+        },
+        `[data-id="fix"][data-key="${key}"]`
+      );
       return;
     }
     if (target.startsWith('/')) {
@@ -308,13 +373,25 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
     });
   }
 
+  /**
+   * Run a fix and show the report it returns. When the fix fails, nothing was changed, but
+   * the report on screen may be why (the org changed since it was read), so Health Check
+   * runs again and the failure stays on screen above the fresh report.
+   */
   async runAction(action) {
     this.loading = true;
     this.errorMessage = undefined;
+    this.fixOutcome = undefined;
     try {
       this.report = await action();
+      this.fixOutcome = this.report ? this.report.fixOutcome : undefined;
     } catch (error) {
-      this.errorMessage = this.messageFrom(error);
+      const message = this.messageFrom(error);
+      // If the re-run fails too, the fix's own message is the one worth reading, so the
+      // report already shown stays.
+      const shown = this.report;
+      this.report = await getReport().catch(() => shown);
+      this.errorMessage = message;
     } finally {
       this.loading = false;
     }

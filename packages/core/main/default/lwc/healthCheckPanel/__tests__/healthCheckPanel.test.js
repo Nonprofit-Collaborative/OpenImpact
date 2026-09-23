@@ -107,7 +107,8 @@ function agentforceReport(overrides = {}) {
         severity: 'Warning',
         category: 'Settings',
         fixLabel: 'Restore shipped rollups',
-        fixTarget: 'action:restoreShippedRollups'
+        fixTarget: 'action:restoreShippedRollups',
+        fixScope: ['Total Gifts', 'Last Gift Date']
       },
       {
         key: 'error_log_new',
@@ -247,8 +248,93 @@ describe('c-health-check-panel', () => {
     element.shadowRoot.querySelector('[data-id="confirm-run"]').click();
     await flush();
 
-    expect(applyFix).toHaveBeenCalledWith({ fixKey: 'restoreShippedRollups' });
+    expect(applyFix).toHaveBeenCalledWith({
+      fixKey: 'restoreShippedRollups',
+      expectedScope: ['Total Gifts', 'Last Gift Date']
+    });
     expect(confirmBox(element)).toBeNull();
+  });
+
+  it('says what the fix did once it has run', async () => {
+    getReport.mockResolvedValue(agentforceReport());
+    applyFix.mockResolvedValue(
+      agentforceReport({ findings: [], fixOutcome: 'Done. Created: Total Gifts, Last Gift Date.' })
+    );
+    const element = createPanel();
+    await flush();
+
+    clickFix(element, 'action:restoreShippedRollups');
+    await flush();
+    element.shadowRoot.querySelector('[data-id="confirm-run"]').click();
+    await flush();
+
+    const outcome = element.shadowRoot.querySelector('[data-id="fix-outcome"]');
+    expect(outcome.textContent).toContain('Created: Total Gifts, Last Gift Date');
+  });
+
+  it('moves focus into the confirm box and scrolls it into view', async () => {
+    const scrollIntoView = jest.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    getReport.mockResolvedValue(agentforceReport());
+    const element = createPanel();
+    await flush();
+
+    clickFix(element, 'action:restoreShippedRollups');
+    await flush();
+
+    const dialog = confirmBox(element);
+    expect(dialog.getAttribute('role')).toBe('dialog');
+    expect(element.shadowRoot.activeElement).toBe(dialog);
+    expect(scrollIntoView).toHaveBeenCalled();
+    delete Element.prototype.scrollIntoView;
+  });
+
+  it('closes on Escape and returns focus to the button that opened it', async () => {
+    getReport.mockResolvedValue(agentforceReport());
+    const element = createPanel();
+    await flush();
+
+    const fixButton = Array.from(element.shadowRoot.querySelectorAll('[data-id="fix"]')).find(
+      (button) => button.dataset.target === 'action:restoreShippedRollups'
+    );
+    const focus = jest.spyOn(fixButton, 'focus');
+    fixButton.click();
+    await flush();
+
+    confirmBox(element).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await flush();
+
+    expect(confirmBox(element)).toBeNull();
+    expect(focus).toHaveBeenCalled();
+    expect(applyFix).not.toHaveBeenCalled();
+  });
+
+  it('opens no confirm box for a finding with nothing to show, and runs Health Check again', async () => {
+    getReport.mockResolvedValue(
+      agentforceReport({
+        findings: [
+          {
+            key: 'import_templates_missing',
+            title: '',
+            detail: '',
+            severity: 'Info',
+            category: 'Settings',
+            fixLabel: 'Restore import templates',
+            fixTarget: 'action:restoreImportTemplates',
+            fixScope: ['Generic donor list']
+          }
+        ]
+      })
+    );
+    const element = createPanel();
+    await flush();
+
+    clickFix(element, 'action:restoreImportTemplates');
+    await flush();
+
+    expect(confirmBox(element)).toBeNull();
+    expect(getReport).toHaveBeenCalledTimes(2);
+    expect(applyFix).not.toHaveBeenCalled();
   });
 
   it('runs nothing when the fix is cancelled', async () => {
@@ -281,6 +367,7 @@ describe('c-health-check-panel', () => {
 
     const error = element.shadowRoot.querySelector('[data-id="error"]');
     expect(error.textContent).toBe('That did not work, and nothing was changed.');
+    expect(getReport).toHaveBeenCalledTimes(2);
   });
 
   it('navigates to a relative URL fix', async () => {

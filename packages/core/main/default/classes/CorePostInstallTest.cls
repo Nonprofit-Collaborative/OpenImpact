@@ -7,6 +7,7 @@
 @IsTest
 private class CorePostInstallTest {
     private static final String ROLLUP_CONTEXT = 'CorePostInstall.ensureRollupDefaults';
+    private static final String SWITCH_CONTEXT = 'CorePostInstall.ensureAutomationSwitches';
     private static final String RETRY_CONTEXT = 'CorePostInstallRetryQueueable.execute';
     private static final String MODE_CONTEXT = 'CorePostInstall.applyRecommendedMode';
 
@@ -495,6 +496,106 @@ private class CorePostInstallTest {
             countPermissionSetAssignments(installer),
             'And the rest of the install still ran, so the installer can open the console.'
         );
+    }
+
+    @IsTest
+    static void installCreatesTheAutomationSwitchesSoThePageIsNotEmpty() {
+        Id installer = newInstaller();
+        // The defect this covers: nothing created the switch rows, so the Automation page was
+        // empty on every org until somebody pressed a Health Check fix (C-21).
+        Automation_Registry__mdt lock = TestDataFactory.registryEntry('Test_Receipt_Lock', true);
+        lock.Always_Runs__c = true;
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>{
+            TestDataFactory.registryEntry('Test_Household_Naming', true),
+            lock
+        };
+        CorePostInstall handler = new CorePostInstall();
+
+        Test.startTest();
+        install(handler, installer);
+        Test.stopTest();
+
+        Map<String, Automation_Setting__c> byName = switchesByName();
+        Assert.areEqual(2, byName.size(), 'The install creates one switch per automation.');
+        Assert.isTrue(
+            byName.get('Test_Household_Naming').Enabled__c,
+            'Each set to its shipped default.'
+        );
+        Assert.isTrue(
+            byName.get('Test_Receipt_Lock').Always_Runs__c,
+            'And an automation that always runs is listed as one (ADR-0024).'
+        );
+    }
+
+    @IsTest
+    static void upgradingCreatesNoSecondSwitchAndKeepsOneTurnedOff() {
+        Id installer = newInstaller();
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>{
+            TestDataFactory.registryEntry('Test_Household_Naming', true)
+        };
+        CorePostInstall handler = new CorePostInstall();
+        install(handler, installer);
+        Automation_Setting__c afterInstall = switchesByName().get('Test_Household_Naming');
+        // Maria switches household naming off.
+        update new Automation_Setting__c(Id = afterInstall.Id, Enabled__c = false);
+        // The upgrade ships a second automation.
+        AutomationRegistrySelector.registryOverride.add(
+            TestDataFactory.registryEntry('Test_Address_Sync', true)
+        );
+
+        Test.startTest();
+        upgrade(handler, installer);
+        Test.stopTest();
+
+        Map<String, Automation_Setting__c> byName = switchesByName();
+        Assert.areEqual(2, byName.size(), 'Only the newly shipped automation gets a switch.');
+        Assert.areEqual(
+            afterInstall.Id,
+            byName.get('Test_Household_Naming').Id,
+            'The existing switch is the same record, not a replacement.'
+        );
+        Assert.isFalse(
+            byName.get('Test_Household_Naming').Enabled__c,
+            'A switch the admin turned off stays off across an upgrade.'
+        );
+    }
+
+    @IsTest
+    static void aSwitchThatCannotBeCreatedIsLoggedRatherThanFailingTheInstall() {
+        Id installer = newInstaller();
+        // A registry label longer than the switch's Name allows: the insert throws.
+        Automation_Registry__mdt tooLong = TestDataFactory.registryEntry('Test_Too_Long', true);
+        tooLong.MasterLabel = 'x'.repeat(100);
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>{ tooLong };
+        CorePostInstall handler = new CorePostInstall();
+
+        Test.startTest();
+        // No try/catch on purpose: an exception escaping this call fails the test.
+        install(handler, installer);
+        Test.stopTest();
+
+        Assert.areEqual(0, [SELECT COUNT() FROM Automation_Setting__c], 'Nothing is created.');
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Error_Log__c WHERE Context__c = :SWITCH_CONTEXT],
+            'The failure is in the Error Log, under the step that failed.'
+        );
+        Assert.areEqual(
+            1,
+            countPermissionSetAssignments(installer),
+            'And the rest of the install still ran.'
+        );
+    }
+
+    private static Map<String, Automation_Setting__c> switchesByName() {
+        Map<String, Automation_Setting__c> byName = new Map<String, Automation_Setting__c>();
+        for (Automation_Setting__c setting : [
+            SELECT Id, Automation_Name__c, Enabled__c, Always_Runs__c
+            FROM Automation_Setting__c
+        ]) {
+            byName.put(setting.Automation_Name__c, setting);
+        }
+        return byName;
     }
 
     @IsTest

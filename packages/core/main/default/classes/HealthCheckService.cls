@@ -51,6 +51,34 @@ public with sharing class HealthCheckService {
     public static final String FIX_KEY_RESTORE_IMPORT_TEMPLATES = 'restoreImportTemplates';
     public static final String FIX_KEY_SCHEDULE_NIGHTLY_ROLLUPS = 'scheduleNightlyRollups';
 
+    /**
+     * What one of those fixes would change if it ran now: the names of the rows it would create,
+     * or the name of the job it would schedule. Empty when it would change nothing, null for a
+     * key that is not one of them.
+     *
+     * The finding carries this list, the panel sends it back with the fix request, and the
+     * controller refuses to run when the list it computes then is different. So the fix creates
+     * exactly what the administrator read in the confirm box, never what changed since
+     * (ADR-NEXT condition 5).
+     */
+    public static List<String> fixScope(String fixKey) {
+        if (FIX_KEY_RESTORE_ROLLUPS.equals(fixKey)) {
+            return RollupService.missingDefaultNames();
+        }
+        if (FIX_KEY_RESTORE_AUTOMATION_SWITCHES.equals(fixKey)) {
+            return AutomationControl.missingDefaultNames();
+        }
+        if (FIX_KEY_RESTORE_IMPORT_TEMPLATES.equals(fixKey)) {
+            return ImportTemplateService.missingDefaultNames();
+        }
+        if (FIX_KEY_SCHEDULE_NIGHTLY_ROLLUPS.equals(fixKey)) {
+            return RollupScheduler.isScheduled()
+                ? new List<String>()
+                : new List<String>{ RollupScheduler.jobName() };
+        }
+        return null;
+    }
+
     /** The settings console tab that hosts every section a fix can point at. */
     public static final String SETTINGS_TAB = 'Nonprofit_Settings';
 
@@ -144,6 +172,9 @@ public with sharing class HealthCheckService {
         public String fixTarget;
         @AuraEnabled
         public String category;
+        /** What the fix would change, as fixScope computed it for this report. */
+        @AuraEnabled
+        public List<String> fixScope;
 
         public Finding(String key, String title, String detail, String severity, String category) {
             this.key = key;
@@ -156,6 +187,11 @@ public with sharing class HealthCheckService {
         public Finding withFix(String fixLabel, String fixTarget) {
             this.fixLabel = fixLabel;
             this.fixTarget = fixTarget;
+            return this;
+        }
+
+        public Finding withScope(List<String> fixScope) {
+            this.fixScope = fixScope;
             return this;
         }
     }
@@ -191,6 +227,9 @@ public with sharing class HealthCheckService {
         public String settingsTabApiName;
         @AuraEnabled
         public String sectionStateKey;
+        /** After a fix: what it created or scheduled, and what it left out. Null otherwise. */
+        @AuraEnabled
+        public String fixOutcome;
 
         public Report() {
             this.findings = new List<Finding>();

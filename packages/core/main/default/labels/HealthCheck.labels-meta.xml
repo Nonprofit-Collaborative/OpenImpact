@@ -234,12 +234,36 @@
         <value>Your two fiscal years do not match</value>
     </labels>
     <labels>
+        <fullName>Core_HealthCheck_FixCreated</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>After a restore fix: what it created. {0} names.</shortDescription>
+        <value>Done. Created: {0}.</value>
+    </labels>
+    <labels>
         <fullName>Core_HealthCheck_FixFailed</fullName>
         <categories>Core</categories>
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>Shown when a fix button could not do what it says.</shortDescription>
         <value>That did not work, and nothing was changed. The details are in the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_FixScheduled</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>After the nightly run fix: what it did.</shortDescription>
+        <value>Done. The nightly run is scheduled every night at 2:00 AM.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_FixStale</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Fix refused: what it would change is not what the finding said.</shortDescription>
+        <value>Something changed since Health Check last ran, so this fix would not do exactly what you confirmed. Nothing was changed. Health Check has run again: read the finding and press its button again if it is still there.</value>
     </labels>
     <labels>
         <fullName>Core_HealthCheck_FixUnknown</fullName>
@@ -592,7 +616,7 @@
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>Health Check detail: shipped rollups missing. {0} count, {1} names.</shortDescription>
-        <value>Open Impact ships totals this org does not have: {1}. The fix creates each one exactly as shipped. Your own totals are not touched.</value>
+        <value>Open Impact ships totals this org does not have: {1}. The fix creates each one exactly as shipped, and each starts calculating donor totals straight away. Your own totals are not touched.</value>
     </labels>
     <labels>
         <fullName>Core_HealthCheck_RollupsMissingFix</fullName>
@@ -609,6 +633,14 @@
         <protected>false</protected>
         <shortDescription>Health Check title: shipped rollups missing. {0} is the count.</shortDescription>
         <value>{0} shipped totals are missing</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_RollupsSkippedDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shipped totals not restored because an admin total writes the field. {0} names.</shortDescription>
+        <value>Not restored, because one of your own active totals already writes the same field: {0}.</value>
     </labels>
     <labels>
         <fullName>Core_HealthCheck_SalesObjectsDetected</fullName>
@@ -648,7 +680,7 @@
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>Health Check detail: automation switches missing. {0} count, {1} names.</shortDescription>
-        <value>These automations run but have no switch on the Automation page, so they cannot be turned off there: {1}. The fix creates each switch set to its shipped default, which is on. Switches you already have keep their setting.</value>
+        <value>These automations run but have no switch on the Automation page, so they cannot be turned off there: {1}. The fix creates each switch set to its shipped default, so nothing that runs now stops. An automation that enforces a rule, such as the receipt lock, is listed with its switch locked, because it always runs. Switches you already have keep their setting.</value>
     </labels>
     <labels>
         <fullName>Core_HealthCheck_SwitchesMissingFix</fullName>

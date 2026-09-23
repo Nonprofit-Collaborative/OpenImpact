@@ -49,21 +49,36 @@ public with sharing class HealthCheckSettingsChecks {
         }
     }
 
-    /** Shipped rollups this org does not have (ADR-0006, ADR-NEXT). */
+    /**
+     * Shipped rollups this org does not have (ADR-0006, ADR-NEXT). A shipped total that one of
+     * the administrator's own active totals already writes is not restored, and the finding
+     * says so rather than hiding it.
+     */
     public class ShippedRollupsCheck implements HealthCheckService.Check {
         public HealthCheckService.Finding run() {
-            return missingDefaultsFinding(
-                    'shipped_rollups_missing',
-                    RollupService.missingDefaultNames(),
-                    System.Label.Core_HealthCheck_RollupsMissingTitle,
-                    System.Label.Core_HealthCheck_RollupsMissingDetail,
-                    HealthCheckService.SEVERITY_WARNING
-                )
-                ?.withFix(
-                    System.Label.Core_HealthCheck_RollupsMissingFix,
-                    HealthCheckService.FIX_ACTION_PREFIX +
-                    HealthCheckService.FIX_KEY_RESTORE_ROLLUPS
-                );
+            HealthCheckService.Finding finding = missingDefaultsFinding(
+                'shipped_rollups_missing',
+                HealthCheckService.FIX_KEY_RESTORE_ROLLUPS,
+                System.Label.Core_HealthCheck_RollupsMissingTitle,
+                System.Label.Core_HealthCheck_RollupsMissingDetail,
+                HealthCheckService.SEVERITY_WARNING
+            );
+            if (finding == null) {
+                return null;
+            }
+            List<String> skipped = RollupService.skippedDefaultNames();
+            if (!skipped.isEmpty()) {
+                finding.detail +=
+                    ' ' +
+                    String.format(
+                        System.Label.Core_HealthCheck_RollupsSkippedDetail,
+                        new List<Object>{ String.join(skipped, ', ') }
+                    );
+            }
+            return finding.withFix(
+                System.Label.Core_HealthCheck_RollupsMissingFix,
+                HealthCheckService.FIX_ACTION_PREFIX + HealthCheckService.FIX_KEY_RESTORE_ROLLUPS
+            );
         }
     }
 
@@ -72,7 +87,7 @@ public with sharing class HealthCheckSettingsChecks {
         public HealthCheckService.Finding run() {
             return missingDefaultsFinding(
                     'automation_switches_missing',
-                    AutomationControl.missingDefaultNames(),
+                    HealthCheckService.FIX_KEY_RESTORE_AUTOMATION_SWITCHES,
                     System.Label.Core_HealthCheck_SwitchesMissingTitle,
                     System.Label.Core_HealthCheck_SwitchesMissingDetail,
                     HealthCheckService.SEVERITY_INFO
@@ -90,7 +105,7 @@ public with sharing class HealthCheckSettingsChecks {
         public HealthCheckService.Finding run() {
             return missingDefaultsFinding(
                     'import_templates_missing',
-                    ImportTemplateService.missingDefaultNames(),
+                    HealthCheckService.FIX_KEY_RESTORE_IMPORT_TEMPLATES,
                     System.Label.Core_HealthCheck_TemplatesMissingTitle,
                     System.Label.Core_HealthCheck_TemplatesMissingDetail,
                     HealthCheckService.SEVERITY_INFO
@@ -113,15 +128,17 @@ public with sharing class HealthCheckSettingsChecks {
     /**
      * One finding naming the package defaults that are missing, or null when none is. The
      * title and detail take the count as {0} and the names as {1}, so the finding says what
-     * its fix will create, counted from this org (ADR-NEXT condition 5).
+     * its fix will create, counted from this org, and it carries the same names as its fix
+     * scope, so the fix creates exactly those (ADR-NEXT condition 5).
      */
     private static HealthCheckService.Finding missingDefaultsFinding(
         String key,
-        List<String> missingNames,
+        String fixKey,
         String title,
         String detail,
         String severity
     ) {
+        List<String> missingNames = HealthCheckService.fixScope(fixKey);
         if (missingNames == null || missingNames.isEmpty()) {
             return null;
         }
@@ -130,12 +147,13 @@ public with sharing class HealthCheckSettingsChecks {
             String.join(missingNames, ', ')
         };
         return new HealthCheckService.Finding(
-            key,
-            String.format(title, values),
-            String.format(detail, values),
-            severity,
-            HealthCheckService.CATEGORY_SETTINGS
-        );
+                key,
+                String.format(title, values),
+                String.format(detail, values),
+                severity,
+                HealthCheckService.CATEGORY_SETTINGS
+            )
+            .withScope(missingNames);
     }
 
     /**
@@ -177,6 +195,9 @@ public with sharing class HealthCheckSettingsChecks {
                 System.Label.Core_HealthCheck_NightlyOffFix,
                 HealthCheckService.FIX_ACTION_PREFIX +
                 HealthCheckService.FIX_KEY_SCHEDULE_NIGHTLY_ROLLUPS
+            )
+            .withScope(
+                HealthCheckService.fixScope(HealthCheckService.FIX_KEY_SCHEDULE_NIGHTLY_ROLLUPS)
             );
     }
 

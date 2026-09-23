@@ -122,21 +122,31 @@ Most buttons open a page. A button that changes something in your org works like
 1. The finding says exactly what the fix will do, counted from your org: for example
    **3 shipped totals are missing**, followed by their names (Total Gifts, Largest Gift, Last
    Gift Date) and what the fix will create.
-2. Click the button. The panel shows that sentence again with **Confirm** and **Cancel**.
-   Nothing has changed yet.
-3. Click **Confirm**. The fix runs, and Health Check re-runs underneath it so you see the
-   result. If it fails, nothing is changed, the panel says so in a sentence, and the details
-   are in the Error Log.
+2. Click the button. A box headed **Before this fix runs** opens at the top of the panel, the
+   page scrolls to it, and it shows that sentence again with **Confirm** and **Cancel**.
+   Nothing has changed yet. **Cancel** or the Escape key closes it and takes you back to the
+   button.
+3. Click **Confirm**. The fix runs, the panel says what it did (for example **Done. Created:
+   Total Gifts, Largest Gift, Last Gift Date.**), and Health Check re-runs underneath it. If it
+   fails, nothing is changed, the panel says so in a sentence, and the details are in the Error
+   Log.
+
+The fix creates exactly what the box showed you. If something changed since Health Check last
+ran, for example a colleague restored the same totals a minute ago, the fix does nothing, says
+so, and Health Check runs again so you can read the finding as it is now.
+
+Every fix that runs is recorded under **Recent changes** in Nonprofit Settings, as
+**Health Check:** followed by the button's name, with what it created, your name and the time.
 
 Every fix only creates something that is missing or switches on something that is off. No
 fix deletes anything or changes a value you chose, and pressing it twice does no more than
-pressing it once. Each one can be undone on its own page:
+pressing it once. Most can be undone on their own page:
 
 | Finding | What the fix does | How to undo it |
 |---|---|---|
-| **Shipped totals are missing** | Creates the missing totals exactly as shipped. Your own totals are not touched. | Switch a total off, or delete it, on the Rollups page. |
-| **Automation switches are missing** | Creates the missing switches, each set to its shipped default. | Switch any automation off on the Automation page. |
-| **Shipped import templates are missing** | Creates the missing templates. | Delete a template on the Import page. |
+| **Shipped totals are missing** | Creates the missing totals exactly as shipped. Each one starts calculating donor totals straight away, as it would have from install. Your own totals are not touched, and a shipped total whose field one of your own active totals already writes is skipped and named, so the two never overwrite each other. | Switch a total off on the Rollups page. Do not delete it: a deleted shipped total comes back the next time totals are restored or the package is upgraded (see Rollups). |
+| **Automation switches are missing** | Creates the missing switches, each set to its shipped default, so nothing that runs now stops. An automation that always runs, such as the receipt lock, is listed with its switch locked. | Switch any automation off on the Automation page. |
+| **Shipped import templates are missing** | Creates the missing templates. | There is no undo in the app: the Import page cannot delete or switch off a template. A template does nothing until somebody picks it for an import. |
 | **Nightly totals are not scheduled** | Schedules the nightly run at 2:00 AM. | **Stop the nightly recalculation** on the Rollups page. |
 | **Coexistence mode is not confirmed**, **Household membership does not fit Person Accounts**, **No new person is getting a household** | As described in the walkthrough and Common mistakes. | Change the setting back in Nonprofit Settings. |
 
