@@ -68,6 +68,14 @@ public with sharing class RollupAdapter {
         meta.RollupOperation__c = ENGINE_OPERATION_BY_AGGREGATE.get(
             definition.Aggregate__c.toUpperCase()
         );
+        if (definition.Aggregate__c.toUpperCase() == 'SUM') {
+            // The engine hands back a rollup's default in place of a sum of exactly zero, and
+            // with no default set that is blank, which it then declines to write over a blank
+            // field. A donor whose only gift was refunded in full has a total of zero, not an
+            // empty one (canonical model Section 26, ADR-0022), so a sum defaults to zero. Only
+            // a sum: a count, a minimum or a maximum of nothing has no value to report.
+            meta.FullRecalculationDefaultNumberValue__c = 0;
+        }
         meta.CalcItemWhereClause__c = whereClauseFor(definition);
         meta.IsDisabled__c = definition.Active__c != true;
         // Open Impact's own Active checkbox is the switch an administrator uses, so the engine's
