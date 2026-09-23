@@ -152,4 +152,12 @@
         <shortDescription>Word ending a household name when the surnames differ</shortDescription>
         <value>Household</value>
     </labels>
+    <labels>
+        <fullName>Core_Households_PrimaryContactFollowsMembers</fullName>
+        <categories>Households</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Refuses a hand edit of a household Primary Contact in junction mode</shortDescription>
+        <value>In this org a household's Primary Contact follows the member marked primary. To change it, click Make primary on the right person in the household's Household Members panel.</value>
+    </labels>
 </CustomLabels>

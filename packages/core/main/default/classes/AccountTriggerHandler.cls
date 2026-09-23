@@ -32,11 +32,16 @@ public with sharing class AccountTriggerHandler extends TriggerHandler {
     private static Set<Id> departingHouseholdIds = new Set<Id>();
 
     public override void beforeInsert() {
+        HouseholdService.refuseHandSetPrimaryContacts((List<Account>) newRecords(), null);
         nameNewHouseholds((List<Account>) newRecords());
         PreferredEmailService.applyToPersonRecords((List<Account>) newRecords());
     }
 
     public override void beforeUpdate() {
+        HouseholdService.refuseHandSetPrimaryContacts(
+            (List<Account>) newRecords(),
+            (Map<Id, Account>) oldRecordsById()
+        );
         nameNewHouseholds((List<Account>) newRecords());
         PreferredEmailService.applyToPersonRecords((List<Account>) newRecords());
     }

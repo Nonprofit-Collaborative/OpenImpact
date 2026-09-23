@@ -190,6 +190,9 @@ public with sharing class HouseholdNamingService {
             Map<Id, List<HouseholdService.Person>> membersByHousehold = HouseholdService.getMembers(
                 householdIds
             );
+            // R-H5 reads the primary from the mode's own source of truth: the membership rows
+            // in junction mode (getMembers has already flagged it), the field in contact mode.
+            Boolean primaryFromField = !HouseholdService.isJunctionMode();
             List<Account> updates = new List<Account>();
             for (Account household : HouseholdSelector.getHouseholdsByIds(householdIds)) {
                 if (household.Custom_Name__c == true) {
@@ -202,7 +205,9 @@ public with sharing class HouseholdNamingService {
                 if (members == null) {
                     members = new List<HouseholdService.Person>();
                 }
-                markPrimary(members, household.Primary_Contact__c);
+                if (primaryFromField) {
+                    markPrimary(members, household.Primary_Contact__c);
+                }
                 String name = computeName(members, namePattern, includeDeceased);
                 if (String.isBlank(name)) {
                     name = Label.Core_Households_NamePlaceholder;
