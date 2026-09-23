@@ -340,7 +340,14 @@ the first pass missed, all in strings or Id literals that no offline check reads
   `rollupGroupingOperationOccursIndependentlyOfDownstreamRollups`: the `Contact` rollup row's
   `LookupFieldOnCalcItem__c` had been changed to `Account__c` along with the sales object row next
   to it, and the engine refused the row as a misspelled config. The calc item on that row is
-  `Contact`, so it is `AccountId` again, as upstream has it;
+  `Contact`, so it is `AccountId` again, as upstream has it. The second org run then failed the
+  same test with `Invalid field: AccountId` in `Rollup.filter`: for a grouped rollup the engine
+  filters the triggering records with every grouped row's `LookupFieldOnCalcItem__c`, so the two
+  child objects must name their parent lookup identically, which upstream's pair did by
+  coincidence. No single name works on both `Contact` and `RollupCalcItem__c`, so the
+  triggering child in that test is `Asset` (`AccountId`, `Price`), which does. `Asset` is on the
+  vendored allowlist in `scripts/ci/check-object-allowlist.py`; it is not a forbidden object and
+  it is present on a Developer edition org with no features. The engine was not changed;
 - the table-format header described above.
 
 Two further changes in this patch exist only to satisfy the offline checker, and change no behavior:

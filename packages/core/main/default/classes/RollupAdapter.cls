@@ -94,6 +94,27 @@ public with sharing class RollupAdapter {
             // `toMetadata(List)` below does.
             throw new RollupAdapterException(System.Label.Core_Rollups_ErrorInvalidFilter);
         }
+        return withEngineNames(meta);
+    }
+
+    /**
+     * Copies each `...Text__c` value onto the attribute the engine actually reads.
+     *
+     * The engine reads `CalcItem__c`, `LookupObject__c`, `LookupFieldOnCalcItem__c` and the rest
+     * everywhere it runs. Only its own custom metadata query fills those from the `...Text__c`
+     * variants (`RollupRepository`), and metadata built here in memory never goes through that
+     * query, so without this the engine was handed a rollup with no source object, no target and
+     * no attributes: a real-time run failed and was logged, and a full recalculation wrote
+     * nothing. The `...Text__c` values stay the ones this class sets, so a namespace prefix is
+     * still applied in one place.
+     */
+    private static Rollup__mdt withEngineNames(Rollup__mdt meta) {
+        meta.CalcItem__c = meta.CalcItemText__c;
+        meta.LookupObject__c = meta.LookupObjectText__c;
+        meta.LookupFieldOnCalcItem__c = meta.LookupFieldOnCalcItemText__c;
+        meta.LookupFieldOnLookupObject__c = meta.LookupFieldOnLookupObjectText__c;
+        meta.RollupFieldOnCalcItem__c = meta.RollupFieldOnCalcItemText__c;
+        meta.RollupFieldOnLookupObject__c = meta.RollupFieldOnLookupObjectText__c;
         return meta;
     }
 

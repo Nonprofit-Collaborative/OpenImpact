@@ -892,10 +892,17 @@ private class HouseholdServiceTest {
         HouseholdTestDataFactory.grantMembershipCreate('C01_Junction_Save_Test', staff.Id);
         // The household and the person are made by an administrator: a record type and a
         // packaged field are not what this test is about, and the save it measures is the
-        // membership row.
+        // membership row. Both are handed to the user: a membership points at them, and
+        // whether a user may point at an account somebody else owns is the org's sharing
+        // model, which differs from org to org, not the packaged access this test is about.
         Account household = HouseholdTestDataFactory.newHousehold('Placeholder');
+        household.OwnerId = staff.Id;
         insert household;
-        Account person = new Account(Name = 'Maria Garcia', Deceased__c = false);
+        Account person = new Account(
+            Name = 'Maria Garcia',
+            Deceased__c = false,
+            OwnerId = staff.Id
+        );
         insert person;
         String failure = '';
 
