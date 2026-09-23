@@ -46,9 +46,19 @@
         <label>Failed</label>
       </value>
       <value>
+        <fullName>Undoing</fullName>
+        <default>false</default>
+        <label>Undoing</label>
+      </value>
+      <value>
         <fullName>Undone</fullName>
         <default>false</default>
         <label>Undone</label>
+      </value>
+      <value>
+        <fullName>Undo failed</fullName>
+        <default>false</default>
+        <label>Undo failed</label>
       </value>
     </valueSetDefinition>
   </valueSet>
