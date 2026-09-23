@@ -11,7 +11,8 @@
  * - HealthCheckOrgShapeChecks: what is installed, and whether the mode matches it.
  * - HealthCheckAccessChecks: who administers the app, who cannot see it, who holds the
  *   receipt lock override. Only asked of a viewer who may manage settings.
- * - HealthCheckSettingsChecks: automation, fiscal year, receipt generation, Error Log.
+ * - HealthCheckSettingsChecks: automation, fiscal year, receipt generation, Error Log, and
+ *   the package defaults and nightly run a fix button can restore (C-21, ADR-NEXT).
  *
  * Every check is isolated. A check that throws becomes a finding of its own and is written
  * to the Error Log; the other checks still run, because a report that hides eight answers
@@ -39,6 +40,16 @@ public with sharing class HealthCheckService {
     public static final String FIX_APPLY_RECOMMENDED_MODE = 'action:applyRecommendedMode';
     public static final String FIX_APPLY_JUNCTION_MEMBERSHIP = 'action:applyJunctionMembership';
     public static final String FIX_ENABLE_AUTOMATIC_HOUSEHOLDS = 'action:enableAutomaticHouseholds';
+
+    /**
+     * The fixes HealthCheckController.applyFix runs (C-21, ADR-NEXT). Each one only creates
+     * what is missing or schedules what is not scheduled, so pressing it twice is pressing it
+     * once. The key is what follows the action prefix in the fix target.
+     */
+    public static final String FIX_KEY_RESTORE_ROLLUPS = 'restoreShippedRollups';
+    public static final String FIX_KEY_RESTORE_AUTOMATION_SWITCHES = 'restoreAutomationSwitches';
+    public static final String FIX_KEY_RESTORE_IMPORT_TEMPLATES = 'restoreImportTemplates';
+    public static final String FIX_KEY_SCHEDULE_NIGHTLY_ROLLUPS = 'scheduleNightlyRollups';
 
     /** The settings console tab that hosts every section a fix can point at. */
     public static final String SETTINGS_TAB = 'Nonprofit_Settings';
@@ -268,7 +279,8 @@ public with sharing class HealthCheckService {
      * The checks to run, in reading order. The access and Error Log counts are only asked
      * for when the viewer can actually see the answer: a person without the administrator
      * permission sees their own permission set assignments and nothing else, and a count
-     * taken from that is confidently wrong, which is worse than no count at all.
+     * taken from that is confidently wrong, which is worse than no count at all. The package
+     * defaults checks are gated the same way, because only that viewer can press their fix.
      */
     private static List<CheckStep> steps() {
         List<CheckStep> steps = new List<CheckStep>();
@@ -350,6 +362,30 @@ public with sharing class HealthCheckService {
 
         if (canManageSettings()) {
             steps.add(new CheckStep('error_log', new HealthCheckSettingsChecks.ErrorLogCheck()));
+            steps.add(
+                new CheckStep(
+                    'shipped_rollups',
+                    new HealthCheckSettingsChecks.ShippedRollupsCheck()
+                )
+            );
+            steps.add(
+                new CheckStep(
+                    'automation_switches',
+                    new HealthCheckSettingsChecks.AutomationSwitchesCheck()
+                )
+            );
+            steps.add(
+                new CheckStep(
+                    'import_templates',
+                    new HealthCheckSettingsChecks.ImportTemplatesCheck()
+                )
+            );
+            steps.add(
+                new CheckStep(
+                    'nightly_rollups',
+                    new HealthCheckSettingsChecks.NightlyRollupsCheck()
+                )
+            );
         }
 
         return steps;

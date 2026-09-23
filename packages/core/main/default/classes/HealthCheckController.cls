@@ -77,6 +77,42 @@ public with sharing class HealthCheckController {
         }
     }
 
+    /**
+     * Run one of the fixes ADR-NEXT allows, by its key, and return the re-run report. Each fix
+     * calls a service that only creates what is missing or schedules what is not scheduled,
+     * inside one savepoint, so a failure leaves the org as it was and says so.
+     */
+    @AuraEnabled
+    public static HealthCheckService.Report applyFix(String fixKey) {
+        requireManageSettings();
+        Savepoint beforeFix = Database.setSavepoint();
+        try {
+            runFix(fixKey);
+            return HealthCheckService.buildReport();
+        } catch (AuraHandledException e) {
+            Database.rollback(beforeFix);
+            throw e;
+        } catch (Exception e) {
+            Database.rollback(beforeFix);
+            ErrorLogger.log(e, System.Label.Core_HealthCheck_ErrorContext);
+            throw new AuraHandledException(System.Label.Core_HealthCheck_FixFailed);
+        }
+    }
+
+    private static void runFix(String fixKey) {
+        if (HealthCheckService.FIX_KEY_RESTORE_ROLLUPS.equals(fixKey)) {
+            RollupService.ensureDefaults();
+        } else if (HealthCheckService.FIX_KEY_RESTORE_AUTOMATION_SWITCHES.equals(fixKey)) {
+            AutomationControl.ensureDefaults();
+        } else if (HealthCheckService.FIX_KEY_RESTORE_IMPORT_TEMPLATES.equals(fixKey)) {
+            ImportTemplateService.materializeDefaults();
+        } else if (HealthCheckService.FIX_KEY_SCHEDULE_NIGHTLY_ROLLUPS.equals(fixKey)) {
+            RollupScheduler.start();
+        } else {
+            throw new AuraHandledException(System.Label.Core_HealthCheck_FixUnknown);
+        }
+    }
+
     private static void requireManageSettings() {
         if (!HealthCheckService.canManageSettings()) {
             throw new AuraHandledException(System.Label.Core_HealthCheck_PermissionRequired);

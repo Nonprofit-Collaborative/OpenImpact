@@ -191,9 +191,30 @@ public with sharing class RollupService {
      */
     @NamespaceAccessible
     public static Integer ensureDefaults() {
+        List<Rollup_Definition__c> toCreate = missingDefaults();
+        RollupWriter.insertDefinitions(toCreate);
+        return toCreate.size();
+    }
+
+    /**
+     * The names of the shipped defaults this org does not have yet, without creating them, so
+     * Health Check can say what restoring them would add (C-21, ADR-NEXT).
+     */
+    @NamespaceAccessible
+    public static List<String> missingDefaultNames() {
+        List<String> names = new List<String>();
+        for (Rollup_Definition__c definition : missingDefaults()) {
+            names.add(definition.Name);
+        }
+        return names;
+    }
+
+    /** The definitions ensureDefaults would create: one per shipped default not yet here. */
+    private static List<Rollup_Definition__c> missingDefaults() {
+        List<Rollup_Definition__c> toCreate = new List<Rollup_Definition__c>();
         List<Rollup_Definition_Default__mdt> shipped = RollupSelector.selectShippedDefaults();
         if (shipped.isEmpty()) {
-            return 0;
+            return toCreate;
         }
         Set<String> existingKeys = new Set<String>();
         for (Rollup_Definition__c definition : RollupSelector.selectAll()) {
@@ -201,7 +222,6 @@ public with sharing class RollupService {
                 existingKeys.add(definition.Definition_Key__c.toLowerCase());
             }
         }
-        List<Rollup_Definition__c> toCreate = new List<Rollup_Definition__c>();
         Map<String, Boolean> presentByName = new Map<String, Boolean>();
         for (Rollup_Definition_Default__mdt shippedDefault : shipped) {
             String key = shippedDefault.Definition_Key__c;
@@ -214,8 +234,7 @@ public with sharing class RollupService {
             existingKeys.add(key.toLowerCase());
             toCreate.add(materialize(shippedDefault));
         }
-        RollupWriter.insertDefinitions(toCreate);
-        return toCreate.size();
+        return toCreate;
     }
 
     /**

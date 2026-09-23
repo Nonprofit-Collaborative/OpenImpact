@@ -2,7 +2,9 @@
  * The Health Check questions about how Open Impact is set up and what it has been doing:
  * whether automation is paused, whether the two fiscal years agree, whether receipt
  * generation has been failing, and whether anything is waiting in the Error Log
- * (plan Section 4.8, feature C-11).
+ * (plan Section 4.8, feature C-11). Since C-21 it also asks whether the package defaults
+ * materialized from shipped metadata are all here, and whether the nightly rollup run is
+ * scheduled when a rollup needs it; those four findings carry a fix button (ADR-NEXT).
  *
  * Two of these reach data that belongs to the Giving package. Neither reaches it at compile
  * time: ReceiptGapSelector and FiscalYearSelector answer dynamically, so a Platform-only org
@@ -45,6 +47,137 @@ public with sharing class HealthCheckSettingsChecks {
         public HealthCheckService.Finding run() {
             return errorLogFinding();
         }
+    }
+
+    /** Shipped rollups this org does not have (ADR-0006, ADR-NEXT). */
+    public class ShippedRollupsCheck implements HealthCheckService.Check {
+        public HealthCheckService.Finding run() {
+            return missingDefaultsFinding(
+                    'shipped_rollups_missing',
+                    RollupService.missingDefaultNames(),
+                    System.Label.Core_HealthCheck_RollupsMissingTitle,
+                    System.Label.Core_HealthCheck_RollupsMissingDetail,
+                    HealthCheckService.SEVERITY_WARNING
+                )
+                ?.withFix(
+                    System.Label.Core_HealthCheck_RollupsMissingFix,
+                    HealthCheckService.FIX_ACTION_PREFIX +
+                    HealthCheckService.FIX_KEY_RESTORE_ROLLUPS
+                );
+        }
+    }
+
+    /** Shipped automations with no switch on the Automation page. */
+    public class AutomationSwitchesCheck implements HealthCheckService.Check {
+        public HealthCheckService.Finding run() {
+            return missingDefaultsFinding(
+                    'automation_switches_missing',
+                    AutomationControl.missingDefaultNames(),
+                    System.Label.Core_HealthCheck_SwitchesMissingTitle,
+                    System.Label.Core_HealthCheck_SwitchesMissingDetail,
+                    HealthCheckService.SEVERITY_INFO
+                )
+                ?.withFix(
+                    System.Label.Core_HealthCheck_SwitchesMissingFix,
+                    HealthCheckService.FIX_ACTION_PREFIX +
+                    HealthCheckService.FIX_KEY_RESTORE_AUTOMATION_SWITCHES
+                );
+        }
+    }
+
+    /** Shipped import templates this org does not have. */
+    public class ImportTemplatesCheck implements HealthCheckService.Check {
+        public HealthCheckService.Finding run() {
+            return missingDefaultsFinding(
+                    'import_templates_missing',
+                    ImportTemplateService.missingDefaultNames(),
+                    System.Label.Core_HealthCheck_TemplatesMissingTitle,
+                    System.Label.Core_HealthCheck_TemplatesMissingDetail,
+                    HealthCheckService.SEVERITY_INFO
+                )
+                ?.withFix(
+                    System.Label.Core_HealthCheck_TemplatesMissingFix,
+                    HealthCheckService.FIX_ACTION_PREFIX +
+                    HealthCheckService.FIX_KEY_RESTORE_IMPORT_TEMPLATES
+                );
+        }
+    }
+
+    /** Active rollups waiting on a nightly run nobody has scheduled. */
+    public class NightlyRollupsCheck implements HealthCheckService.Check {
+        public HealthCheckService.Finding run() {
+            return nightlyRollupsFinding();
+        }
+    }
+
+    /**
+     * One finding naming the package defaults that are missing, or null when none is. The
+     * title and detail take the count as {0} and the names as {1}, so the finding says what
+     * its fix will create, counted from this org (ADR-NEXT condition 5).
+     */
+    private static HealthCheckService.Finding missingDefaultsFinding(
+        String key,
+        List<String> missingNames,
+        String title,
+        String detail,
+        String severity
+    ) {
+        if (missingNames == null || missingNames.isEmpty()) {
+            return null;
+        }
+        List<Object> values = new List<Object>{
+            String.valueOf(missingNames.size()),
+            String.join(missingNames, ', ')
+        };
+        return new HealthCheckService.Finding(
+            key,
+            String.format(title, values),
+            String.format(detail, values),
+            severity,
+            HealthCheckService.CATEGORY_SETTINGS
+        );
+    }
+
+    /**
+     * Rollups set to recalculate in the nightly run while the run is not scheduled. A rollup
+     * set to Scheduled alone is then never recalculated, which is a warning; one set to Both
+     * still updates as records change and only misses the nightly correction, which is
+     * information.
+     */
+    private static HealthCheckService.Finding nightlyRollupsFinding() {
+        if (RollupScheduler.isScheduled()) {
+            return null;
+        }
+        List<Rollup_Definition__c> waiting = RollupSelector.selectActiveForModes(
+            RollupService.scheduledModes()
+        );
+        if (waiting.isEmpty()) {
+            return null;
+        }
+        Integer nightlyOnly = 0;
+        for (Rollup_Definition__c definition : waiting) {
+            if (RollupService.MODE_SCHEDULED.equals(definition.Mode__c)) {
+                nightlyOnly++;
+            }
+        }
+        List<Object> values = new List<Object>{
+            String.valueOf(waiting.size()),
+            String.valueOf(nightlyOnly)
+        };
+        return new HealthCheckService.Finding(
+                'nightly_rollups_not_scheduled',
+                System.Label.Core_HealthCheck_NightlyOffTitle,
+                String.format(System.Label.Core_HealthCheck_NightlyOffDetail, values),
+                nightlyOnly > 0
+                    ? HealthCheckService.SEVERITY_WARNING
+                    : HealthCheckService.SEVERITY_INFO,
+                HealthCheckService.CATEGORY_SETTINGS
+            )
+            .withFix(
+                System.Label.Core_HealthCheck_NightlyOffFix,
+                HealthCheckService.FIX_ACTION_PREFIX +
+                HealthCheckService.FIX_KEY_SCHEDULE_NIGHTLY_ROLLUPS
+            );
     }
 
     private static HealthCheckService.Finding automationFinding() {

@@ -198,9 +198,38 @@ public with sharing class AutomationControl {
      */
     @NamespaceAccessible
     public static Integer ensureDefaults() {
+        List<Automation_Setting__c> toCreate = missingDefaults();
+        if (toCreate.isEmpty()) {
+            return 0;
+        }
+        // System mode on purpose: ADR-0006 has the post-install script materialize these rows,
+        // and a post-install context holds no permission sets, so a user mode insert would fail
+        // on a fresh install. Nothing here comes from user input: every value is copied from the
+        // package's own shipped metadata.
+        Database.insert(toCreate, AccessLevel.SYSTEM_MODE);
+        clearCache();
+        return toCreate.size();
+    }
+
+    /**
+     * The names of the shipped automations that have no switch row yet, without creating them,
+     * so Health Check can say what restoring them would add (C-21, ADR-NEXT).
+     */
+    @NamespaceAccessible
+    public static List<String> missingDefaultNames() {
+        List<String> names = new List<String>();
+        for (Automation_Setting__c setting : missingDefaults()) {
+            names.add(setting.Name);
+        }
+        return names;
+    }
+
+    /** The switch rows ensureDefaults would create: one per shipped automation not yet here. */
+    private static List<Automation_Setting__c> missingDefaults() {
+        List<Automation_Setting__c> toCreate = new List<Automation_Setting__c>();
         List<Automation_Registry__mdt> registry = shippedRegistry();
         if (registry.isEmpty()) {
-            return 0;
+            return toCreate;
         }
         Set<String> existingNames = new Set<String>();
         for (Automation_Setting__c setting : AutomationSettingSelector.selectAllForFramework()) {
@@ -208,7 +237,6 @@ public with sharing class AutomationControl {
                 existingNames.add(setting.Automation_Name__c.toLowerCase());
             }
         }
-        List<Automation_Setting__c> toCreate = new List<Automation_Setting__c>();
         for (Automation_Registry__mdt entry : registry) {
             if (
                 String.isBlank(entry.DeveloperName) ||
@@ -233,16 +261,7 @@ public with sharing class AutomationControl {
                 )
             );
         }
-        if (toCreate.isEmpty()) {
-            return 0;
-        }
-        // System mode on purpose: ADR-0006 has the post-install script materialize these rows,
-        // and a post-install context holds no permission sets, so a user mode insert would fail
-        // on a fresh install. Nothing here comes from user input: every value is copied from the
-        // package's own shipped metadata.
-        Database.insert(toCreate, AccessLevel.SYSTEM_MODE);
-        clearCache();
-        return toCreate.size();
+        return toCreate;
     }
 
     private static List<Automation_Registry__mdt> shippedRegistry() {

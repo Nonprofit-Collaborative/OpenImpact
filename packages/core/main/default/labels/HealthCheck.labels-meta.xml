@@ -202,6 +202,14 @@
         <value>That did not work, and nothing was changed. The details are in the Error Log.</value>
     </labels>
     <labels>
+        <fullName>Core_HealthCheck_FixUnknown</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when the panel asks for a fix Health Check does not have.</shortDescription>
+        <value>Health Check does not have that fix. Run Health Check again.</value>
+    </labels>
+    <labels>
         <fullName>Core_HealthCheck_IndustriesDetected</fullName>
         <categories>Core</categories>
         <language>en_US</language>
@@ -320,6 +328,30 @@
         <protected>false</protected>
         <shortDescription>Title of the multi-currency finding.</shortDescription>
         <value>This org uses more than one currency</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_NightlyOffDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check detail: nightly run off. {0} waiting rollups, {1} nightly only.</shortDescription>
+        <value>{0} active totals are set to recalculate in the nightly run, and it is not scheduled. {1} of them recalculate only then, so their values are not being kept up to date. The fix schedules the run every night at 2:00 AM. Stop it on the Rollups page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_NightlyOffFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Fix button: schedule the nightly rollup run.</shortDescription>
+        <value>Schedule the nightly run</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_NightlyOffTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check title: the nightly rollup run is not scheduled.</shortDescription>
+        <value>Nightly totals are not scheduled</value>
     </labels>
     <labels>
         <fullName>Core_HealthCheck_NoAdminDetail</fullName>
@@ -515,6 +547,30 @@
         <value>Re-run</value>
     </labels>
     <labels>
+        <fullName>Core_HealthCheck_RollupsMissingDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check detail: shipped rollups missing. {0} count, {1} names.</shortDescription>
+        <value>Open Impact ships totals this org does not have: {1}. The fix creates each one exactly as shipped. Your own totals are not touched.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_RollupsMissingFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Fix button: create the missing shipped rollups.</shortDescription>
+        <value>Restore shipped totals</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_RollupsMissingTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check title: shipped rollups missing. {0} is the count.</shortDescription>
+        <value>{0} shipped totals are missing</value>
+    </labels>
+    <labels>
         <fullName>Core_HealthCheck_SalesObjectsDetected</fullName>
         <categories>Core</categories>
         <language>en_US</language>
@@ -545,6 +601,54 @@
         <protected>false</protected>
         <shortDescription>Screen reader text for a finding worth knowing about.</shortDescription>
         <value>Worth knowing</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_SwitchesMissingDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check detail: automation switches missing. {0} count, {1} names.</shortDescription>
+        <value>These automations run but have no switch on the Automation page, so they cannot be turned off there: {1}. The fix creates each switch set to its shipped default, which is on. Switches you already have keep their setting.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_SwitchesMissingFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Fix button: create the missing automation switches.</shortDescription>
+        <value>Restore automation switches</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_SwitchesMissingTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check title: automation switches missing. {0} is the count.</shortDescription>
+        <value>{0} automation switches are missing</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_TemplatesMissingDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check detail: import templates missing. {0} count, {1} names.</shortDescription>
+        <value>Open Impact ships import templates this org does not have: {1}. The fix creates each one exactly as shipped. Your own templates are not touched.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_TemplatesMissingFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Fix button: create the missing shipped import templates.</shortDescription>
+        <value>Restore import templates</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_TemplatesMissingTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check title: import templates missing. {0} is the count.</shortDescription>
+        <value>{0} shipped import templates are missing</value>
     </labels>
     <labels>
         <fullName>Core_HealthCheck_Title</fullName>

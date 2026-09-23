@@ -35,9 +35,33 @@ public with sharing class ImportTemplateService {
      */
     @NamespaceAccessible
     public static Integer materializeDefaults() {
+        List<Import_Template__c> toCreate = missingDefaults();
+        if (toCreate.isEmpty()) {
+            return 0;
+        }
+        Database.insert(toCreate, AccessLevel.USER_MODE);
+        return toCreate.size();
+    }
+
+    /**
+     * The names of the shipped templates this org does not have yet, without creating them, so
+     * Health Check can say what restoring them would add (C-21, ADR-NEXT).
+     */
+    @NamespaceAccessible
+    public static List<String> missingDefaultNames() {
+        List<String> names = new List<String>();
+        for (Import_Template__c template : missingDefaults()) {
+            names.add(template.Name);
+        }
+        return names;
+    }
+
+    /** The templates materializeDefaults would create: one per shipped default not yet here. */
+    private static List<Import_Template__c> missingDefaults() {
+        List<Import_Template__c> toCreate = new List<Import_Template__c>();
         List<Import_Template_Default__mdt> shipped = ImportTemplateSelector.selectShippedDefaults();
         if (shipped.isEmpty()) {
-            return 0;
+            return toCreate;
         }
         Set<String> keys = new Set<String>();
         for (Import_Template_Default__mdt row : shipped) {
@@ -47,7 +71,6 @@ public with sharing class ImportTemplateService {
         }
         Map<String, Import_Template__c> existing = ImportTemplateSelector.selectByKeys(keys);
         String personMode = defaultPersonMode();
-        List<Import_Template__c> toCreate = new List<Import_Template__c>();
         for (Import_Template_Default__mdt row : shipped) {
             if (String.isBlank(row.Template_Key__c) || existing.containsKey(row.Template_Key__c)) {
                 continue;
@@ -67,11 +90,7 @@ public with sharing class ImportTemplateService {
                 )
             );
         }
-        if (toCreate.isEmpty()) {
-            return 0;
-        }
-        Database.insert(toCreate, AccessLevel.USER_MODE);
-        return toCreate.size();
+        return toCreate;
     }
 
     /**
