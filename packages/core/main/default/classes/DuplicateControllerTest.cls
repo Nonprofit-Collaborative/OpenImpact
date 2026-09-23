@@ -1,7 +1,9 @@
 /**
  * DuplicateController: what the Duplicates panel shows, and the actions on it (C-20).
  * Suggestions are written directly with DuplicateService.recordPairs, so these tests do not
- * depend on how the org's duplicate rules are set.
+ * depend on what the org's duplicate rules match. The platform does require every suggestion
+ * to name an active rule, so a test that needs one stops, with an assertion, in an org that
+ * has no active rule for its object.
  */
 @IsTest
 private class DuplicateControllerTest {
@@ -17,11 +19,21 @@ private class DuplicateControllerTest {
         return records;
     }
 
-    private static void suggest(Id first, Id second) {
-        DuplicateService.recordPairs(
+    /** Writes the pair as a suggestion; answers false when no active rule allows one. */
+    private static Boolean suggest(Id first, Id second) {
+        String objectName = first.getSObjectType().getDescribe().getName();
+        Integer written = DuplicateService.recordPairs(
             new List<DuplicateService.Pair>{ new DuplicateService.Pair(first, second, null) },
             null
         );
+        if (
+            !DuplicateSelector.objectsWithActiveRules(new Set<String>{ objectName })
+                .contains(objectName)
+        ) {
+            Assert.areEqual(0, written, 'With no active rule no suggestion can be written.');
+            return false;
+        }
+        return true;
     }
 
     private static List<Account> twoHouseholds() {
@@ -49,7 +61,9 @@ private class DuplicateControllerTest {
                 )
             }
         );
-        suggest(people[0].Id, people[1].Id);
+        if (!suggest(people[0].Id, people[1].Id)) {
+            return;
+        }
 
         Test.startTest();
         DuplicateController.DuplicateView view = DuplicateController.getView();
@@ -78,7 +92,9 @@ private class DuplicateControllerTest {
     @IsTest
     static void twoHouseholdsAreMergedFromThePanelAndTheSuggestionGoes() {
         List<Account> households = twoHouseholds();
-        suggest(households[0].Id, households[1].Id);
+        if (!suggest(households[0].Id, households[1].Id)) {
+            return;
+        }
         DuplicateController.DuplicateView before = DuplicateController.getView();
         Assert.isTrue(before.suggestions[0].canMerge, 'Two households can be merged here.');
 
@@ -113,7 +129,9 @@ private class DuplicateControllerTest {
     @IsTest
     static void aDismissedPairLeavesTheListAndIsCounted() {
         List<Account> households = twoHouseholds();
-        suggest(households[0].Id, households[1].Id);
+        if (!suggest(households[0].Id, households[1].Id)) {
+            return;
+        }
         Id setId = DuplicateController.getView().suggestions[0].setId;
 
         Test.startTest();
