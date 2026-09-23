@@ -33,9 +33,10 @@ package has always shipped, and everything on this page works as soon as Giving 
 Two things are worth doing once, so that the numbers are visible where people look for them.
 
 1. Put **In-kind value** and **In-kind gift count** on your household, organization and
-   person page layouts, beside **Total giving**. This is in Salesforce Setup, in the same
-   place you added the other giving totals: Open Impact ships the fields but not your page
-   layouts, because they are yours. Put them next to total giving rather than under it. A
+   person record pages, beside **Total giving**. Add them to a field section of the record
+   page in the Lightning App Builder, in the same place you added the other giving totals
+   (or to your page layouts, if your org uses its own record pages): Open Impact ships the
+   fields but does not place them for you. Put them next to total giving rather than under it. A
    reader who sees one number without the other reads the one they see as everything the
    donor gave, which is the whole mistake this feature exists to prevent.
 2. Open **Nonprofit Settings**, then **Giving**, then **Rollups**, and choose **Recalculate

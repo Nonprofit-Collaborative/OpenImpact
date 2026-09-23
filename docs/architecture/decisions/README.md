@@ -51,6 +51,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0040](0040-simple-rules-in-flow-engine-logic-in-apex.md) | Simple rules in Flow, engine logic in Apex, and customers switch ours off to run theirs | Accepted |
 | [0041](0041-core-ships-no-contact-record-type.md) | Core ships no Contact record type | Accepted |
 | [0042](0042-packaged-records-use-activities-not-chatter.md) | Packaged records use activities, not Chatter | Accepted |
+| [0043](0043-record-pages-use-dynamic-forms.md) | Record pages use Dynamic Forms, with one fallback layout per object and no layout assignments | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions
@@ -83,7 +84,7 @@ Health Check finding goes.
 ADR-0040 is a product owner decision on how automation is built and customized while the
 packages are unlocked.
 
-ADR-0041 and ADR-0042 are product owner decisions on the record pages (plan Section 4).
+ADR-0041 to ADR-0043 are product owner decisions on the record pages (plan Section 4).
 
 ## Adding a new ADR
 

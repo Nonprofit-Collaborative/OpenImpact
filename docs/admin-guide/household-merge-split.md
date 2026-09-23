@@ -38,12 +38,13 @@ deleted for you. If it is off, the empty household stays and you delete it yours
 setting is on when Core is installed.
 
 **Where the button is.** Core ships the placement, not just the action: the **Merge or
-split** action sits in the Household layout's action bar, and the Nonprofit Hub app opens
-households on the packaged Household record page, on the desktop and on the phone. So the
-button is there on a fresh install, with nothing to wire up in the Lightning App Builder.
-If you do not see it, the two usual reasons are that you are looking at the record outside
-the **Nonprofit Hub** app (another app can carry its own record page assignment), or that
-somebody has since overridden the assignment in the Lightning App Builder.
+split** action sits in the action bar of the packaged Account record page, on households
+only, and the Nonprofit Hub app opens households on that page, on the desktop and on the
+phone. So the button is there on a fresh install, with nothing to wire up in the Lightning
+App Builder. If you do not see it, the two usual reasons are that you are looking at the
+record outside the **Nonprofit Hub** app (another app can carry its own record page
+assignment), or that somebody has since overridden the assignment in the Lightning App
+Builder.
 
 ## A five-minute walkthrough
 
