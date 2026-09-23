@@ -51,9 +51,9 @@ receipt lock behave as they do for any gift (canonical model R-GB6).
 
 - Giving owns two more objects and the code that posts them: one service, one selector, one
   writer for the two package-written fields (ADR-0021), and a controller for the grid.
-- Two entry paths create gifts (quick entry and batch posting), and both point a gift's
-  default allocation at the chosen fund the same way. A change to that behavior has to be
-  made in both, or moved to `GiftService` first.
+- Two entry paths create gifts (quick entry and batch posting), and both designate a gift to
+  the chosen fund through one method, `GiftService.applyChosenFunds`: it repoints the default
+  allocation, or adds one when paused automation created none.
 - The import framework's undo (C-19) does not reach a posted batch. A wrong gift from a
   batch is corrected as any wrong gift is, by refund or write-off (R-G3). An unpost would be
   a new decision, and would have to say what happens to a receipt already issued.

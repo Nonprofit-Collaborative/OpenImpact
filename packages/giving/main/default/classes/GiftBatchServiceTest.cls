@@ -145,6 +145,38 @@ private class GiftBatchServiceTest {
     }
 
     @IsTest
+    static void aLineFundIsKeptWhenGiftAutomationIsPaused() {
+        // Paused automation creates no default allocation, so the line's designation has to be
+        // written as a new allocation rather than repointed, or it is lost without a word.
+        fund('General', true);
+        Fund__c building = fund('Building Fund', false);
+        TestDataFactory.pausedSettings(1);
+        User fundraiser = david();
+
+        System.runAs(fundraiser) {
+            Account riverside = organization();
+            Gift_Batch__c tuesday = batch(250, null, null);
+            Gift_Batch_Row__c only = line(tuesday.Id, null, riverside.Id, 250);
+            only.Fund__c = building.Id;
+            insert only;
+
+            Test.startTest();
+            GiftBatchService.PostOutcome outcome = GiftBatchService.post(tuesday.Id);
+            Test.stopTest();
+
+            Assert.isTrue(AutomationControl.isPaused(), 'Gift automation was paused throughout.');
+            Assert.isTrue(outcome.success, 'The batch posts: ' + outcome.formError);
+            Gift_Allocation__c allocation = [
+                SELECT Fund__c, Amount__c
+                FROM Gift_Allocation__c
+                WHERE Gift__r.Donor_Account__c = :riverside.Id
+            ];
+            Assert.areEqual(building.Id, allocation.Fund__c, 'The line fund is still used.');
+            Assert.areEqual(250, allocation.Amount__c, 'The allocation is the whole gift.');
+        }
+    }
+
+    @IsTest
     static void aLineLeftEmptyFollowsADefaultCorrectedBeforePosting() {
         fund('General', true);
         Appeal__c fall = appeal('Fall Appeal');

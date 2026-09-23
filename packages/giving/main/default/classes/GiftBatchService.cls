@@ -222,45 +222,24 @@ public with sharing class GiftBatchService {
                 fundIdByGiftId.put(gifts[index].Id, resolved[index].fundId);
             }
         }
-        applyFunds(fundIdByGiftId);
-        GiftBatchWriter.linkGifts(giftIdByRowId);
+        // The same designation step quick gift entry uses. A gift the fund could not be applied
+        // to (already split by some other automation) fails the post rather than losing the
+        // line's designation.
+        Set<Id> notApplied = GiftService.applyChosenFunds(gifts, fundIdByGiftId);
+        for (Integer index = 0; index < rows.size(); index++) {
+            if (notApplied.contains(gifts[index].Id)) {
+                problems.add(
+                    new LineProblem(
+                        rows[index].Id,
+                        index + 1,
+                        Label.Giving_GiftBatch_ErrorPostFailed
+                    )
+                );
+            }
+        }
+        if (problems.isEmpty()) {
+            GiftBatchWriter.linkGifts(giftIdByRowId);
+        }
         return problems;
-    }
-
-    /**
-     * Points each new gift's single default allocation at its line's fund, the path quick gift
-     * entry takes, so the allocations still total the gift (R-GA1). Only the changed field is
-     * sent: a user mode update carrying the master-detail to the gift would be refused.
-     */
-    private static void applyFunds(Map<Id, Id> fundIdByGiftId) {
-        if (fundIdByGiftId.isEmpty()) {
-            return;
-        }
-        Map<Id, List<Gift_Allocation__c>> byGift = new Map<Id, List<Gift_Allocation__c>>();
-        for (
-            Gift_Allocation__c allocation : GiftSelector.selectAllocationsByGiftIds(
-                fundIdByGiftId.keySet()
-            )
-        ) {
-            if (!byGift.containsKey(allocation.Gift__c)) {
-                byGift.put(allocation.Gift__c, new List<Gift_Allocation__c>());
-            }
-            byGift.get(allocation.Gift__c).add(allocation);
-        }
-        List<Gift_Allocation__c> changed = new List<Gift_Allocation__c>();
-        for (Id giftId : fundIdByGiftId.keySet()) {
-            List<Gift_Allocation__c> allocations = byGift.get(giftId);
-            Id fundId = fundIdByGiftId.get(giftId);
-            if (
-                allocations != null &&
-                allocations.size() == 1 &&
-                allocations[0].Fund__c != fundId
-            ) {
-                changed.add(new Gift_Allocation__c(Id = allocations[0].Id, Fund__c = fundId));
-            }
-        }
-        if (!changed.isEmpty()) {
-            Database.update(changed, true, AccessLevel.USER_MODE);
-        }
     }
 }
