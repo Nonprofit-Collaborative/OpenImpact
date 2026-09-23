@@ -496,4 +496,28 @@
         <shortDescription>Import wizard: shown when the file has no usable header row</shortDescription>
         <value>This file has no heading row that Open Impact can read. Check that the first row of the file holds the column names.</value>
     </labels>
+    <labels>
+        <fullName>Core_Import_JournalEntryTooLarge</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import journal: one change too large to record</shortDescription>
+        <value>One change was too large to record in the import journal, so it cannot be put back by an undo.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogJournalFailed</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: the journal could not be written</shortDescription>
+        <value>Some changes this import made to existing records could not be recorded in its journal, so an undo will not put them back. The Error Log has the details.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogHouseholdNotTagged</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: a new household could not be tagged</shortDescription>
+        <value>A household this import created could not be marked with the import, so an undo will not remove it: {0}</value>
+    </labels>
 </CustomLabels>
