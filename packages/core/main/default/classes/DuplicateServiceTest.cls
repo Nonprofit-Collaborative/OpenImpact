@@ -17,6 +17,33 @@ private class DuplicateServiceTest {
         return records;
     }
 
+    /**
+     * The platform requires every suggestion to name an active duplicate rule, so an org with
+     * no active rule for people writes none. The tests below that need a written suggestion
+     * say so and stop there in such an org.
+     */
+    private static Boolean peopleRuleActive() {
+        return DuplicateSelector.objectsWithActiveRules(new Set<String>{ 'Contact' })
+            .contains('Contact');
+    }
+
+    private static Boolean nothingWrittenWithoutARule(List<Contact> people) {
+        if (peopleRuleActive()) {
+            return false;
+        }
+        Assert.areEqual(
+            0,
+            DuplicateService.recordPairs(
+                new List<DuplicateService.Pair>{
+                    new DuplicateService.Pair(people[0].Id, people[1].Id, null)
+                },
+                null
+            ),
+            'With no active rule for people no suggestion can be written (R-DP1).'
+        );
+        return true;
+    }
+
     private static List<Contact> twoPeople() {
         return (List<Contact>) insertAllowingDuplicates(
             new List<Contact>{
@@ -95,6 +122,9 @@ private class DuplicateServiceTest {
     @IsTest
     static void aPairIsWrittenAsTheSuggestionThePlatformWouldWrite() {
         List<Contact> people = twoPeople();
+        if (nothingWrittenWithoutARule(people)) {
+            return;
+        }
         Test.startTest();
         Integer written = DuplicateService.recordPairs(
             new List<DuplicateService.Pair>{
@@ -130,6 +160,9 @@ private class DuplicateServiceTest {
     @IsTest
     static void aDismissedPairIsRememberedAndTheSuggestionGoes() {
         List<Contact> people = twoPeople();
+        if (nothingWrittenWithoutARule(people)) {
+            return;
+        }
         DuplicateService.recordPairs(
             new List<DuplicateService.Pair>{
                 new DuplicateService.Pair(people[0].Id, people[1].Id, null)
@@ -172,6 +205,9 @@ private class DuplicateServiceTest {
     @IsTest
     static void dismissingAPairTwiceWritesOneDismissal() {
         List<Contact> people = twoPeople();
+        if (nothingWrittenWithoutARule(people)) {
+            return;
+        }
         DuplicateService.Pair pair = new DuplicateService.Pair(people[0].Id, people[1].Id, null);
         DuplicateService.recordPairs(new List<DuplicateService.Pair>{ pair }, null);
         DuplicateService.dismiss([SELECT Id FROM DuplicateRecordSet LIMIT 1].Id, null);
@@ -210,6 +246,9 @@ private class DuplicateServiceTest {
     @IsTest
     static void closingASuggestionRemembersNothing() {
         List<Contact> people = twoPeople();
+        if (nothingWrittenWithoutARule(people)) {
+            return;
+        }
         DuplicateService.recordPairs(
             new List<DuplicateService.Pair>{
                 new DuplicateService.Pair(people[0].Id, people[1].Id, null)
