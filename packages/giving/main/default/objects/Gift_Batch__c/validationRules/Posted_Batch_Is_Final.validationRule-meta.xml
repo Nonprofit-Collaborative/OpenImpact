@@ -3,7 +3,7 @@
   <fullName>Posted_Batch_Is_Final</fullName>
   <active>true</active>
   <description>
-    R-GB4: a posted batch is the record of a deposit whose gifts exist. Its business fields never change again, which also keeps its status from returning to Open and the batch from posting twice. The owner is left out on purpose, so an administrator can reassign a departed person's batches.
+    R-GB4: a posted batch records a deposit whose gifts exist, so its business fields never change again and it cannot post twice. The owner may change, so an admin can reassign a departed person's batches.
   </description>
   <errorConditionFormula>
     AND(
