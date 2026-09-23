@@ -1333,7 +1333,10 @@ undoes.
 **R-IB1 Dry run first.** A batch is committed only after a dry run has completed against
 the same file and template, and the dry run makes the same resolution decisions the
 commit will make. The preview counts and the downloadable exceptions file come from the
-Import Row records the dry run wrote.
+Import Row records the dry run wrote. A dry run is refused on a batch that has started a
+commit, or is in any undo status: a dry run over a committed batch would mark it a dry run
+(so it could never be undone), clear its completion time, and a second commit would move its
+undo window.
 
 **R-IB2 Chunked and asynchronous.** Rows are processed in chunks of Chunk Size in Batch
 Apex, with progress visible on the batch record, so a file of hundreds of thousands of
@@ -1382,7 +1385,10 @@ after the deadline is refused, in a sentence naming the date it passed.
    rather than queued. A dry run, or a batch already Undone, is refused the same way. An
    undo that stopped on an unexpected error ends Undo failed and may be run again: a record
    it already deleted no longer carries the tag, and a value it already put back is left
-   alone.
+   alone. A chunk the platform stopped (a governor limit cannot be caught) counts as an
+   error: the undo reads its job's error count when it finishes and ends Undo failed. An
+   undo whose job is no longer queued or running (it was aborted) is treated as Undo failed
+   too, so it can be run again rather than staying Undoing for ever.
 4. **Deleted, not destroyed.** Records go to the recycle bin by the ordinary delete, in the
    running user's own permissions. Nothing in the undo path empties it, so a mistaken undo
    is recoverable for as long as the platform keeps them.
@@ -1396,10 +1402,23 @@ after the deadline is refused, in a sentence naming the date it passed.
   deleted first, then accounts, so a household can be judged after its imported members are
   gone.
 - **It keeps a tagged record that has gained something since.** A tagged record is kept,
-  counted and journaled with the reason, when any record created after the batch completed
-  points at it through a custom reference (a gift, a soft credit, a membership, an address, a
-  relationship, in any package), or, for a household or an organization, when a person this
-  import did not create is still on it. Deleting a donor clears the donor on every gift
+  counted and journaled with the reason, when:
+  - any record points at it through any reference the org can filter on (a gift, a soft
+    credit, a membership, an address, an activity, anything in any package, found by
+    describing the record's child relationships, never by naming an object), and was created
+    after the batch completed, or was created while the commit ran by somebody other than the
+    person who committed it;
+  - the record itself was edited since: by somebody other than the committer after the
+    commit started, or by anybody more than ten minutes after it completed (the ten minutes
+    are the import's own follow-on work, such as rollups and household naming, which runs as
+    the committer); or an activity has been logged on it;
+  - for a household or an organization, a person this import did not create is still on it,
+    or Nonprofit Cloud records depend on it (ADR-0036).
+
+  Work the undo itself does (a household renamed as its imported members are deleted) is
+  not counted. A check that cannot run, or would leave the delete too few queries, keeps the
+  record and journals that it was not checked. A record the person undoing cannot delete is
+  kept and journaled with the reason. Deleting a donor clears the donor on every gift
   recorded against them since, which would change giving totals; the import's records are
   not worth anybody's later work. A person stored as an account is not kept for its own
   contact record, which is itself rather than somebody else.
@@ -1414,6 +1433,12 @@ after the deadline is refused, in a sentence naming the date it passed.
 
 When the undo finishes, one line is added to the Run Log: who ran it, when, and how many
 records it deleted, kept and put back.
+
+The counts shown before an undo, the checks that decide what is kept, and the status and
+run log writes are read and written in system mode (ADR-0021): a count or a check that
+cannot see a record would report "nothing there" about exactly the record that matters, and
+the status is the package's own bookkeeping. Every delete and every value put back is in the
+running user's own mode.
 
 ### Salesforce implementation
 
@@ -4387,3 +4412,4 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.5 | 2026-09-23 | No object or field added. The Account, Contact, Gift and Commitment record pages show their fields with Dynamic Forms (ADR-0043). R-O3 now holds on the Account record page: the Name and Greetings section, which carries Member Count, Anniversary, Custom Name and the two greetings, shows only for the Household record type. Account keeps one fallback page layout for both record types, and no layout is assigned to a profile. |
 | v0.5 | 2026-09-23 | C-22, product-plan Section 11.2 item 8. No object or field added. R-M3's second half is implemented and its known-gaps row in Section 30 closed (ADR-0044, primary contact mirrors the primary member): in junction mode `Primary_Contact__c` mirrors the current member marked Is Primary, as that member's Contact or, for a Person Account, its person contact, and a hand edit of it on a household is refused. R-H5 now states the primary tiebreak the code already applied and which source each mode reads it from. R-H10 and the Household attribute table say which record is the mark in each mode. |
 | v0.5 | 2026-09-23 | C-19 Import 2.0. New Section 17A, `Import_Journal__c`, a page per chunk recording the updates an import made (value before and value written) and what an undo kept or did not put back, with rules R-IJ1 to R-IJ5. `Import_Batch__c` status gains Undoing and Undo failed; R-IB6 restated and R-IB7 (the undo window is stamped at commit), R-IB8 (one named batch, counted and confirmed, once, to the recycle bin) and R-IB9 (deletes only tagged records, keeps a tagged record that has gained something since, puts back only values nobody has changed since) added. R-IB3 now says the import tags the household it made a new person. R-IT6 added: a recurring template is listed on the Hub with its last import date, and nothing loads a file on a schedule. `Nonprofit_Settings__c` gains `Import_Undo_Retention_Days__c`. R-IR5 notes that undo does not read the staged rows. |
+| v0.5 | 2026-09-23 | C-19 review. No object or field added. R-IB1: a dry run is refused on a batch that has started a commit or is in an undo status. R-IB8: a chunk the platform stopped, or an undo job that is no longer running, ends Undo failed. R-IB9: a tagged record is kept when anything created since points at it through any reference the org can filter on (not only custom ones), when something was created during the commit by somebody else, when the record was edited since or has an activity, and when the person undoing cannot delete it; the system-mode reads and writes are recorded against ADR-0021. |
