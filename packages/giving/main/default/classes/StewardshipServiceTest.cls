@@ -9,6 +9,14 @@ private class StewardshipServiceTest {
     private static final String WELCOME = 'First gift welcome';
     private static final String MAJOR = 'Major gift thanks';
 
+    /**
+     * A gift saves only when there is a default fund to allocate it to (R-GA2).
+     */
+    @TestSetup
+    static void makeData() {
+        GivingTestDataFactory.ensureDefaultFund();
+    }
+
     private static Stewardship_Plan_Template__c template(
         String name,
         String event,

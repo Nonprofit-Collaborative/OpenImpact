@@ -104,7 +104,12 @@ public class GivingTestDataFactory {
         String firstName,
         String lastName
     ) {
-        Account household = new Account(Name = householdName);
+        // The record type is set rather than left to the running user's default, because the
+        // household on a gift is derived only from an account of the Household record type.
+        Account household = new Account(
+            Name = householdName,
+            RecordTypeId = HouseholdService.householdRecordTypeId()
+        );
         insert household;
         Contact person = new Contact(
             FirstName = firstName,

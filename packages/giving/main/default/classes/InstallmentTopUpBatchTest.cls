@@ -24,10 +24,26 @@ private class InstallmentTopUpBatchTest {
         insert recurring;
         delete [SELECT Id FROM Installment__c];
 
+        // A test may run only one chunk of an asynchronous batch, so the chunks the platform
+        // would hand the batch are handed to it here, the same size and in the same order.
+        InstallmentTopUpBatch batch = new InstallmentTopUpBatch();
+        Integer chunks = 0;
         Test.startTest();
-        Database.executeBatch(new InstallmentTopUpBatch(), InstallmentTopUpBatch.CHUNK_SIZE);
+        Database.QueryLocatorIterator rows = batch.start(null).iterator();
+        List<Commitment__c> chunk = new List<Commitment__c>();
+        while (rows.hasNext()) {
+            chunk.add((Commitment__c) rows.next());
+            if (chunk.size() == InstallmentTopUpBatch.CHUNK_SIZE || !rows.hasNext()) {
+                batch.execute(null, chunk);
+                chunks++;
+                chunk = new List<Commitment__c>();
+            }
+        }
+        batch.finish(null);
         Test.stopTest();
 
+        Assert.isTrue(chunks > 1, 'Sixty commitments take more chunks than one: ' + chunks);
+        Assert.areEqual(60, batch.commitmentsProcessed(), 'Every chunk was counted.');
         Assert.areEqual(
             60,
             [SELECT COUNT() FROM Installment__c],

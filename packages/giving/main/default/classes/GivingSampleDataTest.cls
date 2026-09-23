@@ -384,7 +384,9 @@ private class GivingSampleDataTest {
     static void testRemoveLeavesRecordsTheLoaderDidNotCreate() {
         insertSamplePeople();
         loadEverything();
-        Fund__c ownFund = GivingTestDataFactory.buildFund('Our own fund', false);
+        // The organization's own default fund: sample funds never take the flag, and a gift
+        // the fundraiser enters saves only when there is a default fund to allocate it to.
+        Fund__c ownFund = GivingTestDataFactory.buildFund('Our own fund', true);
         insert ownFund;
         Contact ownDonor = GivingTestDataFactory.insertHouseholdContact(
             'The Real Family',
