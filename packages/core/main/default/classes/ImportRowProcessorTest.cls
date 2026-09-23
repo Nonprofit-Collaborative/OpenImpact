@@ -484,25 +484,28 @@ private class ImportRowProcessorTest {
      * second person by writing an account reference and skipped that entirely for a person
      * stored as an account.
      *
-     * What this test substitutes and what it does not: the org shape is declared, through
-     * `OrgShapeDetector.overrideShape` and `PersonRecordSelector.personRecordOverride`,
-     * because a Platform only test org has no person accounts to make (ADR-0013), and the
-     * person details are declared because that org has no person name fields to hold them.
-     * The records, the membership rows and the household are real.
+     * What this test substitutes and what it does not: in an org with person accounts,
+     * nothing; the people are real person accounts. On a Platform only org, which has no
+     * person accounts to make (ADR-0013), the org shape is declared, through
+     * `OrgShapeDetector.overrideShape` and `PersonRecordSelector.personRecordOverride`, and
+     * the person details are declared because that org has no person name fields to hold
+     * them. The records, the membership rows and the household are real in both.
      */
     @IsTest
     static void aRowWithTwoPeopleMakesOneHouseholdWherePeopleAreStoredAsAccounts() {
         HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
-        HouseholdService.personAccountOverride = true;
-        PersonRecordSelector.personRecordOverride = true;
-        PersonRecordSelector.personOverridesByName = new Map<String, HouseholdService.Person>{
-            'Maria Garcia' => HouseholdTestDataFactory.person('Ms.', 'Maria', 'Garcia', 'Head'),
-            'Wei Lee' => HouseholdTestDataFactory.person('Mr.', 'Wei', 'Lee', null)
-        };
-        OrgShapeDetector.OrgShape shape = new OrgShapeDetector.OrgShape();
-        shape.hasPersonAccounts = true;
-        shape.personAccountRecordTypeIds = new Set<Id>{ organizationRecordTypeId() };
-        OrgShapeDetector.overrideShape = shape;
+        if (!OrgShapeDetector.detect().hasPersonAccounts) {
+            HouseholdService.personAccountOverride = true;
+            PersonRecordSelector.personRecordOverride = true;
+            PersonRecordSelector.personOverridesByName = new Map<String, HouseholdService.Person>{
+                'Maria Garcia' => HouseholdTestDataFactory.person('Ms.', 'Maria', 'Garcia', 'Head'),
+                'Wei Lee' => HouseholdTestDataFactory.person('Mr.', 'Wei', 'Lee', null)
+            };
+            OrgShapeDetector.OrgShape shape = new OrgShapeDetector.OrgShape();
+            shape.hasPersonAccounts = true;
+            shape.personAccountRecordTypeIds = new Set<Id>{ organizationRecordTypeId() };
+            OrgShapeDetector.overrideShape = shape;
+        }
         givenACoupleOnOneRow(ImportTemplateService.PERSON_MODE_PERSON_ACCOUNTS);
 
         Test.startTest();
