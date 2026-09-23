@@ -61,20 +61,10 @@
         <identifier>runtime_sales_activities_activityPanel</identifier>
       </componentInstance>
     </itemInstances>
-    <itemInstances>
-      <componentInstance>
-        <componentInstanceProperties>
-          <name>context</name>
-          <value>RECORD</value>
-        </componentInstanceProperties>
-        <componentName>forceChatter:publisher</componentName>
-        <identifier>forceChatter_publisher</identifier>
-      </componentInstance>
-    </itemInstances>
     <name>sidebar</name>
     <type>Region</type>
   </flexiPageRegions>
-  <masterLabel>Household Contact Record Page</masterLabel>
+  <masterLabel>Contact Record Page</masterLabel>
   <sobjectType>Contact</sobjectType>
   <template>
     <name>flexipage:recordHomeTemplateDesktop</name>

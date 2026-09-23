@@ -5,7 +5,7 @@
   <description>A promise to give: a pledge or an open-ended recurring gift.</description>
   <enableActivities>true</enableActivities>
   <enableBulkApi>true</enableBulkApi>
-  <enableFeeds>true</enableFeeds>
+  <enableFeeds>false</enableFeeds>
   <enableReports>true</enableReports>
   <enableSearch>true</enableSearch>
   <enableSharing>true</enableSharing>

@@ -71,11 +71,10 @@ other way:
 
 Maria does steps 1 to 5. David does step 6.
 
-1. Open the **Contacts** tab, click **New**, choose the **Household Contact** record type,
-   and enter the first name `Maria` and the last name `Garcia`. Leave the household blank
-   and click **Save**. Open the household from her record: it is called **The Garcia
-   Family**, the formal greeting reads **Ms. Maria Garcia** if you gave her a title, and
-   the informal greeting reads **Maria**.
+1. Open the **Contacts** tab, click **New**, and enter the first name `Maria` and the last
+   name `Garcia`. Leave the household blank and click **Save**. Open the household from
+   her record: it is called **The Garcia Family**, the formal greeting reads **Ms. Maria
+   Garcia** if you gave her a title, and the informal greeting reads **Maria**.
 2. On the household's **Members** panel, click **Add member** and enter the first name
    `Wei` and the last name `Lee`. Save, then refresh the household. Because the two people
    do not share a last name, the name now reads **Garcia and Lee Household** and the
