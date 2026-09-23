@@ -565,6 +565,10 @@ private class RollupTests {
     acc.AnnualRevenue = originalValue;
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ acc };
 
+    // Open Impact patch E: the setup row is a RollupCalcItem__c on this Account (upstream's was a
+    // Contract), and a null CloseDate__c matches "<= TODAY" in memory, so it would be counted.
+    delete as system [SELECT Id FROM RollupCalcItem__c WHERE Name = 'Datetime tests' WITH SYSTEM_MODE];
+
     RollupCalcItem__c opp = new RollupCalcItem__c(Account__c = acc.Id, Amount__c = 100, Name = 'Will Not Match', CloseDate__c = System.today().addDays(2), StageName__c = 'A');
     insert as system new List<RollupCalcItem__c>{
       new RollupCalcItem__c(Account__c = acc.Id, Amount__c = 1, Name = 'First Match', CloseDate__c = System.today().addDays(-2), StageName__c = 'A'),

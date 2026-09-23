@@ -368,6 +368,13 @@ no tab, no layout, no permission set entry and no default records, so no adminis
 but it is real metadata in a subscriber org and it is the one place where vendoring cost Open Impact
 something a subscriber can observe.
 
+**Setup row collision.** Upstream's `RollupTests` setup inserts a `Contract` named 'Datetime tests';
+the port made it a `RollupCalcItem__c` on the shared Account. Any test that counts that Account's
+calc items with a full record set now sees it. `shouldNotDoubleCountOnDecrementForMatches` deletes
+it first: `RollupDateLiteral.matches` treats a null date as matching `<= TODAY`, so the count stayed
+at the stubbed 3 and no update was issued. On the next pull, check new full record set tests on
+`RollupCalcItem__c` for the same collision.
+
 **Still outstanding.** Two Sales Cloud references survive because they are strings only, never
 resolved as types, and neither is a name CI forbids: a `Asset.AssetLevel` where clause in
 `RollupEvaluatorTests` (a deliberately invalid relationship for the parent under test) and the
