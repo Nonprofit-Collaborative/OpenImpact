@@ -180,36 +180,52 @@ public with sharing class DuplicateService {
      * duplicates its own rules report, so the standard Duplicate Record Sets tab and any report
      * on it show the scan's findings too. Answers how many were written; a failure is logged and
      * the scan carries on.
+     *
+     * The platform requires every set to name the duplicate rule behind it. A pair carries the
+     * name of the rule that matched it; when that name is not among the active rules, any active
+     * rule for the pair's object stands in. A pair whose object has no active rule is not
+     * written, because no rule of the org's could have found it (R-DP1).
      */
     public static Integer recordPairs(List<Pair> pairs, Map<String, Id> ruleIdsByName) {
         if (pairs == null || pairs.isEmpty()) {
             return 0;
         }
+        Set<String> objectNames = new Set<String>();
+        for (Pair pair : pairs) {
+            objectNames.add(pair.left.getSObjectType().getDescribe().getName());
+        }
+        Map<String, Id> fallbackByObject = DuplicateSelector.activeRuleIdByObject(objectNames);
+        List<Pair> writable = new List<Pair>();
         List<DuplicateRecordSet> sets = new List<DuplicateRecordSet>();
         for (Pair pair : pairs) {
-            sets.add(
-                new DuplicateRecordSet(
-                    DuplicateRuleId = ruleIdsByName == null
-                        ? null
-                        : ruleIdsByName.get(pair.ruleName)
-                )
-            );
+            Id ruleId = ruleIdsByName == null ? null : ruleIdsByName.get(pair.ruleName);
+            if (ruleId == null) {
+                ruleId = fallbackByObject.get(pair.left.getSObjectType().getDescribe().getName());
+            }
+            if (ruleId == null) {
+                continue;
+            }
+            writable.add(pair);
+            sets.add(new DuplicateRecordSet(DuplicateRuleId = ruleId));
+        }
+        if (sets.isEmpty()) {
+            return 0;
         }
         Savepoint beforeWrite = Database.setSavepoint();
         try {
             Database.insert(sets, AccessLevel.USER_MODE);
             List<DuplicateRecordItem> items = new List<DuplicateRecordItem>();
-            for (Integer index = 0; index < pairs.size(); index++) {
+            for (Integer index = 0; index < writable.size(); index++) {
                 items.add(
                     new DuplicateRecordItem(
                         DuplicateRecordSetId = sets[index].Id,
-                        RecordId = pairs[index].left
+                        RecordId = writable[index].left
                     )
                 );
                 items.add(
                     new DuplicateRecordItem(
                         DuplicateRecordSetId = sets[index].Id,
-                        RecordId = pairs[index].right
+                        RecordId = writable[index].right
                     )
                 );
             }

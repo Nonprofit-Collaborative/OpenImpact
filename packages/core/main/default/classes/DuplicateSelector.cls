@@ -37,6 +37,17 @@ public with sharing class DuplicateSelector {
         return result;
     }
 
+    /** One active rule per object among these, for a suggestion whose own rule is unknown. */
+    public static Map<String, Id> activeRuleIdByObject(Set<String> objectNames) {
+        Map<String, Id> result = new Map<String, Id>();
+        for (DuplicateRule rule : rulesFor(objectNames)) {
+            if (rule.IsActive == true && !result.containsKey(rule.SobjectType)) {
+                result.put(rule.SobjectType, rule.Id);
+            }
+        }
+        return result;
+    }
+
     /** The objects among these that have at least one active rule. */
     public static Set<String> objectsWithActiveRules(Set<String> objectNames) {
         Set<String> result = new Set<String>();
@@ -64,10 +75,7 @@ public with sharing class DuplicateSelector {
                 DuplicateRule.MasterLabel,
                 (SELECT Id, RecordId FROM DuplicateRecordItems ORDER BY CreatedDate)
             FROM DuplicateRecordSet
-            WHERE
-                RecordCount > 1
-                AND (DuplicateRuleId = NULL
-                OR DuplicateRule.SobjectType IN :objects)
+            WHERE RecordCount > 1 AND DuplicateRule.SobjectType IN :objects
             WITH USER_MODE
             ORDER BY CreatedDate DESC
             LIMIT :limitRows
