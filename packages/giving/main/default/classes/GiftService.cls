@@ -3,8 +3,10 @@
  * allocations are kept honest, and how money that goes back is recorded.
  *
  * Canonical model rules R-G2, R-G3, R-G4, R-G5, R-GA1, R-GA2 and R-GA3. This is the only
- * class other packages call for gift behavior (plan Section 7.1).
+ * class other packages call for gift behavior (plan Section 7.1), so it is `@NamespaceAccessible`
+ * where another package calls it (ADR-0017): Connect's inbound gift API uses applyChosenFunds.
  */
+@NamespaceAccessible
 public with sharing class GiftService {
     /**
      * Set by a screen that inserts a gift and its allocations in the same transaction, so the
@@ -477,6 +479,7 @@ public with sharing class GiftService {
      * funds. Updates send only the changed fields, because a user mode update carrying the
      * master-detail to the gift would be refused.
      */
+    @NamespaceAccessible
     public static Set<Id> applyChosenFunds(List<Gift__c> gifts, Map<Id, Id> fundIdByGiftId) {
         Set<Id> notApplied = new Set<Id>();
         if (fundIdByGiftId.isEmpty()) {
