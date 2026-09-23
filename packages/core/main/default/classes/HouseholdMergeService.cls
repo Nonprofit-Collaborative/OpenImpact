@@ -155,7 +155,7 @@ public with sharing class HouseholdMergeService {
             HouseholdSelector.getEditableIds(new Set<Id>{ survivorId, victimId }).size() == 2;
 
         Map<String, Schema.SObjectField> describe = Schema.SObjectType.Account.fields.getMap();
-        for (String fieldName : COMPARED_FIELDS) {
+        for (String fieldName : comparedFields()) {
             Schema.SObjectField token = describe.get(fieldName);
             if (token == null || !token.getDescribe().isAccessible()) {
                 continue;
@@ -276,6 +276,8 @@ public with sharing class HouseholdMergeService {
         Boolean customNameKept = keepsCustomName;
         if (keepsCustomName) {
             HouseholdService.recalculateMemberCounts(survivorOnly);
+            // The primary member may have arrived with the move; the field follows it (R-M3).
+            HouseholdService.settlePrimaryContacts(survivorOnly);
         } else {
             // The household a merge has just folded the other one into is never tidied
             // away by the merge's own settle-up. Tidying away an empty household is what
@@ -361,7 +363,7 @@ public with sharing class HouseholdMergeService {
         Account changes = new Account(Id = survivor.Id);
         Boolean anyChange = false;
         Map<String, Schema.SObjectField> describe = Schema.SObjectType.Account.fields.getMap();
-        for (String fieldName : COMPARED_FIELDS) {
+        for (String fieldName : comparedFields()) {
             Schema.SObjectField token = describe.get(fieldName);
             if (token == null || !token.getDescribe().isUpdateable()) {
                 continue;
@@ -452,6 +454,19 @@ public with sharing class HouseholdMergeService {
     }
 
     // ------------------------------------------------------------------ helpers
+
+    /**
+     * The fields a merge offers a choice about in this org. In junction mode Primary Contact
+     * mirrors the member marked primary and is written only by HouseholdService (R-M3), so it
+     * is not a choice: the membership rows decide it and the field follows.
+     */
+    private static List<String> comparedFields() {
+        List<String> result = new List<String>(COMPARED_FIELDS);
+        if (HouseholdService.isJunctionMode()) {
+            result.remove(result.indexOf('Primary_Contact__c'));
+        }
+        return result;
+    }
 
     /**
      * Moves people with the membership handlers stood down, so that nothing is recounted,
