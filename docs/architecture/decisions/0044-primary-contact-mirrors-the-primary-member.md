@@ -1,4 +1,4 @@
-# ADR-NEXT: The household's Primary Contact mirrors the primary member, person accounts included
+# ADR-0044: The household's Primary Contact mirrors the primary member, person accounts included
 
 **Status:** Accepted (provisional: delegated by the product owner on 2026-09-23 and confirmed after he tests it)
 **Date:** 2026-09-23

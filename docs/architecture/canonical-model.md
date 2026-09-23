@@ -349,7 +349,7 @@ and no automation writes to it.
 future. Only current members count toward Member Count, naming, and greetings.
 
 **R-M3 One primary.** At most one current member of a household has Is Primary true, and
-the primary member is mirrored to the household's Primary Contact (ADR-NEXT, primary
+the primary member is mirrored to the household's Primary Contact (ADR-0044, primary
 contact mirrors the primary member).
 
 - The mirror is the member's Contact where the person is a Contact, and the person
@@ -3914,7 +3914,7 @@ is closed deliberately rather than discovered.
 |---|---|---|
 
 None open. R-M3's Primary Contact mirror, the only entry, was closed on 2026-09-23 by C-22
-(ADR-NEXT, primary contact mirrors the primary member).
+(ADR-0044, primary contact mirrors the primary member).
 
 ---
 
@@ -4041,4 +4041,4 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.5 | 2026-09-22 | Removed the Naming Pattern custom metadata type (its four fields and six shipped records) before the first package version, by the owner's decision. Nothing read it: household naming reads the three pattern fields on Nonprofit Settings. A custom metadata type is effectively permanent once packaged, so it goes now rather than never. |
 | v0.5 | 2026-09-23 | Removed the packaged Contact record type, its compact layout, and the list view that filtered on it, by the owner's decision (R-C4, ADR-0041). It drove no behavior: no code, rule or page branched on it, and the sample data loader was the only code that set it. People are now created with the org's default Contact record type. No field changed; the `Household_Role__c` picklist values it listed are all active on the master record type. |
 | v0.5 | 2026-09-23 | No object or field added. The Account, Contact, Gift and Commitment record pages show their fields with Dynamic Forms (ADR-0043). R-O3 now holds on the Account record page: the Name and Greetings section, which carries Member Count, Anniversary, Custom Name and the two greetings, shows only for the Household record type. Account keeps one fallback page layout for both record types, and no layout is assigned to a profile. |
-| v0.5 | 2026-09-23 | C-22, product-plan Section 11.2 item 8. No object or field added. R-M3's second half is implemented and its known-gaps row in Section 30 closed (ADR-NEXT, primary contact mirrors the primary member): in junction mode `Primary_Contact__c` mirrors the current member marked Is Primary, as that member's Contact or, for a Person Account, its person contact, and a hand edit of it on a household is refused. R-H5 now states the primary tiebreak the code already applied and which source each mode reads it from. R-H10 and the Household attribute table say which record is the mark in each mode. |
+| v0.5 | 2026-09-23 | C-22, product-plan Section 11.2 item 8. No object or field added. R-M3's second half is implemented and its known-gaps row in Section 30 closed (ADR-0044, primary contact mirrors the primary member): in junction mode `Primary_Contact__c` mirrors the current member marked Is Primary, as that member's Contact or, for a Person Account, its person contact, and a hand edit of it on a household is refused. R-H5 now states the primary tiebreak the code already applied and which source each mode reads it from. R-H10 and the Household attribute table say which record is the mark in each mode. |

@@ -1448,7 +1448,7 @@ public with sharing class HouseholdService {
 
     /**
      * Brings each household's Primary Contact into line with its membership, in whichever
-     * membership mode the org uses (R-M3, R-H10, ADR-NEXT primary contact mirrors the primary
+     * membership mode the org uses (R-M3, R-H10, ADR-0044 primary contact mirrors the primary
      * member). Part of every membership change's upkeep; public for the one caller that
      * settles a household without the rest of that upkeep (a merge that keeps a custom name).
      *
