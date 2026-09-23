@@ -1,0 +1,311 @@
+/**
+ * DuplicateService: the rules C-20 owns (canonical model R-DP2 to R-DP5). Which records the
+ * platform calls duplicates is the org's own rules' business, so only one test touches the
+ * matcher, and it says what it expects under whichever rules the org has switched on.
+ */
+@IsTest
+private class DuplicateServiceTest {
+    private static Id fakeContactId(Integer n) {
+        return Id.valueOf('003' + String.valueOf(n).leftPad(12, '0'));
+    }
+
+    /** Saved past any duplicate rule that only alerts, as an import that saved anyway would. */
+    private static List<SObject> insertAllowingDuplicates(List<SObject> records) {
+        Database.DMLOptions options = new Database.DMLOptions();
+        options.DuplicateRuleHeader.allowSave = true;
+        Database.insert(records, options);
+        return records;
+    }
+
+    private static List<Contact> twoPeople() {
+        return (List<Contact>) insertAllowingDuplicates(
+            new List<Contact>{
+                new Contact(
+                    FirstName = 'Maria',
+                    LastName = 'Dupcheck',
+                    Email = 'maria.dupcheck@example.org'
+                ),
+                new Contact(
+                    FirstName = 'Mariah',
+                    LastName = 'Dupcheck',
+                    Email = 'mariah.dupcheck@example.org'
+                )
+            }
+        );
+    }
+
+    @IsTest
+    static void aPairHasOneKeyWhicheverWayRoundItIsNamed() {
+        Id a = fakeContactId(1);
+        Id b = fakeContactId(2);
+        Assert.areEqual(
+            DuplicateService.pairKey(a, b),
+            DuplicateService.pairKey(b, a),
+            'A with B is B with A.'
+        );
+        Assert.areEqual(
+            new DuplicateService.Pair(b, a, 'Rule').left,
+            a,
+            'The lower identifier is always on the left.'
+        );
+        Assert.isNull(DuplicateService.pairKey(a, null), 'Half a pair has no key.');
+        Assert.isTrue(
+            DuplicateService.pairKey(a, b).length() <= 40,
+            'The key fits Pair Key, Text(40).'
+        );
+    }
+
+    @IsTest
+    static void threeRecordsInOneSuggestionMakeThreePairs() {
+        Set<String> keys = DuplicateService.pairKeysAmong(
+            new List<Id>{ fakeContactId(1), fakeContactId(2), fakeContactId(3) }
+        );
+        Assert.areEqual(3, keys.size(), 'AB, AC and BC.');
+        Assert.isTrue(DuplicateService.pairKeysAmong(null).isEmpty(), 'Nothing makes no pairs.');
+    }
+
+    @IsTest
+    static void onlyNewPairsAreRecorded() {
+        Id a = fakeContactId(1);
+        Id b = fakeContactId(2);
+        Id c = fakeContactId(3);
+        List<DuplicateService.Pair> found = new List<DuplicateService.Pair>{
+            new DuplicateService.Pair(a, a, 'Rule'),
+            new DuplicateService.Pair(a, b, 'Rule'),
+            new DuplicateService.Pair(b, a, 'Rule'),
+            new DuplicateService.Pair(a, c, 'Rule'),
+            null
+        };
+        List<DuplicateService.Pair> result = DuplicateService.pairsToRecord(
+            found,
+            new Set<String>{ DuplicateService.pairKey(a, c) }
+        );
+        Assert.areEqual(
+            1,
+            result.size(),
+            'A record matched to itself, a repeat and a known pair are all dropped.'
+        );
+        Assert.areEqual(DuplicateService.pairKey(a, b), result[0].key, 'The one new pair is kept.');
+        Assert.isTrue(
+            DuplicateService.pairsToRecord(null, null).isEmpty(),
+            'Nothing found, nothing to record.'
+        );
+    }
+
+    @IsTest
+    static void aPairIsWrittenAsTheSuggestionThePlatformWouldWrite() {
+        List<Contact> people = twoPeople();
+        Test.startTest();
+        Integer written = DuplicateService.recordPairs(
+            new List<DuplicateService.Pair>{
+                new DuplicateService.Pair(people[0].Id, people[1].Id, 'Unknown')
+            },
+            new Map<String, Id>()
+        );
+        Test.stopTest();
+
+        Assert.areEqual(1, written, 'One pair, one suggestion.');
+        List<DuplicateRecordItem> items = [
+            SELECT RecordId, DuplicateRecordSetId
+            FROM DuplicateRecordItem
+        ];
+        Assert.areEqual(2, items.size(), 'A suggestion of exactly two records.');
+        Assert.areEqual(
+            items[0].DuplicateRecordSetId,
+            items[1].DuplicateRecordSetId,
+            'Both in the same suggestion.'
+        );
+        Assert.isTrue(
+            DuplicateService.pairsAlreadySuggested(new Set<Id>{ people[0].Id })
+                .contains(DuplicateService.pairKey(people[0].Id, people[1].Id)),
+            'The next scan knows the pair is already waiting for a reviewer.'
+        );
+        Assert.areEqual(
+            0,
+            DuplicateService.recordPairs(null, null),
+            'Nothing to write, nothing written.'
+        );
+    }
+
+    @IsTest
+    static void aDismissedPairIsRememberedAndTheSuggestionGoes() {
+        List<Contact> people = twoPeople();
+        DuplicateService.recordPairs(
+            new List<DuplicateService.Pair>{
+                new DuplicateService.Pair(people[0].Id, people[1].Id, null)
+            },
+            null
+        );
+        Id setId = [SELECT Id FROM DuplicateRecordSet LIMIT 1].Id;
+
+        Test.startTest();
+        Integer dismissed = DuplicateService.dismiss(setId, '  Twin sisters at the same address  ');
+        Test.stopTest();
+
+        Assert.areEqual(1, dismissed, 'One pair, one dismissal.');
+        Duplicate_Dismissal__c saved = [SELECT Pair_Key__c, Reason__c FROM Duplicate_Dismissal__c];
+        Assert.areEqual(
+            DuplicateService.pairKey(people[0].Id, people[1].Id),
+            saved.Pair_Key__c,
+            'The pair is remembered.'
+        );
+        Assert.areEqual(
+            'Twin sisters at the same address',
+            saved.Reason__c,
+            'The reason is kept, trimmed.'
+        );
+        Assert.areEqual(0, [SELECT COUNT() FROM DuplicateRecordSet], 'The suggestion is gone.');
+        Assert.areEqual(
+            2,
+            [SELECT COUNT() FROM Contact WHERE Id IN :people],
+            'Neither record is touched.'
+        );
+
+        List<DuplicateService.Pair> again = DuplicateService.withoutDismissed(
+            new List<DuplicateService.Pair>{
+                new DuplicateService.Pair(people[1].Id, people[0].Id, null)
+            }
+        );
+        Assert.isTrue(again.isEmpty(), 'The next scan passes the pair over.');
+    }
+
+    @IsTest
+    static void dismissingAPairTwiceWritesOneDismissal() {
+        List<Contact> people = twoPeople();
+        DuplicateService.Pair pair = new DuplicateService.Pair(people[0].Id, people[1].Id, null);
+        DuplicateService.recordPairs(new List<DuplicateService.Pair>{ pair }, null);
+        DuplicateService.dismiss([SELECT Id FROM DuplicateRecordSet LIMIT 1].Id, null);
+        DuplicateService.recordPairs(new List<DuplicateService.Pair>{ pair }, null);
+
+        Test.startTest();
+        Integer dismissed = DuplicateService.dismiss(
+            [SELECT Id FROM DuplicateRecordSet LIMIT 1].Id,
+            'Again'
+        );
+        Test.stopTest();
+
+        Assert.areEqual(0, dismissed, 'A pair already dismissed is not dismissed again.');
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Duplicate_Dismissal__c],
+            'One dismissal per pair, ever.'
+        );
+        Assert.areEqual(0, [SELECT COUNT() FROM DuplicateRecordSet], 'The suggestion still goes.');
+    }
+
+    @IsTest
+    static void dismissingNothingSaysTheSuggestionIsGone() {
+        try {
+            DuplicateService.dismiss(null, null);
+            Assert.fail('A dismissal needs a suggestion.');
+        } catch (DuplicateService.DuplicateException expected) {
+            Assert.areEqual(
+                Label.Core_Duplicates_ErrorNoSuggestion,
+                expected.getMessage(),
+                'Said in words.'
+            );
+        }
+    }
+
+    @IsTest
+    static void closingASuggestionRemembersNothing() {
+        List<Contact> people = twoPeople();
+        DuplicateService.recordPairs(
+            new List<DuplicateService.Pair>{
+                new DuplicateService.Pair(people[0].Id, people[1].Id, null)
+            },
+            null
+        );
+        Test.startTest();
+        DuplicateService.closeSet([SELECT Id FROM DuplicateRecordSet LIMIT 1].Id);
+        DuplicateService.closeSet(null);
+        Test.stopTest();
+
+        Assert.areEqual(0, [SELECT COUNT() FROM DuplicateRecordSet], 'The suggestion is gone.');
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Duplicate_Dismissal__c],
+            'A merge is not a dismissal.'
+        );
+    }
+
+    @IsTest
+    static void onlyPeopleAndHouseholdPairsAreKept() {
+        List<Account> accounts = (List<Account>) insertAllowingDuplicates(
+            new List<Account>{
+                HouseholdTestDataFactory.newHousehold('The Dupcheck Family'),
+                HouseholdTestDataFactory.newHousehold('The Dupcheck Household'),
+                new Account(Name = 'Dupcheck Hardware')
+            }
+        );
+        List<DuplicateService.Pair> pairs = new List<DuplicateService.Pair>{
+            new DuplicateService.Pair(accounts[0].Id, accounts[1].Id, null),
+            new DuplicateService.Pair(accounts[0].Id, accounts[2].Id, null),
+            new DuplicateService.Pair(fakeContactId(1), fakeContactId(2), null)
+        };
+
+        Test.startTest();
+        List<DuplicateService.Pair> kept = DuplicateService.actionablePairs(pairs);
+        Test.stopTest();
+
+        Assert.areEqual(
+            2,
+            kept.size(),
+            'A household paired with an organization is not proposed (R-DP2).'
+        );
+        Assert.areEqual(pairs[0].key, kept[0].key, 'Two households are kept.');
+        Assert.areEqual(pairs[2].key, kept[1].key, 'Two people are kept.');
+        Assert.isTrue(DuplicateService.actionablePairs(null).isEmpty(), 'Nothing in, nothing out.');
+    }
+
+    @IsTest
+    static void theMatcherIsAskedOnlyWhenThereIsSomethingToAsk() {
+        Assert.isTrue(
+            DuplicateService.matchesFor(new List<Id>()).isEmpty(),
+            'The platform refuses an empty list; we do not ask.'
+        );
+    }
+
+    @IsTest
+    static void theOrgsOwnRulesDecideWhoIsTheSamePerson() {
+        List<Contact> twins = (List<Contact>) insertAllowingDuplicates(
+            new List<Contact>{
+                new Contact(
+                    FirstName = 'Dana',
+                    LastName = 'Dupcheck',
+                    Email = 'dana.dupcheck@example.org'
+                ),
+                new Contact(
+                    FirstName = 'Dana',
+                    LastName = 'Dupcheck',
+                    Email = 'dana.dupcheck@example.org'
+                )
+            }
+        );
+        Boolean contactRuleActive = DuplicateSelector.objectsWithActiveRules(
+                new Set<String>{ 'Contact' }
+            )
+            .contains('Contact');
+
+        Test.startTest();
+        List<DuplicateService.Pair> found = DuplicateService.pairsToRecord(
+            DuplicateService.matchesFor(new List<Id>{ twins[0].Id }),
+            null
+        );
+        Test.stopTest();
+
+        for (DuplicateService.Pair pair : found) {
+            Assert.areEqual(
+                Contact.SObjectType,
+                pair.right.getSObjectType(),
+                'Only people are paired with people.'
+            );
+        }
+        if (!contactRuleActive) {
+            Assert.isTrue(
+                found.isEmpty(),
+                'With no active rule the platform finds nothing, and nothing is invented.'
+            );
+        }
+    }
+}
