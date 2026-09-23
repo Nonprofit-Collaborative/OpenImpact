@@ -36,13 +36,20 @@ the processor's support team.
 1. **Create the user the system signs in as.** In Setup, create a user for the integration,
    for example "Online Giving Integration". A Salesforce Integration user license is the
    usual choice where you have one. The user needs **API Enabled**.
-2. **Give it the permission sets.** **Nonprofit Staff** (to find donors), **Giving Staff**
-   (to record gifts) and **Inbound Gift API** (to use the web address). Until the Module
-   Manager arrives, module permission sets are assigned in Setup, next to the role.
-3. **Set up how it signs in.** Your developer creates an External Client App (or connected
+2. **Give it the Inbound Gift API permission set, and nothing else from Open Impact.** It
+   holds exactly what recording a gift needs: reading people, organizations, funds, appeals
+   and acknowledgment rules; creating gifts, their fund allocations and the household soft
+   credits Giving adds; and the web address. It cannot edit or delete a donor, edit or
+   delete a gift, change a fund, or read the Error Log, so a leaked key can do little more
+   than send gifts. Until the Module Manager arrives, module permission sets are
+   assigned in Setup.
+3. **Let it see your donors.** It finds a donor only among the people and organizations it
+   can see. If contacts and accounts are private in your organization, share them with it
+   (see "The integration user cannot see the donors" below).
+4. **Set up how it signs in.** Your developer creates an External Client App (or connected
    app) with the OAuth client credentials flow, running as that user. They keep its key and
    secret in the sending system, never in an email.
-4. **Tell the developer which funds and appeals to use.** A fund is named by its
+5. **Tell the developer which funds and appeals to use.** A fund is named by its
    **Accounting Code**, so check each fund the system will use has one (see [Funds](funds.md)).
    An appeal is named by its record id, which is the last part of the web address when the
    appeal is open.

@@ -21,9 +21,9 @@ package source is deployed without one (a development or test org) the path is
 `/services/apexrest/v1/gifts`.
 
 Authenticate with OAuth 2.0 as the integration user the administrator created, for example
-with the client credentials flow of an External Client App. The user needs the Nonprofit
-Staff, Giving Staff and Inbound Gift API permission sets. Without the last one Salesforce
-answers `403` before Open Impact sees the request.
+with the client credentials flow of an External Client App. The user needs the Inbound Gift
+API permission set and no other Open Impact set. Without it Salesforce answers `403` before
+Open Impact sees the request.
 
 One request records one gift. Sending the same request again is always safe.
 

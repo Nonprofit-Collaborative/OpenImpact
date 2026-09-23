@@ -315,7 +315,8 @@ private class GiftServiceTest {
         }
         // A gift the platform cannot attach an allocation to: its record is not there.
         Gift__c missing = new Gift__c(
-            Id = Gift__c.SObjectType.getDescribe().getKeyPrefix() + '000000000001',
+            Id = Gift__c.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() +
+                '000000000001',
             Amount__c = 10
         );
 

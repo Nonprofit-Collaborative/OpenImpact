@@ -3,9 +3,10 @@
  * endpoint and the Flow action share.
  *
  * The donor is Luis Garcia, who gave online; the funds are the sample data's General Fund (the
- * default) and Building Fund (accounting code 4100). The integration user holds only the two
- * data permission sets the admin guide tells Maria to assign, Nonprofit Staff and Giving Staff,
- * so a passing test proves those sets are enough to record a gift.
+ * default) and Building Fund (accounting code 4100). The integration user holds only the
+ * Inbound Gift API permission set, the one set the admin guide tells Maria to assign, so a
+ * passing test proves it is enough to record a gift. InboundGiftAccessTest proves the same
+ * through both entry points.
  */
 @IsTest
 private class InboundGiftServiceTest {
@@ -30,19 +31,24 @@ private class InboundGiftServiceTest {
     }
 
     private static User integrationUser() {
-        return TestDataFactory.createUser(
-            'Integration',
-            new List<String>{ 'Nonprofit_Staff', 'Giving_Staff' }
-        );
+        return TestDataFactory.createUser('Integration', new List<String>{ 'Inbound_Gift_API' });
     }
 
     /**
      * A donor the integration user can see. It finds donors only among what it can see, and on
      * an org whose contacts are private it sees only its own (the admin guide says how to share
-     * donors with it), so a test that runs as that user adds the donor as that user.
+     * donors with it), so a test that runs as that user gives it the donor to own.
      */
-    private static void addOwnDonor() {
-        insert new Contact(FirstName = 'Luis', LastName = 'Garcia', Email = OWN_DONOR_EMAIL);
+    private static void addOwnDonor(User owner) {
+        Account household = new Account(Name = 'The Garcia Household', OwnerId = owner.Id);
+        insert household;
+        insert new Contact(
+            FirstName = 'Luis',
+            LastName = 'Garcia',
+            Email = OWN_DONOR_EMAIL,
+            AccountId = household.Id,
+            OwnerId = owner.Id
+        );
     }
 
     private static InboundGift gift(String externalId, Decimal amount) {
@@ -70,8 +76,9 @@ private class InboundGiftServiceTest {
         request.giftDate = Date.newInstance(2026, 9, 20);
         request.donorEmail = OWN_DONOR_EMAIL;
         InboundGiftResult result;
-        System.runAs(integrationUser()) {
-            addOwnDonor();
+        User integration = integrationUser();
+        addOwnDonor(integration);
+        System.runAs(integration) {
             Test.startTest();
             result = recordOne(request);
             Test.stopTest();
@@ -354,8 +361,9 @@ private class InboundGiftServiceTest {
             External_Id__c = 'dup:1'
         );
         InboundGiftResult result;
-        System.runAs(integrationUser()) {
-            addOwnDonor();
+        User integration = integrationUser();
+        addOwnDonor(integration);
+        System.runAs(integration) {
             InboundGift request = gift('dup:1', 10);
             request.donorEmail = OWN_DONOR_EMAIL;
             result = recordOne(request);
