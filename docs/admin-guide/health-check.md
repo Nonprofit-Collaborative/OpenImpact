@@ -96,6 +96,8 @@ recommendation in step 5 is **NPSP coexistence**. Everything else is the same.
 | Access | Whether anyone holds the Override Receipt Lock permission, which is meant to be granted for one correction and taken away again. |
 | Settings | Whether Open Impact automation is paused, and says so plainly when it is running. |
 | Settings | Whether there are new entries in the Error Log that nobody has looked at. |
+| Settings | Whether anybody is in no household while every new person is meant to get one. |
+| Settings | Whether any household has nobody in it. |
 | Settings | Whether the fiscal year in Setup is the same month as the fiscal year start month in Nonprofit Settings. |
 | Settings | Whether receipts have been voided with the reason "Generation failed", which is a receipt run that did not finish. |
 | Settings | Whether any of the totals Open Impact ships are missing from the Rollups page. |
@@ -151,11 +153,30 @@ pressing it once. Most can be undone on their own page:
 | **Coexistence mode is not confirmed**, **Household membership does not fit Person Accounts**, **No new person is getting a household** | As described in the walkthrough and Common mistakes. | Change the setting back in Nonprofit Settings. |
 
 Some findings deliberately have no fix button, because the answer is yours to choose: who
-should be a Nonprofit Admin when nobody is, whether paused automation should resume, and what
-to do about errors in the Error Log.
+should be a Nonprofit Admin when nobody is, whether paused automation should resume, what
+to do about errors in the Error Log, and what should become of a person with no household or
+a household with nobody in it.
+
+## People with no household, and households with nobody in them
+
+Health Check finds these and links them; it never changes them. Cleaning them up in bulk
+belongs to the data hygiene console, planned for a later release.
+
+| Finding | Who is counted | Who is not counted | What to do |
+|---|---|---|---|
+| **People are not in a household** (amber) | With household membership on the person's account: every contact with no account. With membership records: every person, contact or person account, with no current membership (no end date, or one still to come). | A contact whose account is an organization: that person belongs to the organization. With membership records, a contact linked straight to a household: the separate membership finding covers it. Nobody at all while automatic household creation is off, because then a person without a household is your choice. | Open each linked person. With membership on the account, set the account to a household. With membership records, add them from the household's members panel. |
+| **Households have nobody in them** (blue) | Households with no contact on them, or with membership records, no current member. | Organizations. | Open each linked household and add a member, merge it into another household, or delete it. Some are kept on purpose, for example when **Delete a household once it is empty** is off (Nonprofit Settings, Households). |
+
+Each finding counts up to 1,000 and then says **More than 1,000**, so a large org gets its
+answer quickly, and links the first five records, oldest first. The counts use your own
+access, so these two findings are shown only to people with the Manage Nonprofit Settings
+permission. In an org that also has Nonprofit Cloud households, some of the people and
+households listed may belong to one: Open Impact cannot see that membership, and the finding
+says so.
 
 The four checks about shipped totals, switches, templates and the nightly run are shown only to
-people with the Manage Nonprofit Settings permission, because only they can act on them.
+people with the Manage Nonprofit Settings permission, because only they can act on them. The
+two household checks are shown only to them too, for the reason given above.
 
 If one check cannot run, the rest still run. The check that failed appears as its own finding
 saying so, and the details are written to the Error Log.

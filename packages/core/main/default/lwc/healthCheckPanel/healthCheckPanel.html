@@ -118,6 +118,15 @@
                                         <p class="slds-text-body_small" data-id="finding-detail">
                                             {finding.detail}
                                         </p>
+                                        <template if:true={finding.hasLinks}>
+                                            <ul class="slds-list_dotted slds-text-body_small" data-id="finding-links">
+                                                <template for:each={finding.links} for:item="link">
+                                                    <li key={link.url}>
+                                                        <a href={link.url} data-id="finding-link">{link.label}</a>
+                                                    </li>
+                                                </template>
+                                            </ul>
+                                        </template>
                                         <template if:true={finding.showFix}>
                                             <lightning-button
                                                 class="slds-m-top_xx-small"

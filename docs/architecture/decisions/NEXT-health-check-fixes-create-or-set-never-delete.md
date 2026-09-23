@@ -105,6 +105,16 @@ adds a round trip and a second copy of each check's logic.
   the Rollups page's Restore button follow it too. Only the administrator's own definitions
   count: shipped pairs such as the household and the organization total write the same field
   for different accounts by design.
-- Plan Section 4.8 also names orphaned records. No orphan check is added here: finding one is a
-  data question, not a configuration one, and C-28 (data hygiene console) owns it.
+- Plan Section 4.8 also names orphaned records. Health Check detects orphans, with no fix
+  button, since fixing one is a data question (condition 1: the right end state depends on
+  what the organization meant); C-28 (data hygiene console) owns cleanup. Two findings, shown
+  only to a viewer who may manage settings because they are counted with the viewer's own
+  access: people in no household (in contact mode a contact with no account, since one whose
+  account is an organization belongs to it; in junction mode a person, contact or person
+  account, with no current membership row, R-M2, R-M4), reported only while automatic household
+  creation is on (R-C1); and households nobody is currently a member of. Each counts up to a
+  cap and then says "more than", and links the first five records. People stored as accounts
+  are recognised by the org's person record types, never by a person account field. They live
+  in a fourth check class, `HealthCheckHouseholdChecks`, because ADR-0039's three groups ask
+  what the org is, who can use it and how it is configured, and these ask about its records.
 - A new fix is added by passing the seven conditions in review, one at a time.

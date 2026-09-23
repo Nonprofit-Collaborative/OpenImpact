@@ -13,6 +13,8 @@
  *   receipt lock override. Only asked of a viewer who may manage settings.
  * - HealthCheckSettingsChecks: automation, fiscal year, receipt generation, Error Log, and
  *   the package defaults and nightly run a fix button can restore (C-21, ADR-NEXT).
+ * - HealthCheckHouseholdChecks: whether everyone is in a household and every household has
+ *   somebody in it. Detection only, with no fix button (C-21, ADR-NEXT).
  *
  * Every check is isolated. A check that throws becomes a finding of its own and is written
  * to the Error Log; the other checks still run, because a report that hides eight answers
@@ -175,6 +177,9 @@ public with sharing class HealthCheckService {
         /** What the fix would change, as fixScope computed it for this report. */
         @AuraEnabled
         public List<String> fixScope;
+        /** Records the finding is about, to open one by one. Never a fix. */
+        @AuraEnabled
+        public List<Link> links;
 
         public Finding(String key, String title, String detail, String severity, String category) {
             this.key = key;
@@ -193,6 +198,29 @@ public with sharing class HealthCheckService {
         public Finding withScope(List<String> fixScope) {
             this.fixScope = fixScope;
             return this;
+        }
+
+        public Finding withLinks(List<Link> links) {
+            this.links = links;
+            return this;
+        }
+    }
+
+    /** One record a finding names, with where to open it. */
+    public class Link {
+        @AuraEnabled
+        public String label;
+        @AuraEnabled
+        public String url;
+
+        public Link(SObject record) {
+            this.label = String.valueOf(record.get('Name'));
+            this.url =
+                '/lightning/r/' +
+                record.getSObjectType().getDescribe().getName() +
+                '/' +
+                record.Id +
+                '/view';
         }
     }
 
@@ -319,7 +347,8 @@ public with sharing class HealthCheckService {
      * for when the viewer can actually see the answer: a person without the administrator
      * permission sees their own permission set assignments and nothing else, and a count
      * taken from that is confidently wrong, which is worse than no count at all. The package
-     * defaults checks are gated the same way, because only that viewer can press their fix.
+     * defaults checks are gated the same way, because only that viewer can press their fix,
+     * and so are the household counts, which are read with the viewer's own access.
      */
     private static List<CheckStep> steps() {
         List<CheckStep> steps = new List<CheckStep>();
@@ -401,6 +430,18 @@ public with sharing class HealthCheckService {
 
         if (canManageSettings()) {
             steps.add(new CheckStep('error_log', new HealthCheckSettingsChecks.ErrorLogCheck()));
+            steps.add(
+                new CheckStep(
+                    'people_without_household',
+                    new HealthCheckHouseholdChecks.PeopleWithoutHouseholdCheck()
+                )
+            );
+            steps.add(
+                new CheckStep(
+                    'households_without_members',
+                    new HealthCheckHouseholdChecks.HouseholdsWithoutMembersCheck()
+                )
+            );
             steps.add(
                 new CheckStep(
                     'shipped_rollups',

@@ -370,6 +370,36 @@ describe('c-health-check-panel', () => {
     expect(getReport).toHaveBeenCalledTimes(2);
   });
 
+  it('links the records an orphan finding names, with no fix button', async () => {
+    getReport.mockResolvedValue(
+      agentforceReport({
+        findings: [
+          {
+            key: 'people_without_household',
+            title: '2 people are not in a household',
+            detail: 'These contacts have no account. The first 2 are linked below.',
+            severity: 'Warning',
+            category: 'Settings',
+            fixLabel: null,
+            fixTarget: null,
+            links: [
+              { label: 'Ann Lee', url: '/lightning/r/Contact/003000000000001AAA/view' },
+              { label: 'Bo Diaz', url: '/lightning/r/Contact/003000000000002AAA/view' }
+            ]
+          }
+        ]
+      })
+    );
+    const element = createPanel();
+    await flush();
+
+    const links = element.shadowRoot.querySelectorAll('[data-id="finding-link"]');
+    expect(links.length).toBe(2);
+    expect(links[0].textContent).toBe('Ann Lee');
+    expect(links[0].getAttribute('href')).toBe('/lightning/r/Contact/003000000000001AAA/view');
+    expect(element.shadowRoot.querySelector('[data-id="fix"]')).toBeNull();
+  });
+
   it('navigates to a relative URL fix', async () => {
     getReport.mockResolvedValue(agentforceReport());
     const element = createPanel();

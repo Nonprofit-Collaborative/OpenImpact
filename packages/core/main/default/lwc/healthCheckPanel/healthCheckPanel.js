@@ -201,7 +201,9 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
       order: display.order,
       fixLabel: finding.fixLabel,
       fixTarget: finding.fixTarget,
-      showFix: !!finding.fixTarget && !!finding.fixLabel && this.canManageSettings
+      showFix: !!finding.fixTarget && !!finding.fixLabel && this.canManageSettings,
+      links: finding.links || [],
+      hasLinks: !!(finding.links && finding.links.length > 0)
     };
   }
 

@@ -177,6 +177,22 @@
         <value>Coexistence mode</value>
     </labels>
     <labels>
+        <fullName>Core_HealthCheck_EmptyHouseholdsDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check detail: households with no current member.</shortDescription>
+        <value>Nobody is a current member of these households. Some may be kept on purpose, for example when empty households are not deleted automatically. Open each one to add a member, merge it into another household, or delete it. Health Check finds these and does not change them; cleaning them up in bulk belongs to the data hygiene console.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_EmptyHouseholdsTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check title: households with no members. {0} count or more than.</shortDescription>
+        <value>{0} households have nobody in them</value>
+    </labels>
+    <labels>
         <fullName>Core_HealthCheck_ErrorContext</fullName>
         <categories>Core</categories>
         <language>en_US</language>
@@ -506,6 +522,30 @@
         <value>Your org at a glance</value>
     </labels>
     <labels>
+        <fullName>Core_HealthCheck_OrphansFirstListed</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Says how many orphan records are linked. {0} number linked.</shortDescription>
+        <value>The first {0} are linked below.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_OrphansMoreThan</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Stands in for an orphan count at the cap. {0} the cap.</shortDescription>
+        <value>More than {0}</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_OrphansNativeNote</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Orphan findings in an org that also has Nonprofit Cloud households.</shortDescription>
+        <value>This org also has Nonprofit Cloud households, and Open Impact cannot see who belongs to those, so some of these may be in one.</value>
+    </labels>
+    <labels>
         <fullName>Core_HealthCheck_OverrideLockDetail</fullName>
         <categories>Core</categories>
         <language>en_US</language>
@@ -537,6 +577,30 @@
         <protected>false</protected>
         <shortDescription>Health Check title: someone holds the Override Receipt Lock permission</shortDescription>
         <value>Someone can override the receipt lock</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_PeopleWithoutHouseholdContactDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check detail: contacts with no account, in contact mode.</shortDescription>
+        <value>These contacts have no account, so they are in no household: their gifts count toward no household total, and no household name or greeting includes them. A contact whose account is an organization is not counted. Open each one and set its account to a household. Health Check finds these and does not change them; cleaning them up in bulk belongs to the data hygiene console.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_PeopleWithoutHouseholdJunctionDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check detail: people with no current membership, junction mode.</shortDescription>
+        <value>No current household membership names these people, so they are in no household: their gifts count toward no household total, and no household name or greeting includes them. Open each one and add them to a household from its members panel. Health Check finds these and does not change them; cleaning them up in bulk belongs to the data hygiene console.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_PeopleWithoutHouseholdTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check title: people in no household. {0} count or more than.</shortDescription>
+        <value>{0} people are not in a household</value>
     </labels>
     <labels>
         <fullName>Core_HealthCheck_PermissionRequired</fullName>
