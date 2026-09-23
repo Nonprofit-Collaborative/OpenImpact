@@ -466,6 +466,70 @@ public with sharing class GiftService {
     }
 
     /**
+     * Designates newly entered gifts to the fund their entry screen chose (quick gift entry,
+     * G-03, and gift batches, G-17). A gift that already has its one default allocation has
+     * that allocation pointed at the chosen fund rather than a second one added, so the
+     * allocations still total the gift (R-GA1). A gift with no allocation at all, which is what
+     * paused or switched-off gift automation leaves, gets one for the whole amount, so the
+     * designation is never silently lost.
+     *
+     * Returns the gifts whose choice could not be applied: those already split across several
+     * funds. Updates send only the changed fields, because a user mode update carrying the
+     * master-detail to the gift would be refused.
+     */
+    public static Set<Id> applyChosenFunds(List<Gift__c> gifts, Map<Id, Id> fundIdByGiftId) {
+        Set<Id> notApplied = new Set<Id>();
+        if (fundIdByGiftId.isEmpty()) {
+            return notApplied;
+        }
+        Map<Id, List<Gift_Allocation__c>> byGift = new Map<Id, List<Gift_Allocation__c>>();
+        for (
+            Gift_Allocation__c allocation : GiftSelector.selectAllocationsByGiftIds(
+                fundIdByGiftId.keySet()
+            )
+        ) {
+            if (!byGift.containsKey(allocation.Gift__c)) {
+                byGift.put(allocation.Gift__c, new List<Gift_Allocation__c>());
+            }
+            byGift.get(allocation.Gift__c).add(allocation);
+        }
+        List<Gift_Allocation__c> added = new List<Gift_Allocation__c>();
+        List<Gift_Allocation__c> changed = new List<Gift_Allocation__c>();
+        for (Gift__c gift : gifts) {
+            Id fundId = fundIdByGiftId.get(gift.Id);
+            List<Gift_Allocation__c> existing = byGift.get(gift.Id);
+            if (fundId == null) {
+                continue;
+            } else if (existing == null) {
+                added.add(
+                    new Gift_Allocation__c(
+                        Gift__c = gift.Id,
+                        Fund__c = fundId,
+                        Amount__c = gift.Amount__c
+                    )
+                );
+            } else if (existing.size() > 1) {
+                notApplied.add(gift.Id);
+            } else if (existing[0].Fund__c != fundId) {
+                changed.add(
+                    new Gift_Allocation__c(
+                        Id = existing[0].Id,
+                        Fund__c = fundId,
+                        Amount__c = gift.Amount__c
+                    )
+                );
+            }
+        }
+        if (!added.isEmpty()) {
+            Database.insert(added, true, AccessLevel.USER_MODE);
+        }
+        if (!changed.isEmpty()) {
+            Database.update(changed, true, AccessLevel.USER_MODE);
+        }
+        return notApplied;
+    }
+
+    /**
      * The organization's default fund: the identifier held in Nonprofit Settings when it points
      * at a fund that still exists and is active, and otherwise the fund that carries the
      * default flag (R-F4). Null when nobody has picked one.

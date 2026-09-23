@@ -1,0 +1,245 @@
+<template>
+  <lightning-card title={labels.title} icon-name="custom:custom21">
+    <div class="slds-p-horizontal_medium">
+      <template lwc:if={loaded}>
+        <dl class="slds-list_horizontal slds-wrap slds-m-bottom_small">
+          <dt class="slds-item_label slds-text-color_weak">{labels.controlTotalLabel}</dt>
+          <dd class="slds-item_detail" data-id="control-total">
+            <lightning-formatted-number
+              value={controlTotal}
+              format-style="currency"
+            ></lightning-formatted-number>
+          </dd>
+          <dt class="slds-item_label slds-text-color_weak">{labels.enteredLabel}</dt>
+          <dd class="slds-item_detail" data-id="entered-total">
+            <lightning-formatted-number
+              value={enteredTotal}
+              format-style="currency"
+            ></lightning-formatted-number>
+          </dd>
+        </dl>
+        <template lwc:if={posted}>
+          <p class="slds-m-bottom_small" data-id="posted-note">{labels.postedNote}</p>
+        </template>
+        <template lwc:else>
+          <p class={balanceClass} role="status" data-id="balance">{balanceText}</p>
+          <template lwc:if={readOnly}>
+            <p class="slds-m-bottom_small" data-id="read-only-note">{labels.noAccess}</p>
+          </template>
+          <template lwc:else>
+            <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
+              {labels.fromBatchHelp}
+            </p>
+          </template>
+        </template>
+      </template>
+
+      <template lwc:if={formError}>
+        <div class="slds-notify slds-notify_alert slds-alert_error slds-m-bottom_small" role="alert">
+          <span data-id="form-error">{formError}</span>
+        </div>
+      </template>
+
+      <template lwc:if={hasLines}>
+        <div class="slds-scrollable_x">
+          <table class="slds-table slds-table_bordered slds-table_cell-buffer" aria-label={labels.title}>
+            <thead>
+              <tr class="slds-line-height_reset">
+                <th scope="col">{labels.columnLine}</th>
+                <th scope="col">{labels.columnDonor}</th>
+                <th scope="col">{labels.columnAmount}</th>
+                <th scope="col">{labels.columnReference}</th>
+                <th scope="col">{labels.columnDate}</th>
+                <th scope="col">{labels.columnMethod}</th>
+                <th scope="col">{labels.columnFund}</th>
+                <th scope="col">{labels.columnAppeal}</th>
+                <th scope="col">{labels.columnGift}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template for:each={rows} for:item="row">
+                <tr key={row.key} data-id="line">
+                  <td>
+                    {row.number}
+                    <template lwc:if={row.hasErrors}>
+                      <p class="slds-text-color_error" role="alert" data-id="line-error">{row.errors}</p>
+                    </template>
+                  </td>
+                  <td>
+                    <template lwc:if={showKind}>
+                      <lightning-combobox
+                        label={labels.columnDonor}
+                        variant="label-hidden"
+                        options={kindOptions}
+                        value={row.kind}
+                        disabled={locked}
+                        data-key={row.key}
+                        data-id="kind"
+                        onchange={handleKind}
+                      ></lightning-combobox>
+                    </template>
+                    <template lwc:if={row.isPerson}>
+                      <lightning-record-picker
+                        label={labels.columnDonor}
+                        variant="label-hidden"
+                        placeholder={labels.donorPlaceholder}
+                        object-api-name={row.donorObject}
+                        value={row.donorId}
+                        disabled={locked}
+                        data-key={row.key}
+                        data-id="donor"
+                        onchange={handleDonor}
+                      ></lightning-record-picker>
+                    </template>
+                    <template lwc:else>
+                      <lightning-record-picker
+                        label={labels.columnDonor}
+                        variant="label-hidden"
+                        placeholder={labels.donorPlaceholder}
+                        object-api-name="Account"
+                        value={row.donorId}
+                        disabled={locked}
+                        data-key={row.key}
+                        data-id="donor"
+                        onchange={handleDonor}
+                      ></lightning-record-picker>
+                    </template>
+                  </td>
+                  <td>
+                    <lightning-input
+                      type="number"
+                      formatter="currency"
+                      step="0.01"
+                      label={labels.columnAmount}
+                      variant="label-hidden"
+                      value={row.amount}
+                      disabled={locked}
+                      data-key={row.key}
+                      data-field="amount"
+                      onchange={handleField}
+                    ></lightning-input>
+                  </td>
+                  <td>
+                    <lightning-input
+                      label={labels.columnReference}
+                      variant="label-hidden"
+                      max-length="255"
+                      value={row.paymentReference}
+                      disabled={locked}
+                      data-key={row.key}
+                      data-field="paymentReference"
+                      onchange={handleField}
+                    ></lightning-input>
+                  </td>
+                  <td>
+                    <lightning-input
+                      type="date"
+                      label={labels.columnDate}
+                      variant="label-hidden"
+                      value={row.giftDate}
+                      disabled={locked}
+                      data-key={row.key}
+                      data-field="giftDate"
+                      onchange={handleField}
+                    ></lightning-input>
+                  </td>
+                  <td>
+                    <lightning-combobox
+                      label={labels.columnMethod}
+                      variant="label-hidden"
+                      options={methodOptions}
+                      value={row.methodValue}
+                      disabled={locked}
+                      data-key={row.key}
+                      data-field="paymentMethod"
+                      onchange={handleField}
+                    ></lightning-combobox>
+                  </td>
+                  <td>
+                    <lightning-record-picker
+                      label={labels.columnFund}
+                      variant="label-hidden"
+                      object-api-name={fundObject}
+                      value={row.fundId}
+                      disabled={locked}
+                      data-key={row.key}
+                      data-field="fundId"
+                      onchange={handleField}
+                    ></lightning-record-picker>
+                  </td>
+                  <td>
+                    <lightning-record-picker
+                      label={labels.columnAppeal}
+                      variant="label-hidden"
+                      object-api-name={appealObject}
+                      value={row.appealId}
+                      disabled={locked}
+                      data-key={row.key}
+                      data-field="appealId"
+                      onchange={handleField}
+                    ></lightning-record-picker>
+                  </td>
+                  <td>
+                    <template lwc:if={row.giftUrl}>
+                      <a href={row.giftUrl} data-id="gift-link">{row.giftName}</a>
+                    </template>
+                    <template lwc:elseif={editable}>
+                      <lightning-button-icon
+                        icon-name="utility:delete"
+                        alternative-text={labels.removeLine}
+                        title={labels.removeLine}
+                        data-key={row.key}
+                        data-id="remove"
+                        onclick={handleRemove}
+                      ></lightning-button-icon>
+                    </template>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </template>
+      <template lwc:elseif={editable}>
+        <p class="slds-text-color_weak" data-id="no-lines">{labels.noLines}</p>
+      </template>
+    </div>
+
+    <template lwc:if={editable}>
+      <div slot="footer" class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+        <div>
+          <template lwc:if={dirty}>
+            <span class="slds-text-color_weak" data-id="unsaved">{labels.unsaved}</span>
+          </template>
+          <template lwc:if={busy}>
+            <span class="slds-text-color_weak" role="status">{labels.working}</span>
+          </template>
+        </div>
+        <div>
+          <lightning-button
+            label={labels.addLine}
+            icon-name="utility:add"
+            class="slds-m-right_x-small"
+            disabled={busy}
+            data-id="add"
+            onclick={handleAdd}
+          ></lightning-button>
+          <lightning-button
+            label={labels.saveButton}
+            class="slds-m-right_x-small"
+            disabled={busy}
+            data-id="save"
+            onclick={handleSave}
+          ></lightning-button>
+          <lightning-button
+            label={labels.postButton}
+            variant="brand"
+            disabled={postDisabled}
+            data-id="post"
+            onclick={handlePost}
+          ></lightning-button>
+        </div>
+      </div>
+    </template>
+  </lightning-card>
+</template>
