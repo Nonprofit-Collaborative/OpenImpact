@@ -2813,7 +2813,8 @@ private class RollupTests {
 
   @IsTest
   static void shouldClearConcatDistinctOnDetachToNull() {
-    Account oldAcc = [SELECT Id, AccountNumber FROM Account];
+    // Open Impact patch G: system mode, as every other setup query in this class. See VENDOR.md.
+    Account oldAcc = [SELECT Id, AccountNumber FROM Account WITH SYSTEM_MODE];
     oldAcc.AccountNumber = 'A';
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ oldAcc };
 
@@ -3176,7 +3177,8 @@ private class RollupTests {
     Rollup.rollupMetadata = new List<Rollup__mdt>{
       new Rollup__mdt(
         CalcItem__c = 'Contact',
-        LookupFieldOnCalcItem__c = 'Account__c',
+        // Open Impact patch E: the calc item here is Contact, so its lookup stays AccountId.
+        LookupFieldOnCalcItem__c = 'AccountId',
         RollupFieldOnCalcItem__c = 'Id',
         LookupObject__c = 'Account',
         LookupFieldOnLookupObject__c = 'Id',

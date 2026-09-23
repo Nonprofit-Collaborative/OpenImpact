@@ -2327,7 +2327,10 @@ private class RollupCalculatorTests {
       new Map<Id, SObject>()
     );
 
-    String tableHeader = '<tr><th>Stage</th><th>Name</th><th>Amount</th></tr>';
+    // Open Impact patch E: the grouping columns are headed by field label, the rolled-up column by
+    // the field's API name (TableGroupingFormatter uses targetField.toString()), which is Amount__c
+    // on RollupCalcItem__c where upstream's sales object field was Amount.
+    String tableHeader = '<tr><th>Stage</th><th>Name</th><th>Amount__c</th></tr>';
     String firstTableBodyRow = '<tr><td>One</td><td>(blank)</td><td>100.0</td></tr>';
     String secondTableBodyRow = '<tr><td>Two</td><td>Deux</td><td>100.0</td></tr>';
     System.assertEquals('<table>' + tableHeader + firstTableBodyRow + secondTableBodyRow + '</table>', calc.getReturnValue());
