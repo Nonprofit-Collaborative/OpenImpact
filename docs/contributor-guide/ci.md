@@ -138,7 +138,8 @@ That is expected in the early scaffold and is not a failure.
 
 ### Run the same checks locally, before you push
 
-Every gate above except the org tests runs on a laptop, and all of them are fast:
+Every gate above except the org tests runs on a laptop, and all of them are fast (the org
+tests run on a laptop too, through the gate script described under "The org test gate"):
 
 ```
 npm run prettier:verify
@@ -220,27 +221,73 @@ the first customers run. Testing a second shape means a second org and a second 
 
 Do this on your own machine, after the Dev Hub steps above.
 
+The project's test org uses the alias `oi-test`. It is the org the gate script runs against
+and the org the `SF_TEST_ORG_AUTH_URL` secret names, so a manual `org-tests` run and a local
+gate run test the same org and cannot disagree because of a difference between orgs.
+
 1. **Create it**, 30 days, from the shape you want to test:
-   `scripts/org/create-scratch-org.sh person-accounts dev --days 30 --replace`
+   `scripts/org/create-scratch-org.sh person-accounts oi-test --days 30 --replace`
    This deploys Core, assigns the permission sets and seeds the sample data. Note the expiry
    date it prints.
-2. **Read out its auth URL:** `sf org display --target-org dev --verbose --json`, and take the
-   `sfdxAuthUrl` field. This is a credential, exactly like the Dev Hub one.
-3. **Store it** as the repository secret `SF_TEST_ORG_AUTH_URL`.
-4. **Push anything.** `org-tests` deploys both packages into that org and runs the Apex tests.
-5. **Check the shape it reports.** The run prints what shape the org actually is, read from
+2. **Store its auth URL** as the repository secret `SF_TEST_ORG_AUTH_URL`. The auth URL is a
+   credential, exactly like the Dev Hub one, so pipe it straight into the secret rather than
+   displaying it:
+   `sf org display --target-org oi-test --verbose --json | jq -r .result.sfdxAuthUrl | gh secret set SF_TEST_ORG_AUTH_URL --repo Nonprofit-Collaborative/OpenImpact`
+3. **Run `scripts/org/run-org-tests.sh oi-test`** on a pushed commit (see "The org test
+   gate"), or dispatch the CI workflow by hand to have `org-tests` deploy both packages into
+   the org and run the Apex tests there.
+4. **Check the shape it reports.** The run prints what shape the org actually is, read from
    the org itself, before it deploys anything. Confirm it says the shape you meant to create.
    Nothing else in this repository records which definition the org came from, so that line
    in the build log is the record.
 
-Refreshing it monthly is the same three commands: re-run step 1 with `--replace`, then redo
-steps 2 and 3 with the new auth URL. Anything typed into the org by hand is lost at that
+Refreshing it monthly is the same two commands: re-run step 1 with `--replace`, then redo
+step 2 with the new auth URL. Anything typed into the org by hand is lost at that
 point, which is the discipline the package needs anyway: what matters belongs in this
 repository.
 
+### The org test gate
+
+A pull request that changes deployable source cannot merge into `main` until its Apex tests
+have passed in an org on its exact head commit. The `main` ruleset requires three checks:
+`Static checks`, `DCO sign-off check`, and the commit status `Org tests (local)`.
+
+That last one is posted from your machine, not by a GitHub runner:
+
+```
+scripts/org/run-org-tests.sh <org alias>
+```
+
+It deploys the commit you have checked out with `scripts/org/deploy-packages.sh`, assigns
+`Nonprofit_Admin` and `Giving_Admin`, runs every local Apex test, and posts
+`Org tests (local)` on that commit: success only when every test passed, failure otherwise.
+The results are written to `test-results/org-tests.json`, which git ignores.
+
+Three rules make the status worth trusting:
+
+- **It belongs to one commit.** A new push has no status, so the pull request is blocked
+  again until someone reruns the script. A pass on an earlier commit never carries over.
+- **It refuses a dirty working tree.** The status is posted on `HEAD`, so the code tested
+  has to be the code at `HEAD`. Commit or stash first.
+- **It refuses an unpushed commit**, which GitHub could not attach a status to anyway. It
+  checks before deploying, so you find out in a second rather than after the run.
+
+A pull request that changes nothing under `packages/`, `scripts/org/`, `config/`, or
+`sfdx-project.json` (documentation, the workflow itself, a Dependabot bump of an action) has
+nothing an org run could catch. The `Org tests not needed` job posts the status for it, so it
+needs no org run. A pull request from a fork gets a read-only token and cannot post it that
+way, so a maintainer runs the script for it, which is the right outcome for untested code from
+outside anyway.
+
+While you iterate, use `sf apex run test --class-names <Class> --target-org <alias>` against
+your own org for speed; the script is the final full run before merge, not the inner loop.
+
 ### `org-tests`
 
-Runs after `static` succeeds, against the one long lived org described above. It
+Runs only on manual `workflow_dispatch`, after `static` succeeds, against the one long lived
+org described above. It used to run on every push to `main` too. Now that the gate above has
+already run the full suite on the same commit before it could merge, that second run only
+cost CI minutes, so it is kept for a deliberate check against the secret's org. It
 authenticates from `SF_TEST_ORG_AUTH_URL`, prints how many days that org has left, prints
 which shape the org actually is (`scripts/org/report-org-shape.sh`, which asks the org for
 the same five facts `OrgShapeDetector` reads, through the Tooling API so it works before the

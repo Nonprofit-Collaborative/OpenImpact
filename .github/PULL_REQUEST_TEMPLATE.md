@@ -33,6 +33,10 @@
 - [ ] No hard-coded namespace anywhere in this change.
 - [ ] No standard-object reference outside Connect.
 
+## Org tests
+
+- [ ] `scripts/org/run-org-tests.sh <alias>` passed on the head commit, so the `Org tests (local)` status is green (or the `Org tests not needed` job posted it because no deployable source changed). See docs/contributor-guide/ci.md, "The org test gate".
+
 ## DCO sign-off
 
 - [ ] Every commit in this PR is signed off (`git commit -s`, or `git rebase --signoff` for an existing branch). See docs/contributor-guide/ci.md.
