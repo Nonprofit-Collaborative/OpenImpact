@@ -4,8 +4,8 @@
   <columns>NAME</columns>
   <columns>Pair_Key__c</columns>
   <columns>Reason__c</columns>
-  <columns>CREATED_BY</columns>
-  <columns>CREATEDDATE</columns>
+  <columns>CREATEDBY_USER</columns>
+  <columns>CREATED_DATE</columns>
   <filterScope>Everything</filterScope>
   <label>All Duplicate Dismissals</label>
 </ListView>
