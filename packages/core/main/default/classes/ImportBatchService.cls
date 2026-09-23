@@ -24,7 +24,11 @@ public with sharing class ImportBatchService {
     @NamespaceAccessible
     public static final String STATUS_FAILED = 'Failed';
     @NamespaceAccessible
+    public static final String STATUS_UNDOING = 'Undoing';
+    @NamespaceAccessible
     public static final String STATUS_UNDONE = 'Undone';
+    @NamespaceAccessible
+    public static final String STATUS_UNDO_FAILED = 'Undo failed';
 
     /** The chunk size used when the setting is missing or nonsensical. */
     @NamespaceAccessible
@@ -34,9 +38,12 @@ public with sharing class ImportBatchService {
     private static final Integer MIN_CHUNK_SIZE = 1;
     private static final Integer MAX_CHUNK_SIZE = 2000;
 
-    /** How long after a commit a batch may still be undone (R-IB6). */
+    /** How long after a commit a batch may still be undone, when the org has not said (R-IB7). */
     @NamespaceAccessible
     public static final Integer UNDO_WINDOW_DAYS = 30;
+
+    /** The longest undo window an org may set, so a mistyped number cannot stand. */
+    private static final Integer MAX_UNDO_WINDOW_DAYS = 365;
 
     /**
      * Creates the batch record for one upload. The file has already been stored as a
@@ -233,13 +240,36 @@ public with sharing class ImportBatchService {
         } else {
             batch.Status__c = STATUS_COMPLETE;
             batch.Committed_By__c = UserInfo.getUserId();
-            batch.Undo_Deadline__c = Datetime.now().addDays(UNDO_WINDOW_DAYS);
+            // Stamped here rather than computed at undo, so changing the setting never moves
+            // the deadline of an import that has already run (R-IB7).
+            batch.Undo_Deadline__c = Datetime.now().addDays(undoWindowDays());
         }
         Database.update(batch, AccessLevel.SYSTEM_MODE);
         if (failed != true && dryRun != true) {
             ImportTemplateService.recordImport(batch.Import_Template__c, Date.today());
         }
         return batch;
+    }
+
+    /**
+     * The org's undo window in days. Nothing, zero or a negative number falls back to the
+     * shipped thirty days, because an import that can never be undone is not a setting anybody
+     * means to choose; anything over a year is held at a year.
+     */
+    @NamespaceAccessible
+    public static Integer undoWindowDays() {
+        Object configured = SettingsService.hasKey('Import_Undo_Retention_Days__c')
+            ? SettingsService.getValue('Import_Undo_Retention_Days__c')
+            : null;
+        if (configured == null) {
+            return UNDO_WINDOW_DAYS;
+        }
+        try {
+            Integer days = Decimal.valueOf(String.valueOf(configured)).intValue();
+            return days < 1 ? UNDO_WINDOW_DAYS : Math.min(days, MAX_UNDO_WINDOW_DAYS);
+        } catch (Exception ignored) {
+            return UNDO_WINDOW_DAYS;
+        }
     }
 
     /** The org's chunk size, clamped to something the platform will accept. */

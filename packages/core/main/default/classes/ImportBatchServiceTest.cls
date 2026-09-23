@@ -224,12 +224,50 @@ private class ImportBatchServiceTest {
         Assert.areEqual(ImportBatchService.STATUS_COMPLETE, after.Status__c, 'It completed.');
         Assert.areEqual(UserInfo.getUserId(), after.Committed_By__c, 'The committer is recorded.');
         Assert.isNotNull(after.Undo_Deadline__c, 'And the undo window is open (R-IB6).');
+        Assert.isTrue(
+            after.Undo_Deadline__c >
+            Datetime.now().addDays(ImportBatchService.UNDO_WINDOW_DAYS - 1),
+            'With no setting the window is the shipped thirty days.'
+        );
         Assert.areEqual(
             Date.today(),
             [SELECT Last_Import_Date__c FROM Import_Template__c WHERE Id = :template.Id]
             .Last_Import_Date__c,
             'The template records that its feed was loaded today.'
         );
+    }
+
+    @IsTest
+    static void theUndoWindowIsStampedFromTheSettingAtCommit() {
+        Nonprofit_Settings__c settings = Nonprofit_Settings__c.getOrgDefaults();
+        settings.Import_Undo_Retention_Days__c = 7;
+        TestDataFactory.saveSettings(settings);
+        Import_Batch__c batch = ImportTestDataFactory.batch(newTemplate());
+
+        Test.startTest();
+        Import_Batch__c after = ImportBatchService.finish(batch.Id, false, false, null);
+        Test.stopTest();
+
+        Assert.isTrue(
+            after.Undo_Deadline__c <= Datetime.now().addDays(7) &&
+                after.Undo_Deadline__c > Datetime.now().addDays(6),
+            'The deadline is the commit time plus the days the org set (R-IB7).'
+        );
+    }
+
+    @IsTest
+    static void aNonsenseUndoWindowFallsBackAndALongOneIsHeldAtAYear() {
+        Nonprofit_Settings__c settings = Nonprofit_Settings__c.getOrgDefaults();
+        settings.Import_Undo_Retention_Days__c = 0;
+        TestDataFactory.saveSettings(settings);
+        Assert.areEqual(
+            ImportBatchService.UNDO_WINDOW_DAYS,
+            ImportBatchService.undoWindowDays(),
+            'Zero days would make every import permanent at once, so the default is used.'
+        );
+        settings.Import_Undo_Retention_Days__c = 900;
+        TestDataFactory.saveSettings(settings);
+        Assert.areEqual(365, ImportBatchService.undoWindowDays(), 'Over a year is held at a year.');
     }
 
     @IsTest
