@@ -7,10 +7,6 @@
     <label>Commitment</label>
     <layoutColumns>
       <layoutItems>
-        <behavior>Readonly</behavior>
-        <field>Name</field>
-      </layoutItems>
-      <layoutItems>
         <behavior>Required</behavior>
         <field>Type__c</field>
       </layoutItems>
@@ -21,10 +17,6 @@
       <layoutItems>
         <behavior>Edit</behavior>
         <field>Donor_Account__c</field>
-      </layoutItems>
-      <layoutItems>
-        <behavior>Readonly</behavior>
-        <field>Household__c</field>
       </layoutItems>
     </layoutColumns>
     <layoutColumns>
@@ -88,21 +80,8 @@
         <behavior>Edit</behavior>
         <field>Expected_Total__c</field>
       </layoutItems>
-      <layoutItems>
-        <behavior>Readonly</behavior>
-        <field>Paid_To_Date__c</field>
-      </layoutItems>
     </layoutColumns>
-    <layoutColumns>
-      <layoutItems>
-        <behavior>Readonly</behavior>
-        <field>Balance__c</field>
-      </layoutItems>
-      <layoutItems>
-        <behavior>Readonly</behavior>
-        <field>Rollups_Last_Calculated__c</field>
-      </layoutItems>
-    </layoutColumns>
+    <layoutColumns />
     <style>TwoColumnsTopToBottom</style>
   </layoutSections>
   <showEmailCheckbox>false</showEmailCheckbox>
