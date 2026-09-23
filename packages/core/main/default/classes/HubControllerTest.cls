@@ -53,4 +53,26 @@ private class HubControllerTest {
         }
         Test.stopTest();
     }
+
+    @IsTest
+    static void listsTheFilesThatArriveRegularly() {
+        TestDataFactory.defaultSettings();
+        Import_Template__c template = ImportTestDataFactory.template(
+            ImportTestDataFactory.donorMapping(),
+            ImportTemplateService.RULE_EMAIL
+        );
+        ImportTemplateService.saveRecurring(template.Id, true, 'Monthly processor export');
+
+        Test.startTest();
+        HubController.HomeModel model = HubController.getHomeModel();
+        Test.stopTest();
+
+        Assert.areEqual(1, model.recurringSources.size(), 'The recurring source is listed.');
+        Assert.areEqual(
+            'Monthly processor export',
+            model.recurringSources[0].sourceName,
+            'By the name Maria gave it.'
+        );
+        Assert.isNull(model.recurringSources[0].lastImportDate, 'Never imported yet.');
+    }
 }

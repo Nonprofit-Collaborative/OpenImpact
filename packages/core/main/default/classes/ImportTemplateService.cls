@@ -112,6 +112,62 @@ public with sharing class ImportTemplateService {
         return template;
     }
 
+    /**
+     * Marks a template as the mapping for a file that arrives regularly, or not (R-IT6). The
+     * source name says which feed it is, and is required while the template is recurring. It
+     * is kept when the mark is taken off, so ticking the box again brings it back.
+     */
+    @NamespaceAccessible
+    public static Import_Template__c saveRecurring(
+        Id templateId,
+        Boolean isRecurring,
+        String sourceName
+    ) {
+        Import_Template__c template = ImportTemplateSelector.selectById(templateId);
+        if (template == null) {
+            throw new ImportException(Label.Core_Import_ErrorTemplateGone);
+        }
+        if (isRecurring == true && String.isBlank(sourceName)) {
+            throw new ImportException(Label.Core_Import_ErrorSourceNameRequired);
+        }
+        template.Is_Recurring__c = isRecurring == true;
+        if (String.isNotBlank(sourceName)) {
+            template.Source_Name__c = sourceName.trim().left(255);
+        }
+        Database.update(template, AccessLevel.USER_MODE);
+        return template;
+    }
+
+    /**
+     * The active recurring templates, the one loaded longest ago first and one never loaded
+     * before any of them, so the feed nobody has loaded is at the top of the Hub's list.
+     */
+    @NamespaceAccessible
+    public static List<Import_Template__c> recurringSources() {
+        List<Import_Template__c> never = new List<Import_Template__c>();
+        Map<Date, List<Import_Template__c>> byDate = new Map<Date, List<Import_Template__c>>();
+        for (Import_Template__c template : ImportTemplateSelector.selectActive()) {
+            if (template.Is_Recurring__c != true) {
+                continue;
+            }
+            if (template.Last_Import_Date__c == null) {
+                never.add(template);
+                continue;
+            }
+            if (!byDate.containsKey(template.Last_Import_Date__c)) {
+                byDate.put(template.Last_Import_Date__c, new List<Import_Template__c>());
+            }
+            byDate.get(template.Last_Import_Date__c).add(template);
+        }
+        List<Date> dates = new List<Date>(byDate.keySet());
+        dates.sort();
+        List<Import_Template__c> result = new List<Import_Template__c>(never);
+        for (Date lastImport : dates) {
+            result.addAll(byDate.get(lastImport));
+        }
+        return result;
+    }
+
     /** Records that a template was used, so the Hub can say how stale a recurring feed is. */
     @NamespaceAccessible
     public static void recordImport(Id templateId, Date completedOn) {

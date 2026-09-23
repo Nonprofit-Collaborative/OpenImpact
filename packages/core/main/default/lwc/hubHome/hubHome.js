@@ -29,6 +29,9 @@ import SEASONAL_NEVER from '@salesforce/label/c.Core_SeasonalAddress_NeverRun';
 import SEASONAL_NOT_SCHEDULED from '@salesforce/label/c.Core_SeasonalAddress_NotScheduled';
 import SEASONAL_STALE from '@salesforce/label/c.Core_SeasonalAddress_Stale';
 import SEASONAL_LINK from '@salesforce/label/c.Core_SeasonalAddress_HubLink';
+import RECURRING_HEADING from '@salesforce/label/c.Core_HubHome_RecurringHeading';
+import RECURRING_NEVER from '@salesforce/label/c.Core_HubHome_RecurringNever';
+import RECURRING_LINK from '@salesforce/label/c.Core_HubHome_RecurringLink';
 import NEW_HOUSEHOLD from '@salesforce/label/c.Core_HubHomeActions_NewHousehold';
 import NEW_HOUSEHOLD_NAME_PLACEHOLDER from '@salesforce/label/c.Core_Households_NamePlaceholder';
 
@@ -57,6 +60,9 @@ export default class HubHome extends NavigationMixin(LightningElement) {
     seasonalNotScheduled: SEASONAL_NOT_SCHEDULED,
     seasonalStale: SEASONAL_STALE,
     seasonalLink: SEASONAL_LINK,
+    recurringHeading: RECURRING_HEADING,
+    recurringNever: RECURRING_NEVER,
+    recurringLink: RECURRING_LINK,
     newHousehold: NEW_HOUSEHOLD
   };
 
@@ -73,6 +79,10 @@ export default class HubHome extends NavigationMixin(LightningElement) {
   errorLogUrl = '/lightning/o/Error_Log__c/list';
   rollupsUrl = '/lightning/n/Nonprofit_Settings';
   addressSettingsUrl = '/lightning/n/Nonprofit_Settings';
+  importUrl = '/lightning/n/Import';
+
+  /** The files that arrive regularly, oldest import first (R-IT6). */
+  recurringSources = [];
 
   rollupsLastCalculated;
   rollupsStale = false;
@@ -205,6 +215,11 @@ export default class HubHome extends NavigationMixin(LightningElement) {
     this.seasonalAddressLastRunSummary = model.seasonalAddressLastRunSummary;
     this.seasonalAddressScheduled = Boolean(model.seasonalAddressScheduled);
     this.seasonalAddressStale = Boolean(model.seasonalAddressStale);
+    this.recurringSources = model.recurringSources || [];
+  }
+
+  get hasRecurringSources() {
+    return this.recurringSources.length > 0;
   }
 
   /** The assistant reports its own progress, so the page collapses without reloading. */

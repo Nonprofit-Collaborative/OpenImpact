@@ -88,4 +88,28 @@
         <shortDescription>Hub home: the sentence under the page heading</shortDescription>
         <value>Start with the setup checklist below. You can leave and come back: your progress is saved.</value>
     </labels>
+    <labels>
+        <fullName>Core_HubHome_RecurringHeading</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Hub home: title of the regular imports tile</shortDescription>
+        <value>Files that arrive regularly</value>
+    </labels>
+    <labels>
+        <fullName>Core_HubHome_RecurringNever</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Hub home: a regular file never imported</shortDescription>
+        <value>Never imported</value>
+    </labels>
+    <labels>
+        <fullName>Core_HubHome_RecurringLink</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Hub home: link to the Import tab</shortDescription>
+        <value>Go to Import</value>
+    </labels>
 </CustomLabels>

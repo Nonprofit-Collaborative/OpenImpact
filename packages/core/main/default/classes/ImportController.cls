@@ -35,6 +35,10 @@ public with sharing class ImportController {
         public Boolean isPackageDefault;
         @AuraEnabled
         public String lastImportDate;
+        @AuraEnabled
+        public Boolean isRecurring;
+        @AuraEnabled
+        public String sourceName;
     }
 
     /** One import as the wizard and the results screen show it. */
@@ -109,11 +113,24 @@ public with sharing class ImportController {
                 view.lastImportDate = template.Last_Import_Date__c == null
                     ? null
                     : String.valueOf(template.Last_Import_Date__c);
+                view.isRecurring = template.Is_Recurring__c;
+                view.sourceName = template.Source_Name__c;
                 result.add(view);
             }
             return result;
         } catch (Exception e) {
             throw auraError(e, 'ImportController.getTemplates');
+        }
+    }
+
+    /** Marks a template as the mapping for a file that arrives regularly, or not (R-IT6). */
+    @AuraEnabled
+    public static void saveRecurring(String templateId, Boolean isRecurring, String sourceName) {
+        try {
+            enforcePermission();
+            ImportTemplateService.saveRecurring(templateId, isRecurring, sourceName);
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.saveRecurring');
         }
     }
 

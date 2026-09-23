@@ -720,4 +720,36 @@
         <shortDescription>Import history: the undo has started</shortDescription>
         <value>The undo has started. The import shows Undone when it has finished; refresh the page to check.</value>
     </labels>
+    <labels>
+        <fullName>Core_Import_ErrorSourceNameRequired</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: a recurring file needs a source name</shortDescription>
+        <value>Give this file a source name, for example Monthly processor export, so the Hub can tell it apart from your other regular files.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_RecurringLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: mark the mapping as a regular file</shortDescription>
+        <value>This file arrives regularly</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_RecurringHelp</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: what marking a file recurring does</shortDescription>
+        <value>The Nonprofit Hub lists regular files with the date each was last imported. Nothing is loaded automatically.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_SourceNameLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: the name of a regular file</shortDescription>
+        <value>Source name</value>
+    </labels>
 </CustomLabels>
