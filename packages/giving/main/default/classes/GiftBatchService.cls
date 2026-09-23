@@ -114,7 +114,9 @@ public with sharing class GiftBatchService {
         PostOutcome outcome = new PostOutcome();
         Savepoint before = Database.setSavepoint();
         try {
-            Gift_Batch__c batch = batchId == null ? null : GiftBatchSelector.selectForPost(batchId);
+            Gift_Batch__c batch = batchId == null
+                ? null
+                : GiftBatchSelector.selectForUpdate(batchId);
             List<Gift_Batch_Row__c> rows = batch == null
                 ? new List<Gift_Batch_Row__c>()
                 : GiftBatchSelector.selectRows(batchId);

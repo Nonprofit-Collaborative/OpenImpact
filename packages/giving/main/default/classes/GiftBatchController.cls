@@ -128,7 +128,7 @@ public with sharing class GiftBatchController {
     @AuraEnabled
     public static BatchView saveLines(Id batchId, List<Line> lines, List<String> removedLineIds) {
         try {
-            Gift_Batch__c batch = GiftBatchSelector.selectById(batchId);
+            Gift_Batch__c batch = GiftBatchSelector.selectForUpdate(batchId);
             if (batch == null) {
                 throw new GiftBatchException(Label.Giving_GiftBatch_ErrorBatchMissing);
             }

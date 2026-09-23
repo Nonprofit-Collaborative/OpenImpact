@@ -19,10 +19,12 @@ public with sharing class GiftBatchSelector {
     }
 
     /**
-     * One batch, read with a row lock. A second post of the same batch waits here and then reads
-     * the status the first one wrote, which is what makes a double post impossible (R-GB4).
+     * One batch, read with a row lock, before anything is written to it. A second post of the
+     * same batch waits here and then reads the status the first one wrote, which is what makes
+     * a double post impossible (R-GB4). A save from a stale second tab waits the same way, so it
+     * cannot delete or change lines of a batch that was posted a moment before.
      */
-    public static Gift_Batch__c selectForPost(Id batchId) {
+    public static Gift_Batch__c selectForUpdate(Id batchId) {
         List<Gift_Batch__c> batches = [
             SELECT
                 Id,

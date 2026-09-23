@@ -11,7 +11,10 @@ beside the deposit slip total and tells you, in words, how far apart they are.
 When the two totals agree, **Post batch** turns every line into a gift, in one go. A batch
 that does not balance does not post, and neither does one with an unfinished line. Once
 posted, a batch cannot be posted again, changed or added to: it is the record of what went
-to the bank, and each line links to the gift it became.
+to the bank, and each line links to the gift it became. One gap to know about: someone with
+the Giving Staff or Giving Admin permission set can still delete a line of a posted batch
+from outside this screen (a report, a data tool or the API). Its gift is untouched; only the
+batch's record of the deposit loses that line.
 
 Gifts from a batch are ordinary gifts. They count in the giving totals, get their household
 and their fund, can be receipted and acknowledged, and appear on the dashboard, exactly as a
