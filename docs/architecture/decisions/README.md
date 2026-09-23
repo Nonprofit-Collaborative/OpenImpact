@@ -53,6 +53,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0042](0042-packaged-records-use-activities-not-chatter.md) | Packaged records use activities, not Chatter | Accepted |
 | [0043](0043-record-pages-use-dynamic-forms.md) | Record pages use Dynamic Forms, with one fallback layout per object and no layout assignments | Accepted |
 | [0044](0044-primary-contact-mirrors-the-primary-member.md) | The household's Primary Contact mirrors the primary member, person accounts included | Accepted (provisional) |
+| [0045](0045-gift-batch-entry-keeps-its-own-lines.md) | Gift batch entry keeps its own lines rather than staging through the import framework | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions
@@ -88,6 +89,8 @@ packages are unlocked.
 ADR-0041 to ADR-0043 are product owner decisions on the record pages (plan Section 4).
 ADR-0044 is a product owner decision, delegated and provisional, on how a household names its
 primary person when people can be person accounts (plan Section 11.2, item 8).
+ADR-0045 is a builder decision for G-17, recording why gift batch entry does not stage its
+lines through the import framework the plan pointed at.
 
 ## Adding a new ADR
 

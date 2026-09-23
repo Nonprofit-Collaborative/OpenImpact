@@ -92,37 +92,11 @@ public with sharing class QuickGiftEntryController {
         if (fundId == null) {
             return true;
         }
-        List<Gift_Allocation__c> existing = GiftSelector.selectAllocationsByGiftIds(
-            new Set<Id>{ gift.Id }
-        );
-        if (existing.isEmpty()) {
-            Gift_Allocation__c allocation = new Gift_Allocation__c(
-                Gift__c = gift.Id,
-                Fund__c = fundId,
-                Amount__c = gift.Amount__c
-            );
-            Database.insert(allocation, true, AccessLevel.USER_MODE);
-            return true;
-        }
-        if (existing.size() > 1) {
-            return false;
-        }
-        Gift_Allocation__c allocation = existing[0];
-        if (allocation.Fund__c == fundId) {
-            return true;
-        }
-        // Only the fields being changed: a user mode update of the row as read would also carry
-        // the master detail to the gift, which nobody may edit.
-        Database.update(
-            new Gift_Allocation__c(
-                Id = allocation.Id,
-                Fund__c = fundId,
-                Amount__c = gift.Amount__c
-            ),
-            true,
-            AccessLevel.USER_MODE
-        );
-        return true;
+        return !GiftService.applyChosenFunds(
+                new List<Gift__c>{ gift },
+                new Map<Id, Id>{ gift.Id => fundId }
+            )
+            .contains(gift.Id);
     }
 
     private static String nameOf(Id giftId) {

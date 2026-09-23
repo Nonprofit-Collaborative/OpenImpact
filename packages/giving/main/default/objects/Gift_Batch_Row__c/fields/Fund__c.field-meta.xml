@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Fund__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <inlineHelpText>
+    The fund this gift is designated to, when it differs from the batch. Left empty, the batch's fund is used, and if the batch names none, the organization's default fund.
+  </inlineHelpText>
+  <label>Fund</label>
+  <referenceTo>Fund__c</referenceTo>
+  <relationshipLabel>Gift Batch Lines</relationshipLabel>
+  <relationshipName>Gift_Batch_Rows</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

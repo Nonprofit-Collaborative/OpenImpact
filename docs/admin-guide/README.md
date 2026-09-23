@@ -122,5 +122,6 @@ Each feature adds its row here when its page is written.
 | G-16 Retention reports | [retention-reports.md](retention-reports.md) | Giving | v0.4 |
 | G-18 In-kind gifts | [in-kind-gifts.md](in-kind-gifts.md) | Giving | v0.4 |
 | C-25 Multiple email addresses on a person | [emails.md](emails.md) | Core | v0.5 |
+| G-17 Gift batches | [gift-batches.md](gift-batches.md) | Giving | v0.5 |
 | C-01 Household members | [household-members.md](household-members.md) | Core | v0.1 |
 | X-09 Nonprofit Cloud households | [nonprofit-cloud-households.md](nonprofit-cloud-households.md) | Core | v0.6 |
