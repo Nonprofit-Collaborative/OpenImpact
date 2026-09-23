@@ -69,14 +69,25 @@ private class ReceiptRendererFactoryTest {
         );
     }
 
-    /** Surrounding whitespace is an administrator typing, not a different choice. */
+    /**
+     * Surrounding whitespace is an administrator typing, not a different choice.
+     *
+     * The platform trims a text field when it is saved, so a stored setting never carries the
+     * spaces into the factory. The factory's own trimming is proved on the value it is handed,
+     * and the stored path is proved end to end.
+     */
     @IsTest
     static void aKeyIsTrimmedBeforeItIsMatched() {
+        Assert.areEqual(
+            ReceiptRendererFactory.KEY_BLOB_PDF,
+            ReceiptRendererFactory.keyFrom('  Blob PDF  '),
+            'The factory trims the value it reads, whatever stored it.'
+        );
         chooseRenderer('  Blob PDF  ');
         Assert.areEqual(
-            '  Blob PDF  ',
+            'Blob PDF',
             storedRenderer(),
-            'The stored value keeps the spaces, so the trimming is the factory doing it.'
+            'What an administrator typed with spaces around it is stored as the key.'
         );
 
         Test.startTest();

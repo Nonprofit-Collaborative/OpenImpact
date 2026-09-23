@@ -55,8 +55,7 @@ public with sharing class ReceiptRendererFactory {
         if (overrideRenderer != null) {
             return overrideRenderer;
         }
-        String configured = Giving_Settings__c.getOrgDefaults().Receipt_Renderer__c;
-        String chosen = String.isBlank(configured) ? KEY_BLOB_PDF : configured.trim();
+        String chosen = keyFrom(Giving_Settings__c.getOrgDefaults().Receipt_Renderer__c);
         if (KEY_BLOB_PDF.equals(chosen)) {
             // The shipped renderer is constructed directly, so the ordinary path never reaches
             // reflection at all.
@@ -66,6 +65,16 @@ public with sharing class ReceiptRendererFactory {
             throw refusal(Label.Giving_Receipt_UnknownRenderer, chosen);
         }
         return resolve(chosen);
+    }
+
+    /**
+     * The key a configured value names: the shipped renderer when nothing is set, and otherwise
+     * the value without the whitespace around it, which is an administrator typing rather than a
+     * different choice.
+     */
+    @TestVisible
+    private static String keyFrom(String configured) {
+        return String.isBlank(configured) ? KEY_BLOB_PDF : configured.trim();
     }
 
     /**
