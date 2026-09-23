@@ -203,7 +203,11 @@ public with sharing class SettingsService {
         if (changes.isEmpty()) {
             return record;
         }
+        Boolean firstSave = record.Id == null;
         SettingsWriter.saveOrgDefault(record);
+        if (firstSave && isCoreSettings(type)) {
+            SettingsWriter.saveOrgDefault(blanksKeptBlank(type, record));
+        }
         Database.insert(changes, AccessLevel.USER_MODE);
         clearCaches();
         return record;
@@ -274,6 +278,36 @@ public with sharing class SettingsService {
         SObject resolved = record == null ? type.newSObject() : record;
         cachedOrgDefaults.put(name, resolved);
         return resolved;
+    }
+
+    /**
+     * The first save of the org's settings writes one key, but the platform fills every other
+     * blank field that declares a default as it creates the record. Two of those blanks mean
+     * something: a blank coexistence mode is one nobody has confirmed, and a blank membership
+     * mode is the only one detection may change (CoexistenceService). Saving, say, the legal
+     * name would otherwise confirm a mode and choose a way of belonging that nobody chose, and
+     * finish Setup Assistant steps nobody took.
+     *
+     * So the first save is followed by this: every custom field that was blank when the save
+     * was asked for is put back to blank, leaving the record exactly as it read before plus the
+     * keys that were saved. A checkbox is left out, because it is never blank: its shipped
+     * value is already on the record (ADR-0035). Every reader treats a blank as the shipped
+     * default, as it must on an org that has never saved at all.
+     */
+    private static SObject blanksKeptBlank(Schema.SObjectType type, SObject saved) {
+        SObject blanks = type.newSObject(saved.Id);
+        for (
+            Schema.SObjectField field : type.getDescribe(SObjectDescribeOptions.DEFERRED)
+                .fields.getMap()
+                .values()
+        ) {
+            Schema.DescribeFieldResult describe = field.getDescribe();
+            Boolean blank = saved.get(field) == null;
+            if (describe.isCustom() && describe.getType() != Schema.DisplayType.BOOLEAN && blank) {
+                blanks.put(field, null);
+            }
+        }
+        return blanks;
     }
 
     private static String localName(Schema.SObjectType type) {
