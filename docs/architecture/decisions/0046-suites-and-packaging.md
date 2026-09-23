@@ -1,4 +1,4 @@
-# ADR-NEXT: Two suites from the same packages, a tentative name, unlocked now and managed at listing
+# ADR-0046: Two suites from the same packages, a tentative name, unlocked now and managed at listing
 
 **Status:** Accepted
 **Date:** 2026-09-23

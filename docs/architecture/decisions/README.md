@@ -54,7 +54,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0043](0043-record-pages-use-dynamic-forms.md) | Record pages use Dynamic Forms, with one fallback layout per object and no layout assignments | Accepted |
 | [0044](0044-primary-contact-mirrors-the-primary-member.md) | The household's Primary Contact mirrors the primary member, person accounts included | Accepted (provisional) |
 | [0045](0045-gift-batch-entry-keeps-its-own-lines.md) | Gift batch entry keeps its own lines rather than staging through the import framework | Accepted |
-| [ADR-NEXT](NEXT-suites-and-packaging.md) | Two suites from the same packages, a tentative name, unlocked now and managed at listing | Accepted |
+| [0046](0046-suites-and-packaging.md) | Two suites from the same packages, a tentative name, unlocked now and managed at listing | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions
@@ -92,7 +92,7 @@ ADR-0044 is a product owner decision, delegated and provisional, on how a househ
 primary person when people can be person accounts (plan Section 11.2, item 8).
 ADR-0045 is a builder decision for G-17, recording why gift batch entry does not stage its
 lines through the import framework the plan pointed at.
-ADR-NEXT is a product owner decision on the two suites, the tentative name and packaging
+ADR-0046 is a product owner decision on the two suites, the tentative name and packaging
 (plan Section 3 and Section 12, D-01 and D-02).
 
 ## Adding a new ADR
