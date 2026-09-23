@@ -21,22 +21,22 @@ public with sharing class ImportUndoService {
     /** What an undo would do, or why it cannot be done. */
     @NamespaceAccessible
     public class Preview {
-        @NamespaceAccessible
+        @AuraEnabled
         public Boolean allowed = false;
         /** Why an undo is refused, in a sentence an administrator can act on. */
-        @NamespaceAccessible
+        @AuraEnabled
         public String reason;
-        @NamespaceAccessible
+        @AuraEnabled
         public Integer people = 0;
-        @NamespaceAccessible
+        @AuraEnabled
         public Integer households = 0;
-        @NamespaceAccessible
+        @AuraEnabled
         public Integer organizations = 0;
         /** The records an undo would delete: the number the person confirms. */
-        @NamespaceAccessible
+        @AuraEnabled
         public Integer total = 0;
         /** The updates the journal holds, which an undo puts back where nobody changed them. */
-        @NamespaceAccessible
+        @AuraEnabled
         public Integer updates = 0;
     }
 

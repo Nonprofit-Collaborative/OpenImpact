@@ -608,4 +608,20 @@
         <shortDescription>Import run log: the undo line</shortDescription>
         <value>Undone by {0} on {1}: {2} records deleted, {3} kept, {4} values put back.</value>
     </labels>
+    <labels>
+        <fullName>Core_Import_UndoNotRestoredChanged</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: a value changed since</shortDescription>
+        <value>Not put back: this value has been changed since the import.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoNotRestoredGone</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: a value that can no longer be written</shortDescription>
+        <value>Not put back: the record or its field no longer exists, or cannot be edited.</value>
+    </labels>
 </CustomLabels>

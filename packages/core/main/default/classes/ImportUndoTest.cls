@@ -252,4 +252,76 @@ private class ImportUndoTest {
         Assert.isFalse(view.allowed, 'There is nothing to undo.');
         Assert.areEqual(Label.Core_Import_UndoErrorNothingToUndo, view.reason, 'And it says so.');
     }
+
+    private static Map<String, Object> cityWas(Contact person, String before, String after) {
+        return ImportJournalService.updated(
+            'Contact',
+            person.Id,
+            2,
+            new Map<String, Object>{ 'MailingCity' => before },
+            new Map<String, Object>{ 'MailingCity' => after }
+        );
+    }
+
+    /**
+     * A value the import wrote is put back where nobody has changed it since, left alone where
+     * somebody has, and passed over silently where it is already back, which is what makes a
+     * second run of a failed undo safe (R-IB8, R-IB9).
+     */
+    @IsTest
+    static void undoPutsBackOnlyTheValuesNobodyHasChangedSince() {
+        Import_Batch__c batch = committedBatch();
+        Contact untouched = new Contact(LastName = 'Ramirez', MailingCity = 'Portland');
+        Contact corrected = new Contact(LastName = 'Lee', MailingCity = 'Eugene');
+        Contact alreadyBack = new Contact(LastName = 'Okafor', MailingCity = 'Salem');
+        insert new List<Contact>{ untouched, corrected, alreadyBack };
+        ImportJournalService.write(
+            batch.Id,
+            ImportJournalService.PHASE_COMMIT,
+            new List<Map<String, Object>>{
+                cityWas(untouched, 'Salem', 'Portland'),
+                cityWas(corrected, 'Salem', 'Portland'),
+                cityWas(alreadyBack, 'Salem', 'Portland')
+            }
+        );
+        Assert.areEqual(3, ImportUndoService.preview(batch.Id).updates, 'The preview counts them.');
+
+        Test.startTest();
+        ImportUndoService.start(batch.Id, 0);
+        Test.stopTest();
+
+        Map<Id, Contact> after = new Map<Id, Contact>([SELECT MailingCity FROM Contact]);
+        Assert.areEqual('Salem', after.get(untouched.Id).MailingCity, 'Put back.');
+        Assert.areEqual('Eugene', after.get(corrected.Id).MailingCity, 'A correction is kept.');
+        Assert.areEqual('Salem', after.get(alreadyBack.Id).MailingCity, 'Left as it is.');
+        List<Map<String, Object>> journal = ImportJournalService.entries(
+            ImportJournalService.pages(batch.Id, ImportJournalService.PHASE_UNDO, 10)[0]
+        );
+        Assert.areEqual(1, journal.size(), 'Only the correction is journaled as not put back.');
+        Assert.areEqual(
+            ImportJournalService.ACTION_NOT_RESTORED,
+            journal[0].get('action'),
+            'With its reason.'
+        );
+    }
+
+    /** Values come back as the field's own type, and compare as values, not as text. */
+    @IsTest
+    static void journaledValuesCompareAndComeBackTyped() {
+        Date birthday = Date.newInstance(1970, 5, 17);
+        Assert.isTrue(ImportUndoBatch.same(birthday, '1970-05-17'), 'A date by its written form.');
+        Assert.isTrue(ImportUndoBatch.same(5, 5.0), 'A number as a number.');
+        Assert.isFalse(ImportUndoBatch.same('Salem', 'salem'), 'Text exactly.');
+        Assert.isTrue(ImportUndoBatch.same(null, null), 'Nothing is nothing.');
+        Assert.areEqual(
+            birthday,
+            ImportUndoBatch.typed('1970-05-17', Contact.Birthdate.getDescribe()),
+            'A date comes back a date.'
+        );
+        Assert.areEqual(
+            false,
+            ImportUndoBatch.typed(false, Account.Custom_Name__c.getDescribe()),
+            'And a checkbox a checkbox.'
+        );
+    }
 }

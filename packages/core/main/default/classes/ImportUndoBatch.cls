@@ -1,8 +1,11 @@
 /**
- * The work of undoing one import, in passes (canonical model R-IB8, R-IB9): **people**
- * stored as contacts, then **people stored as accounts**, then **households and
- * organizations**. People go first so a household is judged after its
- * imported members are gone; deleting an account would otherwise take its contacts with it.
+ * The work of undoing one import, in four passes (canonical model R-IB8, R-IB9):
+ *
+ * 1. **Restore.** Each commit journal page, newest first, puts back the values the import
+ *    wrote where the record still holds the value written.
+ * 2. **People** stored as contacts, then 3. **people stored as accounts**, then
+ *    4. **households and organizations**. People go first so a household is judged after its
+ *    imported members are gone; deleting an account would otherwise take its contacts with it.
  *
  * Every delete query is filtered by one bound batch identifier and nothing else, and the tag
  * is checked again on each record before it is deleted. A tagged record that has gained
@@ -11,12 +14,15 @@
 @NamespaceAccessible
 public with sharing class ImportUndoBatch implements Database.Batchable<SObject>, Database.Stateful {
     @TestVisible
+    private static final String PASS_RESTORE = 'Restore';
+    @TestVisible
     private static final String PASS_CONTACTS = 'Contacts';
     @TestVisible
     private static final String PASS_PERSON_ACCOUNTS = 'PersonAccounts';
     @TestVisible
     private static final String PASS_ACCOUNTS = 'Accounts';
     private static final List<String> PASSES = new List<String>{
+        PASS_RESTORE,
         PASS_CONTACTS,
         PASS_PERSON_ACCOUNTS,
         PASS_ACCOUNTS
@@ -78,6 +84,17 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
             LIMIT 1
         ]
         .Completed_At__c;
+        if (PASS_RESTORE.equals(pass)) {
+            String phase = ImportJournalService.PHASE_COMMIT;
+            return Database.getQueryLocator(
+                [
+                    SELECT Id, Entries_JSON__c
+                    FROM Import_Journal__c
+                    WHERE Import_Batch__c = :owner AND Phase__c = :phase
+                    ORDER BY Name DESC
+                ]
+            );
+        }
         if (PASS_CONTACTS.equals(pass)) {
             return Database.getQueryLocator(
                 [
@@ -112,7 +129,13 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
     public void execute(Database.BatchableContext context, List<SObject> records) {
         List<Map<String, Object>> journal = new List<Map<String, Object>>();
         try {
-            deleteTagged(records, journal);
+            if (PASS_RESTORE.equals(pass)) {
+                for (SObject page : records) {
+                    restore((Import_Journal__c) page, journal);
+                }
+            } else {
+                deleteTagged(records, journal);
+            }
         } catch (Exception e) {
             failed = true;
             ErrorLogger.log(e, 'ImportUndoBatch.execute', batchId);
@@ -135,6 +158,233 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
             failed = true;
         }
         ImportUndoService.finish(batchId, countedAtStart, restored, failed);
+    }
+
+    // -------------------------------------------------------------------------------------
+    // Restore
+    // -------------------------------------------------------------------------------------
+
+    /**
+     * Puts back one page's updates. Entries are taken newest first, so a record updated by
+     * two rows is walked back through both. A value is put back only where the record still
+     * holds the value the import wrote; one already put back is left silently, which is what
+     * makes a second run of a failed undo safe; anything else is journaled as not put back.
+     */
+    private void restore(Import_Journal__c page, List<Map<String, Object>> journal) {
+        List<Map<String, Object>> entries = ImportJournalService.entries(page);
+        Map<String, Set<Id>> idsByObject = new Map<String, Set<Id>>();
+        Map<String, Set<String>> fieldsByObject = new Map<String, Set<String>>();
+        for (Map<String, Object> entry : entries) {
+            String objectName = restorable(entry);
+            if (objectName == null) {
+                continue;
+            }
+            if (!idsByObject.containsKey(objectName)) {
+                idsByObject.put(objectName, new Set<Id>());
+                fieldsByObject.put(objectName, new Set<String>());
+            }
+            idsByObject.get(objectName).add(Id.valueOf((String) entry.get('id')));
+            fieldsByObject.get(objectName).addAll(fieldsOf(entry).keySet());
+        }
+        Map<Id, SObject> current = new Map<Id, SObject>();
+        for (String objectName : idsByObject.keySet()) {
+            current.putAll(
+                read(objectName, fieldsByObject.get(objectName), idsByObject.get(objectName))
+            );
+        }
+        Map<Id, SObject> changes = new Map<Id, SObject>();
+        Map<Id, List<String>> changedFields = new Map<Id, List<String>>();
+        for (Integer i = entries.size() - 1; i >= 0; i--) {
+            Map<String, Object> entry = entries[i];
+            String objectName = restorable(entry);
+            if (objectName == null) {
+                continue;
+            }
+            Id recordId = Id.valueOf((String) entry.get('id'));
+            SObject record = current.get(recordId);
+            Map<String, Schema.SObjectField> described = fieldMap(objectName);
+            for (String field : fieldsOf(entry).keySet()) {
+                Map<String, Object> values = (Map<String, Object>) fieldsOf(entry).get(field);
+                Schema.SObjectField token = described.get(field.toLowerCase());
+                if (record == null || token == null || !token.getDescribe().isUpdateable()) {
+                    journal.add(
+                        notRestored(
+                            objectName,
+                            recordId,
+                            field,
+                            Label.Core_Import_UndoNotRestoredGone
+                        )
+                    );
+                    continue;
+                }
+                Object now = record.get(token);
+                if (same(now, values.get('before'))) {
+                    continue;
+                }
+                if (!same(now, values.get('after'))) {
+                    journal.add(
+                        notRestored(
+                            objectName,
+                            recordId,
+                            field,
+                            Label.Core_Import_UndoNotRestoredChanged
+                        )
+                    );
+                    continue;
+                }
+                Object before = typed(values.get('before'), token.getDescribe());
+                record.put(token, before);
+                if (!changes.containsKey(recordId)) {
+                    changes.put(recordId, record.getSObjectType().newSObject(recordId));
+                    changedFields.put(recordId, new List<String>());
+                }
+                changes.get(recordId).put(token, before);
+                changedFields.get(recordId).add(field);
+            }
+        }
+        save(changes, changedFields, journal);
+    }
+
+    /**
+     * Saves the values put back in the running user's own mode: these are the organization's
+     * records (ADR-0021). A record the platform refuses is journaled field by field.
+     */
+    private void save(
+        Map<Id, SObject> changes,
+        Map<Id, List<String>> changedFields,
+        List<Map<String, Object>> journal
+    ) {
+        if (changes.isEmpty()) {
+            return;
+        }
+        List<SObject> records = changes.values();
+        List<Database.SaveResult> results = Database.update(records, false, AccessLevel.USER_MODE);
+        for (Integer i = 0; i < results.size(); i++) {
+            Id recordId = records[i].Id;
+            if (results[i].isSuccess()) {
+                restored += changedFields.get(recordId).size();
+                continue;
+            }
+            String objectName = records[i]
+                .getSObjectType()
+                .getDescribe(SObjectDescribeOptions.DEFERRED)
+                .getName();
+            for (String field : changedFields.get(recordId)) {
+                journal.add(
+                    notRestored(objectName, recordId, field, message(results[i].getErrors()))
+                );
+            }
+        }
+    }
+
+    /** The object an update entry is on, when it is one Core writes; null otherwise. */
+    private static String restorable(Map<String, Object> entry) {
+        String objectName = (String) entry.get('object');
+        if (
+            !ImportJournalService.ACTION_UPDATED.equals(entry.get('action')) ||
+            !('Contact'.equals(objectName) || 'Account'.equals(objectName)) ||
+            String.isBlank((String) entry.get('id'))
+        ) {
+            return null;
+        }
+        return objectName;
+    }
+
+    private static Map<String, Object> fieldsOf(Map<String, Object> entry) {
+        Object fields = entry.get('fields');
+        return fields == null ? new Map<String, Object>() : (Map<String, Object>) fields;
+    }
+
+    private static Map<String, Schema.SObjectField> fieldMap(String objectName) {
+        return Schema.getGlobalDescribe()
+            .get(objectName)
+            .getDescribe(SObjectDescribeOptions.DEFERRED)
+            .fields.getMap();
+    }
+
+    /**
+     * The records as they stand now, with the journaled fields that still exist. Read in
+     * system mode so a value can be compared even where the user cannot read it; the write
+     * that follows is in the user's own mode, so nothing is changed that they could not.
+     */
+    private static Map<Id, SObject> read(String objectName, Set<String> fields, Set<Id> ids) {
+        Map<String, Schema.SObjectField> described = fieldMap(objectName);
+        Set<String> selected = new Set<String>{ 'Id' };
+        for (String field : fields) {
+            Schema.SObjectField token = described.get(field.toLowerCase());
+            if (token != null) {
+                selected.add(token.getDescribe().getName());
+            }
+        }
+        return new Map<Id, SObject>(
+            Database.queryWithBinds(
+                'SELECT ' +
+                    String.join(new List<String>(selected), ', ') +
+                    ' FROM ' +
+                    objectName +
+                    ' WHERE Id IN :ids',
+                new Map<String, Object>{ 'ids' => ids },
+                AccessLevel.SYSTEM_MODE
+            )
+        );
+    }
+
+    /**
+     * Whether a stored value equals a journaled one. The journal holds typed values (R-IJ2),
+     * so numbers compare as numbers, dates and times by their written form, and text exactly:
+     * a value an administrator corrected only in capitals has still been corrected.
+     */
+    @TestVisible
+    private static Boolean same(Object stored, Object journaled) {
+        if (stored == null || journaled == null) {
+            return stored == null && journaled == null;
+        }
+        if (
+            stored instanceof Decimal ||
+            stored instanceof Integer ||
+            stored instanceof Long ||
+            stored instanceof Double
+        ) {
+            try {
+                return Decimal.valueOf(String.valueOf(stored)) ==
+                    Decimal.valueOf(String.valueOf(journaled));
+            } catch (Exception notANumber) {
+                return false;
+            }
+        }
+        if (stored instanceof Date || stored instanceof Datetime) {
+            return JSON.serialize(stored).equals(JSON.serialize(journaled));
+        }
+        return String.valueOf(stored).equals(String.valueOf(journaled));
+    }
+
+    /** A journaled value as the field's own type, so the value put back is the value that was. */
+    @TestVisible
+    private static Object typed(Object value, Schema.DescribeFieldResult field) {
+        if (value == null) {
+            return null;
+        }
+        String text = String.valueOf(value);
+        switch on field.getType() {
+            when DATE {
+                return Date.valueOf(text);
+            }
+            when DATETIME {
+                return (Datetime) JSON.deserialize(JSON.serialize(value), Datetime.class);
+            }
+            when BOOLEAN {
+                return Boolean.valueOf(text);
+            }
+            when INTEGER {
+                return Decimal.valueOf(text).intValue();
+            }
+            when DOUBLE, CURRENCY, PERCENT {
+                return Decimal.valueOf(text);
+            }
+            when else {
+                return text;
+            }
+        }
     }
 
     // -------------------------------------------------------------------------------------
@@ -362,6 +612,15 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         );
     }
 
+    private static Map<String, Object> notRestored(
+        String objectName,
+        Id recordId,
+        String field,
+        String reason
+    ) {
+        return ImportJournalService.notRestored(objectName, recordId, field, reason);
+    }
+
     private static String message(List<Database.Error> errors) {
         List<String> parts = new List<String>();
         for (Database.Error error : errors) {
@@ -370,8 +629,15 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         return String.join(parts, ' ');
     }
 
-    /** The batch's own chunk size, held at the 200 records a delete is normally made in. */
+    /**
+     * How many records a pass takes at once: one journal page when putting values back, since
+     * a page can hold a whole chunk's updates, and otherwise the batch's own chunk size, held
+     * at the 200 records a delete is normally made in.
+     */
     private static Integer scopeFor(String pass, Id batchId) {
+        if (PASS_RESTORE.equals(pass)) {
+            return 1;
+        }
         Decimal chunkSize = [
             SELECT Chunk_Size__c
             FROM Import_Batch__c
