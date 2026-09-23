@@ -221,21 +221,28 @@ the first customers run. Testing a second shape means a second org and a second 
 
 Do this on your own machine, after the Dev Hub steps above.
 
+The project's test org uses the alias `oi-test`. It is the org the gate script runs against
+and the org the `SF_TEST_ORG_AUTH_URL` secret names, so a manual `org-tests` run and a local
+gate run test the same org and cannot disagree because of a difference between orgs.
+
 1. **Create it**, 30 days, from the shape you want to test:
-   `scripts/org/create-scratch-org.sh person-accounts dev --days 30 --replace`
+   `scripts/org/create-scratch-org.sh person-accounts oi-test --days 30 --replace`
    This deploys Core, assigns the permission sets and seeds the sample data. Note the expiry
    date it prints.
-2. **Read out its auth URL:** `sf org display --target-org dev --verbose --json`, and take the
-   `sfdxAuthUrl` field. This is a credential, exactly like the Dev Hub one.
-3. **Store it** as the repository secret `SF_TEST_ORG_AUTH_URL`.
-4. **Push anything.** `org-tests` deploys both packages into that org and runs the Apex tests.
-5. **Check the shape it reports.** The run prints what shape the org actually is, read from
+2. **Store its auth URL** as the repository secret `SF_TEST_ORG_AUTH_URL`. The auth URL is a
+   credential, exactly like the Dev Hub one, so pipe it straight into the secret rather than
+   displaying it:
+   `sf org display --target-org oi-test --verbose --json | jq -r .result.sfdxAuthUrl | gh secret set SF_TEST_ORG_AUTH_URL --repo Nonprofit-Collaborative/OpenImpact`
+3. **Run `scripts/org/run-org-tests.sh oi-test`** on a pushed commit (see "The org test
+   gate"), or dispatch the CI workflow by hand to have `org-tests` deploy both packages into
+   the org and run the Apex tests there.
+4. **Check the shape it reports.** The run prints what shape the org actually is, read from
    the org itself, before it deploys anything. Confirm it says the shape you meant to create.
    Nothing else in this repository records which definition the org came from, so that line
    in the build log is the record.
 
-Refreshing it monthly is the same three commands: re-run step 1 with `--replace`, then redo
-steps 2 and 3 with the new auth URL. Anything typed into the org by hand is lost at that
+Refreshing it monthly is the same two commands: re-run step 1 with `--replace`, then redo
+step 2 with the new auth URL. Anything typed into the org by hand is lost at that
 point, which is the discipline the package needs anyway: what matters belongs in this
 repository.
 

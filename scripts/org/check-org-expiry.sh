@@ -39,5 +39,5 @@ echo "Test org '${ALIAS}' expires on ${EXPIRY} (${DAYS_LEFT} days left)."
 if (( DAYS_LEFT <= 0 )); then
   echo "::error::The test org has expired. Recreate it and replace the SF_TEST_ORG_AUTH_URL secret. See docs/contributor-guide/ci.md."
 elif (( DAYS_LEFT <= 7 )); then
-  echo "::warning::The test org expires in ${DAYS_LEFT} days. Refresh it with scripts/org/create-scratch-org.sh person-accounts dev --days 30 --replace and replace the SF_TEST_ORG_AUTH_URL secret before then."
+  echo "::warning::The test org expires in ${DAYS_LEFT} days. Refresh it with scripts/org/create-scratch-org.sh person-accounts oi-test --days 30 --replace and replace the SF_TEST_ORG_AUTH_URL secret before then (docs/contributor-guide/ci.md, "Creating the test org and connecting it")."
 fi
