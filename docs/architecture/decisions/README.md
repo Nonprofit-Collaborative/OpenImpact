@@ -55,6 +55,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0044](0044-primary-contact-mirrors-the-primary-member.md) | The household's Primary Contact mirrors the primary member, person accounts included | Accepted (provisional) |
 | [0045](0045-gift-batch-entry-keeps-its-own-lines.md) | Gift batch entry keeps its own lines rather than staging through the import framework | Accepted |
 | [0046](0046-suites-and-packaging.md) | Two suites from the same packages, a tentative name, unlocked now and managed at listing | Accepted |
+| [NEXT](NEXT-inbound-gift-api-and-accounting-export.md) | The inbound gift API keeps a small permanent surface, and the accounting export marks nothing | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions
@@ -94,6 +95,8 @@ ADR-0045 is a builder decision for G-17, recording why gift batch entry does not
 lines through the import framework the plan pointed at.
 ADR-0046 is a product owner decision on the two suites, the tentative name and packaging
 (plan Section 3 and Section 12, D-01 and D-02).
+ADR-NEXT is a builder decision for X-03, X-04 and X-06, recording the permanent surface of
+the inbound gift API and why the accounting export marks no gift.
 
 ## Adding a new ADR
 

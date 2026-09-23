@@ -1603,7 +1603,9 @@ fund.
 Staff never type a gift name, and the number is not a receipt number.
 
 **R-G7 Idempotent intake.** External Id is unique. The importer and the inbound API in
-Connect both match on it, so re-sending a gift updates rather than duplicates.
+Connect both match on it, so re-sending a gift never creates a second one. The inbound API
+answers a resend with the gift already recorded and never edits it, so it cannot change a
+receipted gift; a resend whose amount differs is refused as a conflict (ADR-NEXT).
 
 **R-G8 Tribute link.** The authoritative link between a gift and a tribute is the
 Tribute's own Gift reference (Section 25). The Gift's Tribute reference is a mirror the
@@ -4077,6 +4079,10 @@ as Stewardship Plan Template, Stewardship Plan Step and the running Stewardship 
 Gift Batch left this table in v0.5 and is specified in Section 25L, together with Gift
 Batch Row (25M), the line of a batch.
 
+The v0.6 inbound gift API (X-03) and accounting export (X-04) add no Connect entity: the
+API writes ordinary gifts through Giving, and the export reads gifts and allocations and
+records nothing (ADR-NEXT). The posting flag plan Section 4.12 mentions is G-20's, in Giving.
+
 Two v0.4 entities have attributes that already exist on `Gift__c` from v0.2, because the
 object is not worth altering later for fields this cheap: Acknowledgment Status,
 Acknowledgment Date, and Receipt Number for G-12 and G-13, and In-kind Description and
@@ -4148,6 +4154,7 @@ None open. R-M3's Primary Contact mirror, the only entry, was closed on 2026-09-
 | v0.4 | 2026-09-09 | G-18 receipt branding, and what a document for donated property may not print. No object added. R-RC12 says what a receipt for an in-kind gift may not say: no currency figure where the template asked for an amount, no amount on an in-kind statement line, in-kind gifts left out of the total a statement states with one sentence explaining the difference, and a Total Amount of zero on the receipt record, because a receipt record states what its document states and the fair market value stays on the gift (R-G12). R-RC13 says what a document is branded with: the legal name and address print from the template, or from a block above the letter when the template did not place them, on the same reasoning as the gift lines of R-RC8; the tax identification number prints in the signature block; the logo is optional and sized by one setting; and the image delivery route is a setting because ADR-0016's second spike cannot be closed without an org, so an unresolvable logo is logged at Warning severity and the document is produced without it. Giving Settings gains `Receipt_Print_Logo__c`, `Receipt_Logo_Width_Mm__c` and `Receipt_Logo_Delivery__c`. The two rules this branch numbered R-RC11 and R-RC12 are renumbered here, because ADR-0034 took R-RC11 first. |
 | v0.4 | 2026-09-15 | X-09 native household guards (product-plan Section 11.2 item 9, mutual exclusion). No object or field added. `HouseholdSelector.nativeHouseholdAccountsAmong` is the single predicate, built on the existing ADR-0036 delete guard probe and short circuited by `OrgShapeDetector.hasNativeHouseholdGroups`, that every guard below asks. The naming batch and the naming path in `HouseholdService.afterMembershipChange` leave out an Account that already carries a native Nonprofit Cloud household group and count what they skipped. Automatic household creation, in both membership modes, does not make a second household for a person already linked to one, by the weaker but safe rule of asking the person's own Account. `AddressService` never writes the billing or person mailing fields of such an Account, from a default address or by propagation to its members. Health Check gains an informational finding naming how many native households were found, and a warning naming how many Accounts carry both household models at once, from a new `HouseholdSelector.nativeHouseholdCollisionCount` probe. No migration and no sync: an Account with both models keeps whatever name, greetings and address it already has until an administrator settles it on one model. |
 | v0.5 | 2026-09-23 | G-17 gift batch entry (ADR-0045). Two objects added: `Gift_Batch__c` (Section 25L) and its master-detail child `Gift_Batch_Row__c` (25M), with rules R-GB1 to R-GB6 and R-GR1 to R-GR4. The batch holds the control total and four defaults; a line holds only what varies, and its empty values are resolved from the batch at posting (R-GB1). The entered total is computed, never stored (R-GB2). Posting locks the batch, refuses an unbalanced or already posted batch, inserts ordinary gifts in user mode, and rolls everything back if any line fails. Status and a line's Gift are written only by posting; validation rules keep a posted batch and its lines unchanged. No trigger and no registry entry. The import framework is not used: ADR-0045 records why. No field added to an existing object. Gift Batch leaves Section 30. |
+| v0.6 | 2026-09-23 | X-03, X-04 and X-06, the Connect integration surface (ADR-NEXT). No object or field added. R-G7 is reworded: the inbound gift API answers a resend with the gift already recorded and never edits it, and refuses a resend whose amount differs. The accounting export reads `Gift__c`, `Gift_Allocation__c` and `Fund__c` and writes nothing: the posting flag plan Section 4.12 names belongs to G-20 in Giving, and no Connect object records export runs. Section 30 notes that X-03 and X-04 add no Connect entity. |
 
 ---
 ## 32. Entity ownership by package
