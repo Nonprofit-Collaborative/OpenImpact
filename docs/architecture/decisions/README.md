@@ -50,6 +50,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0039](0039-health-check-findings-are-grouped-by-the-question-they-ask.md) | Health Check findings are grouped by the question they ask, not registered one by one | Accepted |
 | [0040](0040-simple-rules-in-flow-engine-logic-in-apex.md) | Simple rules in Flow, engine logic in Apex, and customers switch ours off to run theirs | Accepted |
 | [NEXT](NEXT-remove-contact-record-type.md) | Core ships no Contact record type | Accepted |
+| [NEXT](NEXT-no-chatter-on-packaged-records.md) | Packaged records use activities, not Chatter | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions

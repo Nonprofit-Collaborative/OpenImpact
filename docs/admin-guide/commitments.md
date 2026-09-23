@@ -173,8 +173,8 @@ nothing already received is touched.
 month, or the end date rebuilds the payments that are still unpaid and leaves every paid
 or partly paid one alone. The balance changes as a result, which is what you want, but it
 does mean the schedule after the change no longer matches the pledge letter the donor
-signed. Note the reason on the commitment's Chatter feed before you save, so the next
-person to look at it knows why the numbers moved.
+signed. Log an activity on the commitment (the **Activity** panel on its record page) that
+says why, so the next person to look at it knows why the numbers moved.
 
 ## Field reference for report builders
 

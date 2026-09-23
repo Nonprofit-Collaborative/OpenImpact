@@ -34,6 +34,12 @@
   <flexiPageRegions>
     <itemInstances>
       <componentInstance>
+        <componentName>runtime_sales_activities:activityPanel</componentName>
+        <identifier>commitmentActivityPanel</identifier>
+      </componentInstance>
+    </itemInstances>
+    <itemInstances>
+      <componentInstance>
         <componentName>force:relatedListContainer</componentName>
         <identifier>commitmentRelatedLists</identifier>
       </componentInstance>
