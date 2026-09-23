@@ -2,6 +2,9 @@
 
 **Status:** Accepted
 **Date:** 2026-09-06
+**Amended by:** ADR-0046, under which packages are built and piloted as unlocked packages
+  under the same namespace, following managed-package rules, and become the 2GP managed packages
+  below for the AppExchange listing. Read the Decision below with ADR-0046 beside it.
 **Source:** plan Section 12, decision D-02
 
 ## Context
