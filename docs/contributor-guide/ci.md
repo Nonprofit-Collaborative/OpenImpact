@@ -138,7 +138,8 @@ That is expected in the early scaffold and is not a failure.
 
 ### Run the same checks locally, before you push
 
-Every gate above except the org tests runs on a laptop, and all of them are fast:
+Every gate above except the org tests runs on a laptop, and all of them are fast (the org
+tests run on a laptop too, through the gate script described under "The org test gate"):
 
 ```
 npm run prettier:verify
@@ -238,9 +239,48 @@ steps 2 and 3 with the new auth URL. Anything typed into the org by hand is lost
 point, which is the discipline the package needs anyway: what matters belongs in this
 repository.
 
+### The org test gate
+
+A pull request that changes deployable source cannot merge into `main` until its Apex tests
+have passed in an org on its exact head commit. The `main` ruleset requires three checks:
+`Static checks`, `DCO sign-off check`, and the commit status `Org tests (local)`.
+
+That last one is posted from your machine, not by a GitHub runner:
+
+```
+scripts/org/run-org-tests.sh <org alias>
+```
+
+It deploys the commit you have checked out with `scripts/org/deploy-packages.sh`, assigns
+`Nonprofit_Admin` and `Giving_Admin`, runs every local Apex test, and posts
+`Org tests (local)` on that commit: success only when every test passed, failure otherwise.
+The results are written to `test-results/org-tests.json`, which git ignores.
+
+Three rules make the status worth trusting:
+
+- **It belongs to one commit.** A new push has no status, so the pull request is blocked
+  again until someone reruns the script. A pass on an earlier commit never carries over.
+- **It refuses a dirty working tree.** The status is posted on `HEAD`, so the code tested
+  has to be the code at `HEAD`. Commit or stash first.
+- **It refuses an unpushed commit**, which GitHub could not attach a status to anyway. It
+  checks before deploying, so you find out in a second rather than after the run.
+
+A pull request that changes nothing under `packages/`, `scripts/org/`, `config/`, or
+`sfdx-project.json` (documentation, the workflow itself, a Dependabot bump of an action) has
+nothing an org run could catch. The `Org tests not needed` job posts the status for it, so it
+needs no org run. A pull request from a fork gets a read-only token and cannot post it that
+way, so a maintainer runs the script for it, which is the right outcome for untested code from
+outside anyway.
+
+While you iterate, use `sf apex run test --class-names <Class> --target-org <alias>` against
+your own org for speed; the script is the final full run before merge, not the inner loop.
+
 ### `org-tests`
 
-Runs after `static` succeeds, against the one long lived org described above. It
+Runs only on manual `workflow_dispatch`, after `static` succeeds, against the one long lived
+org described above. It used to run on every push to `main` too. Now that the gate above has
+already run the full suite on the same commit before it could merge, that second run only
+cost CI minutes, so it is kept for a deliberate check against the secret's org. It
 authenticates from `SF_TEST_ORG_AUTH_URL`, prints how many days that org has left, prints
 which shape the org actually is (`scripts/org/report-org-shape.sh`, which asks the org for
 the same five facts `OrgShapeDetector` reads, through the Tooling API so it works before the

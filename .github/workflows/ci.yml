@@ -135,10 +135,12 @@ jobs:
     needs: static
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    # Only on main. There is one test org, so running a pull request's code in it would
-    # leave main's org holding unmerged code, and every run would contend for the same org.
-    # Pull requests get the static checks, which is where most of the signal is anyway.
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    # Manual dispatch only. Org tests run from a contributor's machine now, through
+    # scripts/org/run-org-tests.sh, which posts the "Org tests (local)" status the main
+    # ruleset requires. Running this on every push to main as well cost CI minutes for a
+    # second run of a suite that already passed on the same commit before it could merge.
+    # Keep it for a deliberate check against the secret's org.
+    if: github.event_name == 'workflow_dispatch'
     # One org means one deploy at a time, so the group is global rather than per ref.
     # cancel-in-progress is false on purpose: killing a deploy partway through would leave
     # the org holding half a package, and a persistent org keeps that state. Runs queue
@@ -233,6 +235,45 @@ jobs:
       - name: Say why this was skipped
         if: steps.check.outputs.enabled != 'true'
         run: echo "::warning::SF_TEST_ORG_AUTH_URL is not set, so no Apex test ran. Create a 30 day org with scripts/org/create-scratch-org.sh and store its auth URL. See docs/contributor-guide/ci.md."
+
+  # The main ruleset requires the "Org tests (local)" status on every pull request, and
+  # scripts/org/run-org-tests.sh is what posts it. A pull request that changes nothing an org
+  # deploy would pick up (documentation, the workflow itself, a Dependabot bump of an action)
+  # has nothing an org run could catch, so this posts the status for it instead. A pull
+  # request that does change deployable source gets nothing from here, and stays blocked until
+  # someone runs the org tests on its head commit.
+  org-tests-not-needed:
+    name: Org tests not needed
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Post the org test status when no deployable source changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          changed=$(git diff --name-only "$BASE_SHA...$HEAD_SHA" -- \
+            packages scripts/org config sfdx-project.json)
+          if [ -n "$changed" ]; then
+            echo "Deployable source changed, so this needs a real org run:"
+            echo "$changed"
+            echo "Run scripts/org/run-org-tests.sh <alias> on the head commit."
+            exit 0
+          fi
+          gh api "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" --silent \
+            -f state=success \
+            -f context="Org tests (local)" \
+            -f description="No deployable source changed, so no org run is needed"
+          echo "No deployable source changed. Posted the org test status."
 
   dco:
     name: DCO sign-off check
