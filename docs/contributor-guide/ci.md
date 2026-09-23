@@ -259,8 +259,11 @@ scripts/org/run-org-tests.sh <org alias>
 ```
 
 It deploys the commit you have checked out with `scripts/org/deploy-packages.sh`, assigns
-`Nonprofit_Admin` and `Giving_Admin`, runs every local Apex test, and posts
-`Org tests (local)` on that commit: success only when every test passed, failure otherwise.
+`Nonprofit_Admin` and `Giving_Admin`, runs every Apex test class in that commit's source, and
+posts `Org tests (local)` on that commit: success only when every test passed, failure
+otherwise. It names the test classes rather than running every test in the org, because the
+test org is shared: another branch's deploy can leave its own test classes behind, and those
+would fail on code this commit does not contain.
 The results are written to `test-results/org-tests.json`, which git ignores.
 
 Three rules make the status worth trusting:
