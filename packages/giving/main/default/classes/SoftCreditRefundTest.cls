@@ -64,6 +64,7 @@ private class SoftCreditRefundTest {
             FROM Contact
             WHERE Id = :luis.Id
         ];
+        GivingTestDataFactory.assertRollupWrote(recalculated.Total_Soft_Credits__c);
         Assert.areEqual(
             0,
             recalculated.Total_Soft_Credits__c,
@@ -104,17 +105,17 @@ private class SoftCreditRefundTest {
         RollupService.runFullRecalculation(definitionsFor(new Set<String>{ KEY_TOTAL }));
         Test.stopTest();
 
-        Assert.areEqual(
-            150,
-            [SELECT Total_Soft_Credits__c FROM Contact WHERE Id = :luis.Id].Total_Soft_Credits__c,
-            'Recognition tracks the money the organization still holds.'
-        );
+        Decimal total = [SELECT Total_Soft_Credits__c FROM Contact WHERE Id = :luis.Id]
+        .Total_Soft_Credits__c;
+        GivingTestDataFactory.assertRollupWrote(total);
+        Assert.areEqual(150, total, 'Recognition tracks the money the organization still holds.');
     }
 
     private static List<Rollup_Definition__c> definitionsFor(Set<String> keys) {
         List<Rollup_Definition__c> definitions = [
             SELECT
                 Id,
+                Name,
                 Definition_Key__c,
                 Source_Object__c,
                 Target_Object__c,

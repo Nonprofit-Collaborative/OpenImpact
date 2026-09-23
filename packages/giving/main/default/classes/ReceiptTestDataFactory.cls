@@ -69,10 +69,13 @@ public class ReceiptTestDataFactory {
 
     /**
      * Everything a receipt needs before it can be issued: an organization to issue it, a numbering
-     * prefix, a letter of each kind, permission to issue and to manage the letters, and a renderer
-     * that does not need a PDF engine. Returns the renderer so a test can read what was composed.
+     * prefix, a letter of each kind, permission to issue and to manage the letters, a renderer
+     * that does not need a PDF engine, and a default fund so the gifts being receipted can be
+     * saved at all. Returns the renderer so a test can read what was composed.
      */
     public static RecordingRenderer setUpReceipting() {
+        GivingTestDataFactory.ensureDefaultFund();
+
         Nonprofit_Settings__c core = Nonprofit_Settings__c.getOrgDefaults();
         core.SetupOwnerId = UserInfo.getOrganizationId();
         core.Organization_Legal_Name__c = 'Hope For Homes';

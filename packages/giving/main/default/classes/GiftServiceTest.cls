@@ -192,10 +192,10 @@ private class GiftServiceTest {
     static void theSettingsFundWinsOverTheFlaggedFund() {
         Fund__c chosen = GivingTestDataFactory.buildFund('Building', false);
         insert chosen;
-        insert new Nonprofit_Settings__c(
-            SetupOwnerId = UserInfo.getOrganizationId(),
-            Default_Fund__c = chosen.Id
-        );
+        Nonprofit_Settings__c settings = Nonprofit_Settings__c.getOrgDefaults();
+        settings.Default_Fund__c = chosen.Id;
+        upsert settings;
+        SettingsService.clearCaches();
 
         Test.startTest();
         Gift__c gift = insertGift(60);
@@ -215,10 +215,10 @@ private class GiftServiceTest {
 
     @IsTest
     static void anUnusableSettingsFundFallsBackToTheFlaggedFund() {
-        insert new Nonprofit_Settings__c(
-            SetupOwnerId = UserInfo.getOrganizationId(),
-            Default_Fund__c = 'not an identifier'
-        );
+        Nonprofit_Settings__c settings = Nonprofit_Settings__c.getOrgDefaults();
+        settings.Default_Fund__c = 'not an identifier';
+        upsert settings;
+        SettingsService.clearCaches();
         Fund__c flagged = [SELECT Id FROM Fund__c WHERE Is_Default__c = TRUE LIMIT 1];
 
         Test.startTest();

@@ -3,6 +3,14 @@
  */
 @IsTest
 private class GiftCommitmentHandlerTest {
+    /**
+     * A gift saves only when there is a default fund to allocate it to (R-GA2).
+     */
+    @TestSetup
+    static void makeData() {
+        GivingTestDataFactory.ensureDefaultFund();
+    }
+
     private static Contact donor() {
         Contact person = new Contact(FirstName = 'Sarah', LastName = 'Nguyen');
         insert person;

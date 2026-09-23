@@ -136,6 +136,20 @@ public class HouseholdTestDataFactory {
      * field carries no field level access row, and asking to insert one fails.
      */
     public static void grantMembershipRead(String name, Id userId) {
+        grantMembership(name, userId, false);
+    }
+
+    /**
+     * The same, with create access to the membership object and edit access to the same
+     * fields: what a user needs to save a membership row at all, the platform enforcing
+     * object and field access on the save itself. Still nothing on Account, so the upkeep
+     * that save starts reads packaged Account fields this user cannot.
+     */
+    public static void grantMembershipCreate(String name, Id userId) {
+        grantMembership(name, userId, true);
+    }
+
+    private static void grantMembership(String name, Id userId, Boolean mayCreate) {
         List<String> fields = new List<String>{
             'Account__c',
             'Contact__c',
@@ -152,7 +166,8 @@ public class HouseholdTestDataFactory {
             insert new ObjectPermissions(
                 ParentId = grant.Id,
                 SobjectType = 'Household_Member__c',
-                PermissionsRead = true
+                PermissionsRead = true,
+                PermissionsCreate = mayCreate
             );
             List<FieldPermissions> reads = new List<FieldPermissions>();
             for (String field : fields) {
@@ -161,7 +176,8 @@ public class HouseholdTestDataFactory {
                         ParentId = grant.Id,
                         SobjectType = 'Household_Member__c',
                         Field = 'Household_Member__c.' + field,
-                        PermissionsRead = true
+                        PermissionsRead = true,
+                        PermissionsEdit = mayCreate
                     )
                 );
             }

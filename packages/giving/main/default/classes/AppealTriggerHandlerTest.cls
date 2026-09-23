@@ -8,7 +8,7 @@ private class AppealTriggerHandlerTest {
         Appeal__c appeal = GivingTestDataFactory.buildAppeal('Spring appeal');
         insert appeal;
 
-        String message = '';
+        String message;
         Test.startTest();
         try {
             appeal.Parent_Appeal__c = appeal.Id;
@@ -18,9 +18,20 @@ private class AppealTriggerHandlerTest {
         }
         Test.stopTest();
 
-        System.assert(
-            message.contains('own parent') || message.contains('loop'),
-            'An appeal above itself is refused: ' + message
+        // Three things refuse this, and which one answers first is the platform's choice: its own
+        // check on a lookup to the same object ("Hierarchy Constraint Violation"), which in an org
+        // runs before anything the package ships, then the Parent_Appeal_Not_Self rule, then the
+        // loop check in the trigger. The requirement is that the save is refused and nothing moves.
+        Assert.isNotNull(message, 'An appeal above itself is refused.');
+        Assert.isTrue(
+            message.contains('own parent') ||
+                message.contains('loop') ||
+                message.contains('Hierarchy'),
+            'Refused as a hierarchy that points at itself, not for some other reason: ' + message
+        );
+        Assert.isNull(
+            [SELECT Parent_Appeal__c FROM Appeal__c WHERE Id = :appeal.Id].Parent_Appeal__c,
+            'And the appeal is still at the top of its own hierarchy.'
         );
     }
 

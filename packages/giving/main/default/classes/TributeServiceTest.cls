@@ -165,8 +165,10 @@ private class TributeServiceTest {
         insert tribute;
 
         Test.startTest();
-        tribute.Notification_Sent__c = true;
-        update tribute;
+        // The box alone, as a record page saves it. The tribute in memory still carries its gift,
+        // and a master-detail field that cannot be reparented is not editable, so a save that
+        // sends it is refused in user mode before the box is ever looked at.
+        update new Tribute__c(Id = tribute.Id, Notification_Sent__c = true);
         Test.stopTest();
 
         Tribute__c saved = [

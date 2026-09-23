@@ -76,11 +76,28 @@ private class ImportProcessorBatchTest {
         batch.Status__c = ImportBatchService.STATUS_DRY_RUN_COMPLETE;
         update batch;
 
+        // Two rows per chunk, which is what the org's setting asks for (R-IB2). A test may run
+        // only one chunk of a real batch job, so the job is driven here the way the platform
+        // drives it: its own query, then one execute per chunk of that size, then finish.
+        ImportProcessorBatch job = new ImportProcessorBatch(batch.Id, false);
+        Integer chunkSize = batch.Chunk_Size__c.intValue();
+        List<List<Import_Row__c>> chunks = new List<List<Import_Row__c>>();
+        Database.QueryLocatorIterator rows = job.start(null).iterator();
+        while (rows.hasNext()) {
+            if (chunks.isEmpty() || chunks[chunks.size() - 1].size() == chunkSize) {
+                chunks.add(new List<Import_Row__c>());
+            }
+            chunks[chunks.size() - 1].add((Import_Row__c) rows.next());
+        }
+
         Test.startTest();
-        // Two rows per chunk, which is what the org's setting asks for (R-IB2).
-        Database.executeBatch(new ImportProcessorBatch(batch.Id, false), 2);
+        for (List<Import_Row__c> chunk : chunks) {
+            job.execute(null, chunk);
+        }
+        job.finish(null);
         Test.stopTest();
 
+        Assert.areEqual(3, chunks.size(), 'Five rows at two a chunk is three chunks.');
         Assert.areEqual(
             5,
             [SELECT COUNT() FROM Contact],

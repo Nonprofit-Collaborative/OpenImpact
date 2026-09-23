@@ -239,9 +239,13 @@ public with sharing class CommitmentService {
                     current.Due_Date__c != planned.Due_Date__c ||
                     current.Expected_Amount__c != planned.Expected_Amount__c
                 ) {
-                    current.Due_Date__c = planned.Due_Date__c;
-                    current.Expected_Amount__c = planned.Expected_Amount__c;
-                    toUpdate.add(current);
+                    toUpdate.add(
+                        new Installment__c(
+                            Id = current.Id,
+                            Due_Date__c = planned.Due_Date__c,
+                            Expected_Amount__c = planned.Expected_Amount__c
+                        )
+                    );
                 }
             }
             // Anything left over sits beyond the schedule the commitment now implies.
@@ -378,8 +382,7 @@ public with sharing class CommitmentService {
             Decimal paid = paidByInstallment.get(installment.Id);
             String status = statusFor(installment, paid == null ? 0 : paid, cutoff);
             if (!status.equals(installment.Status__c)) {
-                installment.Status__c = status;
-                changed.add(installment);
+                changed.add(statusChange(installment.Id, status));
             }
         }
         if (!changed.isEmpty()) {
@@ -456,8 +459,7 @@ public with sharing class CommitmentService {
             Decimal paid = paidByInstallment.get(installment.Id);
             String status = statusFor(installment, paid == null ? 0 : paid, cutoff);
             if (!status.equals(installment.Status__c)) {
-                installment.Status__c = status;
-                changed.add(installment);
+                changed.add(statusChange(installment.Id, status));
             }
         }
         if (!changed.isEmpty()) {
@@ -524,8 +526,7 @@ public with sharing class CommitmentService {
                 .selectByCommitmentIds(commitmentIds)
         ) {
             if (isUnpaid(installment)) {
-                installment.Status__c = INSTALLMENT_SKIPPED;
-                changed.add(installment);
+                changed.add(statusChange(installment.Id, INSTALLMENT_SKIPPED));
             }
         }
         if (!changed.isEmpty()) {
@@ -568,6 +569,15 @@ public with sharing class CommitmentService {
     }
 
     // ---------------------------------------------------------------------- helpers
+
+    /**
+     * An installment carrying only its Id and the new status. A user mode update checks every
+     * field the record holds, so saving the row a selector returned would fail on the fields no
+     * one may edit (the master detail to the commitment, the name, the rolled up paid amount).
+     */
+    private static Installment__c statusChange(Id installmentId, String status) {
+        return new Installment__c(Id = installmentId, Status__c = status);
+    }
 
     private static Integer sequenceOf(Installment__c installment) {
         return installment.Sequence__c == null ? null : installment.Sequence__c.intValue();

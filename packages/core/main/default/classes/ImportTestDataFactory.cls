@@ -59,7 +59,11 @@ public class ImportTestDataFactory {
 
     /**
      * Stages rows on a batch from a list of column value maps, numbered from file row two,
-     * and returns them.
+     * and returns them read back, in file order.
+     *
+     * Read back rather than returned as inserted: the inserted records carry the master
+     * detail link to the batch, which cannot be changed after insert, so a test that changed
+     * a row's status and saved the inserted record was refused for a field it never touched.
      */
     @NamespaceAccessible
     public static List<Import_Row__c> rows(
@@ -80,7 +84,7 @@ public class ImportTestDataFactory {
         insert staged;
         batch.Row_Count__c = staged.size();
         update batch;
-        return staged;
+        return reload(batch.Id);
     }
 
     /** One row of a generic donor list. */

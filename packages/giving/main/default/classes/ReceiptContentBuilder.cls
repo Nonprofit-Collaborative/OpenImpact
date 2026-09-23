@@ -461,10 +461,23 @@ public with sharing class ReceiptContentBuilder {
         return value == null ? '' : value;
     }
 
+    /**
+     * A dollar amount as a United States receipt prints it: two decimal places and a comma
+     * between thousands, whoever is running the issue. `Decimal.format()` is not used because it
+     * drops trailing zeros (250.00 prints as 250) and follows the running user's locale, so the
+     * same receipt would read differently depending on who issued it.
+     */
     @TestVisible
     private static String money(Decimal value) {
-        Decimal amount = value == null ? 0 : value;
-        return '$' + amount.setScale(2).format();
+        Decimal amount = (value == null ? 0 : value).setScale(2, System.RoundingMode.HALF_UP);
+        String digits = amount.abs().toPlainString();
+        String whole = digits.substringBefore('.');
+        String grouped = '';
+        while (whole.length() > 3) {
+            grouped = ',' + whole.right(3) + grouped;
+            whole = whole.left(whole.length() - 3);
+        }
+        return (amount < 0 ? '-' : '') + '$' + whole + grouped + '.' + digits.substringAfter('.');
     }
 
     private static String formatDate(Date value) {

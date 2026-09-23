@@ -116,6 +116,9 @@ private class ReceiptFileAccessTest {
         Receipt__c statement = issueOneStatement();
         Id household = osei.AccountId;
         Id documentId = statement.Content_Document_Id__c;
+        // Whether staff can open a household somebody else entered is the org's sharing model,
+        // so Priya is given this one: what is under test is the file, not the household.
+        update new Account(Id = household, OwnerId = coordinator.Id);
 
         List<Account> householdsSheCanSee;
         List<ContentDocumentLink> linksOnTheHousehold;
@@ -171,11 +174,7 @@ private class ReceiptFileAccessTest {
         Test.stopTest();
 
         Receipt__c stored = [SELECT Content_Document_Id__c FROM Receipt__c WHERE Id = :issued.Id];
-        List<ContentDocumentLink> links = [
-            SELECT ShareType, Visibility
-            FROM ContentDocumentLink
-            WHERE ContentDocumentId = :stored.Content_Document_Id__c
-        ];
+        List<ContentDocumentLink> links = linksOtherThanTheOwner(stored.Content_Document_Id__c);
 
         Assert.areEqual(2, links.size(), 'The receipt and the gift, which is what was linked.');
         for (ContentDocumentLink link : links) {
@@ -185,8 +184,11 @@ private class ReceiptFileAccessTest {
                 'Viewer, so record edit access can never become file edit access on a document ' +
                 'that is immutable once issued.'
             );
+            // An org with external users is given InternalUsers. An org with none refuses that
+            // value, and AllUsers there reaches the same internal users (ADR-0034), so AllUsers is
+            // accepted only when the platform refused InternalUsers in this very run.
             Assert.areEqual(
-                'InternalUsers',
+                ReceiptWriter.orgRefusesInternalOnlyLinks == true ? 'AllUsers' : 'InternalUsers',
                 link.Visibility,
                 'A receipt is an internal document: no external user reaches one through a link ' +
                 'this package created.'
@@ -256,16 +258,34 @@ private class ReceiptFileAccessTest {
         return issued[0];
     }
 
-    /** The records a stored document is reachable through. */
+    /**
+     * The records a stored document is reachable through, other than its owner.
+     *
+     * The platform links every file to the user who owns it, the person who issued the receipt,
+     * and that link is ownership rather than a grant this package makes: the owner holds the file
+     * whether or not the link is listed (ADR-0034). It is the one link left out, and only when it
+     * names the document's own owner, so a link to any other user still shows up here.
+     */
     private static Set<Id> linkedEntitiesFor(Id documentId) {
         Set<Id> linked = new Set<Id>();
-        for (ContentDocumentLink link : [
-            SELECT LinkedEntityId
-            FROM ContentDocumentLink
-            WHERE ContentDocumentId = :documentId
-        ]) {
+        for (ContentDocumentLink link : linksOtherThanTheOwner(documentId)) {
             linked.add(link.LinkedEntityId);
         }
         return linked;
+    }
+
+    private static List<ContentDocumentLink> linksOtherThanTheOwner(Id documentId) {
+        Id owner = [SELECT OwnerId FROM ContentDocument WHERE Id = :documentId].OwnerId;
+        List<ContentDocumentLink> links = new List<ContentDocumentLink>();
+        for (ContentDocumentLink link : [
+            SELECT LinkedEntityId, ShareType, Visibility
+            FROM ContentDocumentLink
+            WHERE ContentDocumentId = :documentId
+        ]) {
+            if (link.LinkedEntityId != owner) {
+                links.add(link);
+            }
+        }
+        return links;
     }
 }

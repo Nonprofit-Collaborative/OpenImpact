@@ -235,11 +235,15 @@ private class SoftCreditServiceTest {
         Contact ana = RecognitionTestData.person('Ana', 'Garcia', garcias.Id);
         Contact luis = RecognitionTestData.person('Luis', 'Garcia', garcias.Id);
 
+        // A negative gift is only ever the reversal of an original one (R-G3), so the refund is
+        // made the way staff make it rather than typed in by hand.
+        Gift__c gift = RecognitionTestData.gift(ana.Id, null, 500);
+
         Test.startTest();
-        Gift__c refund = RecognitionTestData.gift(ana.Id, null, -500);
+        Id refundId = GiftService.refund(gift.Id, 500, 'Donor asked for the gift back');
         Test.stopTest();
 
-        List<Soft_Credit__c> credits = RecognitionTestData.creditsFor(refund.Id);
+        List<Soft_Credit__c> credits = RecognitionTestData.creditsFor(refundId);
         System.assertEquals(1, credits.size(), 'The refund recognizes the household too');
         System.assertEquals(luis.Id, credits[0].Contact__c, 'The same person is recognized');
         System.assertEquals(
@@ -313,6 +317,11 @@ private class SoftCreditServiceTest {
     @IsTest
     static void removesTheAutomaticCreditsAndLeavesTheOnesStaffEnteredAlone() {
         RecognitionTestData.setAutomaticHouseholdCredits(true);
+        // Putting Ana and Luis in the household queues a recompute of its credits (R-SC3). The
+        // setup runs inside its own start and stop so that recompute has finished before the
+        // removal: left queued, it ran after the removal and put Luis's credit straight back,
+        // which is the household rule working, not the removal failing.
+        Test.startTest();
         Account garcias = RecognitionTestData.household('The Garcia Family');
         Contact ana = RecognitionTestData.person('Ana', 'Garcia', garcias.Id);
         Contact luis = RecognitionTestData.person('Luis', 'Garcia', garcias.Id);
@@ -324,6 +333,7 @@ private class SoftCreditServiceTest {
             'Solicitor',
             500
         );
+        Test.stopTest();
         Map<Id, Soft_Credit__c> before = new Map<Id, Soft_Credit__c>(
             RecognitionTestData.creditsFor(gift.Id)
         );
@@ -334,9 +344,7 @@ private class SoftCreditServiceTest {
             'And the automatic one is the household member credit'
         );
 
-        Test.startTest();
         SoftCreditService.removeAutomaticCredits(new Set<Id>{ gift.Id });
-        Test.stopTest();
 
         System.assertEquals(
             1,
@@ -368,6 +376,7 @@ private class SoftCreditServiceTest {
     @IsTest
     static void creditsTwoHundredGiftsInOneInsert() {
         RecognitionTestData.setAutomaticHouseholdCredits(true);
+        GivingTestDataFactory.ensureDefaultFund();
         Account garcias = RecognitionTestData.household('The Garcia Family');
         Contact ana = RecognitionTestData.person('Ana', 'Garcia', garcias.Id);
         RecognitionTestData.person('Luis', 'Garcia', garcias.Id);

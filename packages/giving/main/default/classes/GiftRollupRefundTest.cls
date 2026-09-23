@@ -49,6 +49,8 @@ private class GiftRollupRefundTest {
             FROM Contact
             WHERE Id = :ana.Id
         ];
+
+        GivingTestDataFactory.assertRollupWrote(recalculated.Total_Giving__c);
         Assert.areEqual(
             0,
             recalculated.Total_Giving__c,
@@ -82,6 +84,8 @@ private class GiftRollupRefundTest {
             FROM Contact
             WHERE Id = :ana.Id
         ];
+
+        GivingTestDataFactory.assertRollupWrote(recalculated.Total_Giving__c);
         Assert.areEqual(
             150,
             recalculated.Total_Giving__c,
@@ -94,6 +98,7 @@ private class GiftRollupRefundTest {
         List<Rollup_Definition__c> definitions = [
             SELECT
                 Id,
+                Name,
                 Definition_Key__c,
                 Source_Object__c,
                 Target_Object__c,

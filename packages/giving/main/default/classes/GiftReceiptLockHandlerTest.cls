@@ -53,35 +53,93 @@ private class GiftReceiptLockHandlerTest {
 
     /**
      * The permission set an administrator builds in Setup for the length of one correction, and
-     * takes away again. Written inside `runAs` because a permission set is a setup object and the
-     * test has already touched gifts.
+     * takes away again: the override permission, and Edit on Gift Receipt Number, which the
+     * packaged sets make read only to everyone (ADR-0033) and which the Gifts admin guide has the
+     * administrator grant in the same set.
      */
     private static User userHoldingTheOverride() {
         User maria = TestDataFactory.createUser(
             'Maria',
             new List<String>{ 'Nonprofit_Admin', 'Giving_Admin' }
         );
+        grantInSetup(maria, true);
+        return maria;
+    }
+
+    /**
+     * A permission set built in Setup and assigned to one person: Edit on Gift Receipt Number,
+     * and the override permission when asked for. Written inside `runAs` because a permission set
+     * is a setup object and the test has already touched gifts.
+     */
+    private static void grantInSetup(User person, Boolean withOverride) {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             PermissionSet granted = new PermissionSet(
-                Name = 'Receipt_Lock_Override_Test',
-                Label = 'Receipt lock override (test)'
+                Name = withOverride ? 'Receipt_Lock_Override_Test' : 'Receipt_Number_Edit_Test',
+                Label = withOverride ? 'Receipt lock override (test)' : 'Receipt number edit (test)'
             );
             insert granted;
-            List<CustomPermission> permissions = [
-                SELECT Id
-                FROM CustomPermission
-                WHERE DeveloperName = :OVERRIDE_PERMISSION
-                LIMIT 1
-            ];
-            Assert.areEqual(
-                1,
-                permissions.size(),
-                'The package ships the override permission, or there is nothing to grant.'
+            insert new FieldPermissions(
+                ParentId = granted.Id,
+                SobjectType = 'Gift__c',
+                Field = 'Gift__c.Receipt_Number__c',
+                PermissionsRead = true,
+                PermissionsEdit = true
             );
-            insert new SetupEntityAccess(ParentId = granted.Id, SetupEntityId = permissions[0].Id);
-            insert new PermissionSetAssignment(AssigneeId = maria.Id, PermissionSetId = granted.Id);
+            if (withOverride) {
+                insert new SetupEntityAccess(
+                    ParentId = granted.Id,
+                    SetupEntityId = overridePermissionId()
+                );
+            }
+            insert new PermissionSetAssignment(
+                AssigneeId = person.Id,
+                PermissionSetId = granted.Id
+            );
         }
-        return maria;
+    }
+
+    private static Id overridePermissionId() {
+        List<CustomPermission> permissions = [
+            SELECT Id
+            FROM CustomPermission
+            WHERE DeveloperName = :OVERRIDE_PERMISSION
+            LIMIT 1
+        ];
+        Assert.areEqual(
+            1,
+            permissions.size(),
+            'The package ships the override permission, or there is nothing to grant.'
+        );
+        return permissions[0].Id;
+    }
+
+    /**
+     * Makes records belong to the person a test runs as. Gifts ship private, and who can reach a
+     * person somebody else entered is the org's sharing model, which differs from org to org.
+     * Handing the person the records keeps these tests about the lock and the permissions, not
+     * about sharing. A contact's household account goes with the contact, for an org where
+     * contacts are shared through their account.
+     */
+    private static void handTo(User person, List<Id> recordIds) {
+        List<Account> households = new List<Account>();
+        for (Contact record : [
+            SELECT AccountId
+            FROM Contact
+            WHERE Id IN :recordIds AND AccountId != NULL
+        ]) {
+            households.add(new Account(Id = record.AccountId, OwnerId = person.Id));
+        }
+        update households;
+        List<SObject> handed = new List<SObject>();
+        for (Id recordId : recordIds) {
+            SObject owned = recordId.getSObjectType().newSObject(recordId);
+            owned.put('OwnerId', person.Id);
+            handed.add(owned);
+        }
+        update handed;
+        // The save above asked whether the running administrator holds the override, and the
+        // answer is kept for the transaction. The person the test runs as next is asked afresh.
+        GiftService.receiptLockOverride = null;
     }
 
     private static String refusalFrom(Gift__c gift) {
@@ -193,6 +251,7 @@ private class GiftReceiptLockHandlerTest {
         Gift__c gift = receiptedGift();
         Id otherPerson = otherDonor().Id;
         User maria = userHoldingTheOverride();
+        handTo(maria, new List<Id>{ gift.Id });
 
         Test.startTest();
         System.runAs(maria) {
@@ -246,6 +305,7 @@ private class GiftReceiptLockHandlerTest {
     static void theOverridePermissionLetsAReceiptedGiftBeDeletedAndRecordsThat() {
         Gift__c gift = receiptedGift();
         User maria = userHoldingTheOverride();
+        handTo(maria, new List<Id>{ gift.Id });
 
         Test.startTest();
         System.runAs(maria) {
@@ -284,6 +344,8 @@ private class GiftReceiptLockHandlerTest {
         reversal.Original_Gift__c = original.Id;
         insert reversal;
         User maria = userHoldingTheOverride();
+        // Maria recorded the refund herself, so both halves of it are hers to reach.
+        handTo(maria, new List<Id>{ original.Id, reversal.Id });
 
         String refusal;
         Test.startTest();
@@ -330,12 +392,19 @@ private class GiftReceiptLockHandlerTest {
         Gift__c plain = GivingTestDataFactory.buildGift(person.Id, 120);
         insert plain;
         User david = fundraiser();
+        handTo(david, new List<Id>{ person.Id, plain.Id });
 
-        String refusal;
         Boolean editable = true;
-        Test.startTest();
         System.runAs(david) {
             editable = Schema.SObjectType.Gift__c.fields.Receipt_Number__c.isUpdateable();
+        }
+        // Field level security refuses the write before any trigger runs, so to reach the rule
+        // behind it David is granted the field, the way a well meaning administrator might.
+        grantInSetup(david, false);
+
+        String refusal;
+        Test.startTest();
+        System.runAs(david) {
             refusal = refusalFrom(new Gift__c(Id = plain.Id, Receipt_Number__c = 'R-2026-000777'));
         }
         Test.stopTest();
@@ -368,6 +437,10 @@ private class GiftReceiptLockHandlerTest {
     static void staffCannotCreateAGiftThatAlreadyCarriesAReceiptNumber() {
         Contact person = otherDonor();
         User david = fundraiser();
+        handTo(david, new List<Id>{ person.Id });
+        // Granted the field, as above, so that what refuses the save is the rule and not field
+        // level security.
+        grantInSetup(david, false);
         Gift__c minted = GivingTestDataFactory.buildGift(person.Id, 90);
         minted.Receipt_Number__c = 'R-2026-000778';
 
@@ -401,6 +474,8 @@ private class GiftReceiptLockHandlerTest {
         Gift__c plain = GivingTestDataFactory.buildGift(person.Id, 300);
         insert plain;
         User david = fundraiser();
+        // The writer keeps the running user's sharing: David receipts a gift he can reach.
+        handTo(david, new List<Id>{ person.Id, plain.Id });
 
         Test.startTest();
         System.runAs(david) {
@@ -468,12 +543,12 @@ private class GiftReceiptLockHandlerTest {
 
     @IsTest
     static void theOverrideStillRecoversAGiftNumberedByMistake() {
-        // Test DML runs in system mode, so this exercises the trigger rather than field level
-        // security. In an org the administrator grants Edit on Gift Receipt Number in the same
-        // temporary permission set that carries the override permission (ADR-0033, and the
-        // Gifts admin guide says so step by step).
+        // The administrator grants Edit on Gift Receipt Number in the same temporary permission
+        // set that carries the override permission (ADR-0033, and the Gifts admin guide says so
+        // step by step), which is what userHoldingTheOverride builds.
         Gift__c gift = receiptedGift();
         User maria = userHoldingTheOverride();
+        handTo(maria, new List<Id>{ gift.Id });
 
         Test.startTest();
         System.runAs(maria) {

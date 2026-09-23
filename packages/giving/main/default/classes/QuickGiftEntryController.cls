@@ -111,9 +111,17 @@ public with sharing class QuickGiftEntryController {
         if (allocation.Fund__c == fundId) {
             return true;
         }
-        allocation.Fund__c = fundId;
-        allocation.Amount__c = gift.Amount__c;
-        Database.update(allocation, true, AccessLevel.USER_MODE);
+        // Only the fields being changed: a user mode update of the row as read would also carry
+        // the master detail to the gift, which nobody may edit.
+        Database.update(
+            new Gift_Allocation__c(
+                Id = allocation.Id,
+                Fund__c = fundId,
+                Amount__c = gift.Amount__c
+            ),
+            true,
+            AccessLevel.USER_MODE
+        );
         return true;
     }
 

@@ -1,6 +1,12 @@
 /**
  * Reads the shipped Setting Definition rows that tell the Nonprofit Settings console
  * what to show, in the order the console shows them.
+ *
+ * The rows are package-shipped custom metadata holding no organization data, and every save
+ * that reads a setting reads them (SettingsService checks a named settings object against
+ * them), so they are read as shipped rather than in user mode, as the automation registry
+ * is. In user mode, on an org that restricts custom metadata to the users granted it, a
+ * fundraiser's gift save failed on this read.
  */
 public with sharing class SettingDefinitionSelector {
     /**
@@ -36,7 +42,7 @@ public with sharing class SettingDefinitionSelector {
                 Help_Path__c,
                 Sort_Order__c
             FROM Setting_Definition__mdt
-            WITH USER_MODE
+            WITH SYSTEM_MODE
             ORDER BY Section__c, Sort_Order__c, MasterLabel
             LIMIT 500
         ];

@@ -9,6 +9,14 @@
 private class StewardshipTriggerHandlerTest {
     private static final String PLAN = 'Every gift thanks';
 
+    /**
+     * A gift saves only when there is a default fund to allocate it to (R-GA2).
+     */
+    @TestSetup
+    static void makeData() {
+        GivingTestDataFactory.ensureDefaultFund();
+    }
+
     private static Stewardship_Plan_Template__c activeTemplate() {
         Stewardship_Plan_Template__c template = new Stewardship_Plan_Template__c(
             Name = PLAN,
@@ -38,6 +46,9 @@ private class StewardshipTriggerHandlerTest {
     static void switchingTheAutomationOffStopsPlansStarting() {
         activeTemplate();
         Contact person = donor();
+        // The switch is a row the post-install script writes from the registry; a test
+        // sees none of the org's rows, so it writes them the same way first.
+        AutomationControl.ensureDefaults();
         AutomationControl.setEnabled('Stewardship_Plan_Starter', false);
         AutomationControl.clearCache();
 
@@ -56,6 +67,9 @@ private class StewardshipTriggerHandlerTest {
     static void switchingItBackOnDoesNotStartPlansForTheGiftsItMissed() {
         activeTemplate();
         Contact person = donor();
+        // The switch is a row the post-install script writes from the registry; a test
+        // sees none of the org's rows, so it writes them the same way first.
+        AutomationControl.ensureDefaults();
         AutomationControl.setEnabled('Stewardship_Plan_Starter', false);
         AutomationControl.clearCache();
         insert GivingTestDataFactory.buildGift(person.Id, 100);

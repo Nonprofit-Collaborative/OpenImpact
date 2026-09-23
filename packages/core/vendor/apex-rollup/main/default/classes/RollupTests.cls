@@ -565,6 +565,10 @@ private class RollupTests {
     acc.AnnualRevenue = originalValue;
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ acc };
 
+    // Open Impact patch E: the setup row is a RollupCalcItem__c on this Account (upstream's was a
+    // Contract), and a null CloseDate__c matches "<= TODAY" in memory, so it would be counted.
+    delete as system [SELECT Id FROM RollupCalcItem__c WHERE Name = 'Datetime tests' WITH SYSTEM_MODE];
+
     RollupCalcItem__c opp = new RollupCalcItem__c(Account__c = acc.Id, Amount__c = 100, Name = 'Will Not Match', CloseDate__c = System.today().addDays(2), StageName__c = 'A');
     insert as system new List<RollupCalcItem__c>{
       new RollupCalcItem__c(Account__c = acc.Id, Amount__c = 1, Name = 'First Match', CloseDate__c = System.today().addDays(-2), StageName__c = 'A'),
@@ -2813,7 +2817,8 @@ private class RollupTests {
 
   @IsTest
   static void shouldClearConcatDistinctOnDetachToNull() {
-    Account oldAcc = [SELECT Id, AccountNumber FROM Account];
+    // Open Impact patch G: system mode, as every other setup query in this class. See VENDOR.md.
+    Account oldAcc = [SELECT Id, AccountNumber FROM Account WITH SYSTEM_MODE];
     oldAcc.AccountNumber = 'A';
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ oldAcc };
 
@@ -3168,7 +3173,12 @@ private class RollupTests {
     acc.AnnualRevenue = 2; // should match count of contacts, below, to begin with
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ acc };
 
-    RollupCalcItem__c opp = new RollupCalcItem__c(CloseDate__c = System.today(), Amount__c = 3, Account__c = acc.Id, StageName__c = '1', Name = 'Winning Record');
+    // Open Impact patch E: the engine filters the triggering records with every grouped row's
+    // LookupFieldOnCalcItem__c, so the two child objects in a grouping must name their lookup
+    // to the parent the same way. Upstream's pair had that by coincidence (both AccountId).
+    // RollupCalcItem__c cannot (Account__c on it, AccountId on Contact, and either name fails on
+    // the other object), so the triggering child here is Asset, which also says AccountId.
+    Asset opp = new Asset(Price = 3, AccountId = acc.Id, Name = 'Winning Record');
     insert as system opp;
     insert as system new List<SObject>{ new Contact(LastName = '1', AccountId = acc.Id), new Contact(LastName = '2', AccountId = acc.Id) };
     Rollup.onlyUseMockMetadata = true;
@@ -3176,7 +3186,7 @@ private class RollupTests {
     Rollup.rollupMetadata = new List<Rollup__mdt>{
       new Rollup__mdt(
         CalcItem__c = 'Contact',
-        LookupFieldOnCalcItem__c = 'Account__c',
+        LookupFieldOnCalcItem__c = 'AccountId',
         RollupFieldOnCalcItem__c = 'Id',
         LookupObject__c = 'Account',
         LookupFieldOnLookupObject__c = 'Id',
@@ -3185,9 +3195,9 @@ private class RollupTests {
         RollupGrouping__r = parentGrouping
       ),
       new Rollup__mdt(
-        CalcItem__c = 'RollupCalcItem__c',
-        LookupFieldOnCalcItem__c = 'Account__c',
-        RollupFieldOnCalcItem__c = 'Amount__c',
+        CalcItem__c = 'Asset',
+        LookupFieldOnCalcItem__c = 'AccountId',
+        RollupFieldOnCalcItem__c = 'Price',
         LookupObject__c = 'Account',
         LookupFieldOnLookupObject__c = 'Id',
         RollupFieldOnLookupObject__c = 'AnnualRevenue',
@@ -3199,13 +3209,13 @@ private class RollupTests {
     Test.startTest();
     Rollup.apexContext = TriggerOperation.AFTER_UPDATE;
     Rollup.shouldRun = true;
-    Rollup.records = new List<RollupCalcItem__c>{ opp };
-    Rollup.oldRecordsMap = new Map<Id, RollupCalcItem__c>{ opp.Id => new RollupCalcItem__c(Id = opp.Id, Amount__c = 1, Account__c = acc.Id) };
+    Rollup.records = new List<Asset>{ opp };
+    Rollup.oldRecordsMap = new Map<Id, Asset>{ opp.Id => new Asset(Id = opp.Id, Price = 1, AccountId = acc.Id) };
     Rollup.runFromTrigger();
     Test.stopTest();
 
     acc = [SELECT AnnualRevenue FROM Account WHERE Id = :acc.Id WITH SYSTEM_MODE];
-    Assert.areEqual(opp.Amount__c, acc.AnnualRevenue);
+    Assert.areEqual(opp.Price, acc.AnnualRevenue);
   }
 
   @IsTest

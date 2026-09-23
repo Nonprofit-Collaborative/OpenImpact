@@ -37,7 +37,19 @@ public with sharing class TributeService {
             changed.add(tribute);
         }
         if (!changed.isEmpty()) {
-            Database.update(changed, true, AccessLevel.USER_MODE);
+            // Only the fields being changed: a user mode update of the rows as read would also
+            // carry the master detail to the gift, which nobody may edit.
+            List<Tribute__c> updates = new List<Tribute__c>();
+            for (Tribute__c tribute : changed) {
+                updates.add(
+                    new Tribute__c(
+                        Id = tribute.Id,
+                        Notification_Sent__c = tribute.Notification_Sent__c,
+                        Notification_Sent_Date__c = tribute.Notification_Sent_Date__c
+                    )
+                );
+            }
+            Database.update(updates, true, AccessLevel.USER_MODE);
         }
         return changed;
     }

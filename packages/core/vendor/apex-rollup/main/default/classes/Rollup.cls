@@ -597,7 +597,8 @@ public without sharing virtual class Rollup implements RollupLogger.ToStringObje
   // Code-analyzer-suppress(sfge)
   public static String getBatchRollupStatus(String jobId) {
     String jobStatus = [SELECT Status FROM AsyncApexJob WHERE Id = :jobId LIMIT 1]?.Status;
-    if ([SELECT COUNT() FROM RollupState__c WHERE RelatedJobId__c = :jobId LIMIT 1] > 0) {
+    // Open Impact patch G: RollupState__c is read in system mode, see VENDOR.md.
+    if ([SELECT COUNT() FROM RollupState__c WHERE RelatedJobId__c = :jobId WITH SYSTEM_MODE LIMIT 1] > 0) {
       jobStatus = 'Processing';
     }
     return jobStatus;

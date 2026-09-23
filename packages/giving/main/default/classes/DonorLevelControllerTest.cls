@@ -29,7 +29,11 @@ private class DonorLevelControllerTest {
         settings.Donor_Levels_Enabled__c = true;
         settings.Donor_Level_Source_Field__c = 'Total_Giving__c';
         upsert settings;
-        SettingsTestPermissions.grantTo(PERMISSION_SET, UserInfo.getUserId());
+        // The permission set is a setup object; it cannot share a transaction with the rows
+        // above unless it is written as the same user in a separate context.
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            SettingsTestPermissions.grantTo(PERMISSION_SET, UserInfo.getUserId());
+        }
     }
 
     @IsTest

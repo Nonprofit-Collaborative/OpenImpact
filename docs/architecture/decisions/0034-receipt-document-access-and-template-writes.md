@@ -43,14 +43,21 @@ The body of that record is the letter a donor's accountant reads.
 1. **A receipt document is linked only to records whose object permissions a Giving permission set
    governs: the `Receipt__c` always, and the `Gift__c` on a per gift receipt.** The donor `Contact`
    and `Account` links are removed. This supersedes the storage sentence in ADR-0016 and nothing
-   else in it.
+   else in it. The platform also links every file to the user who owns it, here the person who
+   issued the receipt. That link is ownership, not a grant this package makes, and it widens
+   nothing: the issuer already holds `Issue_Receipts` and can read the receipt.
 2. **The rule is enforced in `ReceiptWriter.storeDocument`, which throws on any other linked
    entity**, rather than trusted to each caller. The audience of a stored tax document is one rule,
    and a caller passing one more id is exactly how it was widened the first time.
 3. **`ShareType` stays `'V'`.** Viewer is the ceiling a link can grant, which is what an immutable
    document needs (ADR-0010, R-RC1). `Visibility` becomes `'InternalUsers'`, which is not the fix
    and is not claimed as one: it keeps an external user from reaching a receipt through a link this
-   package created, and nothing more.
+   package created, and nothing more. An org with no external users has nothing for it to
+   separate, and the platform refuses the value there ("Visibility InternalUsers is not permitted
+   for this linked record"). On that refusal, and only that one, `ReceiptWriter` writes the links
+   with `'AllUsers'`, which on such an org reaches the same internal users. The audience is still
+   set by the linked records alone (points 1 and 2), and an org that has external users still gets
+   `'InternalUsers'`.
 4. **The donor's route to the document is the Receipts related list on their record**, which needs
    a Giving permission set, and the admin guide says so on both the Access page and the Receipts
    page. An administrator must not have to reason about `ContentDocumentLink` semantics to know

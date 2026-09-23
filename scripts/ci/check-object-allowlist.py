@@ -157,6 +157,7 @@ VENDOR_ONLY = {
     "Individual": "upstream's grandparent test target, reached through Contact.Individual.",
     "QuickText": "upstream's multi select picklist fixture, RollupCalculatorTests.",
     "Event": "upstream's polymorphic activity fixture.",
+    "Asset": "the second child in RollupTests' grouping test, which needs a child that names its Account lookup AccountId as Contact does (patch E).",
     "CurrencyType": "named in a dynamic SOQL string, guarded by the multicurrency check in RollupCurrencyInfo.",
     "DatedConversionRate": "same, and only reached when dated conversion is on.",
 }
