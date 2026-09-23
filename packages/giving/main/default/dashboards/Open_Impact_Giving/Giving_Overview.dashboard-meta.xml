@@ -28,6 +28,7 @@
       <header>This month, day by day</header>
       <legendPosition>Bottom</legendPosition>
       <report>Open_Impact_Giving/Gifts_This_Month_by_Day</report>
+      <sortBy>RowLabelAscending</sortBy>
     </components>
   </leftSection>
   <middleSection>
@@ -39,6 +40,7 @@
       <header>Giving by month</header>
       <legendPosition>Bottom</legendPosition>
       <report>Open_Impact_Giving/Giving_by_Month</report>
+      <sortBy>RowLabelAscending</sortBy>
     </components>
     <components>
       <componentType>Bar</componentType>
@@ -46,6 +48,7 @@
       <header>Giving by fund, this year</header>
       <legendPosition>Bottom</legendPosition>
       <report>Open_Impact_Giving/Giving_by_Fund_This_Year</report>
+      <sortBy>RowValueDescending</sortBy>
     </components>
   </middleSection>
   <rightSection>
@@ -56,6 +59,7 @@
       <header>Giving by appeal, this year</header>
       <legendPosition>Bottom</legendPosition>
       <report>Open_Impact_Giving/Giving_by_Appeal_This_Year</report>
+      <sortBy>RowValueDescending</sortBy>
     </components>
     <components>
       <componentType>Table</componentType>

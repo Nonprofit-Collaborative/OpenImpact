@@ -4,9 +4,6 @@
     <field>Account$Name</field>
   </columns>
   <columns>
-    <field>Account$Last_Gift_Date__c</field>
-  </columns>
-  <columns>
     <field>Account$First_Gift_Date__c</field>
   </columns>
   <columns>

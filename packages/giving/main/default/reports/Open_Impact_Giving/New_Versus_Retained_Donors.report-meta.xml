@@ -23,9 +23,6 @@
     <field>Account$Name</field>
   </columns>
   <columns>
-    <field>Account$First_Gift_Date__c</field>
-  </columns>
-  <columns>
     <field>Account$Gifts_Last_Year__c</field>
   </columns>
   <columns>

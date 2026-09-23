@@ -20,7 +20,7 @@
   <format>Summary</format>
   <groupingsDown>
     <field>Gift__c$Household__c</field>
-    <sortByName>s!Gift__c.Amount__c</sortByName>
+    <sortByName>s!Gift__c$Amount__c</sortByName>
     <sortOrder>Desc</sortOrder>
     <sortType>Aggregate</sortType>
   </groupingsDown>
