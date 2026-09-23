@@ -128,4 +128,47 @@ public class GivingTestDataFactory {
         insert organization;
         return organization;
     }
+
+    /**
+     * Fails with what the org can say about a rollup run when a total the engine should have
+     * written is still blank. The engine works in a queued job whose errors are caught by its
+     * own finalizer, so a blank total otherwise arrives with no cause attached. Nothing is
+     * asserted about a value that was written: the caller's own assertions do that.
+     */
+    public static void assertRollupWrote(Object total) {
+        if (total != null) {
+            return;
+        }
+        List<String> facts = new List<String>();
+        for (AsyncApexJob job : [
+            SELECT ApexClass.Name, JobType, Status, ExtendedStatus, NumberOfErrors
+            FROM AsyncApexJob
+            ORDER BY CreatedDate
+            LIMIT 20
+        ]) {
+            facts.add(
+                job.ApexClass?.Name +
+                    ' ' +
+                    job.JobType +
+                    ' ' +
+                    job.Status +
+                    ' errors ' +
+                    job.NumberOfErrors +
+                    ' ' +
+                    job.ExtendedStatus
+            );
+        }
+        for (Error_Log__c entry : [
+            SELECT Context__c, Message__c
+            FROM Error_Log__c
+            ORDER BY CreatedDate
+            LIMIT 20
+        ]) {
+            facts.add(entry.Context__c + ': ' + entry.Message__c);
+        }
+        Assert.fail(
+            'The rollup engine wrote nothing to the total. Jobs and Error Log: ' +
+            String.join(facts, ' | ')
+        );
+    }
 }

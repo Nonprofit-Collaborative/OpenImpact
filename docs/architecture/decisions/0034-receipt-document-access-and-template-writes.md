@@ -43,7 +43,9 @@ The body of that record is the letter a donor's accountant reads.
 1. **A receipt document is linked only to records whose object permissions a Giving permission set
    governs: the `Receipt__c` always, and the `Gift__c` on a per gift receipt.** The donor `Contact`
    and `Account` links are removed. This supersedes the storage sentence in ADR-0016 and nothing
-   else in it.
+   else in it. The platform also links every file to the user who owns it, here the person who
+   issued the receipt. That link is ownership, not a grant this package makes, and it widens
+   nothing: the issuer already holds `Issue_Receipts` and can read the receipt.
 2. **The rule is enforced in `ReceiptWriter.storeDocument`, which throws on any other linked
    entity**, rather than trusted to each caller. The audience of a stored tax document is one rule,
    and a caller passing one more id is exactly how it was widened the first time.

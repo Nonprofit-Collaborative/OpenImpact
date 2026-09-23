@@ -174,11 +174,7 @@ private class ReceiptFileAccessTest {
         Test.stopTest();
 
         Receipt__c stored = [SELECT Content_Document_Id__c FROM Receipt__c WHERE Id = :issued.Id];
-        List<ContentDocumentLink> links = [
-            SELECT ShareType, Visibility
-            FROM ContentDocumentLink
-            WHERE ContentDocumentId = :stored.Content_Document_Id__c
-        ];
+        List<ContentDocumentLink> links = linksOtherThanTheOwner(stored.Content_Document_Id__c);
 
         Assert.areEqual(2, links.size(), 'The receipt and the gift, which is what was linked.');
         for (ContentDocumentLink link : links) {
@@ -262,16 +258,34 @@ private class ReceiptFileAccessTest {
         return issued[0];
     }
 
-    /** The records a stored document is reachable through. */
+    /**
+     * The records a stored document is reachable through, other than its owner.
+     *
+     * The platform links every file to the user who owns it, the person who issued the receipt,
+     * and that link is ownership rather than a grant this package makes: the owner holds the file
+     * whether or not the link is listed (ADR-0034). It is the one link left out, and only when it
+     * names the document's own owner, so a link to any other user still shows up here.
+     */
     private static Set<Id> linkedEntitiesFor(Id documentId) {
         Set<Id> linked = new Set<Id>();
-        for (ContentDocumentLink link : [
-            SELECT LinkedEntityId
-            FROM ContentDocumentLink
-            WHERE ContentDocumentId = :documentId
-        ]) {
+        for (ContentDocumentLink link : linksOtherThanTheOwner(documentId)) {
             linked.add(link.LinkedEntityId);
         }
         return linked;
+    }
+
+    private static List<ContentDocumentLink> linksOtherThanTheOwner(Id documentId) {
+        Id owner = [SELECT OwnerId FROM ContentDocument WHERE Id = :documentId].OwnerId;
+        List<ContentDocumentLink> links = new List<ContentDocumentLink>();
+        for (ContentDocumentLink link : [
+            SELECT LinkedEntityId, ShareType, Visibility
+            FROM ContentDocumentLink
+            WHERE ContentDocumentId = :documentId
+        ]) {
+            if (link.LinkedEntityId != owner) {
+                links.add(link);
+            }
+        }
+        return links;
     }
 }
