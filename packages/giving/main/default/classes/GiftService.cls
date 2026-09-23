@@ -481,9 +481,67 @@ public with sharing class GiftService {
      */
     @NamespaceAccessible
     public static Set<Id> applyChosenFunds(List<Gift__c> gifts, Map<Id, Id> fundIdByGiftId) {
+        ChosenFundPlan plan = planChosenFunds(gifts, fundIdByGiftId);
+        if (!plan.added.isEmpty()) {
+            Database.insert(plan.added, true, AccessLevel.USER_MODE);
+        }
+        if (!plan.changed.isEmpty()) {
+            Database.update(plan.changed, true, AccessLevel.USER_MODE);
+        }
+        return plan.notApplied;
+    }
+
+    /**
+     * `applyChosenFunds` gift by gift, for a caller whose gifts each succeed or fail on their own
+     * (Connect's inbound gift API): one allocation the platform refuses fails its own gift, not
+     * the others. Same queries and statements as `applyChosenFunds`, so it stays inside the
+     * limits for 200 gifts.
+     *
+     * Returns the gifts whose choice was not applied, each with why: the platform's words when
+     * saving the allocation failed, or null when the gift was already split across several
+     * funds. Nothing is rolled back here: a gift whose choice failed still has the allocation
+     * it had before, and the caller decides whether to keep it.
+     */
+    @NamespaceAccessible
+    public static Map<Id, String> applyChosenFundsEach(
+        List<Gift__c> gifts,
+        Map<Id, Id> fundIdByGiftId
+    ) {
+        ChosenFundPlan plan = planChosenFunds(gifts, fundIdByGiftId);
+        Map<Id, String> notApplied = new Map<Id, String>();
+        for (Id giftId : plan.notApplied) {
+            notApplied.put(giftId, null);
+        }
+        if (!plan.added.isEmpty()) {
+            collectFailures(
+                Database.insert(plan.added, false, AccessLevel.USER_MODE),
+                plan.addedGiftIds,
+                notApplied
+            );
+        }
+        if (!plan.changed.isEmpty()) {
+            collectFailures(
+                Database.update(plan.changed, false, AccessLevel.USER_MODE),
+                plan.changedGiftIds,
+                notApplied
+            );
+        }
+        return notApplied;
+    }
+
+    /** The allocations a set of fund choices needs, worked out once for both entry points. */
+    private class ChosenFundPlan {
+        List<Gift_Allocation__c> added = new List<Gift_Allocation__c>();
+        List<Id> addedGiftIds = new List<Id>();
+        List<Gift_Allocation__c> changed = new List<Gift_Allocation__c>();
+        List<Id> changedGiftIds = new List<Id>();
         Set<Id> notApplied = new Set<Id>();
+    }
+
+    private static ChosenFundPlan planChosenFunds(List<Gift__c> gifts, Map<Id, Id> fundIdByGiftId) {
+        ChosenFundPlan plan = new ChosenFundPlan();
         if (fundIdByGiftId.isEmpty()) {
-            return notApplied;
+            return plan;
         }
         Map<Id, List<Gift_Allocation__c>> byGift = new Map<Id, List<Gift_Allocation__c>>();
         for (
@@ -496,40 +554,51 @@ public with sharing class GiftService {
             }
             byGift.get(allocation.Gift__c).add(allocation);
         }
-        List<Gift_Allocation__c> added = new List<Gift_Allocation__c>();
-        List<Gift_Allocation__c> changed = new List<Gift_Allocation__c>();
         for (Gift__c gift : gifts) {
             Id fundId = fundIdByGiftId.get(gift.Id);
             List<Gift_Allocation__c> existing = byGift.get(gift.Id);
             if (fundId == null) {
                 continue;
             } else if (existing == null) {
-                added.add(
+                plan.added.add(
                     new Gift_Allocation__c(
                         Gift__c = gift.Id,
                         Fund__c = fundId,
                         Amount__c = gift.Amount__c
                     )
                 );
+                plan.addedGiftIds.add(gift.Id);
             } else if (existing.size() > 1) {
-                notApplied.add(gift.Id);
+                plan.notApplied.add(gift.Id);
             } else if (existing[0].Fund__c != fundId) {
-                changed.add(
+                plan.changed.add(
                     new Gift_Allocation__c(
                         Id = existing[0].Id,
                         Fund__c = fundId,
                         Amount__c = gift.Amount__c
                     )
                 );
+                plan.changedGiftIds.add(gift.Id);
             }
         }
-        if (!added.isEmpty()) {
-            Database.insert(added, true, AccessLevel.USER_MODE);
+        return plan;
+    }
+
+    private static void collectFailures(
+        List<Database.SaveResult> saves,
+        List<Id> giftIds,
+        Map<Id, String> notApplied
+    ) {
+        for (Integer index = 0; index < saves.size(); index++) {
+            if (saves[index].isSuccess()) {
+                continue;
+            }
+            List<String> messages = new List<String>();
+            for (Database.Error error : saves[index].getErrors()) {
+                messages.add(error.getMessage());
+            }
+            notApplied.put(giftIds[index], String.join(messages, ' '));
         }
-        if (!changed.isEmpty()) {
-            Database.update(changed, true, AccessLevel.USER_MODE);
-        }
-        return notApplied;
     }
 
     /**

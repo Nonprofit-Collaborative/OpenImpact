@@ -145,6 +145,14 @@
     <value>The gift was not saved: {0}</value>
   </labels>
   <labels>
+    <fullName>Connect_InboundGift_ErrorAccess</fullName>
+    <categories>Connect, Inbound Gift API</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Inbound gift: the integration user lacks access</shortDescription>
+    <value>The gift was not saved, because the integration user cannot read or write something recording it needs. Check that it has the Inbound Gift API permission set. The platform said: {0}</value>
+  </labels>
+  <labels>
     <fullName>Connect_InboundGift_ErrorFundNotApplied</fullName>
     <categories>Connect, Inbound Gift API</categories>
     <language>en_US</language>
@@ -166,6 +174,6 @@
     <language>en_US</language>
     <protected>false</protected>
     <shortDescription>Inbound gift: Error Log line for a refusal</shortDescription>
-    <value>Inbound gift {0} was refused ({1}): {2}</value>
+    <value>Inbound gift {0} was refused ({1}). The sending system was told why; the reason is not logged, because it can carry what the donor sent.</value>
   </labels>
 </CustomLabels>

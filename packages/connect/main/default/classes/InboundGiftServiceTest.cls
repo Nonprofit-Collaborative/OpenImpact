@@ -212,7 +212,73 @@ private class InboundGiftServiceTest {
         for (Error_Log__c entry : logged) {
             Assert.isFalse(entry.Message__c.contains('nobody@example.org'), 'No personal data.');
             Assert.isTrue(entry.Message__c.contains('stripe:ch_'), 'The external id is named.');
+            Assert.isTrue(entry.Message__c.contains('donor_not_found'), 'The code is named.');
+            Assert.isFalse(
+                entry.Message__c.contains(Label.Connect_InboundGift_ErrorDonorEmailNotFound),
+                'The message stays in the response, out of the log.'
+            );
         }
+    }
+
+    @IsTest
+    static void aBodyTheParserRefusesIsLoggedWithoutWhatItSaid() {
+        Test.startTest();
+        InboundGiftResult refused = InboundGiftService.recordBody(
+            Blob.valueOf('{"externalId":"b:9","amount":"' + LUIS_EMAIL + '"}')
+        );
+        Test.getEventBus().deliver();
+        Test.stopTest();
+
+        Assert.areEqual(InboundGiftResult.ERROR_INVALID_REQUEST, refused.errorCode);
+        List<Error_Log__c> logged = [
+            SELECT Message__c
+            FROM Error_Log__c
+            WHERE Context__c = 'InboundGiftService'
+        ];
+        Assert.areEqual(1, logged.size());
+        Assert.isTrue(logged[0].Message__c.contains('invalid_request'), logged[0].Message__c);
+        Assert.isFalse(logged[0].Message__c.contains('@'), 'No email reaches the log.');
+    }
+
+    @IsTest
+    static void aUserWithoutAccessIsToldTheGiftWasNotSavedNotToRetry() {
+        User noAccess = TestDataFactory.createUser('NoAccess', new List<String>());
+        InboundGiftResult result;
+        System.runAs(noAccess) {
+            result = recordOne(gift('access:1', 10));
+        }
+
+        Assert.areEqual(InboundGiftResult.ERROR_NOT_SAVED, result.errorCode, result.message);
+        Assert.areEqual(
+            422,
+            InboundGiftResult.httpStatus(result),
+            'Not 500: resending cannot help.'
+        );
+        Assert.areEqual(0, [SELECT COUNT() FROM Gift__c]);
+    }
+
+    @IsTest
+    static void aGiftWhoseFundCannotBeAppliedIsRefusedAndTheOthersAreSavedAgain() {
+        InboundGift refused = gift('retry:1', 10);
+        refused.fundCode = BUILDING_CODE;
+        InboundGift kept = gift('retry:2', 20);
+        kept.fundCode = BUILDING_CODE;
+        InboundGiftService.designationRefusedInTest = new Set<String>{ 'retry:1' };
+
+        List<InboundGiftResult> results = InboundGiftService.record(
+            new List<InboundGift>{ refused, kept }
+        );
+
+        Assert.areEqual(InboundGiftResult.ERROR_NOT_SAVED, results[0].errorCode);
+        Assert.isNull(results[0].giftId, 'Its first save was undone.');
+        Assert.areEqual(InboundGiftResult.OUTCOME_CREATED, results[1].outcome, results[1].message);
+        List<Gift__c> saved = [
+            SELECT External_Id__c, (SELECT Fund__c FROM Gift_Allocations__r)
+            FROM Gift__c
+        ];
+        Assert.areEqual(1, saved.size(), 'Only the second gift, saved on the second attempt.');
+        Assert.areEqual(results[1].giftId, saved[0].Id);
+        Assert.areEqual(fundNamed('Building Fund'), saved[0].Gift_Allocations__r[0].Fund__c);
     }
 
     @IsTest
@@ -393,10 +459,13 @@ private class InboundGiftServiceTest {
             new List<InboundGift>{ byEmail, byContactId }
         );
 
-        for (Gift__c recorded : [SELECT Donor_Account__c, Donor_Contact__c FROM Gift__c]) {
-            Assert.areEqual(person.Id, recorded.Donor_Account__c);
-            Assert.isNull(recorded.Donor_Contact__c);
-        }
+        Assert.areEqual(InboundGiftResult.OUTCOME_CREATED, results[0].outcome, results[0].message);
         Assert.areEqual(InboundGiftResult.OUTCOME_CREATED, results[1].outcome, results[1].message);
+        List<Gift__c> recorded = [SELECT Donor_Account__c, Donor_Contact__c FROM Gift__c];
+        Assert.areEqual(2, recorded.size(), 'Both gifts were recorded.');
+        for (Gift__c gift : recorded) {
+            Assert.areEqual(person.Id, gift.Donor_Account__c);
+            Assert.isNull(gift.Donor_Contact__c);
+        }
     }
 }

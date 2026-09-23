@@ -20,6 +20,19 @@ public with sharing class InboundGiftService {
     private static final Integer SAVE_ATTEMPTS = 2;
     private static final String CONTEXT = 'InboundGiftService';
 
+    /** External Id's API name, with and without a namespace, for reading a duplicate error. */
+    private static final Set<String> EXTERNAL_ID_NAMES = new Set<String>{
+        Gift__c.External_Id__c.getDescribe().getName().toLowerCase(),
+        Gift__c.External_Id__c.getDescribe().getLocalName().toLowerCase()
+    };
+
+    /**
+     * External ids whose fund designation a test makes fail, so the second save attempt can be
+     * tested: nothing in a test org splits a gift between its insert and its designation.
+     */
+    @TestVisible
+    private static Set<String> designationRefusedInTest = new Set<String>();
+
     /**
      * One gift from a REST request body. A body that is not JSON, names a field `InboundGift`
      * does not have, or carries a value of the wrong type is refused as a whole: reading it
@@ -98,27 +111,24 @@ public with sharing class InboundGiftService {
             }
         }
 
-        List<InboundGiftRequest> fresh = new List<InboundGiftRequest>();
-        Map<String, Gift__c> recorded = InboundGiftSelector.giftsByExternalId(
-            externalIds(firstByKey.values())
-        );
-        for (InboundGiftRequest item : firstByKey.values()) {
-            Gift__c found = recorded.get(item.key);
-            if (found != null) {
-                answerFromRecordedGift(item, found);
-            } else {
-                fresh.add(item);
+        // A query or a save the integration user is not allowed to make is a setup problem, not
+        // a fault: every gift it stops is answered gift_not_saved, which says not to resend
+        // until someone fixes the access, rather than internal_error, which says resend.
+        try {
+            List<InboundGiftRequest> fresh = answerRecordedGifts(firstByKey.values());
+            resolveReferences(fresh);
+            List<InboundGiftRequest> ready = new List<InboundGiftRequest>();
+            for (InboundGiftRequest item : fresh) {
+                if (item.result == null) {
+                    ready.add(item);
+                }
             }
+            insertGifts(ready);
+        } catch (QueryException refused) {
+            refuseUnanswered(firstByKey.values(), refused);
+        } catch (DmlException refused) {
+            refuseUnanswered(firstByKey.values(), refused);
         }
-
-        resolveReferences(fresh);
-        List<InboundGiftRequest> ready = new List<InboundGiftRequest>();
-        for (InboundGiftRequest item : fresh) {
-            if (item.result == null) {
-                ready.add(item);
-            }
-        }
-        insertGifts(ready);
 
         for (InboundGiftRequest item : repeats) {
             InboundGiftRequest first = firstByKey.get(item.key);
@@ -140,6 +150,29 @@ public with sharing class InboundGiftService {
             results.add(item.result);
         }
         return results;
+    }
+
+    /** Answers the gifts already recorded under their external id, and returns the rest. */
+    private static List<InboundGiftRequest> answerRecordedGifts(List<InboundGiftRequest> items) {
+        List<InboundGiftRequest> fresh = new List<InboundGiftRequest>();
+        Map<String, Gift__c> recorded = InboundGiftSelector.giftsByExternalId(externalIds(items));
+        for (InboundGiftRequest item : items) {
+            Gift__c found = recorded.get(item.key);
+            if (found != null) {
+                answerFromRecordedGift(item, found);
+            } else {
+                fresh.add(item);
+            }
+        }
+        return fresh;
+    }
+
+    private static void refuseUnanswered(List<InboundGiftRequest> items, Exception refused) {
+        for (InboundGiftRequest item : items) {
+            if (item.result == null) {
+                item.result = accessRefused(refused);
+            }
+        }
     }
 
     /**
@@ -242,13 +275,16 @@ public with sharing class InboundGiftService {
     }
 
     /**
-     * Inserts the gifts, each on its own, then designates the ones that named a fund.
+     * Inserts the gifts, each on its own, then designates the ones that named a fund, each on
+     * its own too (`GiftService.applyChosenFundsEach`).
      *
      * The platform saves what it can and reports the rest per gift. Designation comes after the
-     * insert, and a gift it cannot be applied to (one other automation already split) must not
-     * stay recorded against the wrong fund, so that attempt is rolled back and made again without
-     * it. Two attempts at most: the second can only fail the same way if more automation splits
-     * more gifts, and then the rest are refused rather than retried forever.
+     * insert, and a gift it cannot be applied to (one other automation already split, or one
+     * whose allocation the platform refused) must not stay recorded against the wrong fund, so
+     * that attempt is rolled back and made again without it. Two attempts at most: the second
+     * can only fail the same way if more gifts fail designation, and then the rest are refused
+     * rather than retried forever. Up to 200 gifts a call (a Flow batch) stay inside the limits:
+     * each attempt is one insert, one allocation query and at most two allocation saves.
      */
     private static void insertGifts(List<InboundGiftRequest> items) {
         List<InboundGiftRequest> remaining = items;
@@ -283,14 +319,30 @@ public with sharing class InboundGiftService {
                     if (item.fundId != null) {
                         fundByGift.put(item.giftId, item.fundId);
                     }
-                } else if (isDuplicate(saves[index].getErrors())) {
+                } else if (isExternalIdClash(saves[index].getErrors())) {
                     duplicates.add(item);
                 } else {
                     item.result = notSaved(messagesOf(saves[index].getErrors()));
                 }
             }
 
-            Set<Id> notApplied = GiftService.applyChosenFunds(savedGifts, fundByGift);
+            Map<Id, String> notApplied;
+            try {
+                notApplied = GiftService.applyChosenFundsEach(savedGifts, fundByGift);
+            } catch (QueryException refused) {
+                refuseAttempt(beforeAttempt, saved, refused);
+                break;
+            } catch (DmlException refused) {
+                refuseAttempt(beforeAttempt, saved, refused);
+                break;
+            }
+            if (Test.isRunningTest() && !designationRefusedInTest.isEmpty()) {
+                for (InboundGiftRequest item : saved) {
+                    if (designationRefusedInTest.contains(item.key)) {
+                        notApplied.put(item.giftId, 'Refused by the test.');
+                    }
+                }
+            }
             if (notApplied.isEmpty()) {
                 for (InboundGiftRequest item : saved) {
                     item.result = InboundGiftResult.recorded(
@@ -308,11 +360,14 @@ public with sharing class InboundGiftService {
             Database.rollback(beforeAttempt);
             List<InboundGiftRequest> next = new List<InboundGiftRequest>();
             for (InboundGiftRequest item : saved) {
-                if (notApplied.contains(item.giftId)) {
-                    item.result = InboundGiftResult.rejected(
-                        InboundGiftResult.ERROR_NOT_SAVED,
-                        Label.Connect_InboundGift_ErrorFundNotApplied
-                    );
+                if (notApplied.containsKey(item.giftId)) {
+                    String platformMessage = notApplied.get(item.giftId);
+                    item.result = platformMessage == null
+                        ? InboundGiftResult.rejected(
+                              InboundGiftResult.ERROR_NOT_SAVED,
+                              Label.Connect_InboundGift_ErrorFundNotApplied
+                          )
+                        : notSaved(platformMessage);
                 } else {
                     next.add(item);
                 }
@@ -329,6 +384,19 @@ public with sharing class InboundGiftService {
             }
         }
         answerDuplicates(duplicates);
+    }
+
+    /** Designation could not even be attempted: the attempt is undone and its gifts refused. */
+    private static void refuseAttempt(
+        Savepoint beforeAttempt,
+        List<InboundGiftRequest> saved,
+        Exception refused
+    ) {
+        Database.rollback(beforeAttempt);
+        for (InboundGiftRequest item : saved) {
+            item.giftId = null;
+            item.result = accessRefused(refused);
+        }
     }
 
     /**
@@ -377,7 +445,9 @@ public with sharing class InboundGiftService {
 
     /**
      * Every refusal, one Error Log line each at Warning, naming the external id and the error
-     * code and nothing about the donor, so the nonprofit sees a gift that did not arrive.
+     * code and nothing else, so the nonprofit sees a gift that did not arrive. The message is
+     * left out on purpose: it can quote a validation rule's words or the parser's, and either
+     * can repeat what the donor sent. The sending system has the message in its response.
      */
     private static void logRefusals(List<InboundGift> requests, List<InboundGiftResult> results) {
         List<String> lines = new List<String>();
@@ -393,7 +463,7 @@ public with sharing class InboundGiftService {
             lines.add(
                 String.format(
                     Label.Connect_InboundGift_LogRefused,
-                    new List<String>{ externalId, result.errorCode, result.message }
+                    new List<String>{ externalId, result.errorCode }
                 )
             );
         }
@@ -408,10 +478,30 @@ public with sharing class InboundGiftService {
         return values;
     }
 
-    private static Boolean isDuplicate(List<Database.Error> errors) {
+    /**
+     * A save refused because another gift holds this external id, and not because some other
+     * unique field clashed. The field list is the evidence; the message is read only when the
+     * platform names no field.
+     */
+    private static Boolean isExternalIdClash(List<Database.Error> errors) {
         for (Database.Error error : errors) {
-            if (error.getStatusCode() == StatusCode.DUPLICATE_VALUE) {
-                return true;
+            if (error.getStatusCode() != StatusCode.DUPLICATE_VALUE) {
+                continue;
+            }
+            List<String> fields = error.getFields();
+            if (fields == null || fields.isEmpty()) {
+                String message = error.getMessage() == null ? '' : error.getMessage().toLowerCase();
+                for (String name : EXTERNAL_ID_NAMES) {
+                    if (message.contains(name)) {
+                        return true;
+                    }
+                }
+                continue;
+            }
+            for (String field : fields) {
+                if (field != null && EXTERNAL_ID_NAMES.contains(field.toLowerCase())) {
+                    return true;
+                }
             }
         }
         return false;
@@ -430,6 +520,16 @@ public with sharing class InboundGiftService {
         if (parsed != null && parsed.getSObjectType() == expected) {
             target.add(parsed);
         }
+    }
+
+    private static InboundGiftResult accessRefused(Exception refused) {
+        return InboundGiftResult.rejected(
+            InboundGiftResult.ERROR_NOT_SAVED,
+            String.format(
+                Label.Connect_InboundGift_ErrorAccess,
+                new List<String>{ refused.getMessage() }
+            )
+        );
     }
 
     private static InboundGiftResult notSaved(String platformMessage) {

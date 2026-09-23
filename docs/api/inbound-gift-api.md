@@ -31,7 +31,7 @@ One request records one gift. Sending the same request again is always safe.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `externalId` | string, up to 100 characters | yes | The gift's identifier in your system. It is what makes a resend safe, so it must never be reused for a different gift. Prefix it with your system's name (`stripe:ch_3N1xY2`) so two systems can never collide. |
+| `externalId` | string, up to 100 characters | yes | The gift's identifier in your system. It is what makes a resend safe, so it must never be reused for a different gift. Prefix it with your system's name (`stripe:ch_3N1xY2`) so two systems can never collide. It is matched **ignoring case**: `STRIPE:CH_3N1XY2` is the same gift as `stripe:ch_3N1xY2`, so two gifts must not differ only in case. |
 | `amount` | number | yes | The amount received, greater than zero, at most two decimal places. |
 | `paymentMethod` | string | yes | One of `Cash`, `Check`, `Card`, `ACH`, `Stock`, `Grant`, `Other`. Not case sensitive. |
 | `giftDate` | string, `YYYY-MM-DD` | no | The day the money arrived. Today, in the integration user's time zone, when left out. |
@@ -72,11 +72,13 @@ Every response body has the same shape, with empty fields left out:
 | `422` | `rejected` | `donor_not_found` | No donor the integration user can see matches. Add the person or organization (or ask the nonprofit to share its donors with the integration user), then send the same request again. |
 | `422` | `rejected` | `fund_not_found` | No active fund has this `fundCode` or `fundId`. |
 | `422` | `rejected` | `appeal_not_found` | No appeal has this `appealId`. |
-| `422` | `rejected` | `gift_not_saved` | The gift broke a rule of the organization's own, for example a validation rule they added, or no default fund is set. The message is the rule's. |
+| `422` | `rejected` | `gift_not_saved` | The gift broke a rule of the organization's own, for example a validation rule they added, or no default fund is set; or the integration user lacks access to something recording the gift needs. The message is the rule's or the platform's. Nothing was saved. Sending it again gives the same answer until the nonprofit fixes the rule or the access. |
 | `500` | `rejected` | `internal_error` | Something unexpected. Nothing was saved and the Error Log has the details. Sending the same request again is safe. |
 
 Every `rejected` outcome is also written to the organization's Error Log, with the
-`externalId` and the error code, so the nonprofit can see a gift that did not arrive.
+`externalId` and the error code only, so the nonprofit can see a gift that did not arrive.
+The message is not logged, because it can repeat what was sent, such as a donor's email
+address; it is in the response.
 
 ### Retrying
 

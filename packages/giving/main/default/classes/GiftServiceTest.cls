@@ -295,4 +295,49 @@ private class GiftServiceTest {
         }
         Test.stopTest();
     }
+
+    @IsTest
+    static void chosenFundsGiftByGiftFailOnlyTheGiftTheyBelongTo() {
+        Fund__c building = GivingTestDataFactory.buildFund('Building Fund', false);
+        insert building;
+        Gift__c kept = insertGift(80);
+        Fund__c defaultFund = [SELECT Id FROM Fund__c WHERE Is_Default__c = TRUE LIMIT 1];
+        Gift__c split;
+        GiftService.suppressDefaultAllocations = true;
+        try {
+            split = insertGift(100);
+            insert new List<Gift_Allocation__c>{
+                GivingTestDataFactory.buildAllocation(split.Id, defaultFund.Id, 60),
+                GivingTestDataFactory.buildAllocation(split.Id, defaultFund.Id, 40)
+            };
+        } finally {
+            GiftService.suppressDefaultAllocations = false;
+        }
+        // A gift the platform cannot attach an allocation to: its record is not there.
+        Gift__c missing = new Gift__c(
+            Id = Gift__c.SObjectType.getDescribe().getKeyPrefix() + '000000000001',
+            Amount__c = 10
+        );
+
+        Test.startTest();
+        Map<Id, String> notApplied = GiftService.applyChosenFundsEach(
+            new List<Gift__c>{ kept, split, missing },
+            new Map<Id, Id>{
+                kept.Id => building.Id,
+                split.Id => building.Id,
+                missing.Id => building.Id
+            }
+        );
+        Test.stopTest();
+
+        Assert.areEqual(2, notApplied.size(), String.valueOf(notApplied));
+        Assert.isTrue(notApplied.containsKey(split.Id));
+        Assert.isNull(notApplied.get(split.Id), 'Already split: nothing for the platform to say.');
+        Assert.isNotNull(notApplied.get(missing.Id), 'The platform says why it refused.');
+        Assert.areEqual(
+            building.Id,
+            [SELECT Fund__c FROM Gift_Allocation__c WHERE Gift__c = :kept.Id].Fund__c,
+            'The gift that could be designated was, although another in the call failed.'
+        );
+    }
 }
