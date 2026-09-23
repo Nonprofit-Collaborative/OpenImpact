@@ -5,11 +5,17 @@ import getReport from '@salesforce/apex/HealthCheckController.getReport';
 import applyRecommendedMode from '@salesforce/apex/HealthCheckController.applyRecommendedMode';
 import applyJunctionMembership from '@salesforce/apex/HealthCheckController.applyJunctionMembership';
 import enableAutomaticHouseholds from '@salesforce/apex/HealthCheckController.enableAutomaticHouseholds';
+import applyFix from '@salesforce/apex/HealthCheckController.applyFix';
 
 import CATEGORY_ACCESS from '@salesforce/label/c.Core_HealthCheck_CategoryAccess';
 import CATEGORY_LICENSES from '@salesforce/label/c.Core_HealthCheck_CategoryLicenses';
 import CATEGORY_ORG_SHAPE from '@salesforce/label/c.Core_HealthCheck_CategoryOrgShape';
 import CATEGORY_SETTINGS from '@salesforce/label/c.Core_HealthCheck_CategorySettings';
+import CANCEL from '@salesforce/label/c.Core_HealthCheck_CancelButton';
+import CONFIRM from '@salesforce/label/c.Core_HealthCheck_ConfirmButton';
+import CONFIRM_HEADING from '@salesforce/label/c.Core_HealthCheck_ConfirmHeading';
+import CONFIRM_INTRO from '@salesforce/label/c.Core_HealthCheck_ConfirmIntro';
+import CONFIRM_MODE_DETAIL from '@salesforce/label/c.Core_HealthCheck_ConfirmModeDetail';
 import CURRENT_MODE from '@salesforce/label/c.Core_HealthCheck_CurrentModeLabel';
 import INTRO from '@salesforce/label/c.Core_HealthCheck_Intro';
 import LOAD_FAILED from '@salesforce/label/c.Core_HealthCheck_LoadFailed';
@@ -44,13 +50,23 @@ const CATEGORY_ORDER = ['OrgShape', 'Licenses', 'Access', 'Settings'];
  * The panel is readable by anyone. The Fix buttons appear only when the report says the
  * viewer holds the Manage Nonprofit Settings permission, which Apex checks again before it
  * changes anything.
+ *
+ * A fix that changes something (an "action:" target) never runs on the first click: the
+ * panel shows what it will do, taken from the finding, and waits for Confirm (C-21,
+ * ADR-NEXT). A fix that only opens a page runs at once, because opening a page changes
+ * nothing.
  */
 export default class HealthCheckPanel extends NavigationMixin(LightningElement) {
   report;
   loading = false;
   errorMessage;
+  pendingFix;
 
   labels = {
+    confirmHeading: CONFIRM_HEADING,
+    confirmIntro: CONFIRM_INTRO,
+    confirm: CONFIRM,
+    cancel: CANCEL,
     title: TITLE,
     intro: INTRO,
     rerun: RERUN,
@@ -187,12 +203,52 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
   }
 
   handleUseRecommended() {
-    this.runAction(applyRecommendedMode);
+    this.pendingFix = {
+      target: ACTION_RECOMMENDED_MODE,
+      title: USE_RECOMMENDED,
+      detail: CONFIRM_MODE_DETAIL.replace('{0}', this.currentModeLabel).replace(
+        '{1}',
+        this.recommendedModeLabel
+      )
+    };
+  }
+
+  handleCancelFix() {
+    this.pendingFix = undefined;
+  }
+
+  /** Run the fix the viewer has just seen described and confirmed. */
+  handleConfirmFix() {
+    const pending = this.pendingFix;
+    this.pendingFix = undefined;
+    if (!pending) {
+      return;
+    }
+    if (pending.target === ACTION_RECOMMENDED_MODE) {
+      this.runAction(applyRecommendedMode);
+      return;
+    }
+    if (pending.target === ACTION_JUNCTION_MEMBERSHIP) {
+      this.runAction(applyJunctionMembership);
+      return;
+    }
+    if (pending.target === ACTION_AUTOMATIC_HOUSEHOLDS) {
+      this.runAction(enableAutomaticHouseholds);
+      return;
+    }
+    const fixKey = pending.target.substring(ACTION_PREFIX.length);
+    this.runAction(() => applyFix({ fixKey }));
+  }
+
+  /** The finding a Fix button belongs to, so the confirm box can repeat what it says. */
+  findingFor(key) {
+    const findings = (this.report && this.report.findings) || [];
+    return findings.find((finding) => finding.key === key);
   }
 
   /**
    * A fix is one of three things: a method on the controller, a page to navigate to, or a
-   * section of the settings console for the console to open.
+   * section of the settings console for the console to open. A method waits for Confirm.
    */
   handleFix(event) {
     const target = event.currentTarget.dataset.target;
@@ -200,19 +256,9 @@ export default class HealthCheckPanel extends NavigationMixin(LightningElement) 
       return;
     }
 
-    if (target === ACTION_RECOMMENDED_MODE) {
-      this.runAction(applyRecommendedMode);
-      return;
-    }
-    if (target === ACTION_JUNCTION_MEMBERSHIP) {
-      this.runAction(applyJunctionMembership);
-      return;
-    }
-    if (target === ACTION_AUTOMATIC_HOUSEHOLDS) {
-      this.runAction(enableAutomaticHouseholds);
-      return;
-    }
     if (target.startsWith(ACTION_PREFIX)) {
+      const finding = this.findingFor(event.currentTarget.dataset.key) || {};
+      this.pendingFix = { target, title: finding.title, detail: finding.detail };
       return;
     }
     if (target.startsWith('/')) {

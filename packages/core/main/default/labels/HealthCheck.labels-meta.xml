@@ -65,6 +65,14 @@
         <value>Automation is running normally</value>
     </labels>
     <labels>
+        <fullName>Core_HealthCheck_CancelButton</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that closes the confirm box without running the fix.</shortDescription>
+        <value>Cancel</value>
+    </labels>
+    <labels>
         <fullName>Core_HealthCheck_CategoryAccess</fullName>
         <categories>Core</categories>
         <language>en_US</language>
@@ -111,6 +119,38 @@
         <protected>false</protected>
         <shortDescription>Title of the finding shown when one check throws.</shortDescription>
         <value>One check could not run</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ConfirmButton</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that runs a fix after it has been shown.</shortDescription>
+        <value>Confirm</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ConfirmHeading</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading of the box that asks before a fix runs.</shortDescription>
+        <value>Before this fix runs</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ConfirmIntro</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Text above the finding in the box that asks before a fix runs.</shortDescription>
+        <value>This is what the fix will do. Nothing changes until you confirm.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ConfirmModeDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Confirm box text for Use recommended mode. {0} current, {1} new mode.</shortDescription>
+        <value>The coexistence mode changes from {0} to {1}.</value>
     </labels>
     <labels>
         <fullName>Core_HealthCheck_ConnectMissingDetail</fullName>

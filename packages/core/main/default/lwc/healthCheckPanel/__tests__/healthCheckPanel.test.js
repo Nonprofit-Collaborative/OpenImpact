@@ -4,6 +4,7 @@ import getReport from '@salesforce/apex/HealthCheckController.getReport';
 import applyRecommendedMode from '@salesforce/apex/HealthCheckController.applyRecommendedMode';
 import applyJunctionMembership from '@salesforce/apex/HealthCheckController.applyJunctionMembership';
 import enableAutomaticHouseholds from '@salesforce/apex/HealthCheckController.enableAutomaticHouseholds';
+import applyFix from '@salesforce/apex/HealthCheckController.applyFix';
 
 jest.mock('@salesforce/apex/HealthCheckController.getReport', () => ({ default: jest.fn() }), {
   virtual: true
@@ -23,6 +24,9 @@ jest.mock(
   () => ({ default: jest.fn() }),
   { virtual: true }
 );
+jest.mock('@salesforce/apex/HealthCheckController.applyFix', () => ({ default: jest.fn() }), {
+  virtual: true
+});
 
 const mockNavigate = jest.fn();
 jest.mock(
@@ -97,6 +101,15 @@ function agentforceReport(overrides = {}) {
         fixTarget: 'Access'
       },
       {
+        key: 'shipped_rollups_missing',
+        title: '2 shipped rollups are missing',
+        detail: 'Open Impact ships totals this org does not have: Total Gifts, Last Gift Date.',
+        severity: 'Warning',
+        category: 'Settings',
+        fixLabel: 'Restore shipped rollups',
+        fixTarget: 'action:restoreShippedRollups'
+      },
+      {
         key: 'error_log_new',
         title: '2 errors nobody has looked at',
         detail: 'The Error Log has 2 new entries.',
@@ -123,6 +136,17 @@ function clickSectionFix(element) {
     .click();
 }
 
+function clickFix(element, target) {
+  const fixes = element.shadowRoot.querySelectorAll('[data-id="fix"]');
+  Array.from(fixes)
+    .find((button) => button.dataset.target === target)
+    .click();
+}
+
+function confirmBox(element) {
+  return element.shadowRoot.querySelector('[data-id="confirm"]');
+}
+
 function flush() {
   return Promise.resolve().then(() => Promise.resolve());
 }
@@ -145,7 +169,7 @@ describe('c-health-check-panel', () => {
     expect(summary.textContent).toContain('Person Accounts enabled');
 
     const findings = element.shadowRoot.querySelectorAll('[data-id="finding"]');
-    expect(findings.length).toBe(5);
+    expect(findings.length).toBe(6);
 
     const groups = element.shadowRoot.querySelectorAll('[data-id="group"]');
     expect(groups.length).toBe(3);
@@ -164,6 +188,11 @@ describe('c-health-check-panel', () => {
     button.click();
     await flush();
 
+    expect(applyRecommendedMode).not.toHaveBeenCalled();
+    expect(confirmBox(element)).not.toBeNull();
+    element.shadowRoot.querySelector('[data-id="confirm-run"]').click();
+    await flush();
+
     expect(applyRecommendedMode).toHaveBeenCalled();
     expect(element.shadowRoot.querySelector('[data-id="use-recommended"]')).toBeNull();
   });
@@ -174,11 +203,11 @@ describe('c-health-check-panel', () => {
     const element = createPanel();
     await flush();
 
-    const fixes = element.shadowRoot.querySelectorAll('[data-id="fix"]');
-    const junction = Array.from(fixes).find(
-      (button) => button.dataset.target === 'action:applyJunctionMembership'
-    );
-    junction.click();
+    clickFix(element, 'action:applyJunctionMembership');
+    await flush();
+    expect(applyJunctionMembership).not.toHaveBeenCalled();
+
+    element.shadowRoot.querySelector('[data-id="confirm-run"]').click();
     await flush();
 
     expect(applyJunctionMembership).toHaveBeenCalled();
@@ -190,14 +219,68 @@ describe('c-health-check-panel', () => {
     const element = createPanel();
     await flush();
 
-    const fixes = element.shadowRoot.querySelectorAll('[data-id="fix"]');
-    const households = Array.from(fixes).find(
-      (button) => button.dataset.target === 'action:enableAutomaticHouseholds'
-    );
-    households.click();
+    clickFix(element, 'action:enableAutomaticHouseholds');
+    await flush();
+    element.shadowRoot.querySelector('[data-id="confirm-run"]').click();
     await flush();
 
     expect(enableAutomaticHouseholds).toHaveBeenCalled();
+  });
+
+  it('shows what a fix will do and runs nothing until it is confirmed', async () => {
+    getReport.mockResolvedValue(agentforceReport());
+    applyFix.mockResolvedValue(agentforceReport({ findings: [] }));
+    const element = createPanel();
+    await flush();
+
+    clickFix(element, 'action:restoreShippedRollups');
+    await flush();
+
+    expect(applyFix).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('[data-id="confirm-title"]').textContent).toContain(
+      '2 shipped rollups are missing'
+    );
+    expect(element.shadowRoot.querySelector('[data-id="confirm-detail"]').textContent).toContain(
+      'Total Gifts, Last Gift Date'
+    );
+
+    element.shadowRoot.querySelector('[data-id="confirm-run"]').click();
+    await flush();
+
+    expect(applyFix).toHaveBeenCalledWith({ fixKey: 'restoreShippedRollups' });
+    expect(confirmBox(element)).toBeNull();
+  });
+
+  it('runs nothing when the fix is cancelled', async () => {
+    getReport.mockResolvedValue(agentforceReport());
+    const element = createPanel();
+    await flush();
+
+    clickFix(element, 'action:restoreShippedRollups');
+    await flush();
+    element.shadowRoot.querySelector('[data-id="confirm-cancel"]').click();
+    await flush();
+
+    expect(confirmBox(element)).toBeNull();
+    expect(applyFix).not.toHaveBeenCalled();
+  });
+
+  it('shows the message when a confirmed fix fails', async () => {
+    getReport.mockResolvedValue(agentforceReport());
+    applyFix.mockRejectedValue({
+      body: { message: 'That did not work, and nothing was changed.' }
+    });
+    const element = createPanel();
+    await flush();
+
+    clickFix(element, 'action:restoreShippedRollups');
+    await flush();
+    element.shadowRoot.querySelector('[data-id="confirm-run"]').click();
+    await flush();
+    await flush();
+
+    const error = element.shadowRoot.querySelector('[data-id="error"]');
+    expect(error.textContent).toBe('That did not work, and nothing was changed.');
   });
 
   it('navigates to a relative URL fix', async () => {
@@ -210,6 +293,7 @@ describe('c-health-check-panel', () => {
     errorLog.click();
     await flush();
 
+    expect(confirmBox(element)).toBeNull();
     expect(mockNavigate).toHaveBeenCalledWith({
       type: 'standard__webPage',
       attributes: { url: '/lightning/o/Error_Log__c/list' }
