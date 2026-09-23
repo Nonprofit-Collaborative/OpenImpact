@@ -118,7 +118,7 @@ does.
 | Formal Greeting | text | computed | The salutation used on formal correspondence, for example "Mr. and Mrs. John Smith". |
 | Informal Greeting | text | computed | The salutation used on personal correspondence, for example "John and Jane". |
 | Custom Name | boolean | yes (defaults false) | When true, Name, Formal Greeting, and Informal Greeting are never recomputed; the staff member's wording stands. |
-| Primary Contact | reference(Contact) | no | The household member who receives correspondence when only one person can be named. |
+| Primary Contact | reference(Contact) | no | The household member who receives correspondence when only one person can be named. In junction mode it mirrors the primary member (R-M3), and a person stored as a Person Account is named by their person contact. |
 | Member Count | integer | computed | The number of current (not ended, not deceased-excluded) members of the household. |
 | Anniversary | date | no | A household-level date the nonprofit stewards, most often a wedding anniversary. |
 | Record Type | picklist(Household, Organization) | yes | Distinguishes a household from an organization; a Household always carries Household. |
@@ -191,8 +191,12 @@ Default patterns (plan Section 4.6 and 10.2):
 | One member | "The Smith Family" | "Mr. John Smith" | "John" |
 
 **R-H5 Member ordering.** Members are ordered by Household Role (Head first, then Spouse
-or Partner, then Child, then Other), and alphabetically by first name within a role, so
-that a household's name and greetings are stable across recomputations.
+or Partner, then Child, then Other, then no role). Within a role the primary member comes
+first, then the earliest created member, then first name, so that a household's name and
+greetings are stable across recomputations. The primary is read from the source of truth
+for the membership mode: the household's Primary Contact in contact mode, the Is Primary
+flag on the membership rows in junction mode (R-M3). The mirrored Primary Contact is never
+read back into the ordering in junction mode.
 
 **R-H6 Hyphenated and differing surnames.** A hyphenated surname is treated as one
 surname and is never split. Two members are treated as sharing a surname only on an
@@ -214,7 +218,8 @@ flags are independent.
 **R-H10 Primary contact.** A household has at most one primary contact, and that contact
 must be a current member of the household. When the primary contact leaves the
 household, the reference is cleared and the next member by ordering is proposed, not
-silently assigned.
+silently assigned. In contact mode that is the Primary Contact field itself; in junction
+mode it is the membership marked Is Primary, which Primary Contact mirrors (R-M3).
 
 **R-H11 Member count.** Member Count is recomputed on every membership change (insert,
 update, delete, undelete, reparent, merge) and counts current members only. The field
@@ -343,16 +348,29 @@ and no automation writes to it.
 **R-M2 Current membership.** A member is current when End Date is empty or in the
 future. Only current members count toward Member Count, naming, and greetings.
 
-**R-M3 One primary.** At most one current member of a household has Is Primary true.
+**R-M3 One primary.** At most one current member of a household has Is Primary true, and
+the primary member is mirrored to the household's Primary Contact (ADR-0044, primary
+contact mirrors the primary member).
 
-The second half of this rule, that the primary member is mirrored to the household's
-Primary Contact, is **not implemented and is not implementable as written**:
-`Primary_Contact__c` is a lookup to Contact, so it cannot hold a person who is stored as a
-Person Account, which is exactly the org shape junction membership exists for. No
-automation derives the field from Is Primary; the only value household upkeep writes to it
-is null, when the person it names is no longer a current member (R-H10). A merge can carry
-an existing value to the survivor, but it never derives one. Recorded as a known gap in
-Section 30.
+- The mirror is the member's Contact where the person is a Contact, and the person
+  account's own person contact where the person is a Person Account. A Contact lookup on
+  Account accepts a person contact (verified in a person accounts org on 2026-09-23). The
+  person contact is read only through dynamic Apex and only where the org has Person
+  Accounts, so the model keeps no dependency on them.
+- With no current primary member, Primary Contact is empty (R-H10). With more than one,
+  which only a data load can produce, the first of them in R-H5 order is mirrored and no
+  membership row is changed.
+- `HouseholdService` is the only writer in junction mode. It settles the mirror on every
+  membership change (a row added, changed, ended, removed or restored, a person deleted or
+  restored, a move, a merge, a split), before the household is renamed. Setting or changing
+  Primary Contact on a household by hand in junction mode is refused, with a message that
+  points to Make primary on the members panel. An organization is never affected (R-O3).
+- A merge in junction mode does not offer Primary Contact as a choice: the survivor keeps
+  its primary member, and the other household's primary member keeps the flag only when the
+  survivor has none.
+- A membership whose End Date is in the future stops being current on that date with no
+  save to react to; the mirror follows at that household's next membership change, as
+  Member Count does (R-H11).
 
 **R-M4 Person representation.** Exactly one of Contact or Account identifies the person:
 Contact where the person is a Contact, the person's own Person Account where Person
@@ -3332,7 +3350,7 @@ The reason the entity exists is the control total. A deposit slip says the stack
 that posts while it is out of balance produces gifts nobody will check again.
 
 G-17 does not stage its lines through the import framework (Sections 16 and 17), although
-the plan points there: ADR-NEXT records why.
+the plan points there: ADR-0045 records why.
 
 ### Attributes
 
@@ -4072,6 +4090,9 @@ is closed deliberately rather than discovered.
 
 | Rule | Gap | Why it is open |
 |---|---|---|
+
+None open. R-M3's Primary Contact mirror, the only entry, was closed on 2026-09-23 by C-22
+(ADR-0044, primary contact mirrors the primary member).
 | R-M3 (Section 6) | The primary member is not mirrored to the household's Primary Contact. | `Primary_Contact__c` is a lookup to Contact, so it cannot name a person stored as a Person Account, which is the org shape junction membership serves. Closing the gap means changing the field (a Contact and Account pair, per Section 4) or dropping the second half of the rule. Needs an ADR either way. |
 | R-GR4 (Section 25M) | A line of a posted batch can still be deleted through the API or a report by someone holding delete access on lines. | Validation rules do not run on delete, and a trigger for this alone costs more than the risk: the entry screen refuses it, the gifts are untouched, and only the record of the deposit loses a line. Revisit if an org reports it. |
 
@@ -4126,7 +4147,7 @@ is closed deliberately rather than discovered.
 | v0.3 | 2026-09-09 | C-17 deploy defect, found by the first org run to validate `Address__c` on its own. No rule changed. `Street__c` shipped with a `length` of 255 on a `TextArea` field, which the metadata schema does not accept: `TextArea`'s 255 character limit is fixed by the type, not settable, and only `LongTextArea` takes a `length`. The `length` element is removed; the field is unchanged in every way an admin or a user sees. `Address_Compact` shipped listing `Street__c`, which the platform also refused: no text area field, long or short, can appear in a compact layout. `Street__c` is removed from `Address_Compact`, which now reads Type, City, State, Default. Street is still visible everywhere a text field can appear: the four list views in Section 29 and the page layout are unaffected. |
 | v0.4 | 2026-09-09 | G-18 receipt branding, and what a document for donated property may not print. No object added. R-RC12 says what a receipt for an in-kind gift may not say: no currency figure where the template asked for an amount, no amount on an in-kind statement line, in-kind gifts left out of the total a statement states with one sentence explaining the difference, and a Total Amount of zero on the receipt record, because a receipt record states what its document states and the fair market value stays on the gift (R-G12). R-RC13 says what a document is branded with: the legal name and address print from the template, or from a block above the letter when the template did not place them, on the same reasoning as the gift lines of R-RC8; the tax identification number prints in the signature block; the logo is optional and sized by one setting; and the image delivery route is a setting because ADR-0016's second spike cannot be closed without an org, so an unresolvable logo is logged at Warning severity and the document is produced without it. Giving Settings gains `Receipt_Print_Logo__c`, `Receipt_Logo_Width_Mm__c` and `Receipt_Logo_Delivery__c`. The two rules this branch numbered R-RC11 and R-RC12 are renumbered here, because ADR-0034 took R-RC11 first. |
 | v0.4 | 2026-09-15 | X-09 native household guards (product-plan Section 11.2 item 9, mutual exclusion). No object or field added. `HouseholdSelector.nativeHouseholdAccountsAmong` is the single predicate, built on the existing ADR-0036 delete guard probe and short circuited by `OrgShapeDetector.hasNativeHouseholdGroups`, that every guard below asks. The naming batch and the naming path in `HouseholdService.afterMembershipChange` leave out an Account that already carries a native Nonprofit Cloud household group and count what they skipped. Automatic household creation, in both membership modes, does not make a second household for a person already linked to one, by the weaker but safe rule of asking the person's own Account. `AddressService` never writes the billing or person mailing fields of such an Account, from a default address or by propagation to its members. Health Check gains an informational finding naming how many native households were found, and a warning naming how many Accounts carry both household models at once, from a new `HouseholdSelector.nativeHouseholdCollisionCount` probe. No migration and no sync: an Account with both models keeps whatever name, greetings and address it already has until an administrator settles it on one model. |
-| v0.5 | 2026-09-23 | G-17 gift batch entry (ADR-NEXT). Two objects added: `Gift_Batch__c` (Section 25L) and its master-detail child `Gift_Batch_Row__c` (25M), with rules R-GB1 to R-GB6 and R-GR1 to R-GR4. The batch holds the control total and four defaults; a line holds only what varies, and its empty values are resolved from the batch at posting (R-GB1). The entered total is computed, never stored (R-GB2). Posting locks the batch, refuses an unbalanced or already posted batch, inserts ordinary gifts in user mode, and rolls everything back if any line fails. Status and a line's Gift are written only by posting; validation rules keep a posted batch and its lines unchanged. No trigger and no registry entry. The import framework is not used: ADR-NEXT records why. No field added to an existing object. Gift Batch leaves Section 30. |
+| v0.5 | 2026-09-23 | G-17 gift batch entry (ADR-0045). Two objects added: `Gift_Batch__c` (Section 25L) and its master-detail child `Gift_Batch_Row__c` (25M), with rules R-GB1 to R-GB6 and R-GR1 to R-GR4. The batch holds the control total and four defaults; a line holds only what varies, and its empty values are resolved from the batch at posting (R-GB1). The entered total is computed, never stored (R-GB2). Posting locks the batch, refuses an unbalanced or already posted batch, inserts ordinary gifts in user mode, and rolls everything back if any line fails. Status and a line's Gift are written only by posting; validation rules keep a posted batch and its lines unchanged. No trigger and no registry entry. The import framework is not used: ADR-0045 records why. No field added to an existing object. Gift Batch leaves Section 30. |
 
 ---
 ## 32. Entity ownership by package
@@ -4202,3 +4223,4 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.5 | 2026-09-22 | Removed the Naming Pattern custom metadata type (its four fields and six shipped records) before the first package version, by the owner's decision. Nothing read it: household naming reads the three pattern fields on Nonprofit Settings. A custom metadata type is effectively permanent once packaged, so it goes now rather than never. |
 | v0.5 | 2026-09-23 | Removed the packaged Contact record type, its compact layout, and the list view that filtered on it, by the owner's decision (R-C4, ADR-0041). It drove no behavior: no code, rule or page branched on it, and the sample data loader was the only code that set it. People are now created with the org's default Contact record type. No field changed; the `Household_Role__c` picklist values it listed are all active on the master record type. |
 | v0.5 | 2026-09-23 | No object or field added. The Account, Contact, Gift and Commitment record pages show their fields with Dynamic Forms (ADR-0043). R-O3 now holds on the Account record page: the Name and Greetings section, which carries Member Count, Anniversary, Custom Name and the two greetings, shows only for the Household record type. Account keeps one fallback page layout for both record types, and no layout is assigned to a profile. |
+| v0.5 | 2026-09-23 | C-22, product-plan Section 11.2 item 8. No object or field added. R-M3's second half is implemented and its known-gaps row in Section 30 closed (ADR-0044, primary contact mirrors the primary member): in junction mode `Primary_Contact__c` mirrors the current member marked Is Primary, as that member's Contact or, for a Person Account, its person contact, and a hand edit of it on a household is refused. R-H5 now states the primary tiebreak the code already applied and which source each mode reads it from. R-H10 and the Household attribute table say which record is the mark in each mode. |

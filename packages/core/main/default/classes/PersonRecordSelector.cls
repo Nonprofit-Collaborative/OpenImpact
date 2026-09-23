@@ -45,6 +45,18 @@ public with sharing class PersonRecordSelector {
     // field both exists on the object and carries a value on the record.
     private static final String PERSON_MARKER_FIELD = 'LastName';
 
+    // detection-only: the contact the platform keeps behind an account that holds a person
+    // exists as a field only where the org stores people as accounts.
+    private static final String PERSON_CONTACT_FIELD = 'PersonContactId';
+
+    /**
+     * Set only by tests, keyed by account id. It supplies the person contact that an org
+     * without person accounts cannot hold, so the mirror to a household's Primary Contact can
+     * be exercised on any org shape. Production code never sets it.
+     */
+    @TestVisible
+    private static Map<Id, Id> personContactIdOverride;
+
     /**
      * Set only by tests. When it is true every account record is treated as a person, so
      * that the person account paths can be exercised on an org shape that has no person
@@ -186,6 +198,50 @@ public with sharing class PersonRecordSelector {
             ' FROM Account WHERE Id IN :personRecordIds LIMIT 10000';
         Map<String, Object> binds = new Map<String, Object>{ 'personRecordIds' => personRecordIds };
         return Database.queryWithBinds(query, binds, AccessLevel.SYSTEM_MODE);
+    }
+
+    /**
+     * The contact the platform keeps behind each of these person accounts, by account id. It
+     * is what a household's Primary Contact names when its primary member is stored as an
+     * account (R-M3), because that field is a lookup to Contact and accepts it.
+     *
+     * An upkeep read under ADR-0021, on the same four conditions getPersons gives: its only
+     * caller is household upkeep, its only input is ids upkeep gathered, it reads one field,
+     * and the answer is saved by HouseholdWriter, never shown. An account that holds no
+     * person, and every account in an org that does not store people as accounts, is absent
+     * from the answer rather than mapped to null.
+     */
+    public static Map<Id, Id> getPersonContactIds(Set<Id> personRecordIds) {
+        Map<Id, Id> result = new Map<Id, Id>();
+        if (personRecordIds == null || personRecordIds.isEmpty()) {
+            return result;
+        }
+        if (personContactIdOverride != null) {
+            for (Id personId : personRecordIds) {
+                if (personContactIdOverride.containsKey(personId)) {
+                    result.put(personId, personContactIdOverride.get(personId));
+                }
+            }
+            return result;
+        }
+        if (
+            !HouseholdService.isPersonAccountOrg() ||
+            !Schema.SObjectType.Account.fields.getMap().containsKey(PERSON_CONTACT_FIELD)
+        ) {
+            return result;
+        }
+        String query =
+            'SELECT Id, ' +
+            PERSON_CONTACT_FIELD +
+            ' FROM Account WHERE Id IN :personRecordIds LIMIT 10000';
+        Map<String, Object> binds = new Map<String, Object>{ 'personRecordIds' => personRecordIds };
+        for (SObject record : Database.queryWithBinds(query, binds, AccessLevel.SYSTEM_MODE)) {
+            Object value = record.get(PERSON_CONTACT_FIELD);
+            if (value instanceof Id) {
+                result.put(record.Id, (Id) value);
+            }
+        }
+        return result;
     }
 
     public static List<HouseholdService.Person> toPersons(List<SObject> records) {

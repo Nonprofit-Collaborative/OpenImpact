@@ -1,4 +1,4 @@
-# ADR-NEXT: Gift batch entry keeps its own lines rather than staging through the import framework
+# ADR-0045: Gift batch entry keeps its own lines rather than staging through the import framework
 
 **Status:** Accepted
 **Date:** 2026-09-23
