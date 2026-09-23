@@ -11,6 +11,8 @@ screen tells you what happened, row by row, including every row that failed and 
 
 Every record an import creates is tagged with the import it came from, so six months
 later you can still answer "where did these 400 households come from".
+And for 30 days after you commit it, an import can be undone: the records it created are
+removed and the values it changed are put back (section 5).
 
 ## 2. How to turn it on
 
@@ -18,14 +20,16 @@ Nothing to turn on. The **Import** tab is in the Nonprofit Hub app for anyone wi
 **Manage Nonprofit Settings** permission. If you do not see the tab, ask whoever set up
 your org to give you the Nonprofit Admin role on the **Access** page.
 
-Two things are worth setting before your first large file:
+A few things are worth knowing before your first large file:
 
 1. Open **Nonprofit Settings** and choose **Import**.
 2. **Rows per chunk** controls how many rows are processed at a time. Leave it at 200.
    Lower it to 50 if your org has a lot of custom automation and an import fails with a
    limit error; raise it only if a very large file is running slowly and nothing else
    fires on save.
-3. **Import** on the same page has an **Open the import wizard** link, which is the same
+3. **Days an import can be undone** is 30 unless you change it, and can be anything from 1
+   to 365. Each import keeps the window it was committed with.
+4. **Import** on the same page has an **Open the import wizard** link, which is the same
    place the **Import** tab takes you.
 
 Open Impact ships two ready-made mappings, a **generic donor list** and a **generic gift
@@ -79,7 +83,45 @@ Three things are worth knowing about it.
 - **A row with only a second person on it still works.** They get a household of their
   own, the same as anybody else.
 
-## 5. Common mistakes
+## 5. Undoing an import
+
+An import you regret can be undone for 30 days after you commit it. Undo removes the people,
+households and organizations that import created, and puts back the values it changed on
+records you already had. It does not touch anything else.
+
+1. Open the **Import** tab. **Recent imports** lists your last imports, newest first, with
+   the date each one can be undone until.
+2. Select **Undo** beside the import. Open Impact counts what it would remove (people,
+   households and organizations) and how many changed values it would put back, and shows
+   you the numbers with the import's name and file name. Nothing has changed yet.
+3. Read the numbers. If they are what you expect, select **Undo this import**. If somebody
+   has added or removed a record since you looked, the undo refuses and counts again, so you
+   only ever confirm a number that is still true.
+4. The undo runs in the background. When it finishes, the import shows **Undone** and its
+   run log has a line saying who undid it, when, and how many records it deleted, kept and
+   put back.
+
+What undo will not do, on purpose:
+
+- **It never deletes a record the import only matched or updated.** Those records were
+  yours before the import. Values the import wrote to them are put back instead.
+- **It keeps a record that has gained something since.** If somebody recorded a gift, a
+  relationship, an affiliation or an address for a person the import created, that person is
+  kept, and so is their household. A household somebody else has joined is kept too. Each
+  record kept is listed with the reason in the import's journal.
+- **It does not overwrite a correction.** A value somebody has changed since the import is
+  left as they set it, and listed as not put back.
+- **It does not empty the recycle bin.** Deleted records go to the recycle bin, where you can
+  restore them for as long as Salesforce keeps them.
+
+An undo that stops part way, for example because of a limit error, shows **Undo failed**.
+Select **Undo** again: it finishes the job without repeating what it already did.
+
+**Days an import can be undone** in **Nonprofit Settings**, **Import**, sets the window, from
+1 to 365 days. The window is fixed when an import is committed, so changing the setting only
+affects imports you commit afterwards.
+
+## 6. Common mistakes
 
 **"No column was matched to a name or an email."** The dry run refuses to run when the
 mapping has no way to identify a person or an organization. Usually the file's header row
@@ -119,3 +161,5 @@ For building a report on your imports.
 | One row of the file | Import Row | Row Number, Status, Error Message |
 | The records a row resolved to | Import Row | Household, Contact 1, Contact 2, Organization |
 | The import a record came from | Account, Contact | Created By Import Batch |
+| When an import can be undone until | Import Batch | Undo Deadline |
+| What an import changed on existing records, and what an undo kept | Import Journal | Phase, Entry Count, Entries |
