@@ -90,3 +90,8 @@ created by the failed attempt.
 
 **Two people typing the same batch.** Each save sends the whole grid. Type a batch on one
 screen at a time, or split the stack into two batches.
+
+**No Add line, Save or Post batch buttons.** The grid says **You can see this batch but not
+change or post it.** You have read access only: the Giving Read Only permission set, or
+someone else's batch shared with you to read. Ask for the Giving Staff permission set, or
+ask the batch's owner (or an administrator, who can change its owner) for edit access.

@@ -29,6 +29,7 @@ function view(overrides = {}) {
     controlTotal: 350,
     enteredTotal: 0,
     hasPersonAccounts: false,
+    canEdit: true,
     paymentMethods: [
       { label: 'Cash', value: 'Cash' },
       { label: 'Check', value: 'Check' }
@@ -205,6 +206,18 @@ describe('c-gift-batch-entry', () => {
 
     expect(pick(element, 'kind')).toBeNull();
     expect(pick(element, 'donor').objectApiName).toBe('Account');
+  });
+
+  it('offers someone who may only read the batch no way to change or post it', async () => {
+    const element = await build(view({ canEdit: false, lines: [line('a0C1', 100)] }));
+
+    expect(pick(element, 'read-only-note')).not.toBeNull();
+    expect(pick(element, 'balance')).not.toBeNull();
+    expect(pick(element, 'add')).toBeNull();
+    expect(pick(element, 'save')).toBeNull();
+    expect(pick(element, 'post')).toBeNull();
+    expect(pick(element, 'remove')).toBeNull();
+    expect(field(element, 'amount')[0].disabled).toBe(true);
   });
 
   it('says so when the batch cannot be opened', async () => {

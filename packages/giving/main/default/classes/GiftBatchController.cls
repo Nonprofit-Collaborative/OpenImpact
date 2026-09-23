@@ -22,6 +22,9 @@ public with sharing class GiftBatchController {
         public Decimal enteredTotal;
         @AuraEnabled
         public Boolean hasPersonAccounts;
+        /** False for someone who may only read this batch: the grid then offers no buttons. */
+        @AuraEnabled
+        public Boolean canEdit;
         @AuraEnabled
         public List<Option> paymentMethods = new List<Option>();
         @AuraEnabled
@@ -135,6 +138,9 @@ public with sharing class GiftBatchController {
             if (GiftBatchService.STATUS_POSTED.equals(batch.Status__c)) {
                 throw new GiftBatchException(Label.Giving_GiftBatch_ErrorEditAfterPost);
             }
+            if (!GiftBatchSelector.canEdit(batchId)) {
+                throw new GiftBatchException(Label.Giving_GiftBatch_ErrorNoAccess);
+            }
             Set<Id> existing = new Map<Id, Gift_Batch_Row__c>(GiftBatchSelector.selectRows(batchId))
                 .keySet();
             upsertLines(batchId, lines, existing);
@@ -231,6 +237,7 @@ public with sharing class GiftBatchController {
         result.controlTotal = batch.Control_Total__c;
         result.enteredTotal = GiftBatchService.enteredTotal(rows);
         result.hasPersonAccounts = OrgShapeDetector.detect().hasPersonAccounts == true;
+        result.canEdit = GiftBatchSelector.canEdit(batch.Id);
         result.paymentMethods = paymentMethodOptions();
         for (Gift_Batch_Row__c row : rows) {
             result.lines.add(new Line(row));

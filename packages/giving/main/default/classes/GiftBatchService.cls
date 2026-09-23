@@ -156,6 +156,12 @@ public with sharing class GiftBatchService {
         if (STATUS_POSTED.equals(batch.Status__c)) {
             return Label.Giving_GiftBatch_ErrorAlreadyPosted;
         }
+        // Posting writes the batch and its lines. GiftBatchWriter does that in system mode but
+        // with sharing, so someone who can only read this batch would reach it and fail there,
+        // after the gifts: refuse them here, in words, before anything is created.
+        if (!GiftBatchSelector.canEdit(batch.Id)) {
+            return Label.Giving_GiftBatch_ErrorNoAccess;
+        }
         if (rows.isEmpty()) {
             return Label.Giving_GiftBatch_ErrorNoRows;
         }

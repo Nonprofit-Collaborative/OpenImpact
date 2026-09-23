@@ -400,6 +400,44 @@ private class GiftBatchServiceTest {
     }
 
     @IsTest
+    static void staffWhoMayOnlyReadAColleaguesBatchCannotPostIt() {
+        // GiftBatchWriter writes in system mode but with sharing, so without this refusal a
+        // reader would create the gifts and then fail on the batch: refuse first, in words.
+        fund('General', true);
+        User fundraiser = david();
+        User colleague = TestDataFactory.createUser(
+            'Priya',
+            new List<String>{ 'Nonprofit_Staff', 'Giving_Staff' }
+        );
+        Gift_Batch__c tuesday;
+        System.runAs(fundraiser) {
+            Contact ana = person();
+            tuesday = batch(100, null, null);
+            insert line(tuesday.Id, ana.Id, null, 100);
+            insert new Gift_Batch__Share(
+                ParentId = tuesday.Id,
+                UserOrGroupId = colleague.Id,
+                AccessLevel = 'Read'
+            );
+        }
+
+        System.runAs(colleague) {
+            Test.startTest();
+            GiftBatchService.PostOutcome outcome = GiftBatchService.post(tuesday.Id);
+            Test.stopTest();
+
+            Assert.isFalse(outcome.success, 'Read access is not enough to post.');
+            Assert.areEqual(Label.Giving_GiftBatch_ErrorNoAccess, outcome.formError, 'Why.');
+        }
+        Assert.areEqual(0, [SELECT COUNT() FROM Gift__c], 'No gift was created.');
+        Assert.areEqual(
+            'Open',
+            [SELECT Status__c FROM Gift_Batch__c WHERE Id = :tuesday.Id].Status__c,
+            'The batch is still open for its owner.'
+        );
+    }
+
+    @IsTest
     static void nobodyClosesABatchByHand() {
         User fundraiser = david();
 

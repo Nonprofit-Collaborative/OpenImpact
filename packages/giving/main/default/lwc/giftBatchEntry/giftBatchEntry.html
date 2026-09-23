@@ -23,9 +23,14 @@
         </template>
         <template lwc:else>
           <p class={balanceClass} role="status" data-id="balance">{balanceText}</p>
-          <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
-            {labels.fromBatchHelp}
-          </p>
+          <template lwc:if={readOnly}>
+            <p class="slds-m-bottom_small" data-id="read-only-note">{labels.noAccess}</p>
+          </template>
+          <template lwc:else>
+            <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
+              {labels.fromBatchHelp}
+            </p>
+          </template>
         </template>
       </template>
 
@@ -67,7 +72,7 @@
                         variant="label-hidden"
                         options={kindOptions}
                         value={row.kind}
-                        disabled={posted}
+                        disabled={locked}
                         data-key={row.key}
                         data-id="kind"
                         onchange={handleKind}
@@ -80,7 +85,7 @@
                         placeholder={labels.donorPlaceholder}
                         object-api-name={row.donorObject}
                         value={row.donorId}
-                        disabled={posted}
+                        disabled={locked}
                         data-key={row.key}
                         data-id="donor"
                         onchange={handleDonor}
@@ -93,7 +98,7 @@
                         placeholder={labels.donorPlaceholder}
                         object-api-name="Account"
                         value={row.donorId}
-                        disabled={posted}
+                        disabled={locked}
                         data-key={row.key}
                         data-id="donor"
                         onchange={handleDonor}
@@ -108,7 +113,7 @@
                       label={labels.columnAmount}
                       variant="label-hidden"
                       value={row.amount}
-                      disabled={posted}
+                      disabled={locked}
                       data-key={row.key}
                       data-field="amount"
                       onchange={handleField}
@@ -120,7 +125,7 @@
                       variant="label-hidden"
                       max-length="255"
                       value={row.paymentReference}
-                      disabled={posted}
+                      disabled={locked}
                       data-key={row.key}
                       data-field="paymentReference"
                       onchange={handleField}
@@ -132,7 +137,7 @@
                       label={labels.columnDate}
                       variant="label-hidden"
                       value={row.giftDate}
-                      disabled={posted}
+                      disabled={locked}
                       data-key={row.key}
                       data-field="giftDate"
                       onchange={handleField}
@@ -144,7 +149,7 @@
                       variant="label-hidden"
                       options={methodOptions}
                       value={row.methodValue}
-                      disabled={posted}
+                      disabled={locked}
                       data-key={row.key}
                       data-field="paymentMethod"
                       onchange={handleField}
@@ -156,7 +161,7 @@
                       variant="label-hidden"
                       object-api-name={fundObject}
                       value={row.fundId}
-                      disabled={posted}
+                      disabled={locked}
                       data-key={row.key}
                       data-field="fundId"
                       onchange={handleField}
@@ -168,7 +173,7 @@
                       variant="label-hidden"
                       object-api-name={appealObject}
                       value={row.appealId}
-                      disabled={posted}
+                      disabled={locked}
                       data-key={row.key}
                       data-field="appealId"
                       onchange={handleField}

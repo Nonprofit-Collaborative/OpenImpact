@@ -149,6 +149,52 @@ private class GiftBatchControllerTest {
     }
 
     @IsTest
+    static void someoneWhoMayOnlyReadIsToldSoAndChangesNothing() {
+        Fund__c general = new Fund__c(Name = 'General', Active__c = true, Is_Default__c = true);
+        insert general;
+        User fundraiser = david();
+        User treasurer = TestDataFactory.createUser(
+            'Jen',
+            new List<String>{ 'Nonprofit_Read_Only', 'Giving_Read_Only' }
+        );
+        Gift_Batch__c tuesday;
+        System.runAs(fundraiser) {
+            Contact ana = new Contact(FirstName = 'Ana', LastName = 'Garcia');
+            insert ana;
+            tuesday = batch(100);
+            GiftBatchController.saveLines(
+                tuesday.Id,
+                new List<GiftBatchController.Line>{ typed(ana.Id, 100) },
+                null
+            );
+            insert new Gift_Batch__Share(
+                ParentId = tuesday.Id,
+                UserOrGroupId = treasurer.Id,
+                AccessLevel = 'Read'
+            );
+        }
+
+        System.runAs(treasurer) {
+            Test.startTest();
+            GiftBatchController.BatchView seen = GiftBatchController.getBatch(tuesday.Id);
+            try {
+                GiftBatchController.saveLines(tuesday.Id, seen.lines, null);
+                Assert.fail('A reader cannot save lines.');
+            } catch (AuraHandledException e) {
+                Assert.areEqual(Label.Giving_GiftBatch_ErrorNoAccess, e.getMessage(), 'Why.');
+            }
+            GiftBatchController.PostResult refused = GiftBatchController.postBatch(tuesday.Id);
+            Test.stopTest();
+
+            Assert.isFalse(seen.canEdit, 'The grid is told to offer no buttons.');
+            Assert.areEqual(1, seen.lines.size(), 'The reader still sees the lines.');
+            Assert.isFalse(refused.success, 'A reader cannot post.');
+            Assert.areEqual(Label.Giving_GiftBatch_ErrorNoAccess, refused.formError, 'Why.');
+        }
+        Assert.areEqual(0, [SELECT COUNT() FROM Gift__c], 'Nothing was posted.');
+    }
+
+    @IsTest
     static void aBatchThatIsNotThereSaysSo() {
         Gift_Batch__c gone = batch(1);
         delete gone;

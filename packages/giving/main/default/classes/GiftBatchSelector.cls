@@ -42,6 +42,30 @@ public with sharing class GiftBatchSelector {
         return batches.isEmpty() ? null : batches[0];
     }
 
+    /**
+     * Whether the running user may type into and post this batch: create and edit access to
+     * lines, and edit access to this batch's own record. Lines are controlled by their batch,
+     * so a person who can only read someone else's batch cannot change its lines either, and
+     * the grid says so instead of letting the database refuse.
+     */
+    public static Boolean canEdit(Id batchId) {
+        if (
+            batchId == null ||
+            !Schema.SObjectType.Gift_Batch_Row__c.isCreateable() ||
+            !Schema.SObjectType.Gift_Batch_Row__c.isUpdateable()
+        ) {
+            return false;
+        }
+        Id userId = UserInfo.getUserId();
+        List<UserRecordAccess> access = [
+            SELECT RecordId
+            FROM UserRecordAccess
+            WHERE UserId = :userId AND RecordId = :batchId AND HasEditAccess = TRUE
+            WITH USER_MODE
+        ];
+        return !access.isEmpty();
+    }
+
     /** The lines of one batch, in the order they were entered, with the gift each produced. */
     public static List<Gift_Batch_Row__c> selectRows(Id batchId) {
         return [

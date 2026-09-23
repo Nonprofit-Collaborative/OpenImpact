@@ -43,6 +43,7 @@ import unsaved from '@salesforce/label/c.Giving_GiftBatch_Unsaved';
 import savedToast from '@salesforce/label/c.Giving_GiftBatch_Saved';
 import postedToast from '@salesforce/label/c.Giving_GiftBatch_PostedToast';
 import errorLoadBatch from '@salesforce/label/c.Giving_GiftBatch_ErrorLoadBatch';
+import noAccess from '@salesforce/label/c.Giving_GiftBatch_ErrorNoAccess';
 import errorSaveRows from '@salesforce/label/c.Giving_GiftBatch_ErrorSaveRows';
 import errorPostFailed from '@salesforce/label/c.Giving_GiftBatch_ErrorPostFailed';
 
@@ -66,6 +67,7 @@ export default class GiftBatchEntry extends LightningElement {
     controlTotalLabel,
     enteredLabel,
     postedNote,
+    noAccess,
     columnLine,
     columnDonor,
     columnAmount,
@@ -133,8 +135,17 @@ export default class GiftBatchEntry extends LightningElement {
     return this.loaded && this.batch.posted;
   }
 
+  /** Open, and this person may change it: someone who can only read it gets no buttons. */
   get editable() {
-    return this.loaded && !this.batch.posted;
+    return this.loaded && !this.batch.posted && this.batch.canEdit === true;
+  }
+
+  get locked() {
+    return !this.editable;
+  }
+
+  get readOnly() {
+    return this.loaded && !this.batch.posted && this.batch.canEdit !== true;
   }
 
   get hasLines() {
