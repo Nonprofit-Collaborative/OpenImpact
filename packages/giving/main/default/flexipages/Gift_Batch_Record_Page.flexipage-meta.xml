@@ -110,6 +110,12 @@
         <identifier>batchSection</identifier>
       </componentInstance>
     </itemInstances>
+    <itemInstances>
+      <componentInstance>
+        <componentName>giftBatchEntry</componentName>
+        <identifier>giftBatchEntry</identifier>
+      </componentInstance>
+    </itemInstances>
     <name>main</name>
     <type>Region</type>
   </flexiPageRegions>
