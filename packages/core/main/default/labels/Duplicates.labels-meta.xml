@@ -1,11 +1,43 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
     <labels>
+        <fullName>Core_Duplicates_ErrorNoActiveRule</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates: scan refused, no active duplicate rule</shortDescription>
+        <value>No duplicate rule for people or accounts is switched on, so there is nothing to scan with. Open Duplicate Rules in Setup and activate the standard rules, then scan again.</value>
+    </labels>
+    <labels>
         <fullName>Core_Duplicates_ErrorNoSuggestion</fullName>
         <categories>Duplicates</categories>
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>Duplicates: the suggestion no longer exists</shortDescription>
         <value>This suggestion is no longer there. Somebody may have merged or dismissed it already. Refresh the page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ErrorPermissionRequired</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates: action needs Manage Nonprofit Settings</shortDescription>
+        <value>Scanning, dismissing and merging from this panel need the Manage Nonprofit Settings permission. Ask your Open Impact administrator.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ErrorUnexpected</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates: unexpected error</shortDescription>
+        <value>Something went wrong and it has been recorded in the Error Log. Try again, and if it happens again, tell your administrator.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ScanFinished</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates: log entry when a scan pass finishes</shortDescription>
+        <value>Duplicate scan of {0} records finished: {1} new possible duplicates recorded.</value>
     </labels>
 </CustomLabels>
