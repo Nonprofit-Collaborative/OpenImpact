@@ -36,7 +36,10 @@ A few things are worth knowing before your first large file:
    ([Importing gifts](gift-import.md), section 2).
 
 Open Impact ships two ready-made mappings, a **generic donor list** and a **generic gift
-list**. You can edit either one, and your edits are never overwritten by an upgrade.
+list**. You can edit either one, and your edits are never overwritten by an upgrade. With the
+Giving module installed it also ships mappings that read the exports of the system you are
+moving from, without renaming a column: see [Migrating from Nonprofit
+Cloud](migrating-from-nonprofit-cloud.md).
 
 ## 3. A five-minute walkthrough (as Maria)
 
