@@ -50,6 +50,9 @@ What the email says:
 - the 25 newest, each as its entry number with a link that opens it;
 - a link to the whole Error Log, and how many entries in all are still New.
 
+If a great many entries arrive at once, the email counts the newest 2,000 and says "more
+than 2,000" rather than an exact number. Open the Error Log for the rest.
+
 It never copies an entry's message, its technical detail or the record it names. Those stay
 in Salesforce, where the same access rules as always decide who can read them. Click a link
 to see the rest.
@@ -109,8 +112,12 @@ Maria has heard from a colleague that "something did not save this morning."
   looks at it.
 - **Expecting the digest to arrive when your organization blocks email.** If your
   Salesforce is set to send system email only (Setup, Deliverability), no digest can be
-  sent. The panel's last run says so, and an entry appears in the Error Log. Whoever
-  administers your Salesforce can change the setting.
+  sent. The panel's last run says so, and an entry appears in the Error Log (once, not
+  every day). Whoever administers your Salesforce can change the setting.
+- **Deactivating the person who scheduled the digest.** The digest runs as that person, so
+  it stops. Health Check warns when a scheduled digest has not run for two days: open the
+  Error Log section of Nonprofit Settings, click **Stop**, then **Schedule** again as
+  yourself.
 - **Marking entries Acknowledged and expecting them in the digest.** The digest counts only
   entries that are still New, because those are the ones nobody has looked at.
 - **Deleting entries to clear the list.** Use the status instead. Marking something

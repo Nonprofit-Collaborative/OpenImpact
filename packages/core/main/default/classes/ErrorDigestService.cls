@@ -23,11 +23,22 @@ public with sharing class ErrorDigestService {
     private static final Integer ENTRIES_LISTED = 25;
 
     /**
-     * How early a run may be and still count as due. The job runs at 07:00 and the window it
-     * covered ended a few seconds after 07:00 the day before, so a run a second short of a full
-     * day must not wait another day.
+     * How early a run may be and still count as due, on top of the date comparison. The job runs
+     * at 07:00 and the window it covered ended a few seconds after 07:00 the day before, so a run
+     * a second short of a full day must not wait another day. A due date is compared as a local
+     * date first, which is what keeps a 23 hour day at a clock change from skipping a digest.
      */
     private static final Integer DUE_TOLERANCE_MINUTES = 60;
+
+    /**
+     * The most entries one run reads and counts; beyond it the digest says "more than". Test
+     * visible so a test can prove a flooded Error Log still gets its digest.
+     */
+    @TestVisible
+    private static Integer entryCap = 2000;
+
+    /** Query rows kept back for the rest of the run (recipients, the settings record). */
+    private static final Integer QUERY_ROW_MARGIN = 1000;
 
     private static final String LOG_CONTEXT = 'Error digest';
 
@@ -37,6 +48,10 @@ public with sharing class ErrorDigestService {
      */
     @TestVisible
     private static List<Messaging.SingleEmailMessage> capturedMessages;
+
+    /** Test seam: when set, sending fails with this reason, as a blocked org's would. */
+    @TestVisible
+    private static String sendFailureForTest;
 
     /** What one run did. */
     public class Outcome {
@@ -58,25 +73,45 @@ public with sharing class ErrorDigestService {
 
     private static Outcome run(Boolean ignoreFrequency) {
         Datetime runAt = System.now();
-        Nonprofit_Settings__c settings = SettingsService.getSettings();
+        // Locked until this run ends, so Send now and the scheduled run take turns: the second
+        // reads the window the first moved, and never sends the same entries again.
+        Nonprofit_Settings__c settings = OrgSettingsSystemWriter.lockStored();
+        if (settings == null) {
+            settings = SettingsService.getSettings();
+        }
         Datetime coveredUntil = settings.Error_Digest_Covered_Until__c;
+        String lastSummary = settings.Error_Digest_Last_Run_Summary__c;
         Integer periodDays = FREQUENCY_WEEKLY.equals(settings.Error_Digest_Frequency__c) ? 7 : 1;
         Outcome outcome = new Outcome();
 
-        Datetime dueAt = coveredUntil?.addDays(periodDays);
-        if (!ignoreFrequency && dueAt != null && dueAt.addMinutes(-DUE_TOLERANCE_MINUTES) > runAt) {
+        if (!ignoreFrequency && coveredUntil != null && !isDue(coveredUntil, periodDays, runAt)) {
             outcome.summary = String.format(
                 System.Label.Core_ErrorDigest_SummaryNotDue,
-                new List<Object>{ dueAt.format() }
+                new List<Object>{ coveredUntil.addDays(periodDays).format() }
             );
             return finish(outcome, runAt, coveredUntil);
+        }
+
+        Integer cap = Math.min(
+            entryCap,
+            (Limits.getLimitQueryRows() - Limits.getQueryRows() - QUERY_ROW_MARGIN) / 2
+        );
+        if (cap < ENTRIES_LISTED) {
+            return notSent(
+                outcome,
+                System.Label.Core_ErrorDigest_NoRoom,
+                lastSummary,
+                runAt,
+                coveredUntil
+            );
         }
 
         Datetime windowStart = coveredUntil == null ? runAt.addDays(-periodDays) : coveredUntil;
         ErrorDigestSelector.Window window = ErrorDigestSelector.newEntries(
             windowStart,
             runAt,
-            ENTRIES_LISTED
+            ENTRIES_LISTED,
+            cap
         );
         outcome.entries = window.total;
         if (window.total == 0) {
@@ -95,21 +130,57 @@ public with sharing class ErrorDigestService {
             return finish(outcome, runAt, coveredUntil);
         }
 
-        String failure = deliver(compose(window, windowStart, recipients), outcome);
+        String failure = deliver(compose(window, windowStart, recipients, cap), outcome);
         if (outcome.recipients == 0) {
-            outcome.summary = String.format(
-                System.Label.Core_ErrorDigest_SummaryNotSent,
-                new List<Object>{ failure }
-            );
-            ErrorLogger.logMessage(outcome.summary, LOG_CONTEXT, ErrorLogger.SEVERITY_ERROR);
-            return finish(outcome, runAt, coveredUntil);
+            return notSent(outcome, failure, lastSummary, runAt, coveredUntil);
         }
         outcome.sent = true;
         outcome.summary = String.format(
             System.Label.Core_ErrorDigest_SummarySent,
-            new List<Object>{ String.valueOf(window.total), String.valueOf(outcome.recipients) }
+            new List<Object>{
+                counted(window.total, window.capped),
+                String.valueOf(outcome.recipients)
+            }
         );
         return finish(outcome, runAt, runAt);
+    }
+
+    /**
+     * Due when the local date has reached the covered day plus the period, or when the moment
+     * is at most the tolerance away. Either is enough.
+     */
+    private static Boolean isDue(Datetime coveredUntil, Integer periodDays, Datetime runAt) {
+        if (runAt.date() >= coveredUntil.date().addDays(periodDays)) {
+            return true;
+        }
+        return coveredUntil.addDays(periodDays).addMinutes(-DUE_TOLERANCE_MINUTES) <= runAt;
+    }
+
+    /**
+     * A run that could not send keeps its window. It writes to the Error Log only when its
+     * reason differs from the last run's, so an org that blocks email gets one entry, not one a
+     * day that the next digest would then try to report.
+     */
+    private static Outcome notSent(
+        Outcome outcome,
+        String reason,
+        String lastSummary,
+        Datetime runAt,
+        Datetime coveredUntil
+    ) {
+        outcome.summary = String.format(
+            System.Label.Core_ErrorDigest_SummaryNotSent,
+            new List<Object>{ reason }
+        );
+        if (!outcome.summary.equals(lastSummary)) {
+            ErrorLogger.logMessage(outcome.summary, LOG_CONTEXT, ErrorLogger.SEVERITY_ERROR);
+        }
+        return finish(outcome, runAt, coveredUntil);
+    }
+
+    /** A count as the digest says it: "2000+" when there were more than it counted. */
+    private static String counted(Integer total, Boolean capped) {
+        return capped ? total + '+' : String.valueOf(total);
     }
 
     private static Outcome finish(Outcome outcome, Datetime runAt, Datetime coveredUntil) {
@@ -124,13 +195,14 @@ public with sharing class ErrorDigestService {
     private static List<Messaging.SingleEmailMessage> compose(
         ErrorDigestSelector.Window window,
         Datetime windowStart,
-        List<User> recipients
+        List<User> recipients,
+        Integer cap
     ) {
         String subject = String.format(
             System.Label.Core_ErrorDigest_Subject,
-            new List<Object>{ String.valueOf(window.total) }
+            new List<Object>{ counted(window.total, window.capped) }
         );
-        String body = body(window, windowStart);
+        String body = body(window, windowStart, cap);
         List<Messaging.SingleEmailMessage> messages = new List<Messaging.SingleEmailMessage>();
         for (User recipient : recipients) {
             Messaging.SingleEmailMessage message = new Messaging.SingleEmailMessage();
@@ -146,15 +218,28 @@ public with sharing class ErrorDigestService {
         return messages;
     }
 
-    private static String body(ErrorDigestSelector.Window window, Datetime windowStart) {
+    private static String body(
+        ErrorDigestSelector.Window window,
+        Datetime windowStart,
+        Integer cap
+    ) {
         String base = URL.getOrgDomainUrl().toExternalForm();
         List<String> lines = new List<String>{
             String.format(
                 System.Label.Core_ErrorDigest_Intro,
-                new List<Object>{ String.valueOf(window.total), windowStart.format() }
+                new List<Object>{ counted(window.total, window.capped), windowStart.format() }
             ),
             ''
         };
+        if (window.capped) {
+            lines.add(
+                String.format(
+                    System.Label.Core_ErrorDigest_Capped,
+                    new List<Object>{ String.valueOf(cap) }
+                )
+            );
+            lines.add('');
+        }
         lines.add(System.Label.Core_ErrorDigest_BySource);
         lines.addAll(countLines(window.bySource));
         lines.add('');
@@ -184,7 +269,7 @@ public with sharing class ErrorDigestService {
             lines.add(
                 String.format(
                     System.Label.Core_ErrorDigest_More,
-                    new List<Object>{ String.valueOf(unlisted) }
+                    new List<Object>{ counted(unlisted, window.capped) }
                 )
             );
         }
@@ -196,14 +281,16 @@ public with sharing class ErrorDigestService {
             )
         );
         lines.add(
-            String.format(
-                System.Label.Core_ErrorDigest_StillNew,
-                new List<Object>{ String.valueOf(ErrorLogCountSelector.countNew()) }
-            )
+            String.format(System.Label.Core_ErrorDigest_StillNew, new List<Object>{ stillNew(cap) })
         );
         lines.add('');
         lines.add(System.Label.Core_ErrorDigest_Footer);
         return String.join(lines, '\n');
+    }
+
+    private static String stillNew(Integer cap) {
+        Integer count = ErrorLogCountSelector.countNewUpTo(cap);
+        return count > cap ? counted(cap, true) : String.valueOf(count);
     }
 
     private static List<String> countLines(Map<String, Integer> counts) {
@@ -226,6 +313,9 @@ public with sharing class ErrorDigestService {
      * returns the first reason one was not, for the run summary.
      */
     private static String deliver(List<Messaging.SingleEmailMessage> messages, Outcome outcome) {
+        if (sendFailureForTest != null) {
+            return sendFailureForTest;
+        }
         if (capturedMessages != null) {
             capturedMessages.addAll(messages);
             outcome.recipients = messages.size();

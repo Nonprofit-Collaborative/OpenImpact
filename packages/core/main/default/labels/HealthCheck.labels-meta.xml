@@ -842,4 +842,28 @@
         <shortDescription>Detail of the finding for a pause nothing will end.</shortDescription>
         <value>Automation is paused until {0}, and nothing is set to switch it back on by then and record that it did. The pause was started before automatic resume existed, or somewhere other than the Automation page. Open the Automation page and click Resume automation, then pause again for a set time if you still need to.</value>
     </labels>
+    <labels>
+        <fullName>Core_HealthCheck_DigestStaleTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title of the finding for a scheduled error digest that stopped.</shortDescription>
+        <value>The error digest has stopped running</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_DigestStaleDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Detail of the stopped digest finding; {0} is when it last ran.</shortDescription>
+        <value>The error digest is scheduled but last ran {0}. It runs as the person who scheduled it, so it stops when that person is deactivated. Stop it and schedule it again as yourself.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_DigestStaleFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Fix button for the stopped digest finding.</shortDescription>
+        <value>Open Error Log settings</value>
+    </labels>
 </CustomLabels>

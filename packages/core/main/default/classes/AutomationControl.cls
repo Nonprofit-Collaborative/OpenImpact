@@ -137,6 +137,10 @@ public with sharing class AutomationControl {
         return FeatureManagement.checkPermission(MANAGE_SETTINGS_PERMISSION);
     }
 
+    /** Test seam: makes scheduling the resume fail, as it does when the org has 100 jobs. */
+    @TestVisible
+    private static Boolean schedulingFailsForTest = false;
+
     private static void requirePermission() {
         if (!canManage()) {
             throw new AutomationControlException(Label.Core_Automation_NoPermission);
@@ -156,6 +160,9 @@ public with sharing class AutomationControl {
         }
         Datetime until = writePausedUntil(System.now().addHours(hours));
         try {
+            if (schedulingFailsForTest) {
+                throw new AutomationControlException('Scheduling refused for this test.');
+            }
             AutomationResumeJob.scheduleAt(until);
         } catch (Exception failed) {
             ErrorLogger.log(failed, RESUME_SCHEDULE_CONTEXT);
@@ -187,14 +194,32 @@ public with sharing class AutomationControl {
      */
     @NamespaceAccessible
     public static Boolean resumeExpiredPause() {
-        Datetime stored = SettingsService.getSettingsForUpdate().Automation_Paused_Until__c;
+        return resumeExpiredPause(null);
+    }
+
+    /**
+     * The same, for the pause ending at `expectedEnd` only. The stored end is read under a lock
+     * on the settings record, so a pause saved a moment ago is either seen (and left alone,
+     * because its end differs) or waits until this has finished. A null `expectedEnd` clears
+     * whatever expired pause is stored.
+     */
+    @NamespaceAccessible
+    public static Boolean resumeExpiredPause(Datetime expectedEnd) {
+        Datetime stored = OrgSettingsSystemWriter.lockStored()?.Automation_Paused_Until__c;
         if (stored == null || stored > System.now()) {
+            return false;
+        }
+        if (expectedEnd != null && !sameSecond(stored, expectedEnd)) {
             return false;
         }
         AutomationSettingsWriter.savePausedUntil(null);
         SettingsService.clearCache();
         SettingsService.logChange(PAUSE_SETTING_NAME, String.valueOf(stored), '');
         return true;
+    }
+
+    private static Boolean sameSecond(Datetime first, Datetime second) {
+        return first.getTime() / 1000 == second.getTime() / 1000;
     }
 
     /**

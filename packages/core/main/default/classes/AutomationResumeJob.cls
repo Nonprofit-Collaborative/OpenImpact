@@ -16,9 +16,26 @@ public with sharing class AutomationResumeJob implements Schedulable {
 
     private static final String LOG_CONTEXT = 'Automation pause: automatic resume';
 
+    /**
+     * The end of the pause this job was scheduled for. The job clears that pause and no other:
+     * if an administrator paused again after this job was set, the stored end differs and the
+     * newer pause is left to its own job.
+     */
+    private final Datetime pauseEnds;
+
+    public AutomationResumeJob(Datetime pauseEnds) {
+        this.pauseEnds = pauseEnds;
+    }
+
     public void execute(SchedulableContext context) {
         try {
-            AutomationControl.resumeExpiredPause();
+            if (pauseEnds != null && System.now() < pauseEnds) {
+                // Fired before the end (a clock change can do that): wait for the end rather
+                // than going away and leaving the pause with nothing to record its end.
+                scheduleAt(pauseEnds);
+                return;
+            }
+            AutomationControl.resumeExpiredPause(pauseEnds);
         } catch (Exception failed) {
             ErrorLogger.log(failed, LOG_CONTEXT);
         }
@@ -40,12 +57,14 @@ public with sharing class AutomationResumeJob implements Schedulable {
      * running and leave it alone.
      */
     public static Id scheduleAt(Datetime pauseEnds) {
+        return schedule(pauseEnds, pauseEnds.addSeconds(1));
+    }
+
+    /** Schedules the resume of the pause ending at `pauseEnds` to run at `runAt`. */
+    @TestVisible
+    private static Id schedule(Datetime pauseEnds, Datetime runAt) {
         cancel();
-        return System.schedule(
-            JOB_NAME,
-            cronFor(pauseEnds.addSeconds(1)),
-            new AutomationResumeJob()
-        );
+        return System.schedule(JOB_NAME, cronFor(runAt), new AutomationResumeJob(pauseEnds));
     }
 
     /** Cancels the scheduled resume, if there is one. */

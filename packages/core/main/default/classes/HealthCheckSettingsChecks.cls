@@ -43,6 +43,13 @@ public with sharing class HealthCheckSettingsChecks {
         }
     }
 
+    /** A scheduled error digest that has stopped running. */
+    public class ErrorDigestCheck implements HealthCheckService.Check {
+        public HealthCheckService.Finding run() {
+            return errorDigestFinding();
+        }
+    }
+
     /** How many Error Log rows nobody has read yet. */
     public class ErrorLogCheck implements HealthCheckService.Check {
         public HealthCheckService.Finding run() {
@@ -334,5 +341,36 @@ public with sharing class HealthCheckSettingsChecks {
                 System.Label.Core_HealthCheck_ErrorLogFix,
                 ErrorLogCountSelector.listViewUrl()
             );
+    }
+
+    /** How long a scheduled daily digest may go without a run before it is a finding. */
+    @TestVisible
+    private static final Integer DIGEST_STALE_DAYS = 2;
+
+    /**
+     * Whether the error digest is scheduled but has not run for more than two days (ADR-NEXT).
+     * The job runs as the person who scheduled it, so it stops when that person is deactivated,
+     * and nothing else would say so: the panel still shows it as scheduled. A digest that has
+     * never run is not reported; its first run is at most a day away.
+     */
+    private static HealthCheckService.Finding errorDigestFinding() {
+        if (ErrorDigestScheduler.nextRunAt() == null) {
+            return null;
+        }
+        Datetime lastRun = SettingsService.getSettings().Error_Digest_Last_Run__c;
+        if (lastRun == null || lastRun > System.now().addDays(-DIGEST_STALE_DAYS)) {
+            return null;
+        }
+        return new HealthCheckService.Finding(
+                'error_digest_stale',
+                System.Label.Core_HealthCheck_DigestStaleTitle,
+                String.format(
+                    System.Label.Core_HealthCheck_DigestStaleDetail,
+                    new List<Object>{ lastRun.format() }
+                ),
+                HealthCheckService.SEVERITY_WARNING,
+                HealthCheckService.CATEGORY_SETTINGS
+            )
+            .withFix(System.Label.Core_HealthCheck_DigestStaleFix, SettingSections.ERROR_LOG);
     }
 }
