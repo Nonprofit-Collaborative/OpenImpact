@@ -221,22 +221,89 @@ public with sharing class GiftPostingLock {
         ErrorLogger.logMessages(overrides, LOG_CONTEXT, ErrorLogger.SEVERITY_WARNING);
     }
 
-    /** Before delete: a locked gift stays. */
+    /**
+     * Before delete: a locked gift stays, and so does a gift a locked gift names as its original
+     * (R-G15), because the platform would clear Original Gift on the locked gift without running
+     * this lock.
+     */
     public static void enforceOnDelete(List<Gift__c> gifts) {
         Date closed = closedThrough();
         Boolean overridden = canOverride();
+        Set<Id> originals = namedByLockedGifts(new Map<Id, Gift__c>(gifts).keySet(), closed);
         List<String> overrides = new List<String>();
         for (Gift__c gift : gifts) {
-            if (!isLocked(gift, closed)) {
+            String refusal = isLocked(gift, closed)
+                ? lockedMessage(gift, closed)
+                : originals.contains(gift.Id) ? Label.Giving_Posting_OriginalLocked : null;
+            if (refusal == null) {
                 continue;
             }
             if (overridden) {
                 overrides.add(describe(gift.Id, 'the gift was deleted'));
             } else {
-                gift.addError(lockedMessage(gift, closed));
+                gift.addError(refusal);
             }
         }
         ErrorLogger.logMessages(overrides, LOG_CONTEXT, ErrorLogger.SEVERITY_WARNING);
+    }
+
+    // -------------------------------------------------------------------------------------
+    // Donors a locked gift names (R-G15)
+    // -------------------------------------------------------------------------------------
+
+    /** The people and organizations being deleted that a locked gift names, from before delete. */
+    private static Set<Id> donorsNamed = new Set<Id>();
+
+    /**
+     * Before delete of a Contact or Account: notes which of them a locked gift names. Nothing is
+     * refused yet, because a merge deletes the losing record too and only after delete says so.
+     */
+    public static void noteDonorsNamed(List<SObject> records) {
+        donorsNamed.addAll(
+            namedByLockedGifts(new Map<Id, SObject>(records).keySet(), closedThrough())
+        );
+    }
+
+    /**
+     * After delete: refuses deleting a noted record that was not merged. A merged record's gifts
+     * moved to the surviving record (MasterRecordId is set), so the books still name a donor.
+     */
+    public static void enforceOnDonorDelete(List<SObject> records) {
+        Boolean overridden = canOverride();
+        List<String> overrides = new List<String>();
+        for (SObject record : records) {
+            if (!donorsNamed.contains(record.Id) || record.get('MasterRecordId') != null) {
+                continue;
+            }
+            if (overridden) {
+                overrides.add(describe(record.Id, 'a donor named by a locked gift was deleted'));
+            } else {
+                record.addError(Label.Giving_Posting_DonorLocked);
+            }
+        }
+        ErrorLogger.logMessages(overrides, LOG_CONTEXT, ErrorLogger.SEVERITY_WARNING);
+    }
+
+    /** Which of these records a locked gift names as donor or as its original. */
+    private static Set<Id> namedByLockedGifts(Set<Id> recordIds, Date closed) {
+        Set<Id> named = new Set<Id>();
+        for (Gift__c gift : GiftPostingSelector.selectPossiblyLockedNaming(recordIds, closed)) {
+            if (!isLocked(gift, closed)) {
+                continue;
+            }
+            for (
+                Id reference : new List<Id>{
+                    gift.Donor_Contact__c,
+                    gift.Donor_Account__c,
+                    gift.Original_Gift__c
+                }
+            ) {
+                if (reference != null && recordIds.contains(reference)) {
+                    named.add(reference);
+                }
+            }
+        }
+        return named;
     }
 
     // -------------------------------------------------------------------------------------

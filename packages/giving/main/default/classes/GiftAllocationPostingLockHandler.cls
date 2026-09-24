@@ -26,4 +26,13 @@ public with sharing class GiftAllocationPostingLockHandler extends TriggerHandle
             'deleted'
         );
     }
+
+    /** A restored allocation is an allocation added to its gift. */
+    public override void afterUndelete() {
+        GiftPostingLock.enforceOnAllocations(
+            (List<Gift_Allocation__c>) Trigger.new,
+            null,
+            'restored'
+        );
+    }
 }
