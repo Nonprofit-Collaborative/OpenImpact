@@ -216,6 +216,31 @@ private class ImportProcessorBatchTest {
     }
 
     @IsTest
+    static void aChunkThatDiesAfterWritingLeavesNothingBehind() {
+        Import_Batch__c batch = staged(2);
+        batch.Status__c = ImportBatchService.STATUS_DRY_RUN_COMPLETE;
+        update batch;
+        // The chunk creates both people, then dies.
+        ImportProcessorBatch.failAfterProcessForTest = true;
+
+        Test.startTest();
+        Database.executeBatch(new ImportProcessorBatch(batch.Id, false), 200);
+        Test.stopTest();
+
+        Assert.areEqual(0, [SELECT COUNT() FROM Contact], 'The people it made were undone.');
+        for (Import_Row__c row : ImportTestDataFactory.reload(batch.Id)) {
+            Assert.areEqual(ImportRowProcessor.STATUS_REJECTED, row.Status__c, 'Rejected.');
+            Assert.areEqual('Failed for the test.', row.Error_Message__c, 'Saying why.');
+            Assert.isNull(row.Contact_1__c, 'Naming nobody the rollback removed.');
+        }
+        Assert.areEqual(
+            ImportBatchService.STATUS_FAILED,
+            ImportBatchSelector.selectById(batch.Id).Status__c,
+            'The run says it failed.'
+        );
+    }
+
+    @IsTest
     static void aRunOverNoRowsStillFinishesCleanly() {
         Import_Template__c template = ImportTestDataFactory.template(
             ImportTestDataFactory.donorMapping(),

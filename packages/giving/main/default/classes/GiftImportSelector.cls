@@ -34,14 +34,15 @@ public with sharing class GiftImportSelector {
 
     /**
      * The soft credits already on these gifts, the automatic household ones included. The
-     * gifts are the ones this import just made, so the importing user can see them.
+     * gifts are the ones this import just made and soft credits share their gift's access, so
+     * the importing user sees every one: the read runs in user mode (D-13).
      */
     public static List<Soft_Credit__c> selectCreditsOnGifts(Set<Id> giftIds) {
         return [
             SELECT Id, Gift__c, Contact__c, Account__c, Role__c
             FROM Soft_Credit__c
             WHERE Gift__c IN :giftIds
-            WITH SYSTEM_MODE
+            WITH USER_MODE
         ];
     }
 
