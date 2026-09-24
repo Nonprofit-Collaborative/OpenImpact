@@ -16,7 +16,7 @@ public without sharing class GiftImportIntegritySelector {
     /** The gifts already carrying these external identifiers (R-DM1). */
     public static List<Gift__c> selectByExternalIds(Set<String> externalIds) {
         return [
-            SELECT Id, External_Id__c
+            SELECT Id, External_Id__c, Created_By_Import_Batch__c
             FROM Gift__c
             WHERE External_Id__c IN :externalIds
             WITH SYSTEM_MODE

@@ -1614,7 +1614,7 @@ column nothing can load yet. The contract, which ADR-NEXT records:
   the total of the gift amounts it read, for the control totals (R-IB10).
 - **Carried state.** Each chunk runs in its own transaction. A processor that needs to know
   what earlier chunks of the same run decided (the scheduled payments already matched,
-  R-DM4) keeps it in `ImportEntityProcessors.carriedState`, a string the import batch holds
+  R-DM4, and in a dry run the external IDs already loaded, R-DM1) keeps it in `ImportEntityProcessors.carriedState`, a string the import batch holds
   between chunks and sets again before each one. Core never reads it, and a chunk that fails
   does not change it.
 - **Undo.** The processor names the objects it tags with the batch and gives its reasons to
@@ -3864,7 +3864,11 @@ still names, so a donor is never deleted from under a gift that stays.
 External Id, then to an open installment of the same donor. A gift found by External Id is
 the row's gift: the row is Matched, the gift is not changed, and the row's allocations, soft
 credit and tribute are not loaded again. This holds under every behaviour except Never match
-(R-DM5), so re-running a file never duplicates a gift (R-IB4, R-G7).
+(R-DM5), so re-running a file never duplicates a gift (R-IB4, R-G7). A row repeating the
+External Id of an earlier row of the same run is that row's gift under every behaviour, Never
+match included: within a chunk it shares the earlier row's outcome, and across chunks it is
+Matched when an earlier chunk loaded the gift (or, in a dry run, would load it), so the dry
+run and the commit agree.
 
 **R-DM2 Which installments are candidates.** An installment is a candidate when its Status is
 Scheduled, Overdue or Partially paid, its commitment's Status is Active or Paused, and the
@@ -3889,8 +3893,8 @@ run as in a commit: the claims are carried from chunk to chunk (R-IR6).
   gift that matches nothing is created on its own.
 - **Always create**: installments are not looked at; a gift is created on its own.
 - **Match only**: a gift that matches nothing is rejected, saying so.
-- **Never match**: a row whose gift would match an installment, or whose External Id names an
-  existing gift, is rejected naming what it matched.
+- **Never match**: a row whose gift would match an installment, or whose External Id names a
+  gift that existed before the run, is rejected naming what it matched.
 
 **R-DM6 A match is a link, and the numbers follow.** A matched gift is created with its
 Installment and that installment's Commitment set, so the installment's status and the
@@ -3904,7 +3908,10 @@ commitment's paid to date and balance update through the ordinary gift triggers 
   `GiftImportCredits` (soft credit and tribute), `GiftImportSelector` (funds, appeals and open
   installments, within the importing user's sharing), `GiftImportIntegritySelector` (what
   already exists: gifts by external ID, and the receipts, statements and gifts an undo must
-  keep; `without sharing` under ADR-0021), `DonationMatcher` (R-DM1 to R-DM6).
+  keep; `without sharing` under ADR-0021), `DonationMatcher` (R-DM1 to R-DM6),
+  `GiftImportRunState` (what one run carries from chunk to chunk: claimed payments, and in a
+  dry run the external IDs loaded, each kept as a 64-bit digest of the lowercased value; a
+  commit finds those gifts by the batch stamp instead).
 - **Settings keys** (on `Giving_Settings__c`, Section 21A):
   `Donation_Match_Date_Window_Days__c`, `Donation_Match_Amount_Tolerance__c`.
 - **Template attributes** (on `Import_Template__c`, Section 15): `Donation_Matching__c`,

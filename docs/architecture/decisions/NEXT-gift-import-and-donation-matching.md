@@ -149,8 +149,10 @@ refused until a dry run matches.
   without a description) is reported by the commit, not the preview. The preview checks
   everything the processor can check without saving.
 - Core carries one more piece of processor contract: `ImportEntityProcessors.carriedState`,
-  a string the import batch hands from chunk to chunk, so claimed installments are remembered
-  across chunks and a dry run reports what the commit will do.
+  a string the import batch hands from chunk to chunk, so claimed installments (and, in a dry
+  run, the external IDs already loaded) are remembered across chunks and a dry run reports
+  what the commit will do. A commit finds an earlier chunk's gift by its batch stamp, so its
+  state stays small however long the file.
 - This ADR extends ADR-0021 (system mode for package owned data) to two kinds of read, and so
   departs, for those reads only, from D-13's rule that every data management read runs with
   the user's own access. `GiftImportIntegritySelector` is `without sharing` and reads

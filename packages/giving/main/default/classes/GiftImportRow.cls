@@ -111,6 +111,8 @@ public with sharing class GiftImportRow {
     public Boolean matchedExisting = false;
     /** An earlier row of the same chunk whose gift this row's external ID also names. */
     public GiftImportRow sameAs;
+    /** True when an earlier chunk of the same run loaded this row's external ID (R-DM1). */
+    public Boolean repeatsEarlierChunk = false;
     /** The scheduled payment this row's gift pays, and its pledge (R-DM6). */
     public Id installmentId;
     public Id commitmentId;

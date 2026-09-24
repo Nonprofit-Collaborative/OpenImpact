@@ -50,15 +50,20 @@ public with sharing class DonationMatcher {
     }
 
     /**
-     * Under Never match, a row whose external ID names a gift already there is refused rather
-     * than matched (R-DM5).
+     * Under Never match, a row whose external ID names a gift that was there before the run is
+     * refused rather than matched (R-DM5). A repeat of an earlier row of the run is not.
      */
     public void refuseExistingUnderNeverMatch(List<GiftImportRow> gifts) {
         if (behaviour != NEVER_MATCH) {
             return;
         }
         for (GiftImportRow item : gifts) {
-            if (item.error == null && item.matchedExisting && item.sameAs == null) {
+            if (
+                item.error == null &&
+                item.matchedExisting &&
+                item.sameAs == null &&
+                !item.repeatsEarlierChunk
+            ) {
                 item.error = String.format(
                     Label.Giving_Import_ErrorExternalIdRepeated,
                     new List<String>{ item.externalId }
@@ -127,29 +132,12 @@ public with sharing class DonationMatcher {
         return matched;
     }
 
-    private static final String CLAIMED_KEY = 'claimedInstallments';
-
     /**
-     * The scheduled payments earlier chunks of this run matched (R-DM4). Each chunk is its own
-     * transaction, so Core's import batch carries them; a dry run then reports what the commit
-     * will do rather than offering one payment to a row in every chunk.
+     * The scheduled payments earlier chunks of this run matched (R-DM4), so a dry run reports
+     * what the commit will do rather than offering one payment to a row in every chunk.
      */
     private static Set<Id> claimedEarlier() {
-        Set<Id> claimed = new Set<Id>();
-        String carried = ImportEntityProcessors.carriedState;
-        if (String.isBlank(carried)) {
-            return claimed;
-        }
-        try {
-            Map<String, Object> state = (Map<String, Object>) JSON.deserializeUntyped(carried);
-            for (Object value : (List<Object>) state.get(CLAIMED_KEY)) {
-                claimed.add(Id.valueOf(String.valueOf(value)));
-            }
-        } catch (Exception unreadable) {
-            // A state this class did not write claims nothing.
-            return new Set<Id>();
-        }
-        return claimed;
+        return GiftImportRunState.carried().claimedInstallments;
     }
 
     /**
@@ -158,17 +146,15 @@ public with sharing class DonationMatcher {
      * run log.
      */
     public Integer carryClaims(List<GiftImportRow> gifts) {
-        Set<Id> claimed = claimedEarlier();
+        GiftImportRunState state = GiftImportRunState.carried();
         Integer paying = 0;
         for (GiftImportRow item : gifts) {
             if (item.error == null && !item.matchedExisting && item.installmentId != null) {
-                claimed.add(item.installmentId);
+                state.claimedInstallments.add(item.installmentId);
                 paying++;
             }
         }
-        ImportEntityProcessors.carriedState = JSON.serialize(
-            new Map<String, Object>{ CLAIMED_KEY => new List<Id>(claimed) }
-        );
+        state.carry();
         return paying;
     }
 

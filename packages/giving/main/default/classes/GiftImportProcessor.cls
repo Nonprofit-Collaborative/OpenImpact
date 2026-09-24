@@ -118,7 +118,7 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
         Integer paying = 0;
         if (!gifts.isEmpty()) {
             DonationMatcher matcher = new DonationMatcher(template);
-            matchExternalIds(pending(gifts));
+            matchExternalIds(pending(gifts), batch.Id);
             matcher.refuseExistingUnderNeverMatch(gifts);
             GiftImportCredits.read(pending(gifts));
             resolveDonors(pending(gifts), dryRun);
@@ -131,6 +131,9 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
             // A repeat of an earlier row shares its outcome, in the dry run as in the commit.
             shareWithEarlierRows(gifts);
             paying = matcher.carryClaims(gifts);
+            if (dryRun) {
+                rememberExternalIds(gifts);
+            }
             report(gifts);
         }
         if (paying > 0) {
@@ -150,6 +153,22 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
             );
         }
         return new ImportEntityResult(notes.isEmpty() ? null : String.join(notes, ' '), fileAmount);
+    }
+
+    /**
+     * The external IDs a dry run's chunk would load, for the next chunk to match (R-DM1), since
+     * the dry run saves no gift for it to find. A commit needs none of this: the gift is there,
+     * stamped with the batch, so the state stays small however long the file. A refused row is
+     * not remembered: its repeat is loaded on its own, in the dry run as in the commit.
+     */
+    private static void rememberExternalIds(List<GiftImportRow> gifts) {
+        GiftImportRunState state = GiftImportRunState.carried();
+        for (GiftImportRow item : gifts) {
+            if (item.error == null && !item.matchedExisting && item.externalId != null) {
+                state.seenExternalIds.add(GiftImportRunState.key(item.externalId));
+            }
+        }
+        state.carry();
     }
 
     private static void refuseAll(List<GiftImportRow> gifts, String reason) {
@@ -250,7 +269,7 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
      * A row whose external ID names a gift already in the org, or one an earlier row of this
      * chunk makes, is that gift: the row is Matched and the gift is not changed.
      */
-    private static void matchExternalIds(List<GiftImportRow> gifts) {
+    private static void matchExternalIds(List<GiftImportRow> gifts, Id batchId) {
         Set<String> externalIds = new Set<String>();
         for (GiftImportRow item : gifts) {
             if (item.externalId != null) {
@@ -261,18 +280,30 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
             return;
         }
         Map<String, Id> existing = new Map<String, Id>();
+        Set<String> madeByThisRun = new Set<String>();
         for (Gift__c gift : GiftImportIntegritySelector.selectByExternalIds(externalIds)) {
             existing.put(gift.External_Id__c.toLowerCase(), gift.Id);
+            if (gift.Created_By_Import_Batch__c == batchId) {
+                madeByThisRun.add(gift.External_Id__c.toLowerCase());
+            }
         }
+        Set<String> loadedEarlier = GiftImportRunState.carried().seenExternalIds;
         Map<String, GiftImportRow> firstInChunk = new Map<String, GiftImportRow>();
         for (GiftImportRow item : gifts) {
             if (item.externalId == null) {
                 continue;
             }
             String key = item.externalId.toLowerCase();
+            // A commit finds the gift an earlier chunk made; a dry run saved none, so it asks
+            // what the earlier chunks carried.
+            item.repeatsEarlierChunk =
+                madeByThisRun.contains(key) || loadedEarlier.contains(GiftImportRunState.key(key));
             if (existing.containsKey(key)) {
                 item.matchedExisting = true;
                 item.giftId = existing.get(key);
+            } else if (item.repeatsEarlierChunk) {
+                // A dry run saved nothing, but the commit's earlier chunk will have made it.
+                item.matchedExisting = true;
             } else if (firstInChunk.containsKey(key)) {
                 item.matchedExisting = true;
                 item.sameAs = firstInChunk.get(key);
