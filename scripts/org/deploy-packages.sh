@@ -76,11 +76,26 @@
 # cheap and non-destructive to try: every deploy_stage call now pauses for
 # $STAGE_PAUSE_SECONDS after a successful deploy, before the next stage starts.
 #
+# WHY ASYNC WITH A STALL CHECK. From 2026-09-24 about 13:00 UTC, one stage per run on
+# oi-test (a different one each time) sat as a DeployRequest in Status Pending with no
+# StartDate until the blocking --wait 30 gave up, so the whole gate failed after 30 minutes.
+# Cancelling such a request reports Canceled but leaves it Pending, and a fresh submission of
+# the same stage deploys normally. So each stage is submitted with --async and followed with
+# short report calls: a job still Pending with no start after STALL_SECONDS (300) is
+# cancelled, best effort, and resubmitted once; a second stall fails the stage naming both
+# job ids. A job that has started keeps the old 30 minute limit (DEPLOY_WAIT_MINUTES).
+# POLL_SECONDS sets the report interval. `sf` is found on PATH, so a fake one can drive this
+# logic in a test.
+#
 # Exit codes: 0 = every stage deployed, non-zero = the first stage that failed.
 
 set -uo pipefail
 
 STAGE_PAUSE_SECONDS="${STAGE_PAUSE_SECONDS:-15}"
+STALL_SECONDS="${STALL_SECONDS:-300}"
+POLL_SECONDS="${POLL_SECONDS:-15}"
+DEPLOY_WAIT_MINUTES="${DEPLOY_WAIT_MINUTES:-30}"
+STALLS_RECOVERED=0
 
 ALIAS="${1:-}"
 if [[ -z "$ALIAS" ]]; then
@@ -91,6 +106,49 @@ shift || true
 
 CORE_ONLY=0
 [[ "${1:-}" == "--core-only" ]] && CORE_ONLY=1
+
+# Submit one deploy asynchronously and follow it with short report calls. Sets JOB_ID.
+# Returns 0 when it succeeded, 1 when it finished any other way (or ran past
+# DEPLOY_WAIT_MINUTES, the old --wait 30), and 2 when it was still Pending with no start
+# after STALL_SECONDS: a stall, which the caller cancels and resubmits. A job that has
+# started is never a stall, however long it runs.
+submit_and_follow() {
+  local out report state finished started deployed total shown="" submitted="$SECONDS"
+  JOB_ID=""
+  out="$(sf project deploy start "$@" --async --ignore-conflicts --target-org "$ALIAS" --json 2>/dev/null)"
+  JOB_ID="$(jq -r '.result.id // empty' <<< "$out" 2>/dev/null)"
+  if [[ -z "$JOB_ID" ]]; then
+    echo "The org did not accept the deploy:"
+    jq -r '.message // empty' <<< "$out" 2>/dev/null || echo "$out"
+    return 1
+  fi
+  echo "Deploy ID: ${JOB_ID}"
+  while true; do
+    sleep "$POLL_SECONDS"
+    report="$(sf project deploy report --job-id "$JOB_ID" --target-org "$ALIAS" --json 2>/dev/null)"
+    read -r state finished started deployed total < <(jq -r '.result
+      | "\(.status // "Unknown") \(.done // false) \(.startDate // "none") \(.numberComponentsDeployed // 0) \(.numberComponentsTotal // 0)"' \
+      <<< "$report" 2>/dev/null)
+    state="${state:-Unknown}" finished="${finished:-false}" started="${started:-none}"
+    if [[ "${state} ${deployed}/${total}" != "$shown" ]]; then
+      shown="${state} ${deployed}/${total}"
+      echo "Status: ${state} (${deployed:-0}/${total:-0} components, $(( SECONDS - submitted ))s)"
+    fi
+    case "$state" in
+      Succeeded) return 0 ;;
+      SucceededPartial | Failed | Canceled) return 1 ;;
+    esac
+    [[ "$finished" == "true" ]] && return 1
+    if [[ "$state" =~ ^(Pending|Queued)$ && "$started" == "none" && "${deployed:-0}" -eq 0 ]] \
+      && (( SECONDS - submitted >= STALL_SECONDS )); then
+      return 2
+    fi
+    if (( SECONDS - submitted >= DEPLOY_WAIT_MINUTES * 60 )); then
+      echo "Timed out after ${DEPLOY_WAIT_MINUTES} minutes with the deploy still ${state}."
+      return 1
+    fi
+  done
+}
 
 # Deploy one or more directories as a single stage, and on failure ask the org what actually
 # went wrong. A deploy can report only "Status: Failed" with no detail, which is why the
@@ -114,20 +172,33 @@ deploy_stage() {
 
   echo ""
   echo "== Deploying ${label} ($*) to ${ALIAS} =="
-  local log status job_id
-  log="$(mktemp)"
-  sf project deploy start "${dirs[@]}" --wait 30 --ignore-conflicts --target-org "$ALIAS" 2>&1 | tee "$log"
-  status="${PIPESTATUS[0]}"
+  local status attempt stalled=()
+  for attempt in 1 2; do
+    submit_and_follow "${dirs[@]}"
+    status=$?
+    [[ "$status" -ne 2 ]] && break
+    stalled+=("$JOB_ID")
+    echo "== STALLED DEPLOY: ${label}, job ${JOB_ID}, still Pending with no start after ${STALL_SECONDS}s. Cancelling it =="
+    sf project deploy cancel --job-id "$JOB_ID" --target-org "$ALIAS" --async --json > /dev/null 2>&1 || true
+    [[ "$attempt" -eq 1 ]] && echo "== Resubmitting ${label} once =="
+  done
+
+  if [[ "$status" -eq 2 ]]; then
+    echo ""
+    echo "== ${label} failed: its deploy stalled twice (Pending, never started), jobs ${stalled[*]} =="
+    echo "A cancel was requested for each. This is the platform deploy queue, not a component error; see"
+    echo "docs/contributor-guide/ci.md, \"Stalled deploys\"."
+    return 1
+  fi
 
   if [[ "$status" -ne 0 ]]; then
     echo ""
     echo "== ${label} failed. Asking the org for the component level detail =="
-    job_id="$(grep -oE 'Deploy ID: [0-9A-Za-z]+' "$log" | head -1 | awk '{print $3}')"
-    if [[ -n "$job_id" ]]; then
-      sf project deploy report --job-id "$job_id" --target-org "$ALIAS" || true
+    if [[ -n "$JOB_ID" ]]; then
+      sf project deploy report --job-id "$JOB_ID" --target-org "$ALIAS" || true
       # Only the failures and the overall message: the full JSON lists every deployed
       # component first, which pushed the failures out of reach of a log tail.
-      sf project deploy report --job-id "$job_id" --target-org "$ALIAS" --json \
+      sf project deploy report --job-id "$JOB_ID" --target-org "$ALIAS" --json \
         | jq '.result | {status, errorMessage, numberComponentErrors, componentFailures: .details.componentFailures}' \
         || true
     else
@@ -139,11 +210,14 @@ deploy_stage() {
     echo "with zero component errors, suspect a file the metadata API could not parse at all"
     echo "(on 2026-09-22 that was an undeclared xsd prefix in custom metadata records) before"
     echo "suspecting the platform. See docs/contributor-guide/ci.md, \"Resolved 2026-09-22\"."
-    rm -f "$log"
     return "$status"
   fi
 
-  rm -f "$log"
+  sf project deploy report --job-id "$JOB_ID" --target-org "$ALIAS" || true
+  if [[ "${#stalled[@]}" -gt 0 ]]; then
+    STALLS_RECOVERED=$(( STALLS_RECOVERED + ${#stalled[@]} ))
+    echo "== Recovered: ${label} deployed on resubmission after stalled job ${stalled[*]} =="
+  fi
   echo "== Pausing ${STAGE_PAUSE_SECONDS}s before the next stage =="
   sleep "$STAGE_PAUSE_SECONDS"
   return 0
@@ -247,4 +321,7 @@ if ! printf '%s\n' 'RollupService.ensureDefaults();' | sf apex run --target-org 
 fi
 
 echo ""
+if [[ "$STALLS_RECOVERED" -gt 0 ]]; then
+  echo "== ${STALLS_RECOVERED} stalled deploy(s) cancelled and resubmitted successfully =="
+fi
 echo "== Every stage deployed =="
