@@ -27,13 +27,13 @@
  */
 public without sharing class AutomationSettingsWriter {
     public static void savePausedUntil(Datetime pausedUntil) {
-        Nonprofit_Settings__c settings = Nonprofit_Settings__c.getOrgDefaults();
-        settings.Automation_Paused_Until__c = pausedUntil;
-        if (settings.Id == null) {
-            Database.insert(settings, AccessLevel.SYSTEM_MODE);
-        } else {
-            Database.update(settings, AccessLevel.SYSTEM_MODE);
-        }
+        // Through the shared writer: a pause is often the first thing saved after install, and
+        // that first save must keep the shipped defaults (OrgSettingsSystemWriter).
+        OrgSettingsSystemWriter.save(
+            new Map<Schema.SObjectField, Object>{
+                Nonprofit_Settings__c.Automation_Paused_Until__c => pausedUntil
+            }
+        );
     }
 
     /** Inserts switch rows materialized from the shipped registry. */
