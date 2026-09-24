@@ -271,4 +271,19 @@ private class ImportControllerTest {
             );
         }
     }
+
+    @IsTest
+    static void offersTheColumnsAnInstalledModuleLoads() {
+        ImportController.permissionOverride = true;
+        Test.startTest();
+        List<ImportMapping.Target> targets = ImportController.getEntityTargets();
+        Test.stopTest();
+
+        ImportEntityProcessor installed = ImportEntityProcessors.find();
+        Assert.areEqual(
+            installed == null ? 0 : installed.targets().size(),
+            targets.size(),
+            'The picker offers exactly what the installed module loads, or nothing.'
+        );
+    }
 }

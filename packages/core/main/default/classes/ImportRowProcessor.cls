@@ -40,7 +40,7 @@ public with sharing class ImportRowProcessor {
 
     /** The class name a dependent package registers to resolve the rest of a row (R-IR6). */
     @NamespaceAccessible
-    public static final String ENTITY_PROCESSOR_CLASS = 'GiftImportProcessor';
+    public static final String ENTITY_PROCESSOR_CLASS = ImportEntityProcessors.CLASS_NAME;
 
     private static final String ORGANIZATION_RECORD_TYPE = 'Organization';
 
@@ -77,6 +77,12 @@ public with sharing class ImportRowProcessor {
          */
         @NamespaceAccessible
         public List<Map<String, Object>> journal = new List<Map<String, Object>>();
+        /**
+         * The total of the gift amounts the entity processor read in this chunk, for the control
+         * totals (R-IB10); null when no processor read any.
+         */
+        @NamespaceAccessible
+        public Decimal fileAmount;
     }
 
     /** One row's working state while the chunk is resolved. */
@@ -122,7 +128,7 @@ public with sharing class ImportRowProcessor {
         resolveOrganizations(working, rule, batch, dryRun, outcome);
         resolvePeople(working, rule, batch, personAccounts, dryRun, outcome);
         tagAndNameHouseholds(working, batch, dryRun, outcome);
-        offerToEntityProcessor(batch, mapping, rows, working, dryRun, outcome);
+        offerToEntityProcessor(batch, template, mapping, working, dryRun, outcome);
         writeBack(working, outcome);
         if (
             !dryRun &&
@@ -161,15 +167,6 @@ public with sharing class ImportRowProcessor {
                 attribute(item.byEntity, ImportMapping.ENTITY_ORGANIZATION, 'Name')
             );
             working.add(item);
-        }
-        Set<String> deferred = mapping.deferredEntities();
-        if (!deferred.isEmpty()) {
-            outcome.notes.add(
-                String.format(
-                    Label.Core_Import_LogEntitiesNotLoaded,
-                    new List<String>{ String.join(new List<String>(deferred), ', ') }
-                )
-            );
         }
         return working;
     }
@@ -439,6 +436,9 @@ public with sharing class ImportRowProcessor {
 
         if (dryRun) {
             countUpdatesInPreview(working, personAccounts);
+            // Read, not written: an entity processor matching a gift to a household's pledge
+            // needs the household a matched person is in, in the preview as in the commit.
+            resolveHouseholds(working, personAccounts);
             return;
         }
         savePeople(working, batch, personAccounts, outcome);
@@ -1254,37 +1254,79 @@ public with sharing class ImportRowProcessor {
 
     /**
      * Offers the chunk to the entity processor a dependent package may have registered
-     * (R-IR6). Nothing here fails an import: an absent processor is the normal case, and a
-     * processor that throws is logged and reported in the run log, not raised.
+     * (R-IR6), and folds what it did into each row (R-IR7). Nothing here fails an import: an
+     * absent processor is the normal case, and says so in the run log, and a processor that
+     * throws is logged and reported in the run log, not raised.
      */
     private static void offerToEntityProcessor(
         Import_Batch__c batch,
+        Import_Template__c template,
         ImportMapping mapping,
-        List<Import_Row__c> rows,
         List<Working> working,
         Boolean dryRun,
         Outcome outcome
     ) {
-        if (mapping.deferredEntities().isEmpty()) {
+        Set<String> deferred = mapping.deferredEntities();
+        if (deferred.isEmpty()) {
             return;
         }
-        Type handler = Type.forName(NamespaceUtil.qualify(ENTITY_PROCESSOR_CLASS));
-        if (handler == null) {
+        ImportEntityProcessor processor = ImportEntityProcessors.find();
+        if (processor == null) {
+            outcome.notes.add(
+                String.format(
+                    Label.Core_Import_LogEntitiesNotLoaded,
+                    new List<String>{ String.join(new List<String>(deferred), ', ') }
+                )
+            );
             return;
+        }
+        List<Import_Row__c> rows = new List<Import_Row__c>();
+        Map<Id, Map<String, Map<String, String>>> entitiesByRowId = new Map<Id, Map<String, Map<String, String>>>();
+        for (Working item : working) {
+            // The processor reads what Core resolved from the row itself (R-IR6).
+            stampResolved(item);
+            item.row.Status__c = item.error == null ? STATUS_PENDING : STATUS_REJECTED;
+            item.row.Error_Message__c = item.error == null ? null : item.error.abbreviate(4000);
+            rows.add(item.row);
+            entitiesByRowId.put(item.row.Id, item.byEntity);
         }
         try {
-            ImportEntityProcessor processor = (ImportEntityProcessor) handler.newInstance();
-            Map<Id, Map<String, String>> valuesByRowId = new Map<Id, Map<String, String>>();
-            for (Working item : working) {
-                valuesByRowId.put(item.row.Id, item.values);
+            ImportEntityResult result = processor.resolve(
+                batch,
+                template,
+                rows,
+                entitiesByRowId,
+                dryRun
+            );
+            if (result != null && String.isNotBlank(result.note)) {
+                outcome.notes.add(result.note);
             }
-            String note = processor.resolve(batch, mapping, rows, valuesByRowId, dryRun);
-            if (String.isNotBlank(note)) {
-                outcome.notes.add(note);
+            if (result != null && result.fileAmount != null) {
+                outcome.fileAmount = result.fileAmount;
             }
         } catch (Exception e) {
             ErrorLogger.log(e, 'ImportRowProcessor.offerToEntityProcessor');
             outcome.notes.add(e.getMessage());
+        }
+        foldProcessorOutcome(working);
+    }
+
+    /**
+     * A rejection by the processor wins over anything Core did with the row, and a creation
+     * makes the row one that created something; a match leaves Core's own outcome (R-IR7).
+     */
+    private static void foldProcessorOutcome(List<Working> working) {
+        for (Working item : working) {
+            if (item.error != null) {
+                continue;
+            }
+            if (STATUS_REJECTED.equals(item.row.Status__c)) {
+                item.error = String.isBlank(item.row.Error_Message__c)
+                    ? Label.Core_Import_ErrorSaveFailed
+                    : item.row.Error_Message__c;
+            } else if (STATUS_CREATED.equals(item.row.Status__c)) {
+                item.createdAnything = true;
+            }
         }
     }
 
@@ -1296,23 +1338,13 @@ public with sharing class ImportRowProcessor {
         List<Import_Row__c> rows = new List<Import_Row__c>();
         for (Working item : working) {
             Import_Row__c row = item.row;
-            Boolean personAccountRow =
-                item.person1Id != null &&
-                item.person1Id.getSObjectType() == Account.SObjectType;
             if (item.error != null) {
                 row.Status__c = STATUS_REJECTED;
                 row.Error_Message__c = item.error.abbreviate(4000);
                 outcome.rejected++;
             } else {
                 row.Error_Message__c = null;
-                if (personAccountRow) {
-                    row.Person_1_Account__c = item.person1Id;
-                    row.Person_2_Account__c = item.person2Id;
-                } else {
-                    row.Contact_1__c = item.person1Id;
-                    row.Contact_2__c = item.person2Id;
-                }
-                row.Organization__c = item.organizationId;
+                stampResolved(item);
                 if (item.createdAnything) {
                     row.Status__c = STATUS_CREATED;
                     outcome.created++;
@@ -1332,6 +1364,22 @@ public with sharing class ImportRowProcessor {
         // The staged rows are the package's own bookkeeping and must record what happened even
         // where the running user cannot edit them, for the reason ADR-0021 gives.
         Database.update(rows, false, AccessLevel.SYSTEM_MODE);
+    }
+
+    /** Writes the people and the organization the row resolved to onto the row. */
+    private static void stampResolved(Working item) {
+        Import_Row__c row = item.row;
+        Boolean personAccountRow =
+            item.person1Id != null &&
+            item.person1Id.getSObjectType() == Account.SObjectType;
+        if (personAccountRow) {
+            row.Person_1_Account__c = item.person1Id;
+            row.Person_2_Account__c = item.person2Id;
+        } else {
+            row.Contact_1__c = item.person1Id;
+            row.Contact_2__c = item.person2Id;
+        }
+        row.Organization__c = item.organizationId;
     }
 
     // -------------------------------------------------------------------------------------

@@ -95,6 +95,23 @@ public with sharing class ImportController {
         return hasManagePermission();
     }
 
+    /**
+     * The columns an installed entity processor loads (R-IR6), for the column picker. Empty
+     * where none is installed, and the wizard then offers the gift columns as kept with the
+     * row and not loaded.
+     */
+    @AuraEnabled
+    public static List<ImportMapping.Target> getEntityTargets() {
+        try {
+            enforcePermission();
+            ImportEntityProcessor processor = ImportEntityProcessors.find();
+            List<ImportMapping.Target> targets = processor == null ? null : processor.targets();
+            return targets == null ? new List<ImportMapping.Target>() : targets;
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.getEntityTargets');
+        }
+    }
+
     /** The templates the wizard offers, materializing the shipped ones on first use. */
     @AuraEnabled
     public static List<TemplateView> getTemplates() {

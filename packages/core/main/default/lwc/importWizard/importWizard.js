@@ -13,6 +13,7 @@ import startCommit from '@salesforce/apex/ImportController.startCommit';
 import getBatch from '@salesforce/apex/ImportController.getBatch';
 import getRows from '@salesforce/apex/ImportController.getRows';
 import saveRecurring from '@salesforce/apex/ImportController.saveRecurring';
+import getEntityTargets from '@salesforce/apex/ImportController.getEntityTargets';
 
 import cardTitle from '@salesforce/label/c.Core_Import_CardTitle';
 import stepTemplate from '@salesforce/label/c.Core_Import_StepTemplate';
@@ -89,7 +90,15 @@ const TARGETS = [
   { value: 'Organization.BillingCity', label: 'Organization: city' },
   { value: 'Organization.BillingState', label: 'Organization: state or province' },
   { value: 'Organization.BillingPostalCode', label: 'Organization: postal code' },
-  { value: 'Organization.BillingCountry', label: 'Organization: country' },
+  { value: 'Organization.BillingCountry', label: 'Organization: country' }
+];
+
+/**
+ * The gift columns offered where no module that loads gifts is installed: recognized, kept
+ * with the row, and loaded by nothing. Where one is installed its own targets replace these
+ * (R-IR6).
+ */
+const GIFT_TARGETS_NOT_LOADED = [
   { value: 'Gift.Amount__c', label: 'Gift: amount (kept with the row, not loaded yet)' },
   { value: 'Gift.Gift_Date__c', label: 'Gift: date (kept with the row, not loaded yet)' },
   { value: 'Gift.Type__c', label: 'Gift: payment method (kept with the row, not loaded yet)' },
@@ -135,6 +144,8 @@ export default class ImportWizard extends LightningElement {
   fileName;
   pollTimer;
   storeFileError;
+  /** The columns an installed module loads, empty where none is (R-IR6). */
+  entityTargets = [];
 
   labels = {
     cardTitle,
@@ -169,6 +180,7 @@ export default class ImportWizard extends LightningElement {
       this.permitted = await canImport();
       if (this.permitted) {
         this.templates = await getTemplates();
+        this.entityTargets = (await getEntityTargets()) || [];
         if (this.templates.length > 0) {
           this.selectTemplate(this.templates[0].id);
         }
@@ -345,7 +357,11 @@ export default class ImportWizard extends LightningElement {
   // ---------------------------------------------------------------------------------------
 
   get targetOptions() {
-    return [{ label: doNotLoad, value: IGNORE }].concat(TARGETS);
+    const giftTargets =
+      this.entityTargets.length > 0 ? this.entityTargets : GIFT_TARGETS_NOT_LOADED;
+    return [{ label: doNotLoad, value: IGNORE }]
+      .concat(TARGETS)
+      .concat(giftTargets.map((target) => ({ value: target.value, label: target.label })));
   }
 
   handleTargetChange(event) {

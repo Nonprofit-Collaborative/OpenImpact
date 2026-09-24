@@ -11,6 +11,7 @@ import startCommit from '@salesforce/apex/ImportController.startCommit';
 import getBatch from '@salesforce/apex/ImportController.getBatch';
 import getRows from '@salesforce/apex/ImportController.getRows';
 import saveRecurring from '@salesforce/apex/ImportController.saveRecurring';
+import getEntityTargets from '@salesforce/apex/ImportController.getEntityTargets';
 
 jest.mock('@salesforce/apex/ImportController.canImport', () => ({ default: jest.fn() }), {
   virtual: true
@@ -43,6 +44,9 @@ jest.mock('@salesforce/apex/ImportController.saveRecurring', () => ({ default: j
   virtual: true
 });
 jest.mock('@salesforce/apex/ImportController.getRows', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock('@salesforce/apex/ImportController.getEntityTargets', () => ({ default: jest.fn() }), {
   virtual: true
 });
 
@@ -122,6 +126,7 @@ describe('the import wizard', () => {
     startCommit.mockResolvedValue({ ...DRY_RUN_BATCH, status: 'Complete', isDryRun: false });
     getBatch.mockResolvedValue(DRY_RUN_BATCH);
     getRows.mockResolvedValue([]);
+    getEntityTargets.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -366,5 +371,28 @@ describe('the import wizard', () => {
     await flush();
     expect(element.shadowRoot.querySelector('[data-id="template"]')).not.toBeNull();
     expect(element.shadowRoot.querySelector('[data-id="results"]')).toBeNull();
+  });
+
+  it('offers the gift columns an installed module loads', async () => {
+    getEntityTargets.mockResolvedValue([{ value: 'Gift.Amount__c', label: 'Gift: amount' }]);
+    suggestMapping.mockResolvedValue(
+      JSON.stringify({
+        version: 1,
+        columns: [
+          { source: 'Last Name', target: 'Contact1.LastName' },
+          { source: 'Email', target: 'Contact1.Email' },
+          { source: 'Notes', target: 'Gift.Amount__c' }
+        ]
+      })
+    );
+    const element = render();
+    await flush();
+    click(element, 'next');
+    await flush();
+    await chooseFile(element);
+    const picker = element.shadowRoot.querySelector('[data-id="column-row"] lightning-combobox');
+    const labels = picker.options.map((option) => option.label);
+    expect(labels).toContain('Gift: amount');
+    expect(labels).not.toContain('Gift: amount (kept with the row, not loaded yet)');
   });
 });
