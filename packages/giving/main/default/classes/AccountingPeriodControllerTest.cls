@@ -117,9 +117,12 @@ private class AccountingPeriodControllerTest {
             AccountingPeriodController.closeThrough(lastMonthEnd());
             GiftPostingLock.overrideHeld = true;
 
+            // The Error Log entry is delivered as an event, which Test.stopTest publishes.
+            Test.startTest();
             AccountingPeriodController.PeriodView view = AccountingPeriodController.closeThrough(
                 lastMonthEnd().addDays(-5)
             );
+            Test.stopTest();
 
             Assert.areEqual(lastMonthEnd().addDays(-5), view.closedThrough);
             Assert.isTrue(view.canReopen);
