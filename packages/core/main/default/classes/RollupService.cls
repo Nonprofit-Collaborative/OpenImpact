@@ -31,6 +31,9 @@ public with sharing class RollupService {
     @NamespaceAccessible
     public static final String MODE_BOTH = 'Both';
 
+    /** The field the platform fills on a record deleted by a merge, naming the survivor. */
+    private static final String MERGE_SURVIVOR_FIELD = 'MasterRecordId';
+
     /** The one freshness attribute every target entity carries (canonical model Section 26). */
     @NamespaceAccessible
     public static final String FRESHNESS_FIELD = 'Rollups_Last_Calculated__c';
@@ -127,18 +130,29 @@ public with sharing class RollupService {
      *
      * The platform's merge moves the merged-away record's children onto the survivor without
      * saving them, so no trigger on a child runs and a real-time total on the survivor would
-     * not include them until the nightly run. The engine has a path for exactly this: handed
-     * the deleted records in their own `after delete`, with `MasterRecordId` filled, it
-     * recalculates every rollup whose target is that entity for the survivors. This hands it
-     * the definitions that target the merged entity, whatever package declared them, so Core
-     * names no child entity (ADR-0014).
+     * not include them until the nightly run. This runs the engine's full recalculation, the
+     * one the Rollups page runs, limited to the survivors, for every active real-time
+     * definition that targets the merged entity, whatever package declared it, so Core names
+     * no child entity (ADR-0014). The recalculation is queued, so it reads the children after
+     * the merge has finished moving them.
      *
      * @param targetObject the entity whose records were merged
-     * @param mergedRecords the deleted records, as the `after delete` trigger has them
+     * @param mergedRecords the deleted records, as the `after delete` trigger has them, with
+     *        `MasterRecordId` naming each survivor
      */
     @NamespaceAccessible
     public static void runAfterMerge(String targetObject, List<SObject> mergedRecords) {
         if (String.isBlank(targetObject) || mergedRecords == null || mergedRecords.isEmpty()) {
+            return;
+        }
+        Set<String> survivorIds = new Set<String>();
+        for (SObject record : mergedRecords) {
+            Object survivorId = record.getPopulatedFieldsAsMap().get(MERGE_SURVIVOR_FIELD);
+            if (survivorId != null) {
+                survivorIds.add(String.valueOf(survivorId));
+            }
+        }
+        if (survivorIds.isEmpty()) {
             return;
         }
         List<Rollup__mdt> metadata = new List<Rollup__mdt>();
@@ -161,7 +175,11 @@ public with sharing class RollupService {
         }
         lastMetadata = metadata;
         if (skipEngine != true) {
-            Rollup.runFromApex(metadata, null, mergedRecords, null)?.runCalc();
+            Rollup.performBulkFullRecalcWithParentIds(
+                JSON.serialize(metadata),
+                Rollup.InvocationPoint.FROM_FULL_RECALC_APEX.name(),
+                new List<String>(survivorIds)
+            );
         }
     }
 

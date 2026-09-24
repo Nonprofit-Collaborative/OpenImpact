@@ -27,9 +27,9 @@ public with sharing class RollupTriggerHandler extends TriggerHandler {
     }
 
     /**
-     * A merge: the records deleted with `MasterRecordId` filled are handed to the engine so the
-     * survivors' totals include what the merge moved onto them. An ordinary delete was already
-     * handled before the delete.
+     * A merge: the records deleted with `MasterRecordId` filled name the survivors, whose totals
+     * are recalculated so they include what the merge moved onto them. An ordinary delete was
+     * already handled before the delete.
      */
     public override void afterDelete() {
         List<SObject> merged = new List<SObject>();

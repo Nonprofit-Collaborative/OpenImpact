@@ -327,7 +327,18 @@ private class RollupServiceTest {
         };
         RollupService.skipEngine = true;
         RollupService.lastMetadata = null;
-        List<SObject> merged = new List<SObject>{ new Account(Name = 'Merged away') };
+        // MasterRecordId cannot be written, so the deleted record is built as the trigger has it.
+        List<SObject> merged = new List<SObject>{
+            (Account) JSON.deserialize(
+                '{"attributes":{"type":"Account"},"MasterRecordId":"001000000000001AAA"}',
+                Account.class
+            )
+        };
+        RollupService.runAfterMerge('Account', new List<SObject>{ new Account(Name = 'Deleted') });
+        System.Assert.isNull(
+            RollupService.lastMetadata,
+            'An ordinary delete names no survivor, so nothing is recalculated'
+        );
 
         Test.startTest();
         RollupService.runAfterMerge('Contact', merged);
