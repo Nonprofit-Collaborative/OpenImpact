@@ -13,8 +13,20 @@ Nothing is ever merged or deleted for you. Every merge is a pair you looked at a
 
 ## How to turn it on
 
-There is nothing to install and, in most orgs, no Setup step. Salesforce switches on its
-standard duplicate rules for people and accounts in every new org, and Open Impact uses them.
+There is nothing to install. Salesforce switches on its standard duplicate rules for people
+and accounts in every new org, and Open Impact uses them. There is one Setup step, because of a
+Salesforce licensing rule:
+
+**Who can review duplicates.** Salesforce keeps possible duplicates in records called duplicate
+record sets, and gives access to them only to users with a **Sales Cloud or Service Cloud
+license**. No other license can have it, Salesforce Platform included. So Open Impact puts that
+access in its own permission set, **Nonprofit Duplicate Review**, which is in no role. In Setup,
+open **Users**, choose each person who will review duplicates, and under **Permission Set
+Assignments** add **Nonprofit Duplicate Review**. Salesforce refuses the assignment for a user
+without one of those licenses. If nobody in your org has one, duplicate rules still warn people
+as they type, but nobody can review or merge suggestions: not on this panel, and not on the
+**Potential Duplicates** card on a contact's page, which reads the same records and shows a
+Platform user nothing usable.
 
 1. Open the **Nonprofit Hub** app and choose **Nonprofit Settings**.
 2. In the left navigation choose **Households**, and scroll to **Duplicates**.
@@ -22,6 +34,10 @@ standard duplicate rules for people and accounts in every new org, and Open Impa
    least one should say On. If none does, see Common mistakes below.
 4. Choose **Scan for duplicates**. The scan looks through the people and households you
    already have. It runs in the background and can take a while in a large database.
+5. When it finishes, the line under the button says what the last scan did, for example
+   "Duplicate scan of Contact, Account finished: 3 new possible duplicates recorded." If part of
+   the database could not be checked, the line is red and says how many batches of up to 50
+   records could not be checked; see Common mistakes below.
 
 Run the scan again after a large import: Salesforce checks a record against the others when
 it is saved, but an import that saved past a warning leaves the pair for the scan to find.
@@ -74,7 +90,18 @@ does none of that, which is why the household record page does not offer it.
 
 **A colleague sees the panel but the buttons are missing.** Scanning, dismissing and merging
 from this panel need the Manage Nonprofit Settings permission, which the Nonprofit Admin
+permission set grants, and access to duplicate record sets, which the Nonprofit Duplicate Review
 permission set grants.
+
+**The panel says suggestions need access to duplicate record sets.** The person
+viewing it does not have Nonprofit Duplicate Review, or has a license that cannot have it.
+Assign the permission set in Setup (see How to turn it on). A Salesforce Platform user cannot
+be given it at all; ask a colleague with a Sales Cloud or Service Cloud license to review.
+
+**The last-scan line is red.** Salesforce refused to check some batches of up to 50 records, for
+example because a duplicate rule was switched off during the scan, or could not save some
+suggestions. The details are in the **Error Log**, under the context "Duplicate scan". Fix the
+cause and scan again: pairs already found are not suggested twice.
 
 **You dismissed a pair and now want it back.** Dismissals are records. On the panel, choose
 **View** next to **Dismissed pairs**, pick the **All Duplicate Dismissals** list, find the pair

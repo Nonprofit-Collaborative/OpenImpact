@@ -89,6 +89,30 @@
         <value>This suggestion is no longer there. Somebody may have merged or dismissed it already. Refresh the page.</value>
     </labels>
     <labels>
+        <fullName>Core_Duplicates_ErrorNoSuggestionAccess</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates: refusal when the user cannot use duplicate record sets.</shortDescription>
+        <value>You need the Nonprofit Duplicate Review permission set to scan, dismiss or merge from here. Salesforce gives it only to users with a Sales Cloud or Service Cloud license.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ErrorNotReviewable</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates: refusal for a suggestion that is not about people or households.</shortDescription>
+        <value>This suggestion is not about people or households, so it cannot be reviewed here.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ErrorNotThisPair</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates: refusal when a merge names records the suggestion does not.</shortDescription>
+        <value>Those two households are not the pair in this suggestion. Refresh the page and try again.</value>
+    </labels>
+    <labels>
         <fullName>Core_Duplicates_ErrorPermissionRequired</fullName>
         <categories>Duplicates</categories>
         <language>en_US</language>
@@ -193,6 +217,14 @@
         <value>No duplicate rule for people or accounts is switched on, so nothing is being checked. Activate the standard rules in Setup to use this panel.</value>
     </labels>
     <labels>
+        <fullName>Core_Duplicates_NoSuggestionAccessNotice</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates panel: why no suggestions are shown without the license bound access.</shortDescription>
+        <value>Suggestions need access to duplicate record sets, which Salesforce gives only to Sales Cloud and Service Cloud licenses. An administrator with one of those licenses can be given the Nonprofit Duplicate Review permission set. The rules above still run when records are saved.</value>
+    </labels>
+    <labels>
         <fullName>Core_Duplicates_ObjectHousehold</fullName>
         <categories>Duplicates</categories>
         <language>en_US</language>
@@ -269,8 +301,16 @@
         <categories>Duplicates</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Duplicates: log entry when a scan pass finishes</shortDescription>
-        <value>Duplicate scan of {0} records finished: {1} new possible duplicates recorded.</value>
+        <shortDescription>Duplicates: log entry when a scan finishes. {0} objects, {1} new pairs.</shortDescription>
+        <value>Duplicate scan of {0} finished: {1} new possible duplicates recorded.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ScanFinishedWithFailures</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates: scan finished with failures. {0} objects, {1} pairs, {2} failed.</shortDescription>
+        <value>Duplicate scan of {0} finished: {1} new possible duplicates recorded, but {2} batches of up to 50 records could not be checked. The Error Log has the details. Run the scan again once they are fixed.</value>
     </labels>
     <labels>
         <fullName>Core_Duplicates_ScanRunning</fullName>
@@ -287,6 +327,22 @@
         <protected>false</protected>
         <shortDescription>Duplicates panel: scan started message</shortDescription>
         <value>Scan started. It runs in the background, and suggestions appear here as they are found.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ShowingCount</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates panel: how many suggestions are listed. {0} shown, {1} total.</shortDescription>
+        <value>Showing {0} of {1} suggestions, newest first.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Duplicates_ShowingCountMore</fullName>
+        <categories>Duplicates</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Duplicates panel: listed count when more exist than were counted.</shortDescription>
+        <value>Showing {0} of more than {1} suggestions, newest first.</value>
     </labels>
     <labels>
         <fullName>Core_Duplicates_SuggestionsHeading</fullName>

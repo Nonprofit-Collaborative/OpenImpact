@@ -42,6 +42,11 @@ function viewWith(overrides) {
     dismissedCount: 0,
     scanRunning: false,
     lastScanFinished: null,
+    canReviewSuggestions: true,
+    totalSuggestions: 0,
+    moreNotCounted: false,
+    lastScanSummary: null,
+    lastScanHadFailures: false,
     ...overrides
   };
 }
@@ -114,6 +119,36 @@ describe('c-duplicate-review', () => {
     expect(rules).toHaveLength(1);
     expect(rules[0].textContent).toContain('Standard Contact Duplicate Rule');
     expect(q(element, 'no-rules')).toBeNull();
+  });
+
+  it('says so when the license gives no access to suggestions, and offers no action', async () => {
+    const element = await mount(viewWith({ canReviewSuggestions: false }));
+    expect(q(element, 'no-access').textContent).toContain(
+      'c.Core_Duplicates_NoSuggestionAccessNotice'
+    );
+    expect(q(element, 'empty')).toBeNull();
+    expect(q(element, 'scan-button').disabled).toBe(true);
+  });
+
+  it('says how many are shown only when more are waiting than are listed', async () => {
+    const all = await mount(viewWith({ suggestions: [HOUSEHOLD_PAIR], totalSuggestions: 1 }));
+    expect(q(all, 'showing-count')).toBeNull();
+    document.body.removeChild(all);
+
+    const some = await mount(viewWith({ suggestions: [HOUSEHOLD_PAIR], totalSuggestions: 120 }));
+    expect(q(some, 'showing-count').textContent).toContain('c.Core_Duplicates_ShowingCount');
+  });
+
+  it('shows the last scan line, marked when a chunk could not be checked', async () => {
+    const element = await mount(
+      viewWith({
+        lastScanSummary: 'Scan finished: 1 chunk not checked.',
+        lastScanHadFailures: true
+      })
+    );
+    const line = q(element, 'last-scan-summary');
+    expect(line.textContent).toBe('Scan finished: 1 chunk not checked.');
+    expect(line.classList.contains('slds-text-color_error')).toBe(true);
   });
 
   it('shows the empty message when nothing is waiting', async () => {

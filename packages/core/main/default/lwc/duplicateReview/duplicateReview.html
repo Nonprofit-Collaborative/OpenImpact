@@ -64,6 +64,10 @@
         </p>
       </template>
 
+      <template lwc:if={lastScanSummary}>
+        <p class={lastScanSummaryClass} data-id="last-scan-summary">{lastScanSummary}</p>
+      </template>
+
       <p class="slds-text-body_small slds-var-m-top_x-small" data-id="dismissed-count">
         {labels.dismissedCount}: {dismissedCount}
         <template lwc:if={hasDismissed}>
@@ -85,7 +89,15 @@
     </div>
 
     <h3 class="slds-text-title_caps">{labels.suggestionsHeading}</h3>
-    <template lwc:if={hasSuggestions}>
+    <template lwc:if={showNoAccessNotice}>
+      <p class="slds-var-m-top_x-small" data-id="no-access">{labels.noAccess}</p>
+    </template>
+    <template lwc:elseif={hasSuggestions}>
+      <template lwc:if={showingCount}>
+        <p class="slds-text-body_small slds-var-m-top_x-small" data-id="showing-count">
+          {showingCount}
+        </p>
+      </template>
       <ul class="slds-var-m-top_x-small">
         <template for:each={suggestions} for:item="suggestion">
           <li

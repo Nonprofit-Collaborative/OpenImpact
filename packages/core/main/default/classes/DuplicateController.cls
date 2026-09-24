@@ -9,11 +9,21 @@
  * Every action on the panel needs `Manage_Nonprofit_Settings`: scanning and dismissing are
  * configuration, and a merge from here also closes the suggestion. Merging households from
  * the household record page stays open to anyone who can edit both, as C-09 decided.
+ *
+ * Suggestions also need access to the platform's duplicate record sets, which Salesforce
+ * grants only to Sales Cloud and Service Cloud licenses, through the optional Nonprofit
+ * Duplicate Review permission set. Without it the panel still shows the rules and says why
+ * there is nothing else, rather than failing (ADR-0013, ADR-NEXT).
  */
 public with sharing class DuplicateController {
     private static final String EDIT_PERMISSION = 'Manage_Nonprofit_Settings';
     private static final String SCAN_CLASS = 'DuplicateScanBatch';
     private static final Integer MAX_SUGGESTIONS = 50;
+    /**
+     * How many suggestions are read before the ones the panel cannot show (organizations,
+     * records this person cannot see) are filtered out, so that fifty shown are fifty usable.
+     */
+    private static final Integer MAX_READ = 500;
     private static final Set<String> FINISHED = new Set<String>{ 'Completed', 'Failed', 'Aborted' };
 
     /** One record in a suggestion, as the panel shows it. */
@@ -68,6 +78,20 @@ public with sharing class DuplicateController {
         public Boolean scanRunning = false;
         @AuraEnabled
         public Datetime lastScanFinished;
+        /** False when this person has no access to duplicate record sets (license bound). */
+        @AuraEnabled
+        public Boolean canReviewSuggestions = false;
+        /** How many usable suggestions were found, of which at most fifty are listed. */
+        @AuraEnabled
+        public Integer totalSuggestions = 0;
+        /** True when more suggestions were waiting than were read, so the total is a floor. */
+        @AuraEnabled
+        public Boolean moreNotCounted = false;
+        /** What the latest scan said when it finished, and whether it could not check a chunk. */
+        @AuraEnabled
+        public String lastScanSummary;
+        @AuraEnabled
+        public Boolean lastScanHadFailures = false;
     }
 
     @AuraEnabled
@@ -87,6 +111,7 @@ public with sharing class DuplicateController {
     public static DuplicateView startScan() {
         try {
             requirePermission();
+            requireSuggestionAccess();
             if (DuplicateScanBatch.start() == null) {
                 throw new DuplicateService.DuplicateException(
                     Label.Core_Duplicates_ErrorNoActiveRule
@@ -103,6 +128,7 @@ public with sharing class DuplicateController {
     public static DuplicateView dismiss(Id duplicateRecordSetId, String reason) {
         try {
             requirePermission();
+            requireSuggestionAccess();
             DuplicateService.dismiss(duplicateRecordSetId, reason);
             return currentView();
         } catch (Exception caught) {
@@ -134,6 +160,12 @@ public with sharing class DuplicateController {
     ) {
         try {
             requirePermission();
+            requireSuggestionAccess();
+            // Checked before the merge: afterwards one of the two records no longer exists.
+            DuplicateService.requireSetOf(
+                duplicateRecordSetId,
+                new Set<Id>{ survivorId, victimId }
+            );
             HouseholdMergeService.mergeHouseholds(
                 survivorId,
                 victimId,
@@ -164,6 +196,13 @@ public with sharing class DuplicateController {
             view.rules.add(ruleView);
         }
         view.dismissedCount = DuplicateSelector.dismissalCount();
+        Error_Log__c lastResult = DuplicateSelector.latestScanResult(
+            DuplicateScanBatch.LOG_CONTEXT
+        );
+        if (lastResult != null) {
+            view.lastScanSummary = lastResult.Message__c;
+            view.lastScanHadFailures = lastResult.Severity__c != ErrorLogger.SEVERITY_INFO;
+        }
         for (AsyncApexJob job : DuplicateSelector.recentScanJobs(SCAN_CLASS, 5)) {
             if (job.CompletedDate != null && view.lastScanFinished == null) {
                 view.lastScanFinished = job.CompletedDate;
@@ -172,8 +211,35 @@ public with sharing class DuplicateController {
                 view.scanRunning = true;
             }
         }
-        view.suggestions = suggestions();
+        view.canReviewSuggestions = canReviewSuggestions();
+        if (!view.canReviewSuggestions) {
+            return view;
+        }
+        List<DuplicateRecordSet> sets = DuplicateSelector.openSets(MAX_READ);
+        List<SuggestionView> usable = suggestions(sets);
+        view.totalSuggestions = usable.size();
+        view.moreNotCounted = sets.size() >= MAX_READ;
+        for (Integer index = 0; index < usable.size() && index < MAX_SUGGESTIONS; index++) {
+            view.suggestions.add(usable[index]);
+        }
         return view;
+    }
+
+    /** Whether this person can read and write the platform's duplicate record sets. */
+    private static Boolean canReviewSuggestions() {
+        return Schema.SObjectType.DuplicateRecordSet.isAccessible() &&
+            Schema.SObjectType.DuplicateRecordSet.isCreateable() &&
+            Schema.SObjectType.DuplicateRecordSet.isDeletable() &&
+            Schema.SObjectType.DuplicateRecordItem.isAccessible() &&
+            Schema.SObjectType.DuplicateRecordItem.isCreateable();
+    }
+
+    private static void requireSuggestionAccess() {
+        if (!canReviewSuggestions()) {
+            throw new DuplicateService.DuplicateException(
+                Label.Core_Duplicates_ErrorNoSuggestionAccess
+            );
+        }
     }
 
     /**
@@ -181,8 +247,7 @@ public with sharing class DuplicateController {
      * cannot see, a deleted record, an organization or anything but a person or a household is
      * left out rather than shown with a hole in it: half a pair is nothing to decide about.
      */
-    private static List<SuggestionView> suggestions() {
-        List<DuplicateRecordSet> sets = DuplicateSelector.openSets(MAX_SUGGESTIONS);
+    private static List<SuggestionView> suggestions(List<DuplicateRecordSet> sets) {
         Set<Id> recordIds = new Set<Id>();
         for (DuplicateRecordSet found : sets) {
             for (DuplicateRecordItem item : found.DuplicateRecordItems) {

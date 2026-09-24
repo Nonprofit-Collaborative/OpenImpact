@@ -138,6 +138,26 @@ public with sharing class DuplicateSelector {
         return result;
     }
 
+    /**
+     * What the latest scan said when it finished, or null when there is none this person can
+     * read. The scan writes one entry at the end, at Warning when a chunk could not be
+     * checked, so the panel can say so instead of implying a clean result.
+     */
+    public static Error_Log__c latestScanResult(String context) {
+        if (!Schema.SObjectType.Error_Log__c.isAccessible()) {
+            return null;
+        }
+        List<Error_Log__c> entries = [
+            SELECT Message__c, Severity__c, CreatedDate
+            FROM Error_Log__c
+            WHERE Context__c = :context
+            WITH USER_MODE
+            ORDER BY CreatedDate DESC
+            LIMIT 1
+        ];
+        return entries.isEmpty() ? null : entries[0];
+    }
+
     /** How many pairs have been dismissed, for the count on the panel. */
     public static Integer dismissalCount() {
         return [SELECT COUNT() FROM Duplicate_Dismissal__c WITH USER_MODE];

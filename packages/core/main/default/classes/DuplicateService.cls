@@ -22,6 +22,32 @@ public with sharing class DuplicateService {
     private static final String CONTEXT_MATCH = 'Duplicate scan: asking the platform for matches';
     private static final String CONTEXT_WRITE = 'Duplicate scan: recording a suggestion';
 
+    /**
+     * What the matcher answers in a test, in place of the platform's call. Which records an
+     * org's rules call duplicates is the org's business, so a test that must assert exact
+     * counts sets the answer here and asserts what the scan does with it.
+     */
+    @TestVisible
+    private static List<Pair> stubMatches;
+
+    /** In a test, the matcher fails as the platform's call can, so the failure path is exercised. */
+    @TestVisible
+    private static Boolean stubFails = false;
+
+    /**
+     * In a test, the check for pairs already dismissed is skipped, which is what a dismissal
+     * racing another person's sees: the other dismissal lands between the check and the write.
+     */
+    @TestVisible
+    private static Boolean skipDismissedCheck = false;
+
+    /**
+     * How many matcher calls and suggestion writes have failed in this transaction. A failure
+     * is logged and answered with nothing so the scan carries on; the scan reads this to say
+     * how many chunks it could not check, so a failed chunk never reads as a clean one.
+     */
+    public static Integer failureCount = 0;
+
     /** Raised with a message the page shows as it is. */
     public class DuplicateException extends Exception {
     }
@@ -114,7 +140,13 @@ public with sharing class DuplicateService {
             return found;
         }
         Schema.SObjectType sourceType = recordIds[0].getSObjectType();
+        if (stubMatches != null && !stubFails) {
+            return stubbedMatchesFor(new Set<Id>(recordIds), sourceType);
+        }
         try {
+            if (stubFails) {
+                throw new DuplicateException('Matcher failure simulated in a test.');
+            }
             List<Datacloud.FindDuplicatesResult> results = Datacloud.FindDuplicatesByIds.findDuplicatesByIds(
                 recordIds
             );
@@ -138,8 +170,21 @@ public with sharing class DuplicateService {
                 }
             }
         } catch (Exception caught) {
+            failureCount++;
             ErrorLogger.log(caught, CONTEXT_MATCH);
             return new List<Pair>();
+        }
+        return found;
+    }
+
+    /** The stubbed answer, as the platform would give it: only for the records asked about. */
+    private static List<Pair> stubbedMatchesFor(Set<Id> asked, Schema.SObjectType sourceType) {
+        List<Pair> found = new List<Pair>();
+        for (Pair pair : stubMatches) {
+            Boolean mentioned = asked.contains(pair.left) || asked.contains(pair.right);
+            if (mentioned && pair.left.getSObjectType() == sourceType) {
+                found.add(pair);
+            }
         }
         return found;
     }
@@ -233,6 +278,7 @@ public with sharing class DuplicateService {
             return sets.size();
         } catch (Exception caught) {
             Database.rollback(beforeWrite);
+            failureCount++;
             ErrorLogger.log(caught, CONTEXT_WRITE);
             return 0;
         }
@@ -284,6 +330,10 @@ public with sharing class DuplicateService {
      * Records that the records in a suggestion are not duplicates of each other, and takes the
      * suggestion away (R-DP5). The dismissal is written first, so a failed delete rolls both
      * back together. Answers how many dismissals were written.
+     *
+     * Two people dismissing the same pair at once is the same decision made twice, not an
+     * error: a pair somebody else has just remembered, or a suggestion somebody else has just
+     * taken away, counts as done.
      */
     public static Integer dismiss(Id duplicateRecordSetId, String reason) {
         DuplicateRecordSet found = requireSet(duplicateRecordSetId);
@@ -292,23 +342,57 @@ public with sharing class DuplicateService {
             records.add(item.RecordId);
         }
         Set<String> keys = pairKeysAmong(records);
-        keys.removeAll(DuplicateSelector.dismissedKeys(keys));
+        if (!skipDismissedCheck) {
+            keys.removeAll(DuplicateSelector.dismissedKeys(keys));
+        }
         List<Duplicate_Dismissal__c> dismissals = new List<Duplicate_Dismissal__c>();
         String cleanReason = String.isBlank(reason) ? null : reason.trim().left(255);
         for (String key : keys) {
             dismissals.add(new Duplicate_Dismissal__c(Pair_Key__c = key, Reason__c = cleanReason));
         }
+        Integer written = 0;
         Savepoint beforeWrite = Database.setSavepoint();
         try {
             if (!dismissals.isEmpty()) {
-                Database.insert(dismissals, AccessLevel.USER_MODE);
+                for (
+                    Database.SaveResult saved : Database.insert(
+                        dismissals,
+                        false,
+                        AccessLevel.USER_MODE
+                    )
+                ) {
+                    if (saved.isSuccess()) {
+                        written++;
+                    } else {
+                        requireOnly(saved.getErrors(), StatusCode.DUPLICATE_VALUE);
+                    }
+                }
             }
-            Database.delete(new List<DuplicateRecordSet>{ found }, AccessLevel.USER_MODE);
+            for (
+                Database.DeleteResult deleted : Database.delete(
+                    new List<DuplicateRecordSet>{ found },
+                    false,
+                    AccessLevel.USER_MODE
+                )
+            ) {
+                if (!deleted.isSuccess()) {
+                    requireOnly(deleted.getErrors(), StatusCode.ENTITY_IS_DELETED);
+                }
+            }
         } catch (Exception caught) {
             Database.rollback(beforeWrite);
             throw caught;
         }
-        return dismissals.size();
+        return written;
+    }
+
+    /** Throws unless every error is the one that means somebody else got there first. */
+    private static void requireOnly(List<Database.Error> errors, StatusCode harmless) {
+        for (Database.Error problem : errors) {
+            if (problem.getStatusCode() != harmless) {
+                throw new DmlException(problem.getMessage());
+            }
+        }
     }
 
     /**
@@ -327,7 +411,12 @@ public with sharing class DuplicateService {
         }
     }
 
-    private static DuplicateRecordSet requireSet(Id duplicateRecordSetId) {
+    /**
+     * The suggestion, provided it is one this feature reviews: at least two records, every one
+     * a person or an account. A suggestion about leads, or anything else, is refused rather
+     * than dismissed or closed from here (R-DP2).
+     */
+    public static DuplicateRecordSet requireSet(Id duplicateRecordSetId) {
         if (duplicateRecordSetId == null) {
             throw new DuplicateException(Label.Core_Duplicates_ErrorNoSuggestion);
         }
@@ -337,6 +426,31 @@ public with sharing class DuplicateService {
         if (sets.isEmpty()) {
             throw new DuplicateException(Label.Core_Duplicates_ErrorNoSuggestion);
         }
+        if (sets[0].DuplicateRecordItems.size() < 2) {
+            throw new DuplicateException(Label.Core_Duplicates_ErrorNotReviewable);
+        }
+        for (DuplicateRecordItem item : sets[0].DuplicateRecordItems) {
+            Schema.SObjectType itemType = item.RecordId.getSObjectType();
+            if (itemType != Contact.SObjectType && itemType != Account.SObjectType) {
+                throw new DuplicateException(Label.Core_Duplicates_ErrorNotReviewable);
+            }
+        }
         return sets[0];
+    }
+
+    /**
+     * The suggestion, provided it names exactly these records: a merge from the panel may only
+     * close the suggestion it was started from.
+     */
+    public static DuplicateRecordSet requireSetOf(Id duplicateRecordSetId, Set<Id> recordIds) {
+        DuplicateRecordSet found = requireSet(duplicateRecordSetId);
+        Set<Id> named = new Set<Id>();
+        for (DuplicateRecordItem item : found.DuplicateRecordItems) {
+            named.add(item.RecordId);
+        }
+        if (recordIds == null || !named.equals(recordIds)) {
+            throw new DuplicateException(Label.Core_Duplicates_ErrorNotThisPair);
+        }
+        return found;
     }
 }

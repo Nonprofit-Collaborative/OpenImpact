@@ -23,6 +23,12 @@ detail object comes from its master, and a permission set that asks for it anywa
 losing the whole objectPermissions entry, and with it the create and edit access the
 feature actually needs. Nonprofit_Admin asked for both on Import Row, and the first org run
 of the import tests failed on staging a row.
+
+One more grant resolves and still breaks ADR-0013: an object only some licenses may be given.
+Salesforce grants DuplicateRecordSet and DuplicateRecordItem only to Sales Cloud and Service
+Cloud licenses, so a permission set granting them cannot be assigned to a Salesforce Platform
+user. Such objects may appear only in the optional sets named for them, and those sets may be
+in no permission set group, because a role has to be assignable to everybody.
 """
 
 import glob
@@ -31,6 +37,11 @@ import sys
 import xml.etree.ElementTree as ET
 
 NS = "http://soap.sforce.com/2006/04/metadata"
+
+# Objects a Salesforce Platform license cannot be granted, and the optional sets allowed to
+# grant them (C-20, ADR-NEXT on duplicate detection).
+LICENSE_LIMITED_OBJECTS = {"DuplicateRecordSet", "DuplicateRecordItem"}
+OPTIONAL_LICENSE_SETS = {"Nonprofit_Duplicate_Review"}
 
 
 def q(tag):
@@ -82,6 +93,12 @@ def check(path):
 
     for entry in root.findall(q("objectPermissions")):
         value = entry.find(q("object")).text
+        if value in LICENSE_LIMITED_OBJECTS and name not in OPTIONAL_LICENSE_SETS:
+            problems.append(
+                f"{name}: grants {value}, which a Salesforce Platform license cannot be given, "
+                f"so this set could not be assigned in a Platform-only org (ADR-0013). Grant it "
+                f"only in one of {sorted(OPTIONAL_LICENSE_SETS)}."
+            )
         if value.endswith("__c") and not exists(f"packages/*/main/default/objects/{value}"):
             report("grants object", value)
         for flag in ("viewAllRecords", "modifyAllRecords"):
@@ -128,7 +145,12 @@ def check_group(path):
     problems = []
     for entry in root.findall(q("permissionSets")):
         value = (entry.text or "").strip()
-        if value and not exists(
+        if value in OPTIONAL_LICENSE_SETS:
+            problems.append(
+                f"{name}: contains {value}, which only some licenses can be assigned, so the "
+                f"role could not be given to a Salesforce Platform user (ADR-0013)"
+            )
+        elif value and not exists(
             f"packages/*/main/default/permissionsets/{value}.permissionset-meta.xml"
         ):
             problems.append(

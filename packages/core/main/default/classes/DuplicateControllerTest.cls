@@ -231,4 +231,122 @@ private class DuplicateControllerTest {
         }
         Test.stopTest();
     }
+
+    @IsTest
+    static void anAdministratorReviewsSuggestionsAndSeesHowMany() {
+        List<Account> households = twoHouseholds();
+        if (!suggest(households[0].Id, households[1].Id)) {
+            return;
+        }
+
+        Test.startTest();
+        DuplicateController.DuplicateView view = DuplicateController.getView();
+        Test.stopTest();
+
+        Assert.isTrue(view.canReviewSuggestions, 'An administrator can read the suggestions.');
+        Assert.areEqual(1, view.totalSuggestions, 'The total counts every usable suggestion.');
+        Assert.isFalse(view.moreNotCounted, 'All of them were read.');
+    }
+
+    /**
+     * Duplicate record sets can be given only to a Sales Cloud or Service Cloud license, so no
+     * Core permission set grants them (ADR-NEXT). A person with the settings permission but no
+     * access to the sets is told so, and nothing on the panel acts.
+     */
+    @IsTest
+    static void withoutAccessToSuggestionsThePanelSaysSoAndActsOnNothing() {
+        Profile minimum = [
+            SELECT Id
+            FROM Profile
+            WHERE Name = 'Minimum Access - Salesforce'
+            LIMIT 1
+        ];
+        User admin = new User(
+            ProfileId = minimum.Id,
+            LastName = 'Dupaccess',
+            Email = 'dupaccess@openimpact.test.invalid',
+            Username = 'dupaccess' + DateTime.now().getTime() + '@openimpact.test.invalid',
+            Alias = 'dupacc',
+            TimeZoneSidKey = 'America/Los_Angeles',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert admin;
+            insert new PermissionSetAssignment(
+                AssigneeId = admin.Id,
+                PermissionSetId = [SELECT Id FROM PermissionSet WHERE Name = 'Nonprofit_Admin']
+                .Id
+            );
+        }
+
+        Test.startTest();
+        System.runAs(admin) {
+            DuplicateController.DuplicateView view = DuplicateController.getView();
+            Assert.isTrue(view.canManage, 'The Core administrator set carries the permission.');
+            Assert.isFalse(view.canReviewSuggestions, 'But not the duplicate record sets.');
+            Assert.isTrue(view.suggestions.isEmpty(), 'So nothing is listed.');
+            try {
+                DuplicateController.startScan();
+                Assert.fail('A scan needs access to the duplicate record sets.');
+            } catch (AuraHandledException refused) {
+                Assert.areEqual(
+                    Label.Core_Duplicates_ErrorNoSuggestionAccess,
+                    refused.getMessage(),
+                    'Said in words.'
+                );
+            }
+        }
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void aMergeFromThePanelMustBeThePairItSuggested() {
+        List<Account> households = (List<Account>) insertAllowingDuplicates(
+            new List<Account>{
+                HouseholdTestDataFactory.newHousehold('The Dupview Family'),
+                HouseholdTestDataFactory.newHousehold('The Dupview Family'),
+                HouseholdTestDataFactory.newHousehold('The Dupview Household')
+            }
+        );
+        if (!suggest(households[0].Id, households[1].Id)) {
+            return;
+        }
+        Id setId = DuplicateController.getView().suggestions[0].setId;
+
+        Test.startTest();
+        try {
+            DuplicateController.mergeHouseholds(setId, households[0].Id, households[2].Id, null);
+            Assert.fail('A merge of a pair the suggestion does not name is refused.');
+        } catch (AuraHandledException refused) {
+            Assert.areEqual(
+                Label.Core_Duplicates_ErrorNotThisPair,
+                refused.getMessage(),
+                'Said in words.'
+            );
+        }
+        Test.stopTest();
+
+        Assert.areEqual(
+            3,
+            [SELECT COUNT() FROM Account WHERE Id IN :households],
+            'Nothing is merged.'
+        );
+        Assert.areEqual(1, [SELECT COUNT() FROM DuplicateRecordSet], 'The suggestion stays.');
+    }
+
+    @IsTest
+    static void theLastScanLineSaysWhatTheScanFound() {
+        String said = 'Duplicate scan of Contact finished: 0 new possible duplicates recorded.';
+        ErrorLogger.logMessage(said, DuplicateScanBatch.LOG_CONTEXT, ErrorLogger.SEVERITY_WARNING);
+        Test.getEventBus().deliver();
+
+        Test.startTest();
+        DuplicateController.DuplicateView view = DuplicateController.getView();
+        Test.stopTest();
+
+        Assert.areEqual(said, view.lastScanSummary, 'The latest summary is shown as written.');
+        Assert.isTrue(view.lastScanHadFailures, 'A Warning summary is shown as one.');
+    }
 }

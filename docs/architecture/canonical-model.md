@@ -4127,7 +4127,9 @@ page deletes the suggestion without a dismissal, because the pair no longer exis
 
 - **Suggestions** are the standard objects `DuplicateRecordSet` and `DuplicateRecordItem`,
   read with `DuplicateRule`. They are read and written in user mode, so a reviewer is never
-  shown a pair containing a record they cannot see.
+  shown a pair containing a record they cannot see. Salesforce licenses them only to Sales
+  Cloud and Service Cloud users, so no Core role grants them: the optional permission set
+  `Nonprofit_Duplicate_Review` does, and the panel says so to anyone without it (ADR-NEXT).
 - **Matching** is `Datacloud.FindDuplicatesByIds`, which evaluates the org's active duplicate
   rules. It is called for one object at a time, and for households only among accounts: a
   call that includes a person stored as an account is refused by the platform when no person

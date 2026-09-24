@@ -44,6 +44,9 @@ import VIEW_DISMISSED from '@salesforce/label/c.Core_Duplicates_ViewDismissed';
 import READ_ONLY from '@salesforce/label/c.Core_Duplicates_ReadOnlyNotice';
 import CANCEL from '@salesforce/label/c.Core_Duplicates_Cancel';
 import UNEXPECTED_ERROR from '@salesforce/label/c.Core_Duplicates_ErrorUnexpected';
+import NO_ACCESS from '@salesforce/label/c.Core_Duplicates_NoSuggestionAccessNotice';
+import SHOWING_COUNT from '@salesforce/label/c.Core_Duplicates_ShowingCount';
+import SHOWING_COUNT_MORE from '@salesforce/label/c.Core_Duplicates_ShowingCountMore';
 
 const SETUP_DUPLICATE_RULES = '/lightning/setup/DuplicateRules/home';
 
@@ -82,6 +85,7 @@ export default class DuplicateReview extends NavigationMixin(LightningElement) {
     dismissedCount: DISMISSED_COUNT,
     viewDismissed: VIEW_DISMISSED,
     readOnly: READ_ONLY,
+    noAccess: NO_ACCESS,
     cancel: CANCEL
   };
 
@@ -143,6 +147,39 @@ export default class DuplicateReview extends NavigationMixin(LightningElement) {
     return !!this.lastScanFinished;
   }
 
+  /** What the latest scan said, including how many chunks it could not check. */
+  get lastScanSummary() {
+    return this.view ? this.view.lastScanSummary : undefined;
+  }
+
+  get lastScanSummaryClass() {
+    const failed = !!(this.view && this.view.lastScanHadFailures);
+    return `slds-text-body_small slds-var-m-top_x-small${failed ? ' slds-text-color_error' : ''}`;
+  }
+
+  /** False when the viewer's license gives no access to duplicate record sets. */
+  get canReviewSuggestions() {
+    return !this.view || this.view.canReviewSuggestions !== false;
+  }
+
+  get showNoAccessNotice() {
+    return !this.canReviewSuggestions;
+  }
+
+  /** "Showing 50 of 120", only when there are more than are listed. */
+  get showingCount() {
+    if (!this.view) {
+      return undefined;
+    }
+    const shown = (this.view.suggestions || []).length;
+    const total = this.view.totalSuggestions || 0;
+    if (!this.view.moreNotCounted && total <= shown) {
+      return undefined;
+    }
+    const template = this.view.moreNotCounted ? SHOWING_COUNT_MORE : SHOWING_COUNT;
+    return template.replace('{0}', shown).replace('{1}', total);
+  }
+
   get dismissedCount() {
     return this.view ? this.view.dismissedCount : 0;
   }
@@ -183,7 +220,7 @@ export default class DuplicateReview extends NavigationMixin(LightningElement) {
   }
 
   get controlsDisabled() {
-    return this.busy || !this.canManage;
+    return this.busy || !this.canManage || !this.canReviewSuggestions;
   }
 
   // ------------------------------------------------------------------ scan and refresh

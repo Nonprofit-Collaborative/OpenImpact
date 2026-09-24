@@ -41,6 +41,19 @@ app cannot perform, so that draft needed four Setup steps before anything worked
   record page does not carry the card, so a household is never merged past R-H13.
 - **Scope is people and households.** A pair where an account side is an organization or a
   person stored as an account is not proposed.
+- **Reviewing suggestions takes an optional permission set.** Salesforce licenses Duplicate
+  Record Set and Duplicate Record Item only to users with a Sales Cloud or Service Cloud
+  license; no other license, Salesforce Platform included, can be given access to them. So no
+  Core permission set grants them (a Core set must be assignable on a Platform-only org,
+  ADR-0013). `Nonprofit_Duplicate_Review` grants them, is in no permission set group, and is
+  assigned in Setup to the people who review duplicates, which the admin guide says. Without it
+  the panel still lists the active rules and the last scan, says that suggestions need that
+  access, and offers no scan, dismissal or merge. `scripts/ci/check-permission-sets.py` fails
+  if a Core set other than the optional one grants either object.
+- **A scan says what it could not check.** A chunk the matcher refuses, or whose suggestions
+  cannot be written, is logged and skipped, and counted. The scan's one summary entry in the
+  Error Log is at Warning when that count is above zero, and the panel shows the latest summary
+  as its last-scan line, so a partly failed scan never reads as a clean one.
 
 ## Alternatives considered
 
@@ -57,6 +70,9 @@ app cannot perform, so that draft needed four Setup steps before anything worked
 - **Merge two people in the app** with `Database.merge`. Rejected for now: the platform merge
   already carries related records, and an in-app one would have to repair household
   membership and rollups the platform merge handles through the existing delete triggers.
+- **Grant duplicate record sets in the Core permission sets.** Rejected: a permission set that
+  grants them cannot be assigned to a Salesforce Platform user at all, which would break every
+  Core role on a Platform-only org (ADR-0013).
 
 ## Consequences
 
@@ -67,4 +83,12 @@ app cannot perform, so that draft needed four Setup steps before anything worked
 - The platform refuses a `FindDuplicatesByIds` call that includes a person account when no
   person account rule is active, so the scan sends accounts of the Household record type only.
 - `DuplicateRule`, `DuplicateRecordSet` and `DuplicateRecordItem` join the standard object
-  allowlist. They exist in every edition that has duplicate management.
+  allowlist. Duplicate rules run in every edition and for every license. The record sets exist
+  in every edition, but only a Sales Cloud or Service Cloud user can be given access to them.
+- In an org of Salesforce Platform users, duplicate rules still alert and block on save, but
+  nobody can review suggestions on the panel, and the Potential Duplicates card on the Contact
+  record page shows them nothing usable, because the card reads the same record sets. Such an
+  org needs at least one Sales Cloud or Service Cloud user to review and merge duplicates.
+- The permission set to review duplicates is assigned in Setup, not the Nonprofit Settings
+  console, as with `Override_Receipt_Lock`: it is a license question for the administrator,
+  not a setting.
