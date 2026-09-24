@@ -21,9 +21,17 @@ private class GiftPostingServiceTest {
         );
     }
 
-    /** Three gifts owned by the running user: 250 and 40 Received, 75 Pending. */
-    private static Map<Decimal, Gift__c> threeGifts() {
+    /** The default fund is set by an administrator, not by the people in these tests. */
+    @TestSetup
+    static void makeData() {
         GivingTestDataFactory.insertDefaultFund();
+    }
+
+    /**
+     * Three gifts owned by the running user: 250 and 40 Received, 75 Pending. Keyed by whole
+     * amount, because a Decimal key read back as 250.00 is not the key 250.
+     */
+    private static Map<Integer, Gift__c> threeGifts() {
         Contact ana = GivingTestDataFactory.insertHouseholdContact(
             'The Nolan Family',
             'Ana',
@@ -34,12 +42,12 @@ private class GiftPostingServiceTest {
         pending.Status__c = 'Pending';
         Gift__c other = GivingTestDataFactory.buildGift(ana.Id, 40);
         insert new List<Gift__c>{ received, pending, other };
-        Map<Decimal, Gift__c> byAmount = new Map<Decimal, Gift__c>();
+        Map<Integer, Gift__c> byAmount = new Map<Integer, Gift__c>();
         for (Gift__c gift : [
             SELECT Id, Amount__c, Accounting_Posted_At__c, Accounting_Posted_By__c
             FROM Gift__c
         ]) {
-            byAmount.put(gift.Amount__c, gift);
+            byAmount.put(gift.Amount__c.intValue(), gift);
         }
         return byAmount;
     }
@@ -56,7 +64,7 @@ private class GiftPostingServiceTest {
     static void marksGiftsInTheBooksPostedByTheBookkeeper() {
         User jen = jen();
         System.runAs(jen) {
-            Map<Decimal, Gift__c> gifts = threeGifts();
+            Map<Integer, Gift__c> gifts = threeGifts();
 
             Test.startTest();
             Integer marked = GiftPostingService.markPosted(
@@ -78,7 +86,7 @@ private class GiftPostingServiceTest {
     @IsTest
     static void markingTwiceChangesNothing() {
         System.runAs(jen()) {
-            Map<Decimal, Gift__c> gifts = threeGifts();
+            Map<Integer, Gift__c> gifts = threeGifts();
             Set<Id> ids = new Set<Id>{ gifts.get(250).Id };
             GiftPostingService.markPosted(ids);
             Datetime first = reread(gifts.get(250).Id).Accounting_Posted_At__c;
@@ -97,7 +105,7 @@ private class GiftPostingServiceTest {
     @IsTest
     static void aPostedGiftIsLocked() {
         System.runAs(jen()) {
-            Map<Decimal, Gift__c> gifts = threeGifts();
+            Map<Integer, Gift__c> gifts = threeGifts();
             GiftPostingService.markPosted(new Set<Id>{ gifts.get(250).Id });
 
             Gift__c changed = new Gift__c(Id = gifts.get(250).Id, Amount__c = 260);
@@ -117,7 +125,7 @@ private class GiftPostingServiceTest {
     @IsTest
     static void staffCannotMarkOrUnpost() {
         System.runAs(david()) {
-            Map<Decimal, Gift__c> gifts = threeGifts();
+            Map<Integer, Gift__c> gifts = threeGifts();
             Set<Id> ids = new Set<Id>{ gifts.get(250).Id };
             try {
                 GiftPostingService.markPosted(ids);
@@ -139,7 +147,7 @@ private class GiftPostingServiceTest {
     static void staffCannotWriteThePostingFieldsDirectly() {
         User david = david();
         System.runAs(david) {
-            Map<Decimal, Gift__c> gifts = threeGifts();
+            Map<Integer, Gift__c> gifts = threeGifts();
             // A system mode save, so field access is not what refuses it: the lock is.
             Gift__c typed = new Gift__c(
                 Id = gifts.get(250).Id,
@@ -186,7 +194,7 @@ private class GiftPostingServiceTest {
         Id giftId;
         String postedAt;
         System.runAs(jen) {
-            Map<Decimal, Gift__c> gifts = threeGifts();
+            Map<Integer, Gift__c> gifts = threeGifts();
             giftId = gifts.get(250).Id;
             GiftPostingService.markPosted(new Set<Id>{ giftId });
             postedAt = reread(giftId).Accounting_Posted_At__c.format();
@@ -223,7 +231,7 @@ private class GiftPostingServiceTest {
     @IsTest
     static void unpostingNeedsAReasonAndAPostedGift() {
         System.runAs(jen()) {
-            Map<Decimal, Gift__c> gifts = threeGifts();
+            Map<Integer, Gift__c> gifts = threeGifts();
             Id giftId = gifts.get(250).Id;
             try {
                 GiftPostingService.unpost(giftId, 'Never posted');
@@ -244,11 +252,12 @@ private class GiftPostingServiceTest {
 
     @IsTest
     static void unpostingAClosedPeriodGiftLeavesItLocked() {
+        // Closing the books is the administrator's step, done before Jen's work.
+        GivingTestDataFactory.closeBooksThrough(Date.today().addDays(-1));
         System.runAs(jen()) {
-            Map<Decimal, Gift__c> gifts = threeGifts();
+            Map<Integer, Gift__c> gifts = threeGifts();
             Id giftId = gifts.get(250).Id;
             GiftPostingService.markPosted(new Set<Id>{ giftId });
-            GivingTestDataFactory.closeBooksThrough(Date.today().addDays(-1));
             // Date the gift into the closed period through the override, as an auditor would.
             GiftPostingLock.overrideHeld = true;
             update new Gift__c(Id = giftId, Gift_Date__c = Date.today().addDays(-5));
@@ -272,7 +281,7 @@ private class GiftPostingServiceTest {
     @IsTest
     static void theSwitchableAutomationsAreBypassedOnlyForThePostingSave() {
         System.runAs(jen()) {
-            Map<Decimal, Gift__c> gifts = threeGifts();
+            Map<Integer, Gift__c> gifts = threeGifts();
             AutomationControl.bypass('Gift_Acknowledgment');
 
             GiftPostingService.markPosted(new Set<Id>{ gifts.get(250).Id });
