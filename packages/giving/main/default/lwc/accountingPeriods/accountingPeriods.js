@@ -17,7 +17,7 @@ import UNEXPECTED_ERROR from '@salesforce/label/c.Giving_Periods_UnexpectedError
  * Settings console.
  *
  * It shows the date the books are closed through and moves it. The rules live in the controller:
- * the date moves forward only, never through today, and moving it back needs Override Posting
+ * the date moves forward only, never past the day before yesterday, and moving it back needs Override Posting
  * Lock. The page only offers the field to someone who can use it and shows what the controller
  * says when it refuses.
  */

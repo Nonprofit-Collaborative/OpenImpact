@@ -1,7 +1,7 @@
 /**
  * The Accounting Periods page (G-20, R-G14, ADR-NEXT).
  *
- * Maria closes last month. She can close further, never through today, and she cannot reopen a
+ * Maria closes last month. She can close further, never through yesterday or today, and she cannot reopen a
  * month unless she holds Override Posting Lock, in which case the reopening is written down.
  * David, on the staff permission sets, can read the date and change nothing.
  */
@@ -21,8 +21,9 @@ private class AccountingPeriodControllerTest {
         );
     }
 
+    /** The end of the month before the day before yesterday: always closable, even on the 1st. */
     private static Date lastMonthEnd() {
-        return Date.today().toStartOfMonth().addDays(-1);
+        return Date.today().addDays(-2).toStartOfMonth().addDays(-1);
     }
 
     private static String refusalOf(Date closeDate) {
@@ -41,7 +42,7 @@ private class AccountingPeriodControllerTest {
             Assert.isNull(before.closedThrough, 'Nothing is closed on install');
             Assert.isTrue(before.canManage, 'Maria can close a period');
             Assert.isFalse(before.canReopen, 'Nobody can reopen without the override');
-            Assert.areEqual(Date.today().addDays(-1), before.latestAllowed);
+            Assert.areEqual(Date.today().addDays(-2), before.latestAllowed);
 
             AccountingPeriodController.PeriodView after = AccountingPeriodController.closeThrough(
                 lastMonthEnd()
@@ -60,19 +61,28 @@ private class AccountingPeriodControllerTest {
     }
 
     @IsTest
-    static void movesForwardButNeverThroughToday() {
+    static void movesForwardButNeverThroughYesterday() {
         System.runAs(maria()) {
             AccountingPeriodController.closeThrough(lastMonthEnd().addDays(-10));
             AccountingPeriodController.closeThrough(lastMonthEnd());
             Assert.areEqual(lastMonthEnd(), GiftPostingLock.closedThrough(), 'Forward is fine');
 
             Assert.areEqual(Label.Giving_Periods_NotBeforeToday, refusalOf(Date.today()));
+            // Yesterday in Maria's time zone can be today in the org's.
+            Assert.areEqual(
+                Label.Giving_Periods_NotBeforeToday,
+                refusalOf(Date.today().addDays(-1))
+            );
+            AccountingPeriodController.closeThrough(Date.today().addDays(-2));
+            Assert.areEqual(Date.today().addDays(-2), GiftPostingLock.closedThrough());
             Assert.areEqual(
                 Label.Giving_Periods_NotBeforeToday,
                 refusalOf(Date.today().addDays(3))
             );
-            Assert.isNull(refusalOf(lastMonthEnd()), 'Saving the same date changes nothing');
-            Assert.areEqual(lastMonthEnd(), GiftPostingLock.closedThrough());
+            Assert.isNull(
+                refusalOf(Date.today().addDays(-2)),
+                'Saving the same date changes nothing'
+            );
         }
     }
 

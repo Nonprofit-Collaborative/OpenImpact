@@ -35,7 +35,7 @@ jest.mock(
 
 const OPEN = {
   closedThrough: null,
-  latestAllowed: '2026-09-23',
+  latestAllowed: '2026-09-22',
   canManage: true,
   canReopen: false
 };
@@ -71,11 +71,11 @@ describe('c-accounting-periods', () => {
     expect(byId(element, 'save').disabled).toBe(true);
   });
 
-  it('shows the close date and never offers a date after yesterday', async () => {
+  it('shows the close date and never offers a date after the day before yesterday', async () => {
     const element = await render(CLOSED);
     const formatted = byId(element, 'current').querySelector('lightning-formatted-date-time');
     expect(formatted.value).toBe('2026-08-31');
-    expect(byId(element, 'close-date').max).toBe('2026-09-23');
+    expect(byId(element, 'close-date').max).toBe('2026-09-22');
   });
 
   it('saves a new close date and shows the saved page', async () => {

@@ -37,8 +37,8 @@ a gift posted or closes a period.
 - **Closing a period** is in **Nonprofit Settings**, **Giving**, **Accounting periods**, for
   anyone with the **Manage Nonprofit Settings** permission and the **Giving Admin** permission
   set. Choose **Open**, and the Accounting Periods page shows the date the books are closed
-  through. The latest date it takes is yesterday: a refund is dated today, and today has to stay
-  open for it.
+  through. The latest date it takes is the day before yesterday: a refund is dated today, and
+  today has to stay open for it in every time zone your staff work in.
 
 The rules above cannot be switched off on the Automation page, and pausing all automation does
 not suspend them, for the same reason the receipt lock cannot be: they protect a record rather
@@ -63,7 +63,8 @@ sets, and David with **Giving Staff**.
 6. As David, click **Refund or Write Off** on the gift and refund 10. It works: the refund is a
    new gift dated today and is not posted. It will be in this month's export.
 7. As Maria, open **Nonprofit Settings**, **Giving**, **Accounting periods**, **Open**. Set **Books
-   closed through** to the last day of last month and click **Save**. The page shows the new date.
+   closed through** to the last day of last month (on the 1st or 2nd, the month before) and click
+   **Save**. The page shows the new date.
 8. As David, open **Quick Gift Entry** and enter a gift dated in last month. Open Impact refuses:
    `The books are closed through...`. Date it today and it saves.
 9. As Jen, open the posted gift from step 4 and click **Unpost** on the Posting card. Type a

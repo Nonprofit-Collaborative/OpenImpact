@@ -77,8 +77,8 @@
         <categories>Giving</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Close date must be before today</shortDescription>
-        <value>The books can be closed through yesterday at the latest. A refund or write-off is dated today, and it has to land in an open period.</value>
+        <shortDescription>Close date must be two days back</shortDescription>
+        <value>The books can be closed through the day before yesterday at the latest. A refund or write-off is dated today, and today has to be open in every time zone.</value>
     </labels>
     <labels>
         <fullName>Giving_Periods_ReopenNeedsOverride</fullName>

@@ -6,8 +6,9 @@
  * reach it; this page is the only way it changes, and it enforces what a close date means:
  *
  * - the date moves forward only, for anyone with Manage Nonprofit Settings;
- * - it is always before today, so a refund or write-off, which is dated today, lands in an open
- *   period;
+ * - it is at least two days before today, so a refund or write-off, which is dated today, lands
+ *   in an open period. Two, not one: `Date.today()` is the running user's day, and a user whose
+ *   time zone is ahead of the org's could otherwise close the org's today;
  * - moving it back or clearing it reopens a period, which needs Override Posting Lock (granted to
  *   nobody by the package) and is written to the Error Log at Warning.
  *
@@ -58,7 +59,7 @@ public with sharing class AccountingPeriodController {
             if (closeDate == current) {
                 return currentView();
             }
-            if (closeDate != null && closeDate >= Date.today()) {
+            if (closeDate != null && closeDate > latestAllowed()) {
                 throw new AccountingPeriodException(Label.Giving_Periods_NotBeforeToday);
             }
             Boolean reopens = current != null && (closeDate == null || closeDate < current);
@@ -88,10 +89,15 @@ public with sharing class AccountingPeriodController {
         }
     }
 
+    /** The day before yesterday in the user's time zone, which no time zone has as its today. */
+    private static Date latestAllowed() {
+        return Date.today().addDays(-2);
+    }
+
     private static PeriodView currentView() {
         PeriodView view = new PeriodView();
         view.closedThrough = GiftPostingLock.closedThrough();
-        view.latestAllowed = Date.today().addDays(-1);
+        view.latestAllowed = latestAllowed();
         view.canManage = canManage();
         view.canReopen = view.canManage && GiftPostingLock.canOverride();
         return view;
