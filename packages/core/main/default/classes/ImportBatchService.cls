@@ -338,6 +338,23 @@ public with sharing class ImportBatchService {
             .isEmpty();
     }
 
+    /** When the batch's job ended, or null when it has not or is no longer on record. */
+    @NamespaceAccessible
+    public static Datetime jobEndedAt(Import_Batch__c batch) {
+        if (batch == null || String.isBlank(batch.Job_Id__c)) {
+            return null;
+        }
+        Id jobId = batch.Job_Id__c;
+        List<AsyncApexJob> jobs = [
+            SELECT CompletedDate
+            FROM AsyncApexJob
+            WHERE Id = :jobId
+            WITH SYSTEM_MODE
+            LIMIT 1
+        ];
+        return jobs.isEmpty() ? null : jobs[0].CompletedDate;
+    }
+
     /** AsyncApexJob statuses that mean a job has not finished yet. */
     private static final Set<String> RUNNING_JOB_STATUSES = new Set<String>{
         'Holding',

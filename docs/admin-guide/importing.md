@@ -174,9 +174,10 @@ at a time. Wait for the one running to finish (its results appear when it does),
 again. While it runs, rows it has not reached yet still show the previous run's result.
 
 **An import shows Failed although you did not see it fail.** Salesforce stopped its dry run or
-commit before it finished (for example, the job was aborted in Setup). Run the dry run again.
-A commit that was stopped this way can be undone like any failed commit: what it had already
-loaded is removed.
+commit before it finished (for example, the job was aborted in Setup). If it was a dry run,
+run the dry run again. If it was a commit, part of the file may already be loaded, and a
+committed import cannot be dry run or committed again: undo it, which removes what it loaded
+(anything changed since it stopped is kept), then upload the file as a new import.
 
 **"No column was matched to a name or an email."** The dry run refuses to run when the
 mapping has no way to identify a person or an organization. Usually the file's header row

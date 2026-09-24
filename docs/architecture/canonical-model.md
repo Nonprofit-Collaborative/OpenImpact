@@ -1537,7 +1537,9 @@ locked for the check, so two starts at once cannot both pass it. The status alon
 refuse: a pass the platform aborted, or whose finish failed, leaves the batch in Dry run or
 Committing with no job behind it, and it can simply be started again. A Committing batch with
 no running job reads as Failed, with the commit's user and undo window stamped, so the chunks
-it wrote can be undone (R-IB7). Each start adds one to the batch's Pass Number and changes
+it wrote can be undone (R-IB7); for that undo the commit ended when its job did, or when it
+started where the job is no longer on record, so every change made since, the committer's
+own included, is kept (R-IB9). Such a batch cannot be dry run or committed again. Each start adds one to the batch's Pass Number and changes
 nothing else on the rows: there is no reset of the staged rows before a pass, which for a
 large file would be more writes than one transaction allows. Instead every pass processes
 every row of the batch, and each chunk clears what an earlier pass left on its rows (status,

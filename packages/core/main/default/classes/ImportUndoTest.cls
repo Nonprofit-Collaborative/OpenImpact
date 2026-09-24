@@ -27,6 +27,26 @@ private class ImportUndoTest {
         return batch;
     }
 
+    @IsTest
+    static void aCommitThePlatformAbortedIsUndone() {
+        Import_Batch__c batch = committedBatch();
+        // Left Committing, never finished, with no job running for it (R-IB13).
+        batch.Status__c = ImportBatchService.STATUS_COMMITTING;
+        batch.Completed_At__c = null;
+        update batch;
+        ImportBatchService.jobRunningForTest = false;
+        Contact ana = importedPerson(batch, 'Ramirez');
+
+        undo(batch);
+
+        Assert.areEqual(0, [SELECT COUNT() FROM Contact WHERE Id = :ana.Id], 'Ana is removed.');
+        Assert.areNotEqual(
+            ImportBatchService.STATUS_COMMITTING,
+            [SELECT Status__c FROM Import_Batch__c WHERE Id = :batch.Id].Status__c,
+            'The batch is no longer stuck.'
+        );
+    }
+
     /** A person the import created, and the household it created for them, both tagged. */
     private static Contact importedPerson(Import_Batch__c batch, String lastName) {
         Contact person = new Contact(
