@@ -286,7 +286,7 @@
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>Import wizard: what kind of file to upload</shortDescription>
-        <value>A CSV file whose first row is the column headings.</value>
+        <value>A CSV file or an Excel workbook (.xlsx) whose first row is the column headings. Only the first sheet of a workbook is read.</value>
     </labels>
     <labels>
         <fullName>Core_Import_ColumnHeader</fullName>
@@ -495,5 +495,309 @@
         <protected>false</protected>
         <shortDescription>Import wizard: shown when the file has no usable header row</shortDescription>
         <value>This file has no heading row that Open Impact can read. Check that the first row of the file holds the column names.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_JournalEntryTooLarge</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import journal: one change too large to record</shortDescription>
+        <value>One change was too large to record in the import journal, so it cannot be put back by an undo.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogJournalFailed</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: the journal could not be written</shortDescription>
+        <value>Some changes this import made to existing records could not be recorded in its journal, so an undo will not put them back. The Error Log has the details.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogHouseholdNotTagged</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: a new household could not be tagged</shortDescription>
+        <value>A household this import created could not be marked with the import, so an undo will not remove it: {0}</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoErrorDryRun</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo: refused for a dry run</shortDescription>
+        <value>This was a dry run, so it wrote nothing and there is nothing to undo.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoErrorAlreadyUndone</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo: refused because already undone</shortDescription>
+        <value>This import has already been undone, or is being undone now. Refresh the list to see where it has got to.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoErrorNotCommitted</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo: refused before a commit</shortDescription>
+        <value>Only an import that has been committed can be undone. Commit it, or leave it: a dry run changes nothing.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoErrorWindowClosed</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo: refused after the deadline</shortDescription>
+        <value>The time to undo this import ended on {0}. The records it created are ordinary records now; delete any you do not want by hand.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoErrorNothingToUndo</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo: nothing left to undo</shortDescription>
+        <value>This import has nothing left to undo: no record still carries its mark and it changed no existing record.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoErrorCountChanged</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo: refused because the count changed</shortDescription>
+        <value>You confirmed {0} records, but {1} now carry this import's mark. Nothing was deleted. Look at the new count and confirm again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoKeptGained</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: kept, something was added since</shortDescription>
+        <value>Kept: something recorded after the import points at this record, such as a gift, an activity or a relationship.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoKeptHasPeople</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: kept, a person is still here</shortDescription>
+        <value>Kept: a person the undo did not remove is still in this household or organization.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoKeptNativeDependents</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: kept for Nonprofit Cloud records</shortDescription>
+        <value>Kept: Salesforce Nonprofit Cloud records depend on this account.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoKeptNotChecked</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: kept, could not be checked</shortDescription>
+        <value>Kept: the undo could not check whether anything depends on this record, so it left it in place. The Error Log has the details.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoKeptEdited</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: kept, edited since</shortDescription>
+        <value>Kept: somebody changed this record, or logged an activity on it, after the import.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoKeptNoAccess</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: kept, no access to delete</shortDescription>
+        <value>Kept: you do not have access to delete this record, so the undo left it in place.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorDryRunAfterCommit</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import error: dry run after a commit</shortDescription>
+        <value>This import has already been committed, so it cannot be run as a dry run again. Start a new import to preview the file.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogUndone</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: the undo line</shortDescription>
+        <value>Undone by {0} on {1}: {2} records deleted, {3} kept, {4} values put back.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoNotRestoredChanged</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: a value changed since</shortDescription>
+        <value>Not put back: this value has been changed since the import.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoNotRestoredGone</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: a value that can no longer be written</shortDescription>
+        <value>Not put back: the record or its field no longer exists, or cannot be edited.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_HistoryHeading</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: card title</shortDescription>
+        <value>Recent imports</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_HistoryEmpty</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: nothing imported yet</shortDescription>
+        <value>Nothing has been imported yet.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_HistoryUndoUntil</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: before the undo deadline</shortDescription>
+        <value>Can be undone until</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoButton</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: the undo button</shortDescription>
+        <value>Undo</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoConfirmHeading</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: confirm heading, {0} is the import</shortDescription>
+        <value>Undo {0}?</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoConfirmPeople</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: count of people to remove</shortDescription>
+        <value>People to remove</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoConfirmHouseholds</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: count of households to remove</shortDescription>
+        <value>Households to remove</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoConfirmOrganizations</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: count of organizations to remove</shortDescription>
+        <value>Organizations to remove</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoConfirmUpdates</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: count of values to put back</shortDescription>
+        <value>Changed values to put back</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoConfirmButton</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: the button that starts the undo</shortDescription>
+        <value>Undo this import</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoCancelButton</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: leave the undo</shortDescription>
+        <value>Cancel</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoStarted</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import history: the undo has started</shortDescription>
+        <value>The undo has started. The import shows Undone when it has finished; refresh the page to check.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorSourceNameRequired</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: a recurring file needs a source name</shortDescription>
+        <value>Give this file a source name, for example Monthly processor export, so the Hub can tell it apart from your other regular files.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_RecurringLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: mark the mapping as a regular file</shortDescription>
+        <value>This file arrives regularly</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_RecurringHelp</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: what marking a file recurring does</shortDescription>
+        <value>The Nonprofit Hub lists regular files with the date each was last imported. Nothing is loaded automatically.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_SourceNameLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: the name of a regular file</shortDescription>
+        <value>Source name</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_XlsxUnreadable</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: an Excel file that cannot be read</shortDescription>
+        <value>Open Impact cannot read this Excel file. It may be an older .xls file or protected by a password. Save it as .xlsx or CSV and upload that.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_XlsxUnsupportedBrowser</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: the browser cannot open workbooks</shortDescription>
+        <value>This browser cannot open Excel files. Save the sheet as CSV and upload that, or use a current version of Chrome, Edge, Firefox or Safari.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_XlsxTooLarge</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: an Excel file too large to open</shortDescription>
+        <value>This Excel file is too large to open in the browser: it has more than 500,000 rows or 1,000 columns, or a sheet over 100 MB. Save the sheet as CSV and upload that.</value>
     </labels>
 </CustomLabels>

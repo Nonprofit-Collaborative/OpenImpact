@@ -39,7 +39,7 @@ import xml.etree.ElementTree as ET
 NS = "http://soap.sforce.com/2006/04/metadata"
 
 # Objects a Salesforce Platform license cannot be granted, and the optional sets allowed to
-# grant them (C-20, ADR-NEXT on duplicate detection).
+# grant them (C-20, ADR-0050 on duplicate detection).
 LICENSE_LIMITED_OBJECTS = {"DuplicateRecordSet", "DuplicateRecordItem"}
 OPTIONAL_LICENSE_SETS = {"Nonprofit_Duplicate_Review"}
 

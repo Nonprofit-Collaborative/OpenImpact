@@ -13,7 +13,7 @@
  * Suggestions also need access to the platform's duplicate record sets, which Salesforce
  * grants only to Sales Cloud and Service Cloud licenses, through the optional Nonprofit
  * Duplicate Review permission set. Without it the panel still shows the rules and says why
- * there is nothing else, rather than failing (ADR-0013, ADR-NEXT).
+ * there is nothing else, rather than failing (ADR-0013, ADR-0050).
  */
 public with sharing class DuplicateController {
     private static final String EDIT_PERMISSION = 'Manage_Nonprofit_Settings';

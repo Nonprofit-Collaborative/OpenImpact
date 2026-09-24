@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Import_Undo_Retention_Days__c</fullName>
+  <defaultValue>30</defaultValue>
+  <description>How many days after a commit an import can still be undone. Stamped onto each import when it commits, so a change applies to later imports only.</description>
+  <externalId>false</externalId>
+  <inlineHelpText>How many days after an import you can still undo it.</inlineHelpText>
+  <label>Days An Import Can Be Undone</label>
+  <precision>3</precision>
+  <required>false</required>
+  <scale>0</scale>
+  <trackTrending>false</trackTrending>
+  <type>Number</type>
+  <unique>false</unique>
+</CustomField>

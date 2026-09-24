@@ -113,8 +113,9 @@ suggestions. The details are in the **Error Log**, under the context "Duplicate 
 cause and scan again: pairs already found are not suggested twice.
 
 **After merging two people, an empty household is left.** That is on purpose. Gifts given
-while the other person lived there still name that household. Merge it into the kept person's
-household from this panel or with **Merge or split** on the household's page.
+while the other person lived there still name that household. Until you merge it, Health Check
+lists it under **Households have nobody in them**. Merge it into the kept person's household
+from this panel or with **Merge or split** on the household's page.
 
 **You dismissed a pair and now want it back.** Dismissals are records. On the panel, choose
 **View** next to **Dismissed pairs**, pick the **All Duplicate Dismissals** list, find the pair

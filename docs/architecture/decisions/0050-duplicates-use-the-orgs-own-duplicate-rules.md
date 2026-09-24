@@ -1,4 +1,4 @@
-# ADR-NEXT: Duplicate detection uses the org's own duplicate rules, and Open Impact ships none
+# ADR-0050: Duplicate detection uses the org's own duplicate rules, and Open Impact ships none
 
 **Status:** Accepted (builder decision, conservative; confirm on review)
 **Date:** 2026-09-23
@@ -67,7 +67,9 @@ app cannot perform, so that draft needed four Setup steps before anything worked
     household's Primary Contact keeps mirroring somebody.
   - In both modes a household the merged-away person was in is recounted but never tidied
     away by the merge, because gifts and history credited to it would lose their household.
-    An emptied household is left for a person to merge into the survivor's with R-H13.
+    An emptied household is left for a person to merge into the survivor's with R-H13; until
+    then Health Check lists it as a household with nobody in it, detected and never changed
+    (ADR-0048).
   - The real-time totals that target the merged entity are recalculated for the survivors
     only (`RollupService.runAfterMerge`, driven by the definitions that target that entity, so
     Core names no Giving object, ADR-0014). For a person stored as an account that is the

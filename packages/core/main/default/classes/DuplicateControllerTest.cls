@@ -250,7 +250,7 @@ private class DuplicateControllerTest {
 
     /**
      * Duplicate record sets can be given only to a Sales Cloud or Service Cloud license, so no
-     * Core permission set grants them (ADR-NEXT). A person with the settings permission but no
+     * Core permission set grants them (ADR-0050). A person with the settings permission but no
      * access to the sets is told so, and nothing on the panel acts.
      */
     @IsTest

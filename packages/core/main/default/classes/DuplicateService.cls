@@ -1,6 +1,6 @@
 /**
  * Duplicate suggestions: asking the platform what it thinks, and remembering what a person
- * decided about the answer (C-20, canonical model Section 29A, ADR-NEXT).
+ * decided about the answer (C-20, canonical model Section 29A, ADR-0050).
  *
  * Nothing in this class compares two records. The comparison is the platform's: the org's own
  * active duplicate rules decide what counts as the same person or the same household, and

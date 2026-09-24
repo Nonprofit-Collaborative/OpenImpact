@@ -336,23 +336,70 @@ public with sharing class RollupService {
      * every existing definition exactly as the administrator left it (R-R6). Safe on every install,
      * every upgrade, and twice in a row. Returns how many it created.
      *
+     * A shipped default whose target field an active definition of the administrator's own
+     * already writes is not created (C-21, ADR-0048): two definitions writing one field would
+     * overwrite each other's total, and the one already here is her choice. Only her own
+     * definitions count: shipped pairs such as the household and the organization giving total
+     * write the same field for different accounts by design. `skippedDefaultNames` names them.
+     *
      * This is called from a post-install script as well as from the Rollups page (ADR-0029), so it
      * is written for that context: one query for the shipped rows, one for the existing ones, one
      * describe per distinct entity name however many rows mention it, and a single insert.
      */
     @NamespaceAccessible
     public static Integer ensureDefaults() {
+        List<Rollup_Definition__c> toCreate = planDefaults().toCreate;
+        RollupWriter.insertDefinitions(toCreate);
+        return toCreate.size();
+    }
+
+    /**
+     * The names of the shipped defaults this org does not have yet, without creating them, so
+     * Health Check can say what restoring them would add (C-21, ADR-0048).
+     */
+    @NamespaceAccessible
+    public static List<String> missingDefaultNames() {
+        List<String> names = new List<String>();
+        for (Rollup_Definition__c definition : planDefaults().toCreate) {
+            names.add(definition.Name);
+        }
+        return names;
+    }
+
+    /**
+     * The names of the shipped defaults this org does not have and that restoring leaves out,
+     * because an active definition the administrator made already writes the same target field
+     * (C-21, ADR-0048).
+     */
+    @NamespaceAccessible
+    public static List<String> skippedDefaultNames() {
+        return planDefaults().skippedNames;
+    }
+
+    /** What ensureDefaults would do: the definitions it creates, and the ones it leaves out. */
+    private class DefaultsPlan {
+        List<Rollup_Definition__c> toCreate = new List<Rollup_Definition__c>();
+        List<String> skippedNames = new List<String>();
+    }
+
+    private static DefaultsPlan planDefaults() {
+        DefaultsPlan plan = new DefaultsPlan();
         List<Rollup_Definition_Default__mdt> shipped = RollupSelector.selectShippedDefaults();
         if (shipped.isEmpty()) {
-            return 0;
+            return plan;
         }
         Set<String> existingKeys = new Set<String>();
+        Set<String> writtenTargets = new Set<String>();
         for (Rollup_Definition__c definition : RollupSelector.selectAll()) {
             if (String.isNotBlank(definition.Definition_Key__c)) {
                 existingKeys.add(definition.Definition_Key__c.toLowerCase());
             }
+            if (definition.Active__c == true && definition.Is_Package_Default__c != true) {
+                writtenTargets.add(
+                    targetKey(definition.Target_Object__c, definition.Target_Field__c)
+                );
+            }
         }
-        List<Rollup_Definition__c> toCreate = new List<Rollup_Definition__c>();
         Map<String, Boolean> presentByName = new Map<String, Boolean>();
         for (Rollup_Definition_Default__mdt shippedDefault : shipped) {
             String key = shippedDefault.Definition_Key__c;
@@ -363,10 +410,25 @@ public with sharing class RollupService {
                 continue;
             }
             existingKeys.add(key.toLowerCase());
-            toCreate.add(materialize(shippedDefault));
+            Rollup_Definition__c definition = materialize(shippedDefault);
+            if (
+                writtenTargets.contains(
+                    targetKey(shippedDefault.Target_Object__c, shippedDefault.Target_Field__c)
+                )
+            ) {
+                plan.skippedNames.add(definition.Name);
+                continue;
+            }
+            plan.toCreate.add(definition);
         }
-        RollupWriter.insertDefinitions(toCreate);
-        return toCreate.size();
+        return plan;
+    }
+
+    /** One target field, compared without regard to case. */
+    private static String targetKey(String targetObject, String targetField) {
+        return (String.isBlank(targetObject) ? '' : targetObject.toLowerCase()) +
+            '.' +
+            (String.isBlank(targetField) ? '' : targetField.toLowerCase());
     }
 
     /**

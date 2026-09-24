@@ -136,7 +136,7 @@ ALLOWED = {
     "CronTrigger": "the scheduled jobs Core and Giving install.",
     "CronJobDetail": "their names, read back in tests.",
     # Duplicate management, C-20.
-    "DuplicateRule": "which duplicate rules are active, read by the duplicate scan, C-20 (ADR-NEXT). Duplicate management is in every edition.",
+    "DuplicateRule": "which duplicate rules are active, read by the duplicate scan, C-20 (ADR-0050). Duplicate management is in every edition.",
     "DuplicateRecordSet": "a duplicate suggestion, written by the scan and read by the review panel, C-20.",
     "DuplicateRecordItem": "the records in a suggestion, C-20.",
     "DuplicateRecordItems": "not an object: the child relationship a subquery from DuplicateRecordSet names, C-20.",
