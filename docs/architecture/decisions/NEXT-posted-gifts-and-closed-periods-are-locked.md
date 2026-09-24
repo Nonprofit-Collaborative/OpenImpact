@@ -38,7 +38,16 @@ dated on or before the Books Closed Through date. A locked gift:
   changed or deleted, so each fund's share stays);
 - stays in the books: its Status may move between Received, Refunded and Written off, which is
   what a refund does to the original (R-G3), but not to Pending;
-- is not deleted.
+- is not deleted;
+- keeps what it names: the person or organization it names as donor, and the gift it names as
+  its original, are not deleted either, because the platform clears those lookups on delete
+  without running any gift trigger. A merge still works: before delete records who names the
+  record, and the refusal is made after delete only when the record was not merged
+  (MasterRecordId empty), because a merge moves the gifts to the surviving record. The guard on
+  Contact and Account runs from Core's triggers through two Always Runs registry rows in Giving;
+  the guard on an original is part of the gift lock's delete rule. Original Gift is not made
+  Restrict: that would refuse deleting any refunded gift, locked or not, with the platform's
+  words instead of the lock's, and could not be overridden.
 
 Everything else stays editable: appeal, acknowledgment, receipt, soft credits, tribute, matching
 link, commitment and installment, the in-kind and benefit fields. None of them is in the file.
@@ -49,7 +58,11 @@ leaves a gift in the books and dated on or before the close date when it was not
 
 **Refunds and write-offs still work, as new records in the open period.** `GiftService.refund`
 and `writeOff` insert a negative gift dated today and move the original's status within the
-books. The close date must be earlier than today, so today is always open. Reversing a Pending
+books. The close date must be at least two days before today, the day before yesterday at the latest,
+so today is open wherever the closer and the person refunding are: a close through yesterday,
+set early in the morning east of the date line, would refuse a refund dated today in the
+Pacific. Only the date line extremes (UTC+13 and UTC+14 against UTC-10 and beyond) are further
+apart than that. Reversing a Pending
 gift dated in a closed period would bring the original into a closed month, so it is refused
 before anything is saved; such a gift is not in the books and can be deleted.
 
@@ -80,7 +93,7 @@ Always Runs locks still run. One call marks at most 5,000 gifts.
 
 **Closing a period.** `Books_Closed_Through__c` on `Giving_Settings__c`, set on the Accounting
 Periods page, reached from the Giving section of Nonprofit Settings (ADR-0020) and gated by
-`Manage_Nonprofit_Settings`. It must be earlier than today and may only move forward; moving it
+`Manage_Nonprofit_Settings`. It must be at least two days before today and may only move forward; moving it
 back or clearing it needs `Override_Posting_Lock` and is logged. Every change is a Setting
 Change like any other setting. There is no Setting Definition row naming the key, so the
 console's generic save cannot write it past these checks.
@@ -125,7 +138,14 @@ existing error code, so no caller has to learn a new one.
   at all is an open question for the owner, not settled here.
 - A contact merge moves gifts to the surviving person without running gift triggers (C-20), so
   a locked gift's donor can change by merge. The person is the same; the books name them by the
-  surviving record.
+  surviving record. Deleting a donor of a locked gift is refused; merge the record instead.
+- Import undo leaves a person, household or organization that a locked gift names: the kept
+  gift keeps its donor (ADR-0052), and a record named by a locked gift from outside the import
+  is refused by the delete guard and journaled as not removed.
+- **Known namespace gaps.** Two things assume the deferred namespace stays empty and must change
+  when it is set: Connect's `accountingExport` LWC imports the Giving custom permission
+  `Post_Gifts` without a prefix, and Connect's `InboundGiftServiceTest` writes Giving's
+  protected `Giving_Settings__c` directly to close a period (following `InboundGiftAccessTest`).
 - Sample data dated in a closed period cannot be loaded or removed without the override. Load
   and remove it before closing the first period.
 - Unposting is one gift at a time on the gift page. A range posted by mistake is left posted or

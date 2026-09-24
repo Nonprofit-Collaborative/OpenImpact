@@ -1936,9 +1936,17 @@ posted (R-G13) or dated on or before Books Closed Through (Section 21A). While a
 No gift enters the books in a closed period: an insert, an undelete, or an update that leaves a
 gift in the books and dated on or before Books Closed Through when it was not locked before, is
 refused. A refund or write-off of a locked gift is a negative gift dated today, which is always
-open because Books Closed Through is earlier than today, so R-G3 is unaffected. A refund or
+open because Books Closed Through is at least two days before today, so today is open in every
+time zone and R-G3 is unaffected. A refund or
 write-off that would move a Pending gift dated in a closed period into the books is refused before
 anything is saved. Every other attribute stays editable.
+
+**R-G15 What a locked gift names is not deleted (G-20, ADR-NEXT).** Donor Contact, Donor Account
+and Original Gift are cleared by the platform when the record they name is deleted, and no gift
+trigger runs when that happens. So a person or organization that a locked gift names as donor,
+and a gift that a locked gift names as its original, is not deleted. A merge is not a delete for
+this rule: the losing record's gifts move to the surviving one (C-20). The same override and the
+same Error Log entry as R-G14 apply.
 
 The enforcement runs from `Gift_Posting_Lock` and `Gift_Allocation_Posting_Lock`, both Always
 Runs (R-A4). The one way past is the `Override_Posting_Lock` custom permission, on no permission
@@ -1993,6 +2001,10 @@ receipt.
   `Post_Gifts` (on `Giving_Admin` and Connect's `Accounting_Export`) and `Override_Posting_Lock`
   (granted to nobody). LWC `giftPosting` on the gift page shows the posting and offers Unpost; LWC
   `accountingPeriods` sets Books Closed Through.
+- **Named records (R-G15):** `GiftPostingLock.enforceOnDelete` refuses deleting an original;
+  `GiftDonorDeleteGuardHandler` runs on Contact and Account from registry records
+  `Automation_Registry.Gift_Donor_Delete_Guard_Contact` and `..._Account` (Always Runs), through
+  Core's own triggers.
 
 ---
 
@@ -2275,7 +2287,7 @@ Definition row, so the console's generic save cannot write it past the page's ch
 
 | Key | Type | Default | Definition |
 |---|---|---|---|
-| `Books_Closed_Through__c` | date | empty | The last day of the latest closed accounting period; empty means no period is closed. Gifts in the books dated on or before it are locked (R-G14). It is earlier than today and moves only forward; moving it back or clearing it needs `Override_Posting_Lock` and writes an Error Log entry at Warning. Every change is a Setting Change. |
+| `Books_Closed_Through__c` | date | empty | The last day of the latest closed accounting period; empty means no period is closed. Gifts in the books dated on or before it are locked (R-G14). It is at least two days before today (so today is open in every time zone) and moves only forward; moving it back or clearing it needs `Override_Posting_Lock` and writes an Error Log entry at Warning. Every change is a Setting Change. |
 
 ### Rules
 

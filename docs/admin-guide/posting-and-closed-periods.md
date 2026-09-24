@@ -96,6 +96,11 @@ Marking only marks gifts that are not yet posted, so marking twice does no harm.
 **More than 5,000 gifts.** Marking posted takes up to 5,000 gifts at a time. Mark a shorter range
 (a week, or one fund at a time).
 
+**`...the books name it as their donor, so it cannot be deleted`.** A person or organization
+whose gifts are in the books stays, and so does a gift whose refund is in the books: deleting
+them would blank the donor or the original on gifts Jen already holds. Merge a duplicate person
+into the right one instead; a merge moves the gifts and is allowed.
+
 **Sample data after closing a period.** Sample gifts dated in a closed period cannot be loaded or
 removed. Load and remove sample data before you close your first period.
 
