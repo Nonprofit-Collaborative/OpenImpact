@@ -11,6 +11,7 @@ import startCommit from '@salesforce/apex/ImportController.startCommit';
 import getBatch from '@salesforce/apex/ImportController.getBatch';
 import getRows from '@salesforce/apex/ImportController.getRows';
 import saveRecurring from '@salesforce/apex/ImportController.saveRecurring';
+import getEntityTargets from '@salesforce/apex/ImportController.getEntityTargets';
 
 jest.mock('@salesforce/apex/ImportController.canImport', () => ({ default: jest.fn() }), {
   virtual: true
@@ -43,6 +44,9 @@ jest.mock('@salesforce/apex/ImportController.saveRecurring', () => ({ default: j
   virtual: true
 });
 jest.mock('@salesforce/apex/ImportController.getRows', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock('@salesforce/apex/ImportController.getEntityTargets', () => ({ default: jest.fn() }), {
   virtual: true
 });
 
@@ -122,6 +126,7 @@ describe('the import wizard', () => {
     startCommit.mockResolvedValue({ ...DRY_RUN_BATCH, status: 'Complete', isDryRun: false });
     getBatch.mockResolvedValue(DRY_RUN_BATCH);
     getRows.mockResolvedValue([]);
+    getEntityTargets.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -365,6 +370,137 @@ describe('the import wizard', () => {
     click(element, 'start-over');
     await flush();
     expect(element.shadowRoot.querySelector('[data-id="template"]')).not.toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="results"]')).toBeNull();
+  });
+
+  /** Walks to the matching step with the default file. */
+  async function toMatchingStep() {
+    const element = render();
+    await flush();
+    click(element, 'next');
+    await flush();
+    await chooseFile(element);
+    click(element, 'next');
+    await flush();
+    return element;
+  }
+
+  function type(element, id, value) {
+    const input = element.shadowRoot.querySelector(`[data-id="${id}"]`);
+    input.value = value;
+    input.dispatchEvent(new CustomEvent('change'));
+  }
+
+  it('sends the control totals with the batch, and none when the boxes are empty', async () => {
+    let element = await toMatchingStep();
+    // No module reads gift amounts here, so only the row count is offered.
+    expect(element.shadowRoot.querySelector('[data-id="expected-amount"]')).toBeNull();
+    type(element, 'expected-count', '2');
+    await flush();
+    click(element, 'dry-run');
+    await flush();
+    expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson)).toEqual({
+      expectedCount: 2,
+      expectedAmount: null
+    });
+
+    document.body.removeChild(element);
+    createBatch.mockClear();
+    element = await toMatchingStep();
+    click(element, 'dry-run');
+    await flush();
+    expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson)).toEqual({
+      expectedCount: null,
+      expectedAmount: null
+    });
+  });
+
+  it('offers the gift columns an installed module loads, and the amount control total', async () => {
+    getEntityTargets.mockResolvedValue([{ value: 'Gift.Amount__c', label: 'Gift: amount' }]);
+    suggestMapping.mockResolvedValue(
+      JSON.stringify({
+        version: 1,
+        columns: [
+          { source: 'Last Name', target: 'Contact1.LastName' },
+          { source: 'Email', target: 'Contact1.Email' },
+          { source: 'Notes', target: 'Gift.Amount__c' }
+        ]
+      })
+    );
+    const element = render();
+    await flush();
+    click(element, 'next');
+    await flush();
+    await chooseFile(element);
+    const picker = element.shadowRoot.querySelector('[data-id="column-row"] lightning-combobox');
+    const labels = picker.options.map((option) => option.label);
+    expect(labels).toContain('Gift: amount');
+    expect(labels).not.toContain('Gift: amount (kept with the row, not loaded yet)');
+    click(element, 'next');
+    await flush();
+    type(element, 'expected-amount', '125.50');
+    await flush();
+    click(element, 'dry-run');
+    await flush();
+    expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson).expectedAmount).toBe(125.5);
+  });
+
+  it('shows how gifts match scheduled payments, from the template, and saves the choice', async () => {
+    getEntityTargets.mockResolvedValue([{ value: 'Gift.Amount__c', label: 'Gift: amount' }]);
+    getTemplates.mockResolvedValue([
+      { ...TEMPLATE, donationMatching: 'Match only', matchDateWindowDays: 3 }
+    ]);
+    suggestMapping.mockResolvedValue(
+      JSON.stringify({
+        version: 1,
+        columns: [
+          { source: 'Last Name', target: 'Contact1.LastName' },
+          { source: 'Email', target: 'Contact1.Email' },
+          { source: 'Notes', target: 'Gift.Amount__c' }
+        ]
+      })
+    );
+    const element = await toMatchingStep();
+    const choice = element.shadowRoot.querySelector('[data-id="donation-matching"]');
+    expect(choice.value).toBe('Match only');
+    expect(element.shadowRoot.querySelector('[data-id="match-window"]').value).toBe('3');
+    choice.dispatchEvent(new CustomEvent('change', { detail: { value: 'Never match' } }));
+    type(element, 'match-tolerance', '0.50');
+    await flush();
+    click(element, 'dry-run');
+    await flush();
+    expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson)).toEqual({
+      expectedCount: null,
+      expectedAmount: null,
+      saveDonationMatching: true,
+      donationMatching: 'Never match',
+      matchDateWindowDays: 3,
+      matchAmountTolerance: 0.5
+    });
+  });
+
+  it('does not offer donation matching where no module loads gifts', async () => {
+    const element = await toMatchingStep();
+    expect(element.shadowRoot.querySelector('[data-id="donation-matching"]')).toBeNull();
+    click(element, 'dry-run');
+    await flush();
+    expect(
+      JSON.parse(createBatch.mock.calls[0][0].optionsJson).saveDonationMatching
+    ).toBeUndefined();
+  });
+
+  it('will not commit a file that disagrees with its control totals, and can go back', async () => {
+    const disagrees = { ...DRY_RUN_BATCH, controlTotalsAgree: false };
+    createBatch.mockResolvedValue(disagrees);
+    startDryRun.mockResolvedValue(disagrees);
+    getBatch.mockResolvedValue(disagrees);
+    const element = await toMatchingStep();
+    click(element, 'dry-run');
+    await flush();
+    expect(element.shadowRoot.querySelector('[data-id="commit"]').disabled).toBe(true);
+    click(element, 'back');
+    await flush();
+    expect(element.shadowRoot.querySelector('[data-id="expected-count"]')).not.toBeNull();
     expect(element.shadowRoot.querySelector('[data-id="results"]')).toBeNull();
   });
 });

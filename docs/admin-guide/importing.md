@@ -3,7 +3,8 @@
 ## 1. What it does
 
 Importing loads a spreadsheet of people, households, and organizations into Open Impact
-without a consultant. You upload the file, Open Impact suggests which column means what,
+without a consultant, and, with the Giving module installed, their gifts too
+([Importing gifts](gift-import.md)). You upload the file, Open Impact suggests which column means what,
 you say how a row should be matched against records you already have, and then you run a
 **dry run** that tells you exactly what would be created, updated, matched, or rejected
 before anything is written. When the preview looks right you commit it, and the results
@@ -31,6 +32,8 @@ A few things are worth knowing before your first large file:
    to 365. Each import keeps the window it was committed with.
 4. **Import** on the same page has an **Open the import wizard** link, which is the same
    place the **Import** tab takes you.
+5. With the Giving module installed, the same page has the two donation matching settings
+   ([Importing gifts](gift-import.md), section 2).
 
 Open Impact ships two ready-made mappings, a **generic donor list** and a **generic gift
 list**. You can edit either one, and your edits are never overwritten by an upgrade.
@@ -50,15 +53,18 @@ or six rows.
 4. Choose how rows are matched. **Email exact** is the safe default. Read the sentence
    under each rule before you change it: **Name plus postal code** will treat two
    different people who share a name at one address as the same person.
-5. Select **Dry run**. Nothing is written. When it finishes you see four counts, "would
+5. Optionally, under **Control totals**, type how many rows the file should have (and, for a
+   gift file, what its amounts should add up to). The dry run checks them and a commit is
+   refused while they do not match.
+6. Select **Dry run**. Nothing is written. When it finishes you see four counts, "would
    create", "would update", "would match and change nothing", and "would be rejected",
    and a table of the rejected rows with the reason for each one. Select **Download
    exceptions** to get those rows back as a CSV you can fix in your spreadsheet.
-6. If the preview is wrong, fix the file or the mapping and dry run again. Nothing you
+7. If the preview is wrong, fix the file or the mapping and dry run again. Nothing you
    have done so far has changed a record.
-7. When the preview is right, select **Commit**. Processing runs in the background and
+8. When the preview is right, select **Commit**. Processing runs in the background and
    the screen updates as it goes.
-8. The results screen shows the same four counts for what actually happened, the run log,
+9. The results screen shows the same four counts for what actually happened, the run log,
    and links to the records. Select **View rows** to see every row and what became of it.
 
 To check the tag, open one of the new households and look at **Created By Import Batch**.
@@ -86,14 +92,15 @@ Three things are worth knowing about it.
 
 ## 5. Undoing an import
 
-An import you regret can be undone for 30 days after you commit it. Undo removes the people,
-households and organizations that import created, and puts back the values it changed on
-records you already had. It does not touch anything else.
+An import you regret can be undone for 30 days after you commit it. Undo removes the gifts,
+people, households and organizations that import created, and puts back the values it changed
+on records you already had. It does not touch anything else. A gift with a receipt is never
+removed, and neither is its donor ([Importing gifts](gift-import.md), section 6).
 
 1. Open the **Import** tab. **Recent imports** lists your last imports, newest first, with
    the date each one can be undone until.
-2. Select **Undo** beside the import. Open Impact counts what it would remove (people,
-   households and organizations) and how many changed values it would put back, and shows
+2. Select **Undo** beside the import. Open Impact counts what it would remove (gifts,
+   people, households and organizations) and how many changed values it would put back, and shows
    you the numbers with the import's name and file name. Nothing has changed yet.
 3. Read the numbers. If they are what you expect, select **Undo this import**. If somebody
    has added or removed a record since you looked, the undo refuses and counts again, so you
@@ -174,10 +181,13 @@ throw away the rest of the file. The failed rows are counted as rejected, each c
 reason, and none of them wrote anything. Fix those rows in your spreadsheet, save them as
 a smaller file, and import that file on its own.
 
-**Gift columns in the file were not loaded.** This version loads people, households, and
-organizations. Gift columns are recognized and kept with the staged row, and the run log
-says so, but the gifts themselves are loaded by the Giving module in a later release. Use
-the gift entry screen for gifts until then.
+**Gift columns in the file were not loaded.** Gifts are loaded by the Giving module. Without
+it, gift columns are recognized and kept with the staged row, and the run log says so. With
+it installed, see [Importing gifts](gift-import.md).
+
+**"The control totals do not match."** The dry run counted a different number of rows, or a
+different total of gift amounts, from the control totals you typed. The run log gives both
+numbers. Fix the file or the totals and dry run again; the commit is refused until they agree.
 
 ## Field reference
 
@@ -188,8 +198,9 @@ For building a report on your imports.
 | One upload and its counts | Import Batch | Row Count, Rows Created, Rows Updated, Rows Matched, Rows Rejected |
 | Why an import failed as a whole | Import Batch | Run Log |
 | One row of the file | Import Row | Row Number, Status, Error Message |
-| The records a row resolved to | Import Row | Household, Contact 1, Contact 2, Organization |
-| The import a record came from | Account, Contact | Created By Import Batch |
+| The records a row resolved to | Import Row | Household, Contact 1, Contact 2, Organization, Gift, Soft Credit |
+| The control totals of a file | Import Batch | Expected Count, Expected Amount, File Amount |
+| The import a record came from | Account, Contact, Gift | Created By Import Batch |
 | Which mappings are for a recurring file, and when each was last used | Import Template | Is Recurring, Source Name, Last Import Date |
 | When an import can be undone until | Import Batch | Undo Deadline |
 | What an import changed on existing records, and what an undo kept | Import Journal | Phase, Entry Count, Entries |

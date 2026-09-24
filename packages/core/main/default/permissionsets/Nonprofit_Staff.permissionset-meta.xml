@@ -634,6 +634,21 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
+    <field>Import_Batch__c.Expected_Amount__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Import_Batch__c.Expected_Count__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Import_Batch__c.File_Amount__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
     <field>Import_Batch__c.File_Id__c</field>
     <readable>true</readable>
   </fieldPermissions>

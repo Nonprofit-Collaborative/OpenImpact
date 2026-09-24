@@ -49,6 +49,25 @@ public with sharing class ImportUndoService {
         /** The updates the journal holds, which an undo puts back where nobody changed them. */
         @AuraEnabled
         public Integer updates = 0;
+        /**
+         * The records of an installed module's own objects the import created (for example
+         * gifts), one entry per object, in the order the undo deletes them (R-IB9).
+         */
+        @AuraEnabled
+        public List<TaggedCount> others = new List<TaggedCount>();
+    }
+
+    /** How many records of one module object carry the batch's tag. */
+    @NamespaceAccessible
+    public class TaggedCount {
+        /** The object's API name, stable for a key. */
+        @AuraEnabled
+        public String objectName;
+        /** The object's plural label, as the org shows it. */
+        @AuraEnabled
+        public String label;
+        @AuraEnabled
+        public Integer count = 0;
     }
 
     /**
@@ -248,7 +267,7 @@ public with sharing class ImportUndoService {
 
     /**
      * Counts the records carrying this batch's tag, by kind. People stored as accounts are
-     * counted as people. Read in system mode (ADR-0021): the count has to include records the
+     * counted as people, and an installed module's own objects each have their own count. Read in system mode (ADR-0021): the count has to include records the
      * running user cannot see, because an undo that says "nothing to delete" about records it
      * merely cannot see has told the administrator something false.
      */
@@ -281,6 +300,27 @@ public with sharing class ImportUndoService {
                 view.organizations += total;
             }
         }
-        view.total = view.people + view.households + view.organizations;
+        view.others = new List<TaggedCount>();
+        Integer otherTotal = 0;
+        for (Schema.SObjectType type : ImportEntityProcessors.taggedTypes()) {
+            Schema.DescribeSObjectResult described = type.getDescribe(
+                SObjectDescribeOptions.DEFERRED
+            );
+            TaggedCount counted = new TaggedCount();
+            counted.objectName = described.getName();
+            counted.label = described.getLabelPlural();
+            counted.count = Database.countQueryWithBinds(
+                'SELECT COUNT() FROM ' +
+                    String.escapeSingleQuotes(described.getName()) +
+                    ' WHERE ' +
+                    ImportEntityProcessors.TAG_FIELD +
+                    ' = :batchId',
+                new Map<String, Object>{ 'batchId' => batchId },
+                AccessLevel.SYSTEM_MODE
+            );
+            otherTotal += counted.count;
+            view.others.add(counted);
+        }
+        view.total = view.people + view.households + view.organizations + otherTotal;
     }
 }

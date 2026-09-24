@@ -13,6 +13,7 @@ import startCommit from '@salesforce/apex/ImportController.startCommit';
 import getBatch from '@salesforce/apex/ImportController.getBatch';
 import getRows from '@salesforce/apex/ImportController.getRows';
 import saveRecurring from '@salesforce/apex/ImportController.saveRecurring';
+import getEntityTargets from '@salesforce/apex/ImportController.getEntityTargets';
 
 import cardTitle from '@salesforce/label/c.Core_Import_CardTitle';
 import stepTemplate from '@salesforce/label/c.Core_Import_StepTemplate';
@@ -47,6 +48,24 @@ import xlsxTooLarge from '@salesforce/label/c.Core_Import_XlsxTooLarge';
 import recurringLabel from '@salesforce/label/c.Core_Import_RecurringLabel';
 import recurringHelp from '@salesforce/label/c.Core_Import_RecurringHelp';
 import sourceNameLabel from '@salesforce/label/c.Core_Import_SourceNameLabel';
+import controlTotalsHeading from '@salesforce/label/c.Core_Import_ControlTotalsHeading';
+import controlTotalsHelp from '@salesforce/label/c.Core_Import_ControlTotalsHelp';
+import expectedCountLabel from '@salesforce/label/c.Core_Import_ExpectedCountLabel';
+import expectedAmountLabel from '@salesforce/label/c.Core_Import_ExpectedAmountLabel';
+import donationMatchingHeading from '@salesforce/label/c.Core_Import_DonationMatchingHeading';
+import donationMatchingHelp from '@salesforce/label/c.Core_Import_DonationMatchingHelp';
+import donationMatchingLabel from '@salesforce/label/c.Core_Import_DonationMatchingLabel';
+import donationMatchOrCreate from '@salesforce/label/c.Core_Import_DonationMatchOrCreate';
+import donationAlwaysCreate from '@salesforce/label/c.Core_Import_DonationAlwaysCreate';
+import donationMatchOnly from '@salesforce/label/c.Core_Import_DonationMatchOnly';
+import donationNeverMatch from '@salesforce/label/c.Core_Import_DonationNeverMatch';
+import matchWindowLabel from '@salesforce/label/c.Core_Import_MatchWindowLabel';
+import matchToleranceLabel from '@salesforce/label/c.Core_Import_MatchToleranceLabel';
+
+/** A number as an input shows it, or empty. */
+function numberText(value) {
+  return value === null || value === undefined ? '' : String(value);
+}
 
 /** How often the wizard asks how a run is going. */
 const POLL_INTERVAL_MS = 3000;
@@ -89,7 +108,15 @@ const TARGETS = [
   { value: 'Organization.BillingCity', label: 'Organization: city' },
   { value: 'Organization.BillingState', label: 'Organization: state or province' },
   { value: 'Organization.BillingPostalCode', label: 'Organization: postal code' },
-  { value: 'Organization.BillingCountry', label: 'Organization: country' },
+  { value: 'Organization.BillingCountry', label: 'Organization: country' }
+];
+
+/**
+ * The gift columns offered where no module that loads gifts is installed: recognized, kept
+ * with the row, and loaded by nothing. Where one is installed its own targets replace these
+ * (R-IR6).
+ */
+const GIFT_TARGETS_NOT_LOADED = [
   { value: 'Gift.Amount__c', label: 'Gift: amount (kept with the row, not loaded yet)' },
   { value: 'Gift.Gift_Date__c', label: 'Gift: date (kept with the row, not loaded yet)' },
   { value: 'Gift.Type__c', label: 'Gift: payment method (kept with the row, not loaded yet)' },
@@ -99,6 +126,9 @@ const TARGETS = [
   },
   { value: 'Allocation.Fund', label: 'Gift: fund (kept with the row, not loaded yet)' }
 ];
+
+/** The row entities a module outside Core loads (R-IR6). */
+const DEFERRED_ENTITY_PREFIXES = ['Gift.', 'Allocation.', 'SoftCredit.', 'Tribute.'];
 
 const RULES = [
   { value: 'Email exact', help: matchingEmailHelp },
@@ -135,6 +165,15 @@ export default class ImportWizard extends LightningElement {
   fileName;
   pollTimer;
   storeFileError;
+  /** The columns an installed module loads, empty where none is (R-IR6). */
+  entityTargets = [];
+  /** The control totals for this file (R-IB10), kept as typed. */
+  expectedCount = '';
+  expectedAmount = '';
+  /** How this mapping's gifts are matched to scheduled payments (R-IT7), as the template holds it. */
+  donationMatching = 'Match or create';
+  matchDateWindowDays = '';
+  matchAmountTolerance = '';
 
   labels = {
     cardTitle,
@@ -161,7 +200,16 @@ export default class ImportWizard extends LightningElement {
     parsingMessage,
     recurringLabel,
     recurringHelp,
-    sourceNameLabel
+    sourceNameLabel,
+    controlTotalsHeading,
+    controlTotalsHelp,
+    expectedCountLabel,
+    expectedAmountLabel,
+    donationMatchingHeading,
+    donationMatchingHelp,
+    donationMatchingLabel,
+    matchWindowLabel,
+    matchToleranceLabel
   };
 
   async connectedCallback() {
@@ -169,6 +217,7 @@ export default class ImportWizard extends LightningElement {
       this.permitted = await canImport();
       if (this.permitted) {
         this.templates = await getTemplates();
+        this.entityTargets = (await getEntityTargets()) || [];
         if (this.templates.length > 0) {
           this.selectTemplate(this.templates[0].id);
         }
@@ -212,6 +261,9 @@ export default class ImportWizard extends LightningElement {
     }
     this.isRecurring = Boolean(template && template.isRecurring);
     this.sourceName = (template && template.sourceName) || '';
+    this.donationMatching = (template && template.donationMatching) || 'Match or create';
+    this.matchDateWindowDays = numberText(template && template.matchDateWindowDays);
+    this.matchAmountTolerance = numberText(template && template.matchAmountTolerance);
   }
 
   handleRecurringChange(event) {
@@ -345,7 +397,74 @@ export default class ImportWizard extends LightningElement {
   // ---------------------------------------------------------------------------------------
 
   get targetOptions() {
-    return [{ label: doNotLoad, value: IGNORE }].concat(TARGETS);
+    const giftTargets =
+      this.entityTargets.length > 0 ? this.entityTargets : GIFT_TARGETS_NOT_LOADED;
+    return [{ label: doNotLoad, value: IGNORE }]
+      .concat(TARGETS)
+      .concat(giftTargets.map((target) => ({ value: target.value, label: target.label })));
+  }
+
+  /** Whether any column is mapped to something a module outside Core loads. */
+  get mapsGift() {
+    return this.columns.some((column) =>
+      DEFERRED_ENTITY_PREFIXES.some((prefix) => (column.target || '').startsWith(prefix))
+    );
+  }
+
+  /** The amount control total can be checked only where a module reads gift amounts. */
+  get showExpectedAmount() {
+    return this.entityTargets.length > 0 && this.mapsGift;
+  }
+
+  handleExpectedCountChange(event) {
+    this.expectedCount = event.target.value;
+  }
+
+  handleExpectedAmountChange(event) {
+    this.expectedAmount = event.target.value;
+  }
+
+  get donationMatchingOptions() {
+    return [
+      { value: 'Match or create', label: donationMatchOrCreate },
+      { value: 'Always create', label: donationAlwaysCreate },
+      { value: 'Match only', label: donationMatchOnly },
+      { value: 'Never match', label: donationNeverMatch }
+    ];
+  }
+
+  handleDonationMatchingChange(event) {
+    this.donationMatching = event.detail.value;
+  }
+
+  handleMatchWindowChange(event) {
+    this.matchDateWindowDays = event.target.value;
+  }
+
+  handleMatchToleranceChange(event) {
+    this.matchAmountTolerance = event.target.value;
+  }
+
+  /** What is sent with the batch besides the mapping; an empty box is no control total. */
+  get batchOptions() {
+    const count = String(this.expectedCount || '').trim();
+    const amount = this.showExpectedAmount ? String(this.expectedAmount || '').trim() : '';
+    const options = {
+      expectedCount: count === '' ? null : Number(count),
+      expectedAmount: amount === '' ? null : Number(amount)
+    };
+    if (this.showExpectedAmount) {
+      // Shown only where a module loads gifts, and saved on the template only then (R-IT7).
+      const days = String(this.matchDateWindowDays || '').trim();
+      const tolerance = String(this.matchAmountTolerance || '').trim();
+      Object.assign(options, {
+        saveDonationMatching: true,
+        donationMatching: this.donationMatching,
+        matchDateWindowDays: days === '' ? null : Number(days),
+        matchAmountTolerance: tolerance === '' ? null : Number(tolerance)
+      });
+    }
+    return JSON.stringify(options);
   }
 
   handleTargetChange(event) {
@@ -409,7 +528,8 @@ export default class ImportWizard extends LightningElement {
         fileId,
         fileName: this.fileName,
         mappingDocument: this.mappingDocument,
-        matchingRule: this.matchingRule
+        matchingRule: this.matchingRule,
+        optionsJson: this.batchOptions
       });
       await this.stageAllRows();
       this.batch = await startDryRun({ batchId: this.batch.id });
@@ -528,6 +648,8 @@ export default class ImportWizard extends LightningElement {
     this.fileName = undefined;
     this.pendingFile = undefined;
     this.message = undefined;
+    this.expectedCount = '';
+    this.expectedAmount = '';
   }
 
   // ---------------------------------------------------------------------------------------
@@ -541,6 +663,13 @@ export default class ImportWizard extends LightningElement {
 
   handleBack() {
     this.message = undefined;
+    if (this.step === 5) {
+      // Back from a finished dry run: the next dry run is a new batch, so a changed control
+      // total or mapping is checked afresh (R-IB10).
+      this.stopPolling();
+      this.batch = undefined;
+      this.rejectedRows = [];
+    }
     this.step = Math.max(this.step - 1, 1);
   }
 
@@ -573,7 +702,10 @@ export default class ImportWizard extends LightningElement {
   }
 
   get canGoBack() {
-    return this.step > 1 && this.step < 5;
+    return (
+      (this.step > 1 && this.step < 5) ||
+      (this.step === 5 && Boolean(this.batch && this.batch.isFinished))
+    );
   }
 
   get cannotLeaveTemplateStep() {
@@ -589,7 +721,11 @@ export default class ImportWizard extends LightningElement {
   }
 
   get cannotCommit() {
-    return !this.batch || this.batch.status !== 'Dry run complete';
+    return (
+      !this.batch ||
+      this.batch.status !== 'Dry run complete' ||
+      this.batch.controlTotalsAgree === false
+    );
   }
 
   get hasMessage() {

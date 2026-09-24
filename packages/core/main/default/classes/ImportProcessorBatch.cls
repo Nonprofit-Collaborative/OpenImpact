@@ -21,6 +21,10 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
     private List<String> log = new List<String>();
     private Set<String> notes = new Set<String>();
     private Integer chunksRun = 0;
+    /** The gift amounts the entity processor read, added up over the chunks (R-IB10). */
+    private Decimal fileAmount;
+    /** The entity processor's own state, handed from chunk to chunk (R-IR6). */
+    private String processorState;
 
     public ImportProcessorBatch(Id batchId, Boolean dryRun) {
         this.batchId = batchId;
@@ -54,8 +58,16 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
         );
     }
 
+    /** Makes a chunk die after its rows were processed, so a test can see the rollback. */
+    @TestVisible
+    private static Boolean failAfterProcessForTest = false;
+
     public void execute(Database.BatchableContext context, List<Import_Row__c> scope) {
         chunksRun++;
+        // A chunk that dies part way must leave none of its writes behind (R-IB5): without the
+        // rollback, the records it made before the failure would stay while its rows say
+        // rejected, and a second load would make them again.
+        Savepoint beforeChunk = Database.setSavepoint();
         try {
             Import_Batch__c batch = ImportBatchSelector.selectById(batchId);
             Import_Template__c template = ImportTemplateSelector.selectById(
@@ -68,6 +80,7 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
                 template.Column_Mapping_JSON__c,
                 template.Default_Values_JSON__c
             );
+            ImportEntityProcessors.carriedState = processorState;
             ImportRowProcessor.Outcome outcome = ImportRowProcessor.process(
                 batch,
                 template,
@@ -75,11 +88,20 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
                 scope,
                 dryRun
             );
+            if (failAfterProcessForTest) {
+                throw new ImportException('Failed for the test.');
+            }
+            // Kept only from a chunk that finished: a chunk that died saved nothing.
+            processorState = ImportEntityProcessors.carriedState;
             notes.addAll(outcome.notes);
+            if (outcome.fileAmount != null) {
+                fileAmount = (fileAmount == null ? 0 : fileAmount) + outcome.fileAmount;
+            }
         } catch (Exception e) {
             // The chunk is lost, not the run. Every row in it is marked with the reason so
             // that nothing disappears without an explanation an administrator can read.
             failed = true;
+            Database.rollback(beforeChunk);
             rejectChunk(scope, e.getMessage());
             addLog(
                 String.format(
@@ -99,7 +121,7 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
             );
             lines.addAll(new List<String>(notes));
             lines.addAll(log);
-            ImportBatchService.finish(batchId, dryRun, failed, lines);
+            ImportBatchService.finish(batchId, dryRun, failed, lines, fileAmount);
         } catch (Exception e) {
             ErrorLogger.log(e, 'ImportProcessorBatch.finish');
         }

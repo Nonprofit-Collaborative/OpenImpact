@@ -1207,6 +1207,9 @@ Maria load the same payment processor export every month without rebuilding the 
 | Source Name | text | conditional | The named source of a recurring feed, for example "Monthly processor export"; required when Is Recurring is true. |
 | Last Import Date | date | computed | The date a batch using this template last completed, shown on the Hub. |
 | Active | boolean | yes (defaults true) | Whether the template is offered in the import wizard. |
+| Donation Matching | picklist(Always create, Match or create, Match only, Never match) | no | How a gift on a row is matched to a payment the donor already owes; empty means Match or create (R-IT7, R-DM5). |
+| Match Date Window Days | integer | no | How many days either side of a scheduled payment's due date a gift may fall and still match it; empty means the org's default (R-IT7, Section 21A). |
+| Match Amount Tolerance | decimal | no | How far a gift's amount may differ from a scheduled payment's expected amount and still match it; empty means the org's default (R-IT7, Section 21A). |
 
 ### Relationships
 
@@ -1260,6 +1263,14 @@ imports"). Marking a template recurring changes nothing about how a file is impo
 file is still uploaded, dry run and committed by a person. Nothing loads a file on a
 schedule, because an import nobody watched is an import nobody checked before it wrote.
 
+**R-IT7 Donation matching values live on the template, and only Giving reads them.** A
+template that loads gifts carries how its gifts are matched to scheduled payments
+(Section 25N, R-DM1 to R-DM6): the behaviour, the date window and the amount tolerance. They
+are Core attributes because a package cannot add attributes to another package's object
+(ADR-0014), and they are plain values, never references, so Core can hold them without
+knowing what they mean. The wizard shows them only when a gift processor is installed and
+the mapping loads a gift; an empty value means the org's default (ADR-0052).
+
 **R-IT5 What v0.2 ships.** v0.2 ships a generic donor list template and a generic gift
 list template. The NPSP template set is v0.3 engineering work and the Agentforce
 Nonprofit set is v0.5 (plan Section 6); both are new shipped-default rows, not new
@@ -1283,6 +1294,9 @@ attributes.
 | Source Name | `Source_Name__c` | Text |
 | Last Import Date | `Last_Import_Date__c` | Date |
 | Active | `Active__c` | Checkbox |
+| Donation Matching | `Donation_Matching__c` | Picklist: Always create, Match or create, Match only, Never match |
+| Match Date Window Days | `Match_Date_Window_Days__c` | Number (3, 0) |
+| Match Amount Tolerance | `Match_Amount_Tolerance__c` | Currency (16, 2) |
 
 - **Shipped defaults:** `Import_Template_Default__mdt` (Section 13).
 - **Service:** `ImportTemplateService` (materialization and save), `ImportTemplateSelector`,
@@ -1321,6 +1335,9 @@ undoes.
 | Chunk Size | integer | yes | Rows per chunk for this run, defaulted from the org's import chunk size. |
 | Undo Deadline | datetime | no | The end of the window in which this batch can be undone, stamped at commit from the org's undo retention setting (R-IB7). |
 | Committed By | reference(User) | no | The user who committed the batch, empty while it is a dry run. |
+| Expected Count | integer | no | The number of rows the administrator expects the file to hold, a control total checked by the dry run (R-IB10). |
+| Expected Amount | decimal | no | The total the administrator expects the file's gift amounts to add up to, a control total checked by the dry run (R-IB10). |
+| File Amount | decimal | computed | The total of the file's gift amounts as the last pass read them, written only when an entity processor reads amounts (R-IB10). |
 
 ### Relationships
 
@@ -1377,8 +1394,8 @@ after the deadline is refused, in a sentence naming the date it passed.
    a status, a name or a user to decide what to delete, and there is no undo of more than one
    batch. A flag can be true of records nobody meant to include; a batch identifier cannot.
 2. **Counted, shown, then confirmed.** The first step counts what carries the tag, by kind
-   (people, households, organizations), and shows those numbers with the batch's name and
-   file name. The undo starts only when the number the person confirms is still the number
+   (people, households, organizations, and each object an entity processor tags, R-IB9), and
+   shows those numbers with the batch's name and file name. The undo starts only when the number the person confirms is still the number
    counted, so it can only delete a set somebody has seen the size of.
 3. **Once.** The batch's status moves from Complete to Undoing inside a locked read of the
    batch, so a second request, while the first runs or after it has finished, is refused
@@ -1427,9 +1444,15 @@ after the deadline is refused, in a sentence naming the date it passed.
   the import wrote is set back to the value before the import. An attribute somebody has
   changed since is left as it is and journaled as not put back, because restoring a value
   weeks later would silently overwrite their correction.
-- **It leaves what Core cannot name to its owner.** An entity processor (R-IR6) that creates
-  records in its own package tags them and removes them itself. No packaged entity processor
-  ships yet, so a Core import creates only accounts and contacts, and undo reverses all of it.
+- **It removes what an entity processor created, on the processor's terms.** An entity
+  processor (R-IR6) names the objects it tags with the batch, and the undo deletes those
+  records first, before the people, in a pass per object, with the same one-batch filter, the
+  same checks above and the same delete in the running user's own mode. Core names none of
+  those objects: their types come from the processor and every query is built from describe.
+  The processor adds its own reasons to keep, for its records and for Core's: the Giving
+  processor keeps a gift with an issued receipt, and the person, household or organization
+  that such a gift still names (R-GI9). The counts shown before the undo include each such
+  object by its plural label.
 
 When the undo finishes, one line is added to the Run Log: who ran it, when, and how many
 records it deleted, kept and put back.
@@ -1439,6 +1462,16 @@ run log writes are read and written in system mode (ADR-0021): a count or a chec
 cannot see a record would report "nothing there" about exactly the record that matters, and
 the status is the package's own bookkeeping. Every delete and every value put back is in the
 running user's own mode.
+
+**R-IB10 Control totals.** An administrator may give a file two control totals before its
+dry run: how many rows it holds and what its gift amounts add up to, from the deposit slip or
+the processor's own report. Both are optional. The dry run compares Expected Count with Row
+Count and Expected Amount with File Amount, the total the entity processor read from every
+row that carries a readable gift amount, rejected or not, because the question is whether
+this is the file on paper. Each comparison is written to the Run Log with both numbers, and
+while either differs a commit is refused with a sentence naming them; the administrator
+corrects the file or the totals and runs a new dry run. An Expected Amount with no processor
+installed cannot be checked and is refused the same way (ADR-0052).
 
 ### Salesforce implementation
 
@@ -1462,6 +1495,9 @@ running user's own mode.
 | Chunk Size | `Chunk_Size__c` | Number |
 | Undo Deadline | `Undo_Deadline__c` | DateTime |
 | Committed By | `Committed_By__c` | Lookup to User |
+| Expected Count | `Expected_Count__c` | Number (9, 0) |
+| Expected Amount | `Expected_Amount__c` | Currency (16, 2) |
+| File Amount | `File_Amount__c` | Currency (16, 2) |
 
 - **Batch tag on other objects:** `Created_By_Import_Batch__c`, a Lookup to
   `Import_Batch__c`, on Account (households and organizations), on Contact, and on
@@ -1511,11 +1547,11 @@ processor resolves those in dependency order.
 
 ### Rules
 
-**R-IR1 Row entities and resolution order.** A row is read as up to eight entities named
+**R-IR1 Row entities and resolution order.** A row is read as up to nine entities named
 `Household`, `Contact1`, `Contact2`, `Organization`, `Affiliation`, `Gift`, `Allocation`,
-and `SoftCredit` in the template's mapping document, and they are resolved in dependency
-order: organization, household, people, membership and affiliation, gift, allocations,
-soft credit. Resolution is idempotent per row (R-IB4).
+`SoftCredit` and `Tribute` in the template's mapping document, and they are resolved in
+dependency order: organization, household, people, membership and affiliation, gift,
+allocations, soft credit, tribute. Resolution is idempotent per row (R-IB4).
 
 **R-IR1a What a row means for households.** A row is one household. The row's first
 person is saved first and is given a household by the ordinary creation path (R-H1 in
@@ -1559,12 +1595,39 @@ batch record, so a large import does not sit in storage forever. Undo does not r
 reads the tag on the records and the journal (R-IB9, Section 17A).
 
 **R-IR6 Entities Core cannot resolve.** Core resolves `Organization`, `Household`,
-`Contact1` and `Contact2`. `Affiliation`, `Gift`, `Allocation` and `SoftCredit` belong to
-features or packages Core may not reference (ADR-0014), so the processor offers them to an
-optional `ImportEntityProcessor` implementation found by `Type.forName` (the mechanism in
-ADR-0017), and where none is installed it leaves those columns staged on the row, says so
-in the run log, and counts the row on what it did resolve. A row is never rejected for
-carrying a column nothing can load yet.
+`Contact1` and `Contact2`. `Affiliation`, `Gift`, `Allocation`, `SoftCredit` and `Tribute`
+belong to features or packages Core may not reference (ADR-0014), so the processor offers
+them to an optional `ImportEntityProcessor` implementation, the class named
+`GiftImportProcessor`, found by namespace and name with `Type.forName` (the mechanism in
+ADR-0017). Where none is installed it leaves those columns staged on the row, says so in the
+run log, and counts the row on what it did resolve. A row is never rejected for carrying a
+column nothing can load yet. The contract, which ADR-0052 records:
+
+- **Targets.** The processor names the columns it loads, with their labels, and the column
+  picker offers them. Where no processor is installed the picker offers the shipped gift
+  columns marked as kept with the row and not loaded.
+- **Resolve.** Called once per chunk, after Core has resolved the organization, the household
+  and the people and written them onto the rows (their references, and Status Rejected with
+  the reason where Core rejected the row), with each row's values grouped by entity and the
+  template's defaults applied. It must be bulk safe, must write nothing when the pass is a dry
+  run, and must not throw: a failure belongs on its row. It returns a note for the run log and
+  the total of the gift amounts it read, for the control totals (R-IB10).
+- **Carried state.** Each chunk runs in its own transaction. A processor that needs to know
+  what earlier chunks of the same run decided (the scheduled payments already matched,
+  R-DM4, and in a dry run the external IDs already loaded, R-DM1) keeps it in `ImportEntityProcessors.carriedState`, a string the import batch holds
+  between chunks and sets again before each one. Core never reads it, and a chunk that fails
+  does not change it.
+- **Undo.** The processor names the objects it tags with the batch and gives its reasons to
+  keep records (R-IB9).
+
+**R-IR7 What a row comes to.** The processor reports each row it handled by setting its
+Status and, for Giving, its Gift and Soft Credit identifiers: Rejected with the reason,
+Created when it created something, or Matched when it found what the row describes already
+there. Core folds that into the row's status: a rejection wins over anything Core did, so a
+row whose gift failed is counted rejected and appears in the exceptions file even when its
+person was created; a creation makes the row Created; a match leaves Core's own outcome. A
+person created for a row whose gift was then rejected stays, carries the tag, and is matched
+when the corrected row is loaded again.
 
 ### Salesforce implementation
 
@@ -1588,7 +1651,8 @@ carrying a column nothing can load yet.
 
 - **Service:** `ImportRowProcessor`, `ImportMatcher`, `ImportRowSelector`,
   `ImportEntityProcessor` (the interface a dependent package implements to resolve the row
-  entities Core cannot, R-IR6).
+  entities Core cannot, R-IR6), `ImportEntityResult` (what one chunk of it returns) and
+  `ImportEntityProcessors` (finds the installed implementation).
 
 ---
 
@@ -2139,6 +2203,16 @@ the Setup Assistant writes them and letters other than receipts print them too.
 | `Receipt_Logo_Width_Mm__c` | integer | 40 | How wide the logo prints, in millimetres. One number rather than a style sheet: a wordmark and a square crest cannot both look right at one fixed width, and the template is not the place to fix that (ADR-0016, "the admin edits text and tokens, not CSS"). |
 | `Receipt_Logo_Delivery__c` | text | empty | Which of ADR-0016's three image routes the logo is delivered by: empty means the shipped route, the file download URL. It exists for the same reason `Receipt_Renderer__c` does, and it is retired when the second spike closes (R-RC13). Stored as text under ADR-0019. |
 
+### v0.5 keys
+
+Added by donation matching (G-24). Shown in the console's Import section, beside the Core
+import settings, because that is where an administrator looks for how an import behaves.
+
+| Key | Type | Default | Definition |
+|---|---|---|---|
+| `Donation_Match_Date_Window_Days__c` | integer | 7 | How many days either side of a scheduled payment's due date an imported gift may fall and still be matched to it, for a template that does not set its own (R-DM3). |
+| `Donation_Match_Amount_Tolerance__c` | decimal | 0 | How far an imported gift's amount may differ from a scheduled payment's expected amount and still be matched to it, for a template that does not set its own; zero means the amounts must be equal (R-DM3). |
+
 ### Rules
 
 **R-GS1 Same contract as Core settings.** Protected, hierarchical, written synchronously
@@ -2180,6 +2254,8 @@ these keys, which is what makes a module that is off leave nothing behind.
 | Acknowledgment From Address | `Acknowledgment_From_Address__c` | Text(255) |
 | Acknowledgments Last Run | `Acknowledgments_Last_Run__c` | Date/Time |
 | Acknowledgments Last Run Summary | `Acknowledgments_Last_Run_Summary__c` | Text(255) |
+| Donation Match Date Window Days | `Donation_Match_Date_Window_Days__c` | Number(3, 0) |
+| Donation Match Amount Tolerance | `Donation_Match_Amount_Tolerance__c` | Currency(16, 2) |
 
 - **Service:** Core `SettingsService`, reading and writing this object through the
   `Settings_Object__c` field on `Setting_Definition__mdt` (ADR-0017).
@@ -2242,7 +2318,11 @@ deletes history.
 
 **R-CM4 Completion.** A pledge is Completed when its balance reaches zero or below. A
 recurring commitment is never completed automatically; it ends when staff cancel it or
-when End Date passes.
+when End Date passes. Deleting a gift undoes what it did: the installment it paid takes its
+status again from the gifts still linked (R-IN2), and a Completed pledge that was fully paid
+with the deleted gifts' received amounts and is not without them is Active again. A pledge
+staff completed short of its total stays Completed, because no deleted gift completed it.
+Restoring a gift from the recycle bin applies it again.
 
 **R-CM5 Balance is calculated live.** Balance is Expected Total less Paid To Date for a
 pledge and empty for a recurring commitment, which has no expected total to subtract
@@ -3702,6 +3782,149 @@ the database: see "Known gaps in shipped rules" in Section 30.
 
 ---
 
+## 25N. Gift import and donation matching
+
+### Definition
+
+How a row of an imported file becomes a gift (feature G-23), and how that gift is matched to
+a payment the donor already owes (feature G-24). This section adds no object: the import is
+Core's (Sections 15 to 17A) and the records it makes are the ordinary Giving records of
+Sections 18 to 25. What it defines is the Giving package's `ImportEntityProcessor` (R-IR6),
+the class `GiftImportProcessor`, and the rules it keeps (plan Section 4.9, "Row semantics"
+and "Donation matching (Giving)"). The choices the plan leaves open are recorded in ADR-0052.
+
+### Rules
+
+**R-GI1 Which rows carry a gift.** A row carries a gift when it has a value for any `Gift`,
+`Allocation`, `SoftCredit` or `Tribute` attribute. A row that carries an allocation, a soft
+credit or a tribute but no gift amount is rejected, because there is nothing to allocate or
+credit. Rows Core rejected are left alone.
+
+**R-GI2 The donor.** The gift's donor is the row's first person (a Contact, or a person
+Account in person account mode) when the row has one, and otherwise its organization. The
+virtual attribute `Gift.Donor`, from a column or the template's defaults, overrides that with
+`Contact1`, `Organization` or `Household` (the household the row resolved to). A row whose
+donor is not there is rejected with a sentence saying which donor was missing. In a dry run a
+donor Core would create has no identifier yet; the gift is then reported as one that would be
+created, and it is matched to nothing (R-DM2).
+
+**R-GI3 The gift.** Gift attributes are written by API name, as `Gift.Amount__c` or
+`Gift.Gift_Date__c`, onto any gift attribute the running user may create, except the ones the
+package writes itself: Household, Status, Receipt Number, Tribute, Commitment, Installment,
+Original Gift, Matched Gift, Created By Import Batch and Sample Data. Status is always
+Received. Amount, Gift Date and Type are required (Type from a column or the template's
+default, never guessed), except that an In-kind gift has no amount (R-G12): an empty amount
+reads as 0 and any other amount rejects the row. A date is read as `YYYY-MM-DD` or in the
+running user's locale; a value that cannot be read rejects the row rather than defaulting.
+Type is matched to its picklist ignoring case, with a short list of the words payment files
+use ("credit card" is Card, "cheque" is Check, "bank transfer" is ACH, "in kind" is In-kind);
+anything else rejects the row and names the accepted values. The virtual attribute
+`Gift.Appeal` names an appeal by name or identifier; an appeal that does not exist rejects the
+row. The gift carries Created By Import Batch (R-IB3).
+
+**R-GI4 The allocations.** `Allocation.Fund` names one fund, by name, accounting code or
+identifier; an inactive fund is accepted, because a migration names funds that have since
+closed. A split names each part with a number: `Allocation.Fund1` with `Allocation.Amount1`
+or `Allocation.Percent1`, `Allocation.Fund2` with `Allocation.Amount2` or
+`Allocation.Percent2`, and so on; an attribute with no number is part 1. One fund and no
+amount or percent is the whole gift, and is applied the way every entry screen applies a
+chosen fund (`GiftService.applyChosenFunds`). A split must add up: its amounts to the gift's
+amount, or its percents to 100, and a split that does not is rejected in the dry run with the
+difference. A split is saved with the gift's default allocation suppressed and all its parts in
+one save, because R-GA1 refuses every intermediate state. A row with no fund gets the default
+allocation (R-GA2).
+
+**R-GI5 The soft credit.** `SoftCredit.Role__c` makes a soft credit and must be one of the
+role values, ignoring case; `SoftCredit.Custom_Role__c` is required with Other. The credited
+party is the row's second person unless the virtual attribute `SoftCredit.Party` names
+`Contact1`, `Contact2`, `Organization` or `Household`. `SoftCredit.Amount__c` defaults to the
+gift's amount (R-SC4 allows either). A credit the package has already made for the same
+party and role, such as the automatic household member credit (R-SC3), is not duplicated: the
+row records that credit instead.
+
+**R-GI6 The tribute.** `Tribute.Type__c` makes a tribute and must be In honor of or In memory
+of. The other tribute attributes are written by API name (`Tribute.Honoree_Name__c`,
+`Tribute.Notification_Recipient_Name__c`, `Tribute.Message__c`); an honoree name is required
+when nothing else names the honoree (R-TR2).
+
+**R-GI7 A row's gift is saved whole or not at all.** The gift, its allocations, its soft credit
+and its tribute are one unit. When a part after the gift fails, the gift is deleted, which
+takes its other parts with it, and the row is rejected with the platform's reason. A row
+therefore never leaves half a gift behind, and loading the corrected row again creates it once.
+
+**R-GI8 Idempotent and truthful.** The dry run makes every decision the commit makes that
+does not need a save: the donor, the gift's values, the funds, the appeal, the split, the
+match. Validation the gift triggers do (for example an in-kind gift with no description,
+R-G12) is reported by the commit on its row. The processor returns the total of every
+readable gift amount in the chunk, rejected rows included, for the control totals (R-IB10).
+
+**R-GI9 What an undo keeps.** The undo deletes the gifts the batch created (R-IB9), which
+takes their allocations, soft credits and tributes. It keeps, and journals with the reason, a
+gift that carries a Receipt Number, that any receipt names (issued or void), or whose donor
+has an issued year-end statement for the gift's year, because a document the donor holds
+lists it (ADR-0010, ADR-0024); a person holding `Override_Receipt_Lock` does not change this.
+It also keeps a person, household or organization that a kept gift, or a soft credit on one,
+still names, so a donor is never deleted from under a gift that stays.
+
+**R-DM1 The order of matching.** An incoming gift is matched first to an existing gift by
+External Id, then to an open installment of the same donor. A gift found by External Id is
+the row's gift: the row is Matched, the gift is not changed, and the row's allocations, soft
+credit and tribute are not loaded again. This holds under every behaviour except Never match
+(R-DM5), so re-running a file never duplicates a gift (R-IB4, R-G7). A row repeating the
+External Id of an earlier row of the same run is that row's gift under every behaviour, Never
+match included: within a chunk it shares the earlier row's outcome, and across chunks it is
+Matched when an earlier chunk loaded the gift (or, in a dry run, would load it), so the dry
+run and the commit agree.
+
+**R-DM2 Which installments are candidates.** An installment is a candidate when its Status is
+Scheduled, Overdue or Partially paid, its commitment's Status is Active or Paused, and the
+commitment belongs to the gift's donor: its Donor Contact or Donor Account is the donor, or
+its Household is the donor's household. A donor that does not exist yet has no candidates.
+
+**R-DM3 The window and the tolerance.** A candidate matches when its Due Date is within the
+date window of the gift's date, either side, and its Expected Amount differs from the gift's
+amount by no more than the amount tolerance. Each comes from the template (R-IT7), and when
+the template is empty from the org's defaults (`Donation_Match_Date_Window_Days__c`, 7, and
+`Donation_Match_Amount_Tolerance__c`, 0: the amounts must be equal).
+
+**R-DM4 Closest date wins, and a tie is refused.** Among matching candidates the one whose
+due date is closest to the gift's date wins. Two at the same distance are a tie: the row is
+rejected naming both, because choosing between two payments is a decision for a person.
+Within one run an installment an earlier row claimed is no longer a candidate, in a dry
+run as in a commit: the claims are carried from chunk to chunk (R-IR6).
+
+**R-DM5 Four behaviours.** The template's Donation Matching is one of:
+
+- **Match or create** (the default): a matched installment is paid by the new gift, and a
+  gift that matches nothing is created on its own.
+- **Always create**: installments are not looked at; a gift is created on its own.
+- **Match only**: a gift that matches nothing is rejected, saying so.
+- **Never match**: a row whose gift would match an installment, or whose External Id names a
+  gift that existed before the run, is rejected naming what it matched.
+
+**R-DM6 A match is a link, and the numbers follow.** A matched gift is created with its
+Installment and that installment's Commitment set, so the installment's status and the
+commitment's paid to date and balance update through the ordinary gift triggers and rollups
+(R-IN2, R-IN3, Section 26). Nothing else is written to the installment or the commitment.
+
+### Salesforce implementation
+
+- **Service:** `GiftImportProcessor` (the `ImportEntityProcessor` Core finds by name),
+  `GiftImportRow` (one row's gift as read), `GiftImportReferences` (funds and appeals),
+  `GiftImportCredits` (soft credit and tribute), `GiftImportSelector` (funds, appeals and open
+  installments, within the importing user's sharing), `GiftImportIntegritySelector` (what
+  already exists: gifts by external ID, and the receipts, statements and gifts an undo must
+  keep; `without sharing` under ADR-0021), `DonationMatcher` (R-DM1 to R-DM6),
+  `GiftImportRunState` (what one run carries from chunk to chunk: claimed payments, and in a
+  dry run the external IDs loaded, each kept as a 64-bit digest of the lowercased value; a
+  commit finds those gifts by the batch stamp instead).
+- **Settings keys** (on `Giving_Settings__c`, Section 21A):
+  `Donation_Match_Date_Window_Days__c`, `Donation_Match_Amount_Tolerance__c`.
+- **Template attributes** (on `Import_Template__c`, Section 15): `Donation_Matching__c`,
+  `Match_Date_Window_Days__c`, `Match_Amount_Tolerance__c`.
+
+---
+
 ## 26. Packaged default rollups
 
 ### Definition
@@ -4528,3 +4751,4 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.5 | 2026-09-23 | C-22, product-plan Section 11.2 item 8. No object or field added. R-M3's second half is implemented and its known-gaps row in Section 30 closed (ADR-0044, primary contact mirrors the primary member): in junction mode `Primary_Contact__c` mirrors the current member marked Is Primary, as that member's Contact or, for a Person Account, its person contact, and a hand edit of it on a household is refused. R-H5 now states the primary tiebreak the code already applied and which source each mode reads it from. R-H10 and the Household attribute table say which record is the mark in each mode. |
 | v0.5 | 2026-09-23 | C-19 Import 2.0. New Section 17A, `Import_Journal__c`, a page per chunk recording the updates an import made (value before and value written) and what an undo kept or did not put back, with rules R-IJ1 to R-IJ5. `Import_Batch__c` status gains Undoing and Undo failed; R-IB6 restated and R-IB7 (the undo window is stamped at commit), R-IB8 (one named batch, counted and confirmed, once, to the recycle bin) and R-IB9 (deletes only tagged records, keeps a tagged record that has gained something since, puts back only values nobody has changed since) added. R-IB3 now says the import tags the household it made a new person. R-IT6 added: a recurring template is listed on the Hub with its last import date, and nothing loads a file on a schedule. `Nonprofit_Settings__c` gains `Import_Undo_Retention_Days__c`. R-IR5 notes that undo does not read the staged rows. |
 | v0.5 | 2026-09-23 | C-19 review. No object or field added. R-IB1: a dry run is refused on a batch that has started a commit or is in an undo status. R-IB8: a chunk the platform stopped, or an undo job that is no longer running, ends Undo failed. R-IB9: a tagged record is kept when anything created since points at it through any reference the org can filter on (not only custom ones), when something was created during the commit by somebody else, when the record was edited since or has an activity, and when the person undoing cannot delete it; the system-mode reads and writes are recorded against ADR-0021. R-IJ1: a page holds at most 200 entries, and one oversized entry is logged rather than losing the chunk's journal. |
+| v0.5 | 2026-09-24 | G-23 gift import and G-24 donation matching (ADR-0052). No object added. `Import_Template__c` gains `Donation_Matching__c`, `Match_Date_Window_Days__c` and `Match_Amount_Tolerance__c` (R-IT7); `Import_Batch__c` gains the control totals `Expected_Count__c`, `Expected_Amount__c` and `File_Amount__c` (R-IB10); `Giving_Settings__c` gains `Donation_Match_Date_Window_Days__c` and `Donation_Match_Amount_Tolerance__c`. R-IR1 adds the `Tribute` row entity; R-IR6 states the entity processor contract and R-IR7 how a row's outcome is folded; R-IB8 and R-IB9 let an undo delete what an entity processor tagged, with the processor's reasons to keep. New Section 25N, rules R-GI1 to R-GI9 and R-DM1 to R-DM6. |

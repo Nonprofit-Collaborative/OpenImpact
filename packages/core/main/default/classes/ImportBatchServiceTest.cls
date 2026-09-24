@@ -224,6 +224,145 @@ private class ImportBatchServiceTest {
     }
 
     @IsTest
+    static void resettingRowsForgetsWhatTheLastRunResolved() {
+        Import_Batch__c batch = ImportTestDataFactory.batch(newTemplate());
+        List<Import_Row__c> rows = ImportTestDataFactory.rows(
+            batch,
+            new List<Map<String, String>>{
+                ImportTestDataFactory.donorRow('Ana', 'Ramirez', 'ana@example.org', null)
+            }
+        );
+        Contact ana = new Contact(LastName = 'Ramirez');
+        insert ana;
+        rows[0].Status__c = ImportRowProcessor.STATUS_CREATED;
+        rows[0].Contact_1__c = ana.Id;
+        rows[0].Gift_Id__c = 'a stale gift';
+        update rows;
+
+        Test.startTest();
+        ImportBatchService.resetRows(batch.Id);
+        Test.stopTest();
+
+        Import_Row__c after = [
+            SELECT Contact_1__c, Household__c, Gift_Id__c
+            FROM Import_Row__c
+            WHERE Id = :rows[0].Id
+        ];
+        Assert.isNull(after.Contact_1__c, 'A rerun resolves the person again.');
+        Assert.isNull(after.Gift_Id__c, 'And the gift, so a stale one is never reported.');
+    }
+
+    @IsTest
+    static void controlTotalsAreCreatedWithTheBatchAndANegativeCountIsRefused() {
+        Import_Template__c template = newTemplate();
+
+        Test.startTest();
+        Import_Batch__c batch = ImportBatchService.create(template.Id, null, 'gifts.csv', 3, 250.5);
+        try {
+            ImportBatchService.create(template.Id, null, 'gifts.csv', -1, null);
+            Assert.fail('A negative number of rows makes no sense.');
+        } catch (ImportException e) {
+            Assert.areEqual(
+                Label.Core_Import_ErrorControlCountNegative,
+                e.getMessage(),
+                'And is refused in the words the admin guide uses.'
+            );
+        }
+        Test.stopTest();
+
+        Import_Batch__c saved = ImportBatchSelector.selectById(batch.Id);
+        Assert.areEqual(3, saved.Expected_Count__c, 'The expected count is kept.');
+        Assert.isTrue(saved.Expected_Amount__c == 250.50, 'And the expected amount.');
+    }
+
+    @IsTest
+    static void aDryRunThatMatchesTheControlTotalsSaysSoAndMayBeCommitted() {
+        Import_Batch__c batch = ImportTestDataFactory.batch(newTemplate());
+        ImportTestDataFactory.rows(
+            batch,
+            new List<Map<String, String>>{
+                ImportTestDataFactory.donorRow('Ana', 'Ramirez', 'ana@example.org', null),
+                ImportTestDataFactory.donorRow('Ben', 'Okafor', 'ben@example.org', null)
+            }
+        );
+        batch.Expected_Count__c = 2;
+        batch.Expected_Amount__c = 75;
+        update batch;
+
+        Test.startTest();
+        Import_Batch__c after = ImportBatchService.finish(batch.Id, true, false, null, 75.00);
+        Test.stopTest();
+
+        Assert.isTrue(after.File_Amount__c == 75, 'The amount the run read is kept.');
+        Assert.isTrue(ImportBatchService.controlTotalsAgree(after), 'Both totals agree.');
+        Assert.isTrue(
+            after.Run_Log__c.contains(
+                String.format(Label.Core_Import_LogControlCountAgrees, new List<String>{ '2' })
+            ),
+            'The run log says the count matched.'
+        );
+    }
+
+    @IsTest
+    static void aDryRunThatDisagreesWithTheControlTotalsCannotBeCommitted() {
+        Import_Batch__c batch = ImportTestDataFactory.batch(newTemplate());
+        ImportTestDataFactory.rows(
+            batch,
+            new List<Map<String, String>>{
+                ImportTestDataFactory.donorRow('Ana', 'Ramirez', 'ana@example.org', null)
+            }
+        );
+        batch.Expected_Count__c = 2;
+        batch.Expected_Amount__c = 100;
+        update batch;
+        Import_Batch__c after = ImportBatchService.finish(batch.Id, true, false, null, 80);
+
+        Test.startTest();
+        try {
+            ImportBatchService.startCommit(batch.Id);
+            Assert.fail('R-IB10: a commit waits for a dry run that matches the control totals.');
+        } catch (ImportException e) {
+            Assert.areEqual(
+                Label.Core_Import_ErrorControlTotalsDiffer,
+                e.getMessage(),
+                'And says so.'
+            );
+        }
+        Test.stopTest();
+
+        Assert.isFalse(ImportBatchService.controlTotalsAgree(after), 'Neither total agrees.');
+        Assert.isTrue(
+            after.Run_Log__c.contains(
+                String.format(
+                    Label.Core_Import_LogControlCountDiffers,
+                    new List<String>{ '1', '2' }
+                )
+            ),
+            'The run log gives both counts.'
+        );
+    }
+
+    @IsTest
+    static void anExpectedAmountNothingReadCannotAgree() {
+        Import_Batch__c batch = ImportTestDataFactory.batch(newTemplate());
+        batch.Expected_Amount__c = 100;
+        update batch;
+
+        Test.startTest();
+        Import_Batch__c after = ImportBatchService.finish(batch.Id, true, false, null, null);
+        Test.stopTest();
+
+        Assert.isFalse(
+            ImportBatchService.controlTotalsAgree(after),
+            'Without a module that reads gift amounts the amount cannot be checked.'
+        );
+        Assert.isTrue(
+            after.Run_Log__c.contains(Label.Core_Import_LogControlAmountUnread),
+            'And the run log says why.'
+        );
+    }
+
+    @IsTest
     static void finishingADryRunCountsFromTheRowsAndCommitsNothing() {
         Import_Batch__c batch = ImportTestDataFactory.batch(newTemplate());
         List<Import_Row__c> rows = ImportTestDataFactory.rows(

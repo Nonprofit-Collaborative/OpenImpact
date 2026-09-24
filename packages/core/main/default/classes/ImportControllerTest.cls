@@ -94,11 +94,27 @@ private class ImportControllerTest {
             null,
             'donors.csv',
             mapping.serialize(),
-            ImportTemplateService.RULE_EMAIL
+            ImportTemplateService.RULE_EMAIL,
+            '{"expectedCount": 12, "expectedAmount": 480.25, "saveDonationMatching": true, ' +
+            '"donationMatching": "Never match", "matchDateWindowDays": 10}'
         );
         Test.stopTest();
 
         Assert.isNotNull(view.id, 'The batch was created.');
+        Import_Batch__c saved = [
+            SELECT Expected_Count__c, Expected_Amount__c
+            FROM Import_Batch__c
+            WHERE Id = :view.id
+        ];
+        Assert.areEqual(12, saved.Expected_Count__c, 'With the control totals typed in.');
+        Assert.isTrue(saved.Expected_Amount__c == 480.25, 'Both of them.');
+        Import_Template__c matching = [
+            SELECT Donation_Matching__c, Match_Date_Window_Days__c
+            FROM Import_Template__c
+            WHERE Id = :template.Id
+        ];
+        Assert.areEqual('Never match', matching.Donation_Matching__c, 'Donation matching is kept.');
+        Assert.areEqual(10, matching.Match_Date_Window_Days__c, 'With its window.');
         Assert.areEqual('donors.csv', view.fileName, 'With the name the administrator uploaded.');
         Assert.isTrue(
             [SELECT Column_Mapping_JSON__c FROM Import_Template__c WHERE Id = :template.Id]
@@ -281,6 +297,41 @@ private class ImportControllerTest {
                 Label.Core_Import_ErrorNoPermission,
                 expected.getMessage(),
                 'Saying so.'
+            );
+        }
+    }
+
+    @IsTest
+    static void offersTheColumnsAnInstalledModuleLoads() {
+        ImportController.permissionOverride = true;
+        Test.startTest();
+        List<ImportMapping.Target> targets = ImportController.getEntityTargets();
+        Test.stopTest();
+
+        ImportEntityProcessor installed = ImportEntityProcessors.find();
+        Assert.areEqual(
+            installed == null ? 0 : installed.targets().size(),
+            targets.size(),
+            'The picker offers exactly what the installed module loads, or nothing.'
+        );
+    }
+
+    @IsTest
+    static void batchOptionsAreReadOrRefused() {
+        ImportController.BatchOptions none = ImportController.parseOptions(null);
+        Assert.isNull(none.expectedCount, 'No options means no control totals.');
+        ImportController.BatchOptions some = ImportController.parseOptions(
+            '{"expectedCount": 3, "expectedAmount": null}'
+        );
+        Assert.areEqual(3, some.expectedCount, 'The count is read.');
+        try {
+            ImportController.parseOptions('{not json');
+            Assert.fail('Unreadable options are refused.');
+        } catch (ImportException e) {
+            Assert.areEqual(
+                Label.Core_Import_ErrorOptionsUnreadable,
+                e.getMessage(),
+                'In words the administrator can act on.'
             );
         }
     }

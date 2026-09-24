@@ -21,6 +21,7 @@ public with sharing class CommitmentService {
     private static final String STATUS_COMPLETED = 'Completed';
     @TestVisible
     private static final String STATUS_CANCELLED = 'Cancelled';
+    private static final String GIFT_STATUS_RECEIVED = 'Received';
     @TestVisible
     private static final String INSTALLMENT_SCHEDULED = 'Scheduled';
     @TestVisible
@@ -436,6 +437,43 @@ public with sharing class CommitmentService {
         if (!changed.isEmpty()) {
             Database.update(changed, true, AccessLevel.USER_MODE);
         }
+    }
+
+    /**
+     * Reopens a pledge that deleted gifts had completed (R-CM4): Completed, fully paid with
+     * the removed received amounts, and short without them. A pledge staff completed short of
+     * its total was not completed by these gifts and stays Completed.
+     */
+    public static void reopenPledgesNoLongerPaid(Map<Id, Decimal> removedByCommitment) {
+        if (removedByCommitment == null || removedByCommitment.isEmpty()) {
+            return;
+        }
+        CommitmentSelector selector = new CommitmentSelector();
+        Map<Id, Decimal> paidByCommitment = selector.sumReceivedGifts(removedByCommitment.keySet());
+        List<Commitment__c> changed = new List<Commitment__c>();
+        for (Commitment__c commitment : selector.selectByIds(removedByCommitment.keySet())) {
+            if (
+                !TYPE_PLEDGE.equals(commitment.Type__c) ||
+                !STATUS_COMPLETED.equals(commitment.Status__c) ||
+                commitment.Expected_Total__c == null
+            ) {
+                continue;
+            }
+            Decimal paid = paidByCommitment.get(commitment.Id);
+            paid = paid == null ? 0 : paid;
+            Decimal before = paid + removedByCommitment.get(commitment.Id);
+            if (before >= commitment.Expected_Total__c && paid < commitment.Expected_Total__c) {
+                changed.add(new Commitment__c(Id = commitment.Id, Status__c = STATUS_ACTIVE));
+            }
+        }
+        if (!changed.isEmpty()) {
+            Database.update(changed, true, AccessLevel.USER_MODE);
+        }
+    }
+
+    /** Whether a gift counts toward what a commitment has been paid. */
+    public static Boolean isReceived(Gift__c gift) {
+        return GIFT_STATUS_RECEIVED.equals(gift.Status__c);
     }
 
     // ------------------------------------------------------------------- overdue job

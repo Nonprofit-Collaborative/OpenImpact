@@ -800,4 +800,188 @@
         <shortDescription>Import wizard: an Excel file too large to open</shortDescription>
         <value>This Excel file is too large to open in the browser: it has more than 500,000 rows or 1,000 columns, or a sheet over 100 MB. Save the sheet as CSV and upload that.</value>
     </labels>
+    <labels>
+        <fullName>Core_Import_ErrorControlCountNegative</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import: expected row count below zero</shortDescription>
+        <value>The expected number of rows cannot be less than zero.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorControlTotalsDiffer</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import: commit refused, control totals differ</shortDescription>
+        <value>This file does not match the control totals you entered. The run log gives both numbers. Correct the file or the control totals, then run a new dry run.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogControlCountAgrees</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: row control total agrees</shortDescription>
+        <value>Control total: the file has {0} rows, as expected.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogControlCountDiffers</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: row control total differs</shortDescription>
+        <value>Control total: the file has {0} rows, but {1} were expected. A commit is refused until they agree.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogControlAmountAgrees</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: amount control total agrees</shortDescription>
+        <value>Control total: the file's gift amounts add up to {0}, as expected.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogControlAmountDiffers</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: amount control total differs</shortDescription>
+        <value>Control total: the file's gift amounts add up to {0}, but {1} was expected. A commit is refused until they agree.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogControlAmountUnread</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: amount control total not checked</shortDescription>
+        <value>Control total: nothing in this org reads gift amounts, so the expected amount cannot be checked and a commit is refused. Clear the expected amount to continue.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorOptionsUnreadable</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import: wizard options could not be read</shortDescription>
+        <value>The import settings sent with this file could not be read. Reload the page and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ControlTotalsHeading</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: control totals heading</shortDescription>
+        <value>Control totals (optional)</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ControlTotalsHelp</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: what control totals do</shortDescription>
+        <value>From your deposit slip or your processor's report. The dry run checks the file against them, and a commit waits until they agree. Leave them empty to skip the check.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ExpectedCountLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: expected row count label</shortDescription>
+        <value>Rows in the file</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ExpectedAmountLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: expected gift total label</shortDescription>
+        <value>Total of the gift amounts</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorDonationMatchingUnknown</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import error: donation matching choice unknown</shortDescription>
+        <value>Choose how gifts are matched: Match or create, Always create, Match only or Never match.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorDonationMatchingRange</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import error: donation matching window or tolerance below zero</shortDescription>
+        <value>The days either side and the amount difference allowed cannot be less than zero, and the days cannot be more than 999.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DonationMatchingHeading</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching heading</shortDescription>
+        <value>Scheduled payments</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DonationMatchingHelp</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching help</shortDescription>
+        <value>When a gift pays a pledge or a recurring gift the donor already has, Open Impact can link the two. Leave the numbers empty to use Nonprofit Settings.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DonationMatchingLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching choice label</shortDescription>
+        <value>Matching gifts to scheduled payments</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DonationMatchOrCreate</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching option Match or create</shortDescription>
+        <value>Match or create: pay the payment it matches, or create it on its own</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DonationAlwaysCreate</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching option Always create</shortDescription>
+        <value>Always create: never look for payments</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DonationMatchOnly</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching option Match only</shortDescription>
+        <value>Match only: reject a gift that matches no payment</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DonationNeverMatch</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching option Never match</shortDescription>
+        <value>Never match: reject a gift that matches a payment or a gift you already have</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_MatchWindowLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching date window label</shortDescription>
+        <value>Days either side of a payment's due date</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_MatchToleranceLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching amount tolerance label</shortDescription>
+        <value>Amount difference allowed</value>
+    </labels>
 </CustomLabels>

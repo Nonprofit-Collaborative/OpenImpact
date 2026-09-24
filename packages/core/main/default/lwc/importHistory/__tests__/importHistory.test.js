@@ -93,6 +93,20 @@ describe('the recent imports list', () => {
     expect(people.textContent).toBe('4');
   });
 
+  it("counts a module's own records, such as gifts, under their own label", async () => {
+    previewUndo.mockResolvedValue({
+      ...PREVIEW,
+      others: [{ objectName: 'Gift__c', label: 'Gifts', count: 3 }]
+    });
+    const element = await render();
+    undoButtons(element)[0].click();
+    await flush();
+
+    const gifts = element.shadowRoot.querySelectorAll('[data-id="other-Gift__c"] p');
+    expect(gifts[0].textContent).toBe('3');
+    expect(gifts[1].textContent).toBe('Gifts');
+  });
+
   it('sends back the total it showed when the undo is confirmed', async () => {
     const element = await render();
     undoButtons(element)[0].click();

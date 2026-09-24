@@ -30,7 +30,8 @@ public with sharing class ImportMapping {
         'Affiliation',
         'Gift',
         'Allocation',
-        'SoftCredit'
+        'SoftCredit',
+        'Tribute'
     };
 
     /** The target that means "keep this column with the row and write it nowhere". */
@@ -65,6 +66,24 @@ public with sharing class ImportMapping {
         public Column(String source, String target) {
             this.source = source;
             this.target = target;
+        }
+    }
+
+    /**
+     * One target the column picker offers: the value stored in the mapping document and the
+     * label an administrator reads. An entity processor names its own (R-IR6).
+     */
+    @NamespaceAccessible
+    public class Target {
+        @AuraEnabled
+        public String value;
+        @AuraEnabled
+        public String label;
+
+        @NamespaceAccessible
+        public Target(String value, String label) {
+            this.value = value;
+            this.label = label;
         }
     }
 

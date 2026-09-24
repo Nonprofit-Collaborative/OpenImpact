@@ -137,6 +137,72 @@ private class GiftCommitmentHandlerTest {
         );
     }
 
+    private static String statusOf(Id recordId) {
+        return recordId.getSObjectType() == Commitment__c.SObjectType
+            ? [SELECT Status__c FROM Commitment__c WHERE Id = :recordId].Status__c
+            : [SELECT Status__c FROM Installment__c WHERE Id = :recordId].Status__c;
+    }
+
+    @IsTest
+    static void aDeletedGiftReopensItsPaymentAndThePledgeItCompleted() {
+        Contact person = donor();
+        Commitment__c pledge = pledgeWithSchedule(person.Id);
+        List<Gift__c> gifts = new List<Gift__c>();
+        for (Installment__c payment : [
+            SELECT Id
+            FROM Installment__c
+            WHERE Commitment__c = :pledge.Id
+            ORDER BY Sequence__c
+        ]) {
+            gifts.add(giftFor(person.Id, pledge.Id, payment.Id, 100));
+        }
+        insert gifts;
+        Assert.areEqual('Completed', statusOf(pledge.Id), 'Paid in full, so completed.');
+
+        Test.startTest();
+        delete gifts[2];
+        Test.stopTest();
+
+        Assert.areEqual(
+            'Scheduled',
+            statusOf(gifts[2].Installment__c),
+            'The payment the deleted gift paid is open again.'
+        );
+        Assert.areEqual('Active', statusOf(pledge.Id), 'And so is the pledge it completed.');
+
+        undelete gifts[2];
+
+        Assert.areEqual('Paid', statusOf(gifts[2].Installment__c), 'Restored, it pays again.');
+        Assert.areEqual('Completed', statusOf(pledge.Id), 'And completes the pledge again.');
+    }
+
+    @IsTest
+    static void aPledgeStaffCompletedShortOfItsTotalStaysCompleted() {
+        Contact person = donor();
+        Commitment__c pledge = pledgeWithSchedule(person.Id);
+        Installment__c first = [
+            SELECT Id
+            FROM Installment__c
+            WHERE Commitment__c = :pledge.Id
+            ORDER BY Sequence__c
+            LIMIT 1
+        ];
+        Gift__c gift = giftFor(person.Id, pledge.Id, first.Id, 100);
+        insert gift;
+        CommitmentService.complete(new Set<Id>{ pledge.Id });
+
+        Test.startTest();
+        delete gift;
+        Test.stopTest();
+
+        Assert.areEqual('Scheduled', statusOf(first.Id), 'The payment is open again.');
+        Assert.areEqual(
+            'Completed',
+            statusOf(pledge.Id),
+            'The deleted gift did not complete it, so staff\'s decision stands.'
+        );
+    }
+
     @IsTest
     static void ignoresAGiftThatHasNothingToDoWithACommitment() {
         Contact person = donor();

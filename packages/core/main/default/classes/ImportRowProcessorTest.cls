@@ -317,6 +317,9 @@ private class ImportRowProcessorTest {
             }
         );
 
+        // An org with Giving deployed has a processor; this test is about one without.
+        ImportEntityProcessors.noneForTest = true;
+
         Test.startTest();
         ImportRowProcessor.Outcome outcome = run(false);
         Test.stopTest();
@@ -712,5 +715,217 @@ private class ImportRowProcessorTest {
             .getRecordTypeInfosByDeveloperName()
             .get('Organization')
             .getRecordTypeId();
+    }
+
+    // -------------------------------------------------------------------------------------
+    // The entity processor seam (R-IR6, R-IR7)
+    // -------------------------------------------------------------------------------------
+
+    /**
+     * Stands in for a dependent package's processor. A row's Gift Amount says what it does:
+     * "reject" rejects the row, "match" matches it, anything else creates. It records what it
+     * was handed so the tests can see the rows as the processor saw them.
+     */
+    private class StubProcessor implements ImportEntityProcessor {
+        Boolean throwOnResolve = false;
+        Boolean sawDryRun;
+        Map<Id, Import_Row__c> seen = new Map<Id, Import_Row__c>();
+        Map<Id, Map<String, Map<String, String>>> seenEntities;
+
+        public List<ImportMapping.Target> targets() {
+            return new List<ImportMapping.Target>();
+        }
+
+        public ImportEntityResult resolve(
+            Import_Batch__c batch,
+            Import_Template__c template,
+            List<Import_Row__c> rows,
+            Map<Id, Map<String, Map<String, String>>> entitiesByRowId,
+            Boolean dryRun
+        ) {
+            if (throwOnResolve) {
+                throw new IllegalArgumentException('stub failed');
+            }
+            sawDryRun = dryRun;
+            seenEntities = entitiesByRowId;
+            Decimal total = 0;
+            for (Import_Row__c row : rows) {
+                seen.put(row.Id, row.clone(true, true));
+                Map<String, String> gift = entitiesByRowId.get(row.Id).get('Gift');
+                String amount = gift == null ? null : gift.get('Amount__c');
+                if (amount != null && amount.isNumeric()) {
+                    total += Decimal.valueOf(amount);
+                }
+                if (row.Status__c == ImportRowProcessor.STATUS_REJECTED) {
+                    continue;
+                }
+                if (amount == 'reject') {
+                    row.Status__c = ImportRowProcessor.STATUS_REJECTED;
+                    row.Error_Message__c = 'No fund named Nowhere.';
+                } else if (amount == 'match') {
+                    row.Status__c = ImportRowProcessor.STATUS_MATCHED;
+                } else {
+                    row.Status__c = ImportRowProcessor.STATUS_CREATED;
+                }
+            }
+            return new ImportEntityResult('stub note', total);
+        }
+
+        public List<Schema.SObjectType> taggedObjects() {
+            return new List<Schema.SObjectType>();
+        }
+
+        public Map<Id, String> reasonsToKeep(
+            Id batchId,
+            Schema.SObjectType type,
+            Set<Id> recordIds
+        ) {
+            return new Map<Id, String>();
+        }
+    }
+
+    private static void givenGiftRows(List<Map<String, String>> values) {
+        TestDataFactory.defaultSettings();
+        ImportMapping mapping = new ImportMapping();
+        mapping.columns.add(new ImportMapping.Column('Email', 'Contact1.Email'));
+        mapping.columns.add(new ImportMapping.Column('Last Name', 'Contact1.LastName'));
+        mapping.columns.add(new ImportMapping.Column('Amount', 'Gift.Amount__c'));
+        template = ImportTestDataFactory.template(
+            mapping.serialize(),
+            ImportTemplateService.RULE_EMAIL
+        );
+        batch = ImportTestDataFactory.batch(template);
+        ImportTestDataFactory.rows(batch, values);
+    }
+
+    private static Map<String, String> giftRow(String email, String lastName, String amount) {
+        return new Map<String, String>{
+            'Email' => email,
+            'Last Name' => lastName,
+            'Amount' => amount
+        };
+    }
+
+    private static Map<String, Import_Row__c> rowsByEmail() {
+        Map<String, Import_Row__c> result = new Map<String, Import_Row__c>();
+        for (Import_Row__c row : ImportTestDataFactory.reload(batch.Id)) {
+            Map<String, Object> raw = (Map<String, Object>) JSON.deserializeUntyped(
+                row.Raw_Values_JSON__c
+            );
+            result.put((String) raw.get('Email'), row);
+        }
+        return result;
+    }
+
+    @IsTest
+    static void theProcessorSeesThePeopleCoreResolved() {
+        givenGiftRows(new List<Map<String, String>>{ giftRow('ana@example.org', 'Ramirez', '50') });
+        StubProcessor stub = new StubProcessor();
+        ImportEntityProcessors.processorOverride = stub;
+
+        Test.startTest();
+        ImportRowProcessor.Outcome outcome = run(false);
+        Test.stopTest();
+
+        Id contactId = [SELECT Id FROM Contact LIMIT 1].Id;
+        Import_Row__c seen = stub.seen.values()[0];
+        Assert.areEqual(contactId, seen.Contact_1__c, 'The row carried the donor when offered.');
+        Assert.isNotNull(seen.Household__c, 'And the household.');
+        Assert.areEqual(ImportRowProcessor.STATUS_PENDING, seen.Status__c, 'Pending, not final.');
+        Assert.areEqual(
+            '50',
+            stub.seenEntities.get(seen.Id).get('Gift').get('Amount__c'),
+            'With its gift values grouped by entity.'
+        );
+        Assert.isFalse(stub.sawDryRun, 'A commit is not a dry run.');
+        Assert.areEqual(1, outcome.created, 'The row counts once.');
+        Assert.isTrue(
+            outcome.fileAmount == 50,
+            'The amount read is handed back for control totals.'
+        );
+        Assert.isTrue(outcome.notes.contains('stub note'), 'The processor note is in the run log.');
+        Assert.isFalse(
+            outcome.notes.contains(
+                String.format(Label.Core_Import_LogEntitiesNotLoaded, new List<String>{ 'Gift' })
+            ),
+            'Nothing says the gift columns were not loaded when a processor loaded them.'
+        );
+    }
+
+    @IsTest
+    static void aRejectionByTheProcessorWinsAndARowCoreRejectedStaysAlone() {
+        givenGiftRows(
+            new List<Map<String, String>>{
+                giftRow('ana@example.org', 'Ramirez', 'reject'),
+                giftRow('ben@example.org', 'Okafor', 'match'),
+                giftRow('cy@example.org', 'Lee', '20'),
+                giftRow('', '', '10')
+            }
+        );
+        StubProcessor stub = new StubProcessor();
+        ImportEntityProcessors.processorOverride = stub;
+
+        Test.startTest();
+        ImportRowProcessor.Outcome outcome = run(false);
+        Test.stopTest();
+
+        Map<String, Import_Row__c> rows = rowsByEmail();
+        Import_Row__c rejected = rows.get('ana@example.org');
+        Assert.areEqual(ImportRowProcessor.STATUS_REJECTED, rejected.Status__c, 'Rejection wins.');
+        Assert.areEqual('No fund named Nowhere.', rejected.Error_Message__c, 'With its reason.');
+        Assert.areEqual(
+            ImportRowProcessor.STATUS_CREATED,
+            rows.get('ben@example.org').Status__c,
+            'A match leaves what Core did: it created Ben.'
+        );
+        Assert.areEqual(
+            ImportRowProcessor.STATUS_CREATED,
+            rows.get('cy@example.org').Status__c,
+            'A creation counts the row created.'
+        );
+        Import_Row__c nobody = rows.get('');
+        Assert.areEqual(
+            ImportRowProcessor.STATUS_REJECTED,
+            stub.seen.get(nobody.Id).Status__c,
+            'Core rejected the row before offering it.'
+        );
+        Assert.areEqual(
+            Label.Core_Import_ErrorRowIdentifiesNobody,
+            nobody.Error_Message__c,
+            'And its own reason stays.'
+        );
+        Assert.areEqual(2, outcome.rejected, 'Two rows rejected.');
+        Assert.areEqual(2, outcome.created, 'Two created.');
+        Assert.isTrue(outcome.fileAmount == 30, 'Every readable amount counts, rejected or not.');
+    }
+
+    @IsTest
+    static void aProcessorThatThrowsDoesNotFailTheImport() {
+        givenGiftRows(new List<Map<String, String>>{ giftRow('ana@example.org', 'Ramirez', '50') });
+        StubProcessor stub = new StubProcessor();
+        stub.throwOnResolve = true;
+        ImportEntityProcessors.processorOverride = stub;
+
+        Test.startTest();
+        ImportRowProcessor.Outcome outcome = run(false);
+        Test.stopTest();
+
+        Assert.areEqual(1, outcome.created, 'The person still loaded.');
+        Assert.isTrue(outcome.notes.contains('stub failed'), 'And the run log says why.');
+    }
+
+    @IsTest
+    static void aDryRunOffersTheRowsWithoutWriting() {
+        givenGiftRows(new List<Map<String, String>>{ giftRow('ana@example.org', 'Ramirez', '50') });
+        StubProcessor stub = new StubProcessor();
+        ImportEntityProcessors.processorOverride = stub;
+
+        Test.startTest();
+        ImportRowProcessor.Outcome outcome = run(true);
+        Test.stopTest();
+
+        Assert.isTrue(stub.sawDryRun, 'The processor is told it is a dry run.');
+        Assert.areEqual(0, [SELECT COUNT() FROM Contact], 'Nothing was written.');
+        Assert.areEqual(1, outcome.created, 'The row would create.');
     }
 }

@@ -39,6 +39,13 @@ public with sharing class ImportController {
         public Boolean isRecurring;
         @AuraEnabled
         public String sourceName;
+        /** How this template's gifts are matched to scheduled payments (R-IT7). */
+        @AuraEnabled
+        public String donationMatching;
+        @AuraEnabled
+        public Integer matchDateWindowDays;
+        @AuraEnabled
+        public Decimal matchAmountTolerance;
     }
 
     /** One import as the wizard and the results screen show it. */
@@ -73,6 +80,23 @@ public with sharing class ImportController {
         /** True when nothing about the batch itself stands in the way of an undo. */
         @AuraEnabled
         public Boolean canUndo;
+        /** False when the file does not match the control totals it was given (R-IB10). */
+        @AuraEnabled
+        public Boolean controlTotalsAgree;
+    }
+
+    /**
+     * What the wizard sends with a new batch besides its mapping: the control totals
+     * (R-IB10). Held as one document so a later option does not change the method.
+     */
+    public class BatchOptions {
+        public Integer expectedCount;
+        public Decimal expectedAmount;
+        /** True when the wizard showed the donation matching choices, which are then saved. */
+        public Boolean saveDonationMatching;
+        public String donationMatching;
+        public Integer matchDateWindowDays;
+        public Decimal matchAmountTolerance;
     }
 
     /** One staged row as the exceptions table shows it. */
@@ -95,6 +119,23 @@ public with sharing class ImportController {
         return hasManagePermission();
     }
 
+    /**
+     * The columns an installed entity processor loads (R-IR6), for the column picker. Empty
+     * where none is installed, and the wizard then offers the gift columns as kept with the
+     * row and not loaded.
+     */
+    @AuraEnabled
+    public static List<ImportMapping.Target> getEntityTargets() {
+        try {
+            enforcePermission();
+            ImportEntityProcessor processor = ImportEntityProcessors.find();
+            List<ImportMapping.Target> targets = processor == null ? null : processor.targets();
+            return targets == null ? new List<ImportMapping.Target>() : targets;
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.getEntityTargets');
+        }
+    }
+
     /** The templates the wizard offers, materializing the shipped ones on first use. */
     @AuraEnabled
     public static List<TemplateView> getTemplates() {
@@ -115,6 +156,11 @@ public with sharing class ImportController {
                     : String.valueOf(template.Last_Import_Date__c);
                 view.isRecurring = template.Is_Recurring__c;
                 view.sourceName = template.Source_Name__c;
+                view.donationMatching = template.Donation_Matching__c;
+                view.matchDateWindowDays = template.Match_Date_Window_Days__c == null
+                    ? null
+                    : template.Match_Date_Window_Days__c.intValue();
+                view.matchAmountTolerance = template.Match_Amount_Tolerance__c;
                 result.add(view);
             }
             return result;
@@ -172,12 +218,30 @@ public with sharing class ImportController {
         String fileId,
         String fileName,
         String mappingDocument,
-        String matchingRule
+        String matchingRule,
+        String optionsJson
     ) {
         try {
             enforcePermission();
+            BatchOptions options = parseOptions(optionsJson);
             ImportTemplateService.saveMapping(templateId, mappingDocument, matchingRule);
-            return toView(ImportBatchService.create(templateId, fileId, fileName));
+            if (options.saveDonationMatching == true) {
+                ImportTemplateService.saveDonationMatching(
+                    templateId,
+                    options.donationMatching,
+                    options.matchDateWindowDays,
+                    options.matchAmountTolerance
+                );
+            }
+            return toView(
+                ImportBatchService.create(
+                    templateId,
+                    fileId,
+                    fileName,
+                    options.expectedCount,
+                    options.expectedAmount
+                )
+            );
         } catch (Exception e) {
             throw auraError(e, 'ImportController.createBatch');
         }
@@ -362,7 +426,22 @@ public with sharing class ImportController {
         view.runLog = batch.Run_Log__c;
         view.undoDeadline = batch.Undo_Deadline__c;
         view.canUndo = String.isBlank(ImportUndoService.refusal(batch));
+        view.controlTotalsAgree = ImportBatchService.controlTotalsAgree(batch);
         return view;
+    }
+
+    /** The wizard's options, or none; a document that cannot be read is refused, not guessed. */
+    @TestVisible
+    private static BatchOptions parseOptions(String optionsJson) {
+        if (String.isBlank(optionsJson)) {
+            return new BatchOptions();
+        }
+        try {
+            BatchOptions options = (BatchOptions) JSON.deserialize(optionsJson, BatchOptions.class);
+            return options == null ? new BatchOptions() : options;
+        } catch (Exception unreadable) {
+            throw new ImportException(Label.Core_Import_ErrorOptionsUnreadable);
+        }
     }
 
     private static Integer intOf(Decimal value) {
