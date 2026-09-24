@@ -71,5 +71,43 @@
         <protected>true</protected>
         <shortDescription>Original of a locked gift not deleted</shortDescription>
         <value>A refund or write-off of this gift is posted to accounting or dated in a closed period, and the books name this gift as its original, so it cannot be deleted.</value>
+        <fullName>Giving_Posting_NoPermission</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>No permission to post gifts</shortDescription>
+        <value>You need the Post Gifts permission to mark gifts posted to accounting or to unpost them.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_TooMany</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Too many gifts to mark posted</shortDescription>
+        <value>Marking posted takes up to {0} gifts at a time. Choose a shorter date range, or one fund at a time.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_ReasonRequired</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Unpost reason required</shortDescription>
+        <value>Say why this gift is being unposted. The reason is kept in the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_NotPosted</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Gift is not posted</shortDescription>
+        <value>This gift is not posted to accounting, or you cannot see it.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_UnpostLogged</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Unposted gift log entry</shortDescription>
+        <value>Gift {0} unposted from accounting: {1}</value>
     </labels>
 </CustomLabels>

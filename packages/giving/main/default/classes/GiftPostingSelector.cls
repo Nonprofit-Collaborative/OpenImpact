@@ -7,6 +7,12 @@
  * value to anyone; the lock reads it and refuses or allows (ADR-0021, reads that compute a
  * package decision). A person who can save an allocation can see its gift, because an
  * allocation's access comes from its gift.
+ *
+ * `selectForPosting` runs in user mode: the gifts it returns are the ones the user marks or
+ * unposts, so a gift the user cannot see is never touched.
+ *
+ * `selectSwitchableAutomationNames` reads the shipped automation registry, which is package
+ * metadata holding no organization data, as `AutomationRegistrySelector` does.
  */
 public with sharing class GiftPostingSelector {
     /**
@@ -45,5 +51,27 @@ public with sharing class GiftPostingSelector {
             WHERE Id IN :giftIds
             WITH SYSTEM_MODE
         ];
+    }
+
+    public static List<Gift__c> selectForPosting(Set<Id> giftIds) {
+        return [
+            SELECT Id, Name, Status__c, Type__c, Gift_Date__c, Accounting_Posted_At__c
+            FROM Gift__c
+            WHERE Id IN :giftIds
+            WITH USER_MODE
+        ];
+    }
+
+    public static List<String> selectSwitchableAutomationNames(String objectName) {
+        List<String> names = new List<String>();
+        for (Automation_Registry__mdt entry : [
+            SELECT DeveloperName
+            FROM Automation_Registry__mdt
+            WHERE Object_Name__c = :objectName AND Always_Runs__c = FALSE
+            WITH SYSTEM_MODE
+        ]) {
+            names.add(entry.DeveloperName);
+        }
+        return names;
     }
 }
