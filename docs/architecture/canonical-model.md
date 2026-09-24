@@ -3801,7 +3801,8 @@ created, and it is matched to nothing (R-DM2).
 `Gift.Gift_Date__c`, onto any gift attribute the running user may create, except the ones the
 package writes itself: Household, Status, Receipt Number, Tribute, Commitment, Installment,
 Original Gift, Matched Gift, Created By Import Batch and Sample Data. Status is always
-Received. Amount and Gift Date are required, and a date is read as `YYYY-MM-DD` or in the
+Received. Amount, Gift Date and Type are required (Type from a column or the template's
+default, never guessed), and a date is read as `YYYY-MM-DD` or in the
 running user's locale; a value that cannot be read rejects the row rather than defaulting.
 Type is matched to its picklist ignoring case, with a short list of the words payment files
 use ("credit card" is Card, "cheque" is Check, "bank transfer" is ACH, "in kind" is In-kind);

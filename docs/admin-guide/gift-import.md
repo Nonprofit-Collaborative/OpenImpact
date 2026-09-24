@@ -63,7 +63,8 @@ A row is one gift. Besides the donor, it can carry:
   organization is. A file of company gifts that also lists a contact person should map a
   column, or set a default, of **Gift: donor** to `Organization`. `Household` makes the
   household the donor.
-- **The gift.** Amount and date are required. Payment method is matched to Open Impact's
+- **The gift.** Amount, date and payment method are required. A file with no payment method
+  column can set one for every row as the mapping's default. Payment method is matched to Open Impact's
   list whatever the capitals, and common words are understood: "credit card" is Card,
   "cheque" is Check, "bank transfer" is ACH. The appeal is named by its name. Payment
   reference, external ID, in-kind description and benefit description load as they are.

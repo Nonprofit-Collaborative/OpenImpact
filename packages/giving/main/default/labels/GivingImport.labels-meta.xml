@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Giving_Import_ErrorAmountMissing</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: no amount</shortDescription>
+        <value>The gift has no amount.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorAmountUnreadable</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: amount not a number</shortDescription>
+        <value>The amount {0} is not a number Open Impact can read.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorAmountNotPositive</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: amount zero or less</shortDescription>
+        <value>The amount must be more than zero.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorDateMissing</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: no gift date</shortDescription>
+        <value>The gift has no date.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorDateUnreadable</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: date cannot be read</shortDescription>
+        <value>The date {0} cannot be read. Write it as 2026-03-15, or the way your Salesforce locale shows dates.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorTypeUnknown</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: payment method unknown</shortDescription>
+        <value>The payment method {0} is not one Open Impact knows. Use one of: {1}.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorValueUnreadable</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: a value cannot be read</shortDescription>
+        <value>The value {0} in {1} cannot be read.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorDonorChoice</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: Gift donor value unknown</shortDescription>
+        <value>Gift: donor must be Contact1, Organization or Household, not {0}.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorNoDonor</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: nobody on the row to be the donor</shortDescription>
+        <value>The row names nobody to give the gift: map a person or an organization.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorDonorPersonMissing</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: donor is the first person, who is missing</shortDescription>
+        <value>Gift: donor says the first person gave the gift, and the row has no first person.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorDonorOrganizationMissing</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: donor is the organization, missing</shortDescription>
+        <value>Gift: donor says the organization gave the gift, and the row has no organization.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorDonorHouseholdMissing</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: donor is the household, missing</shortDescription>
+        <value>Gift: donor says the household gave the gift, and the row has no household.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorPartsWithoutGift</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: fund, credit or tribute but no gift</shortDescription>
+        <value>The row has fund, soft credit or tribute columns but no gift amount, so there is nothing to allocate or credit.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorFundNotFound</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: fund not found</shortDescription>
+        <value>No fund is named {0}, or has it as its accounting code.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorFundAmbiguous</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: more than one fund matches</shortDescription>
+        <value>More than one fund is named {0}. Use its accounting code instead.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorAppealNotFound</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: appeal not found</shortDescription>
+        <value>No appeal is named {0}.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorAppealAmbiguous</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: more than one appeal matches</shortDescription>
+        <value>More than one appeal is named {0}.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorSplitPartIncomplete</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: split part lacks amount or percent</shortDescription>
+        <value>Part {0} of the split needs a fund and either an amount or a percent, not both.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorSplitMixed</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: split mixes amounts and percents</shortDescription>
+        <value>A split gives every part as an amount, or every part as a percent, not a mix.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorSplitAmountsDiffer</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: split amounts do not total the gift</shortDescription>
+        <value>The split adds up to {0}, not the gift amount of {1}.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorSplitPercentsDiffer</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: split percents do not total 100</shortDescription>
+        <value>The split percents add up to {0}, not 100.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorExternalIdRepeated</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: external ID repeated in file under Never match</shortDescription>
+        <value>Gift: external ID {0} names a gift that already exists, and this mapping never matches.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_LogAttributesNotLoaded</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import run log: gift columns naming no writable field</shortDescription>
+        <value>These gift columns name no gift field the import may write, and were not loaded: {0}.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorFailed</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: platform refused the gift</shortDescription>
+        <value>The gift could not be saved: {0}</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorTypeMissing</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: no payment method</shortDescription>
+        <value>The gift has no payment method. Map a column to it, or give the mapping a default payment method.</value>
+    </labels>
+</CustomLabels>
