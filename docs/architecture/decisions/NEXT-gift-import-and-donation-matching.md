@@ -151,11 +151,16 @@ refused until a dry run matches.
 - Core carries one more piece of processor contract: `ImportEntityProcessors.carriedState`,
   a string the import batch hands from chunk to chunk, so claimed installments are remembered
   across chunks and a dry run reports what the commit will do.
-- One more class for the security review to read against ADR-0021:
-  `GiftImportIntegritySelector` is `without sharing` and reads `WITH SYSTEM_MODE`. Its reads
-  decide, and are never shown: whether a gift with this external ID already exists (a gift
-  the importing user cannot see must still stop a second copy, which the platform would refuse
-  anyway with a message naming nothing), and what an undo must keep (a receipt or statement the
-  undoing user cannot see must still keep its gift). Funds, appeals and installments stay
-  within the user's sharing: what the user cannot see, the user cannot allocate to or pay.
+- This ADR extends ADR-0021 (system mode for package owned data) to two kinds of read, and so
+  departs, for those reads only, from D-13's rule that every data management read runs with
+  the user's own access. `GiftImportIntegritySelector` is `without sharing` and reads
+  `WITH SYSTEM_MODE` to learn whether a gift with this external ID already exists (a gift the
+  importing user cannot see must still stop a second copy, which the platform would refuse
+  anyway with a message naming nothing), and what an undo must keep (a receipt or statement
+  the undoing user cannot see must still keep its gift). What these reads can reveal is no
+  more than the platform's own unique-constraint error does: a row repeating a hidden gift's
+  external ID is Matched and carries that gift's ID, and an undo says it kept a gift. No field
+  of a hidden record is shown. Every other read (funds, appeals, installments, the soft
+  credits on the import's own gifts) runs in user mode: what the user cannot see, the user
+  cannot allocate to or pay.
 - Undo keeps more than it did: people who gave a receipted gift stay. That is the point.
