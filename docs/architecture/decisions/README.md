@@ -115,6 +115,8 @@ ADR-0052 is a builder decision for G-23 and G-24 on the entity processor seam, t
 imported gifts and the choices the plan leaves open for gift import and donation matching.
 ADR-NEXT is a builder decision for G-20 on what a posted gift and a closed period lock, who
 may post, unpost and reopen, and how the lock meets imports, undo, gift batches and the API.
+ADR-NEXT for Cancelled is the owner's decision that a Pending gift that will never be paid is
+cancelled rather than written off; it amends G-04, ADR-0022, ADR-0023 and ADR-0031.
 
 ## Adding a new ADR
 

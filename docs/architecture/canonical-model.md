@@ -1771,7 +1771,7 @@ refund is another gift rather than an edit (ADR-0010).
 | Gift Date | date | yes | The date the gift was received, which is the date that appears on the receipt. |
 | Amount | decimal | yes | The money received, negative for a refund or a write-off, and zero on an in-kind gift, which is goods rather than money (R-G12). |
 | Type | picklist(Cash, Check, Card, ACH, Stock, In-kind, Grant, Other) | yes | How the gift arrived. |
-| Status | picklist(Received, Pending, Refunded, Written off) | yes | Where the gift stands; only Received gifts count in the packaged giving totals. |
+| Status | picklist(Received, Pending, Refunded, Written off, Cancelled) | yes | Where the gift stands; only Received gifts count in the packaged giving totals. Cancelled is a Pending gift that will never be paid (R-G16). |
 | Appeal | reference(Appeal) | no | The fundraising effort this gift responded to. |
 | Acknowledgment Status | picklist(Not required, To acknowledge, Acknowledged, Do not acknowledge) | yes (defaults To acknowledge) | Whether this gift still needs a thank you. |
 | Acknowledgment Date | date | no | The date the thank you was sent. |
@@ -1827,7 +1827,9 @@ happened, and it carries the same type and date semantics as any other gift. The
 money went back is typed once, on the negative gift, in Refund Reason: the original gift is
 not edited to hold it, because editing the original is the thing this rule exists to
 prevent. A partial refund leaves the original at Received, because part of it is still a
-gift the organization holds.
+gift the organization holds. Only a Received gift is refunded or written off: a Pending gift
+held no money to give back, and one that will never be paid is cancelled instead (R-G16,
+ADR-NEXT for Cancelled).
 
 **R-G4 Amount immutability.** Once a Receipt Number is present, Amount, Gift Date, the
 donor references, and the In-kind Description do not change, and the gift is not deleted.
@@ -1937,9 +1939,10 @@ No gift enters the books in a closed period: an insert, an undelete, or an updat
 gift in the books and dated on or before Books Closed Through when it was not locked before, is
 refused. A refund or write-off of a locked gift is a negative gift dated today, which is always
 open because Books Closed Through is at least two days before today, so today is open in every
-time zone and R-G3 is unaffected. A refund or
-write-off that would move a Pending gift dated in a closed period into the books is refused before
-anything is saved. Every other attribute stays editable.
+time zone and R-G3 is unaffected. A Pending gift is never written off (R-G3), so no reversal moves
+one into the books; a Pending gift dated in a closed period that will never be paid is cancelled,
+which the lock allows because neither Pending nor Cancelled is in the books (R-G16). Every other
+attribute stays editable.
 
 **R-G15 What a locked gift names is not deleted (G-20, ADR-NEXT).** Donor Contact, Donor Account
 and Original Gift are cleared by the platform when the record they name is deleted, and no gift
@@ -1947,6 +1950,22 @@ trigger runs when that happens. So a person or organization that a locked gift n
 and a gift that a locked gift names as its original, is not deleted. A merge is not a delete for
 this rule: the losing record's gifts move to the surviving one (C-20). The same override and the
 same Error Log entry as R-G14 apply.
+
+**R-G16 A Pending gift that will never be paid is cancelled (ADR-NEXT for Cancelled).** Cancelled
+is a status, not a money event: no negative gift is created, and a Cancelled gift is outside every
+packaged giving total, the accounting export, receipts and statements, acknowledgments and the
+retention reports, because each of them counts only Received, Refunded and Written off (Section
+26, ADR-0022, ADR-0051). Status moves only these ways around it: Pending to Cancelled, and
+Cancelled back to Pending when the gift turns out to be coming after all. No other status moves to
+or from Cancelled, and Pending does not move to Refunded or Written off. A gift may be created
+Cancelled, which is what an import of history needs. Cancelling unlinks the gift from the
+installment it was expected to pay, so the installment is recalculated and is open for the next
+gift, as a delete would leave it (R-CM4); the commitment link stays, as history, and moving the
+gift back to Pending does not link it again. Its soft credits are kept and count nowhere, because
+the soft credit totals read the gift's status (ADR-0023), and it is not half of a new matching gift
+pair (R-G11). Every move into or out of Cancelled writes an Error Log entry at Info naming the
+gift and who moved it. These rules run from the Gift core rules automation, so pausing automation
+lets a data load set any status.
 
 The enforcement runs from `Gift_Posting_Lock` and `Gift_Allocation_Posting_Lock`, both Always
 Runs (R-A4). The one way past is the `Override_Posting_Lock` custom permission, on no permission
@@ -1967,7 +1986,7 @@ receipt.
 | Gift Date | `Gift_Date__c` | Date |
 | Amount | `Amount__c` | Currency |
 | Type | `Type__c` | Picklist: Cash, Check, Card, ACH, Stock, In-kind, Grant, Other |
-| Status | `Status__c` | Picklist: Received, Pending, Refunded, Written off |
+| Status | `Status__c` | Picklist: Received, Pending, Refunded, Written off, Cancelled |
 | Appeal | `Appeal__c` | Lookup to `Appeal__c` |
 | Acknowledgment Status | `Acknowledgment_Status__c` | Picklist: Not required, To acknowledge, Acknowledged, Do not acknowledge |
 | Acknowledgment Date | `Acknowledgment_Date__c` | Date |
@@ -2937,7 +2956,8 @@ themselves (ADR-0016, IRS Publication 1771).
 
 **R-RC8 A statement states the status of every line.** A consolidated statement prints
 each gift's status on that gift's line, not once in a footer, so a reader cannot mistake
-which of a year's gifts was refunded.
+which of a year's gifts was refunded. Pending and Cancelled gifts are not on it: no money
+arrived (R-G16).
 
 **R-RC9 One receipt per donor, year and type, per run.** Donor Year Key is unique, so a
 batch chunk that is retried after a failure resumes the run rather than issuing a second
@@ -3344,7 +3364,7 @@ which is the deliberate act of thanking a donor again. Both leave the earlier ro
 so "we sent it twice" reads as two rows rather than as silence.
 
 **R-AK8 Only a positive received gift is ever acknowledged.** A gift whose Status is
-Refunded, Written off or Pending, and any gift whose Amount is zero or negative, is never
+Refunded, Written off, Pending or Cancelled, and any gift whose Amount is zero or negative, is never
 queued and never sent, so the negative gift that records a refund (R-G3) is outside this
 feature entirely. Refunding a gift does not withdraw its acknowledgment: the donor was
 thanked, and that happened.
@@ -4038,7 +4058,7 @@ Every definition here uses source entity Gift with the base filter `Status` in
 Received`, is what makes R-R9 true: a refund is a negative gift whose own status is
 Received while the original it reverses is moved to Refunded, so a filter that admitted
 only Received would keep the negative rows and drop the positive one, and a fully refunded
-gift would subtract itself twice (ADR-0022). Pending, Failed, and any other status that
+gift would subtract itself twice (ADR-0022). Pending, Cancelled, Failed, and any other status that
 does not represent money the organization holds stay outside the filter.
 
 The rows that count, rather than add, carry `Amount__c` greater than 0 on top of that
@@ -4750,6 +4770,7 @@ None open. R-M3's Primary Contact mirror, the only entry, was closed on 2026-09-
 | v0.5 | 2026-09-23 | C-20 duplicate detection (ADR-0050). One object added, `Duplicate_Dismissal__c` (Section 29A) with `Pair_Key__c` and `Reason__c`, which holds a decision rather than a finding. Detection is the org's own active duplicate rules; Open Impact ships none, and the suggestions are the standard `DuplicateRecordSet` and `DuplicateRecordItem` records. A scan started from Nonprofit Settings evaluates those rules against the people and households already in the org. Rules R-DP1 to R-DP5 added. |
 | v0.6 | 2026-09-23 | X-03, X-04 and X-06, the Connect integration surface (ADR-0051). No object or field added. R-G7 is reworded: the inbound gift API answers a resend with the gift already recorded and never edits it, and refuses a resend whose amount differs. The accounting export reads `Gift__c`, `Gift_Allocation__c` and `Fund__c` and writes nothing: the posting flag plan Section 4.12 names belongs to G-20 in Giving, and no Connect object records export runs. Section 30 notes that X-03 and X-04 add no Connect entity. |
 | v0.6 | 2026-09-24 | G-20 posting flag and period lock (ADR-NEXT). No object added. `Gift__c` gains `Accounting_Posted_At__c` (Date/Time) and `Accounting_Posted_By__c` (Lookup to User), both package written and read only in every permission set (R-G13). `Giving_Settings__c` gains `Books_Closed_Through__c` (Date), set on the Accounting Periods page and named by no Setting Definition row. New rules R-G13 (posting and unposting), R-G14 (a gift in the books that is posted or dated in a closed period is locked; nothing enters the books in a closed period) and R-GA5 (a locked gift's allocations are fixed). Two Always Runs automations, `Gift_Posting_Lock` and `Gift_Allocation_Posting_Lock`, and two custom permissions, `Post_Gifts` and `Override_Posting_Lock`, the second on no permission set. |
+| v0.6 | 2026-09-24 | Cancelled gift status, by the owner's decision (ADR-NEXT for Cancelled, amending G-04, ADR-0022, ADR-0023 and ADR-0031). No object added. `Gift__c.Status__c` gains Cancelled. New R-G16: a Pending gift that will never be paid is cancelled, with no negative gift, outside every total, the export and receipts, and allowed in a closed period; it moves only between Pending and Cancelled and unlinks its installment. R-G3: only a Received gift is refunded or written off. R-G14, R-AK8, R-RC8 and Section 26 name Cancelled. |
 
 ---
 ## 32. Entity ownership by package

@@ -25,11 +25,12 @@ spreadsheet keeps working:
 | Amount | This fund's share, as a plain number, negative for money that went back |
 
 Only money is exported: gifts that are Received, Refunded or Written off. A Pending gift has
-not arrived yet, and an in-kind gift is goods, not money, so neither is in the file.
+not arrived yet, a Cancelled one never will, and an in-kind gift is goods, not money, so none of
+them is in the file.
 
 Downloading changes nothing. Running it twice for the same dates gives the same file unless a
-gift in those dates changed in between: a gift added or edited late, or a Pending gift that was
-written off (see Common mistakes).
+gift in those dates changed in between: a gift added or edited late, or a Pending gift that
+arrived and was set to Received.
 
 Once the file is in the accounting system, Jen clicks **Mark these gifts posted**, and those
 gifts are locked: their date, amount, donor, payment method, reference and funds can no longer
@@ -94,18 +95,10 @@ will not hand over a file that is missing rows. Export a quarter or a month at a
 accounting system will not know where to put. Add the code on the fund (see
 [Funds](funds.md)) and export again.
 
-**A month changed after you exported it, because a Pending gift was written off.** A
-Pending gift is not in the file. Writing it off makes it Written off, and the export counts
-Written off gifts the way Open Impact's totals do (a write-off cancels its gift, so both
-rows are money rows). The gift then appears on its own date, in the month you already
-exported, and the write-off appears as a negative row on the day you recorded it. The two
-cancel out, so the year's net is right, but the earlier month gains a row. Add that row in
-your accounting system, or export the month again. To avoid it, delete a Pending gift that
-will never be paid instead of writing it off; write off only gifts that were recorded as
-Received. Open Impact cannot tell afterwards which of the two a written-off gift was, so the
-export cannot leave one out and keep the other. Once the month is closed (see
-[Posting and Closed Periods](posting-and-closed-periods.md)), writing off a Pending gift dated
-in it is refused, and deleting it is the only way.
+**A Pending gift that will never be paid.** It is not in the file, and cancelling it keeps it
+out: set its **Status** to **Cancelled**. No negative gift is created, so no month you exported
+changes, even a closed one. A Pending gift cannot be written off; see
+[Refunds and write-offs](refunds.md#cancelling-a-pending-gift).
 
 **A value in the file starts with an apostrophe.** A cell that begins with `=`, `+`, `-` or
 `@` gets an apostrophe in front, so a spreadsheet does not run it as a formula. This also

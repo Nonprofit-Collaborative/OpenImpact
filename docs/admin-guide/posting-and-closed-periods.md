@@ -17,8 +17,8 @@ dated today, which is always in an open period, so the books for the closed mont
 were and the refund lands in the month it happened.
 
 Only gifts that are in the books are protected: Received, Refunded and Written off gifts that
-are not in-kind, the same gifts the accounting export writes. A Pending gift or an in-kind gift
-is in no export file, so it stays editable. Everything that is not in the export stays
+are not in-kind, the same gifts the accounting export writes. A Pending, Cancelled or in-kind
+gift is in no export file, so it stays editable. Everything that is not in the export stays
 editable on any gift: the appeal, the acknowledgment, the receipt, soft credits, tributes and
 the matching gift link.
 
@@ -85,9 +85,10 @@ next export, adjusting the entry in the accounting system herself.
 month and was never entered goes in with today's date, or an administrator lifts the lock for it
 (below). Talk to Jen first: the books for that month are finished.
 
-**A Pending gift in a closed month that will never be paid.** It cannot be written off: a
-write-off would put the gift and its reversal into a month already in the books. Delete it
-instead. A Pending gift is in no export, so deleting it changes nothing Jen holds.
+**A Pending gift in a closed month that will never be paid.** Set its **Status** to
+**Cancelled**. The lock allows it: a Pending gift is in no export, and neither is a Cancelled
+one, so nothing Jen holds changes. See
+[Refunds and write-offs](refunds.md#cancelling-a-pending-gift).
 
 **Unpost is not on the Posting card.** You need the **Post Gifts** permission, which comes with
 the **Accounting Export** and **Giving Admin** permission sets.
