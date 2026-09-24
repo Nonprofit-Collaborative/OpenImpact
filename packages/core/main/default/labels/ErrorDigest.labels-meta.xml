@@ -160,4 +160,108 @@
         <shortDescription>Error digest panel: unexpected failure.</shortDescription>
         <value>Something went wrong with the error digest. The details are in the Error Log.</value>
     </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_PageTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel title.</shortDescription>
+        <value>Error digest</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_PageIntro</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel introduction.</shortDescription>
+        <value>One short email a day or a week to the people who look after Open Impact, counting the new Error Log entries by source and severity with a link to each. Nothing is sent when nothing is new.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_LastRunTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: last run heading.</shortDescription>
+        <value>Last run</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_NeverRun</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: the job has never run.</shortDescription>
+        <value>Never</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_NotScheduled</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: the job is not scheduled.</shortDescription>
+        <value>Not scheduled: no digest is sent.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_ScheduleActive</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: the job is scheduled; the next run follows.</shortDescription>
+        <value>Scheduled every morning at 7:00. Next run:</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_ScheduleButton</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: schedule button.</shortDescription>
+        <value>Schedule</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_StopButton</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: stop button.</shortDescription>
+        <value>Stop</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_SendNow</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: send now button.</shortDescription>
+        <value>Send now</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_RecipientsTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: who receives it.</shortDescription>
+        <value>Goes to</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_ToAdministrators</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: the default recipients.</shortDescription>
+        <value>everyone with the Manage Nonprofit Settings permission:</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_NoRecipients</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: nobody would receive it.</shortDescription>
+        <value>nobody yet. List your users' email addresses below, or give someone the Nonprofit Admin role.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_ReadOnly</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: read only notice.</shortDescription>
+        <value>You can see the error digest but not change it. Ask for the Manage Nonprofit Settings permission.</value>
+    </labels>
 </CustomLabels>
