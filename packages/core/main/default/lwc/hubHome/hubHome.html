@@ -179,6 +179,36 @@
                     </div>
                 </lightning-card>
 
+                <template lwc:if={hasRecurringSources}>
+                    <lightning-card
+                        title={labels.recurringHeading}
+                        class="slds-var-m-top_medium"
+                    >
+                        <div class="slds-var-p-horizontal_medium">
+                            <ul class="slds-has-dividers_bottom-space">
+                                <template for:each={recurringSources} for:item="source">
+                                    <li key={source.id} class="slds-item" data-id="recurring-source">
+                                        <p class="slds-text-title_bold">{source.sourceName}</p>
+                                        <p class="slds-text-body_small">
+                                            <template lwc:if={source.lastImportDate}>
+                                                <lightning-formatted-date-time
+                                                    value={source.lastImportDate}
+                                                    year="numeric"
+                                                    month="short"
+                                                    day="2-digit"
+                                                    time-zone="UTC"
+                                                ></lightning-formatted-date-time>
+                                            </template>
+                                            <template lwc:else>{labels.recurringNever}</template>
+                                        </p>
+                                    </li>
+                                </template>
+                            </ul>
+                            <a href={importUrl}>{labels.recurringLink}</a>
+                        </div>
+                    </lightning-card>
+                </template>
+
                 <lightning-card title={labels.quickLinksHeading} class="slds-var-m-top_medium">
                     <div class="slds-var-p-horizontal_medium">
                         <ul class="slds-list_vertical slds-has-dividers_bottom-space">

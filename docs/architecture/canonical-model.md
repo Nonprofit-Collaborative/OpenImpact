@@ -824,6 +824,14 @@ settings inventory, and the settings console reads every registered settings obj
 through `Setting_Definition__mdt`, so an admin sees one console whichever object holds
 the value.
 
+### v0.5 keys
+
+Added by Import 2.0 (C-19).
+
+| Key | Type | Default | Definition |
+|---|---|---|---|
+| `Import_Undo_Retention_Days__c` | integer | 30 | How many days after a commit an import can still be undone. Stamped onto the batch when it commits, so changing it never moves the deadline of an import that has already run (R-IB7). |
+
 ### Rules
 
 **R-N1 Protected and hierarchical.** The custom setting is protected (invisible to
@@ -1243,6 +1251,15 @@ accordingly.
 `Import_Template_Default__mdt` on install and on "Restore defaults", matched by Template
 Key, and are never overwritten once the admin has edited them (ADR-0006).
 
+**R-IT6 Recurring sources are shown, not fetched.** A template the administrator marks Is
+Recurring names its feed in Source Name, for example "Monthly processor export", and Source
+Name is required while Is Recurring is true. The Hub lists every active recurring template
+with its source and its Last Import Date, oldest first and "never" for a source not yet
+loaded, so Maria can see which feed she has not loaded this month (plan Section 4.9, "Ongoing
+imports"). Marking a template recurring changes nothing about how a file is imported: the
+file is still uploaded, dry run and committed by a person. Nothing loads a file on a
+schedule, because an import nobody watched is an import nobody checked before it wrote.
+
 **R-IT5 What v0.2 ships.** v0.2 ships a generic donor list template and a generic gift
 list template. The NPSP template set is v0.3 engineering work and the Agentforce
 Nonprofit set is v0.5 (plan Section 6); both are new shipped-default rows, not new
@@ -1270,7 +1287,8 @@ attributes.
 - **Shipped defaults:** `Import_Template_Default__mdt` (Section 13).
 - **Service:** `ImportTemplateService` (materialization and save), `ImportTemplateSelector`,
   `ImportMapping` (the mapping document in R-IT1), `ImportColumnLibrary` (the known column
-  names automatic mapping suggests from), LWC `importWizard`.
+  names automatic mapping suggests from), LWC `importWizard` (where a template is marked
+  recurring), `HubController` and LWC `hubHome` (the recurring sources list, R-IT6).
 
 ---
 
@@ -1290,7 +1308,7 @@ undoes.
 | Import Template | reference(Import Template) | yes | The mapping this batch was read with. |
 | File Reference | text | yes | The identifier of the uploaded file stored as a Salesforce File, so the original can be downloaded again. |
 | File Name | text | yes | The name of the file as the admin uploaded it. |
-| Status | picklist(Draft, Parsing, Dry run, Dry run complete, Committing, Complete, Failed, Undone) | yes | Where this batch has got to. |
+| Status | picklist(Draft, Parsing, Dry run, Dry run complete, Committing, Complete, Failed, Undoing, Undone, Undo failed) | yes | Where this batch has got to. |
 | Is Dry Run | boolean | yes (defaults true) | Whether this pass only previewed what would happen; a committed batch has run at least one dry run first. |
 | Row Count | integer | computed | How many rows the file contained. |
 | Rows Created | integer | computed | How many rows created at least one new record. |
@@ -1301,7 +1319,7 @@ undoes.
 | Started At | datetime | computed | When processing began. |
 | Completed At | datetime | computed | When processing finished, successfully or not. |
 | Chunk Size | integer | yes | Rows per chunk for this run, defaulted from the org's import chunk size. |
-| Undo Deadline | datetime | no | The end of the window in which this batch can be undone; set on commit, used by v0.5 (C-19). |
+| Undo Deadline | datetime | no | The end of the window in which this batch can be undone, stamped at commit from the org's undo retention setting (R-IB7). |
 | Committed By | reference(User) | no | The user who committed the batch, empty while it is a dry run. |
 
 ### Relationships
@@ -1315,7 +1333,10 @@ undoes.
 **R-IB1 Dry run first.** A batch is committed only after a dry run has completed against
 the same file and template, and the dry run makes the same resolution decisions the
 commit will make. The preview counts and the downloadable exceptions file come from the
-Import Row records the dry run wrote.
+Import Row records the dry run wrote. A dry run is refused on a batch that has started a
+commit, or is in any undo status: a dry run over a committed batch would mark it a dry run
+(so it could never be undone), clear its completion time, and a second commit would move its
+undo window.
 
 **R-IB2 Chunked and asynchronous.** Rows are processed in chunks of Chunk Size in Batch
 Apex, with progress visible on the batch record, so a file of hundreds of thousands of
@@ -1325,7 +1346,9 @@ rows completes without the admin watching a spinner (plan Section 4.9).
 reference to it. This is what makes undo possible in v0.5 without journaling creations,
 and it is what lets an admin answer "where did these 400 households come from" today. The
 reference exists on Household and Organization (both Account record types), on Contact,
-and on Gift.
+and on Gift. A household is made by the household automation rather than by the import, so
+the import tags it straight afterwards, and only when the household was made for a person
+this import created: a household an existing person already had is never tagged.
 
 **R-IB4 Idempotence per row.** Re-running the same file with the same template matches
 rather than duplicates, given the same matching rule. The External ID matching rule is
@@ -1335,9 +1358,87 @@ the one that guarantees this for gift feeds.
 It is recorded on its Import Row with a message an administrator can act on, counted in
 Rows Rejected, and written to the Error Log where the cause was an exception (R-E1).
 
-**R-IB6 Undo is v0.5.** Undo Deadline is written from v0.2 so that the window is known
-from the first batch. The undo action itself, and the journaling of updates that undo
-needs, are C-19 in v0.5.
+**R-IB6 Undo.** Undo Deadline is written from v0.2 so that the window is known from the
+first batch. The undo action itself, and the journal of updates it needs, are C-19 in v0.5
+and are specified in R-IB7 to R-IB9 and Section 17A.
+
+**R-IB7 The undo window is stamped, not computed.** At commit, Undo Deadline is written as
+the commit time plus `Import_Undo_Retention_Days__c`, for a commit that failed part way as
+well as one that completed, because the chunks that ran did write. It is read from the batch from then
+on, so lengthening the setting does not reopen an import whose window has closed and
+shortening it does not close a window an administrator was told they had. An undo asked for
+after the deadline is refused, in a sentence naming the date it passed.
+
+**R-IB8 Undo is scoped to one named batch, counts before it deletes, and runs once.**
+
+1. **One batch, named by its identifier.** Every query the undo makes is filtered by the
+   Created By Import Batch reference equal to one bound batch identifier, or by the journal's
+   own reference to that batch. Nothing in the undo path filters on a checkbox, a date range,
+   a status, a name or a user to decide what to delete, and there is no undo of more than one
+   batch. A flag can be true of records nobody meant to include; a batch identifier cannot.
+2. **Counted, shown, then confirmed.** The first step counts what carries the tag, by kind
+   (people, households, organizations), and shows those numbers with the batch's name and
+   file name. The undo starts only when the number the person confirms is still the number
+   counted, so it can only delete a set somebody has seen the size of.
+3. **Once.** The batch's status moves from Complete to Undoing inside a locked read of the
+   batch, so a second request, while the first runs or after it has finished, is refused
+   rather than queued. A dry run, or a batch already Undone, is refused the same way. An
+   undo that stopped on an unexpected error ends Undo failed and may be run again: a record
+   it already deleted no longer carries the tag, and a value it already put back is left
+   alone. A chunk the platform stopped (a governor limit cannot be caught) counts as an
+   error: the undo reads its job's error count when it finishes and ends Undo failed. An
+   undo whose job is no longer queued or running (it was aborted) is treated as Undo failed
+   too, so it can be run again rather than staying Undoing for ever.
+4. **Deleted, not destroyed.** Records go to the recycle bin by the ordinary delete, in the
+   running user's own permissions. Nothing in the undo path empties it, so a mistaken undo
+   is recoverable for as long as the platform keeps them.
+
+**R-IB9 What undo does to each record.**
+
+- **It deletes what the batch created, and never what it matched.** Only records carrying
+  this batch's tag are deleted (R-IB3): the people it created, the households it created for
+  them, and the organizations it created. The tag is written when the record is created and
+  never afterwards, so a record the batch matched or updated cannot be in scope. People are
+  deleted first, then accounts, so a household can be judged after its imported members are
+  gone.
+- **It keeps a tagged record that has gained something since.** A tagged record is kept,
+  counted and journaled with the reason, when:
+  - any record points at it through any reference the org can filter on (a gift, a soft
+    credit, a membership, an address, an activity, anything in any package, found by
+    describing the record's child relationships, never by naming an object), and was created
+    after the batch completed, or was created while the commit ran by somebody other than the
+    person who committed it;
+  - the record itself was edited since: by somebody other than the committer after the
+    commit started, or by anybody more than ten minutes after it completed (the ten minutes
+    are the import's own follow-on work, such as rollups and household naming, which runs as
+    the committer); or an activity has been logged on it;
+  - for a household or an organization, a person this import did not create is still on it,
+    or Nonprofit Cloud records depend on it (ADR-0036).
+
+  Work the undo itself does (a household renamed as its imported members are deleted) is
+  not counted. A check that cannot run, or would leave the delete too few queries, keeps the
+  record and journals that it was not checked. A record the person undoing cannot delete is
+  kept and journaled with the reason. Deleting a donor clears the donor on every gift
+  recorded against them since, which would change giving totals; the import's records are
+  not worth anybody's later work. A person stored as an account is not kept for its own
+  contact record, which is itself rather than somebody else.
+- **It puts back what the batch overwrote, where nobody has changed it since.** For each
+  update in the journal (Section 17A), an attribute whose current value is still the value
+  the import wrote is set back to the value before the import. An attribute somebody has
+  changed since is left as it is and journaled as not put back, because restoring a value
+  weeks later would silently overwrite their correction.
+- **It leaves what Core cannot name to its owner.** An entity processor (R-IR6) that creates
+  records in its own package tags them and removes them itself. No packaged entity processor
+  ships yet, so a Core import creates only accounts and contacts, and undo reverses all of it.
+
+When the undo finishes, one line is added to the Run Log: who ran it, when, and how many
+records it deleted, kept and put back.
+
+The counts shown before an undo, the checks that decide what is kept, and the status and
+run log writes are read and written in system mode (ADR-0021): a count or a check that
+cannot see a record would report "nothing there" about exactly the record that matters, and
+the status is the package's own bookkeeping. Every delete and every value put back is in the
+running user's own mode.
 
 ### Salesforce implementation
 
@@ -1348,7 +1449,7 @@ needs, are C-19 in v0.5.
 | Import Template | `Import_Template__c` | Lookup to `Import_Template__c` |
 | File Reference | `File_Id__c` | Text (18) |
 | File Name | `File_Name__c` | Text |
-| Status | `Status__c` | Picklist: Draft, Parsing, Dry run, Dry run complete, Committing, Complete, Failed, Undone |
+| Status | `Status__c` | Picklist: Draft, Parsing, Dry run, Dry run complete, Committing, Complete, Failed, Undoing, Undone, Undo failed |
 | Is Dry Run | `Is_Dry_Run__c` | Checkbox |
 | Row Count | `Row_Count__c` | Number |
 | Rows Created | `Rows_Created__c` | Number |
@@ -1366,10 +1467,12 @@ needs, are C-19 in v0.5.
   `Import_Batch__c`, on Account (households and organizations), on Contact, and on
   `Gift__c`. The Account and Contact fields ship in Core with the import framework; the
   `Gift__c` field ships in Giving (Section 18).
-- **Settings key:** `Import_Chunk_Size__c` (Section 12).
+- **Settings keys:** `Import_Chunk_Size__c` and `Import_Undo_Retention_Days__c`
+  (Section 12).
 - **Service:** `ImportBatchService`, `ImportBatchSelector`, `ImportProcessorBatch`,
-  `ImportController` (the one Aura-enabled entry point both screens call), LWC
-  `importWizard`, `importResults`.
+  `ImportUndoService` and `ImportUndoBatch` (R-IB7 to R-IB9), `ImportController` (the one
+  Aura-enabled entry point the import screens call), LWC `importWizard`, `importResults`,
+  `importHistory` (recent imports and their undo).
 
 ---
 
@@ -1452,7 +1555,8 @@ correction is made by fixing the file and re-running, not by editing the staged 
 the batch remains an accurate record of what was loaded.
 
 **R-IR5 Retention.** Rows are kept for the undo window and are deletable in bulk from the
-batch record, so a large import does not sit in storage forever.
+batch record, so a large import does not sit in storage forever. Undo does not read them: it
+reads the tag on the records and the journal (R-IB9, Section 17A).
 
 **R-IR6 Entities Core cannot resolve.** Core resolves `Organization`, `Household`,
 `Contact1` and `Contact2`. `Affiliation`, `Gift`, `Allocation` and `SoftCredit` belong to
@@ -1485,6 +1589,90 @@ carrying a column nothing can load yet.
 - **Service:** `ImportRowProcessor`, `ImportMatcher`, `ImportRowSelector`,
   `ImportEntityProcessor` (the interface a dependent package implements to resolve the row
   entities Core cannot, R-IR6).
+
+---
+
+## 17A. Import Journal
+
+### Definition
+
+The record of the changes an import made to records it did not create, kept so that an undo
+can put them back (plan Section 4.9: "updates are journaled for reversal"), and of what an
+undo left in place and why (feature C-19).
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | computed | The journal page's identifier, assigned automatically. |
+| Import Batch | reference(Import Batch) | yes | The import this page belongs to. |
+| Phase | picklist(Commit, Undo) | yes | Whether this page records the import or the undoing of it. |
+| Entry Count | integer | yes | How many entries this page holds, so a total is a sum rather than a parse. |
+| Entries | long text | yes | The entries themselves, held as one document per page (R-IJ2). |
+
+### Relationships
+
+- **Import Journal to Import Batch**, many to one, and the pages are deleted with the batch.
+
+### Rules
+
+**R-IJ1 One page per chunk, not one record per change.** A page is written as each chunk of
+a commit finishes, holding one entry per record that chunk updated; a chunk that updated
+nothing writes no page. A hundred thousand row import therefore leaves hundreds of journal
+records rather than a hundred thousand. A page that would overflow its attribute, or hold
+more than 200 entries, is split into two pages, never shortened, because a shortened entry is
+a change that can no longer be put back; the 200 keeps an undo's putting back of one page
+inside one transaction's limits. A single entry too large for any page is left out and
+written to the Error Log, and the chunk's other entries are still written. The price is that an entry is not a record and cannot be reported on by itself;
+the counts an administrator reports from live on the batch (Section 16).
+
+**R-IJ2 The entry document.** Values are held as typed values (text, number, true or false,
+a date as `YYYY-MM-DD`), so a value put back is the value that was there.
+
+```
+{
+  "version": 1,
+  "entries": [
+    { "action": "Updated", "object": "Contact", "id": "003...", "row": 13,
+      "fields": { "Email": { "before": "old@example.org", "after": "new@example.org" } } },
+    { "action": "Kept", "object": "Account", "id": "001...", "label": "The Smith Family",
+      "reason": "A person this import did not create is in this household." },
+    { "action": "NotRestored", "object": "Contact", "id": "003...", "field": "Email",
+      "reason": "Changed since the import." }
+  ]
+}
+```
+
+**R-IJ3 What is journaled.** A commit journals updates only: the attributes a row changed on
+a record the import did not create, with the value before and the value written, in full. A
+created record needs no entry because it carries the tag (R-IB3), and a matched or rejected
+row changed nothing and is recorded on its staged row (Section 17). An undo journals the
+records it kept and the values it did not put back, each with its reason; the records it
+deleted are counted in the Run Log rather than listed, because the recycle bin lists them.
+
+**R-IJ4 Written in system mode, and never fatal.** The journal is the package's own
+bookkeeping and is written under ADR-0021, so a run by a user who cannot edit these records
+is still journaled. A journal write that fails is logged to the Error Log and said in the
+Run Log rather than failing a chunk whose records are already saved; that chunk's updates
+cannot then be put back, and the Run Log is what says so.
+
+**R-IJ5 Who and when.** A page carries no user or time attribute of its own. Its standard
+created by and created date say who ran the pass and when, and the batch carries Committed
+By, Started At and Completed At.
+
+### Salesforce implementation
+
+- **Object:** `Import_Journal__c`, auto-number Name with format `IJ-{000000}`.
+
+| Attribute | API name | Type |
+|---|---|---|
+| Import Batch | `Import_Batch__c` | Master-Detail to `Import_Batch__c` |
+| Phase | `Phase__c` | Picklist: Commit, Undo |
+| Entry Count | `Entry_Count__c` | Number |
+| Entries | `Entries_JSON__c` | Long Text Area |
+
+- **Service:** `ImportJournalService` (writes and reads pages), `ImportRowProcessor` (writes
+  the commit phase), `ImportUndoBatch` (writes the undo phase), LWC `importHistory`.
 
 ---
 
@@ -4173,6 +4361,7 @@ included; standard objects the packages extend are named by the entity that gove
 | Import Template Default (shipped default) | Core | v0.2 | 13 |
 | Import Batch | Core | v0.2 | 16 |
 | Import Row | Core | v0.2 | 17 |
+| Import Journal | Core | v0.5 | 17A |
 | Gift | Giving | v0.2 | 18 |
 | Gift Allocation | Giving | v0.2 | 19 |
 | Fund | Giving | v0.2 | 20 |
@@ -4225,3 +4414,5 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.5 | 2026-09-23 | Removed the packaged Contact record type, its compact layout, and the list view that filtered on it, by the owner's decision (R-C4, ADR-0041). It drove no behavior: no code, rule or page branched on it, and the sample data loader was the only code that set it. People are now created with the org's default Contact record type. No field changed; the `Household_Role__c` picklist values it listed are all active on the master record type. |
 | v0.5 | 2026-09-23 | No object or field added. The Account, Contact, Gift and Commitment record pages show their fields with Dynamic Forms (ADR-0043). R-O3 now holds on the Account record page: the Name and Greetings section, which carries Member Count, Anniversary, Custom Name and the two greetings, shows only for the Household record type. Account keeps one fallback page layout for both record types, and no layout is assigned to a profile. |
 | v0.5 | 2026-09-23 | C-22, product-plan Section 11.2 item 8. No object or field added. R-M3's second half is implemented and its known-gaps row in Section 30 closed (ADR-0044, primary contact mirrors the primary member): in junction mode `Primary_Contact__c` mirrors the current member marked Is Primary, as that member's Contact or, for a Person Account, its person contact, and a hand edit of it on a household is refused. R-H5 now states the primary tiebreak the code already applied and which source each mode reads it from. R-H10 and the Household attribute table say which record is the mark in each mode. |
+| v0.5 | 2026-09-23 | C-19 Import 2.0. New Section 17A, `Import_Journal__c`, a page per chunk recording the updates an import made (value before and value written) and what an undo kept or did not put back, with rules R-IJ1 to R-IJ5. `Import_Batch__c` status gains Undoing and Undo failed; R-IB6 restated and R-IB7 (the undo window is stamped at commit), R-IB8 (one named batch, counted and confirmed, once, to the recycle bin) and R-IB9 (deletes only tagged records, keeps a tagged record that has gained something since, puts back only values nobody has changed since) added. R-IB3 now says the import tags the household it made a new person. R-IT6 added: a recurring template is listed on the Hub with its last import date, and nothing loads a file on a schedule. `Nonprofit_Settings__c` gains `Import_Undo_Retention_Days__c`. R-IR5 notes that undo does not read the staged rows. |
+| v0.5 | 2026-09-23 | C-19 review. No object or field added. R-IB1: a dry run is refused on a batch that has started a commit or is in an undo status. R-IB8: a chunk the platform stopped, or an undo job that is no longer running, ends Undo failed. R-IB9: a tagged record is kept when anything created since points at it through any reference the org can filter on (not only custom ones), when something was created during the commit by somebody else, when the record was edited since or has an activity, and when the person undoing cannot delete it; the system-mode reads and writes are recorded against ADR-0021. R-IJ1: a page holds at most 200 entries, and one oversized entry is logged rather than losing the chunk's journal. |

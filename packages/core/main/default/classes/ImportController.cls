@@ -35,6 +35,10 @@ public with sharing class ImportController {
         public Boolean isPackageDefault;
         @AuraEnabled
         public String lastImportDate;
+        @AuraEnabled
+        public Boolean isRecurring;
+        @AuraEnabled
+        public String sourceName;
     }
 
     /** One import as the wizard and the results screen show it. */
@@ -63,6 +67,12 @@ public with sharing class ImportController {
         public Integer rejected;
         @AuraEnabled
         public String runLog;
+        /** The end of the window in which this import can be undone (R-IB7). */
+        @AuraEnabled
+        public Datetime undoDeadline;
+        /** True when nothing about the batch itself stands in the way of an undo. */
+        @AuraEnabled
+        public Boolean canUndo;
     }
 
     /** One staged row as the exceptions table shows it. */
@@ -103,11 +113,24 @@ public with sharing class ImportController {
                 view.lastImportDate = template.Last_Import_Date__c == null
                     ? null
                     : String.valueOf(template.Last_Import_Date__c);
+                view.isRecurring = template.Is_Recurring__c;
+                view.sourceName = template.Source_Name__c;
                 result.add(view);
             }
             return result;
         } catch (Exception e) {
             throw auraError(e, 'ImportController.getTemplates');
+        }
+    }
+
+    /** Marks a template as the mapping for a file that arrives regularly, or not (R-IT6). */
+    @AuraEnabled
+    public static void saveRecurring(String templateId, Boolean isRecurring, String sourceName) {
+        try {
+            enforcePermission();
+            ImportTemplateService.saveRecurring(templateId, isRecurring, sourceName);
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.saveRecurring');
         }
     }
 
@@ -235,6 +258,35 @@ public with sharing class ImportController {
         }
     }
 
+    /**
+     * What undoing an import would remove and put back, and why it cannot be undone when it
+     * cannot. Nothing is deleted by it (R-IB8).
+     */
+    @AuraEnabled
+    public static ImportUndoService.Preview previewUndo(String batchId) {
+        try {
+            enforcePermission();
+            return ImportUndoService.preview(batchId);
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.previewUndo');
+        }
+    }
+
+    /**
+     * Starts the undo. Refused unless the total the person confirmed is still the total a
+     * fresh count gives, so an undo only deletes a set somebody has seen the size of.
+     */
+    @AuraEnabled
+    public static BatchView startUndo(String batchId, Integer confirmedTotal) {
+        try {
+            enforcePermission();
+            ImportUndoService.start(batchId, confirmedTotal);
+            return getBatch(batchId);
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.startUndo');
+        }
+    }
+
     /** Where a batch has got to. Polled by the screen while a run is going. */
     @AuraEnabled
     public static BatchView getBatch(String batchId) {
@@ -293,18 +345,23 @@ public with sharing class ImportController {
         view.id = batch.Id;
         view.name = batch.Name;
         view.fileName = batch.File_Name__c;
-        view.status = batch.Status__c;
+        // An undo whose job was aborted shows as Undo failed, which it is (R-IB8).
+        view.status = ImportUndoService.effectiveStatus(batch);
         view.isDryRun = batch.Is_Dry_Run__c;
         view.isFinished =
-            ImportBatchService.STATUS_DRY_RUN_COMPLETE.equals(batch.Status__c) ||
-            ImportBatchService.STATUS_COMPLETE.equals(batch.Status__c) ||
-            ImportBatchService.STATUS_FAILED.equals(batch.Status__c);
+            ImportBatchService.STATUS_DRY_RUN_COMPLETE.equals(view.status) ||
+            ImportBatchService.STATUS_COMPLETE.equals(view.status) ||
+            ImportBatchService.STATUS_FAILED.equals(view.status) ||
+            ImportBatchService.STATUS_UNDONE.equals(view.status) ||
+            ImportBatchService.STATUS_UNDO_FAILED.equals(view.status);
         view.rowCount = intOf(batch.Row_Count__c);
         view.created = intOf(batch.Rows_Created__c);
         view.updated = intOf(batch.Rows_Updated__c);
         view.matched = intOf(batch.Rows_Matched__c);
         view.rejected = intOf(batch.Rows_Rejected__c);
         view.runLog = batch.Run_Log__c;
+        view.undoDeadline = batch.Undo_Deadline__c;
+        view.canUndo = String.isBlank(ImportUndoService.refusal(batch));
         return view;
     }
 

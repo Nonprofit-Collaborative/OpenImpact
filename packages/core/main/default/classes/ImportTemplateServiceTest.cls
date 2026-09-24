@@ -206,4 +206,60 @@ private class ImportTemplateServiceTest {
             );
         }
     }
+
+    private static Import_Template__c recurring(String sourceName, Date lastImport) {
+        Import_Template__c template = ImportTestDataFactory.template(
+            ImportTestDataFactory.donorMapping(),
+            ImportTemplateService.RULE_EMAIL
+        );
+        ImportTemplateService.saveRecurring(template.Id, true, sourceName);
+        if (lastImport != null) {
+            ImportTemplateService.recordImport(template.Id, lastImport);
+        }
+        return template;
+    }
+
+    @IsTest
+    static void aRecurringTemplateNeedsItsSourceNamed() {
+        Import_Template__c template = ImportTestDataFactory.template(
+            ImportTestDataFactory.donorMapping(),
+            ImportTemplateService.RULE_EMAIL
+        );
+        try {
+            ImportTemplateService.saveRecurring(template.Id, true, '  ');
+            Assert.fail('A recurring file with no name cannot be told apart on the Hub.');
+        } catch (ImportException expected) {
+            Assert.areEqual(
+                Label.Core_Import_ErrorSourceNameRequired,
+                expected.getMessage(),
+                'Saying so.'
+            );
+        }
+        ImportTemplateService.saveRecurring(template.Id, true, ' Monthly processor export ');
+        ImportTemplateService.saveRecurring(template.Id, false, null);
+        Import_Template__c saved = [
+            SELECT Is_Recurring__c, Source_Name__c
+            FROM Import_Template__c
+            WHERE Id = :template.Id
+        ];
+        Assert.isFalse(saved.Is_Recurring__c, 'The mark can be taken off.');
+        Assert.areEqual('Monthly processor export', saved.Source_Name__c, 'The name is kept.');
+    }
+
+    @IsTest
+    static void recurringSourcesListTheOneLoadedLongestAgoFirst() {
+        recurring('Monthly processor export', Date.today().addDays(-3));
+        recurring('Quarterly partner list', Date.today().addDays(-40));
+        recurring('Event sign-ups', null);
+        ImportTestDataFactory.template(
+            ImportTestDataFactory.donorMapping(),
+            ImportTemplateService.RULE_EMAIL
+        );
+
+        List<Import_Template__c> sources = ImportTemplateService.recurringSources();
+
+        Assert.areEqual(3, sources.size(), 'Only templates marked recurring are listed.');
+        Assert.areEqual('Event sign-ups', sources[0].Source_Name__c, 'Never loaded comes first.');
+        Assert.areEqual('Quarterly partner list', sources[1].Source_Name__c, 'Then the oldest.');
+    }
 }

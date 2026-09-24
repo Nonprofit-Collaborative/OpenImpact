@@ -248,6 +248,36 @@ describe('c-hub-home', () => {
     expect(warning.querySelector('lightning-icon')).not.toBeNull();
   });
 
+  it('lists the files that arrive regularly, and says which were never imported', async () => {
+    getHomeModel.mockResolvedValue(
+      model({
+        recurringSources: [
+          { id: 'a01', sourceName: 'Event sign-ups', templateName: 'Events', lastImportDate: null },
+          {
+            id: 'a02',
+            sourceName: 'Monthly processor export',
+            templateName: 'Processor',
+            lastImportDate: '2026-08-31'
+          }
+        ]
+      })
+    );
+    const element = build();
+    await settle();
+
+    const sources = element.shadowRoot.querySelectorAll('[data-id="recurring-source"]');
+    expect(sources).toHaveLength(2);
+    expect(sources[0].textContent).toContain('Event sign-ups');
+    expect(sources[1].querySelector('lightning-formatted-date-time')).not.toBeNull();
+  });
+
+  it('shows no regular files tile when nothing is marked recurring', async () => {
+    getHomeModel.mockResolvedValue(model());
+    const element = build();
+    await settle();
+    expect(element.shadowRoot.querySelector('[data-id="recurring-source"]')).toBeNull();
+  });
+
   it('says when the seasonal addresses were last swapped and what the run did', async () => {
     getHomeModel.mockResolvedValue(
       model({

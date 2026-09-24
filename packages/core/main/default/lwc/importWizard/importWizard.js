@@ -1,5 +1,6 @@
 import { LightningElement } from 'lwc';
 import { parseCsv, toRecords, toCsv } from './csv';
+import { isXlsx, readXlsx, XLSX_ERRORS } from './xlsx';
 
 import canImport from '@salesforce/apex/ImportController.canImport';
 import getTemplates from '@salesforce/apex/ImportController.getTemplates';
@@ -11,6 +12,7 @@ import startDryRun from '@salesforce/apex/ImportController.startDryRun';
 import startCommit from '@salesforce/apex/ImportController.startCommit';
 import getBatch from '@salesforce/apex/ImportController.getBatch';
 import getRows from '@salesforce/apex/ImportController.getRows';
+import saveRecurring from '@salesforce/apex/ImportController.saveRecurring';
 
 import cardTitle from '@salesforce/label/c.Core_Import_CardTitle';
 import stepTemplate from '@salesforce/label/c.Core_Import_StepTemplate';
@@ -39,6 +41,12 @@ import readOnlyMessage from '@salesforce/label/c.Core_Import_ReadOnlyMessage';
 import loadingAltText from '@salesforce/label/c.Core_Import_LoadingAltText';
 import parsingMessage from '@salesforce/label/c.Core_Import_ParsingMessage';
 import noHeaderRow from '@salesforce/label/c.Core_Import_NoHeaderRow';
+import xlsxUnreadable from '@salesforce/label/c.Core_Import_XlsxUnreadable';
+import xlsxUnsupportedBrowser from '@salesforce/label/c.Core_Import_XlsxUnsupportedBrowser';
+import xlsxTooLarge from '@salesforce/label/c.Core_Import_XlsxTooLarge';
+import recurringLabel from '@salesforce/label/c.Core_Import_RecurringLabel';
+import recurringHelp from '@salesforce/label/c.Core_Import_RecurringHelp';
+import sourceNameLabel from '@salesforce/label/c.Core_Import_SourceNameLabel';
 
 /** How often the wizard asks how a run is going. */
 const POLL_INTERVAL_MS = 3000;
@@ -115,6 +123,9 @@ export default class ImportWizard extends LightningElement {
   message;
   templates = [];
   templateId;
+  /** Whether the chosen mapping is for a file that arrives regularly, and its name (R-IT6). */
+  isRecurring = false;
+  sourceName = '';
   matchingRule = 'Email exact';
   headers = [];
   records = [];
@@ -147,7 +158,10 @@ export default class ImportWizard extends LightningElement {
     matchingRuleLabel,
     readOnlyMessage,
     loadingAltText,
-    parsingMessage
+    parsingMessage,
+    recurringLabel,
+    recurringHelp,
+    sourceNameLabel
   };
 
   async connectedCallback() {
@@ -196,6 +210,44 @@ export default class ImportWizard extends LightningElement {
     if (template && template.matchingRule) {
       this.matchingRule = template.matchingRule;
     }
+    this.isRecurring = Boolean(template && template.isRecurring);
+    this.sourceName = (template && template.sourceName) || '';
+  }
+
+  handleRecurringChange(event) {
+    this.isRecurring = event.target.checked;
+  }
+
+  handleSourceNameChange(event) {
+    this.sourceName = event.target.value;
+  }
+
+  /**
+   * Leaves step one, saving the recurring mark first when it changed. The server refuses a
+   * recurring file with no source name, and the wizard stays on this step to say so.
+   */
+  async handleTemplateNext() {
+    const template = this.selectedTemplate || {};
+    const changed =
+      this.isRecurring !== Boolean(template.isRecurring) ||
+      (this.isRecurring && this.sourceName !== (template.sourceName || ''));
+    if (changed) {
+      try {
+        await saveRecurring({
+          templateId: this.templateId,
+          isRecurring: this.isRecurring,
+          sourceName: this.sourceName
+        });
+        const saved = { isRecurring: this.isRecurring, sourceName: this.sourceName };
+        this.templates = this.templates.map((each) => {
+          return each.id === this.templateId ? { ...each, ...saved } : each;
+        });
+      } catch (error) {
+        this.message = this.errorText(error);
+        return;
+      }
+    }
+    this.handleNext();
   }
 
   // ---------------------------------------------------------------------------------------
@@ -211,8 +263,10 @@ export default class ImportWizard extends LightningElement {
     this.parsing = true;
     this.fileName = file.name;
     try {
-      const text = await this.readText(file);
-      const { headers, records } = toRecords(parseCsv(text));
+      const rows = isXlsx(file.name)
+        ? await this.readWorkbook(file)
+        : parseCsv(await this.readText(file));
+      const { headers, records } = toRecords(rows);
       if (headers.length === 0 || records.length === 0) {
         this.message = noHeaderRow;
         return;
@@ -235,6 +289,25 @@ export default class ImportWizard extends LightningElement {
       reader.onerror = () => reject(reader.error);
       reader.readAsText(file);
     });
+  }
+
+  /** The first sheet of an Excel workbook, as rows; a file it cannot read says what to do. */
+  async readWorkbook(file) {
+    const buffer = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(file);
+    });
+    try {
+      return await readXlsx(buffer);
+    } catch (error) {
+      const sentences = {
+        [XLSX_ERRORS.unsupportedBrowser]: xlsxUnsupportedBrowser,
+        [XLSX_ERRORS.tooLarge]: xlsxTooLarge
+      };
+      throw new Error(sentences[error.reason] || xlsxUnreadable);
+    }
   }
 
   readBase64(file) {

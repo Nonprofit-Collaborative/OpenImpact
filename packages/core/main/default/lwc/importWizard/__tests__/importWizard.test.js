@@ -10,6 +10,7 @@ import startDryRun from '@salesforce/apex/ImportController.startDryRun';
 import startCommit from '@salesforce/apex/ImportController.startCommit';
 import getBatch from '@salesforce/apex/ImportController.getBatch';
 import getRows from '@salesforce/apex/ImportController.getRows';
+import saveRecurring from '@salesforce/apex/ImportController.saveRecurring';
 
 jest.mock('@salesforce/apex/ImportController.canImport', () => ({ default: jest.fn() }), {
   virtual: true
@@ -36,6 +37,9 @@ jest.mock('@salesforce/apex/ImportController.startCommit', () => ({ default: jes
   virtual: true
 });
 jest.mock('@salesforce/apex/ImportController.getBatch', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock('@salesforce/apex/ImportController.saveRecurring', () => ({ default: jest.fn() }), {
   virtual: true
 });
 jest.mock('@salesforce/apex/ImportController.getRows', () => ({ default: jest.fn() }), {
@@ -85,9 +89,9 @@ function render() {
 }
 
 /** Feeds the wizard a file the way the browser's file input does. */
-async function chooseFile(element, text = FILE_TEXT) {
+async function chooseFile(element, text = FILE_TEXT, name = 'donors.csv') {
   const input = element.shadowRoot.querySelector('[data-id="file"]');
-  const file = new File([text], 'donors.csv', { type: 'text/csv' });
+  const file = new File([text], name, { type: 'text/csv' });
   Object.defineProperty(input, 'files', { value: [file], configurable: true });
   input.dispatchEvent(new CustomEvent('change'));
   await flush();
@@ -143,6 +147,51 @@ describe('the import wizard', () => {
     expect(element.shadowRoot.querySelector('[data-id="template"]')).toBeNull();
   });
 
+  it('saves the recurring mark and its source name before leaving the first step', async () => {
+    saveRecurring.mockResolvedValue(undefined);
+    const element = render();
+    await flush();
+    const box = element.shadowRoot.querySelector('[data-id="recurring"]');
+    box.checked = true;
+    box.dispatchEvent(new CustomEvent('change'));
+    await flush();
+    const name = element.shadowRoot.querySelector('[data-id="source-name"]');
+    name.value = 'Monthly processor export';
+    name.dispatchEvent(new CustomEvent('change'));
+    click(element, 'next');
+    await flush();
+
+    expect(saveRecurring).toHaveBeenCalledWith({
+      templateId: 'a01',
+      isRecurring: true,
+      sourceName: 'Monthly processor export'
+    });
+    expect(element.shadowRoot.querySelector('[data-id="file"]')).not.toBeNull();
+  });
+
+  it('stays on the first step and says why when the recurring mark is refused', async () => {
+    saveRecurring.mockRejectedValue({ body: { message: 'Give this file a source name.' } });
+    const element = render();
+    await flush();
+    const box = element.shadowRoot.querySelector('[data-id="recurring"]');
+    box.checked = true;
+    box.dispatchEvent(new CustomEvent('change'));
+    await flush();
+    click(element, 'next');
+    await flush();
+
+    expect(element.shadowRoot.querySelector('[data-id="template"]')).not.toBeNull();
+    expect(element.shadowRoot.textContent).toContain('Give this file a source name.');
+  });
+
+  it('does not save anything when the recurring mark is left alone', async () => {
+    const element = render();
+    await flush();
+    click(element, 'next');
+    await flush();
+    expect(saveRecurring).not.toHaveBeenCalled();
+  });
+
   it('shows the chosen template description so the choice can be checked', async () => {
     const element = render();
     await flush();
@@ -182,6 +231,18 @@ describe('the import wizard', () => {
     // Import.labels-meta.xml and is quoted in the admin guide.
     expect(element.shadowRoot.querySelector('[data-id="message"]').textContent).toBe(
       'c.Core_Import_NoHeaderRow'
+    );
+    expect(element.shadowRoot.querySelectorAll('[data-id="column-row"]')).toHaveLength(0);
+  });
+
+  it('reads a file named .xlsx as a workbook, and says so when it is not one', async () => {
+    const element = render();
+    await flush();
+    click(element, 'next');
+    await flush();
+    await chooseFile(element, 'not really a workbook', 'donors.xlsx');
+    expect(element.shadowRoot.querySelector('[data-id="message"]').textContent).toBe(
+      'c.Core_Import_XlsxUnreadable'
     );
     expect(element.shadowRoot.querySelectorAll('[data-id="column-row"]')).toHaveLength(0);
   });

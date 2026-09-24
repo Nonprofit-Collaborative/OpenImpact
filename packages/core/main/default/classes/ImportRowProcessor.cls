@@ -71,6 +71,12 @@ public with sharing class ImportRowProcessor {
         /** Anything the run log should say once, not once per row. */
         @NamespaceAccessible
         public Set<String> notes = new Set<String>();
+        /**
+         * The changes this chunk made to records it did not create, for the import journal
+         * (canonical model Section 17A). Written by `process` at the end of a commit.
+         */
+        @NamespaceAccessible
+        public List<Map<String, Object>> journal = new List<Map<String, Object>>();
     }
 
     /** One row's working state while the chunk is resolved. */
@@ -86,6 +92,8 @@ public with sharing class ImportRowProcessor {
         Id person2Id;
         Boolean createdAnything = false;
         Boolean updatedAnything = false;
+        /** True when this run created the row's first person, whose household is therefore new. */
+        Boolean createdPerson1 = false;
         /** True when this run created the row's second person, who is joined to a household. */
         Boolean createdPerson2 = false;
         String error;
@@ -113,9 +121,21 @@ public with sharing class ImportRowProcessor {
         List<Working> working = read(rows, mapping, outcome);
         resolveOrganizations(working, rule, batch, dryRun, outcome);
         resolvePeople(working, rule, batch, personAccounts, dryRun, outcome);
-        applyHouseholdValues(working, dryRun);
+        tagAndNameHouseholds(working, batch, dryRun, outcome);
         offerToEntityProcessor(batch, mapping, rows, working, dryRun, outcome);
         writeBack(working, outcome);
+        if (
+            !dryRun &&
+            !ImportJournalService.write(
+                batch.Id,
+                ImportJournalService.PHASE_COMMIT,
+                outcome.journal
+            )
+        ) {
+            // The records are saved; what is lost is the ability to put these updates back,
+            // and the run log is where the administrator is told (R-IJ4).
+            outcome.notes.add(Label.Core_Import_LogJournalFailed);
+        }
         return outcome;
     }
 
@@ -802,6 +822,7 @@ public with sharing class ImportRowProcessor {
             if (results[i].isSuccess()) {
                 if (isFirst) {
                     owner.person1Id = results[i].getId();
+                    owner.createdPerson1 = true;
                 } else {
                     owner.person2Id = results[i].getId();
                     owner.createdPerson2 = true;
@@ -884,15 +905,64 @@ public with sharing class ImportRowProcessor {
         }
         List<SObject> records = toUpdate.values();
         List<Database.SaveResult> results = Database.update(records, false, AccessLevel.USER_MODE);
+        String objectName = personAccounts ? 'Account' : 'Contact';
         for (Integer i = 0; i < results.size(); i++) {
-            for (Working owner : ownersByRecord.get(records[i].Id)) {
+            List<Working> owners = ownersByRecord.get(records[i].Id);
+            for (Working owner : owners) {
                 if (results[i].isSuccess()) {
                     owner.updatedAnything = true;
                 } else if (owner.error == null) {
                     owner.error = message(results[i]);
                 }
             }
+            if (results[i].isSuccess()) {
+                journalUpdate(
+                    outcome,
+                    objectName,
+                    records[i],
+                    stored.get(records[i].Id),
+                    rowNumber(owners[0].row)
+                );
+            }
         }
+    }
+
+    /**
+     * Records one saved update in the journal: every attribute the save wrote, with the value
+     * the record held before and the value written (R-IJ3). The value before is the one
+     * nobody could recover anywhere else, which is why it is kept in full.
+     */
+    private static void journalUpdate(
+        Outcome outcome,
+        String objectName,
+        SObject written,
+        SObject before,
+        Integer row
+    ) {
+        Map<String, Object> beforeByField = new Map<String, Object>();
+        Map<String, Object> afterByField = new Map<String, Object>();
+        for (String field : written.getPopulatedFieldsAsMap().keySet()) {
+            if ('Id'.equalsIgnoreCase(field)) {
+                continue;
+            }
+            afterByField.put(field, written.get(field));
+            beforeByField.put(field, before == null ? null : before.get(field));
+        }
+        if (!afterByField.isEmpty()) {
+            outcome.journal.add(
+                ImportJournalService.updated(
+                    objectName,
+                    written.Id,
+                    row,
+                    beforeByField,
+                    afterByField
+                )
+            );
+        }
+    }
+
+    private static Integer rowNumber(Import_Row__c row) {
+        return row == null || row.Row_Number__c == null ? null : row.Row_Number__c.intValue();
     }
 
     /**
@@ -1021,20 +1091,32 @@ public with sharing class ImportRowProcessor {
     // Households
     // -------------------------------------------------------------------------------------
 
-    /** Applies the row's household attributes to the household its first person is in. */
-    private static void applyHouseholdValues(List<Working> working, Boolean dryRun) {
+    /**
+     * Tags the households this chunk's new people were given, and applies the row's household
+     * attributes to the household its first person is in, in one save.
+     *
+     * A household is made by the household automation, not by the importer, so it cannot be
+     * tagged when it is inserted; it is tagged straight afterwards instead, and only when it
+     * was made for a person this import created (R-IB3). A household an existing person
+     * already had is never tagged, so an undo can never delete it. A name written to such a
+     * household is an update to a record the import did not create, and is journaled so an
+     * undo can put the old name back.
+     */
+    private static void tagAndNameHouseholds(
+        List<Working> working,
+        Import_Batch__c batch,
+        Boolean dryRun,
+        Outcome outcome
+    ) {
         if (dryRun) {
             return;
         }
-        Map<Id, Account> byHousehold = new Map<Id, Account>();
+        Set<Id> created = householdsCreatedFor(working);
+        Map<Id, String> names = new Map<Id, String>();
+        Map<Id, Integer> firstRowByHousehold = new Map<Id, Integer>();
         for (Working item : working) {
             Map<String, String> held = item.byEntity.get(ImportMapping.ENTITY_HOUSEHOLD);
-            if (
-                item.error != null ||
-                item.row.Household__c == null ||
-                held == null ||
-                held.isEmpty()
-            ) {
+            if (item.error != null || item.row.Household__c == null || held == null) {
                 continue;
             }
             String name = held.get('Name');
@@ -1043,26 +1125,127 @@ public with sharing class ImportRowProcessor {
             }
             // Naming the household by hand is exactly what the custom name flag means, so the
             // naming service leaves it alone from here on.
+            names.put(item.row.Household__c, name);
+            if (!firstRowByHousehold.containsKey(item.row.Household__c)) {
+                firstRowByHousehold.put(item.row.Household__c, rowNumber(item.row));
+            }
+        }
+        if (created.isEmpty() && names.isEmpty()) {
+            return;
+        }
+        Set<Id> existing = new Set<Id>(names.keySet());
+        existing.removeAll(created);
+        Map<Id, Account> before = readHouseholds(existing);
+
+        Map<Id, Account> byHousehold = new Map<Id, Account>();
+        for (Id householdId : created) {
             byHousehold.put(
-                item.row.Household__c,
-                new Account(Id = item.row.Household__c, Name = name, Custom_Name__c = true)
+                householdId,
+                new Account(Id = householdId, Created_By_Import_Batch__c = batch.Id)
             );
         }
-        if (byHousehold.isEmpty()) {
-            return;
+        for (Id householdId : names.keySet()) {
+            Account household = byHousehold.containsKey(householdId)
+                ? byHousehold.get(householdId)
+                : new Account(Id = householdId);
+            household.Name = names.get(householdId);
+            household.Custom_Name__c = true;
+            byHousehold.put(householdId, household);
         }
         List<Account> records = byHousehold.values();
         List<Database.SaveResult> results = Database.update(records, false, AccessLevel.USER_MODE);
         for (Integer i = 0; i < results.size(); i++) {
+            Account household = records[i];
             if (results[i].isSuccess()) {
+                if (before.containsKey(household.Id)) {
+                    journalRename(
+                        outcome,
+                        household,
+                        before.get(household.Id),
+                        firstRowByHousehold
+                    );
+                }
+                continue;
+            }
+            if (!names.containsKey(household.Id)) {
+                // Only the tag failed. The people are saved and the rows are right, so this
+                // is a note for the run log rather than a rejected row (R-IB5).
+                outcome.notes.add(
+                    String.format(
+                        Label.Core_Import_LogHouseholdNotTagged,
+                        new List<String>{ message(results[i]) }
+                    )
+                );
                 continue;
             }
             for (Working item : working) {
-                if (item.row.Household__c == records[i].Id && item.error == null) {
+                if (item.row.Household__c == household.Id && item.error == null) {
                     item.error = message(results[i]);
                 }
             }
         }
+    }
+
+    /** A rename of a household the import did not create, for the journal (R-IJ3). */
+    private static void journalRename(
+        Outcome outcome,
+        Account household,
+        Account was,
+        Map<Id, Integer> firstRowByHousehold
+    ) {
+        outcome.journal.add(
+            ImportJournalService.updated(
+                'Account',
+                household.Id,
+                firstRowByHousehold.get(household.Id),
+                new Map<String, Object>{
+                    'Name' => was.Name,
+                    'Custom_Name__c' => was.Custom_Name__c
+                },
+                new Map<String, Object>{ 'Name' => household.Name, 'Custom_Name__c' => true }
+            )
+        );
+    }
+
+    /**
+     * The households made for people this chunk created: the first person's, which the row
+     * already knows, and the own household of a second person whose row had nobody first. A
+     * second person joined to somebody else's household is not counted here, because that
+     * household may be one an existing person already had.
+     */
+    private static Set<Id> householdsCreatedFor(List<Working> working) {
+        Set<Id> result = new Set<Id>();
+        Set<Id> onTheirOwn = new Set<Id>();
+        for (Working item : working) {
+            if (item.createdPerson1 && item.row.Household__c != null) {
+                result.add(item.row.Household__c);
+            } else if (item.createdPerson2 && item.person1Id == null && item.person2Id != null) {
+                onTheirOwn.add(item.person2Id);
+            }
+        }
+        if (!onTheirOwn.isEmpty()) {
+            for (Id householdId : HouseholdService.getHouseholdIdsFor(onTheirOwn).values()) {
+                if (householdId != null) {
+                    result.add(householdId);
+                }
+            }
+        }
+        return result;
+    }
+
+    /** The name and custom name flag of households the import is about to rename. */
+    private static Map<Id, Account> readHouseholds(Set<Id> householdIds) {
+        if (householdIds.isEmpty()) {
+            return new Map<Id, Account>();
+        }
+        return new Map<Id, Account>(
+            [
+                SELECT Id, Name, Custom_Name__c
+                FROM Account
+                WHERE Id IN :householdIds
+                WITH USER_MODE
+            ]
+        );
     }
 
     // -------------------------------------------------------------------------------------
