@@ -1,0 +1,6 @@
+{
+  "outcome": "rejected",
+  "giftId": "a0CXXXXXXXXXXXXXXX",
+  "errorCode": "external_id_conflict",
+  "message": "A gift with this externalId is already recorded with a different amount. Nothing was changed."
+}

@@ -313,6 +313,100 @@ private class RollupServiceTest {
         }
     }
 
+    @IsTest
+    static void aMergeRecalculatesOnlyTheRealTimeTotalsOnTheMergedEntity() {
+        insert new List<Rollup_Definition__c>{
+            memberCountNamed('Live count', 'Core_Merge_Live', RollupService.MODE_BOTH, true),
+            memberCountNamed(
+                'Nightly count',
+                'Core_Merge_Nightly',
+                RollupService.MODE_SCHEDULED,
+                true
+            ),
+            memberCountNamed('Off count', 'Core_Merge_Off', RollupService.MODE_BOTH, false)
+        };
+        RollupService.skipEngine = true;
+        RollupService.lastMetadata = null;
+        // MasterRecordId cannot be written, so the deleted record is built as the trigger has it.
+        List<SObject> merged = new List<SObject>{
+            (Account) JSON.deserialize(
+                '{"attributes":{"type":"Account"},"MasterRecordId":"001000000000001AAA"}',
+                Account.class
+            )
+        };
+        RollupService.runAfterMerge('Account', new List<SObject>{ new Account(Name = 'Deleted') });
+        System.Assert.isNull(
+            RollupService.lastMetadata,
+            'An ordinary delete names no survivor, so nothing is recalculated'
+        );
+
+        Test.startTest();
+        RollupService.runAfterMerge('Contact', merged);
+        List<Rollup__mdt> forPeople = RollupService.lastMetadata;
+        RollupService.runAfterMerge('Account', merged);
+        Test.stopTest();
+
+        System.Assert.isNull(forPeople, 'No total targets people here, so nothing is run');
+        System.Assert.areEqual(
+            1,
+            RollupService.lastMetadata.size(),
+            'Only the active real-time total on the merged entity is recalculated'
+        );
+        System.Assert.areEqual(
+            'Core_Merge_Live',
+            RollupService.lastMetadata[0].DeveloperName,
+            'And it is the live one'
+        );
+        System.Assert.areEqual(
+            new Set<Id>{ Id.valueOf('001000000000001AAA') },
+            RollupService.lastParentIds,
+            'Only the survivor is recalculated, not every record the definition covers'
+        );
+    }
+
+    @IsTest
+    static void aFullRecalculationCallsTheEngineOncePerSourceEntity() {
+        Rollup_Definition__c byMembership = memberCountNamed(
+            'Members',
+            'Core_Source_Membership',
+            RollupService.MODE_BOTH,
+            true
+        );
+        Rollup_Definition__c byContact = memberCountNamed(
+            'Contacts',
+            'Core_Source_Contact',
+            RollupService.MODE_BOTH,
+            true
+        );
+        byContact.Source_Object__c = 'Contact';
+        byContact.Relationship_Path__c = 'AccountId';
+        Rollup_Definition__c alsoByMembership = memberCountNamed(
+            'Members again',
+            'Core_Source_Membership_Two',
+            RollupService.MODE_BOTH,
+            true
+        );
+        insert new List<Rollup_Definition__c>{ byMembership, byContact, alsoByMembership };
+        RollupService.skipEngine = true;
+
+        Test.startTest();
+        Integer ran = RollupService.runFullRecalculation(
+            new List<Rollup_Definition__c>{ byMembership, byContact, alsoByMembership }
+        );
+        Test.stopTest();
+
+        System.Assert.areEqual(3, ran, 'Every definition is recalculated');
+        System.Assert.areEqual(
+            2,
+            RollupService.lastEngineCalls,
+            'One engine call per source entity, because one call across two fails in the engine'
+        );
+        System.Assert.isNull(
+            RollupService.lastParentIds,
+            'A full recalculation covers every record'
+        );
+    }
+
     private static Rollup_Definition__c memberCountNamed(
         String name,
         String key,

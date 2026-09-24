@@ -1,0 +1,87 @@
+/**
+ * The Accounting Export page (feature X-04). Validates nothing itself: the service refuses in
+ * words and this class hands those words to the page, or logs anything unexpected and says so.
+ */
+public with sharing class AccountingExportController {
+    private static final String CONTEXT = 'AccountingExportController';
+
+    /** One choice in the payment method list. */
+    public class Option {
+        @AuraEnabled
+        public String label;
+        @AuraEnabled
+        public String value;
+
+        public Option(String label, String value) {
+            this.label = label;
+            this.value = value;
+        }
+    }
+
+    /** The file, its name, and what it holds; csv is empty when the range has no gifts. */
+    public class ExportView {
+        @AuraEnabled
+        public String csv;
+        @AuraEnabled
+        public String fileName;
+        @AuraEnabled
+        public Integer rowCount;
+        @AuraEnabled
+        public Integer giftCount;
+        @AuraEnabled
+        public Decimal total;
+    }
+
+    /** The payment methods the page offers, each labelled as the org labels it. */
+    @AuraEnabled(cacheable=true)
+    public static List<Option> getPaymentMethods() {
+        Set<String> allowed = new Set<String>(AccountingExportService.paymentMethods());
+        List<Option> options = new List<Option>();
+        for (Schema.PicklistEntry entry : Gift__c.Type__c.getDescribe().getPicklistValues()) {
+            if (allowed.contains(entry.getValue())) {
+                options.add(new Option(entry.getLabel(), entry.getValue()));
+            }
+        }
+        return options;
+    }
+
+    @AuraEnabled
+    public static ExportView exportGifts(
+        Date fromDate,
+        Date toDate,
+        Id fundId,
+        String paymentMethod
+    ) {
+        try {
+            AccountingExportService.ExportFile built = AccountingExportService.build(
+                fromDate,
+                toDate,
+                fundId,
+                paymentMethod
+            );
+            ExportView view = new ExportView();
+            view.csv = built.csv;
+            view.rowCount = built.rowCount;
+            view.giftCount = built.giftCount;
+            view.total = built.total;
+            view.fileName =
+                'accounting-export-' +
+                String.valueOf(fromDate) +
+                '-to-' +
+                String.valueOf(toDate) +
+                '.csv';
+            return view;
+        } catch (AccountingExportService.ExportException refused) {
+            throw asAuraException(refused.getMessage());
+        } catch (Exception unexpected) {
+            ErrorLogger.log(unexpected, CONTEXT);
+            throw asAuraException(Label.Connect_AccountingExport_ErrorFailed);
+        }
+    }
+
+    private static AuraHandledException asAuraException(String message) {
+        AuraHandledException error = new AuraHandledException(message);
+        error.setMessage(message);
+        return error;
+    }
+}

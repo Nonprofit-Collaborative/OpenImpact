@@ -102,64 +102,72 @@ private class ReceiptBrandingTest {
 
     @IsTest
     static void theShippedRouteAddressesTheFileByItsDownloadUrl() {
-        insertLogoFile();
-        setLogoDelivery(null, true);
+        System.runAs(ReceiptTestDataFactory.issuer()) {
+            insertLogoFile();
+            setLogoDelivery(null, true);
 
-        Test.startTest();
-        String html = receiptFrom(BARE_TEMPLATE);
-        Test.stopTest();
+            Test.startTest();
+            String html = receiptFrom(BARE_TEMPLATE);
+            Test.stopTest();
 
-        Assert.isTrue(
-            html.contains('/sfc/servlet.shepherd/version/download/'),
-            'The shipped route is the file download URL (ADR-0016): ' + html
-        );
-        Assert.isTrue(html.contains('width: 40mm'), 'The shipped width is used: ' + html);
+            Assert.isTrue(
+                html.contains('/sfc/servlet.shepherd/version/download/'),
+                'The shipped route is the file download URL (ADR-0016): ' + html
+            );
+            Assert.isTrue(html.contains('width: 40mm'), 'The shipped width is used: ' + html);
+        }
     }
 
     @IsTest
     static void theEmbeddedRouteInlinesTheBytes() {
-        insertLogoFile();
-        setLogoDelivery(ReceiptLogoSource.ROUTE_EMBEDDED_IMAGE, true);
+        System.runAs(ReceiptTestDataFactory.issuer()) {
+            insertLogoFile();
+            setLogoDelivery(ReceiptLogoSource.ROUTE_EMBEDDED_IMAGE, true);
 
-        Test.startTest();
-        String html = receiptFrom(BARE_TEMPLATE);
-        Test.stopTest();
+            Test.startTest();
+            String html = receiptFrom(BARE_TEMPLATE);
+            Test.stopTest();
 
-        Assert.isTrue(
-            html.contains('data:image/png;base64,'),
-            'The second route ADR-0016 names inlines the image: ' + html
-        );
+            Assert.isTrue(
+                html.contains('data:image/png;base64,'),
+                'The second route ADR-0016 names inlines the image: ' + html
+            );
+        }
     }
 
     @IsTest
     static void theDocumentServerRouteAddressesTheImageServer() {
-        insertLogoFile();
-        setLogoDelivery(ReceiptLogoSource.ROUTE_DOCUMENT_SERVER, true);
+        System.runAs(ReceiptTestDataFactory.issuer()) {
+            insertLogoFile();
+            setLogoDelivery(ReceiptLogoSource.ROUTE_DOCUMENT_SERVER, true);
 
-        Test.startTest();
-        String html = receiptFrom(BARE_TEMPLATE);
-        Test.stopTest();
+            Test.startTest();
+            String html = receiptFrom(BARE_TEMPLATE);
+            Test.stopTest();
 
-        Assert.isTrue(
-            html.contains('servlet.ImageServer'),
-            'The third route ADR-0016 names is the image server: ' + html
-        );
+            Assert.isTrue(
+                html.contains('servlet.ImageServer'),
+                'The third route ADR-0016 names is the image server: ' + html
+            );
+        }
     }
 
     @IsTest
     static void turningTheLogoOffProducesADocumentWithoutIt() {
-        insertLogoFile();
-        setLogoDelivery(null, false);
+        System.runAs(ReceiptTestDataFactory.issuer()) {
+            insertLogoFile();
+            setLogoDelivery(null, false);
 
-        Test.startTest();
-        String html = receiptFrom(BARE_TEMPLATE);
-        Test.stopTest();
+            Test.startTest();
+            String html = receiptFrom(BARE_TEMPLATE);
+            Test.stopTest();
 
-        Assert.isFalse(html.contains('<img'), 'Off means off: ' + html);
-        Assert.isTrue(
-            html.contains('Hope For Homes'),
-            'A receipt with no images is still a receipt: ' + html
-        );
+            Assert.isFalse(html.contains('<img'), 'Off means off: ' + html);
+            Assert.isTrue(
+                html.contains('Hope For Homes'),
+                'A receipt with no images is still a receipt: ' + html
+            );
+        }
     }
 
     /**
