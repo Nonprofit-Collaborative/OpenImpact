@@ -63,6 +63,8 @@ public with sharing class ImportRowProcessor {
     private class ChunkPeople {
         Map<String, Integer> created = new Map<String, Integer>();
         Map<String, Set<String>> people = new Map<String, Set<String>>();
+        /** The first-name keys of couples' second people the chunk has yet to create. */
+        Set<String> waitingSeconds = new Set<String>();
 
         void hold(String shared, String person) {
             if (!people.containsKey(shared)) {
@@ -93,6 +95,9 @@ public with sharing class ImportRowProcessor {
                     !coming
                 ) {
                     chunk.hold(shared, key);
+                    if (which == 2) {
+                        chunk.waitingSeconds.add(key);
+                    }
                 }
             }
         }
@@ -523,7 +528,7 @@ public with sharing class ImportRowProcessor {
             );
         }
 
-        ImportMatcher.heldByMany = new Set<String>();
+        ImportMatcher.forgetHeldKeys();
         Map<String, Id> matches = matchPeople(
             rule,
             personAccounts,
@@ -737,15 +742,22 @@ public with sharing class ImportRowProcessor {
             String named = namedKey(item, isFirst);
             Integer heldEarlier = count(earlier, digest(PERSON_DIGEST, shared));
             Integer held =
-                (matches.containsKey(shared)
-                    ? (ImportMatcher.heldByMany.contains(shared) ? 2 : 1)
-                    : 0) + heldEarlier;
+                (matches.containsKey(shared) ? (ImportMatcher.isHeldByMany(shared) ? 2 : 1) : 0) +
+                heldEarlier;
             Id found = named == null ? null : matches.get(named);
             Boolean coming =
                 found == null &&
                 named != null &&
                 count(earlier, digest(PERSON_DIGEST, named)) > 0;
-            if (found == null && !coming && shared == key && (named == null || held == 1)) {
+            // A key whose lookup stopped at the row cap may have a holder unseen: first name only.
+            if (
+                found == null &&
+                !coming &&
+                shared == key &&
+                !ImportMatcher.wasCutOff(shared) &&
+                (named == null ||
+                held == 1)
+            ) {
                 found = matches.get(shared);
                 coming = found == null && heldEarlier > 0;
             }
@@ -783,6 +795,25 @@ public with sharing class ImportRowProcessor {
             : count(chunk.created, shared) == 1 && chunk.holding(shared) == 1;
         return shared == key && heldBefore == 0 && alone ? shared : null;
     }
+
+    /**
+     * Whether a row's first person is a couple's second person this chunk has yet to create,
+     * named alone. Every first person is saved before any second person, so such a row waits
+     * and shares the partner once the couple is saved, and so is in the couple's household
+     * rather than one of their own (R-IB12).
+     */
+    private static Boolean waitsForPartner(Working item, ChunkPeople chunk) {
+        String named = namedKey(item, true);
+        return named != null &&
+            ImportMatcher.baseKey(item.personKey1) == item.personKey1 &&
+            item.person1Id == null &&
+            !item.comingPerson1 &&
+            chunk.waitingSeconds.contains(named) &&
+            count(chunk.created, named) == 0;
+    }
+
+    /** First people waiting for a couple of the chunk to be saved, in a commit. */
+    private static List<Working> waitingFirst = new List<Working>();
 
     /** Counts a person this chunk creates under every key that finds them. */
     private static List<String> countCreated(Working item, Boolean isFirst, ChunkPeople chunk) {
@@ -941,11 +972,19 @@ public with sharing class ImportRowProcessor {
         ChunkPeople keysInChunk = chunkPeople(working);
         List<Working> withFirst = new List<Working>();
         List<Working> withoutFirst = new List<Working>();
+        List<Working> waiting = new List<Working>();
         for (Working item : working) {
             if (item.error != null) {
                 continue;
             }
-            previewPerson(item, true, stored, keysInChunk, rule, personAccounts);
+            if (
+                describesPerson(item, ImportMapping.ENTITY_CONTACT_1) &&
+                waitsForPartner(item, keysInChunk)
+            ) {
+                waiting.add(item);
+            } else {
+                previewPerson(item, true, stored, keysInChunk, rule, personAccounts);
+            }
             Boolean hasFirst =
                 item.person1Id != null ||
                 item.comingPerson1 ||
@@ -955,6 +994,9 @@ public with sharing class ImportRowProcessor {
         withFirst.addAll(withoutFirst);
         for (Working item : withFirst) {
             previewPerson(item, false, stored, keysInChunk, rule, personAccounts);
+        }
+        for (Working item : waiting) {
+            previewPerson(item, true, stored, keysInChunk, rule, personAccounts);
         }
     }
 
@@ -1046,6 +1088,7 @@ public with sharing class ImportRowProcessor {
         keysBeingCreated = chunkPeople(working);
         createdByKey = new Map<String, Id>();
         failedByKey = new Map<String, String>();
+        waitingFirst = new List<Working>();
         insertPeople(
             working,
             batch,
@@ -1078,6 +1121,19 @@ public with sharing class ImportRowProcessor {
             ImportMapping.ENTITY_CONTACT_2,
             false,
             false,
+            outcome
+        );
+        // The first people who waited for a couple now share the partner it saved, or are
+        // created after all where the couple's row failed (R-IB12).
+        List<Working> waited = waitingFirst;
+        waitingFirst = null;
+        insertPeople(
+            waited,
+            batch,
+            personAccounts,
+            ImportMapping.ENTITY_CONTACT_1,
+            true,
+            null,
             outcome
         );
         resolveHouseholds(working, personAccounts);
@@ -1167,6 +1223,10 @@ public with sharing class ImportRowProcessor {
                 continue;
             }
             if (joiningAHousehold != null && joiningAHousehold != (item.row.Household__c != null)) {
+                continue;
+            }
+            if (isFirst && waitingFirst != null && waitsForPartner(item, keysBeingCreated)) {
+                waitingFirst.add(item);
                 continue;
             }
             String shareKey = keyToShare(item, isFirst, keysBeingCreated);

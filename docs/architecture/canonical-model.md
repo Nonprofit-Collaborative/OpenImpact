@@ -1531,7 +1531,13 @@ alone finds them only when exactly one person holds it, or when the row gives no
 (the earliest holder then). When several hold the shared key (a couple, or two couples at one
 address) and none has their first name, the person is created: a new record is the safe
 failure, where taking somebody else would rename them. A couple of the chunk not yet created
-counts as two holders, so a row naming one partner alone is never given the other. First names
+counts as two holders, so a row naming one partner alone is never given the other. A row
+naming alone the second person of a couple of the same chunk waits until the couple is saved
+(first people are saved before second people) and then shares that partner, so both rows
+name one person in the couple's one household, whichever row comes first. A lookup of the
+org reads at most 5,000 records, filtered on both the last names and the postal codes of the
+chunk; where it stops at that cap, another holder of the key may be unseen, so the keys it
+covers find a person by first name only, and otherwise create them, and a warning is logged. First names
 are compared ignoring case and surrounding spaces but not accents: "Jáne" is not "Jane", so an
 accented spelling of a name held with another spelling is created. One consequence follows the
 rule: where one record holds the shared key, a row with a different first name still matches

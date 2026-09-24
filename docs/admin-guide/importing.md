@@ -98,7 +98,13 @@ Three things are worth knowing about it.
   by first name too, so "Jane Smith" finds Jane, not John. When several people share the
   email, or the surname and postal code, and none has the row's first name, a new person is
   created rather than a guess made. First names are compared ignoring capitals but not
-  accents: "Jáne" and "Jane" are different names. Loading the same file again finds each of
+  accents: "Jáne" and "Jane" are different names. A row naming Jane alone in the same file
+  as the couple's row finds the same Jane, in the couple's household, whichever row comes
+  first.
+- **Where only one person has that email, or surname and postal code, a row with another
+  first name matches them.** Today, with only John Smith at an address, a "Jane Smith" row
+  at that address is matched to John and his first name is changed to Jane. Check the dry
+  run's Updated rows for this before you commit. (This rule is under review.) Loading the same file again finds each of
   them rather than adding the second person again. Two people on one row with the same
   matching details and the same first name cannot be told apart: that row is rejected.
   Under the email rule, a second person who shares the first person's email needs a last

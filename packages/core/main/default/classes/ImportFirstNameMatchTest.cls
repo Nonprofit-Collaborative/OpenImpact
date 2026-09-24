@@ -160,6 +160,95 @@ private class ImportFirstNameMatchTest {
         Assert.areEqual(rows[0].Contact_2__c, rows[1].Contact_1__c, 'The Jane row is that Jane.');
         Assert.areEqual('Mary', firstNameOf(rows[2].Contact_1__c), 'Mary is nobody else.');
         Assert.areEqual(new List<String>{ 'John', 'Jane', 'Mary' }, smiths(), 'Three people.');
+        assertOneHousehold(rows[0].Contact_1__c, rows[0].Contact_2__c);
+        Assert.areEqual(rows[0].Household__c, rows[1].Household__c, 'Her row names it too.');
+    }
+
+    @IsTest
+    static void aRowNamingJaneBeforeHerCoupleRowIsInTheCouplesHousehold() {
+        Test.startTest();
+        List<Import_Row__c> rows = load(
+            file(
+                new List<List<String>>{
+                    new List<String>{ 'Jane' },
+                    new List<String>{ 'John', 'Jane' }
+                }
+            ),
+            200
+        );
+        Test.stopTest();
+
+        Assert.areEqual(rows[1].Contact_2__c, rows[0].Contact_1__c, 'One Jane, not two.');
+        Assert.areEqual(new List<String>{ 'John', 'Jane' }, smiths(), 'Two people.');
+        assertOneHousehold(rows[1].Contact_1__c, rows[1].Contact_2__c);
+        Assert.areEqual(rows[1].Household__c, rows[0].Household__c, 'Her row names it too.');
+    }
+
+    private static void assertOneHousehold(Id john, Id jane) {
+        Map<Id, Contact> couple = new Map<Id, Contact>(
+            [SELECT AccountId FROM Contact WHERE Id IN :new List<Id>{ john, jane }]
+        );
+        Assert.areEqual(
+            couple.get(john).AccountId,
+            couple.get(jane).AccountId,
+            'John and Jane share one household.'
+        );
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Contact WHERE AccountId = :couple.get(john).AccountId],
+            'Nobody else is in it.'
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Account WHERE Id NOT IN (SELECT AccountId FROM Contact)],
+            'No empty household is left behind.'
+        );
+    }
+
+    @IsTest
+    static void aMatchIsFoundHoweverManyPeopleShareTheSurnameElsewhere() {
+        List<Contact> elsewhere = new List<Contact>();
+        for (Integer i = 0; i < 3; i++) {
+            elsewhere.add(
+                new Contact(FirstName = 'Al' + i, LastName = 'Smith', MailingPostalCode = '99999')
+            );
+        }
+        insert elsewhere;
+        insert smith('John');
+        // Smiths elsewhere once filled the lookup before John was reached.
+        ImportMatcher.rowCap = 3;
+
+        Test.startTest();
+        List<Import_Row__c> rows = load(
+            file(new List<List<String>>{ new List<String>{ 'John' } }),
+            200
+        );
+        Test.stopTest();
+
+        Assert.areEqual(ImportRowProcessor.STATUS_MATCHED, rows[0].Status__c, 'John is found.');
+        Assert.areEqual(4, [SELECT COUNT() FROM Contact], 'Nobody added.');
+    }
+
+    @IsTest
+    static void aLookupStoppedAtTheCapNeverRenamesAnybody() {
+        insert smith('John');
+        // The lookup reads as many records as it may, so another holder may be unseen.
+        ImportMatcher.rowCap = 1;
+
+        Test.startTest();
+        List<Import_Row__c> rows = load(
+            file(new List<List<String>>{ new List<String>{ 'Jane' } }),
+            200
+        );
+        Test.stopTest();
+
+        Assert.areEqual('Jane', firstNameOf(rows[0].Contact_1__c), 'Jane is created.');
+        Assert.areEqual(new List<String>{ 'John', 'Jane' }, smiths(), 'John is not renamed.');
+        Assert.isTrue(
+            [SELECT COUNT() FROM Error_Log__c WHERE Severity__c = :ErrorLogger.SEVERITY_WARNING] >
+            0,
+            'And the stop is logged.'
+        );
     }
 
     @IsTest

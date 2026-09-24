@@ -61,8 +61,86 @@ public with sharing class ImportMatcher {
      * address or with one email. A person is matched on such a key only by their first name,
      * or when the row gives no first name (R-IB12).
      */
+    private static Set<String> heldByMany = new Set<String>();
+
+    /**
+     * The shared keys whose lookup stopped at the row cap, so another holder may exist unseen.
+     * Such a key finds a person only by first name: a guess past the cap could rename somebody.
+     */
+    private static Set<String> cutOff = new Set<String>();
+
+    /** How many records one lookup reads. A test lowers it to reach the cap. */
+    @TestVisible
+    private static Integer rowCap = 5000;
+
+    /** Whether the last lookup found this shared key on more than one record, or may have. */
     @NamespaceAccessible
-    public static Set<String> heldByMany = new Set<String>();
+    public static Boolean isHeldByMany(String key) {
+        return heldByMany.contains(key) || cutOff.contains(key);
+    }
+
+    /** Whether the last lookup of this shared key stopped at the row cap. */
+    @NamespaceAccessible
+    public static Boolean wasCutOff(String key) {
+        return cutOff.contains(key);
+    }
+
+    /** Forgets what the last lookup learned about shared keys, before the next one. */
+    @NamespaceAccessible
+    public static void forgetHeldKeys() {
+        heldByMany = new Set<String>();
+        cutOff = new Set<String>();
+    }
+
+    /** The last names and postal codes of name plus postal code keys, to query on both. */
+    private static Map<String, Set<String>> postalCodesByLastName(Set<String> keys) {
+        Map<String, Set<String>> result = new Map<String, Set<String>>();
+        for (String key : keys) {
+            if (key != null && key.contains(KEY_SEPARATOR)) {
+                String lastName = key.substringBefore(KEY_SEPARATOR);
+                if (!result.containsKey(lastName)) {
+                    result.put(lastName, new Set<String>());
+                }
+                result.get(lastName).add(key.substringAfter(KEY_SEPARATOR));
+            }
+        }
+        return result;
+    }
+
+    /** Postal codes of the slice's last names, the second filter of a name plus postal lookup. */
+    private static List<String> postalCodesOf(List<String> slice, Map<String, Set<String>> byName) {
+        Set<String> codes = new Set<String>();
+        for (String lastName : slice) {
+            codes.addAll(byName.get(lastName));
+        }
+        return new List<String>(codes);
+    }
+
+    /**
+     * A lookup that read as many records as it may: every requested key of the slice may have
+     * a holder it did not see, so each is treated as held by several (R-IB12), and it is logged.
+     */
+    private static void noteCutOff(Integer read, List<String> slice, Set<String> keys) {
+        if (read < rowCap) {
+            return;
+        }
+        Set<String> names = new Set<String>(slice);
+        for (String key : keys) {
+            if (key != null && names.contains(key.substringBefore(KEY_SEPARATOR))) {
+                cutOff.add(key);
+            }
+        }
+        ErrorLogger.logMessage(
+            'Import matching read ' +
+                read +
+                ' records for ' +
+                slice.size() +
+                ' last names and stopped there; people with those names and postal codes are ' +
+                'matched only by first name, and created otherwise.',
+            'ImportMatcher',
+            ErrorLogger.SEVERITY_WARNING
+        );
+    }
 
     /** Records the first found under a key, and under the key narrowed to its first name. */
     private static void put(Map<String, Id> result, String key, String firstName, Id recordId) {
@@ -127,14 +205,10 @@ public with sharing class ImportMatcher {
         if (keys == null || keys.isEmpty()) {
             return result;
         }
-        Set<String> lastNames = new Set<String>();
-        for (String key : keys) {
-            if (key != null && key.contains(KEY_SEPARATOR)) {
-                lastNames.add(key.substringBefore(KEY_SEPARATOR));
-            }
-        }
-        for (List<String> slice : slices(lastNames)) {
-            List<Contact> found = contactsByNameSlice(slice);
+        Map<String, Set<String>> byName = postalCodesByLastName(keys);
+        for (List<String> slice : slices(byName.keySet())) {
+            List<Contact> found = contactsByNameSlice(slice, postalCodesOf(slice, byName));
+            noteCutOff(found.size(), slice, keys);
             for (Contact record : found) {
                 String key = nameAndPostalKey(record.LastName, record.MailingPostalCode);
                 if (key != null && keys.contains(key)) {
@@ -146,14 +220,15 @@ public with sharing class ImportMatcher {
     }
 
     /** One slice's worth of contacts matched on last name, kept out of the caller's loop. */
-    private static List<Contact> contactsByNameSlice(List<String> slice) {
+    private static List<Contact> contactsByNameSlice(List<String> slice, List<String> codes) {
+        Integer cap = rowCap;
         return [
             SELECT Id, FirstName, LastName, MailingPostalCode
             FROM Contact
-            WHERE LastName IN :slice
+            WHERE LastName IN :slice AND MailingPostalCode IN :codes
             WITH USER_MODE
             ORDER BY CreatedDate ASC, Id ASC
-            LIMIT 5000
+            LIMIT :cap
         ];
     }
 
@@ -249,14 +324,14 @@ public with sharing class ImportMatcher {
         ) {
             return result;
         }
-        Set<String> lastNames = new Set<String>();
-        for (String key : keys) {
-            if (key != null && key.contains(KEY_SEPARATOR)) {
-                lastNames.add(key.substringBefore(KEY_SEPARATOR));
-            }
-        }
-        for (List<String> slice : slices(lastNames)) {
-            List<SObject> found = personAccountsByNameSlice(slice, recordTypeIds);
+        Map<String, Set<String>> byName = postalCodesByLastName(keys);
+        for (List<String> slice : slices(byName.keySet())) {
+            List<SObject> found = personAccountsByNameSlice(
+                slice,
+                postalCodesOf(slice, byName),
+                recordTypeIds
+            );
+            noteCutOff(found.size(), slice, keys);
             for (SObject record : found) {
                 String key = nameAndPostalKey(
                     (String) record.get(ACCOUNT_LAST_NAME_FIELD),
@@ -273,6 +348,7 @@ public with sharing class ImportMatcher {
     /** One slice's worth of person accounts matched on last name, kept out of the caller's loop. */
     private static List<SObject> personAccountsByNameSlice(
         List<String> slice,
+        List<String> codes,
         Set<Id> recordTypeIds
     ) {
         String query =
@@ -281,10 +357,16 @@ public with sharing class ImportMatcher {
             ACCOUNT_LAST_NAME_FIELD +
             ', BillingPostalCode FROM Account WHERE ' +
             ACCOUNT_LAST_NAME_FIELD +
-            ' IN :slice AND RecordTypeId IN :recordTypeIds ORDER BY CreatedDate ASC, Id ASC LIMIT 5000';
+            ' IN :slice AND BillingPostalCode IN :codes AND RecordTypeId IN :recordTypeIds' +
+            ' ORDER BY CreatedDate ASC, Id ASC LIMIT :cap';
         return Database.queryWithBinds(
             query,
-            new Map<String, Object>{ 'slice' => slice, 'recordTypeIds' => recordTypeIds },
+            new Map<String, Object>{
+                'slice' => slice,
+                'codes' => codes,
+                'recordTypeIds' => recordTypeIds,
+                'cap' => rowCap
+            },
             AccessLevel.USER_MODE
         );
     }
