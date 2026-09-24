@@ -35,8 +35,10 @@ a gift posted or closes a period.
   the **Post Gifts** permission, so Jen can mark gifts posted and unpost them. **Giving Admin**
   includes it too.
 - **Closing a period** is in **Nonprofit Settings**, **Giving**, **Accounting periods**, for
-  anyone who can change settings. Choose **Open**, and the Accounting Periods page shows the date
-  the books are closed through.
+  anyone with the **Manage Nonprofit Settings** permission and the **Giving Admin** permission
+  set. Choose **Open**, and the Accounting Periods page shows the date the books are closed
+  through. The latest date it takes is yesterday: a refund is dated today, and today has to stay
+  open for it.
 
 The rules above cannot be switched off on the Automation page, and pausing all automation does
 not suspend them, for the same reason the receipt lock cannot be: they protect a record rather

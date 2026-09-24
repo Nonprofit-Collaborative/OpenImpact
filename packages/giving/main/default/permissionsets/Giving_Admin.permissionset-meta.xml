@@ -11,6 +11,10 @@
     <visible>true</visible>
   </applicationVisibilities>
   <classAccesses>
+    <apexClass>AccountingPeriodController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>AcknowledgmentBatch</apexClass>
     <enabled>true</enabled>
   </classAccesses>
@@ -1436,6 +1440,10 @@
     <object>Tribute__c</object>
     <viewAllRecords>false</viewAllRecords>
   </objectPermissions>
+  <tabSettings>
+    <tab>Giving_Accounting_Periods</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
   <tabSettings>
     <tab>Acknowledgment_Rule__c</tab>
     <visibility>Visible</visibility>

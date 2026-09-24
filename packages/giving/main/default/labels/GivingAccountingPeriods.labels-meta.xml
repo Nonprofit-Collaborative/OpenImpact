@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Giving_Periods_Title</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Accounting periods page title</shortDescription>
+        <value>Accounting Periods</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Periods_Intro</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Accounting periods page intro</shortDescription>
+        <value>Close the books through a date when a month is finished. No gift in the books dated on or before it can be added, changed in its date, amount, donor, payment method, reference or funds, or deleted. Refunds and write-offs are dated today, so they still work.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Periods_ClosedThroughHeading</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Books closed through heading</shortDescription>
+        <value>Books closed through</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Periods_NotClosed</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>No period closed</shortDescription>
+        <value>No period is closed.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Periods_SaveButton</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Save close date button</shortDescription>
+        <value>Save</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Periods_Saved</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Close date saved</shortDescription>
+        <value>Saved. The books are closed through the date shown.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Periods_ReopenNote</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Reopening note</shortDescription>
+        <value>Moving the date back reopens a closed period. It needs the Override Posting Lock permission, granted in Setup, and it is written to the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Periods_ReadOnly</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Accounting periods read only</shortDescription>
+        <value>You can see this date. Changing it needs the Manage Nonprofit Settings permission.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Periods_PermissionRequired</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Close period needs permission</shortDescription>
+        <value>Closing a period needs the Manage Nonprofit Settings permission.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Periods_NotBeforeToday</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Close date must be before today</shortDescription>
+        <value>The books can be closed through yesterday at the latest. A refund or write-off is dated today, and it has to land in an open period.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Periods_ReopenNeedsOverride</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Reopen needs the override</shortDescription>
+        <value>A closed period cannot be reopened here. Moving the date back or clearing it needs the Override Posting Lock permission, granted in Setup. See Posting and Closed Periods in the admin guide.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Periods_ReopenLogged</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Reopened period log entry</shortDescription>
+        <value>Books Closed Through moved back from {0} to {1}.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Periods_UnexpectedError</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Accounting periods unexpected error</shortDescription>
+        <value>Something went wrong. The details are in the Error Log.</value>
+    </labels>
+</CustomLabels>
