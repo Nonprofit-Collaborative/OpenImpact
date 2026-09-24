@@ -305,7 +305,7 @@ NPC has no address object; NPSP's was one of its most valued features for donor 
 - `Import_Journal__c`: per-chunk pages recording every value a job changed on a record it did not create, before and after, and what an undo kept or could not put back (canonical model Section 17A) [built in C-19]. A bulk update journals through the same pages and adds a Failed entry per record that did not save.
 - `Saved_Query__c`: a named query document, owner, object, and a shared flag [v1].
 
-**Import flow** (unchanged where built): upload CSV or XLSX, read in the browser with no third-party script (the C-19 XLSX ADR) → suggested mapping from the column library → two-column picker with sample values → matching rules in plain language → **per-file values** ("every row is appeal Gala 2026") [v1] → **dry run** with counts and an exceptions file → commit → results with links → **undo** within the stamped window.
+**Import flow** (unchanged where built): upload CSV or XLSX, read in the browser with no third-party script (ADR-0049) → suggested mapping from the column library → two-column picker with sample values → matching rules in plain language → **per-file values** ("every row is appeal Gala 2026") [v1] → **dry run** with counts and an exceptions file → commit → results with links → **undo** within the stamped window.
 
 **Row semantics** (the NPSP insight): one row can describe a household, up to two people, an organization, an affiliation, and, with Giving installed, a gift with allocations, a soft credit and a tribute. Core resolves organization, household, people and affiliation [v1: affiliation moves into Core, C-32]; Giving resolves the rest through `ImportEntityProcessor` [v1: G-23, in v0.5]. Resolution is idempotent per row. Gift import comes early because it does not work today: no package implements `ImportEntityProcessor` (Core looks up a `GiftImportProcessor` class that does not exist), and the first customers must migrate their gifts. Undoing a gift import keeps any gift with an issued receipt and journals the reason (ADR-0010, ADR-0024).
 
@@ -373,8 +373,8 @@ Design rules: a Gift's donor is either a Contact (with household derived) or an 
 - **Opportunity mirror**: one-way `Gift__c` to Opportunity (record type `Donation`, Stage Closed Won, Close Date = gift date, Amount, Account, Primary Contact Role, Campaign from appeal link) so NPSP rollups, NPSP soft credits, and Opportunity-dependent apps keep working. Option "Opportunity is source": when an online giving tool writes Opportunities, create `Gift__c` from them instead. Conflict rule: exactly one direction per org, chosen in Settings, with a reconciliation report.
 - **Campaign sync**: `Appeal__c` to Campaign one-way, so Campaign Members and marketing tools work.
 - **Gift Transaction mirror** (Agentforce Nonprofit): one-way `Gift__c` to `GiftTransaction` plus designation, so native donor summaries and Agentforce actions still see gifts. Dynamic Apex only; feature hidden when the objects are absent.
-- **Inbound gift API**: a namespaced REST endpoint (`/services/apexrest/openimpact/v1/gifts`) accepting a simple JSON gift with donor matching, plus a Flow-invocable action, so any processor or integration platform can post gifts without knowing our objects. Idempotent by external ID.
-- **Accounting export**: gifts by fund, date range, and payment method as CSV in a QuickBooks-friendly layout; posting flag per gift.
+- **Inbound gift API**: a namespaced REST endpoint (`/services/apexrest/<namespace>/v1/gifts`, versioned, with no product name in the path so a rename never breaks a sender) accepting a simple JSON gift with donor matching, plus a Flow-invocable action, so any processor or integration platform can post gifts without knowing our objects. Idempotent by external ID.
+- **Accounting export**: gifts by fund, date range, and payment method as CSV in a QuickBooks-friendly layout. The export only reads and marks no gift; the posting flag per gift and the period lock belong to Giving (G-20).
 
 ### 4.13 Security and sharing
 
@@ -609,7 +609,7 @@ Because the first customers are Nonprofit Cloud / Agentforce Nonprofit orgs (Sec
 - Every trigger goes through the trigger framework; one trigger per object; handlers are bypassable.
 - Every `@AuraEnabled` method validates input and returns a typed result or a structured error the UI can render.
 - Governor-limit safety proven by tests that insert 200 records per DML context.
-- LWC: no third-party JS except vetted static resources. None is used today: SheetJS's pre-approval for import parsing is unused, since C-19 reads XLSX in the browser without it (the C-19 XLSX ADR). Record any addition as a decision. Jest tests for every component with logic.
+- LWC: no third-party JS except vetted static resources. None is used today: SheetJS's pre-approval for import parsing is unused, since C-19 reads XLSX in the browser without it (ADR-0049). Record any addition as a decision. Jest tests for every component with logic.
 - Salesforce Code Analyzer (PMD, ESLint, retire-js, Graph Engine for FLS/CRUD) must pass with zero high or critical findings on every pull request. This is the single best predictor of passing security review.
 - Apex test coverage target 90% per package; 75% is the platform minimum and is not the target.
 

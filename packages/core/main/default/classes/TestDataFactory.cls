@@ -107,6 +107,26 @@ public class TestDataFactory {
      */
     @NamespaceAccessible
     public static User createUser(String lastName, List<String> permissionSetNames) {
+        return createUser(lastName, permissionSetNames, minimalProfileId());
+    }
+
+    /**
+     * A user on the running user's own profile, holding the packaged permission sets named here:
+     * the same access the running user has, without being the running user.
+     *
+     * For a test that has nothing to prove about access, but must not share something the
+     * platform keeps per user with the other test classes running in parallel as the running
+     * user (see "The org test gate" in docs/contributor-guide/ci.md).
+     */
+    @NamespaceAccessible
+    public static User createUserOnTheRunningUsersProfile(
+        String lastName,
+        List<String> permissionSetNames
+    ) {
+        return createUser(lastName, permissionSetNames, UserInfo.getProfileId());
+    }
+
+    private static User createUser(String lastName, List<String> permissionSetNames, Id profileId) {
         String unique = lastName + System.now().getTime() + Crypto.getRandomInteger();
         User person = new User(
             Alias = lastName.left(8),
@@ -115,7 +135,7 @@ public class TestDataFactory {
             LastName = lastName,
             LanguageLocaleKey = 'en_US',
             LocaleSidKey = 'en_US',
-            ProfileId = minimalProfileId(),
+            ProfileId = profileId,
             TimeZoneSidKey = 'GMT',
             Username = unique + '@openimpact.example.invalid'
         );
