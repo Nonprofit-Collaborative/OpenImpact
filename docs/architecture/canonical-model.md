@@ -1850,7 +1850,9 @@ fund.
 Staff never type a gift name, and the number is not a receipt number.
 
 **R-G7 Idempotent intake.** External Id is unique. The importer and the inbound API in
-Connect both match on it, so re-sending a gift updates rather than duplicates.
+Connect both match on it, so re-sending a gift never creates a second one. The inbound API
+answers a resend with the gift already recorded and never edits it, so it cannot change a
+receipted gift; a resend whose amount differs is refused as a conflict (ADR-0051).
 
 **R-G8 Tribute link.** The authoritative link between a gift and a tribute is the
 Tribute's own Gift reference (Section 25). The Gift's Tribute reference is a mirror the
@@ -4439,6 +4441,109 @@ be explained.
 
 ---
 
+## 29A. Duplicate Dismissal
+
+### Definition
+
+A record of a person deciding that two records the duplicate scan proposed are not the same
+household or the same person (plan Section 5.1, feature C-20). It exists so that a decision a
+person already made is not asked again the next time the scan runs.
+
+Nothing else about duplicates is stored here. The suggestions themselves are platform
+records: the platform's duplicate rules write a Duplicate Record Set and its Duplicate Record
+Items, and the Open Impact scan writes the same two standard objects for duplicates that were
+already in the org before anybody looked. Open Impact adds no object for a suggestion, no
+matching logic of its own, and no copy of what the platform found (R-DP1).
+
+### Attributes
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | computed | The dismissal's identifier, assigned automatically. |
+| Pair Key | text | yes | The two record identifiers, sorted and joined, that a person said are not duplicates. Unique, so the same pair is dismissed once. |
+| Reason | text | no | Why they are not duplicates, in the words of the person who decided: "twin sisters at the same address". |
+
+### Relationships
+
+- **Duplicate Dismissal to the two records it is about**, by identifier rather than by
+  lookup. The pair is two Contacts or two Accounts, and one lookup field cannot point at
+  either object, so the identifiers are held as text.
+
+### Rules
+
+**R-DP1 The platform detects, Open Impact reviews.** What counts as the same person or the
+same household is decided by the org's own active duplicate rules for Contact and Account,
+and nothing else. Open Impact ships no matching rule and no duplicate rule (ADR-0050): every
+org starts with the platform's standard rules for both objects switched on, and an
+administrator's own rules are used exactly as written. No packaged code compares two records
+field by field to decide whether they are duplicates.
+
+**R-DP2 Only pairs Open Impact can act on are proposed.** A suggestion is two people, or two
+households. A pair of accounts where either side is not a household (an organization, or a
+person stored as an account) is passed over, because the household merge (R-H13) is the only
+account merge Open Impact performs and a suggestion nobody can act on here is noise.
+
+**R-DP3 The scan finds what the rules would have found.** A duplicate rule runs when a record
+is saved, so records already in the org, and records saved past an alert, are never compared
+with each other. The scan asks the platform to evaluate its active duplicate rules against
+the people and households that already exist, fifty records at a time, and writes a
+Duplicate Record Set of exactly two items for each new pair it is given back. It never
+proposes a pair that is already in a suggestion, and never one that has been dismissed. It is
+started by a person from Nonprofit Settings and is not scheduled. It refuses to start when no
+duplicate rule for Contact or Account is active, because a scan with nothing to evaluate would
+report a clean org rather than an org nobody is checking.
+
+**R-DP4 A merge is one pair at a time, previewed, and confirmed by a person.** No packaged
+code merges or deletes records in bulk, and no automation merges anything. Two households are
+merged by the household merge (R-H13) and nothing else. Two people are merged with the
+platform's own merge, reached from the Potential Duplicates card on the person's record page,
+because the platform already carries related records across safely.
+
+**R-DP5 A dismissal is remembered, a suggestion is not.** Dismissing a suggestion writes a
+Duplicate Dismissal for each pair in it and then deletes its Duplicate Record Set, which
+removes the grouping and never touches the records. An administrator can delete a dismissal,
+which is how a pair is put back in front of a reviewer. A household merge from the review
+page deletes the suggestion without a dismissal, because the pair no longer exists.
+
+### Salesforce implementation
+
+- **Object** `Duplicate_Dismissal__c`, with an auto number Name. Sharing is public read/write:
+  a dismissal is the organization's decision, and a scan run by one administrator must pass
+  over a pair another administrator dismissed.
+
+| Attribute | API name | Type | Notes |
+|---|---|---|---|
+| Pair Key | `Pair_Key__c` | Text(40), unique, external id | The two 18 character identifiers in ascending order, joined with a hyphen. |
+| Reason | `Reason__c` | Text(255) | Optional. |
+
+- **Suggestions** are the standard objects `DuplicateRecordSet` and `DuplicateRecordItem`,
+  read with `DuplicateRule`. They are read and written in user mode, so a reviewer is never
+  shown a pair containing a record they cannot see. Salesforce licenses them only to Sales
+  Cloud and Service Cloud users, so no Core role grants them: the optional permission set
+  `Nonprofit_Duplicate_Review` does, and the panel says so to anyone without it (ADR-0050).
+- **People merges** are the platform's. When a contact, or a person stored as an account, is
+  deleted by a merge (`MasterRecordId` filled in `after delete`), its memberships are
+  recreated on the survivor in junction mode (all or none; only current rows count as already
+  a member; a household whose primary member was merged away gets the survivor as its
+  primary, R-M3), the households it was in are recounted but not tidied away, and the
+  real-time rollups that target the merged entity are recalculated for the survivors only.
+  For a person stored as an account that is the rollups on Account and on the survivor's
+  person contact. An account merge of households (R-H13) recalculates the surviving
+  household's real-time rollups the same way.
+- **Matching** is `Datacloud.FindDuplicatesByIds`, which evaluates the org's active duplicate
+  rules. It is called for one object at a time, and for households only among accounts: a
+  call that includes a person stored as an account is refused by the platform when no person
+  account rule is active.
+- **Merge** of households is `HouseholdMergeService` (R-H13). The Contact record page carries
+  the platform's Potential Duplicates card (`runtime_sales_merge:mergeCandidatesPreviewCard`),
+  which is where the platform's own person merge starts. The Account record page does not
+  carry it, so a household is never merged past R-H13.
+- **Service:** `DuplicateService`, `DuplicateSelector`, `DuplicateScanBatch`,
+  `DuplicateController`. The review page is the `duplicateReview` panel on the Households page
+  of Nonprofit Settings.
+
+---
+
 ## 30. Deferred to later iterations
 
 These entities exist in the product plan but are deliberately **not** part of v0.1, v0.2,
@@ -4465,6 +4570,10 @@ as Stewardship Plan Template, Stewardship Plan Step and the running Stewardship 
 
 Gift Batch left this table in v0.5 and is specified in Section 25L, together with Gift
 Batch Row (25M), the line of a batch.
+
+The v0.6 inbound gift API (X-03) and accounting export (X-04) add no Connect entity: the
+API writes ordinary gifts through Giving, and the export reads gifts and allocations and
+records nothing (ADR-0051). The posting flag plan Section 4.12 mentions is G-20's, in Giving.
 
 Two v0.4 entities have attributes that already exist on `Gift__c` from v0.2, because the
 object is not worth altering later for fields this cheap: Acknowledgment Status,
@@ -4538,6 +4647,8 @@ None open. R-M3's Primary Contact mirror, the only entry, was closed on 2026-09-
 | v0.4 | 2026-09-15 | X-09 native household guards (product-plan Section 11.2 item 9, mutual exclusion). No object or field added. `HouseholdSelector.nativeHouseholdAccountsAmong` is the single predicate, built on the existing ADR-0036 delete guard probe and short circuited by `OrgShapeDetector.hasNativeHouseholdGroups`, that every guard below asks. The naming batch and the naming path in `HouseholdService.afterMembershipChange` leave out an Account that already carries a native Nonprofit Cloud household group and count what they skipped. Automatic household creation, in both membership modes, does not make a second household for a person already linked to one, by the weaker but safe rule of asking the person's own Account. `AddressService` never writes the billing or person mailing fields of such an Account, from a default address or by propagation to its members. Health Check gains an informational finding naming how many native households were found, and a warning naming how many Accounts carry both household models at once, from a new `HouseholdSelector.nativeHouseholdCollisionCount` probe. No migration and no sync: an Account with both models keeps whatever name, greetings and address it already has until an administrator settles it on one model. |
 | v0.5 | 2026-09-23 | G-17 gift batch entry (ADR-0045). Two objects added: `Gift_Batch__c` (Section 25L) and its master-detail child `Gift_Batch_Row__c` (25M), with rules R-GB1 to R-GB6 and R-GR1 to R-GR4. The batch holds the control total and four defaults; a line holds only what varies, and its empty values are resolved from the batch at posting (R-GB1). The entered total is computed, never stored (R-GB2). Posting locks the batch, refuses an unbalanced or already posted batch, inserts ordinary gifts in user mode, and rolls everything back if any line fails. Status and a line's Gift are written only by posting; validation rules keep a posted batch and its lines unchanged. No trigger and no registry entry. The import framework is not used: ADR-0045 records why. No field added to an existing object. Gift Batch leaves Section 30. |
 | v0.5 | 2026-09-23 | C-21 Health Check v2 (ADR-0048). No object, field, settings key or rollup row added. Health Check reads state the model already defines: shipped rollup definitions, automation switch rows and import templates not yet materialized from their shipped defaults (Section 13), the nightly rollup run when an active definition is in Scheduled or Both mode (Section 14). Recorded against R-A2: an `Automation_Setting__c` row whose registry entry is no longer shipped is left alone, because no fix deletes a record. `Automation_Setting__c` rows are now materialized by Core's and Giving's post-install scripts, one per shipped registry entry not yet present, never touching an existing row (before C-21 nothing created them). Recorded against R-R6: a shipped rollup default is not materialized when an active, administrator-made definition (`Is_Package_Default__c` false) already writes the same target entity and attribute; shipped defaults are not counted against each other, because household and organization pairs write one attribute for different accounts. Health Check detects orphans without changing them (cleanup is C-28): a person in no household, reported only while `Auto_Create_Households__c` is on (R-C1), which in contact mode is a Contact with no Account (a Contact whose Account is an Organization belongs to it, Section 7) and in junction mode a Contact or person account with no current Household Member row (R-M2, R-M4; a Contact whose Account is a Household is left to the membership check); and a Household with no current member (in contact mode no Contact on it, in junction mode no current row naming a person). Person accounts are recognised by the org's person record types, never by a person account field. |
+| v0.5 | 2026-09-23 | C-20 duplicate detection (ADR-0050). One object added, `Duplicate_Dismissal__c` (Section 29A) with `Pair_Key__c` and `Reason__c`, which holds a decision rather than a finding. Detection is the org's own active duplicate rules; Open Impact ships none, and the suggestions are the standard `DuplicateRecordSet` and `DuplicateRecordItem` records. A scan started from Nonprofit Settings evaluates those rules against the people and households already in the org. Rules R-DP1 to R-DP5 added. |
+| v0.6 | 2026-09-23 | X-03, X-04 and X-06, the Connect integration surface (ADR-0051). No object or field added. R-G7 is reworded: the inbound gift API answers a resend with the gift already recorded and never edits it, and refuses a resend whose amount differs. The accounting export reads `Gift__c`, `Gift_Allocation__c` and `Fund__c` and writes nothing: the posting flag plan Section 4.12 names belongs to G-20 in Giving, and no Connect object records export runs. Section 30 notes that X-03 and X-04 add no Connect entity. |
 
 ---
 ## 32. Entity ownership by package
@@ -4577,6 +4688,7 @@ included; standard objects the packages extend are named by the entity that gove
 | Relationship Type (shipped default) | Core | v0.3 | 13 |
 | Affiliation | Core | v0.3 | 28 |
 | Address | Core | v0.3 | 29 |
+| Duplicate Dismissal | Core | v0.5 | 29A |
 | Acknowledgment Rule | Giving | v0.4 | 25F |
 | Acknowledgment | Giving | v0.4 | 25G |
 | Acknowledgment Run | Giving | v0.4 | 25H |

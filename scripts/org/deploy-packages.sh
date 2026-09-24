@@ -231,6 +231,8 @@ deploy_stage "Core (UI and permissions)" \
 
 if [[ "$CORE_ONLY" -eq 0 ]]; then
   deploy_stage "Giving" "packages/giving" || exit $?
+  # Connect depends on Core and Giving (plan Section 4.1), so it goes last.
+  deploy_stage "Connect" "packages/connect" || exit $?
 fi
 
 # A deployment is not an install, so neither post-install script runs here and the shipped
