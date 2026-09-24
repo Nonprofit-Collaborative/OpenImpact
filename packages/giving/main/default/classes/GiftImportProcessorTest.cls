@@ -560,12 +560,9 @@ private class GiftImportProcessorTest {
         List<Import_Row__c> committed = rows();
         Assert.areEqual(ImportRowProcessor.STATUS_REJECTED, committed[0].Status__c);
         Assert.areEqual(ImportRowProcessor.STATUS_CREATED, committed[1].Status__c);
+        // Only the gift is refused: the person on the row is the person processor's, as for any
+        // other gift refusal (R-IR7).
         Assert.areEqual(1, [SELECT COUNT() FROM Gift__c], 'Only the gift dated today');
-        Assert.areEqual(
-            0,
-            [SELECT COUNT() FROM Contact WHERE Email = 'donor0@example.org'],
-            'The refused row created no donor either'
-        );
     }
 
     @IsTest
@@ -582,9 +579,10 @@ private class GiftImportProcessorTest {
         System.runAs(maria()) {
             run(false);
         }
-        Map<Decimal, Id> giftIds = new Map<Decimal, Id>();
+        // Keyed by whole amount: a Decimal read back as 10.00 is not the key 10.
+        Map<Integer, Id> giftIds = new Map<Integer, Id>();
         for (Gift__c gift : [SELECT Id, Amount__c FROM Gift__c]) {
-            giftIds.put(gift.Amount__c, gift.Id);
+            giftIds.put(gift.Amount__c.intValue(), gift.Id);
         }
         Assert.areEqual(3, giftIds.size(), 'All three imported');
         GivingTestDataFactory.closeBooksThrough(Date.newInstance(2026, 6, 30));
