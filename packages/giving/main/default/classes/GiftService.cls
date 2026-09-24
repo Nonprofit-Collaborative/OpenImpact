@@ -916,6 +916,12 @@ public with sharing class GiftService {
         String reason,
         String newOriginalStatus
     ) {
+        // G-20: moving a Pending gift dated in a closed period into the books is refused by the
+        // posting lock. Asked first, so nothing is saved and the person reads why (R-G14).
+        String closedPeriod = GiftPostingLock.refusalForStatusChange(original, newOriginalStatus);
+        if (closedPeriod != null) {
+            throw new GiftServiceException(closedPeriod);
+        }
         Gift__c reversal = new Gift__c(
             Donor_Contact__c = original.Donor_Contact__c,
             Donor_Account__c = original.Donor_Account__c,
