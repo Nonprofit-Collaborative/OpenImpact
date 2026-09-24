@@ -15,6 +15,20 @@
  */
 public with sharing class SettingsRecordSelector {
     public static SObject getOrgDefault(Schema.SObjectType type) {
+        return orgDefault(type, false);
+    }
+
+    /**
+     * The same record, locked until the transaction ends, or null when the org has never saved
+     * one. A system mode writer reads through this so that two runs writing the same record at
+     * the same moment (a scheduled job and a button) take turns instead of both acting on what
+     * they read before the other wrote (OrgSettingsSystemWriter).
+     */
+    public static SObject lockOrgDefault(Schema.SObjectType type) {
+        return orgDefault(type, true);
+    }
+
+    private static SObject orgDefault(Schema.SObjectType type, Boolean lock) {
         Schema.DescribeSObjectResult describe = type.getDescribe(SObjectDescribeOptions.DEFERRED);
         List<String> fields = new List<String>();
         for (Schema.SObjectField token : describe.fields.getMap().values()) {
@@ -25,7 +39,8 @@ public with sharing class SettingsRecordSelector {
             String.join(fields, ', ') +
             ' FROM ' +
             describe.getName() +
-            ' WHERE SetupOwnerId = :ownerId LIMIT 1';
+            ' WHERE SetupOwnerId = :ownerId LIMIT 1' +
+            (lock ? ' FOR UPDATE' : '');
         List<SObject> records = Database.queryWithBinds(
             soql,
             new Map<String, Object>{ 'ownerId' => UserInfo.getOrganizationId() },

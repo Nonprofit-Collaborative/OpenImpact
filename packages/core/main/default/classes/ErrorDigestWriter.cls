@@ -15,22 +15,16 @@
  */
 public without sharing class ErrorDigestWriter {
     public static void recordRun(Datetime ranAt, String summary, Datetime coveredUntil) {
-        Nonprofit_Settings__c settings = Nonprofit_Settings__c.getOrgDefaults();
-        settings.Error_Digest_Last_Run__c = ranAt;
-        settings.Error_Digest_Last_Run_Summary__c = summary == null ? null : summary.left(255);
-        settings.Error_Digest_Covered_Until__c = coveredUntil;
-        Boolean firstSave = settings.Id == null;
-        if (firstSave) {
-            settings.SetupOwnerId = UserInfo.getOrganizationId();
-        }
-        Database.upsert(settings, AccessLevel.SYSTEM_MODE);
-        if (firstSave) {
-            // Creating the record fills every text default, which would confirm a coexistence
-            // mode nobody chose; SettingsService explains why those have to stay blank.
-            Database.update(
-                SettingsService.blanksAfterFirstSave(settings),
-                AccessLevel.SYSTEM_MODE
-            );
-        }
+        // Through the shared writer: the first digest can be the first save of the org's
+        // settings, and that save must keep the shipped defaults (OrgSettingsSystemWriter).
+        OrgSettingsSystemWriter.save(
+            new Map<Schema.SObjectField, Object>{
+                Nonprofit_Settings__c.Error_Digest_Last_Run__c => ranAt,
+                Nonprofit_Settings__c.Error_Digest_Last_Run_Summary__c => summary == null
+                    ? null
+                    : summary.left(255),
+                Nonprofit_Settings__c.Error_Digest_Covered_Until__c => coveredUntil
+            }
+        );
     }
 }

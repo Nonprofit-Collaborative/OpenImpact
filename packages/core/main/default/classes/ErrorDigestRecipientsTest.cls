@@ -108,4 +108,26 @@ private class ErrorDigestRecipientsTest {
 
         Assert.isNotNull(refusal, 'A deactivated user cannot receive the digest.');
     }
+
+    @IsTest
+    static void theDigestStopsAtItsRecipientCap() {
+        Assert.areEqual(50, ErrorDigestRecipients.MAX_RECIPIENTS, 'Fifty people at most.');
+        User first = TestDataFactory.createUser('Capfirst', new List<String>{ 'Nonprofit_Staff' });
+        User second = TestDataFactory.createUser(
+            'Capsecond',
+            new List<String>{ 'Nonprofit_Staff' }
+        );
+        User third = TestDataFactory.createUser('Capthird', new List<String>{ 'Nonprofit_Staff' });
+        ErrorDigestRecipients.recipientCap = 2;
+
+        Test.startTest();
+        List<User> listed = ErrorDigestRecipients.resolve(
+            first.Email + ', ' + second.Email + ', ' + third.Email
+        );
+        Test.stopTest();
+
+        Assert.areEqual(2, listed.size(), 'Three listed, the cap receives it.');
+        Assert.areEqual(first.Id, listed[0].Id, 'In the order listed.');
+        Assert.areEqual(second.Id, listed[1].Id, 'The one past the cap is left out.');
+    }
 }
