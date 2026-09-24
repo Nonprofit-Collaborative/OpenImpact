@@ -104,7 +104,7 @@ public class ImportTestDataFactory {
         };
     }
 
-    /** The staged rows of a batch, freshly read, in file order. */
+    /** The staged rows of a batch, freshly read with the fields the import batch reads, in file order. */
     @NamespaceAccessible
     public static List<Import_Row__c> reload(Id batchId) {
         return [
@@ -116,8 +116,12 @@ public class ImportTestDataFactory {
                 Error_Message__c,
                 Household__c,
                 Contact_1__c,
+                Person_1_Account__c,
                 Contact_2__c,
-                Organization__c
+                Person_2_Account__c,
+                Organization__c,
+                Gift_Id__c,
+                Soft_Credit_Id__c
             FROM Import_Row__c
             WHERE Import_Batch__c = :batchId
             ORDER BY Row_Number__c ASC

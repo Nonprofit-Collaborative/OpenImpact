@@ -13,6 +13,10 @@ public with sharing class ImportEntityProcessors {
     @NamespaceAccessible
     public static final String CLASS_NAME = 'GiftImportProcessor';
 
+    /** The field every record an import creates carries, naming the import (R-IB3). */
+    @NamespaceAccessible
+    public static final String TAG_FIELD = 'Created_By_Import_Batch__c';
+
     /** Injected by Core's tests, which have no other package to resolve a real one from. */
     @TestVisible
     private static ImportEntityProcessor processorOverride;
@@ -38,6 +42,44 @@ public with sharing class ImportEntityProcessors {
             found = resolve();
         }
         return found;
+    }
+
+    /**
+     * The objects the installed processor tags with Created By Import Batch, in the order an
+     * undo deletes them (R-IB9). An object that does not carry a Created By Import Batch
+     * reference to the import, or a Name, is left out rather than queried, because the undo
+     * would otherwise fail on a module's mistake.
+     */
+    @NamespaceAccessible
+    public static List<Schema.SObjectType> taggedTypes() {
+        List<Schema.SObjectType> result = new List<Schema.SObjectType>();
+        ImportEntityProcessor processor = find();
+        if (processor == null) {
+            return result;
+        }
+        List<Schema.SObjectType> named;
+        try {
+            named = processor.taggedObjects();
+        } catch (Exception cannotSay) {
+            ErrorLogger.log(cannotSay, 'ImportEntityProcessors.taggedTypes');
+            return result;
+        }
+        for (Schema.SObjectType type : named == null ? new List<Schema.SObjectType>() : named) {
+            if (type != null && !result.contains(type) && carriesTheTag(type)) {
+                result.add(type);
+            }
+        }
+        return result;
+    }
+
+    /** Whether records of this type name the import that created them, and have a Name. */
+    private static Boolean carriesTheTag(Schema.SObjectType type) {
+        Map<String, Schema.SObjectField> fields = type.getDescribe(SObjectDescribeOptions.DEFERRED)
+            .fields.getMap();
+        Schema.SObjectField tag = fields.get(NamespaceUtil.qualify(TAG_FIELD));
+        return tag != null &&
+            fields.containsKey('name') &&
+            tag.getDescribe().getReferenceTo().contains(Import_Batch__c.SObjectType);
     }
 
     private static ImportEntityProcessor resolve() {

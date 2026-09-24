@@ -84,6 +84,12 @@ export default class ImportHistory extends LightningElement {
       { key: 'people', label: confirmPeople, value: view.people || 0 },
       { key: 'households', label: confirmHouseholds, value: view.households || 0 },
       { key: 'organizations', label: confirmOrganizations, value: view.organizations || 0 },
+      // An installed module's own records, such as gifts, each under the org's own label.
+      ...(view.others || []).map((other) => ({
+        key: `other-${other.objectName}`,
+        label: other.label,
+        value: other.count || 0
+      })),
       { key: 'updates', label: confirmUpdates, value: view.updates || 0 }
     ];
   }

@@ -8,6 +8,8 @@
 @IsTest
 private class ImportUndoTest {
     private static Import_Batch__c committedBatch() {
+        // Core's undo is tested on its own: a module installed in the test org is not asked.
+        ImportEntityProcessors.noneForTest = true;
         TestDataFactory.defaultSettings();
         Import_Batch__c batch = ImportTestDataFactory.batch(
             ImportTestDataFactory.template(
@@ -77,11 +79,8 @@ private class ImportUndoTest {
         Integer total,
         Datetime undoStartedAt
     ) {
-        List<String> passes = new List<String>{
-            ImportUndoBatch.PASS_CONTACTS,
-            ImportUndoBatch.PASS_PERSON_ACCOUNTS,
-            ImportUndoBatch.PASS_ACCOUNTS
-        };
+        List<String> passes = ImportUndoBatch.passes();
+        passes.remove(passes.indexOf(ImportUndoBatch.PASS_RESTORE));
         for (String pass : passes) {
             ImportUndoBatch job = new ImportUndoBatch(
                 batch.Id,
@@ -457,6 +456,152 @@ private class ImportUndoTest {
             false,
             ImportUndoBatch.typed(false, Account.Custom_Name__c.getDescribe()),
             'And a checkbox a checkbox.'
+        );
+    }
+
+    // -------------------------------------------------------------------------------------
+    // An installed module's part in an undo (R-IB9, R-IR6)
+    // -------------------------------------------------------------------------------------
+
+    /**
+     * Stands in for a module's entity processor. It says it tags the given objects, and keeps
+     * the records named in `keep` with their reason. Core has no module object of its own to
+     * lend it, so the tests hand it Contact, which Core then deletes in the module's pass.
+     */
+    private class StubProcessor implements ImportEntityProcessor {
+        List<Schema.SObjectType> tagged = new List<Schema.SObjectType>();
+        Map<Id, String> keep = new Map<Id, String>();
+        Boolean throwOnKeep = false;
+        Set<Schema.SObjectType> askedAbout = new Set<Schema.SObjectType>();
+
+        public List<ImportMapping.Target> targets() {
+            return new List<ImportMapping.Target>();
+        }
+
+        public ImportEntityResult resolve(
+            Import_Batch__c batch,
+            Import_Template__c template,
+            List<Import_Row__c> rows,
+            Map<Id, Map<String, Map<String, String>>> entitiesByRowId,
+            Boolean dryRun
+        ) {
+            return new ImportEntityResult();
+        }
+
+        public List<Schema.SObjectType> taggedObjects() {
+            return tagged;
+        }
+
+        public Map<Id, String> reasonsToKeep(
+            Id batchId,
+            Schema.SObjectType type,
+            Set<Id> recordIds
+        ) {
+            askedAbout.add(type);
+            if (throwOnKeep) {
+                throw new IllegalArgumentException('stub cannot tell');
+            }
+            return keep;
+        }
+    }
+
+    private static StubProcessor installStub(List<Schema.SObjectType> tagged) {
+        StubProcessor stub = new StubProcessor();
+        stub.tagged = tagged;
+        ImportEntityProcessors.processorOverride = stub;
+        return stub;
+    }
+
+    @IsTest
+    static void aModulesOwnRecordsAreCountedAndGoFirst() {
+        Import_Batch__c batch = committedBatch();
+        importedPerson(batch, 'Ramirez');
+        installStub(new List<Schema.SObjectType>{ Contact.SObjectType });
+
+        ImportUndoService.Preview view = ImportUndoService.preview(batch.Id);
+
+        Assert.areEqual(1, view.others.size(), 'One module object is counted.');
+        Assert.areEqual('Contact', view.others[0].objectName, 'Named by its API name.');
+        Assert.areEqual(1, view.others[0].count, 'With what carries the tag.');
+        Assert.areEqual(
+            Contact.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getLabelPlural(),
+            view.others[0].label,
+            'And labelled as the org labels it.'
+        );
+        Assert.areEqual(3, view.total, 'The module records are in the total confirmed.');
+        Assert.areEqual(
+            new List<String>{
+                ImportUndoBatch.PASS_RESTORE,
+                ImportUndoBatch.PASS_TAGGED_PREFIX + 'Contact',
+                ImportUndoBatch.PASS_CONTACTS,
+                ImportUndoBatch.PASS_PERSON_ACCOUNTS,
+                ImportUndoBatch.PASS_ACCOUNTS
+            },
+            ImportUndoBatch.passes(),
+            'The module pass runs after the restore and before the people.'
+        );
+    }
+
+    @IsTest
+    static void aModuleObjectWithoutTheTagIsNeverQueried() {
+        Import_Batch__c batch = committedBatch();
+        installStub(new List<Schema.SObjectType>{ Import_Template__c.SObjectType });
+
+        Assert.isTrue(
+            ImportEntityProcessors.taggedTypes().isEmpty(),
+            'An object that does not name the import is left out.'
+        );
+        Assert.areEqual(0, ImportUndoService.preview(batch.Id).others.size(), 'And not counted.');
+    }
+
+    @IsTest
+    static void theModulePassDeletesWhatTheModuleTagged() {
+        Import_Batch__c batch = committedBatch();
+        Contact imported = importedPerson(batch, 'Ramirez');
+        StubProcessor stub = installStub(new List<Schema.SObjectType>{ Contact.SObjectType });
+
+        undo(batch, Datetime.now());
+
+        Assert.isFalse(exists(imported.Id), 'The tagged record went in the module pass.');
+        Assert.isFalse(exists(imported.AccountId), 'And its household after it.');
+        Assert.isTrue(
+            stub.askedAbout.contains(Contact.SObjectType),
+            'The module was asked before its tagged records went.'
+        );
+    }
+
+    @IsTest
+    static void aRecordTheModuleKeepsIsKeptWithItsReason() {
+        Import_Batch__c batch = committedBatch();
+        Contact kept = importedPerson(batch, 'Ramirez');
+        Contact gone = importedPerson(batch, 'Lee');
+        StubProcessor stub = installStub(new List<Schema.SObjectType>());
+        stub.keep.put(kept.Id, 'A gift with a receipt still names this person.');
+
+        undo(batch, Datetime.now());
+
+        Assert.isTrue(exists(kept.Id), 'The module said this one stays.');
+        Assert.isTrue(exists(kept.AccountId), 'So does the household they are still on.');
+        Assert.isFalse(exists(gone.Id), 'The other went.');
+        Assert.isTrue(
+            undoJournal(batch).contains('A gift with a receipt still names this person.'),
+            'The reason is journaled (R-IB9).'
+        );
+    }
+
+    @IsTest
+    static void aModuleThatCannotAnswerKeepsEverything() {
+        Import_Batch__c batch = committedBatch();
+        Contact imported = importedPerson(batch, 'Ramirez');
+        StubProcessor stub = installStub(new List<Schema.SObjectType>());
+        stub.throwOnKeep = true;
+
+        undo(batch, Datetime.now());
+
+        Assert.isTrue(exists(imported.Id), 'Not knowing is not knowing nothing depends on it.');
+        Assert.isTrue(
+            undoJournal(batch).contains(Label.Core_Import_UndoKeptNotChecked),
+            'And the journal says it could not be checked.'
         );
     }
 }

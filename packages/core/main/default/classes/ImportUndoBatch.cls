@@ -1,11 +1,17 @@
 /**
- * The work of undoing one import, in four passes (canonical model R-IB8, R-IB9):
+ * The work of undoing one import, in passes (canonical model R-IB8, R-IB9):
  *
  * 1. **Restore.** Each commit journal page, newest first, puts back the values the import
  *    wrote where the record still holds the value written.
- * 2. **People** stored as contacts, then 3. **people stored as accounts**, then
- *    4. **households and organizations**. People go first so a household is judged after its
+ * 2. **A module's own records**, one pass per object an installed entity processor tags
+ *    (R-IR6), in the order it names them: a gift goes before its donor, so the donor is judged
+ *    after the gifts the import gave them are gone.
+ * 3. **People** stored as contacts, then 4. **people stored as accounts**, then
+ *    5. **households and organizations**. People go first so a household is judged after its
  *    imported members are gone; deleting an account would otherwise take its contacts with it.
+ *
+ * The entity processor also says, in every delete pass, why a record must stay (a receipted
+ * gift, and the donor it names), and its reasons are journaled with Core's own.
  *
  * Every delete query is filtered by one bound batch identifier and nothing else, and the tag
  * is checked again on each record before it is deleted. A tagged record that has gained
@@ -24,12 +30,9 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
     private static final String PASS_PERSON_ACCOUNTS = 'PersonAccounts';
     @TestVisible
     private static final String PASS_ACCOUNTS = 'Accounts';
-    private static final List<String> PASSES = new List<String>{
-        PASS_RESTORE,
-        PASS_CONTACTS,
-        PASS_PERSON_ACCOUNTS,
-        PASS_ACCOUNTS
-    };
+    /** A module object's pass is this prefix and the object's API name. */
+    @TestVisible
+    private static final String PASS_TAGGED_PREFIX = 'Tagged:';
 
     /** Children never counted as something a record gained: the import's own bookkeeping. */
     private static final Set<String> NOT_GAINED = new Set<String>{
@@ -91,13 +94,43 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
             new ImportUndoBatch(
                 batchId,
                 countedAtStart,
-                PASSES[0],
+                PASS_RESTORE,
                 0,
                 false,
                 toTheSecond(Datetime.now())
             ),
-            scopeFor(PASSES[0], batchId)
+            scopeFor(PASS_RESTORE, batchId)
         );
+    }
+
+    /**
+     * The passes in order. Worked out again at each pass's end rather than carried, so it
+     * costs nothing to hold; the installed module cannot change while an undo runs.
+     */
+    @TestVisible
+    private static List<String> passes() {
+        List<String> result = new List<String>{ PASS_RESTORE };
+        for (Schema.SObjectType type : ImportEntityProcessors.taggedTypes()) {
+            result.add(
+                PASS_TAGGED_PREFIX + type.getDescribe(SObjectDescribeOptions.DEFERRED).getName()
+            );
+        }
+        result.addAll(new List<String>{ PASS_CONTACTS, PASS_PERSON_ACCOUNTS, PASS_ACCOUNTS });
+        return result;
+    }
+
+    /** The module object a tagged pass deletes, or null when the module no longer names it. */
+    private static Schema.SObjectType taggedTypeOf(String pass) {
+        if (pass == null || !pass.startsWith(PASS_TAGGED_PREFIX)) {
+            return null;
+        }
+        String objectName = pass.removeStart(PASS_TAGGED_PREFIX);
+        for (Schema.SObjectType type : ImportEntityProcessors.taggedTypes()) {
+            if (type.getDescribe(SObjectDescribeOptions.DEFERRED).getName() == objectName) {
+                return type;
+            }
+        }
+        return null;
     }
 
     @TestVisible
@@ -160,6 +193,9 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
                 ]
             );
         }
+        if (pass.startsWith(PASS_TAGGED_PREFIX)) {
+            return taggedLocator(owner);
+        }
         if (PASS_CONTACTS.equals(pass)) {
             return Database.getQueryLocator(
                 [
@@ -194,6 +230,29 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         );
     }
 
+    /**
+     * The records of one module object tagged with this batch. The object name comes from
+     * describe, never from the pass text, and an object the module stopped naming reads
+     * nothing.
+     */
+    private Database.QueryLocator taggedLocator(Id owner) {
+        Schema.SObjectType type = taggedTypeOf(pass);
+        String objectName = type == null
+            ? 'Import_Row__c'
+            : type.getDescribe(SObjectDescribeOptions.DEFERRED).getName();
+        String filter = type == null ? 'Id = NULL' : ImportEntityProcessors.TAG_FIELD + ' = :owner';
+        return Database.getQueryLocatorWithBinds(
+            'SELECT Id, Name' +
+                (type == null ? '' : ', ' + ImportEntityProcessors.TAG_FIELD) +
+                ' FROM ' +
+                String.escapeSingleQuotes(objectName) +
+                ' WHERE ' +
+                filter,
+            new Map<String, Object>{ 'owner' => owner },
+            AccessLevel.SYSTEM_MODE
+        );
+    }
+
     public void execute(Database.BatchableContext context, List<SObject> records) {
         List<Map<String, Object>> journal = new List<Map<String, Object>>();
         try {
@@ -215,19 +274,20 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         if (chunkStopped(context)) {
             failed = true;
         }
-        Integer next = PASSES.indexOf(pass) + 1;
         try {
-            if (next < PASSES.size()) {
+            List<String> passes = passes();
+            Integer next = passes.indexOf(pass) + 1;
+            if (next > 0 && next < passes.size()) {
                 Database.executeBatch(
                     new ImportUndoBatch(
                         batchId,
                         countedAtStart,
-                        PASSES[next],
+                        passes[next],
                         restored,
                         failed,
                         undoStartedAt
                     ),
-                    scopeFor(PASSES[next], batchId)
+                    scopeFor(passes[next], batchId)
                 );
                 return;
             }
@@ -590,7 +650,41 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
                 keep.put(dependent, Label.Core_Import_UndoKeptNativeDependents);
             }
         }
+        markKeptByProcessor(keep, ids, type);
         return keep;
+    }
+
+    /**
+     * Adds the installed entity processor's reasons to keep (R-IB9): a gift with a receipt,
+     * and the donor such a gift still names. Asked for every object, Core's included. A
+     * processor that cannot answer, or would leave the delete too few queries, keeps what it
+     * was asked about: not knowing is not the same as knowing nothing depends on it.
+     */
+    private void markKeptByProcessor(Map<Id, String> keep, Set<Id> ids, Schema.SObjectType type) {
+        ImportEntityProcessor processor = ImportEntityProcessors.find();
+        if (processor == null) {
+            return;
+        }
+        if (!enoughQueries()) {
+            notChecked(keep, ids);
+            return;
+        }
+        try {
+            Map<Id, String> reasons = processor.reasonsToKeep(batchId, type, ids);
+            for (Id recordId : reasons == null ? new Set<Id>() : reasons.keySet()) {
+                if (ids.contains(recordId) && !keep.containsKey(recordId)) {
+                    keep.put(
+                        recordId,
+                        String.isBlank(reasons.get(recordId))
+                            ? Label.Core_Import_UndoKeptNotChecked
+                            : reasons.get(recordId)
+                    );
+                }
+            }
+        } catch (Exception e) {
+            ErrorLogger.log(e, 'ImportUndoBatch.markKeptByProcessor', batchId);
+            notChecked(keep, ids);
+        }
     }
 
     /**
