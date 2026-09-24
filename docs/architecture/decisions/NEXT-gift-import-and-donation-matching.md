@@ -148,7 +148,14 @@ refused until a dry run matches.
 - The dry run cannot run gift triggers, so a platform validation (for example an in-kind gift
   without a description) is reported by the commit, not the preview. The preview checks
   everything the processor can check without saving.
-- Installments claimed in one chunk of a dry run are not remembered by the next chunk, so a
-  dry run of a file paying the same installment twice across chunks can differ from the
-  commit, which sees the first payment. Rare in practice; recorded here so it is not a surprise.
+- Core carries one more piece of processor contract: `ImportEntityProcessors.carriedState`,
+  a string the import batch hands from chunk to chunk, so claimed installments are remembered
+  across chunks and a dry run reports what the commit will do.
+- One more class for the security review to read against ADR-0021:
+  `GiftImportIntegritySelector` is `without sharing` and reads `WITH SYSTEM_MODE`. Its reads
+  decide, and are never shown: whether a gift with this external ID already exists (a gift
+  the importing user cannot see must still stop a second copy, which the platform would refuse
+  anyway with a message naming nothing), and what an undo must keep (a receipt or statement the
+  undoing user cannot see must still keep its gift). Funds, appeals and installments stay
+  within the user's sharing: what the user cannot see, the user cannot allocate to or pay.
 - Undo keeps more than it did: people who gave a receipted gift stay. That is the point.

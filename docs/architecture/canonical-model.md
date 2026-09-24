@@ -3901,8 +3901,10 @@ commitment's paid to date and balance update through the ordinary gift triggers 
 
 - **Service:** `GiftImportProcessor` (the `ImportEntityProcessor` Core finds by name),
   `GiftImportRow` (one row's gift as read), `GiftImportReferences` (funds and appeals),
-  `GiftImportCredits` (soft credit and tribute), `GiftImportSelector`, `DonationMatcher`
-  (R-DM1 to R-DM6).
+  `GiftImportCredits` (soft credit and tribute), `GiftImportSelector` (funds, appeals and open
+  installments, within the importing user's sharing), `GiftImportIntegritySelector` (what
+  already exists: gifts by external ID, and the receipts, statements and gifts an undo must
+  keep; `without sharing` under ADR-0021), `DonationMatcher` (R-DM1 to R-DM6).
 - **Settings keys** (on `Giving_Settings__c`, Section 21A):
   `Donation_Match_Date_Window_Days__c`, `Donation_Match_Amount_Tolerance__c`.
 - **Template attributes** (on `Import_Template__c`, Section 15): `Donation_Matching__c`,
