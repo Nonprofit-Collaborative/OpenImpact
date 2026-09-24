@@ -282,6 +282,21 @@ needs no org run. A pull request from a fork gets a read-only token and cannot p
 way, so a maintainer runs the script for it, which is the right outcome for untested code from
 outside anyway.
 
+**Test classes run in parallel, all as the same running user**, each in a transaction that
+rolls back. Anything the platform keeps per user is therefore shared between classes that
+happen to run at the same moment, and a test that writes it fails now and then for no reason
+in its own code. Two have been found: a permission set assignment to the running user (one
+row per person and set, so a second insert is refused), and a saved file (it goes into the
+user's private library, and a save is refused with `INVALID_CROSS_REFERENCE_KEY, invalid
+cross reference id: []` while another transaction on that library rolls back). A test that
+does either runs as a person created for it: `TestDataFactory.createUser`, or
+`ReceiptTestDataFactory.issuer()` for a test that saves a receipt, letter or logo file.
+
+**The org allows a fixed number of test classes per rolling 24 hours** (`DailyAsyncApexTests`
+in `sf org list limits`). Several gate runs in a day can use it up, and then every run,
+including the gate, fails at once with `UNKNOWN_EXCEPTION` before any test starts.
+`--synchronous` runs of one class still work, one at a time for the whole org.
+
 While you iterate, use `sf apex run test --class-names <Class> --target-org <alias>` against
 your own org for speed; the script is the final full run before merge, not the inner loop.
 

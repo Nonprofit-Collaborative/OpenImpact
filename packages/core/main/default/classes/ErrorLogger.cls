@@ -13,6 +13,7 @@
 @NamespaceAccessible
 public with sharing class ErrorLogger {
     public static final String SEVERITY_INFO = 'Info';
+    @NamespaceAccessible
     public static final String SEVERITY_WARNING = 'Warning';
     public static final String SEVERITY_ERROR = 'Error';
     public static final String SEVERITY_CRITICAL = 'Critical';
