@@ -97,6 +97,27 @@ public with sharing class RollupSelector {
         return matching;
     }
 
+    /** The active definitions whose target entity is this one, for a merge of its records. */
+    public static List<Rollup_Definition__c> selectActiveForTarget(
+        String targetObject,
+        Set<String> modes
+    ) {
+        if (String.isBlank(targetObject) || modes == null || modes.isEmpty()) {
+            return new List<Rollup_Definition__c>();
+        }
+        List<Rollup_Definition__c> matching = new List<Rollup_Definition__c>();
+        for (Rollup_Definition__c definition : selectAll()) {
+            if (
+                definition.Active__c == true &&
+                targetObject.equalsIgnoreCase(definition.Target_Object__c) &&
+                modes.contains(definition.Mode__c)
+            ) {
+                matching.add(definition);
+            }
+        }
+        return matching;
+    }
+
     /** The active definitions the nightly batch runs. */
     public static List<Rollup_Definition__c> selectActiveForModes(Set<String> modes) {
         List<Rollup_Definition__c> matching = new List<Rollup_Definition__c>();

@@ -161,33 +161,39 @@ private class ReceiptTemplateAccessTest {
      */
     @IsTest
     static void issuingAReceiptOnAnOrgWithNoLettersStillProducesADocument() {
-        ReceiptTestDataFactory.setUpReceipting();
-        delete [SELECT Id FROM Receipt_Template__c];
-        ReceiptTemplateService.managePermission = false;
-        Contact lin = GivingTestDataFactory.insertHouseholdContact('The Lin Family', 'Wei', 'Lin');
-        Gift__c gift = ReceiptTestDataFactory.plainCashGift(
-            lin.Id,
-            75,
-            Date.newInstance(2026, 1, 5)
-        );
-        insert gift;
+        System.runAs(ReceiptTestDataFactory.issuer()) {
+            ReceiptTestDataFactory.setUpReceipting();
+            delete [SELECT Id FROM Receipt_Template__c];
+            ReceiptTemplateService.managePermission = false;
+            Contact lin = GivingTestDataFactory.insertHouseholdContact(
+                'The Lin Family',
+                'Wei',
+                'Lin'
+            );
+            Gift__c gift = ReceiptTestDataFactory.plainCashGift(
+                lin.Id,
+                75,
+                Date.newInstance(2026, 1, 5)
+            );
+            insert gift;
 
-        Test.startTest();
-        Receipt__c issued = ReceiptService.issueForGift(gift.Id);
-        Test.stopTest();
+            Test.startTest();
+            Receipt__c issued = ReceiptService.issueForGift(gift.Id);
+            Test.stopTest();
 
-        Assert.isNotNull(
-            issued.Receipt_Number__c,
-            'The donor gets their receipt rather than an error about a missing letter.'
-        );
-        Assert.areEqual(
-            1,
-            [
-                SELECT COUNT()
-                FROM Receipt_Template__c
-                WHERE Type__c = :ReceiptNumberSequence.TYPE_PER_GIFT AND Active__c = TRUE
-            ],
-            'The shipped per gift letter was materialized once, without Manage Nonprofit Settings.'
-        );
+            Assert.isNotNull(
+                issued.Receipt_Number__c,
+                'The donor gets their receipt rather than an error about a missing letter.'
+            );
+            Assert.areEqual(
+                1,
+                [
+                    SELECT COUNT()
+                    FROM Receipt_Template__c
+                    WHERE Type__c = :ReceiptNumberSequence.TYPE_PER_GIFT AND Active__c = TRUE
+                ],
+                'The shipped per gift letter was materialized once, without Manage Nonprofit Settings.'
+            );
+        }
     }
 }
