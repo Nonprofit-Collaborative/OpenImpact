@@ -211,6 +211,13 @@ throw away the rest of the file. The failed rows are counted as rejected, each c
 reason, and none of them wrote anything. Fix those rows in your spreadsheet, save them as
 a smaller file, and import that file on its own.
 
+**Salesforce warned about duplicates, and the import saved the people anyway.** An import
+saves past a duplicate rule set to alert, as a bulk load does, so a couple at one address or
+a person resembling someone already here is not rejected. Afterwards run the duplicate scan
+(see [Duplicates](duplicates.md)) to review any pair it made. A duplicate rule set to
+**Block** still blocks: those rows are rejected with the rule's message, although the dry run
+counted them as would create, because a dry run saves nothing for the rule to check.
+
 **Gift columns in the file were not loaded.** Gifts are loaded by the Giving module. Without
 it, gift columns are recognized and kept with the staged row, and the run log says so. With
 it installed, see [Importing gifts](gift-import.md).

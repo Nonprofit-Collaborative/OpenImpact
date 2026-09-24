@@ -450,7 +450,11 @@ public with sharing class ImportRowProcessor {
             return;
         }
         Map<String, Id> newIds = new Map<String, Id>();
-        List<Database.SaveResult> results = Database.insert(toCreate, false, AccessLevel.USER_MODE);
+        List<Database.SaveResult> results = Database.insert(
+            toCreate,
+            saveOptions(),
+            AccessLevel.USER_MODE
+        );
         for (Integer i = 0; i < results.size(); i++) {
             Working owner = firstRowByName.get(createdNames[i]);
             if (results[i].isSuccess()) {
@@ -1254,7 +1258,7 @@ public with sharing class ImportRowProcessor {
         }
         List<Database.SaveResult> results = toCreate.isEmpty()
             ? new List<Database.SaveResult>()
-            : Database.insert(toCreate, false, AccessLevel.USER_MODE);
+            : Database.insert(toCreate, saveOptions(), AccessLevel.USER_MODE);
         for (Integer i = 0; i < results.size(); i++) {
             Working owner = owners[i];
             for (String key : ownerKeys[i]) {
@@ -1377,7 +1381,11 @@ public with sharing class ImportRowProcessor {
             return;
         }
         List<SObject> records = toUpdate.values();
-        List<Database.SaveResult> results = Database.update(records, false, AccessLevel.USER_MODE);
+        List<Database.SaveResult> results = Database.update(
+            records,
+            saveOptions(),
+            AccessLevel.USER_MODE
+        );
         String objectName = personAccounts ? 'Account' : 'Contact';
         for (Integer i = 0; i < results.size(); i++) {
             List<Working> owners = ownersByRecord.get(records[i].Id);
@@ -1626,7 +1634,11 @@ public with sharing class ImportRowProcessor {
             byHousehold.put(householdId, household);
         }
         List<Account> records = byHousehold.values();
-        List<Database.SaveResult> results = Database.update(records, false, AccessLevel.USER_MODE);
+        List<Database.SaveResult> results = Database.update(
+            records,
+            saveOptions(),
+            AccessLevel.USER_MODE
+        );
         for (Integer i = 0; i < results.size(); i++) {
             Account household = records[i];
             if (results[i].isSuccess()) {
@@ -1940,6 +1952,20 @@ public with sharing class ImportRowProcessor {
         }
         Integer length = describe.getLength();
         return length > 0 ? value.abbreviate(Math.max(length, 4)) : value;
+    }
+
+    /**
+     * Each record saved or refused on its own, and saved past a duplicate rule that only
+     * alerts, as an administrator's bulk load would be (R-IB12). An import is people the
+     * organization already decided to add, and an alert stopping them would fail every row
+     * that resembles someone; the pair is left for the duplicate scan to find (R-DP3). A rule
+     * the org set to block still blocks, and the row reports the rule's message.
+     */
+    private static Database.DMLOptions saveOptions() {
+        Database.DMLOptions options = new Database.DMLOptions();
+        options.OptAllOrNone = false;
+        options.DuplicateRuleHeader.AllowSave = true;
+        return options;
     }
 
     /** The failure of a save, in the words the platform used, so nothing is lost in paraphrase. */

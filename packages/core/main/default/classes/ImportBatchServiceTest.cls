@@ -223,9 +223,10 @@ private class ImportBatchServiceTest {
             row.Error_Message__c = 'Something went wrong';
             row.Contact_1__c = stale.Id;
             row.Gift_Id__c = 'a stale gift';
-            row.Person_1_Key__c = '0123456789abcdef';
+            // In no permission set, so written and read in system mode (ADR-0021).
+            row.put('Person_1_Key__c', '0123456789abcdef');
         }
-        update rows;
+        Database.update(rows, AccessLevel.SYSTEM_MODE);
 
         Test.startTest();
         Integer before = Limits.getDmlRows();
@@ -235,11 +236,14 @@ private class ImportBatchServiceTest {
 
         // A reset of every staged row here fails past 10,000 rows (R-IB13).
         Assert.isTrue(written < 5, 'Starting writes the batch, not its 50 rows: ' + written);
-        for (Import_Row__c after : [
-            SELECT Status__c, Error_Message__c, Contact_1__c, Gift_Id__c, Person_1_Key__c
-            FROM Import_Row__c
-            WHERE Import_Batch__c = :batch.Id
-        ]) {
+        for (
+            Import_Row__c after : (List<Import_Row__c>) Database.queryWithBinds(
+                'SELECT Status__c, Error_Message__c, Contact_1__c, Gift_Id__c, Person_1_Key__c' +
+                ' FROM Import_Row__c WHERE Import_Batch__c = :batchId',
+                new Map<String, Object>{ 'batchId' => batch.Id },
+                AccessLevel.SYSTEM_MODE
+            )
+        ) {
             Assert.areEqual(
                 ImportRowProcessor.STATUS_CREATED,
                 after.Status__c,
@@ -248,7 +252,11 @@ private class ImportBatchServiceTest {
             Assert.isNull(after.Error_Message__c, 'The old reason is cleared.');
             Assert.areNotEqual(stale.Id, after.Contact_1__c, 'The person is resolved again.');
             Assert.isNull(after.Gift_Id__c, 'A stale gift is never reported.');
-            Assert.areNotEqual('0123456789abcdef', after.Person_1_Key__c, 'Nor a stale key.');
+            Assert.areNotEqual(
+                '0123456789abcdef',
+                after.get('Person_1_Key__c'),
+                'Nor a stale key.'
+            );
         }
         Assert.areEqual(
             1,

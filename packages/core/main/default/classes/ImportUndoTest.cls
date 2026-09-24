@@ -59,7 +59,8 @@ private class ImportUndoTest {
         ImportBatchService.jobEndedForTest = Datetime.now().addMinutes(-20);
         Contact ana = importedPerson(batch, 'Ramirez');
 
-        undo(batch);
+        // Undo pressed a second later: in the same second her change would read as the undo's.
+        undo(batch, Datetime.now().addSeconds(1));
 
         Assert.areEqual(1, [SELECT COUNT() FROM Contact WHERE Id = :ana.Id], 'Ana is kept.');
     }

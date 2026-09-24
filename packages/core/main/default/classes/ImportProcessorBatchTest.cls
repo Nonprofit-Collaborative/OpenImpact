@@ -216,16 +216,15 @@ private class ImportProcessorBatchTest {
         for (Integer index = 1; index < carried.size(); index++) {
             Assert.areEqual(carried[0], carried[index], 'Nothing carried grows (R-IB12).');
         }
+        // The digest fields are in no permission set and are read in system mode (ADR-0021).
         Assert.areEqual(
             17,
-            [
-                SELECT COUNT()
-                FROM Import_Row__c
-                WHERE
-                    Import_Batch__c = :batch.Id
-                    AND Person_1_Key__c != NULL
-                    AND Organization_Key__c != NULL
-            ],
+            Database.countQueryWithBinds(
+                'SELECT COUNT() FROM Import_Row__c WHERE Import_Batch__c = :batchId' +
+                ' AND Person_1_Key__c != NULL AND Organization_Key__c != NULL',
+                new Map<String, Object>{ 'batchId' => batch.Id },
+                AccessLevel.SYSTEM_MODE
+            ),
             'Each row that would create keeps the digests instead.'
         );
         Assert.areEqual(0, [SELECT COUNT() FROM Contact], 'A dry run writes no person.');
@@ -540,7 +539,7 @@ private class ImportProcessorBatchTest {
             String target : new List<String>{
                 'Contact1.Email',
                 'Contact1.LastName',
-                'Contact1.Title'
+                'Contact1.ReportsToId'
             }
         ) {
             mapping.columns.add(new ImportMapping.Column(target, target));
@@ -548,15 +547,18 @@ private class ImportProcessorBatchTest {
         Import_Batch__c batch = ImportTestDataFactory.batch(
             ImportTestDataFactory.template(mapping.serialize(), ImportTemplateService.RULE_EMAIL)
         );
-        // Only the first row's title is too long for the field, so only the row that creates
-        // Ana fails to save; the two after it name her and share that failure.
+        // Only the first row reports to an account, which a contact cannot, so only the row
+        // that creates Ana fails to save; the two after it name her and share that failure. (A
+        // value too long for its field is shortened to fit, so it cannot make a save fail.)
+        Account notAPerson = new Account(Name = 'Not a person');
+        insert notAPerson;
         List<Map<String, String>> rows = new List<Map<String, String>>();
         for (Integer i = 0; i < 3; i++) {
             rows.add(
                 new Map<String, String>{
                     'Contact1.Email' => 'ana@example.org',
                     'Contact1.LastName' => 'Ramirez',
-                    'Contact1.Title' => i == 0 ? 'x'.repeat(200) : 'Donor'
+                    'Contact1.ReportsToId' => i == 0 ? (String) notAPerson.Id : ''
                 }
             );
         }

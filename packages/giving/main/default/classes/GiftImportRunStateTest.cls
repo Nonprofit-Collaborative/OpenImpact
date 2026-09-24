@@ -60,8 +60,17 @@ private class GiftImportRunStateTest {
         );
         Import_Batch__c batch = ImportTestDataFactory.batch(template);
         List<Map<String, String>> rows = new List<Map<String, String>>();
-        // A repeat in chunks 2 and 4 finds the key chunk 1 stored, under the same check.
-        for (String externalId : new List<String>{ 'order-0', 'order-0', 'order-1', 'ORDER-0' }) {
+        // A repeat in chunks 2 and 4 finds the key chunk 1 stored, under the same check; chunks
+        // 3 and 5 are new gifts. A repeat asks less than a new gift, so like is compared with like.
+        for (
+            String externalId : new List<String>{
+                'order-0',
+                'order-0',
+                'order-1',
+                'ORDER-0',
+                'order-2'
+            }
+        ) {
             rows.add(
                 new Map<String, String>{
                     'Contact1.Email' => 'ana@example.org',
@@ -98,16 +107,17 @@ private class GiftImportRunStateTest {
         for (Integer index = 1; index < carried.size(); index++) {
             Assert.areEqual(carried[0], carried[index], 'No external ID is carried (R-DM1).');
         }
-        for (Integer index = 2; index < queries.size(); index++) {
-            Assert.areEqual(queries[1], queries[index], 'Chunk ' + index + ' asks as often.');
-        }
+        Assert.areEqual(queries[1], queries[3], 'The later repeat asks as often as the first.');
+        Assert.areEqual(queries[2], queries[4], 'The later new gift asks as often too.');
         Assert.areEqual(
-            2,
-            [
-                SELECT COUNT()
-                FROM Import_Row__c
-                WHERE Import_Batch__c = :batch.Id AND Processor_Key__c != NULL
-            ],
+            3,
+            // In no permission set, so read in system mode (ADR-0021).
+            Database.countQueryWithBinds(
+                'SELECT COUNT() FROM Import_Row__c' +
+                ' WHERE Import_Batch__c = :batchId AND Processor_Key__c != NULL',
+                new Map<String, Object>{ 'batchId' => batch.Id },
+                AccessLevel.SYSTEM_MODE
+            ),
             'Each row that would load a gift keeps its external ID digest instead.'
         );
         List<Import_Row__c> previewed = ImportTestDataFactory.reload(batch.Id);

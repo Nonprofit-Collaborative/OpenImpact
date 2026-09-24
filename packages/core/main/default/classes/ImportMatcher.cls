@@ -184,7 +184,10 @@ public with sharing class ImportMatcher {
         ];
     }
 
-    /** Contacts whose email is one of these, keyed by the lower cased email. */
+    /**
+     * Contacts whose email is one of these, keyed by the lower cased email. Each is also under
+     * that key narrowed to its first name (firstNameKey), as every lookup here is (R-IB12).
+     */
     @NamespaceAccessible
     public static Map<String, Id> contactsByEmail(Set<String> emails) {
         Map<String, Id> result = new Map<String, Id>();
@@ -198,7 +201,10 @@ public with sharing class ImportMatcher {
         return result;
     }
 
-    /** Contacts whose last name and mailing postal code match, keyed by the composite key. */
+    /**
+     * Contacts whose last name and mailing postal code match, keyed by the composite key and
+     * by that key narrowed to each one's first name.
+     */
     @NamespaceAccessible
     public static Map<String, Id> contactsByNameAndPostalCode(Set<String> keys) {
         Map<String, Id> result = new Map<String, Id>();
@@ -263,7 +269,8 @@ public with sharing class ImportMatcher {
     /**
      * Person records held as accounts, matched on the email field an org that stores people
      * that way has. Empty where the org has no such field, which is the answer the processor
-     * needs to refuse the run rather than create duplicates.
+     * needs to refuse the run rather than create duplicates. Keyed as contactsByEmail keys
+     * contacts.
      */
     @NamespaceAccessible
     public static Map<String, Id> personAccountsByEmail(Set<String> emails, Set<Id> recordTypeIds) {
@@ -308,7 +315,10 @@ public with sharing class ImportMatcher {
         );
     }
 
-    /** Person records held as accounts, matched on last name plus billing postal code. */
+    /**
+     * Person records held as accounts, matched on last name plus billing postal code, keyed as
+     * contactsByNameAndPostalCode keys contacts.
+     */
     @NamespaceAccessible
     public static Map<String, Id> personAccountsByNameAndPostalCode(
         Set<String> keys,

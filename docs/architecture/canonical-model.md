@@ -1548,6 +1548,14 @@ email and first name; otherwise they are to be created, and are rejected without
 as any new person is. Where the org holds several records under one key, the earliest created
 wins, and the lower identifier breaks a tie, so the same file always resolves the same way.
 
+**An import saves past a duplicate alert, not past a block.** People, organizations and
+household names are saved past a duplicate rule that only alerts, as an administrator's bulk
+load is: the file is people the organization chose to add, and an alert would otherwise
+reject every row resembling somebody, the second person of a couple included. The pair is
+left for the duplicate scan to propose (R-DP3, ADR-0050). A rule the org set to block still
+blocks, and the row is rejected with the rule's own message. The dry run saves nothing, so no
+duplicate rule runs in it: a row a blocking rule will refuse is counted as creating there.
+
 **R-IB13 One pass at a time, and each pass reads only its own rows.** Starting a dry run or
 a commit is refused while a job for that batch is actually running (queued, preparing,
 processing or holding), saying an import is already running on it; the batch is read and

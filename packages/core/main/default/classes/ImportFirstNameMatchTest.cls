@@ -107,6 +107,12 @@ private class ImportFirstNameMatchTest {
         return names;
     }
 
+    private static List<String> sorted(List<String> names) {
+        List<String> copy = new List<String>(names);
+        copy.sort();
+        return copy;
+    }
+
     private static String firstNameOf(Id contactId) {
         return [SELECT FirstName FROM Contact WHERE Id = :contactId].FirstName;
     }
@@ -159,7 +165,12 @@ private class ImportFirstNameMatchTest {
 
         Assert.areEqual(rows[0].Contact_2__c, rows[1].Contact_1__c, 'The Jane row is that Jane.');
         Assert.areEqual('Mary', firstNameOf(rows[2].Contact_1__c), 'Mary is nobody else.');
-        Assert.areEqual(new List<String>{ 'John', 'Jane', 'Mary' }, smiths(), 'Three people.');
+        // Jane is saved with the second people, after Mary, so the order says nothing here.
+        Assert.areEqual(
+            sorted(new List<String>{ 'John', 'Jane', 'Mary' }),
+            sorted(smiths()),
+            'Three people.'
+        );
         assertOneHousehold(rows[0].Contact_1__c, rows[0].Contact_2__c);
         Assert.areEqual(rows[0].Household__c, rows[1].Household__c, 'Her row names it too.');
     }
@@ -194,7 +205,7 @@ private class ImportFirstNameMatchTest {
             'John and Jane share one household.'
         );
         Assert.areEqual(
-            1,
+            2,
             [SELECT COUNT() FROM Contact WHERE AccountId = :couple.get(john).AccountId],
             'Nobody else is in it.'
         );
