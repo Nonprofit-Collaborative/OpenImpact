@@ -323,6 +323,160 @@ private class GiftImportProcessorTest {
     }
 
     @IsTest
+    static void aRefusedDesignationLeavesNothingItWrote() {
+        fund('General', null, true);
+        Fund__c refused = fund('Roof', 'R-1', false);
+        fund('Library', 'L-1', false);
+        given(
+            new List<String>{ 'Gift.Amount__c', 'Gift.Gift_Date__c', 'Allocation.Fund' },
+            new List<List<String>>{
+                new List<String>{ '10', '2026-03-15', 'R-1' },
+                new List<String>{ '20', '2026-03-15', 'L-1' }
+            }
+        );
+        // The refusal comes after the designation and a record of its own were written, once
+        // in the attempt for the whole chunk and once in the refused gift's own attempt.
+        GiftImportProcessor.fundsRefusedForTest.add(refused.Id);
+
+        System.runAs(maria()) {
+            Test.startTest();
+            run(false);
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Fund__c WHERE Name = :GiftImportProcessor.WRITTEN_BEFORE_REFUSAL],
+            'Both failed attempts were undone.'
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Gift_Allocation__c WHERE Fund__c = :refused.Id],
+            'The refused designation left no allocation.'
+        );
+        List<Import_Row__c> after = rows();
+        Assert.areEqual(ImportRowProcessor.STATUS_REJECTED, after[0].Status__c, 'The refused one.');
+        Assert.areEqual(ImportRowProcessor.STATUS_CREATED, after[1].Status__c, 'The other.');
+    }
+
+    @IsTest
+    static void aChunkWithNoRoomLeftSaysTheRowWasNotAttempted() {
+        fund('General', null, true);
+        Fund__c refused = fund('Roof', 'R-1', false);
+        fund('Library', 'L-1', false);
+        given(
+            new List<String>{ 'Gift.Amount__c', 'Gift.Gift_Date__c', 'Allocation.Fund' },
+            new List<List<String>>{
+                new List<String>{ '10', '2026-03-15', 'R-1' },
+                new List<String>{ '20', '2026-03-15', 'L-1' }
+            }
+        );
+        GiftImportProcessor.fundsRefusedForTest.add(refused.Id);
+        // More kept free than a transaction has: no gift is tried on its own.
+        GiftImportProcessor.queriesKeptFree = 100000;
+
+        System.runAs(maria()) {
+            Test.startTest();
+            run(false);
+            Test.stopTest();
+        }
+
+        for (Import_Row__c row : rows()) {
+            Assert.areEqual(ImportRowProcessor.STATUS_REJECTED, row.Status__c, 'Not saved.');
+            Assert.areEqual(
+                Label.Giving_Import_ErrorNotAttempted,
+                row.Error_Message__c,
+                'Saying why, and not blaming the row.'
+            );
+        }
+        Assert.areEqual(0, [SELECT COUNT() FROM Gift__c], 'No gift left behind.');
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Fund__c WHERE Name = :GiftImportProcessor.WRITTEN_BEFORE_REFUSAL],
+            'The chunk\'s attempt was undone.'
+        );
+    }
+
+    @IsTest
+    static void anImporterWhoCannotDeleteGiftsIsRefusedBeforeAnythingIsWritten() {
+        fund('General', null, true);
+        given(
+            new List<String>{ 'Gift.Amount__c', 'Gift.Gift_Date__c' },
+            new List<List<String>>{ new List<String>{ '10', '2026-03-15' } }
+        );
+        User staff = TestDataFactory.createUser(
+            'Staff',
+            new List<String>{ 'Nonprofit_Admin', 'Giving_Staff' }
+        );
+        ImportRowProcessor.Outcome outcome;
+
+        System.runAs(staff) {
+            Test.startTest();
+            outcome = run(false);
+            Test.stopTest();
+        }
+
+        Import_Row__c row = rows()[0];
+        Assert.areEqual(ImportRowProcessor.STATUS_REJECTED, row.Status__c, 'Refused.');
+        Assert.areEqual(
+            Label.Giving_Import_ErrorCannotDeleteGifts,
+            row.Error_Message__c,
+            'Saying which permission is missing.'
+        );
+        Assert.isTrue(
+            outcome.notes.contains(Label.Giving_Import_ErrorCannotDeleteGifts),
+            'And once in the run log: ' + outcome.notes
+        );
+        Assert.areEqual(0, [SELECT COUNT() FROM Gift__c], 'No gift written.');
+    }
+
+    @IsTest
+    static void aRepeatSharesItsEarlierRowsRefusalInTheDryRunAsInTheCommit() {
+        fund('General', null, true);
+        given(
+            new List<String>{
+                'Gift.Amount__c',
+                'Gift.Gift_Date__c',
+                'Gift.External_Id__c',
+                'Allocation.Fund'
+            },
+            new List<List<String>>{
+                new List<String>{ '10', '2026-03-15', 'stripe-9', 'Nowhere' },
+                new List<String>{ '10', '2026-03-15', 'STRIPE-9', 'Nowhere' }
+            }
+        );
+        List<Import_Row__c> dryRun;
+
+        System.runAs(maria()) {
+            Test.startTest();
+            run(true);
+            dryRun = rows();
+            run(false);
+            Test.stopTest();
+        }
+
+        List<Import_Row__c> committed = rows();
+        for (Integer index = 0; index < 2; index++) {
+            Assert.areEqual(
+                ImportRowProcessor.STATUS_REJECTED,
+                dryRun[index].Status__c,
+                'Dry run, row ' + index + ': ' + dryRun[index].Error_Message__c
+            );
+            Assert.areEqual(
+                dryRun[index].Status__c,
+                committed[index].Status__c,
+                'The commit agrees on row ' + index
+            );
+            Assert.areEqual(
+                dryRun[index].Error_Message__c,
+                committed[index].Error_Message__c,
+                'For the same reason, row ' + index
+            );
+        }
+        Assert.areEqual(0, [SELECT COUNT() FROM Gift__c], 'Nothing saved.');
+    }
+
+    @IsTest
     static void theDonorCanBeTheOrganization() {
         fund('General', null, true);
         TestDataFactory.defaultSettings();

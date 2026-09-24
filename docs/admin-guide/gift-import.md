@@ -16,7 +16,10 @@ is **donation matching** (section 5).
 
 Nothing to turn on once the Giving module is installed. You need the **Manage Nonprofit
 Settings** permission to import, and the Giving admin role to create gifts; the **Access**
-page gives both to a Nonprofit Admin.
+page gives both to a Nonprofit Admin. The importer must also be able to delete gifts (Giving
+Admin can; Giving Staff cannot), because a row is saved whole or not at all: when a gift's soft
+credit or tribute is refused, the import removes the gift it had just made. Without that right
+every gift row is rejected, in the dry run too, saying so.
 
 Two settings decide how donation matching behaves when a mapping does not say:
 
@@ -131,6 +134,10 @@ reason in the import's journal:
   while a gift that is kept still names them.
 
 ## 7. Common mistakes
+
+**Rows rejected with "Not attempted: this chunk ran out of room".** One gift in the chunk was
+refused and the rest were retried one at a time until the chunk ran short of room. Nothing was
+saved for those rows. Load the file again: rows already loaded are matched, not duplicated.
 
 **Rows rejected with "No fund named ...".** The fund in the file is spelled differently from
 the fund in Open Impact. Either rename the column values in your spreadsheet or give the fund
