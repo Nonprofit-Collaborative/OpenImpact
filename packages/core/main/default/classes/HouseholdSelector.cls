@@ -527,7 +527,15 @@ public with sharing class HouseholdSelector {
             return new List<Household_Member__c>();
         }
         return [
-            SELECT Id, Household__c, Contact__c, Account__c, Role__c, Is_Primary__c, End_Date__c
+            SELECT
+                Id,
+                Household__c,
+                Contact__c,
+                Account__c,
+                Role__c,
+                Is_Primary__c,
+                Start_Date__c,
+                End_Date__c
             FROM Household_Member__c
             WHERE Contact__c IN :personIds OR Account__c IN :personIds
             WITH SYSTEM_MODE
