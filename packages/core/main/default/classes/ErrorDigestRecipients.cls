@@ -12,17 +12,24 @@ public with sharing class ErrorDigestRecipients {
     @TestVisible
     private static final Integer MAX_RECIPIENTS = 50;
 
+    /**
+     * The cap in force. A test lowers it instead of creating fifty-one users, which the org's
+     * user licences would refuse.
+     */
+    @TestVisible
+    private static Integer recipientCap = MAX_RECIPIENTS;
+
     private static final String MANAGE_SETTINGS = 'Manage_Nonprofit_Settings';
 
     /**
      * The users the digest goes to: those whose addresses are listed, in the order listed, or,
-     * when none is, every active user holding Manage Nonprofit Settings. At most MAX_RECIPIENTS.
+     * when none is, every active user holding Manage Nonprofit Settings. At most MAX_RECIPIENTS (50).
      */
     public static List<User> resolve(String configured) {
         if (String.isBlank(configured)) {
             return ErrorDigestSelector.activeUsers(
                 CustomPermissionSelector.holderIds(MANAGE_SETTINGS),
-                MAX_RECIPIENTS
+                recipientCap
             );
         }
         List<String> listed = addresses(configured);
@@ -32,7 +39,7 @@ public with sharing class ErrorDigestRecipients {
         List<User> found = new List<User>();
         for (String address : listed) {
             User person = byAddress.get(address);
-            if (person != null && found.size() < MAX_RECIPIENTS) {
+            if (person != null && found.size() < recipientCap) {
                 found.add(person);
             }
         }
