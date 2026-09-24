@@ -262,4 +262,57 @@ private class ImportTemplateServiceTest {
         Assert.areEqual('Event sign-ups', sources[0].Source_Name__c, 'Never loaded comes first.');
         Assert.areEqual('Quarterly partner list', sources[1].Source_Name__c, 'Then the oldest.');
     }
+
+    @IsTest
+    static void donationMatchingIsHeldOnTheTemplateAndCheckedFirst() {
+        Import_Template__c template = ImportTestDataFactory.template(
+            ImportTestDataFactory.donorMapping(),
+            ImportTemplateService.RULE_EMAIL
+        );
+
+        Test.startTest();
+        ImportTemplateService.saveDonationMatching(template.Id, 'match only', 3, 0.5);
+        Import_Template__c saved = ImportTemplateSelector.selectById(template.Id);
+        List<String> refusals = new List<String>();
+        for (
+            List<Object> attempt : new List<List<Object>>{
+                new List<Object>{ 'Sometimes', null, null },
+                new List<Object>{ null, -1, null },
+                new List<Object>{ null, null, -0.01 }
+            }
+        ) {
+            try {
+                ImportTemplateService.saveDonationMatching(
+                    template.Id,
+                    (String) attempt[0],
+                    (Integer) attempt[1],
+                    (Decimal) attempt[2]
+                );
+            } catch (ImportException e) {
+                refusals.add(e.getMessage());
+            }
+        }
+        ImportTemplateService.saveDonationMatching(template.Id, null, null, null);
+        Test.stopTest();
+
+        Assert.areEqual(
+            'Match only',
+            saved.Donation_Matching__c,
+            'Stored as the picklist spells it.'
+        );
+        Assert.areEqual(3, saved.Match_Date_Window_Days__c, 'The window.');
+        Assert.isTrue(saved.Match_Amount_Tolerance__c == 0.5, 'The tolerance.');
+        Assert.areEqual(
+            new List<String>{
+                Label.Core_Import_ErrorDonationMatchingUnknown,
+                Label.Core_Import_ErrorDonationMatchingRange,
+                Label.Core_Import_ErrorDonationMatchingRange
+            },
+            refusals,
+            'An unknown behaviour and a negative number are refused.'
+        );
+        Import_Template__c cleared = ImportTemplateSelector.selectById(template.Id);
+        Assert.isNull(cleared.Donation_Matching__c, 'Empty means the default.');
+        Assert.isNull(cleared.Match_Date_Window_Days__c, 'And the setting is used.');
+    }
 }

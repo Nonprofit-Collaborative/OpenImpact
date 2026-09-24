@@ -52,6 +52,20 @@ import controlTotalsHeading from '@salesforce/label/c.Core_Import_ControlTotalsH
 import controlTotalsHelp from '@salesforce/label/c.Core_Import_ControlTotalsHelp';
 import expectedCountLabel from '@salesforce/label/c.Core_Import_ExpectedCountLabel';
 import expectedAmountLabel from '@salesforce/label/c.Core_Import_ExpectedAmountLabel';
+import donationMatchingHeading from '@salesforce/label/c.Core_Import_DonationMatchingHeading';
+import donationMatchingHelp from '@salesforce/label/c.Core_Import_DonationMatchingHelp';
+import donationMatchingLabel from '@salesforce/label/c.Core_Import_DonationMatchingLabel';
+import donationMatchOrCreate from '@salesforce/label/c.Core_Import_DonationMatchOrCreate';
+import donationAlwaysCreate from '@salesforce/label/c.Core_Import_DonationAlwaysCreate';
+import donationMatchOnly from '@salesforce/label/c.Core_Import_DonationMatchOnly';
+import donationNeverMatch from '@salesforce/label/c.Core_Import_DonationNeverMatch';
+import matchWindowLabel from '@salesforce/label/c.Core_Import_MatchWindowLabel';
+import matchToleranceLabel from '@salesforce/label/c.Core_Import_MatchToleranceLabel';
+
+/** A number as an input shows it, or empty. */
+function numberText(value) {
+  return value === null || value === undefined ? '' : String(value);
+}
 
 /** How often the wizard asks how a run is going. */
 const POLL_INTERVAL_MS = 3000;
@@ -156,6 +170,10 @@ export default class ImportWizard extends LightningElement {
   /** The control totals for this file (R-IB10), kept as typed. */
   expectedCount = '';
   expectedAmount = '';
+  /** How this mapping's gifts are matched to scheduled payments (R-IT7), as the template holds it. */
+  donationMatching = 'Match or create';
+  matchDateWindowDays = '';
+  matchAmountTolerance = '';
 
   labels = {
     cardTitle,
@@ -186,7 +204,12 @@ export default class ImportWizard extends LightningElement {
     controlTotalsHeading,
     controlTotalsHelp,
     expectedCountLabel,
-    expectedAmountLabel
+    expectedAmountLabel,
+    donationMatchingHeading,
+    donationMatchingHelp,
+    donationMatchingLabel,
+    matchWindowLabel,
+    matchToleranceLabel
   };
 
   async connectedCallback() {
@@ -238,6 +261,9 @@ export default class ImportWizard extends LightningElement {
     }
     this.isRecurring = Boolean(template && template.isRecurring);
     this.sourceName = (template && template.sourceName) || '';
+    this.donationMatching = (template && template.donationMatching) || 'Match or create';
+    this.matchDateWindowDays = numberText(template && template.matchDateWindowDays);
+    this.matchAmountTolerance = numberText(template && template.matchAmountTolerance);
   }
 
   handleRecurringChange(event) {
@@ -398,14 +424,47 @@ export default class ImportWizard extends LightningElement {
     this.expectedAmount = event.target.value;
   }
 
+  get donationMatchingOptions() {
+    return [
+      { value: 'Match or create', label: donationMatchOrCreate },
+      { value: 'Always create', label: donationAlwaysCreate },
+      { value: 'Match only', label: donationMatchOnly },
+      { value: 'Never match', label: donationNeverMatch }
+    ];
+  }
+
+  handleDonationMatchingChange(event) {
+    this.donationMatching = event.detail.value;
+  }
+
+  handleMatchWindowChange(event) {
+    this.matchDateWindowDays = event.target.value;
+  }
+
+  handleMatchToleranceChange(event) {
+    this.matchAmountTolerance = event.target.value;
+  }
+
   /** What is sent with the batch besides the mapping; an empty box is no control total. */
   get batchOptions() {
     const count = String(this.expectedCount || '').trim();
     const amount = this.showExpectedAmount ? String(this.expectedAmount || '').trim() : '';
-    return JSON.stringify({
+    const options = {
       expectedCount: count === '' ? null : Number(count),
       expectedAmount: amount === '' ? null : Number(amount)
-    });
+    };
+    if (this.showExpectedAmount) {
+      // Shown only where a module loads gifts, and saved on the template only then (R-IT7).
+      const days = String(this.matchDateWindowDays || '').trim();
+      const tolerance = String(this.matchAmountTolerance || '').trim();
+      Object.assign(options, {
+        saveDonationMatching: true,
+        donationMatching: this.donationMatching,
+        matchDateWindowDays: days === '' ? null : Number(days),
+        matchAmountTolerance: tolerance === '' ? null : Number(tolerance)
+      });
+    }
+    return JSON.stringify(options);
   }
 
   handleTargetChange(event) {

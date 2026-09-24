@@ -17,6 +17,15 @@ public with sharing class ImportEntityProcessors {
     @NamespaceAccessible
     public static final String TAG_FIELD = 'Created_By_Import_Batch__c';
 
+    /**
+     * What the installed processor carries from one chunk of a run to the next (R-IR6), such
+     * as the scheduled payments earlier chunks already matched. Each chunk runs in its own
+     * transaction, so the import batch keeps this between chunks and sets it again before the
+     * next one. Core never reads it.
+     */
+    @NamespaceAccessible
+    public static String carriedState;
+
     /** Injected by Core's tests, which have no other package to resolve a real one from. */
     @TestVisible
     private static ImportEntityProcessor processorOverride;

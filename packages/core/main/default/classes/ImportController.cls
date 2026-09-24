@@ -39,6 +39,13 @@ public with sharing class ImportController {
         public Boolean isRecurring;
         @AuraEnabled
         public String sourceName;
+        /** How this template's gifts are matched to scheduled payments (R-IT7). */
+        @AuraEnabled
+        public String donationMatching;
+        @AuraEnabled
+        public Integer matchDateWindowDays;
+        @AuraEnabled
+        public Decimal matchAmountTolerance;
     }
 
     /** One import as the wizard and the results screen show it. */
@@ -85,6 +92,11 @@ public with sharing class ImportController {
     public class BatchOptions {
         public Integer expectedCount;
         public Decimal expectedAmount;
+        /** True when the wizard showed the donation matching choices, which are then saved. */
+        public Boolean saveDonationMatching;
+        public String donationMatching;
+        public Integer matchDateWindowDays;
+        public Decimal matchAmountTolerance;
     }
 
     /** One staged row as the exceptions table shows it. */
@@ -144,6 +156,11 @@ public with sharing class ImportController {
                     : String.valueOf(template.Last_Import_Date__c);
                 view.isRecurring = template.Is_Recurring__c;
                 view.sourceName = template.Source_Name__c;
+                view.donationMatching = template.Donation_Matching__c;
+                view.matchDateWindowDays = template.Match_Date_Window_Days__c == null
+                    ? null
+                    : template.Match_Date_Window_Days__c.intValue();
+                view.matchAmountTolerance = template.Match_Amount_Tolerance__c;
                 result.add(view);
             }
             return result;
@@ -208,6 +225,14 @@ public with sharing class ImportController {
             enforcePermission();
             BatchOptions options = parseOptions(optionsJson);
             ImportTemplateService.saveMapping(templateId, mappingDocument, matchingRule);
+            if (options.saveDonationMatching == true) {
+                ImportTemplateService.saveDonationMatching(
+                    templateId,
+                    options.donationMatching,
+                    options.matchDateWindowDays,
+                    options.matchAmountTolerance
+                );
+            }
             return toView(
                 ImportBatchService.create(
                     templateId,

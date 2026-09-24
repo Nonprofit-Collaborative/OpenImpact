@@ -105,6 +105,89 @@ private class ImportProcessorBatchTest {
         );
     }
 
+    /** A processor that counts the chunks it has seen in the state it carries. */
+    private class CountingProcessor implements ImportEntityProcessor {
+        public List<ImportMapping.Target> targets() {
+            return new List<ImportMapping.Target>();
+        }
+
+        public ImportEntityResult resolve(
+            Import_Batch__c batch,
+            Import_Template__c template,
+            List<Import_Row__c> rows,
+            Map<Id, Map<String, Map<String, String>>> entitiesByRowId,
+            Boolean dryRun
+        ) {
+            String seen = ImportEntityProcessors.carriedState;
+            ImportEntityProcessors.carriedState = (seen == null ? '' : seen) + 'x';
+            return new ImportEntityResult();
+        }
+
+        public List<Schema.SObjectType> taggedObjects() {
+            return new List<Schema.SObjectType>();
+        }
+
+        public Map<Id, String> reasonsToKeep(
+            Id batchId,
+            Schema.SObjectType type,
+            Set<Id> recordIds
+        ) {
+            return new Map<Id, String>();
+        }
+    }
+
+    @IsTest
+    static void theProcessorStateIsCarriedFromChunkToChunk() {
+        ImportMapping mapping = new ImportMapping();
+        for (
+            String target : new List<String>{
+                'Contact1.Email',
+                'Contact1.LastName',
+                'Gift.Amount__c'
+            }
+        ) {
+            mapping.columns.add(new ImportMapping.Column(target, target));
+        }
+        Import_Template__c template = ImportTestDataFactory.template(
+            mapping.serialize(),
+            ImportTemplateService.RULE_EMAIL
+        );
+        Import_Batch__c batch = ImportTestDataFactory.batch(template);
+        List<Map<String, String>> values = new List<Map<String, String>>();
+        for (Integer i = 0; i < 2; i++) {
+            values.add(
+                new Map<String, String>{
+                    'Contact1.Email' => 'person' +
+                    i +
+                    '@example.org',
+                    'Contact1.LastName' => 'Surname' + i,
+                    'Gift.Amount__c' => '10'
+                }
+            );
+        }
+        ImportTestDataFactory.rows(batch, values);
+        ImportEntityProcessors.processorOverride = new CountingProcessor();
+        ImportProcessorBatch job = new ImportProcessorBatch(batch.Id, true);
+        List<Import_Row__c> rows = new List<Import_Row__c>();
+        Database.QueryLocatorIterator staged = job.start(null).iterator();
+        while (staged.hasNext()) {
+            rows.add((Import_Row__c) staged.next());
+        }
+
+        Test.startTest();
+        job.execute(null, new List<Import_Row__c>{ rows[0] });
+        // A new chunk is a new transaction, whose statics start empty.
+        ImportEntityProcessors.carriedState = null;
+        job.execute(null, new List<Import_Row__c>{ rows[1] });
+        Test.stopTest();
+
+        Assert.areEqual(
+            'xx',
+            ImportEntityProcessors.carriedState,
+            'The second chunk started from what the first left.'
+        );
+    }
+
     @IsTest
     static void aChunkThatDiesRejectsItsOwnRowsAndSaysWhy() {
         Import_Batch__c batch = staged(2);

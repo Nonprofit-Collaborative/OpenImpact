@@ -445,6 +445,50 @@ describe('the import wizard', () => {
     expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson).expectedAmount).toBe(125.5);
   });
 
+  it('shows how gifts match scheduled payments, from the template, and saves the choice', async () => {
+    getEntityTargets.mockResolvedValue([{ value: 'Gift.Amount__c', label: 'Gift: amount' }]);
+    getTemplates.mockResolvedValue([
+      { ...TEMPLATE, donationMatching: 'Match only', matchDateWindowDays: 3 }
+    ]);
+    suggestMapping.mockResolvedValue(
+      JSON.stringify({
+        version: 1,
+        columns: [
+          { source: 'Last Name', target: 'Contact1.LastName' },
+          { source: 'Email', target: 'Contact1.Email' },
+          { source: 'Notes', target: 'Gift.Amount__c' }
+        ]
+      })
+    );
+    const element = await toMatchingStep();
+    const choice = element.shadowRoot.querySelector('[data-id="donation-matching"]');
+    expect(choice.value).toBe('Match only');
+    expect(element.shadowRoot.querySelector('[data-id="match-window"]').value).toBe('3');
+    choice.dispatchEvent(new CustomEvent('change', { detail: { value: 'Never match' } }));
+    type(element, 'match-tolerance', '0.50');
+    await flush();
+    click(element, 'dry-run');
+    await flush();
+    expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson)).toEqual({
+      expectedCount: null,
+      expectedAmount: null,
+      saveDonationMatching: true,
+      donationMatching: 'Never match',
+      matchDateWindowDays: 3,
+      matchAmountTolerance: 0.5
+    });
+  });
+
+  it('does not offer donation matching where no module loads gifts', async () => {
+    const element = await toMatchingStep();
+    expect(element.shadowRoot.querySelector('[data-id="donation-matching"]')).toBeNull();
+    click(element, 'dry-run');
+    await flush();
+    expect(
+      JSON.parse(createBatch.mock.calls[0][0].optionsJson).saveDonationMatching
+    ).toBeUndefined();
+  });
+
   it('will not commit a file that disagrees with its control totals, and can go back', async () => {
     const disagrees = { ...DRY_RUN_BATCH, controlTotalsAgree: false };
     createBatch.mockResolvedValue(disagrees);

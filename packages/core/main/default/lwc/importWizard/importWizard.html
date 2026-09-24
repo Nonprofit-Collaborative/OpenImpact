@@ -142,6 +142,37 @@
                             step="0.01"
                             onchange={handleExpectedAmountChange}
                         ></lightning-input>
+                        <h3 class="slds-text-heading_x-small slds-var-m-top_medium">
+                            {labels.donationMatchingHeading}
+                        </h3>
+                        <p class="slds-text-body_small slds-var-m-bottom_x-small">
+                            {labels.donationMatchingHelp}
+                        </p>
+                        <lightning-combobox
+                            data-id="donation-matching"
+                            label={labels.donationMatchingLabel}
+                            value={donationMatching}
+                            options={donationMatchingOptions}
+                            onchange={handleDonationMatchingChange}
+                        ></lightning-combobox>
+                        <lightning-input
+                            type="number"
+                            data-id="match-window"
+                            label={labels.matchWindowLabel}
+                            value={matchDateWindowDays}
+                            min="0"
+                            step="1"
+                            onchange={handleMatchWindowChange}
+                        ></lightning-input>
+                        <lightning-input
+                            type="number"
+                            data-id="match-tolerance"
+                            label={labels.matchToleranceLabel}
+                            value={matchAmountTolerance}
+                            min="0"
+                            step="0.01"
+                            onchange={handleMatchToleranceChange}
+                        ></lightning-input>
                     </template>
                 </template>
 

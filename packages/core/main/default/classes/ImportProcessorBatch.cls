@@ -23,6 +23,8 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
     private Integer chunksRun = 0;
     /** The gift amounts the entity processor read, added up over the chunks (R-IB10). */
     private Decimal fileAmount;
+    /** The entity processor's own state, handed from chunk to chunk (R-IR6). */
+    private String processorState;
 
     public ImportProcessorBatch(Id batchId, Boolean dryRun) {
         this.batchId = batchId;
@@ -70,6 +72,7 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
                 template.Column_Mapping_JSON__c,
                 template.Default_Values_JSON__c
             );
+            ImportEntityProcessors.carriedState = processorState;
             ImportRowProcessor.Outcome outcome = ImportRowProcessor.process(
                 batch,
                 template,
@@ -77,6 +80,8 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
                 scope,
                 dryRun
             );
+            // Kept only from a chunk that finished: a chunk that died saved nothing.
+            processorState = ImportEntityProcessors.carriedState;
             notes.addAll(outcome.notes);
             if (outcome.fileAmount != null) {
                 fileAmount = (fileAmount == null ? 0 : fileAmount) + outcome.fileAmount;

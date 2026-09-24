@@ -896,4 +896,92 @@
         <shortDescription>Import wizard: expected gift total label</shortDescription>
         <value>Total of the gift amounts</value>
     </labels>
+    <labels>
+        <fullName>Core_Import_ErrorDonationMatchingUnknown</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import error: donation matching choice unknown</shortDescription>
+        <value>Choose how gifts are matched: Match or create, Always create, Match only or Never match.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorDonationMatchingRange</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import error: donation matching window or tolerance below zero</shortDescription>
+        <value>The days either side and the amount difference allowed cannot be less than zero, and the days cannot be more than 999.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DonationMatchingHeading</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching heading</shortDescription>
+        <value>Scheduled payments</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DonationMatchingHelp</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching help</shortDescription>
+        <value>When a gift pays a pledge or a recurring gift the donor already has, Open Impact can link the two. Leave the numbers empty to use Nonprofit Settings.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DonationMatchingLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching choice label</shortDescription>
+        <value>Matching gifts to scheduled payments</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DonationMatchOrCreate</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching option Match or create</shortDescription>
+        <value>Match or create: pay the payment it matches, or create it on its own</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DonationAlwaysCreate</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching option Always create</shortDescription>
+        <value>Always create: never look for payments</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DonationMatchOnly</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching option Match only</shortDescription>
+        <value>Match only: reject a gift that matches no payment</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_DonationNeverMatch</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching option Never match</shortDescription>
+        <value>Never match: reject a gift that matches a payment or a gift you already have</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_MatchWindowLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching date window label</shortDescription>
+        <value>Days either side of a payment's due date</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_MatchToleranceLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: donation matching amount tolerance label</shortDescription>
+        <value>Amount difference allowed</value>
+    </labels>
 </CustomLabels>

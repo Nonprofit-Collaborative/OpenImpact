@@ -131,6 +131,54 @@ public with sharing class ImportTemplateService {
         return template;
     }
 
+    /** The donation matching behaviours a template can hold (R-IT7, R-DM5). */
+    @NamespaceAccessible
+    public static final List<String> DONATION_MATCHING_VALUES = new List<String>{
+        'Match or create',
+        'Always create',
+        'Match only',
+        'Never match'
+    };
+
+    /**
+     * Saves how this template's gifts are matched to scheduled payments (R-IT7). Core only
+     * holds the values: an empty one means the default, and the Giving module reads them. A
+     * behaviour Core does not know, a negative window or a negative tolerance is refused.
+     */
+    @NamespaceAccessible
+    public static Import_Template__c saveDonationMatching(
+        Id templateId,
+        String behaviour,
+        Integer windowDays,
+        Decimal tolerance
+    ) {
+        Import_Template__c template = ImportTemplateSelector.selectById(templateId);
+        if (template == null) {
+            throw new ImportException(Label.Core_Import_ErrorTemplateGone);
+        }
+        String chosen = null;
+        for (String value : DONATION_MATCHING_VALUES) {
+            if (String.isNotBlank(behaviour) && value.equalsIgnoreCase(behaviour.trim())) {
+                chosen = value;
+            }
+        }
+        if (String.isNotBlank(behaviour) && chosen == null) {
+            throw new ImportException(Label.Core_Import_ErrorDonationMatchingUnknown);
+        }
+        if (
+            (windowDays != null && (windowDays < 0 || windowDays > 999)) ||
+            (tolerance != null &&
+            tolerance < 0)
+        ) {
+            throw new ImportException(Label.Core_Import_ErrorDonationMatchingRange);
+        }
+        template.Donation_Matching__c = chosen;
+        template.Match_Date_Window_Days__c = windowDays;
+        template.Match_Amount_Tolerance__c = tolerance == null ? null : tolerance.setScale(2);
+        Database.update(template, AccessLevel.USER_MODE);
+        return template;
+    }
+
     /**
      * Marks a template as the mapping for a file that arrives regularly, or not (R-IT6). The
      * source name says which feed it is, and is required while the template is recurring. It

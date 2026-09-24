@@ -1612,6 +1612,11 @@ column nothing can load yet. The contract, which ADR-NEXT records:
   template's defaults applied. It must be bulk safe, must write nothing when the pass is a dry
   run, and must not throw: a failure belongs on its row. It returns a note for the run log and
   the total of the gift amounts it read, for the control totals (R-IB10).
+- **Carried state.** Each chunk runs in its own transaction. A processor that needs to know
+  what earlier chunks of the same run decided (the scheduled payments already matched,
+  R-DM4) keeps it in `ImportEntityProcessors.carriedState`, a string the import batch holds
+  between chunks and sets again before each one. Core never reads it, and a chunk that fails
+  does not change it.
 - **Undo.** The processor names the objects it tags with the batch and gives its reasons to
   keep records (R-IB9).
 
