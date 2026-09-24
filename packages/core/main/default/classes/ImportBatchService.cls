@@ -52,6 +52,25 @@ public with sharing class ImportBatchService {
      */
     @NamespaceAccessible
     public static Import_Batch__c create(Id templateId, String fileId, String fileName) {
+        return create(templateId, fileId, fileName, null, null);
+    }
+
+    /**
+     * Creates the batch for one upload with its control totals (R-IB10): how many rows the
+     * file should hold and what its gift amounts should add up to. Either may be null, which
+     * means that total is not checked.
+     */
+    @NamespaceAccessible
+    public static Import_Batch__c create(
+        Id templateId,
+        String fileId,
+        String fileName,
+        Integer expectedCount,
+        Decimal expectedAmount
+    ) {
+        if (expectedCount != null && expectedCount < 0) {
+            throw new ImportException(Label.Core_Import_ErrorControlCountNegative);
+        }
         Import_Template__c template = ImportTemplateSelector.selectById(templateId);
         if (template == null) {
             throw new ImportException(Label.Core_Import_ErrorTemplateGone);
@@ -67,7 +86,9 @@ public with sharing class ImportBatchService {
             Rows_Updated__c = 0,
             Rows_Matched__c = 0,
             Rows_Rejected__c = 0,
-            Chunk_Size__c = chunkSize()
+            Chunk_Size__c = chunkSize(),
+            Expected_Count__c = expectedCount,
+            Expected_Amount__c = expectedAmount == null ? null : expectedAmount.setScale(2)
         );
         Database.insert(batch, AccessLevel.USER_MODE);
         return batch;
@@ -139,7 +160,78 @@ public with sharing class ImportBatchService {
         if (!STATUS_DRY_RUN_COMPLETE.equals(batch.Status__c)) {
             throw new ImportException(Label.Core_Import_ErrorDryRunFirst);
         }
+        if (!controlTotalsAgree(batch)) {
+            throw new ImportException(Label.Core_Import_ErrorControlTotalsDiffer);
+        }
         return start(batchId, false);
+    }
+
+    /**
+     * Whether the file agrees with the control totals it was given (R-IB10). A total that was
+     * not given agrees. An expected amount that nothing read, because no module that loads
+     * gifts is installed, cannot be checked and does not agree.
+     */
+    @NamespaceAccessible
+    public static Boolean controlTotalsAgree(Import_Batch__c batch) {
+        return countAgrees(batch) && amountAgrees(batch);
+    }
+
+    private static Boolean countAgrees(Import_Batch__c batch) {
+        return batch.Expected_Count__c == null ||
+            (batch.Row_Count__c != null &&
+            batch.Expected_Count__c.intValue() == batch.Row_Count__c.intValue());
+    }
+
+    private static Boolean amountAgrees(Import_Batch__c batch) {
+        return batch.Expected_Amount__c == null ||
+            (batch.File_Amount__c != null &&
+            batch.Expected_Amount__c.setScale(2) == batch.File_Amount__c.setScale(2));
+    }
+
+    /** The run log lines saying how the file compared with its control totals (R-IB10). */
+    private static List<String> controlTotalLines(Import_Batch__c batch) {
+        List<String> lines = new List<String>();
+        if (batch.Expected_Count__c != null) {
+            String found = String.valueOf(
+                batch.Row_Count__c == null ? 0 : batch.Row_Count__c.intValue()
+            );
+            lines.add(
+                countAgrees(batch)
+                    ? String.format(
+                          Label.Core_Import_LogControlCountAgrees,
+                          new List<String>{ found }
+                      )
+                    : String.format(
+                          Label.Core_Import_LogControlCountDiffers,
+                          new List<String>{
+                              found,
+                              String.valueOf(batch.Expected_Count__c.intValue())
+                          }
+                      )
+            );
+        }
+        if (batch.Expected_Amount__c != null) {
+            if (batch.File_Amount__c == null) {
+                lines.add(Label.Core_Import_LogControlAmountUnread);
+            } else {
+                String found = batch.File_Amount__c.setScale(2).format();
+                lines.add(
+                    amountAgrees(batch)
+                        ? String.format(
+                              Label.Core_Import_LogControlAmountAgrees,
+                              new List<String>{ found }
+                          )
+                        : String.format(
+                              Label.Core_Import_LogControlAmountDiffers,
+                              new List<String>{
+                                  found,
+                                  batch.Expected_Amount__c.setScale(2).format()
+                              }
+                          )
+                );
+            }
+        }
+        return lines;
     }
 
     private static Id start(Id batchId, Boolean dryRun) {
@@ -224,6 +316,16 @@ public with sharing class ImportBatchService {
         for (Import_Row__c row : rows) {
             row.Status__c = ImportRowProcessor.STATUS_PENDING;
             row.Error_Message__c = null;
+            // What a pass resolved is its own answer: the next pass works it out again, so a
+            // commit never acts on a gift or a household a dry run only described.
+            row.Household__c = null;
+            row.Contact_1__c = null;
+            row.Contact_2__c = null;
+            row.Person_1_Account__c = null;
+            row.Person_2_Account__c = null;
+            row.Organization__c = null;
+            row.Gift_Id__c = null;
+            row.Soft_Credit_Id__c = null;
         }
         Database.update(rows, false, AccessLevel.SYSTEM_MODE);
     }
@@ -240,6 +342,21 @@ public with sharing class ImportBatchService {
         Boolean failed,
         List<String> logLines
     ) {
+        return finish(batchId, dryRun, failed, logLines, null);
+    }
+
+    /**
+     * Closes a run as above, recording the total of the gift amounts the entity processor read
+     * and checking the control totals against the file (R-IB10).
+     */
+    @NamespaceAccessible
+    public static Import_Batch__c finish(
+        Id batchId,
+        Boolean dryRun,
+        Boolean failed,
+        List<String> logLines,
+        Decimal fileAmount
+    ) {
         Import_Batch__c batch = ImportBatchSelector.selectById(batchId);
         if (batch == null) {
             return null;
@@ -250,8 +367,10 @@ public with sharing class ImportBatchService {
         batch.Rows_Matched__c = count(counts, ImportRowProcessor.STATUS_MATCHED);
         batch.Rows_Rejected__c = count(counts, ImportRowProcessor.STATUS_REJECTED);
         batch.Completed_At__c = Datetime.now();
-        batch.Run_Log__c = String.join(logLines == null ? new List<String>() : logLines, '\n')
-            .abbreviate(32768);
+        batch.File_Amount__c = fileAmount == null ? null : fileAmount.setScale(2);
+        List<String> lines = logLines == null ? new List<String>() : new List<String>(logLines);
+        lines.addAll(controlTotalLines(batch));
+        batch.Run_Log__c = String.join(lines, '\n').abbreviate(32768);
         if (failed == true) {
             batch.Status__c = STATUS_FAILED;
         } else if (dryRun == true) {

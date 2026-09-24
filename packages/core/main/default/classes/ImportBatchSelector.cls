@@ -11,7 +11,8 @@ public with sharing class ImportBatchSelector {
         'Id, Name, Import_Template__c, Import_Template__r.Name, ' +
         'File_Id__c, File_Name__c, Status__c, Is_Dry_Run__c, Row_Count__c, Rows_Created__c, ' +
         'Rows_Updated__c, Rows_Matched__c, Rows_Rejected__c, Run_Log__c, Started_At__c, ' +
-        'Completed_At__c, Chunk_Size__c, Undo_Deadline__c, Committed_By__c';
+        'Completed_At__c, Chunk_Size__c, Undo_Deadline__c, Committed_By__c, Expected_Count__c, ' +
+        'Expected_Amount__c, File_Amount__c';
 
     /** One batch, or null. */
     @NamespaceAccessible

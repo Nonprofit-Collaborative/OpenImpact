@@ -48,6 +48,10 @@ import xlsxTooLarge from '@salesforce/label/c.Core_Import_XlsxTooLarge';
 import recurringLabel from '@salesforce/label/c.Core_Import_RecurringLabel';
 import recurringHelp from '@salesforce/label/c.Core_Import_RecurringHelp';
 import sourceNameLabel from '@salesforce/label/c.Core_Import_SourceNameLabel';
+import controlTotalsHeading from '@salesforce/label/c.Core_Import_ControlTotalsHeading';
+import controlTotalsHelp from '@salesforce/label/c.Core_Import_ControlTotalsHelp';
+import expectedCountLabel from '@salesforce/label/c.Core_Import_ExpectedCountLabel';
+import expectedAmountLabel from '@salesforce/label/c.Core_Import_ExpectedAmountLabel';
 
 /** How often the wizard asks how a run is going. */
 const POLL_INTERVAL_MS = 3000;
@@ -109,6 +113,9 @@ const GIFT_TARGETS_NOT_LOADED = [
   { value: 'Allocation.Fund', label: 'Gift: fund (kept with the row, not loaded yet)' }
 ];
 
+/** The row entities a module outside Core loads (R-IR6). */
+const DEFERRED_ENTITY_PREFIXES = ['Gift.', 'Allocation.', 'SoftCredit.', 'Tribute.'];
+
 const RULES = [
   { value: 'Email exact', help: matchingEmailHelp },
   { value: 'Name plus postal code', help: matchingNamePostalHelp },
@@ -146,6 +153,9 @@ export default class ImportWizard extends LightningElement {
   storeFileError;
   /** The columns an installed module loads, empty where none is (R-IR6). */
   entityTargets = [];
+  /** The control totals for this file (R-IB10), kept as typed. */
+  expectedCount = '';
+  expectedAmount = '';
 
   labels = {
     cardTitle,
@@ -172,7 +182,11 @@ export default class ImportWizard extends LightningElement {
     parsingMessage,
     recurringLabel,
     recurringHelp,
-    sourceNameLabel
+    sourceNameLabel,
+    controlTotalsHeading,
+    controlTotalsHelp,
+    expectedCountLabel,
+    expectedAmountLabel
   };
 
   async connectedCallback() {
@@ -364,6 +378,36 @@ export default class ImportWizard extends LightningElement {
       .concat(giftTargets.map((target) => ({ value: target.value, label: target.label })));
   }
 
+  /** Whether any column is mapped to something a module outside Core loads. */
+  get mapsGift() {
+    return this.columns.some((column) =>
+      DEFERRED_ENTITY_PREFIXES.some((prefix) => (column.target || '').startsWith(prefix))
+    );
+  }
+
+  /** The amount control total can be checked only where a module reads gift amounts. */
+  get showExpectedAmount() {
+    return this.entityTargets.length > 0 && this.mapsGift;
+  }
+
+  handleExpectedCountChange(event) {
+    this.expectedCount = event.target.value;
+  }
+
+  handleExpectedAmountChange(event) {
+    this.expectedAmount = event.target.value;
+  }
+
+  /** What is sent with the batch besides the mapping; an empty box is no control total. */
+  get batchOptions() {
+    const count = String(this.expectedCount || '').trim();
+    const amount = this.showExpectedAmount ? String(this.expectedAmount || '').trim() : '';
+    return JSON.stringify({
+      expectedCount: count === '' ? null : Number(count),
+      expectedAmount: amount === '' ? null : Number(amount)
+    });
+  }
+
   handleTargetChange(event) {
     const source = event.target.dataset.source;
     const target = event.detail.value;
@@ -425,7 +469,8 @@ export default class ImportWizard extends LightningElement {
         fileId,
         fileName: this.fileName,
         mappingDocument: this.mappingDocument,
-        matchingRule: this.matchingRule
+        matchingRule: this.matchingRule,
+        optionsJson: this.batchOptions
       });
       await this.stageAllRows();
       this.batch = await startDryRun({ batchId: this.batch.id });
@@ -544,6 +589,8 @@ export default class ImportWizard extends LightningElement {
     this.fileName = undefined;
     this.pendingFile = undefined;
     this.message = undefined;
+    this.expectedCount = '';
+    this.expectedAmount = '';
   }
 
   // ---------------------------------------------------------------------------------------
@@ -557,6 +604,13 @@ export default class ImportWizard extends LightningElement {
 
   handleBack() {
     this.message = undefined;
+    if (this.step === 5) {
+      // Back from a finished dry run: the next dry run is a new batch, so a changed control
+      // total or mapping is checked afresh (R-IB10).
+      this.stopPolling();
+      this.batch = undefined;
+      this.rejectedRows = [];
+    }
     this.step = Math.max(this.step - 1, 1);
   }
 
@@ -589,7 +643,10 @@ export default class ImportWizard extends LightningElement {
   }
 
   get canGoBack() {
-    return this.step > 1 && this.step < 5;
+    return (
+      (this.step > 1 && this.step < 5) ||
+      (this.step === 5 && Boolean(this.batch && this.batch.isFinished))
+    );
   }
 
   get cannotLeaveTemplateStep() {
@@ -605,7 +662,11 @@ export default class ImportWizard extends LightningElement {
   }
 
   get cannotCommit() {
-    return !this.batch || this.batch.status !== 'Dry run complete';
+    return (
+      !this.batch ||
+      this.batch.status !== 'Dry run complete' ||
+      this.batch.controlTotalsAgree === false
+    );
   }
 
   get hasMessage() {

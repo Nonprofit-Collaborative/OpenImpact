@@ -118,6 +118,31 @@
                     <p class="slds-text-body_small slds-var-m-top_x-small" data-id="rule-help">
                         {ruleHelp}
                     </p>
+                    <h3 class="slds-text-heading_x-small slds-var-m-top_medium">
+                        {labels.controlTotalsHeading}
+                    </h3>
+                    <p class="slds-text-body_small slds-var-m-bottom_x-small">
+                        {labels.controlTotalsHelp}
+                    </p>
+                    <lightning-input
+                        type="number"
+                        data-id="expected-count"
+                        label={labels.expectedCountLabel}
+                        value={expectedCount}
+                        min="0"
+                        step="1"
+                        onchange={handleExpectedCountChange}
+                    ></lightning-input>
+                    <template lwc:if={showExpectedAmount}>
+                        <lightning-input
+                            type="number"
+                            data-id="expected-amount"
+                            label={labels.expectedAmountLabel}
+                            value={expectedAmount}
+                            step="0.01"
+                            onchange={handleExpectedAmountChange}
+                        ></lightning-input>
+                    </template>
                 </template>
 
                 <template lwc:if={showResults}>

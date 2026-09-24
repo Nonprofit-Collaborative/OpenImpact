@@ -373,7 +373,49 @@ describe('the import wizard', () => {
     expect(element.shadowRoot.querySelector('[data-id="results"]')).toBeNull();
   });
 
-  it('offers the gift columns an installed module loads', async () => {
+  /** Walks to the matching step with the default file. */
+  async function toMatchingStep() {
+    const element = render();
+    await flush();
+    click(element, 'next');
+    await flush();
+    await chooseFile(element);
+    click(element, 'next');
+    await flush();
+    return element;
+  }
+
+  function type(element, id, value) {
+    const input = element.shadowRoot.querySelector(`[data-id="${id}"]`);
+    input.value = value;
+    input.dispatchEvent(new CustomEvent('change'));
+  }
+
+  it('sends the control totals with the batch, and none when the boxes are empty', async () => {
+    let element = await toMatchingStep();
+    // No module reads gift amounts here, so only the row count is offered.
+    expect(element.shadowRoot.querySelector('[data-id="expected-amount"]')).toBeNull();
+    type(element, 'expected-count', '2');
+    await flush();
+    click(element, 'dry-run');
+    await flush();
+    expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson)).toEqual({
+      expectedCount: 2,
+      expectedAmount: null
+    });
+
+    document.body.removeChild(element);
+    createBatch.mockClear();
+    element = await toMatchingStep();
+    click(element, 'dry-run');
+    await flush();
+    expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson)).toEqual({
+      expectedCount: null,
+      expectedAmount: null
+    });
+  });
+
+  it('offers the gift columns an installed module loads, and the amount control total', async () => {
     getEntityTargets.mockResolvedValue([{ value: 'Gift.Amount__c', label: 'Gift: amount' }]);
     suggestMapping.mockResolvedValue(
       JSON.stringify({
@@ -394,5 +436,27 @@ describe('the import wizard', () => {
     const labels = picker.options.map((option) => option.label);
     expect(labels).toContain('Gift: amount');
     expect(labels).not.toContain('Gift: amount (kept with the row, not loaded yet)');
+    click(element, 'next');
+    await flush();
+    type(element, 'expected-amount', '125.50');
+    await flush();
+    click(element, 'dry-run');
+    await flush();
+    expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson).expectedAmount).toBe(125.5);
+  });
+
+  it('will not commit a file that disagrees with its control totals, and can go back', async () => {
+    const disagrees = { ...DRY_RUN_BATCH, controlTotalsAgree: false };
+    createBatch.mockResolvedValue(disagrees);
+    startDryRun.mockResolvedValue(disagrees);
+    getBatch.mockResolvedValue(disagrees);
+    const element = await toMatchingStep();
+    click(element, 'dry-run');
+    await flush();
+    expect(element.shadowRoot.querySelector('[data-id="commit"]').disabled).toBe(true);
+    click(element, 'back');
+    await flush();
+    expect(element.shadowRoot.querySelector('[data-id="expected-count"]')).not.toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="results"]')).toBeNull();
   });
 });

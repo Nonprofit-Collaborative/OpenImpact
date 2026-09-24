@@ -83,11 +83,19 @@ private class ImportControllerTest {
             null,
             'donors.csv',
             mapping.serialize(),
-            ImportTemplateService.RULE_EMAIL
+            ImportTemplateService.RULE_EMAIL,
+            '{"expectedCount": 12, "expectedAmount": 480.25}'
         );
         Test.stopTest();
 
         Assert.isNotNull(view.id, 'The batch was created.');
+        Import_Batch__c saved = [
+            SELECT Expected_Count__c, Expected_Amount__c
+            FROM Import_Batch__c
+            WHERE Id = :view.id
+        ];
+        Assert.areEqual(12, saved.Expected_Count__c, 'With the control totals typed in.');
+        Assert.isTrue(saved.Expected_Amount__c == 480.25, 'Both of them.');
         Assert.areEqual('donors.csv', view.fileName, 'With the name the administrator uploaded.');
         Assert.isTrue(
             [SELECT Column_Mapping_JSON__c FROM Import_Template__c WHERE Id = :template.Id]
@@ -285,5 +293,25 @@ private class ImportControllerTest {
             targets.size(),
             'The picker offers exactly what the installed module loads, or nothing.'
         );
+    }
+
+    @IsTest
+    static void batchOptionsAreReadOrRefused() {
+        ImportController.BatchOptions none = ImportController.parseOptions(null);
+        Assert.isNull(none.expectedCount, 'No options means no control totals.');
+        ImportController.BatchOptions some = ImportController.parseOptions(
+            '{"expectedCount": 3, "expectedAmount": null}'
+        );
+        Assert.areEqual(3, some.expectedCount, 'The count is read.');
+        try {
+            ImportController.parseOptions('{not json');
+            Assert.fail('Unreadable options are refused.');
+        } catch (ImportException e) {
+            Assert.areEqual(
+                Label.Core_Import_ErrorOptionsUnreadable,
+                e.getMessage(),
+                'In words the administrator can act on.'
+            );
+        }
     }
 }

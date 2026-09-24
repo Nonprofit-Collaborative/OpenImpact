@@ -21,6 +21,8 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
     private List<String> log = new List<String>();
     private Set<String> notes = new Set<String>();
     private Integer chunksRun = 0;
+    /** The gift amounts the entity processor read, added up over the chunks (R-IB10). */
+    private Decimal fileAmount;
 
     public ImportProcessorBatch(Id batchId, Boolean dryRun) {
         this.batchId = batchId;
@@ -76,6 +78,9 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
                 dryRun
             );
             notes.addAll(outcome.notes);
+            if (outcome.fileAmount != null) {
+                fileAmount = (fileAmount == null ? 0 : fileAmount) + outcome.fileAmount;
+            }
         } catch (Exception e) {
             // The chunk is lost, not the run. Every row in it is marked with the reason so
             // that nothing disappears without an explanation an administrator can read.
@@ -99,7 +104,7 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
             );
             lines.addAll(new List<String>(notes));
             lines.addAll(log);
-            ImportBatchService.finish(batchId, dryRun, failed, lines);
+            ImportBatchService.finish(batchId, dryRun, failed, lines, fileAmount);
         } catch (Exception e) {
             ErrorLogger.log(e, 'ImportProcessorBatch.finish');
         }

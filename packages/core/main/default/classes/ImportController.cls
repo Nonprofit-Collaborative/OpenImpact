@@ -73,6 +73,18 @@ public with sharing class ImportController {
         /** True when nothing about the batch itself stands in the way of an undo. */
         @AuraEnabled
         public Boolean canUndo;
+        /** False when the file does not match the control totals it was given (R-IB10). */
+        @AuraEnabled
+        public Boolean controlTotalsAgree;
+    }
+
+    /**
+     * What the wizard sends with a new batch besides its mapping: the control totals
+     * (R-IB10). Held as one document so a later option does not change the method.
+     */
+    public class BatchOptions {
+        public Integer expectedCount;
+        public Decimal expectedAmount;
     }
 
     /** One staged row as the exceptions table shows it. */
@@ -189,12 +201,22 @@ public with sharing class ImportController {
         String fileId,
         String fileName,
         String mappingDocument,
-        String matchingRule
+        String matchingRule,
+        String optionsJson
     ) {
         try {
             enforcePermission();
+            BatchOptions options = parseOptions(optionsJson);
             ImportTemplateService.saveMapping(templateId, mappingDocument, matchingRule);
-            return toView(ImportBatchService.create(templateId, fileId, fileName));
+            return toView(
+                ImportBatchService.create(
+                    templateId,
+                    fileId,
+                    fileName,
+                    options.expectedCount,
+                    options.expectedAmount
+                )
+            );
         } catch (Exception e) {
             throw auraError(e, 'ImportController.createBatch');
         }
@@ -379,7 +401,22 @@ public with sharing class ImportController {
         view.runLog = batch.Run_Log__c;
         view.undoDeadline = batch.Undo_Deadline__c;
         view.canUndo = String.isBlank(ImportUndoService.refusal(batch));
+        view.controlTotalsAgree = ImportBatchService.controlTotalsAgree(batch);
         return view;
+    }
+
+    /** The wizard's options, or none; a document that cannot be read is refused, not guessed. */
+    @TestVisible
+    private static BatchOptions parseOptions(String optionsJson) {
+        if (String.isBlank(optionsJson)) {
+            return new BatchOptions();
+        }
+        try {
+            BatchOptions options = (BatchOptions) JSON.deserialize(optionsJson, BatchOptions.class);
+            return options == null ? new BatchOptions() : options;
+        } catch (Exception unreadable) {
+            throw new ImportException(Label.Core_Import_ErrorOptionsUnreadable);
+        }
     }
 
     private static Integer intOf(Decimal value) {
