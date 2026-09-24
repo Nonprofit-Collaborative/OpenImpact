@@ -3,10 +3,8 @@
   <hasActivationRequired>false</hasActivationRequired>
   <label>Inbound Gift API</label>
   <description>
-    Everything the user an online giving page or payment processor signs in as needs, and no
-    more: find a donor, fund and appeal; record a gift with its fund allocation and the
-    household soft credits Giving adds; read the acknowledgment rules Giving applies. Assign
-    it on its own: the integration user needs no other Open Impact permission set.
+    The only set the integration user needs: find donors, funds and appeals; record gifts with their
+    allocations and household soft credits; read acknowledgment rules.
   </description>
   <classAccesses>
     <apexClass>InboundGiftResource</apexClass>
