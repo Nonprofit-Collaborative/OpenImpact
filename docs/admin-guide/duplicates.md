@@ -86,6 +86,12 @@ matching rule in Setup, and scan again.
 **An organization pair never appears.** The panel shows people and households only. Merge
 organizations with Salesforce's own tools.
 
+**A pair of person accounts never appears either.** If your org stores people as person
+accounts, merge two of them with Salesforce's own account merge. Open Impact handles it as it
+does a merge of two contacts: the kept person joins every household the other one belonged
+to, each household keeps its primary member, an emptied household is kept, and the kept
+person's totals are recalculated straight away.
+
 **A household pair should not be merged with the Salesforce merge.** Always merge households
 from this panel or with **Merge or split** on the household's record page. That merge moves
 the members, recalculates the totals and renames the household; Salesforce's own account merge

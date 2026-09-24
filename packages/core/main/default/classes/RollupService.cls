@@ -169,7 +169,22 @@ public with sharing class RollupService {
                 survivorIds.add((Id) survivorId);
             }
         }
-        if (survivorIds.isEmpty()) {
+        runForSurvivors(targetObject, survivorIds);
+    }
+
+    /**
+     * Recalculates the real-time totals on these merge survivors, as `runAfterMerge` does
+     * once it has read the survivors off the deleted records. A person stored as an account
+     * has a second record behind it, its person contact, whose own totals the merge also
+     * changes; `AccountTriggerHandler` names those here, since the deleted account records
+     * only name the surviving account.
+     *
+     * @param targetObject the entity whose totals the merge changed
+     * @param survivorIds the records of that entity that survived the merge
+     */
+    @NamespaceAccessible
+    public static void runForSurvivors(String targetObject, Set<Id> survivorIds) {
+        if (String.isBlank(targetObject) || survivorIds == null || survivorIds.isEmpty()) {
             return;
         }
         List<Rollup_Definition__c> definitions = RollupSelector.selectActiveForTarget(

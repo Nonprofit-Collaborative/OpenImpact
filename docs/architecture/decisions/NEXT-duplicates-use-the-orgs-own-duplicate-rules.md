@@ -55,8 +55,9 @@ app cannot perform, so that draft needed four Setup steps before anything worked
   Error Log is at Warning when that count is above zero, and the panel shows the latest summary
   as its last-scan line, so a partly failed scan never reads as a clean one.
 - **A people merge keeps what it touches.** The platform's merge deletes the merged-away
-  contact and moves its children without saving them. Open Impact's contact triggers handle
-  the delete as a merge when `MasterRecordId` is filled in `after delete`:
+  person and moves their children without saving them. Open Impact's contact triggers, and
+  its account triggers for a person stored as an account, handle the delete as a merge when
+  `MasterRecordId` is filled in `after delete`:
   - In junction mode the merged-away person's memberships are recreated on the survivor, all
     or none, so a row that cannot be written fails the merge instead of going missing. Only a
     current row counts as already being a member, so an ended row never blocks a current one.
@@ -67,9 +68,11 @@ app cannot perform, so that draft needed four Setup steps before anything worked
   - In both modes a household the merged-away person was in is recounted but never tidied
     away by the merge, because gifts and history credited to it would lose their household.
     An emptied household is left for a person to merge into the survivor's with R-H13.
-  - The real-time totals that target Contact are recalculated for the survivors only
-    (`RollupService.runAfterMerge`, driven by the definitions that target Contact, so Core
-    names no Giving object, ADR-0014): by `after delete` the children already point at the
+  - The real-time totals that target the merged entity are recalculated for the survivors
+    only (`RollupService.runAfterMerge`, driven by the definitions that target that entity, so
+    Core names no Giving object, ADR-0014). For a person stored as an account that is the
+    totals on Account and on the survivor's person contact, which is read with dynamic SOQL
+    only when the org has person accounts. By `after delete` the children already point at the
     survivor, so the engine's recalculation is handed the survivors as its parents and counts
     and reads only their children, one small queued job per source entity. The engine's own
     after-delete merge handling queued nothing in a test run. When the transaction has too
@@ -110,8 +113,8 @@ app cannot perform, so that draft needed four Setup steps before anything worked
   nobody can review suggestions on the panel, and the Potential Duplicates card on the Contact
   record page shows them nothing usable, because the card reads the same record sets. Such an
   org needs at least one Sales Cloud or Service Cloud user to review and merge duplicates.
-- A merge of two people stored as person accounts goes through the Account triggers, which do
-  not yet move memberships or recalculate totals for a merge; that is outside C-20.
+- A household merge (R-H13) is also an account merge, so the surviving household's real-time
+  totals are recalculated for it alone in the same way.
 - The permission set to review duplicates is assigned in Setup, not the Nonprofit Settings
   console, as with `Override_Receipt_Lock`: it is a license question for the administrator,
   not a setting.
