@@ -1,7 +1,7 @@
 /**
  * The lookups a gift import makes within the importing user's sharing: funds and appeals (R-GI3,
- * R-GI4) and the credits on the gifts it just made. What already exists in the org is read by
- * GiftImportIntegritySelector.
+ * R-GI4), the open installments a gift may pay (R-DM2) and the credits on the gifts it just
+ * made. What already exists in the org is read by GiftImportIntegritySelector.
  */
 public with sharing class GiftImportSelector {
     /**
@@ -42,6 +42,41 @@ public with sharing class GiftImportSelector {
             FROM Soft_Credit__c
             WHERE Gift__c IN :giftIds
             WITH SYSTEM_MODE
+        ];
+    }
+
+    /**
+     * The open installments of these donors or households due between these dates (R-DM2).
+     * Read in the user's own mode: a pledge the user cannot see is not one they may pay.
+     */
+    public static List<Installment__c> selectOpenInstallments(
+        Set<Id> donorIds,
+        Set<Id> householdIds,
+        Date earliest,
+        Date latest
+    ) {
+        return [
+            SELECT
+                Id,
+                Name,
+                Due_Date__c,
+                Expected_Amount__c,
+                Commitment__c,
+                Commitment__r.Donor_Contact__c,
+                Commitment__r.Donor_Account__c,
+                Commitment__r.Household__c
+            FROM Installment__c
+            WHERE
+                Status__c IN ('Scheduled', 'Overdue', 'Partially paid')
+                AND Commitment__r.Status__c IN ('Active', 'Paused')
+                AND Due_Date__c >= :earliest
+                AND Due_Date__c <= :latest
+                AND (Commitment__r.Donor_Contact__c IN :donorIds
+                OR Commitment__r.Donor_Account__c IN :donorIds
+                OR Commitment__r.Household__c IN :householdIds)
+            WITH USER_MODE
+            ORDER BY Due_Date__c, Name
+            LIMIT 5000
         ];
     }
 

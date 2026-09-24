@@ -107,12 +107,16 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
             notLoaded.addAll(read.notLoaded);
             gifts.add(read);
         }
+        Integer paying = 0;
         if (!gifts.isEmpty()) {
+            DonationMatcher matcher = new DonationMatcher(template);
             matchExternalIds(pending(gifts));
+            matcher.refuseExistingUnderNeverMatch(gifts);
             GiftImportCredits.read(pending(gifts));
             resolveDonors(pending(gifts), dryRun);
             GiftImportCredits.resolveParties(pending(gifts), dryRun);
             GiftImportReferences.resolve(pending(gifts));
+            paying = matcher.match(pending(gifts));
             if (dryRun) {
                 report(gifts);
             } else {
@@ -121,15 +125,24 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
                 report(gifts);
             }
         }
-        return new ImportEntityResult(
-            notLoaded.isEmpty()
-                ? null
-                : String.format(
-                      Label.Giving_Import_LogAttributesNotLoaded,
-                      new List<String>{ String.join(new List<String>(notLoaded), ', ') }
-                  ),
-            fileAmount
-        );
+        List<String> notes = new List<String>();
+        if (paying > 0) {
+            notes.add(
+                String.format(
+                    Label.Giving_Import_LogPaymentsMatched,
+                    new List<String>{ String.valueOf(paying) }
+                )
+            );
+        }
+        if (!notLoaded.isEmpty()) {
+            notes.add(
+                String.format(
+                    Label.Giving_Import_LogAttributesNotLoaded,
+                    new List<String>{ String.join(new List<String>(notLoaded), ', ') }
+                )
+            );
+        }
+        return new ImportEntityResult(notes.isEmpty() ? null : String.join(notes, ' '), fileAmount);
     }
 
     /** The rows still on their way to a gift: not refused, and not matched to one. */
@@ -338,6 +351,8 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
             Gift_Date__c = item.giftDate,
             Status__c = STATUS_RECEIVED,
             Appeal__c = item.appealId,
+            Installment__c = item.installmentId,
+            Commitment__c = item.commitmentId,
             Created_By_Import_Batch__c = batch.Id
         );
         for (Schema.SObjectField field : item.values.keySet()) {

@@ -111,6 +111,9 @@ public with sharing class GiftImportRow {
     public Boolean matchedExisting = false;
     /** An earlier row of the same chunk whose gift this row's external ID also names. */
     public GiftImportRow sameAs;
+    /** The scheduled payment this row's gift pays, and its pledge (R-DM6). */
+    public Id installmentId;
+    public Id commitmentId;
 
     // The row's soft credit and tribute (R-GI5, R-GI6), read by GiftImportCredits.
     public Soft_Credit__c credit;

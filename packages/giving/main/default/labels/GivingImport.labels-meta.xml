@@ -456,4 +456,36 @@
         <shortDescription>Import undo journal: record kept, a kept gift names it</shortDescription>
         <value>Kept: a gift this import made, which the undo is keeping, still names this record.</value>
     </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorMatchTie</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import: two scheduled payments equally close</shortDescription>
+        <value>Gift: two scheduled payments are equally close to this gift, {0} and {1}. Link it to one by hand, or give the row an external ID of a gift you already have.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorMatchOnlyNone</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import: Match only and no scheduled payment</shortDescription>
+        <value>Gift: this mapping only pays scheduled payments, and no open payment of this donor is due near this date for this amount.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorNeverMatchInstallment</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import: Never match and a scheduled payment matches</shortDescription>
+        <value>Gift: this gift matches the scheduled payment {0}, and this mapping never matches.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_LogPaymentsMatched</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import run log: gifts matched to scheduled payments</shortDescription>
+        <value>Gifts that pay a scheduled payment: {0}.</value>
+    </labels>
 </CustomLabels>
