@@ -212,7 +212,12 @@ private class HealthCheckHouseholdChecksTest {
 
         Assert.isNotNull(finding, 'A household with only ended memberships is reported.');
         Assert.isTrue(finding.title.startsWith('1 '), 'Only that one. ' + finding.title);
-        Assert.areEqual('The Ended Family', finding.links[0].label, 'It is the one linked.');
+        // Upkeep renames a household nobody is in, so it is identified by its record.
+        Assert.areEqual(
+            '/lightning/r/Account/' + ended.Id + '/view',
+            finding.links[0].url,
+            'It is the one linked.'
+        );
     }
 
     @IsTest
