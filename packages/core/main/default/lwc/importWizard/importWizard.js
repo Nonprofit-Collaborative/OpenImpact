@@ -43,6 +43,7 @@ import parsingMessage from '@salesforce/label/c.Core_Import_ParsingMessage';
 import noHeaderRow from '@salesforce/label/c.Core_Import_NoHeaderRow';
 import xlsxUnreadable from '@salesforce/label/c.Core_Import_XlsxUnreadable';
 import xlsxUnsupportedBrowser from '@salesforce/label/c.Core_Import_XlsxUnsupportedBrowser';
+import xlsxTooLarge from '@salesforce/label/c.Core_Import_XlsxTooLarge';
 import recurringLabel from '@salesforce/label/c.Core_Import_RecurringLabel';
 import recurringHelp from '@salesforce/label/c.Core_Import_RecurringHelp';
 import sourceNameLabel from '@salesforce/label/c.Core_Import_SourceNameLabel';
@@ -301,9 +302,11 @@ export default class ImportWizard extends LightningElement {
     try {
       return await readXlsx(buffer);
     } catch (error) {
-      throw new Error(
-        error.reason === XLSX_ERRORS.unsupportedBrowser ? xlsxUnsupportedBrowser : xlsxUnreadable
-      );
+      const sentences = {
+        [XLSX_ERRORS.unsupportedBrowser]: xlsxUnsupportedBrowser,
+        [XLSX_ERRORS.tooLarge]: xlsxTooLarge
+      };
+      throw new Error(sentences[error.reason] || xlsxUnreadable);
     }
   }
 

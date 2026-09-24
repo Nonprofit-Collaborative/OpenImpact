@@ -148,7 +148,9 @@ read, and its first row must be the column headings. Move the sheet you want to 
 copy it into a workbook of its own. A formula is read as the value Excel last saved for it,
 and a date as the date, whatever format the cell shows. An older .xls file, or a
 password-protected workbook, cannot be read: save it as .xlsx or CSV and upload that. A
-browser too old to open a workbook says so; save the sheet as CSV instead.
+browser too old to open a workbook says so; save the sheet as CSV instead. So does a workbook
+too large to open in the browser (more than 500,000 rows or 1,000 columns, or a sheet over
+100 MB once unpacked).
 
 **"No column was matched to a name or an email."** The dry run refuses to run when the
 mapping has no way to identify a person or an organization. Usually the file's header row

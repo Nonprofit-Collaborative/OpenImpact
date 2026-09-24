@@ -19,10 +19,21 @@ const DEFLATED = 8;
 const BUILT_IN_DATE_FORMATS = new Set([14, 15, 16, 17, 18, 19, 20, 21, 22, 45, 46, 47]);
 const DAY_MS = 86400000;
 
+/**
+ * The most any one part of the workbook may hold once inflated. A sheet this size is far past
+ * what the wizard can stage, and a zip can claim to hold far more than it is sent as.
+ */
+export const MAX_PART_BYTES = 100 * 1024 * 1024;
+
+/** The last row and column the reader will place a value in; a file past them is refused. */
+export const MAX_ROWS = 500000;
+export const MAX_COLUMNS = 1000;
+
 /** The reasons a file cannot be read, as keys the wizard turns into sentences. */
 export const XLSX_ERRORS = {
   notAWorkbook: 'notAWorkbook',
-  unsupportedBrowser: 'unsupportedBrowser'
+  unsupportedBrowser: 'unsupportedBrowser',
+  tooLarge: 'tooLarge'
 };
 
 class XlsxError extends Error {
@@ -56,7 +67,17 @@ export async function readXlsx(buffer, options = {}) {
   const entries = readCentralDirectory(bytes);
   const read = async (path) => {
     const entry = entries.get(path.replace(/^\//, ''));
-    return entry ? decodeUtf8(await extract(bytes, entry, inflate)) : null;
+    if (!entry) {
+      return null;
+    }
+    if (entry.uncompressedSize > MAX_PART_BYTES) {
+      throw new XlsxError(XLSX_ERRORS.tooLarge);
+    }
+    const part = await extract(bytes, entry, inflate);
+    if (part.length > MAX_PART_BYTES) {
+      throw new XlsxError(XLSX_ERRORS.tooLarge);
+    }
+    return decodeUtf8(part);
   };
 
   const workbookXml = await read('xl/workbook.xml');
@@ -117,6 +138,7 @@ function readCentralDirectory(bytes) {
     entries.set(name, {
       method: view.getUint16(offset + 10, true),
       compressedSize: view.getUint32(offset + 20, true),
+      uncompressedSize: view.getUint32(offset + 24, true),
       localOffset: view.getUint32(offset + 42, true)
     });
     offset += 46 + nameLength + extraLength + commentLength;
@@ -246,12 +268,18 @@ function readSheet(doc, context) {
   const rows = [];
   for (const row of byLocalName(doc, 'row')) {
     const rowNumber = Number(row.getAttribute('r')) || rows.length + 1;
+    if (rowNumber > MAX_ROWS) {
+      throw new XlsxError(XLSX_ERRORS.tooLarge);
+    }
     while (rows.length < rowNumber - 1) {
       rows.push([]);
     }
     const values = [];
     for (const cell of childrenNamed(row, 'c')) {
       const column = columnIndex(cell.getAttribute('r'), values.length);
+      if (column >= MAX_COLUMNS) {
+        throw new XlsxError(XLSX_ERRORS.tooLarge);
+      }
       while (values.length < column) {
         values.push('');
       }

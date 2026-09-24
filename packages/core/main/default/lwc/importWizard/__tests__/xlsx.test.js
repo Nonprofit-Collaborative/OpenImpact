@@ -1,7 +1,7 @@
 import { TextDecoder as NodeTextDecoder, TextEncoder as NodeTextEncoder } from 'util';
 import { deflateRawSync, inflateRawSync } from 'zlib';
 import { Buffer } from 'buffer';
-import { readXlsx, isXlsx, serialToDate } from '../xlsx';
+import { readXlsx, isXlsx, serialToDate, MAX_PART_BYTES } from '../xlsx';
 
 global.TextDecoder = global.TextDecoder || NodeTextDecoder;
 const encoder = new NodeTextEncoder();
@@ -13,7 +13,7 @@ const inflate = async (bytes) => new Uint8Array(inflateRawSync(bytes));
  * directory, then its end record. The checksum is left at zero because the reader does not
  * use it.
  */
-function zip(parts, { store = false } = {}) {
+function zip(parts, { store = false, declaredSize } = {}) {
   const chunks = [];
   const central = [];
   let offset = 0;
@@ -32,7 +32,7 @@ function zip(parts, { store = false } = {}) {
     entry.writeUInt32LE(0x02014b50, 0);
     entry.writeUInt16LE(store ? 0 : 8, 10);
     entry.writeUInt32LE(data.length, 20);
-    entry.writeUInt32LE(raw.length, 24);
+    entry.writeUInt32LE(declaredSize === undefined ? raw.length : declaredSize, 24);
     entry.writeUInt16LE(nameBytes.length, 28);
     entry.writeUInt32LE(offset, 42);
     central.push(entry, nameBytes);
@@ -113,6 +113,36 @@ describe('the workbook reader', () => {
     await expect(readXlsx(zip(workbook()))).rejects.toMatchObject({
       reason: 'unsupportedBrowser'
     });
+  });
+
+  it('refuses a sheet past the last row or column it will fill, rather than padding to it', async () => {
+    const farRow =
+      `<?xml version="1.0"?><worksheet xmlns="${MAIN}"><sheetData>` +
+      '<row r="1"><c r="A1" t="inlineStr"><is><t>Name</t></is></c></row>' +
+      '<row r="1048576"><c r="A1048576" t="inlineStr"><is><t>Last</t></is></c></row>' +
+      '</sheetData></worksheet>';
+    await expect(readXlsx(zip(workbook({ sheet: farRow })), { inflate })).rejects.toMatchObject({
+      reason: 'tooLarge'
+    });
+    const farColumn =
+      `<?xml version="1.0"?><worksheet xmlns="${MAIN}"><sheetData>` +
+      '<row r="1"><c r="XFD1" t="inlineStr"><is><t>Far</t></is></c></row>' +
+      '</sheetData></worksheet>';
+    await expect(readXlsx(zip(workbook({ sheet: farColumn })), { inflate })).rejects.toMatchObject({
+      reason: 'tooLarge'
+    });
+  });
+
+  it('refuses a part that says it unpacks to more than the ceiling, before unpacking it', async () => {
+    let inflated = false;
+    const counting = async (bytes) => {
+      inflated = true;
+      return inflate(bytes);
+    };
+    await expect(
+      readXlsx(zip(workbook(), { declaredSize: MAX_PART_BYTES + 1 }), { inflate: counting })
+    ).rejects.toMatchObject({ reason: 'tooLarge' });
+    expect(inflated).toBe(false);
   });
 
   it('knows a workbook by its name', () => {
