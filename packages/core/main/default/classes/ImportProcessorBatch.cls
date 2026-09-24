@@ -58,8 +58,16 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
         );
     }
 
+    /** Makes a chunk die after its rows were processed, so a test can see the rollback. */
+    @TestVisible
+    private static Boolean failAfterProcessForTest = false;
+
     public void execute(Database.BatchableContext context, List<Import_Row__c> scope) {
         chunksRun++;
+        // A chunk that dies part way must leave none of its writes behind (R-IB5): without the
+        // rollback, the records it made before the failure would stay while its rows say
+        // rejected, and a second load would make them again.
+        Savepoint beforeChunk = Database.setSavepoint();
         try {
             Import_Batch__c batch = ImportBatchSelector.selectById(batchId);
             Import_Template__c template = ImportTemplateSelector.selectById(
@@ -80,6 +88,9 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
                 scope,
                 dryRun
             );
+            if (failAfterProcessForTest) {
+                throw new ImportException('Failed for the test.');
+            }
             // Kept only from a chunk that finished: a chunk that died saved nothing.
             processorState = ImportEntityProcessors.carriedState;
             notes.addAll(outcome.notes);
@@ -90,6 +101,7 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
             // The chunk is lost, not the run. Every row in it is marked with the reason so
             // that nothing disappears without an explanation an administrator can read.
             failed = true;
+            Database.rollback(beforeChunk);
             rejectChunk(scope, e.getMessage());
             addLog(
                 String.format(
