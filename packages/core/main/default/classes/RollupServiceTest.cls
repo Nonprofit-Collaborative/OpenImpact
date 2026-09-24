@@ -313,6 +313,41 @@ private class RollupServiceTest {
         }
     }
 
+    @IsTest
+    static void aMergeRecalculatesOnlyTheRealTimeTotalsOnTheMergedEntity() {
+        insert new List<Rollup_Definition__c>{
+            memberCountNamed('Live count', 'Core_Merge_Live', RollupService.MODE_BOTH, true),
+            memberCountNamed(
+                'Nightly count',
+                'Core_Merge_Nightly',
+                RollupService.MODE_SCHEDULED,
+                true
+            ),
+            memberCountNamed('Off count', 'Core_Merge_Off', RollupService.MODE_BOTH, false)
+        };
+        RollupService.skipEngine = true;
+        RollupService.lastMetadata = null;
+        List<SObject> merged = new List<SObject>{ new Account(Name = 'Merged away') };
+
+        Test.startTest();
+        RollupService.runAfterMerge('Contact', merged);
+        List<Rollup__mdt> forPeople = RollupService.lastMetadata;
+        RollupService.runAfterMerge('Account', merged);
+        Test.stopTest();
+
+        System.Assert.isNull(forPeople, 'No total targets people here, so nothing is run');
+        System.Assert.areEqual(
+            1,
+            RollupService.lastMetadata.size(),
+            'Only the active real-time total on the merged entity is recalculated'
+        );
+        System.Assert.areEqual(
+            'Core_Merge_Live',
+            RollupService.lastMetadata[0].DeveloperName,
+            'And it is the live one'
+        );
+    }
+
     private static Rollup_Definition__c memberCountNamed(
         String name,
         String key,

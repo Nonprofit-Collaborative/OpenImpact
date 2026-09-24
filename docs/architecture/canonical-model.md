@@ -4130,6 +4130,10 @@ page deletes the suggestion without a dismissal, because the pair no longer exis
   shown a pair containing a record they cannot see. Salesforce licenses them only to Sales
   Cloud and Service Cloud users, so no Core role grants them: the optional permission set
   `Nonprofit_Duplicate_Review` does, and the panel says so to anyone without it (ADR-NEXT).
+- **People merges** are the platform's. When a contact is deleted by a merge
+  (`MasterRecordId` filled in `after delete`), its memberships are recreated on the survivor
+  in junction mode, the households it was in are recounted but not tidied away, and the
+  survivor's real-time rollups are recalculated through the engine's merge path.
 - **Matching** is `Datacloud.FindDuplicatesByIds`, which evaluates the org's active duplicate
   rules. It is called for one object at a time, and for households only among accounts: a
   call that includes a person stored as an account is refused by the platform when no person

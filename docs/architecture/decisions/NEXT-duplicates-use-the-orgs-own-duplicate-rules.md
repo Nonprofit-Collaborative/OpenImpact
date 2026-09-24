@@ -54,6 +54,17 @@ app cannot perform, so that draft needed four Setup steps before anything worked
   cannot be written, is logged and skipped, and counted. The scan's one summary entry in the
   Error Log is at Warning when that count is above zero, and the panel shows the latest summary
   as its last-scan line, so a partly failed scan never reads as a clean one.
+- **A people merge keeps what it touches.** The platform's merge deletes the merged-away
+  contact and moves its children without saving them. Open Impact's contact triggers handle
+  the delete as a merge when `MasterRecordId` is filled in `after delete`: in junction mode the
+  merged-away person's memberships are recreated on the survivor (a household the survivor is
+  already in is skipped, and a moved row is primary only when the survivor had no primary);
+  in both modes a household the merged-away person was in is recounted but never tidied away
+  by the merge, because gifts and history credited to it would lose their household; and the
+  survivor's real-time totals are recalculated through the rollup engine's merge path
+  (`RollupService.runAfterMerge`, driven by the definitions that target Contact, so Core names
+  no Giving object, ADR-0014). An emptied household is left for a person to merge into the
+  survivor's with R-H13.
 
 ## Alternatives considered
 
@@ -68,8 +79,8 @@ app cannot perform, so that draft needed four Setup steps before anything worked
   so a schedule would mostly re-scan unchanged records. Rerunning after a large import is in
   the admin guide. Revisit if reviewers report missed duplicates between scans.
 - **Merge two people in the app** with `Database.merge`. Rejected for now: the platform merge
-  already carries related records, and an in-app one would have to repair household
-  membership and rollups the platform merge handles through the existing delete triggers.
+  already carries related records, and the household membership and totals it cannot carry
+  are repaired by the contact triggers (above), which an in-app merge would need as well.
 - **Grant duplicate record sets in the Core permission sets.** Rejected: a permission set that
   grants them cannot be assigned to a Salesforce Platform user at all, which would break every
   Core role on a Platform-only org (ADR-0013).
@@ -89,6 +100,8 @@ app cannot perform, so that draft needed four Setup steps before anything worked
   nobody can review suggestions on the panel, and the Potential Duplicates card on the Contact
   record page shows them nothing usable, because the card reads the same record sets. Such an
   org needs at least one Sales Cloud or Service Cloud user to review and merge duplicates.
+- A merge of two people stored as person accounts goes through the Account triggers, which do
+  not yet move memberships or recalculate totals for a merge; that is outside C-20.
 - The permission set to review duplicates is assigned in Setup, not the Nonprofit Settings
   console, as with `Override_Receipt_Lock`: it is a license question for the administrator,
   not a setting.

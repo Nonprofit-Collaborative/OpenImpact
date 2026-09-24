@@ -26,6 +26,29 @@ public with sharing class RollupTriggerHandler extends TriggerHandler {
         run(oldRecords(), null);
     }
 
+    /**
+     * A merge: the records deleted with `MasterRecordId` filled are handed to the engine so the
+     * survivors' totals include what the merge moved onto them. An ordinary delete was already
+     * handled before the delete.
+     */
+    public override void afterDelete() {
+        List<SObject> merged = new List<SObject>();
+        for (SObject record : oldRecords()) {
+            if (record.getPopulatedFieldsAsMap().get('MasterRecordId') != null) {
+                merged.add(record);
+            }
+        }
+        if (merged.isEmpty()) {
+            return;
+        }
+        try {
+            RollupService.runAfterMerge(objectNameOf(merged), merged);
+        } catch (Exception failed) {
+            // As for every rollup: never fail the save, and the nightly run puts it right.
+            ErrorLogger.log(failed, CONTEXT);
+        }
+    }
+
     public override void afterUndelete() {
         run(newRecords(), null);
     }

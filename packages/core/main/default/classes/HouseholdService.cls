@@ -500,6 +500,102 @@ public with sharing class HouseholdService {
     }
 
     /**
+     * Every membership row these people have, current or ended, as it stands. Read before a
+     * person is deleted so that, when the deletion turns out to be a merge, their memberships
+     * can be handed to the person they were merged into (`moveMembershipsToSurvivors`).
+     * Empty outside junction mode.
+     */
+    @NamespaceAccessible
+    public static List<Household_Member__c> membershipsFor(Set<Id> personIds) {
+        if (personIds == null || personIds.isEmpty() || !isJunctionMode()) {
+            return new List<Household_Member__c>();
+        }
+        return HouseholdSelector.getAllMembershipsForPeople(personIds);
+    }
+
+    /**
+     * Gives the survivor of a people merge the memberships the merged-away person had, and
+     * answers with the households that has changed.
+     *
+     * The platform's merge moves every record that looks up to the person it deletes onto
+     * the survivor. It cannot move these: they were taken out in `before delete`, which the
+     * platform runs before it knows the delete is a merge, so that an ordinary delete can
+     * recount the household and an undelete can put them back. Without this the survivor
+     * would not be in the households the other record was in, and a household whose only
+     * member was the merged-away record would be left with nobody.
+     *
+     * A household the survivor is already in is skipped, so a merge never gives one person
+     * two rows in the same household. A moved row stays the survivor's primary household only
+     * when the survivor had no primary membership of their own (R-M2).
+     *
+     * @param removed the rows `membershipsFor` read before the delete
+     * @param survivorByMerged the survivor of each merged-away person
+     */
+    @NamespaceAccessible
+    public static Set<Id> moveMembershipsToSurvivors(
+        List<Household_Member__c> removed,
+        Map<Id, Id> survivorByMerged
+    ) {
+        Set<Id> affected = new Set<Id>();
+        if (removed == null || removed.isEmpty() || survivorByMerged == null) {
+            return affected;
+        }
+        Set<Id> survivors = new Set<Id>(survivorByMerged.values());
+        Map<Id, Set<Id>> householdsBySurvivor = new Map<Id, Set<Id>>();
+        Set<Id> survivorsWithPrimary = new Set<Id>();
+        for (Id survivorId : survivors) {
+            householdsBySurvivor.put(survivorId, new Set<Id>());
+        }
+        for (
+            Household_Member__c existing : HouseholdSelector.getAllMembershipsForPeople(survivors)
+        ) {
+            Id personId = existing.Contact__c != null ? existing.Contact__c : existing.Account__c;
+            if (!householdsBySurvivor.containsKey(personId)) {
+                continue;
+            }
+            householdsBySurvivor.get(personId).add(existing.Household__c);
+            if (existing.Is_Primary__c == true && existing.End_Date__c == null) {
+                survivorsWithPrimary.add(personId);
+            }
+        }
+        List<Household_Member__c> moved = new List<Household_Member__c>();
+        for (Household_Member__c row : removed) {
+            Id personId = row.Contact__c != null ? row.Contact__c : row.Account__c;
+            Id survivorId = survivorByMerged.get(personId);
+            if (survivorId == null || row.Household__c == null) {
+                continue;
+            }
+            Set<Id> already = householdsBySurvivor.get(survivorId);
+            if (already.contains(row.Household__c)) {
+                continue;
+            }
+            already.add(row.Household__c);
+            Boolean primary =
+                row.Is_Primary__c == true && !survivorsWithPrimary.contains(survivorId);
+            if (primary) {
+                survivorsWithPrimary.add(survivorId);
+            }
+            Household_Member__c copy = new Household_Member__c(
+                Household__c = row.Household__c,
+                Role__c = row.Role__c,
+                Start_Date__c = row.Start_Date__c,
+                End_Date__c = row.End_Date__c,
+                Is_Primary__c = primary
+            );
+            if (survivorId.getSObjectType() == Contact.SObjectType) {
+                copy.Contact__c = survivorId;
+            } else {
+                copy.Account__c = survivorId;
+            }
+            moved.add(copy);
+            affected.add(row.Household__c);
+        }
+        HouseholdWriter.createMemberships(moved);
+        HOUSEHOLD_ID_BY_PERSON.clear();
+        return affected;
+    }
+
+    /**
      * Takes the membership rows that join these people to their households out of the way,
      * for the one caller that needs it: the person records themselves are being deleted.
      *

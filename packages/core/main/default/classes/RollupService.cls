@@ -122,6 +122,49 @@ public with sharing class RollupService {
         stampAfterRun(ran, targetIdsFor(ran, changedRecords));
     }
 
+    /**
+     * Recalculates the totals on the survivors of a merge (C-20).
+     *
+     * The platform's merge moves the merged-away record's children onto the survivor without
+     * saving them, so no trigger on a child runs and a real-time total on the survivor would
+     * not include them until the nightly run. The engine has a path for exactly this: handed
+     * the deleted records in their own `after delete`, with `MasterRecordId` filled, it
+     * recalculates every rollup whose target is that entity for the survivors. This hands it
+     * the definitions that target the merged entity, whatever package declared them, so Core
+     * names no child entity (ADR-0014).
+     *
+     * @param targetObject the entity whose records were merged
+     * @param mergedRecords the deleted records, as the `after delete` trigger has them
+     */
+    @NamespaceAccessible
+    public static void runAfterMerge(String targetObject, List<SObject> mergedRecords) {
+        if (String.isBlank(targetObject) || mergedRecords == null || mergedRecords.isEmpty()) {
+            return;
+        }
+        List<Rollup__mdt> metadata = new List<Rollup__mdt>();
+        for (
+            Rollup_Definition__c definition : RollupSelector.selectActiveForTarget(
+                targetObject,
+                REAL_TIME_MODES
+            )
+        ) {
+            try {
+                metadata.addAll(
+                    RollupAdapter.toMetadata(new List<Rollup_Definition__c>{ definition })
+                );
+            } catch (Exception refused) {
+                ErrorLogger.log(refused, CONTEXT_REAL_TIME, definition.Id);
+            }
+        }
+        if (metadata.isEmpty()) {
+            return;
+        }
+        lastMetadata = metadata;
+        if (skipEngine != true) {
+            Rollup.runFromApex(metadata, null, mergedRecords, null)?.runCalc();
+        }
+    }
+
     // -------------------------------------------------------------------------------- scheduled
 
     /**
