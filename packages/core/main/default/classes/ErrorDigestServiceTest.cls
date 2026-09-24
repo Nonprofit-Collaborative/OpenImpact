@@ -1,0 +1,219 @@
+/**
+ * The error digest (C-23, R-E5): what it counts, whom it goes to, that it says nothing when
+ * nothing is new, that no entry is counted twice, and that a weekly digest waits its week.
+ *
+ * The digest runs as the administrator who scheduled it, so every run here is Maria's, on a
+ * minimal profile holding only the packaged Nonprofit Admin set. Messages are captured rather
+ * than sent, except in the one test that proves the real send path handles either outcome.
+ */
+@IsTest
+private class ErrorDigestServiceTest {
+    private static User maria() {
+        return TestDataFactory.createUser('Maria', new List<String>{ 'Nonprofit_Admin' });
+    }
+
+    private static Error_Log__c entry(String source, String severity, String status) {
+        return new Error_Log__c(
+            Timestamp__c = System.now(),
+            Context__c = source,
+            Message__c = 'The Garcia household could not be renamed.',
+            Technical_Detail__c = 'DmlException: FIELD_CUSTOM_VALIDATION_EXCEPTION',
+            Record_Reference__c = '001000000000001AAA',
+            Severity__c = severity,
+            Status__c = status
+        );
+    }
+
+    private static Nonprofit_Settings__c settings() {
+        return Nonprofit_Settings__c.getOrgDefaults();
+    }
+
+    private static void setDigest(String recipients, String frequency, Datetime coveredUntil) {
+        Nonprofit_Settings__c record = settings();
+        record.Error_Digest_Recipients__c = recipients;
+        record.Error_Digest_Frequency__c = frequency;
+        record.Error_Digest_Covered_Until__c = coveredUntil;
+        TestDataFactory.saveSettings(record);
+    }
+
+    @IsTest
+    static void theDigestCountsNewEntriesAndGoesToTheListedUser() {
+        TestDataFactory.defaultSettings();
+        User jen = TestDataFactory.createUser('Jen', new List<String>{ 'Nonprofit_Staff' });
+        User admin = maria();
+        setDigest('JEN@openimpact.example.invalid', null, null);
+        List<Error_Log__c> logs = new List<Error_Log__c>{
+            entry('Household naming', ErrorLogger.SEVERITY_ERROR, ErrorLogger.STATUS_NEW),
+            entry('Household naming', ErrorLogger.SEVERITY_ERROR, ErrorLogger.STATUS_NEW),
+            entry('Household naming', ErrorLogger.SEVERITY_ERROR, ErrorLogger.STATUS_NEW),
+            entry('Seasonal address swap', ErrorLogger.SEVERITY_WARNING, ErrorLogger.STATUS_NEW),
+            entry('Seasonal address swap', ErrorLogger.SEVERITY_WARNING, ErrorLogger.STATUS_NEW),
+            entry('Already looked at', ErrorLogger.SEVERITY_ERROR, ErrorLogger.STATUS_RESOLVED),
+            entry('Last week', ErrorLogger.SEVERITY_ERROR, ErrorLogger.STATUS_NEW)
+        };
+        insert logs;
+        Test.setCreatedDate(logs[6].Id, System.now().addDays(-3));
+        ErrorDigestService.capturedMessages = new List<Messaging.SingleEmailMessage>();
+
+        ErrorDigestService.Outcome outcome;
+        System.runAs(admin) {
+            Test.startTest();
+            outcome = ErrorDigestService.sendNow();
+            Test.stopTest();
+        }
+
+        Assert.isTrue(outcome.sent, 'Something was new, so a digest went out.');
+        Assert.areEqual(5, outcome.entries, 'Five new: not the resolved one, not last week.');
+        List<Messaging.SingleEmailMessage> sent = ErrorDigestService.capturedMessages;
+        Assert.areEqual(1, sent.size(), 'One message, to the one listed user.');
+        Assert.areEqual(jen.Id, sent[0].getTargetObjectId(), 'Addressed to Jen, found by email.');
+        Assert.isFalse(sent[0].getSaveAsActivity(), 'No activity is logged against Jen.');
+        Assert.isTrue(sent[0].getSubject().contains('5'), 'The subject gives the count.');
+
+        String body = sent[0].getPlainTextBody();
+        Assert.isTrue(body.contains('Household naming: 3'), 'Counted by source.');
+        Assert.isTrue(body.contains('Seasonal address swap: 2'), 'Every source.');
+        Assert.isTrue(body.contains('Error: 3') && body.contains('Warning: 2'), 'And by severity.');
+        Assert.isTrue(body.contains('/' + logs[0].Id), 'Each listed entry links to itself.');
+        Assert.isFalse(body.contains(logs[5].Id), 'A resolved entry is not listed.');
+        Assert.isFalse(body.contains('Garcia'), 'The message is never copied.');
+        Assert.isFalse(body.contains('DmlException'), 'Nor the technical detail.');
+        Assert.isFalse(body.contains('001000000000001AAA'), 'Nor the record it names.');
+
+        Nonprofit_Settings__c after = settings();
+        Assert.isNotNull(after.Error_Digest_Covered_Until__c, 'The window moved on.');
+        Assert.isNotNull(after.Error_Digest_Last_Run__c, 'The run is recorded.');
+        Assert.areEqual(
+            String.format(Label.Core_ErrorDigest_SummarySent, new List<Object>{ '5', '1' }),
+            after.Error_Digest_Last_Run_Summary__c,
+            'And says what it did.'
+        );
+    }
+
+    @IsTest
+    static void nothingNewSendsNothingAndMovesTheWindowOn() {
+        TestDataFactory.defaultSettings();
+        User admin = maria();
+        ErrorDigestService.capturedMessages = new List<Messaging.SingleEmailMessage>();
+
+        ErrorDigestService.Outcome outcome;
+        System.runAs(admin) {
+            Test.startTest();
+            outcome = ErrorDigestService.runScheduled();
+            Test.stopTest();
+        }
+
+        Assert.isFalse(outcome.sent, 'Nothing new, nothing sent.');
+        Assert.isTrue(ErrorDigestService.capturedMessages.isEmpty(), 'Not a single message.');
+        Nonprofit_Settings__c after = settings();
+        Assert.isNotNull(after.Error_Digest_Covered_Until__c, 'An empty window is still covered.');
+        Assert.isTrue(
+            after.Error_Digest_Last_Run_Summary__c.startsWith(
+                Label.Core_ErrorDigest_SummaryNothingNew.substringBefore('{0}')
+            ),
+            'The run says nothing was new.'
+        );
+    }
+
+    @IsTest
+    static void noEntryIsCountedInTwoDigests() {
+        TestDataFactory.defaultSettings();
+        User admin = maria();
+        setDigest(null, null, null);
+        insert entry('Household naming', ErrorLogger.SEVERITY_ERROR, ErrorLogger.STATUS_NEW);
+        ErrorDigestService.capturedMessages = new List<Messaging.SingleEmailMessage>();
+
+        ErrorDigestService.Outcome first;
+        ErrorDigestService.Outcome second;
+        System.runAs(admin) {
+            Test.startTest();
+            first = ErrorDigestService.sendNow();
+            second = ErrorDigestService.sendNow();
+            Test.stopTest();
+        }
+
+        Assert.isTrue(first.sent, 'The first digest carries the entry.');
+        Assert.isTrue(first.recipients >= 1, 'To the administrators, Maria among them.');
+        Assert.isFalse(second.sent, 'The second finds nothing new.');
+        Assert.areEqual(0, second.entries, 'The entry is not counted again.');
+    }
+
+    @IsTest
+    static void aWeeklyDigestWaitsItsWeek() {
+        TestDataFactory.defaultSettings();
+        User admin = maria();
+        setDigest(null, ErrorDigestService.FREQUENCY_WEEKLY, System.now().addDays(-2));
+        insert entry('Household naming', ErrorLogger.SEVERITY_ERROR, ErrorLogger.STATUS_NEW);
+        ErrorDigestService.capturedMessages = new List<Messaging.SingleEmailMessage>();
+
+        ErrorDigestService.Outcome early;
+        ErrorDigestService.Outcome due;
+        System.runAs(admin) {
+            Test.startTest();
+            early = ErrorDigestService.runScheduled();
+            setDigest(null, ErrorDigestService.FREQUENCY_WEEKLY, System.now().addDays(-7));
+            due = ErrorDigestService.runScheduled();
+            Test.stopTest();
+        }
+
+        Assert.isFalse(early.sent, 'Two days into the week, the scheduled run waits.');
+        Assert.isTrue(
+            early.summary.startsWith(Label.Core_ErrorDigest_SummaryNotDue.substringBefore('{0}')),
+            'And says when it will be due.'
+        );
+        Assert.isTrue(due.sent, 'Seven days on, it sends.');
+    }
+
+    @IsTest
+    static void aDailyDigestIsDueAFewMinutesShortOfADay() {
+        TestDataFactory.defaultSettings();
+        User admin = maria();
+        setDigest(
+            null,
+            ErrorDigestService.FREQUENCY_DAILY,
+            System.now().addMinutes(-(24 * 60 - 5))
+        );
+        insert entry('Household naming', ErrorLogger.SEVERITY_ERROR, ErrorLogger.STATUS_NEW);
+        ErrorDigestService.capturedMessages = new List<Messaging.SingleEmailMessage>();
+
+        ErrorDigestService.Outcome outcome;
+        System.runAs(admin) {
+            Test.startTest();
+            outcome = ErrorDigestService.runScheduled();
+            Test.stopTest();
+        }
+
+        Assert.isTrue(outcome.sent, 'The 07:00 run is due even when yesterday ended at 07:00:05.');
+    }
+
+    @IsTest
+    static void theRealSendPathEitherSendsOrKeepsTheWindow() {
+        TestDataFactory.defaultSettings();
+        User admin = maria();
+        insert entry('Household naming', ErrorLogger.SEVERITY_ERROR, ErrorLogger.STATUS_NEW);
+
+        ErrorDigestService.Outcome outcome;
+        System.runAs(admin) {
+            Test.startTest();
+            outcome = ErrorDigestService.sendNow();
+            Test.stopTest();
+        }
+
+        // Whether this org may send email is its own setting; both outcomes are correct ones.
+        Nonprofit_Settings__c after = settings();
+        if (outcome.sent) {
+            Assert.isNotNull(after.Error_Digest_Covered_Until__c, 'Sent, so the window moved on.');
+        } else {
+            Assert.isNull(
+                after.Error_Digest_Covered_Until__c,
+                'Not sent, so the next run tries the same window again.'
+            );
+            Assert.isTrue(
+                outcome.summary.startsWith(
+                    Label.Core_ErrorDigest_SummaryNotSent.substringBefore('{0}')
+                ),
+                'And the run says why.'
+            );
+        }
+    }
+}

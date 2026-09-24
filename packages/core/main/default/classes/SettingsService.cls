@@ -328,6 +328,16 @@ public with sharing class SettingsService {
         return blanks;
     }
 
+    /**
+     * The same correction for a writer outside this class that saves the org's settings for the
+     * first time: the record to save next, putting back to blank every field that was blank on
+     * `saved` before the platform filled its default (ErrorDigestWriter).
+     */
+    @NamespaceAccessible
+    public static SObject blanksAfterFirstSave(SObject saved) {
+        return blanksKeptBlank(saved.getSObjectType(), saved);
+    }
+
     private static String localName(Schema.SObjectType type) {
         return type.getDescribe(SObjectDescribeOptions.DEFERRED).getLocalName();
     }
