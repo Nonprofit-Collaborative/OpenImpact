@@ -40,8 +40,7 @@ private class GiftImportRunStateTest {
     static void aRepeatInALaterChunkIsMatchedInTheDryRunAsInTheCommit() {
         TestDataFactory.defaultSettings();
         insert new Fund__c(Name = 'General', Active__c = true, Is_Default__c = true);
-        // Ana is already here, so each row's status is its gift's: a dry run cannot know that an
-        // earlier chunk would create a person either.
+        // Ana is already here, so each row's status is its gift's alone.
         insert new Contact(LastName = 'Ramirez', Email = 'ana@example.org');
         ImportMapping mapping = new ImportMapping();
         for (

@@ -44,6 +44,19 @@ public with sharing class ImportRowProcessor {
 
     private static final String ORGANIZATION_RECORD_TYPE = 'Organization';
 
+    /** Prefixes a matching key before its digest, so a person and an organization never share one. */
+    private static final String PERSON_DIGEST = 'person:';
+    private static final String ORGANIZATION_DIGEST = 'organization:';
+    private static final String HEX_DIGITS = '0123456789abcdef';
+
+    /**
+     * In a dry run, the digests of the people and organizations earlier chunks of the same run
+     * would create (R-IB12). The commit creates each once, and a later chunk matches it; a dry
+     * run saves nothing, so without these it would count the same new person Created in every
+     * chunk that names them. Set by `process` for the chunk it runs; empty in a commit.
+     */
+    private static Set<Long> createdEarlier = new Set<Long>();
+
     /**
      * The attributes that can name or find a person. A full name column is not listed because
      * `splitFullNames` has already turned one into a first and last name by the time anything
@@ -86,6 +99,12 @@ public with sharing class ImportRowProcessor {
         /** The settings the entity processor ran this chunk under, in a dry run (R-IB11). */
         @NamespaceAccessible
         public String processorSettings;
+        /**
+         * In a dry run, the digests of the people and organizations this chunk would create,
+         * for the import batch to hand to the chunks after it (R-IB12).
+         */
+        @NamespaceAccessible
+        public Set<Long> wouldCreate = new Set<Long>();
     }
 
     /** One row's working state while the chunk is resolved. */
@@ -105,6 +124,10 @@ public with sharing class ImportRowProcessor {
         Boolean createdPerson1 = false;
         /** True when this run created the row's second person, who is joined to a household. */
         Boolean createdPerson2 = false;
+        /** In a dry run, true when an earlier chunk would create the row's first person. */
+        Boolean comingPerson1 = false;
+        /** In a dry run, true when an earlier chunk would create the row's second person. */
+        Boolean comingPerson2 = false;
         String error;
     }
 
@@ -120,7 +143,29 @@ public with sharing class ImportRowProcessor {
         List<Import_Row__c> rows,
         Boolean dryRun
     ) {
+        return process(batch, template, mapping, rows, dryRun, null);
+    }
+
+    /**
+     * Resolves a chunk as above. In a dry run, `wouldCreateEarlier` holds the digests of the
+     * people and organizations earlier chunks of the run would create (R-IB12): a row naming
+     * one is counted matched, as the commit will count it, and the outcome's `wouldCreate`
+     * holds this chunk's own for the chunks after it.
+     */
+    @NamespaceAccessible
+    public static Outcome process(
+        Import_Batch__c batch,
+        Import_Template__c template,
+        ImportMapping mapping,
+        List<Import_Row__c> rows,
+        Boolean dryRun,
+        Set<Long> wouldCreateEarlier
+    ) {
         Outcome outcome = new Outcome();
+        createdEarlier = dryRun == true &&
+            wouldCreateEarlier != null
+            ? wouldCreateEarlier
+            : new Set<Long>();
         if (rows == null || rows.isEmpty()) {
             return outcome;
         }
@@ -353,8 +398,15 @@ public with sharing class ImportRowProcessor {
         }
         if (dryRun) {
             for (Working item : working) {
-                if (item.organizationId == null && item.organizationKey != null) {
+                if (item.organizationId != null || item.organizationKey == null) {
+                    continue;
+                }
+                Long digest = digest(ORGANIZATION_DIGEST, item.organizationKey);
+                // An organization an earlier chunk would create is found by the commit here,
+                // so the row is not one that creates it (R-IB12).
+                if (!createdEarlier.contains(digest)) {
                     item.createdAnything = true;
+                    outcome.wouldCreate.add(digest);
                 }
             }
             return;
@@ -435,10 +487,13 @@ public with sharing class ImportRowProcessor {
 
         assignPerson(working, matches, ImportMapping.ENTITY_CONTACT_1, true);
         assignPerson(working, matches, ImportMapping.ENTITY_CONTACT_2, false);
+        if (dryRun) {
+            markPeopleComing(working);
+        }
         validate(working);
 
         if (dryRun) {
-            countUpdatesInPreview(working, personAccounts);
+            countUpdatesInPreview(working, personAccounts, rule, outcome);
             // Read, not written: an entity processor matching a gift to a household's pledge
             // needs the household a matched person is in, in the preview as in the commit.
             resolveHouseholds(working, personAccounts);
@@ -546,6 +601,44 @@ public with sharing class ImportRowProcessor {
         }
     }
 
+    /**
+     * In a dry run, marks the people an earlier chunk would create. The commit will have
+     * created them by the time it reaches this chunk and will match them, so the preview
+     * treats them as matched (R-IB12): not created again, and not missing a last name.
+     */
+    private static void markPeopleComing(List<Working> working) {
+        if (createdEarlier.isEmpty()) {
+            return;
+        }
+        for (Working item : working) {
+            item.comingPerson1 =
+                item.person1Id == null &&
+                item.personKey1 != null &&
+                createdEarlier.contains(digest(PERSON_DIGEST, item.personKey1));
+            item.comingPerson2 =
+                item.person2Id == null &&
+                item.personKey2 != null &&
+                createdEarlier.contains(digest(PERSON_DIGEST, item.personKey2));
+        }
+    }
+
+    /**
+     * A matching key as a 64-bit number: the first eight bytes of its MD5 digest. Eight bytes a
+     * person keep a dry run of half a million rows within the heap, and 64 bits keep it well
+     * clear of two keys sharing one. The digest is only compared, never shown.
+     */
+    private static Long digest(String kind, String key) {
+        String hex = EncodingUtil.convertToHex(
+            Crypto.generateDigest('MD5', Blob.valueOf(kind + key))
+        );
+        Long value = 0;
+        for (Integer index = 0; index < 16; index++) {
+            Long nibble = HEX_DIGITS.indexOf(hex.substring(index, index + 1));
+            value = (value << 4) | nibble;
+        }
+        return value;
+    }
+
     /** A row has to describe somebody. One that does not is rejected before anything is saved. */
     private static void validate(List<Working> working) {
         for (Working item : working) {
@@ -570,12 +663,14 @@ public with sharing class ImportRowProcessor {
             if (
                 hasPerson1 &&
                 item.person1Id == null &&
+                !item.comingPerson1 &&
                 !hasLastName(item, ImportMapping.ENTITY_CONTACT_1)
             ) {
                 item.error = Label.Core_Import_ErrorLastNameMissing;
             } else if (
                 hasPerson2 &&
                 item.person2Id == null &&
+                !item.comingPerson2 &&
                 !hasLastName(item, ImportMapping.ENTITY_CONTACT_2)
             ) {
                 item.error = Label.Core_Import_ErrorLastNameMissing;
@@ -625,9 +720,16 @@ public with sharing class ImportRowProcessor {
     /**
      * On a dry run there is nothing to compare a matched person's stored values against
      * without reading them, so the preview reads them: the counts an administrator sees are
-     * the counts the commit will produce.
+     * the counts the commit will produce. A person an earlier chunk would create counts as
+     * matched, and a person this chunk would create is remembered for the chunks after it
+     * (R-IB12).
      */
-    private static void countUpdatesInPreview(List<Working> working, Boolean personAccounts) {
+    private static void countUpdatesInPreview(
+        List<Working> working,
+        Boolean personAccounts,
+        String rule,
+        Outcome outcome
+    ) {
         Set<Id> matchedIds = new Set<Id>();
         for (Working item : working) {
             if (item.person1Id != null) {
@@ -642,8 +744,19 @@ public with sharing class ImportRowProcessor {
             if (item.error != null) {
                 continue;
             }
-            if (item.person1Id == null && describesPerson(item, ImportMapping.ENTITY_CONTACT_1)) {
+            if (
+                item.person1Id == null &&
+                !item.comingPerson1 &&
+                describesPerson(item, ImportMapping.ENTITY_CONTACT_1)
+            ) {
                 item.createdAnything = true;
+                rememberCreated(
+                    outcome,
+                    item,
+                    ImportMapping.ENTITY_CONTACT_1,
+                    rule,
+                    personAccounts
+                );
             } else if (
                 changes(
                     stored.get(item.person1Id),
@@ -652,8 +765,19 @@ public with sharing class ImportRowProcessor {
             ) {
                 item.updatedAnything = true;
             }
-            if (item.person2Id == null && describesPerson(item, ImportMapping.ENTITY_CONTACT_2)) {
+            if (
+                item.person2Id == null &&
+                !item.comingPerson2 &&
+                describesPerson(item, ImportMapping.ENTITY_CONTACT_2)
+            ) {
                 item.createdAnything = true;
+                rememberCreated(
+                    outcome,
+                    item,
+                    ImportMapping.ENTITY_CONTACT_2,
+                    rule,
+                    personAccounts
+                );
             } else if (
                 changes(
                     stored.get(item.person2Id),
@@ -662,6 +786,32 @@ public with sharing class ImportRowProcessor {
             ) {
                 item.updatedAnything = true;
             }
+        }
+    }
+
+    /**
+     * Remembers a person a dry run would create, for later chunks to match, but only when the
+     * commit could find them again by the same key: the record it creates must carry the value
+     * the matcher reads. An email is written to a contact but not to a person stored as an
+     * account, and a postal code only to a contact whose own column gave it; an external ID is
+     * written to either. A person the commit could not find again is created again, and the
+     * dry run says so too.
+     */
+    private static void rememberCreated(
+        Outcome outcome,
+        Working item,
+        String entity,
+        String rule,
+        Boolean personAccounts
+    ) {
+        String key = entity == ImportMapping.ENTITY_CONTACT_1 ? item.personKey1 : item.personKey2;
+        Boolean findable =
+            ImportTemplateService.RULE_EXTERNAL_ID.equals(rule) ||
+            (!personAccounts &&
+            (ImportTemplateService.RULE_EMAIL.equals(rule) ||
+            String.isNotBlank(attribute(item.byEntity, entity, 'MailingPostalCode'))));
+        if (key != null && findable) {
+            outcome.wouldCreate.add(digest(PERSON_DIGEST, key));
         }
     }
 

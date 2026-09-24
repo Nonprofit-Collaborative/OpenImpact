@@ -1489,6 +1489,22 @@ an attribute per setting: the values are the processor's own (an empty template 
 Giving setting Core cannot resolve), and a module's settings do not become Core attributes
 beyond the template values R-IT7 already carries (ADR-0014).
 
+**R-IB12 A dry run counts a new record once, however many chunks name it.** The commit
+creates a new person or organization in the first chunk that names it, and every later chunk
+finds it by the template's matching rule and counts the row Matched (or Updated). A dry run
+saves nothing for a later chunk to find, so it carries from chunk to chunk, in the dry run
+only, a 64-bit digest of the matching key of each person and organization it would create
+(eight bytes each, so a file of half a million rows stays within the heap). A later row whose
+key is among them is counted as matching that record, not as creating it again, and is not
+refused for a missing last name, exactly as in the commit. A person is remembered only when
+the commit could find them again by the same key: an email is written to a contact but not to
+a person stored as an account, and a postal code only to a contact whose own column gave it,
+so under those rules the commit creates such a person again and the dry run counts it again.
+Within one chunk nothing changes: the commit and the dry run treat two rows naming the same new
+record the same way. One difference remains: a later row that brings a value the first row did
+not is Updated in the commit but Matched in the dry run, which has no saved record to compare
+it with; both count it once.
+
 ### Salesforce implementation
 
 - **Object:** `Import_Batch__c`, auto-number Name with format `IB-{000000}`.
@@ -1522,6 +1538,9 @@ beyond the template values R-IT7 already carries (ADR-0014).
   `Gift__c` field ships in Giving (Section 18).
 - **Settings keys:** `Import_Chunk_Size__c` and `Import_Undo_Retention_Days__c`
   (Section 12).
+- **Carried between chunks, in a dry run only:** `ImportProcessorBatch` holds the digests of
+  the records earlier chunks would create and hands them to `ImportRowProcessor.process`
+  (R-IB12). Nothing is stored on the batch.
 - **Service:** `ImportBatchService`, `ImportBatchSelector`, `ImportProcessorBatch`,
   `ImportUndoService` and `ImportUndoBatch` (R-IB7 to R-IB9), `ImportController` (the one
   Aura-enabled entry point the import screens call), LWC `importWizard`, `importResults`,
@@ -4779,3 +4798,4 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.5 | 2026-09-23 | C-19 review. No object or field added. R-IB1: a dry run is refused on a batch that has started a commit or is in an undo status. R-IB8: a chunk the platform stopped, or an undo job that is no longer running, ends Undo failed. R-IB9: a tagged record is kept when anything created since points at it through any reference the org can filter on (not only custom ones), when something was created during the commit by somebody else, when the record was edited since or has an activity, and when the person undoing cannot delete it; the system-mode reads and writes are recorded against ADR-0021. R-IJ1: a page holds at most 200 entries, and one oversized entry is logged rather than losing the chunk's journal. |
 | v0.5 | 2026-09-24 | G-23 gift import and G-24 donation matching (ADR-0052). No object added. `Import_Template__c` gains `Donation_Matching__c`, `Match_Date_Window_Days__c` and `Match_Amount_Tolerance__c` (R-IT7); `Import_Batch__c` gains the control totals `Expected_Count__c`, `Expected_Amount__c` and `File_Amount__c` (R-IB10); `Giving_Settings__c` gains `Donation_Match_Date_Window_Days__c` and `Donation_Match_Amount_Tolerance__c`. R-IR1 adds the `Tribute` row entity; R-IR6 states the entity processor contract and R-IR7 how a row's outcome is folded; R-IB8 and R-IB9 let an undo delete what an entity processor tagged, with the processor's reasons to keep. New Section 25N, rules R-GI1 to R-GI9 and R-DM1 to R-DM6. |
 | v0.5 | 2026-09-24 | G-24 follow-up (ADR-0052, amended). `Import_Batch__c` gains `Processor_Settings_JSON__c`, one document the entity processor fills in a dry run and reads back in the commit, which Core never reads. R-IB11 added: a commit runs under the settings its dry run showed. R-DM7 added: donation matching's behaviour, window and tolerance are taken once per dry run and the commit uses them, not the template as edited since. R-IR6 and R-IT7 say so. |
+| v0.5 | 2026-09-24 | C-14 dry run fix. No object or field added. R-IB12 added: a dry run carries, across chunks, digests of the people and organizations it would create, so a later chunk naming one counts it matched, as the commit does, rather than created again. |

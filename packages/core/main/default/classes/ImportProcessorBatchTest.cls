@@ -105,6 +105,58 @@ private class ImportProcessorBatchTest {
         );
     }
 
+    /** Runs one pass the way the platform drives the batch, in chunks of this size. */
+    private static Import_Batch__c runInChunks(Id batchId, Boolean dryRun, Integer chunkSize) {
+        ImportBatchService.resetRows(batchId);
+        ImportProcessorBatch job = new ImportProcessorBatch(batchId, dryRun);
+        List<Import_Row__c> chunk = new List<Import_Row__c>();
+        Database.QueryLocatorIterator rows = job.start(null).iterator();
+        while (rows.hasNext()) {
+            chunk.add((Import_Row__c) rows.next());
+            if (chunk.size() == chunkSize || !rows.hasNext()) {
+                job.execute(null, chunk);
+                chunk = new List<Import_Row__c>();
+            }
+        }
+        job.finish(null);
+        return ImportBatchSelector.selectById(batchId);
+    }
+
+    @IsTest
+    static void aNewPersonInTwoChunksIsCreatedOnceInTheDryRunAsInTheCommit() {
+        Import_Template__c template = ImportTestDataFactory.template(
+            ImportTestDataFactory.donorMapping(),
+            ImportTemplateService.RULE_EMAIL
+        );
+        Import_Batch__c batch = ImportTestDataFactory.batch(template);
+        // Ana, and her organization, are new, and appear again in the second chunk.
+        ImportTestDataFactory.rows(
+            batch,
+            new List<Map<String, String>>{
+                ImportTestDataFactory.donorRow('Ana', 'Ramirez', 'ana@example.org', 'Rose City'),
+                ImportTestDataFactory.donorRow('Ben', 'Okafor', 'ben@example.org', null),
+                ImportTestDataFactory.donorRow('Ana', 'Ramirez', 'ANA@example.org', 'Rose City')
+            }
+        );
+
+        Test.startTest();
+        Import_Batch__c dryRun = runInChunks(batch.Id, true, 2);
+        Import_Batch__c committed = runInChunks(batch.Id, false, 2);
+        Test.stopTest();
+
+        Assert.areEqual(2, dryRun.Rows_Created__c, 'Ana is created once, not once a chunk.');
+        Assert.areEqual(1, dryRun.Rows_Matched__c, 'Her second row matches her (R-IB12).');
+        Assert.areEqual(dryRun.Rows_Created__c, committed.Rows_Created__c, 'As the commit did.');
+        Assert.areEqual(dryRun.Rows_Matched__c, committed.Rows_Matched__c, 'And matched.');
+        Assert.areEqual(dryRun.Rows_Updated__c, committed.Rows_Updated__c, 'And updated.');
+        Assert.areEqual(2, [SELECT COUNT() FROM Contact], 'Two people exist.');
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Account WHERE Name = 'Rose City'],
+            'One organization.'
+        );
+    }
+
     /** A processor that counts the chunks it has seen in the state it carries. */
     private class CountingProcessor implements ImportEntityProcessor {
         public List<ImportMapping.Target> targets() {

@@ -27,6 +27,11 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
     private String processorState;
     /** The settings the entity processor ran a dry run under, for the commit (R-IB11). */
     private String processorSettings;
+    /**
+     * In a dry run, the digests of the people and organizations earlier chunks would create,
+     * so a later chunk counts them matched as the commit will (R-IB12). Eight bytes each.
+     */
+    private Set<Long> wouldCreate = new Set<Long>();
 
     public ImportProcessorBatch(Id batchId, Boolean dryRun) {
         this.batchId = batchId;
@@ -88,13 +93,15 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
                 template,
                 mapping,
                 scope,
-                dryRun
+                dryRun,
+                wouldCreate
             );
             if (failAfterProcessForTest) {
                 throw new ImportException('Failed for the test.');
             }
             // Kept only from a chunk that finished: a chunk that died saved nothing.
             processorState = ImportEntityProcessors.carriedState;
+            wouldCreate.addAll(outcome.wouldCreate);
             notes.addAll(outcome.notes);
             if (outcome.fileAmount != null) {
                 fileAmount = (fileAmount == null ? 0 : fileAmount) + outcome.fileAmount;

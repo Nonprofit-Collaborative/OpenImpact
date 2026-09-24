@@ -59,7 +59,9 @@ or six rows.
 6. Select **Dry run**. Nothing is written. When it finishes you see four counts, "would
    create", "would update", "would match and change nothing", and "would be rejected",
    and a table of the rejected rows with the reason for each one. Select **Download
-   exceptions** to get those rows back as a CSV you can fix in your spreadsheet.
+   exceptions** to get those rows back as a CSV you can fix in your spreadsheet. A new
+   person or organization that appears on several rows is counted once as "would create";
+   their later rows count as matching them, which is what the commit will do.
 7. If the preview is wrong, fix the file or the mapping and dry run again. Nothing you
    have done so far has changed a record.
 8. When the preview is right, select **Commit**. Processing runs in the background and
