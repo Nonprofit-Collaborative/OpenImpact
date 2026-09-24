@@ -118,4 +118,28 @@ private class GiftImportRunStateTest {
             'Carried, whatever the case.'
         );
     }
+
+    @IsTest
+    static void theMatchingValuesAreReadWithoutTheRestOfTheState() {
+        ImportEntityProcessors.carriedState = null;
+        Assert.isNull(GiftImportRunState.carriedSettings(), 'Nothing carried yet.');
+        GiftImportRunState state = GiftImportRunState.carried();
+        state.settings = '{"donationMatching":"Match only"}';
+        state.seenExternalIds.add(GiftImportRunState.key('Order-7'));
+        state.carry();
+
+        Assert.areEqual(
+            '{"donationMatching":"Match only"}',
+            GiftImportRunState.carriedSettings(),
+            'Read from the head of the state.'
+        );
+        GiftImportRunState again = GiftImportRunState.carried();
+        Assert.areEqual(state.settings, again.settings, 'And kept by a full read too.');
+        Assert.isTrue(
+            again.seenExternalIds.contains(GiftImportRunState.key('order-7')),
+            'With the rest.'
+        );
+        ImportEntityProcessors.carriedState = 'not a state';
+        Assert.isNull(GiftImportRunState.carriedSettings(), 'A state it did not write has none.');
+    }
 }

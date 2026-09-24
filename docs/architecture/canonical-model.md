@@ -1493,8 +1493,12 @@ beyond the template values R-IT7 already carries (ADR-0014).
 creates a new person or organization in the first chunk that names it, and every later chunk
 finds it by the template's matching rule and counts the row Matched (or Updated). A dry run
 saves nothing for a later chunk to find, so it carries from chunk to chunk, in the dry run
-only, a 64-bit digest of the matching key of each person and organization it would create
-(eight bytes each, so a file of half a million rows stays within the heap). A later row whose
+only, a 64-bit digest of the matching key of each person and organization it would create, as
+a set of numbers held in the import batch's state. That set costs about 8 MB per million new
+records, which is about 4 MB for a file of half a million rows with one new person each and
+about 12 MB at two new people and an organization a row, the whole of the 12 MB an
+asynchronous job may use: a dry run of a file that size can fail for want of heap (a known
+limit, to be removed by keeping the digests on the rows). A later row whose
 key is among them is counted as matching that record, not as creating it again, and is not
 refused for a missing last name, exactly as in the commit. A person is remembered only when
 the commit could find them again by the same key: an email is written to a contact but not to
@@ -3960,9 +3964,13 @@ recorded values, or values that cannot be read, falls back to the template.
   installments, within the importing user's sharing), `GiftImportIntegritySelector` (what
   already exists: gifts by external ID, and the receipts, statements and gifts an undo must
   keep; `without sharing` under ADR-0021), `DonationMatcher` (R-DM1 to R-DM7),
-  `GiftImportRunState` (what one run carries from chunk to chunk: claimed payments, and in a
-  dry run the matching values it took and the external IDs loaded, each kept as a 64-bit digest of the lowercased value; a
-  commit finds those gifts by the batch stamp instead).
+  `GiftImportRunState` (what one run carries from chunk to chunk: the claimed payments; in a
+  dry run, the matching values it took (R-DM7); and in a dry run the external IDs loaded, each
+  kept as a 64-bit digest of its lowercased value, while a commit finds those gifts by the batch
+  stamp instead). The external ID digests travel as JSON text, parsed and rewritten on every
+  chunk, and peak at about 25 MB of heap for 500,000 gifts: a dry run fails for want of heap at
+  roughly 120,000 to 150,000 gift rows with external IDs (a known limit, to be removed by
+  keeping the digests on the rows).
 - **Settings keys** (on `Giving_Settings__c`, Section 21A):
   `Donation_Match_Date_Window_Days__c`, `Donation_Match_Amount_Tolerance__c`.
 - **Template attributes** (on `Import_Template__c`, Section 15): `Donation_Matching__c`,

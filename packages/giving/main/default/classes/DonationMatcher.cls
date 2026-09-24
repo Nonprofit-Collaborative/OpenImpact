@@ -66,10 +66,11 @@ public with sharing class DonationMatcher {
         Boolean dryRun
     ) {
         if (dryRun == true) {
-            GiftImportRunState state = GiftImportRunState.carried();
-            DonationMatcher taken = fromRecord(state.settings);
+            DonationMatcher taken = fromRecord(GiftImportRunState.carriedSettings());
             if (taken == null) {
+                // The first chunk: the only time the whole state is read to add the values.
                 taken = new DonationMatcher(template);
+                GiftImportRunState state = GiftImportRunState.carried();
                 state.settings = taken.record();
                 state.carry();
             }

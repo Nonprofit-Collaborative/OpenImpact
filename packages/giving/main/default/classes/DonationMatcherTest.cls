@@ -473,4 +473,59 @@ private class DonationMatcherTest {
             'The commit matched as the dry run showed.'
         );
     }
+
+    @IsTest
+    static void aSecondDryRunAfterATemplateEditReplacesTheRecordedValues() {
+        TestDataFactory.defaultSettings();
+        GivingTestDataFactory.insertDefaultFund();
+        insert new Contact(FirstName = 'Ana', LastName = 'Ramirez', Email = 'ana@example.org');
+        ImportMapping mapping = new ImportMapping();
+        Map<String, String> row = new Map<String, String>{
+            'Contact1.Email' => 'ana@example.org',
+            'Contact1.LastName' => 'Ramirez',
+            'Gift.Amount__c' => '100',
+            'Gift.Gift_Date__c' => '2026-03-15',
+            'Gift.Type__c' => 'Card'
+        };
+        for (String target : row.keySet()) {
+            mapping.columns.add(new ImportMapping.Column(target, target));
+        }
+        Import_Template__c template = ImportTestDataFactory.template(
+            mapping.serialize(),
+            ImportTemplateService.RULE_EMAIL
+        );
+        Import_Batch__c batch = ImportTestDataFactory.batch(template);
+        ImportTestDataFactory.rows(batch, new List<Map<String, String>>{ row });
+        String first;
+        String second;
+
+        System.runAs(maria()) {
+            Test.startTest();
+            runPass(batch.Id, true);
+            first = ImportBatchSelector.selectById(batch.Id).Processor_Settings_JSON__c;
+            update new Import_Template__c(
+                Id = template.Id,
+                Donation_Matching__c = DonationMatcher.MATCH_ONLY,
+                Match_Date_Window_Days__c = 3
+            );
+            runPass(batch.Id, true);
+            second = ImportBatchSelector.selectById(batch.Id).Processor_Settings_JSON__c;
+            Test.stopTest();
+        }
+
+        Assert.isTrue(
+            first.contains(DonationMatcher.MATCH_OR_CREATE),
+            'The first dry run: ' + first
+        );
+        Assert.isTrue(
+            second.contains(DonationMatcher.MATCH_ONLY),
+            'The second replaced it: ' + second
+        );
+        Assert.isTrue(second.contains('"matchDateWindowDays":3'), 'Window and all: ' + second);
+        Assert.areEqual(
+            ImportRowProcessor.STATUS_REJECTED,
+            [SELECT Status__c FROM Import_Row__c WHERE Import_Batch__c = :batch.Id].Status__c,
+            'And the second dry run showed Match only refusing the gift with no payment.'
+        );
+    }
 }

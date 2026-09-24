@@ -29,7 +29,7 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
     private String processorSettings;
     /**
      * In a dry run, the digests of the people and organizations earlier chunks would create,
-     * so a later chunk counts them matched as the commit will (R-IB12). Eight bytes each.
+     * so a later chunk counts them matched as the commit will (R-IB12). About 8 MB per million.
      */
     private Set<Long> wouldCreate = new Set<Long>();
 

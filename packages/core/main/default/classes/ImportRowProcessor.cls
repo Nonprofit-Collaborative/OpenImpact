@@ -623,9 +623,10 @@ public with sharing class ImportRowProcessor {
     }
 
     /**
-     * A matching key as a 64-bit number: the first eight bytes of its MD5 digest. Eight bytes a
-     * person keep a dry run of half a million rows within the heap, and 64 bits keep it well
-     * clear of two keys sharing one. The digest is only compared, never shown.
+     * A matching key as a 64-bit number: the first eight bytes of its MD5 digest, so 64 bits
+     * keep two keys well clear of sharing one. The set of them costs about 8 MB of heap per
+     * million new records, which a dry run of a very large file can exceed (R-IB12). The digest
+     * is only compared, never shown.
      */
     private static Long digest(String kind, String key) {
         String hex = EncodingUtil.convertToHex(

@@ -157,6 +157,44 @@ private class ImportProcessorBatchTest {
         );
     }
 
+    @IsTest
+    static void aPersonTheCommitCannotFindAgainIsCountedCreatedInEachChunkByBoth() {
+        // Name plus postal code, with the postal code only in the household column: the person
+        // the commit creates carries no postal code of their own, so a later chunk cannot find
+        // them and creates them again. The dry run must say so, not promise a match.
+        ImportMapping mapping = new ImportMapping();
+        mapping.columns.add(new ImportMapping.Column('Last Name', 'Contact1.LastName'));
+        mapping.columns.add(new ImportMapping.Column('Zip', 'Household.BillingPostalCode'));
+        Import_Batch__c batch = ImportTestDataFactory.batch(
+            ImportTestDataFactory.template(
+                mapping.serialize(),
+                ImportTemplateService.RULE_NAME_POSTAL
+            )
+        );
+        Map<String, String> ramirez = new Map<String, String>{
+            'Last Name' => 'Ramirez',
+            'Zip' => '97201'
+        };
+        ImportTestDataFactory.rows(batch, new List<Map<String, String>>{ ramirez, ramirez });
+
+        Test.startTest();
+        Import_Batch__c dryRun = runInChunks(batch.Id, true, 1);
+        Import_Batch__c committed = runInChunks(batch.Id, false, 1);
+        Test.stopTest();
+
+        Assert.areEqual(
+            committed.Rows_Created__c,
+            dryRun.Rows_Created__c,
+            'The dry run counts what the commit creates.'
+        );
+        Assert.areEqual(committed.Rows_Matched__c, dryRun.Rows_Matched__c, 'And matches.');
+        Assert.areEqual(
+            [SELECT COUNT() FROM Contact],
+            dryRun.Rows_Created__c,
+            'One created row per person the commit made.'
+        );
+    }
+
     /** A processor that counts the chunks it has seen in the state it carries. */
     private class CountingProcessor implements ImportEntityProcessor {
         public List<ImportMapping.Target> targets() {
