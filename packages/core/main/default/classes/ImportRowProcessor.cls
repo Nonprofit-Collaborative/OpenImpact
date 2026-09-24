@@ -61,11 +61,8 @@ public with sharing class ImportRowProcessor {
      * In a commit, the matching keys of the people this chunk has set out to create, the
      * people created under each, and why any could not be, so a second row naming the same
      * new person shares the first row's record rather than making another (R-IB4, R-IB12).
-     * Each key maps to the row that creates it: the two people of one row are never the same
-     * person, even when they share a key (a couple with one surname and postal code, or one
-     * email), so a row's second person never shares its own first person's record.
      */
-    private static Map<String, Import_Row__c> keysBeingCreated = new Map<String, Import_Row__c>();
+    private static Set<String> keysBeingCreated = new Set<String>();
     private static Map<String, Id> createdByKey = new Map<String, Id>();
     private static Map<String, String> failedByKey = new Map<String, String>();
 
@@ -484,6 +481,13 @@ public with sharing class ImportRowProcessor {
                 rule,
                 externalIdField
             );
+            // A row's two people are two people, even when the rule gives them one key (a
+            // couple with one surname and postal code, or one email). The second is then never
+            // matched, shared or remembered by that key: they are created (R-IB12). Clearing
+            // the key here holds the rule for matching, the dry run and the commit alike.
+            if (item.personKey2 != null && item.personKey2 == item.personKey1) {
+                item.personKey2 = null;
+            }
             collect(item.personKey1, rule, emailKeys, namePostalKeys, externalIds);
             collect(item.personKey2, rule, emailKeys, namePostalKeys, externalIds);
         }
@@ -757,7 +761,7 @@ public with sharing class ImportRowProcessor {
         // person whose row has a first person before one whose row has not; the first row it
         // saves a new person for creates them and the rest share them. The preview walks the
         // chunk in the same order so it names the same row as the one that creates (R-IB12).
-        Map<String, Working> keysInChunk = new Map<String, Working>();
+        Set<String> keysInChunk = new Set<String>();
         List<Working> withFirst = new List<Working>();
         List<Working> withoutFirst = new List<Working>();
         for (Working item : working) {
@@ -785,7 +789,7 @@ public with sharing class ImportRowProcessor {
         Working item,
         Boolean isFirst,
         Map<Id, SObject> stored,
-        Map<String, Working> keysInChunk,
+        Set<String> keysInChunk,
         String rule,
         Boolean personAccounts,
         Outcome outcome
@@ -795,13 +799,12 @@ public with sharing class ImportRowProcessor {
         String key = isFirst ? item.personKey1 : item.personKey2;
         Boolean coming = isFirst ? item.comingPerson1 : item.comingPerson2;
         if (personId == null && !coming && describesPerson(item, entity)) {
-            Working keyOwner = key == null ? null : keysInChunk.get(key);
-            if (keyOwner != null && keyOwner !== item) {
+            if (key != null && keysInChunk.contains(key)) {
                 return;
             }
             item.createdAnything = true;
-            if (key != null && keyOwner == null) {
-                keysInChunk.put(key, item);
+            if (key != null) {
+                keysInChunk.add(key);
             }
             rememberCreated(outcome, item, entity, rule, personAccounts);
         } else if (changes(stored.get(personId), item.byEntity.get(entity))) {
@@ -856,7 +859,7 @@ public with sharing class ImportRowProcessor {
         Boolean personAccounts,
         Outcome outcome
     ) {
-        keysBeingCreated = new Map<String, Import_Row__c>();
+        keysBeingCreated = new Set<String>();
         createdByKey = new Map<String, Id>();
         failedByKey = new Map<String, String>();
         insertPeople(
@@ -983,18 +986,13 @@ public with sharing class ImportRowProcessor {
                 continue;
             }
             String key = isFirst ? item.personKey1 : item.personKey2;
-            Import_Row__c keyOwner = key == null ? null : keysBeingCreated.get(key);
-            if (keyOwner != null && keyOwner !== item.row) {
+            if (key != null && keysBeingCreated.contains(key)) {
                 sharing.add(item);
                 sharedKeys.add(key);
                 continue;
             }
-            if (keyOwner != null) {
-                // The row's own first person holds this key: a different person, created too,
-                // and later rows naming the key share the first person, as before.
-                key = null;
-            } else if (key != null) {
-                keysBeingCreated.put(key, item.row);
+            if (key != null) {
+                keysBeingCreated.add(key);
             }
             SObject person = personAccounts
                 ? (SObject) new Account(RecordTypeId = personRecordTypeId)
@@ -1108,6 +1106,10 @@ public with sharing class ImportRowProcessor {
             }
             for (Integer which = 1; which <= 2; which++) {
                 Id personId = which == 1 ? item.person1Id : item.person2Id;
+                if (which == 2 && personId == item.person1Id) {
+                    // Never write the second person's values over the first person (R-IB12).
+                    continue;
+                }
                 String entity = which == 1
                     ? ImportMapping.ENTITY_CONTACT_1
                     : ImportMapping.ENTITY_CONTACT_2;

@@ -285,64 +285,105 @@ private class ImportProcessorBatchTest {
     }
 
     /**
-     * Loads one row naming John and Jane, whose matching keys are the same under the rule, and
-     * checks that both are created, into one household, with neither renamed as the other.
+     * John and Jane Smith share one matching key under the rule. Loads their row, after a row
+     * naming John alone when `johnRowFirst`, or with John already in the org when `johnExists`,
+     * and checks both are two people in one household, John never renamed as Jane, and the dry
+     * run counting what the commit did (R-IB12).
      */
-    private static void aCoupleSharingAKeyIsTwoPeople(String rule, Map<String, String> values) {
+    private static void aCoupleSharingAKeyIsTwoPeople(
+        String rule,
+        Boolean johnExists,
+        Boolean johnRowFirst,
+        Integer chunkSize
+    ) {
+        Map<String, String> john = new Map<String, String>{
+            'Contact1.FirstName' => 'John',
+            'Contact1.LastName' => 'Smith',
+            'Contact1.MailingPostalCode' => '12345',
+            'Contact1.Email' => 'smiths@example.org'
+        };
+        Map<String, String> couple = new Map<String, String>(john);
+        couple.putAll(
+            new Map<String, String>{
+                'Contact2.FirstName' => 'Jane',
+                'Contact2.LastName' => 'Smith',
+                'Contact2.MailingPostalCode' => '12345',
+                'Contact2.Email' => 'smiths@example.org'
+            }
+        );
         ImportMapping mapping = new ImportMapping();
-        for (String target : values.keySet()) {
+        for (String target : couple.keySet()) {
             mapping.columns.add(new ImportMapping.Column(target, target));
         }
         Import_Batch__c batch = ImportTestDataFactory.batch(
             ImportTestDataFactory.template(mapping.serialize(), rule)
         );
-        ImportTestDataFactory.rows(batch, new List<Map<String, String>>{ values });
+        ImportTestDataFactory.rows(
+            batch,
+            johnRowFirst
+                ? new List<Map<String, String>>{ john, couple }
+                : new List<Map<String, String>>{ couple }
+        );
+        if (johnExists) {
+            insert new Contact(
+                FirstName = 'John',
+                LastName = 'Smith',
+                MailingPostalCode = '12345',
+                Email = 'smiths@example.org'
+            );
+        }
 
         Test.startTest();
-        Import_Batch__c dryRun = runInChunks(batch.Id, true, 200);
-        Import_Batch__c committed = runInChunks(batch.Id, false, 200);
+        Import_Batch__c dryRun = runInChunks(batch.Id, true, chunkSize);
+        Import_Batch__c committed = runInChunks(batch.Id, false, chunkSize);
         Test.stopTest();
 
-        Import_Row__c row = ImportTestDataFactory.reload(batch.Id)[0];
-        Assert.areEqual(ImportRowProcessor.STATUS_CREATED, row.Status__c, row.Error_Message__c);
+        List<Import_Row__c> rows = ImportTestDataFactory.reload(batch.Id);
+        Import_Row__c row = rows[rows.size() - 1];
+        Assert.areNotEqual(
+            ImportRowProcessor.STATUS_REJECTED,
+            row.Status__c,
+            'The couple loads: ' + row.Error_Message__c
+        );
         Assert.areNotEqual(row.Contact_1__c, row.Contact_2__c, 'Two people, not one.');
         Map<Id, Contact> people = new Map<Id, Contact>([SELECT FirstName FROM Contact]);
-        Assert.areEqual(2, people.size(), 'John and Jane are both created.');
+        Assert.areEqual(2, people.size(), 'John and Jane, each once.');
         Assert.areEqual('John', people.get(row.Contact_1__c).FirstName, 'John is not renamed.');
         Assert.areEqual('Jane', people.get(row.Contact_2__c).FirstName, 'Jane is herself.');
-        Assert.isNotNull(row.Household__c, 'The row has a household.');
         Assert.areEqual(1, [SELECT COUNT() FROM Account], 'One household for the two of them.');
         Assert.areEqual(committed.Rows_Created__c, dryRun.Rows_Created__c, 'As the dry run said.');
+        Assert.areEqual(committed.Rows_Matched__c, dryRun.Rows_Matched__c, 'Both counts.');
+        Assert.areEqual(committed.Rows_Updated__c, dryRun.Rows_Updated__c, 'All three.');
     }
 
     @IsTest
     static void aCoupleWithOneSurnameAndPostalCodeIsTwoPeople() {
-        aCoupleSharingAKeyIsTwoPeople(
-            ImportTemplateService.RULE_NAME_POSTAL,
-            new Map<String, String>{
-                'Contact1.FirstName' => 'John',
-                'Contact1.LastName' => 'Smith',
-                'Contact1.MailingPostalCode' => '12345',
-                'Contact2.FirstName' => 'Jane',
-                'Contact2.LastName' => 'Smith',
-                'Contact2.MailingPostalCode' => '12345'
-            }
-        );
+        aCoupleSharingAKeyIsTwoPeople(ImportTemplateService.RULE_NAME_POSTAL, false, false, 200);
     }
 
     @IsTest
     static void aCoupleSharingOneEmailIsTwoPeople() {
-        aCoupleSharingAKeyIsTwoPeople(
-            ImportTemplateService.RULE_EMAIL,
-            new Map<String, String>{
-                'Contact1.FirstName' => 'John',
-                'Contact1.LastName' => 'Smith',
-                'Contact1.Email' => 'smiths@example.org',
-                'Contact2.FirstName' => 'Jane',
-                'Contact2.LastName' => 'Smith',
-                'Contact2.Email' => 'smiths@example.org'
-            }
-        );
+        aCoupleSharingAKeyIsTwoPeople(ImportTemplateService.RULE_EMAIL, false, false, 200);
+    }
+
+    @IsTest
+    static void aCoupleAfterARowNamingHimInTheSameChunkIsTwoPeople() {
+        aCoupleSharingAKeyIsTwoPeople(ImportTemplateService.RULE_NAME_POSTAL, false, true, 200);
+    }
+
+    @IsTest
+    static void aCoupleAfterARowNamingHimInAnEarlierChunkIsTwoPeople() {
+        aCoupleSharingAKeyIsTwoPeople(ImportTemplateService.RULE_NAME_POSTAL, false, true, 1);
+    }
+
+    @IsTest
+    static void aCoupleWhoseHusbandIsAlreadyHereIsTwoPeople() {
+        aCoupleSharingAKeyIsTwoPeople(ImportTemplateService.RULE_NAME_POSTAL, true, false, 200);
+    }
+
+    @IsTest
+    static void aCoupleSharingAnEmailWhoseHusbandIsAlreadyHereIsTwoPeople() {
+        aCoupleSharingAKeyIsTwoPeople(ImportTemplateService.RULE_EMAIL, true, false, 200);
     }
 
     @IsTest

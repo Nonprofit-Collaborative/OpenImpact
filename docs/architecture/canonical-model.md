@@ -1507,15 +1507,20 @@ so under those rules the commit creates such a person again and the dry run coun
 Within one chunk the commit creates a new person once as well: rows naming the same new person
 by the same matching key, in either person column, share the record the first of them creates
 (first people are saved before second people, and a second person whose row has a first
-person before one whose row has not), and are not joined to a household for it. The two
-people of one row are never shared with each other, even when their keys agree (a couple with
-one surname and postal code, or one email): both are created, into the row's one household. When that
+person before one whose row has not), and are not joined to a household for it. When that
 person cannot be saved, the rows sharing them are rejected with the reason. The dry run walks
 the chunk in the same order and counts the same row as the one that creates. Unlike a person
 an earlier chunk would create, a later row of the same chunk must still carry a last name,
 because rows are checked before anybody is saved. One difference remains: a later row that brings a value the first row did
 not is Updated in the commit but Matched in the dry run, which has no saved record to compare
 it with; both count it once.
+
+**A row's two people are two people.** When the rule gives a row's second person the same key
+as its first (a couple with one surname and postal code, or one shared email), the second is
+never matched, shared or remembered by that key, whoever else holds it: an earlier row of the
+chunk, an earlier chunk, or a person already in the org. They are created, and joined to the
+first person's household (R-IR1a), in the commit and the dry run alike, and a first person
+never takes a second person's values.
 
 ### Salesforce implementation
 
