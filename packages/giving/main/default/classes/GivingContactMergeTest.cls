@@ -1,9 +1,9 @@
 /**
  * What a merge of two people does to their giving (C-20, R-DP4). The platform's merge moves
  * every gift and soft credit that named the merged-away person onto the survivor without
- * saving them, so no gift trigger runs. The survivor's real-time totals are recalculated by a
- * full recalculation limited to the survivor (RollupService.runAfterMerge), and the household
- * each gift was credited to is kept, because the merge never tidies a household away.
+ * saving them, so no gift trigger runs. The real-time totals that target people are
+ * recalculated at once (RollupService.runAfterMerge), and the household each gift was
+ * credited to is kept, because the merge never tidies a household away.
  *
  * It runs the real engine over the real shipped definitions, because the thing under test is
  * that the survivor's total includes what the merge moved onto it.

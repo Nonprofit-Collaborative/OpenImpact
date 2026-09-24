@@ -34,6 +34,9 @@ public with sharing class RollupService {
     /** The field the platform fills on a record deleted by a merge, naming the survivor. */
     private static final String MERGE_SURVIVOR_FIELD = 'MasterRecordId';
 
+    /** The entities whose totals a merge has already recalculated in this transaction. */
+    private static final Set<String> RECALCULATED_AFTER_MERGE = new Set<String>();
+
     /** The one freshness attribute every target entity carries (canonical model Section 26). */
     @NamespaceAccessible
     public static final String FRESHNESS_FIELD = 'Rollups_Last_Calculated__c';
@@ -130,57 +133,46 @@ public with sharing class RollupService {
      *
      * The platform's merge moves the merged-away record's children onto the survivor without
      * saving them, so no trigger on a child runs and a real-time total on the survivor would
-     * not include them until the nightly run. This runs the engine's full recalculation, the
-     * one the Rollups page runs, limited to the survivors, for every active real-time
-     * definition that targets the merged entity, whatever package declared it, so Core names
-     * no child entity (ADR-0014). The recalculation is queued, so it reads the children after
-     * the merge has finished moving them.
+     * not include them until the nightly run. This runs that recalculation now, the one the
+     * Rollups page runs, for every active real-time definition that targets the merged entity,
+     * whatever package declared it, so Core names no child entity (ADR-0014). It is queued by
+     * the engine, so it reads the children after the merge has finished moving them, and it
+     * runs at most once per entity per transaction however many records one merge call removes.
+     *
+     * The engine's own after-delete merge handling queued nothing in a test run, and its
+     * recalculation limited to named parents fails inside the vendored processor, so the whole
+     * recalculation, the path the Rollups page and the nightly run already use, is the one used.
      *
      * @param targetObject the entity whose records were merged
-     * @param mergedRecords the deleted records, as the `after delete` trigger has them, with
-     *        `MasterRecordId` naming each survivor
+     * @param mergedRecords the deleted records, as the `after delete` trigger has them; only
+     *        those with `MasterRecordId` filled were merged
      */
     @NamespaceAccessible
     public static void runAfterMerge(String targetObject, List<SObject> mergedRecords) {
-        if (String.isBlank(targetObject) || mergedRecords == null || mergedRecords.isEmpty()) {
-            return;
-        }
-        Set<String> survivorIds = new Set<String>();
-        for (SObject record : mergedRecords) {
-            Object survivorId = record.getPopulatedFieldsAsMap().get(MERGE_SURVIVOR_FIELD);
-            if (survivorId != null) {
-                survivorIds.add(String.valueOf(survivorId));
-            }
-        }
-        if (survivorIds.isEmpty()) {
-            return;
-        }
-        List<Rollup__mdt> metadata = new List<Rollup__mdt>();
-        for (
-            Rollup_Definition__c definition : RollupSelector.selectActiveForTarget(
-                targetObject,
-                REAL_TIME_MODES
-            )
+        if (
+            String.isBlank(targetObject) ||
+            mergedRecords == null ||
+            RECALCULATED_AFTER_MERGE.contains(targetObject.toLowerCase())
         ) {
-            try {
-                metadata.addAll(
-                    RollupAdapter.toMetadata(new List<Rollup_Definition__c>{ definition })
-                );
-            } catch (Exception refused) {
-                ErrorLogger.log(refused, CONTEXT_REAL_TIME, definition.Id);
-            }
-        }
-        if (metadata.isEmpty()) {
             return;
         }
-        lastMetadata = metadata;
-        if (skipEngine != true) {
-            Rollup.performBulkFullRecalcWithParentIds(
-                JSON.serialize(metadata),
-                Rollup.InvocationPoint.FROM_FULL_RECALC_APEX.name(),
-                new List<String>(survivorIds)
-            );
+        Boolean anyMerged = false;
+        for (SObject record : mergedRecords) {
+            anyMerged =
+                anyMerged || record.getPopulatedFieldsAsMap().get(MERGE_SURVIVOR_FIELD) != null;
         }
+        if (!anyMerged) {
+            return;
+        }
+        List<Rollup_Definition__c> definitions = RollupSelector.selectActiveForTarget(
+            targetObject,
+            REAL_TIME_MODES
+        );
+        if (definitions.isEmpty()) {
+            return;
+        }
+        RECALCULATED_AFTER_MERGE.add(targetObject.toLowerCase());
+        runFullRecalculation(definitions);
     }
 
     // -------------------------------------------------------------------------------- scheduled

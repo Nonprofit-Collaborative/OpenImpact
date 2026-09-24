@@ -61,9 +61,13 @@ app cannot perform, so that draft needed four Setup steps before anything worked
   already in is skipped, and a moved row is primary only when the survivor had no primary);
   in both modes a household the merged-away person was in is recounted but never tidied away
   by the merge, because gifts and history credited to it would lose their household; and the
-  survivor's real-time totals are recalculated by the engine's full recalculation, limited to
-  the survivors (`RollupService.runAfterMerge`, driven by the definitions that target Contact,
-  so Core names no Giving object, ADR-0014). An emptied household is left for a person to merge into the
+  real-time totals that target Contact are recalculated at once with the Rollups page's full
+  recalculation, queued once per transaction (`RollupService.runAfterMerge`, driven by the
+  definitions that target Contact, so Core names no Giving object, ADR-0014). The engine's own
+  after-delete merge handling queued nothing in a test run, and its recalculation limited to
+  named parents fails inside the vendored processor, so the whole recalculation is used. It
+  costs one full recalculation of those definitions per merge transaction, which is what the
+  nightly run does anyway; revisit if bulk merging makes that too heavy. An emptied household is left for a person to merge into the
   survivor's with R-H13.
 
 ## Alternatives considered

@@ -357,6 +357,12 @@ private class RollupServiceTest {
             RollupService.lastMetadata[0].DeveloperName,
             'And it is the live one'
         );
+        RollupService.lastMetadata = null;
+        RollupService.runAfterMerge('Account', merged);
+        System.Assert.isNull(
+            RollupService.lastMetadata,
+            'A second merge in the same transaction does not queue the recalculation again'
+        );
     }
 
     private static Rollup_Definition__c memberCountNamed(
