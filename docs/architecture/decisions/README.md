@@ -59,6 +59,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0048](0048-health-check-fixes-create-or-set-never-delete.md) | Health Check fix buttons create or set, never delete, and ask first | Accepted (builder decision) |
 | [0049](0049-xlsx-read-in-the-browser-without-sheetjs.md) | Excel workbooks are read in the browser without SheetJS | Accepted (builder decision) |
 | [0050](0050-duplicates-use-the-orgs-own-duplicate-rules.md) | Duplicate detection uses the org's own duplicate rules, and Open Impact ships none | Accepted (builder decision) |
+| [0051](0051-inbound-gift-api-and-accounting-export.md) | The inbound gift API keeps a small permanent surface, and the accounting export marks nothing | Accepted |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions
@@ -106,6 +107,8 @@ ADR-0049 is a builder decision for C-19 on reading Excel workbooks in the browse
 SheetJS.
 ADR-0050 is a builder decision for C-20 on detecting duplicates with the org's own duplicate
 rules, and on what a people merge keeps.
+ADR-0051 is a builder decision for X-03, X-04 and X-06, recording the permanent surface of
+the inbound gift API and why the accounting export marks no gift.
 
 ## Adding a new ADR
 

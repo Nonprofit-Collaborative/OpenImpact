@@ -1791,7 +1791,9 @@ fund.
 Staff never type a gift name, and the number is not a receipt number.
 
 **R-G7 Idempotent intake.** External Id is unique. The importer and the inbound API in
-Connect both match on it, so re-sending a gift updates rather than duplicates.
+Connect both match on it, so re-sending a gift never creates a second one. The inbound API
+answers a resend with the gift already recorded and never edits it, so it cannot change a
+receipted gift; a resend whose amount differs is refused as a conflict (ADR-0051).
 
 **R-G8 Tribute link.** The authoritative link between a gift and a tribute is the
 Tribute's own Gift reference (Section 25). The Gift's Tribute reference is a mirror the
@@ -4368,6 +4370,10 @@ as Stewardship Plan Template, Stewardship Plan Step and the running Stewardship 
 Gift Batch left this table in v0.5 and is specified in Section 25L, together with Gift
 Batch Row (25M), the line of a batch.
 
+The v0.6 inbound gift API (X-03) and accounting export (X-04) add no Connect entity: the
+API writes ordinary gifts through Giving, and the export reads gifts and allocations and
+records nothing (ADR-0051). The posting flag plan Section 4.12 mentions is G-20's, in Giving.
+
 Two v0.4 entities have attributes that already exist on `Gift__c` from v0.2, because the
 object is not worth altering later for fields this cheap: Acknowledgment Status,
 Acknowledgment Date, and Receipt Number for G-12 and G-13, and In-kind Description and
@@ -4441,6 +4447,7 @@ None open. R-M3's Primary Contact mirror, the only entry, was closed on 2026-09-
 | v0.5 | 2026-09-23 | G-17 gift batch entry (ADR-0045). Two objects added: `Gift_Batch__c` (Section 25L) and its master-detail child `Gift_Batch_Row__c` (25M), with rules R-GB1 to R-GB6 and R-GR1 to R-GR4. The batch holds the control total and four defaults; a line holds only what varies, and its empty values are resolved from the batch at posting (R-GB1). The entered total is computed, never stored (R-GB2). Posting locks the batch, refuses an unbalanced or already posted batch, inserts ordinary gifts in user mode, and rolls everything back if any line fails. Status and a line's Gift are written only by posting; validation rules keep a posted batch and its lines unchanged. No trigger and no registry entry. The import framework is not used: ADR-0045 records why. No field added to an existing object. Gift Batch leaves Section 30. |
 | v0.5 | 2026-09-23 | C-21 Health Check v2 (ADR-0048). No object, field, settings key or rollup row added. Health Check reads state the model already defines: shipped rollup definitions, automation switch rows and import templates not yet materialized from their shipped defaults (Section 13), the nightly rollup run when an active definition is in Scheduled or Both mode (Section 14). Recorded against R-A2: an `Automation_Setting__c` row whose registry entry is no longer shipped is left alone, because no fix deletes a record. `Automation_Setting__c` rows are now materialized by Core's and Giving's post-install scripts, one per shipped registry entry not yet present, never touching an existing row (before C-21 nothing created them). Recorded against R-R6: a shipped rollup default is not materialized when an active, administrator-made definition (`Is_Package_Default__c` false) already writes the same target entity and attribute; shipped defaults are not counted against each other, because household and organization pairs write one attribute for different accounts. Health Check detects orphans without changing them (cleanup is C-28): a person in no household, reported only while `Auto_Create_Households__c` is on (R-C1), which in contact mode is a Contact with no Account (a Contact whose Account is an Organization belongs to it, Section 7) and in junction mode a Contact or person account with no current Household Member row (R-M2, R-M4; a Contact whose Account is a Household is left to the membership check); and a Household with no current member (in contact mode no Contact on it, in junction mode no current row naming a person). Person accounts are recognised by the org's person record types, never by a person account field. |
 | v0.5 | 2026-09-23 | C-20 duplicate detection (ADR-0050). One object added, `Duplicate_Dismissal__c` (Section 29A) with `Pair_Key__c` and `Reason__c`, which holds a decision rather than a finding. Detection is the org's own active duplicate rules; Open Impact ships none, and the suggestions are the standard `DuplicateRecordSet` and `DuplicateRecordItem` records. A scan started from Nonprofit Settings evaluates those rules against the people and households already in the org. Rules R-DP1 to R-DP5 added. |
+| v0.6 | 2026-09-23 | X-03, X-04 and X-06, the Connect integration surface (ADR-0051). No object or field added. R-G7 is reworded: the inbound gift API answers a resend with the gift already recorded and never edits it, and refuses a resend whose amount differs. The accounting export reads `Gift__c`, `Gift_Allocation__c` and `Fund__c` and writes nothing: the posting flag plan Section 4.12 names belongs to G-20 in Giving, and no Connect object records export runs. Section 30 notes that X-03 and X-04 add no Connect entity. |
 
 ---
 ## 32. Entity ownership by package

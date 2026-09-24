@@ -88,6 +88,8 @@ SYSTEM_TYPES = {
     "PageReference",
     "PicklistEntry",
     "QueryException",
+    "RestRequest",
+    "RestResponse",
     "SearchException",
     "SerializationException",
     "Schema",

@@ -126,3 +126,5 @@ Each feature adds its row here when its page is written.
 | C-20 Duplicates | [duplicates.md](duplicates.md) | Core | v0.5 |
 | C-01 Household members | [household-members.md](household-members.md) | Core | v0.1 |
 | X-09 Nonprofit Cloud households | [nonprofit-cloud-households.md](nonprofit-cloud-households.md) | Core | v0.6 |
+| X-03 Inbound gift API | [inbound-gift-api.md](inbound-gift-api.md) | Connect | v0.6 |
+| X-04 Accounting export | [accounting-export.md](accounting-export.md) | Connect | v0.6 |
