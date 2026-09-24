@@ -38,6 +38,7 @@ public with sharing class AccountingExportSelector {
                     Gift__r.Gift_Date__c,
                     Gift__r.Type__c,
                     Gift__r.Payment_Reference__c,
+                    Gift__r.Accounting_Posted_At__c,
                     Gift__r.Original_Gift__r.Name,
                     Gift__r.Donor_Contact__r.Name,
                     Gift__r.Donor_Account__r.Name
@@ -67,6 +68,7 @@ public with sharing class AccountingExportSelector {
                 Gift__r.Gift_Date__c,
                 Gift__r.Type__c,
                 Gift__r.Payment_Reference__c,
+                Gift__r.Accounting_Posted_At__c,
                 Gift__r.Original_Gift__r.Name,
                 Gift__r.Donor_Contact__r.Name,
                 Gift__r.Donor_Account__r.Name
@@ -91,6 +93,7 @@ public with sharing class AccountingExportSelector {
                 Gift_Date__c,
                 Type__c,
                 Payment_Reference__c,
+                Accounting_Posted_At__c,
                 Original_Gift__r.Name,
                 Donor_Contact__r.Name,
                 Donor_Account__r.Name

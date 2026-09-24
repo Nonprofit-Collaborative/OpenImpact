@@ -253,13 +253,28 @@ private class AccountingExportServiceTest {
             AUGUST_FIRST,
             AUGUST_LAST,
             null,
-            null
+            null,
+            false
         );
         String refusal;
         try {
-            AccountingExportController.exportGifts(AUGUST_LAST, AUGUST_FIRST, null, null);
+            AccountingExportController.exportGifts(AUGUST_LAST, AUGUST_FIRST, null, null, false);
         } catch (AuraHandledException refused) {
             refusal = refused.getMessage();
+        }
+        String markRefusal;
+        try {
+            AccountingExportController.markPosted(
+                AUGUST_FIRST,
+                AUGUST_LAST,
+                null,
+                null,
+                false,
+                3,
+                1
+            );
+        } catch (AuraHandledException refused) {
+            markRefusal = refused.getMessage();
         }
 
         for (AccountingExportController.Option option : methods) {
@@ -270,5 +285,174 @@ private class AccountingExportServiceTest {
         Assert.areEqual(5, view.rowCount);
         Assert.areEqual(410, view.total);
         Assert.areEqual(Label.Connect_AccountingExport_ErrorDateOrder, refusal);
+        Assert.areEqual(Label.Connect_AccountingExport_ChangedSinceDownload, markRefusal);
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Marking the file posted (G-20)
+    // ------------------------------------------------------------------------------------
+
+    /** Jen with the bookkeeper's permission sets, owning every August gift. */
+    private static User bookkeeperOwningAugust() {
+        User jen = TestDataFactory.createUser(
+            'Jen',
+            new List<String>{ 'Nonprofit_Read_Only', 'Giving_Read_Only', 'Accounting_Export' }
+        );
+        List<Gift__c> handed = new List<Gift__c>();
+        for (Gift__c gift : [SELECT Id FROM Gift__c]) {
+            handed.add(new Gift__c(Id = gift.Id, OwnerId = jen.Id));
+        }
+        update handed;
+        return jen;
+    }
+
+    @IsTest
+    static void theDownloadedGiftsAreMarkedAndLeftOutOfTheNextFile() {
+        User jen = bookkeeperOwningAugust();
+        System.runAs(jen) {
+            AccountingExportService.ExportFile file = AccountingExportService.build(
+                AUGUST_FIRST,
+                AUGUST_LAST,
+                null,
+                null,
+                false
+            );
+            Assert.areEqual(4, file.giftCount, file.csv);
+
+            Integer marked = AccountingExportService.markPosted(
+                AUGUST_FIRST,
+                AUGUST_LAST,
+                null,
+                null,
+                false,
+                file.giftCount,
+                file.total
+            );
+
+            Assert.areEqual(4, marked, 'The four gifts in the file');
+            Assert.areEqual(
+                0,
+                AccountingExportService.build(AUGUST_FIRST, AUGUST_LAST, null, null, true).rowCount,
+                'Every gift in August is posted'
+            );
+            Assert.areEqual(
+                5,
+                AccountingExportService.build(AUGUST_FIRST, AUGUST_LAST, null, null).rowCount,
+                'The full file still holds them'
+            );
+        }
+        Assert.areEqual(
+            4,
+            [SELECT COUNT() FROM Gift__c WHERE Accounting_Posted_By__c = :jen.Id],
+            'Marked by Jen'
+        );
+        Assert.areEqual(
+            0,
+            [
+                SELECT COUNT()
+                FROM Gift__c
+                WHERE Accounting_Posted_At__c != NULL AND Status__c = 'Pending'
+            ],
+            'The Pending gift was in no file'
+        );
+    }
+
+    @IsTest
+    static void aLateGiftTurnsUpNextTimeAndStopsAStaleMark() {
+        User jen = bookkeeperOwningAugust();
+        AccountingExportService.ExportFile file;
+        System.runAs(jen) {
+            file = AccountingExportService.build(AUGUST_FIRST, AUGUST_LAST, null, null, true);
+            AccountingExportService.markPosted(
+                AUGUST_FIRST,
+                AUGUST_LAST,
+                null,
+                null,
+                true,
+                file.giftCount,
+                file.total
+            );
+        }
+        Contact ana = [SELECT Id FROM Contact WHERE LastName = 'Garcia' LIMIT 1];
+        Gift__c late = gift(ana.Id, null, 60, 'Check', Date.newInstance(2026, 8, 28));
+        late.OwnerId = jen.Id;
+        insert late;
+
+        System.runAs(jen) {
+            AccountingExportService.ExportFile next = AccountingExportService.build(
+                AUGUST_FIRST,
+                AUGUST_LAST,
+                null,
+                null,
+                true
+            );
+            Assert.areEqual(1, next.giftCount, 'Only the late gift');
+            Assert.areEqual(60, next.total);
+            try {
+                AccountingExportService.markPosted(
+                    AUGUST_FIRST,
+                    AUGUST_LAST,
+                    null,
+                    null,
+                    false,
+                    file.giftCount,
+                    file.total
+                );
+                Assert.fail('The full file no longer matches the first download');
+            } catch (AccountingExportService.ExportException refused) {
+                Assert.areEqual(
+                    Label.Connect_AccountingExport_ChangedSinceDownload,
+                    refused.getMessage()
+                );
+            }
+        }
+        Assert.isNull(
+            [SELECT Accounting_Posted_At__c FROM Gift__c WHERE Id = :late.Id]
+            .Accounting_Posted_At__c,
+            'Nothing marked by a stale click'
+        );
+    }
+
+    @IsTest
+    static void aOneFundFileIsNotMarked() {
+        Fund__c building = [SELECT Id FROM Fund__c WHERE Name = 'Building Fund'];
+        try {
+            AccountingExportService.markPosted(
+                AUGUST_FIRST,
+                AUGUST_LAST,
+                building.Id,
+                null,
+                false,
+                1,
+                200
+            );
+            Assert.fail('A split gift would be locked with half of it exported');
+        } catch (AccountingExportService.ExportException refused) {
+            Assert.areEqual(Label.Connect_AccountingExport_MarkNeedsAllFunds, refused.getMessage());
+        }
+    }
+
+    @IsTest
+    static void markingNeedsPostGifts() {
+        User reader = TestDataFactory.createUser(
+            'Reader',
+            new List<String>{ 'Nonprofit_Read_Only', 'Giving_Read_Only' }
+        );
+        System.runAs(reader) {
+            try {
+                AccountingExportService.markPosted(
+                    AUGUST_FIRST,
+                    AUGUST_LAST,
+                    null,
+                    null,
+                    false,
+                    0,
+                    0
+                );
+                Assert.fail('Refused without Post Gifts');
+            } catch (AccountingExportService.ExportException refused) {
+                Assert.areEqual(Label.Giving_Posting_NoPermission, refused.getMessage());
+            }
+        }
     }
 }

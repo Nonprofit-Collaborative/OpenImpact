@@ -89,7 +89,10 @@ posted** choice, so a gift entered late into a month already posted is found by 
 The page sends back the count and total it downloaded; the server reads the same range again and
 refuses if either differs, so a gift added after the download is not marked. Posting writes
 only the two package fields, so the switchable Gift automations are bypassed for that save; the
-Always Runs locks still run. One call marks at most 5,000 gifts.
+Always Runs locks still run. One call marks at most 5,000 gifts. An export narrowed to one fund
+is not marked: posting is per gift, so a gift split across two funds would be locked when only
+one fund's share of it was in the file. A payment method narrows by whole gifts, so it may be
+marked.
 
 **Closing a period.** `Books_Closed_Through__c` on `Giving_Settings__c`, set on the Accounting
 Periods page, reached from the Giving section of Nonprofit Settings (ADR-0020) and gated by

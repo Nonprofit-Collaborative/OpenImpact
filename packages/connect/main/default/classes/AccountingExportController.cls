@@ -50,14 +50,16 @@ public with sharing class AccountingExportController {
         Date fromDate,
         Date toDate,
         Id fundId,
-        String paymentMethod
+        String paymentMethod,
+        Boolean onlyUnposted
     ) {
         try {
             AccountingExportService.ExportFile built = AccountingExportService.build(
                 fromDate,
                 toDate,
                 fundId,
-                paymentMethod
+                paymentMethod,
+                onlyUnposted
             );
             ExportView view = new ExportView();
             view.csv = built.csv;
@@ -71,6 +73,38 @@ public with sharing class AccountingExportController {
                 String.valueOf(toDate) +
                 '.csv';
             return view;
+        } catch (AccountingExportService.ExportException refused) {
+            throw asAuraException(refused.getMessage());
+        } catch (Exception unexpected) {
+            ErrorLogger.log(unexpected, CONTEXT);
+            throw asAuraException(Label.Connect_AccountingExport_ErrorFailed);
+        }
+    }
+
+    /**
+     * Marks the gifts in the file just downloaded posted to accounting (G-20). The page sends
+     * the same choices and the count and total it showed; the service checks them again.
+     */
+    @AuraEnabled
+    public static Integer markPosted(
+        Date fromDate,
+        Date toDate,
+        Id fundId,
+        String paymentMethod,
+        Boolean onlyUnposted,
+        Integer giftCount,
+        Decimal total
+    ) {
+        try {
+            return AccountingExportService.markPosted(
+                fromDate,
+                toDate,
+                fundId,
+                paymentMethod,
+                onlyUnposted,
+                giftCount,
+                total
+            );
         } catch (AccountingExportService.ExportException refused) {
             throw asAuraException(refused.getMessage());
         } catch (Exception unexpected) {

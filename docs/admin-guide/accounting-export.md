@@ -27,10 +27,15 @@ spreadsheet keeps working:
 Only money is exported: gifts that are Received, Refunded or Written off. A Pending gift has
 not arrived yet, and an in-kind gift is goods, not money, so neither is in the file.
 
-The export changes nothing, and nothing on a gift records that it was exported. Running it
-twice for the same dates gives the same file unless a gift in those dates changed in
-between: a gift added or edited late, or a Pending gift that was written off (see Common
-mistakes).
+Downloading changes nothing. Running it twice for the same dates gives the same file unless a
+gift in those dates changed in between: a gift added or edited late, or a Pending gift that was
+written off (see Common mistakes).
+
+Once the file is in the accounting system, Jen clicks **Mark these gifts posted**, and those
+gifts are locked: their date, amount, donor, payment method, reference and funds can no longer
+change (see [Posting and Closed Periods](posting-and-closed-periods.md)). Ticking **Only gifts
+not yet posted** leaves posted gifts out of the file, so a gift entered late into a month she
+already exported turns up in her next file instead of being missed.
 
 ## How to turn it on
 
@@ -47,6 +52,9 @@ Impact can change. The page says this beside the button.
 
 Open it from **Nonprofit Settings**, **Giving**, **Accounting export**, or search the App
 Launcher for **Accounting Export**. There are no settings.
+
+The **Accounting Export** permission set includes **Post Gifts**, which shows the **Mark these
+gifts posted** button and lets Jen unpost a single gift from its page.
 
 ## A five-minute walkthrough
 
@@ -67,6 +75,10 @@ Do this as Jen, with the sample data loaded.
    Building Fund remain.
 7. Set a range with no gifts, such as a week next year, and click **Download file**. No file
    downloads and the page says `No gifts in this range.`
+8. Set last month again, empty **Fund** and **Payment method**, and download. Click **Mark
+   these gifts posted**. The page says how many gifts it marked.
+9. Tick **Only gifts not yet posted** and download again. The page says
+   `No gifts in this range.`: the month is in the books.
 
 ## Common mistakes
 
@@ -89,7 +101,9 @@ cancel out, so the year's net is right, but the earlier month gains a row. Add t
 your accounting system, or export the month again. To avoid it, delete a Pending gift that
 will never be paid instead of writing it off; write off only gifts that were recorded as
 Received. Open Impact cannot tell afterwards which of the two a written-off gift was, so the
-export cannot leave one out and keep the other.
+export cannot leave one out and keep the other. Once the month is closed (see
+[Posting and Closed Periods](posting-and-closed-periods.md)), writing off a Pending gift dated
+in it is refused, and deleting it is the only way.
 
 **A value in the file starts with an apostrophe.** A cell that begins with `=`, `+`, `-` or
 `@` gets an apostrophe in front, so a spreadsheet does not run it as a formula. This also
@@ -97,6 +111,11 @@ applies to a reference such as `-123` or `+44 20 7946 0000`, which appears as `'
 Amounts never get one: they are written as plain numbers. Remove the apostrophe in your
 accounting system's import mapping if a reference must match exactly.
 
-**Looking for an "exported" mark on a gift.** There is none. Keep track of which periods are
-in the books by date range. A posting flag and period lock on gifts are planned as a
-separate Giving feature.
+**No Mark these gifts posted button.** It appears after a download, for someone with Post
+Gifts, and goes away when you change any choice, so it always marks the file you downloaded.
+With a fund chosen the page asks for an export of all funds instead: a gift split across two
+funds would be locked when only half of it was in the file.
+
+**`Gifts in this range changed since you downloaded the file`.** A gift was added, changed or
+refunded after the download. Download again, import that file, then mark. Marking skips gifts
+already posted, so marking twice does no harm.

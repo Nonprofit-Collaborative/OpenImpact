@@ -97,7 +97,8 @@ that range after you downloaded the file. Download it again, import that file, a
 Marking only marks gifts that are not yet posted, so marking twice does no harm.
 
 **More than 5,000 gifts.** Marking posted takes up to 5,000 gifts at a time. Mark a shorter range
-(a week, or one fund at a time).
+(a week, or one payment method at a time). An export of one fund cannot be marked: a gift split
+across two funds would be locked with only half of it in the file.
 
 **`...the books name it as their donor, so it cannot be deleted`.** A person or organization
 whose gifts are in the books stays, and so does a gift whose refund is in the books: deleting

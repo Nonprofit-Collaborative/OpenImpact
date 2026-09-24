@@ -8,8 +8,11 @@
  * - Received, Refunded and Written off gifts, the same statuses the giving totals count
  *   (ADR-0022). A refund or write-off is a negative gift of its own (R-G3), so it is its own
  *   negative row on its own date. Pending gifts have not arrived and In-kind gifts are not money.
- * - The export reads and writes nothing, and stores nothing about having run. Marking gifts
- *   posted belongs to G-20 in Giving.
+ * - The export itself writes nothing. After downloading, the bookkeeper can mark the gifts in
+ *   the file posted (G-20): `markPosted` builds the same export again, refuses if the gift count
+ *   or total no longer match what was downloaded, and hands the gifts to Giving's
+ *   `GiftPostingService`, which locks them. `onlyUnposted` leaves posted gifts out, so a gift
+ *   entered late into a month already exported turns up in the next file (ADR-NEXT).
  * - A range over the row limit is refused rather than cut short: a short file that looks
  *   complete reconciles to nothing.
  *
@@ -54,6 +57,7 @@ public with sharing class AccountingExportService {
     /** The file and what it holds. */
     public class ExportFile {
         public String csv;
+        public Set<Id> giftIds = new Set<Id>();
         public Integer rowCount = 0;
         public Integer giftCount = 0;
         public Decimal total = 0;
@@ -75,6 +79,17 @@ public with sharing class AccountingExportService {
      * An empty range gives an ExportFile with no rows and no file.
      */
     public static ExportFile build(Date fromDate, Date toDate, Id fundId, String paymentMethod) {
+        return build(fromDate, toDate, fundId, paymentMethod, false);
+    }
+
+    /** The export, leaving out gifts already posted to accounting when `onlyUnposted` is set. */
+    public static ExportFile build(
+        Date fromDate,
+        Date toDate,
+        Id fundId,
+        String paymentMethod,
+        Boolean onlyUnposted
+    ) {
         if (fromDate == null || toDate == null) {
             throw new ExportException(Label.Connect_AccountingExport_ErrorDatesRequired);
         }
@@ -92,7 +107,7 @@ public with sharing class AccountingExportService {
             methods = new Set<String>{ paymentMethod };
         }
 
-        Builder builder = new Builder();
+        Builder builder = new Builder(onlyUnposted == true);
         AccountingExportSelector.read(fromDate, toDate, fundId, methods, STATUSES, builder);
         if (builder.overLimit) {
             throw new ExportException(Label.Connect_AccountingExport_ErrorTooManyRows);
@@ -100,12 +115,51 @@ public with sharing class AccountingExportService {
         return builder.finish();
     }
 
+    /**
+     * Marks the gifts in a downloaded export posted to accounting, and returns how many it
+     * marked. The export is built again with the same choices; if its gift count or total is not
+     * the one downloaded, a gift was added, changed or refunded since, and nothing is marked.
+     * Refused with a fund chosen: a gift split across funds would be locked when only part of it
+     * was in the file.
+     */
+    public static Integer markPosted(
+        Date fromDate,
+        Date toDate,
+        Id fundId,
+        String paymentMethod,
+        Boolean onlyUnposted,
+        Integer downloadedGiftCount,
+        Decimal downloadedTotal
+    ) {
+        if (fundId != null) {
+            throw new ExportException(Label.Connect_AccountingExport_MarkNeedsAllFunds);
+        }
+        ExportFile again = build(fromDate, toDate, null, paymentMethod, onlyUnposted);
+        if (
+            again.giftCount != downloadedGiftCount ||
+            downloadedTotal == null ||
+            again.total != downloadedTotal.setScale(2)
+        ) {
+            throw new ExportException(Label.Connect_AccountingExport_ChangedSinceDownload);
+        }
+        try {
+            return GiftPostingService.markPosted(again.giftIds);
+        } catch (GiftPostingService.GiftPostingException refused) {
+            throw new ExportException(refused.getMessage());
+        }
+    }
+
     /** Collects rows into the file as the selector reads them. */
     private class Builder implements AccountingExportSelector.RowSink {
         private List<String> lines = new List<String>{ String.join(HEADER, ',') };
         private Set<Id> gifts = new Set<Id>();
         private ExportFile result = new ExportFile();
+        private Boolean onlyUnposted;
         public Boolean overLimit = false;
+
+        Builder(Boolean onlyUnposted) {
+            this.onlyUnposted = onlyUnposted;
+        }
 
         public Boolean allocation(Gift_Allocation__c row) {
             Gift__c gift = row.Gift__r;
@@ -123,6 +177,9 @@ public with sharing class AccountingExportService {
         }
 
         private Boolean add(Id giftId, Gift__c gift, String fund, String code, Decimal amount) {
+            if (onlyUnposted && gift.Accounting_Posted_At__c != null) {
+                return true;
+            }
             if (result.rowCount >= maxRows) {
                 overLimit = true;
                 return false;
@@ -152,6 +209,7 @@ public with sharing class AccountingExportService {
 
         public ExportFile finish() {
             result.giftCount = gifts.size();
+            result.giftIds = gifts;
             if (result.rowCount > 0) {
                 result.csv = String.join(lines, LINE_END) + LINE_END;
             }
