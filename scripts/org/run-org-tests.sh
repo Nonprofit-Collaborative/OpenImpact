@@ -97,17 +97,38 @@ fi
 
 RESULTS_DIR="test-results"
 mkdir -p "$RESULTS_DIR"
-sf apex run test \
-  --target-org "$ALIAS" \
-  --test-level RunSpecifiedTests \
-  "${TEST_ARGS[@]}" \
-  --code-coverage \
-  --result-format json \
-  --wait 90 > "${RESULTS_DIR}/org-tests.json" || true
+TEST_RETRY_WAIT_SECONDS="${TEST_RETRY_WAIT_SECONDS:-300}"
+run_tests() {
+  sf apex run test \
+    --target-org "$ALIAS" \
+    --test-level RunSpecifiedTests \
+    "${TEST_ARGS[@]}" \
+    --code-coverage \
+    --result-format json \
+    --wait 90 > "${RESULTS_DIR}/org-tests.json" 2> "${RESULTS_DIR}/org-tests.err" || true
+  cat "${RESULTS_DIR}/org-tests.err" >&2
+  read -r OUTCOME RAN PASSING FAILING < <(jq -r \
+    '.result.summary | "\(.outcome // "Unknown") \(.testsRan // 0) \(.passing // 0) \(.failing // 0)"' \
+    "${RESULTS_DIR}/org-tests.json" 2>/dev/null || echo "Unknown 0 0 0") || true
+  OUTCOME="${OUTCOME:-Unknown}" RAN="${RAN:-0}" PASSING="${PASSING:-0}" FAILING="${FAILING:-0}"
+}
 
-read -r OUTCOME RAN PASSING FAILING < <(jq -r \
-  '.result.summary | "\(.outcome // "Unknown") \(.testsRan // 0) \(.passing // 0) \(.failing // 0)"' \
-  "${RESULTS_DIR}/org-tests.json" 2>/dev/null || echo "Unknown 0 0 0")
+# A run that comes back with no results at all because of UNKNOWN_EXCEPTION, or a platform or
+# network error, is retried once after a pause: that is a transient platform fault, not a test
+# result. A run with any result, including real failures, is never retried.
+# An empty output (the CLI died) counts as a platform or network error too.
+transient_no_results() {
+  [[ "$RAN" -eq 0 ]] || return 1
+  [[ ! -s "${RESULTS_DIR}/org-tests.json" ]] && return 0
+  grep -qiE 'UNKNOWN_EXCEPTION|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|socket hang up|ServerUnavailable|Service Unavailable|ClientTimeout|timed? ?out|network' \
+    "${RESULTS_DIR}/org-tests.json" "${RESULTS_DIR}/org-tests.err"
+}
+run_tests
+if transient_no_results; then
+  echo "== The test run returned no results (platform or network error). Retrying once in ${TEST_RETRY_WAIT_SECONDS}s ==" >&2
+  sleep "$TEST_RETRY_WAIT_SECONDS"
+  run_tests
+fi
 
 if [[ "$OUTCOME" == "Passed" && "$FAILING" -eq 0 && "$RAN" -gt 0 ]]; then
   post_status success "${PASSING}/${RAN} passed on ${ALIAS}"
