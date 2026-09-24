@@ -133,6 +133,10 @@ reason in the import's journal:
 - **The donor of a gift that stays.** A person, household or organization is not removed
   while a gift that is kept still names them.
 
+A removed gift that paid a scheduled payment stops paying it: the payment is owed again, and a
+pledge that gift had completed is active again. A pledge you marked complete yourself stays
+complete.
+
 ## 7. Common mistakes
 
 **Rows rejected with "Not attempted: this chunk ran out of room".** One gift in the chunk was

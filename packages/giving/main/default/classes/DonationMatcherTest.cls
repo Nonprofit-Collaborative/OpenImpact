@@ -281,4 +281,75 @@ private class DonationMatcherTest {
             'And the payment is paid, through the ordinary gift path.'
         );
     }
+
+    @IsTest
+    static void undoingAnImportedPaymentReopensThePaymentAndThePledge() {
+        TestDataFactory.defaultSettings();
+        GivingTestDataFactory.insertDefaultFund();
+        Contact ana = new Contact(
+            FirstName = 'Ana',
+            LastName = 'Ramirez',
+            Email = 'ana@example.org'
+        );
+        insert ana;
+        // One payment of the whole 1200, so the imported gift completes the pledge.
+        List<Installment__c> payments = pledge(ana.Id, new Map<Integer, Decimal>{ 14 => 1200 });
+        User importer = maria();
+        update new Commitment__c(Id = payments[0].Commitment__c, OwnerId = importer.Id);
+        ImportMapping mapping = new ImportMapping();
+        Map<String, String> row = new Map<String, String>{
+            'Contact1.Email' => 'ana@example.org',
+            'Contact1.LastName' => 'Ramirez',
+            'Gift.Amount__c' => '1200',
+            'Gift.Gift_Date__c' => '2026-03-15',
+            'Gift.Type__c' => 'Card'
+        };
+        for (String target : row.keySet()) {
+            mapping.columns.add(new ImportMapping.Column(target, target));
+        }
+        Import_Template__c template = ImportTestDataFactory.template(
+            mapping.serialize(),
+            ImportTemplateService.RULE_EMAIL
+        );
+        Import_Batch__c batch = ImportTestDataFactory.batch(template);
+        ImportTestDataFactory.rows(batch, new List<Map<String, String>>{ row });
+        Map<Id, String> kept;
+
+        System.runAs(importer) {
+            Test.startTest();
+            ImportRowProcessor.process(
+                batch,
+                template,
+                ImportMapping.parse(template.Column_Mapping_JSON__c),
+                ImportTestDataFactory.reload(batch.Id),
+                false
+            );
+            Gift__c made = [SELECT Id FROM Gift__c WHERE Installment__c = :payments[0].Id];
+            Assert.areEqual(
+                'Completed',
+                [SELECT Status__c FROM Commitment__c WHERE Id = :payments[0].Commitment__c]
+                .Status__c,
+                'The imported payment completed the pledge.'
+            );
+            // The undo asks the module what to keep, then deletes the rest as the importer.
+            kept = new GiftImportProcessor()
+                .reasonsToKeep(batch.Id, Gift__c.SObjectType, new Set<Id>{ made.Id });
+            if (!kept.containsKey(made.Id)) {
+                Database.delete(made, true, AccessLevel.USER_MODE);
+            }
+            Test.stopTest();
+        }
+
+        Assert.isTrue(kept.isEmpty(), 'Nothing keeps the matched gift: ' + kept);
+        Assert.areNotEqual(
+            'Paid',
+            [SELECT Status__c FROM Installment__c WHERE Id = :payments[0].Id].Status__c,
+            'The payment is owed again.'
+        );
+        Assert.areEqual(
+            'Active',
+            [SELECT Status__c FROM Commitment__c WHERE Id = :payments[0].Commitment__c].Status__c,
+            'And the pledge is open again.'
+        );
+    }
 }

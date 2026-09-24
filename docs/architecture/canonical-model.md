@@ -2316,7 +2316,11 @@ deletes history.
 
 **R-CM4 Completion.** A pledge is Completed when its balance reaches zero or below. A
 recurring commitment is never completed automatically; it ends when staff cancel it or
-when End Date passes.
+when End Date passes. Deleting a gift undoes what it did: the installment it paid takes its
+status again from the gifts still linked (R-IN2), and a Completed pledge that was fully paid
+with the deleted gifts' received amounts and is not without them is Active again. A pledge
+staff completed short of its total stays Completed, because no deleted gift completed it.
+Restoring a gift from the recycle bin applies it again.
 
 **R-CM5 Balance is calculated live.** Balance is Expected Total less Paid To Date for a
 pledge and empty for a recurring commitment, which has no expected total to subtract
