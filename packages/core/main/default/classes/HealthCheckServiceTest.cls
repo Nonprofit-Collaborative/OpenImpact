@@ -580,6 +580,48 @@ private class HealthCheckServiceTest {
     }
 
     @IsTest
+    static void aScheduledDigestThatStoppedRunningIsAWarning() {
+        OrgShapeDetector.overrideShape = shape(false, false, false, false);
+        Nonprofit_Settings__c settings = TestDataFactory.defaultSettings();
+        settings.Error_Digest_Last_Run__c = System.now()
+            .addDays(-HealthCheckSettingsChecks.DIGEST_STALE_DAYS - 1);
+        TestDataFactory.saveSettings(settings);
+        ErrorDigestScheduler.start();
+
+        HealthCheckService.Finding finding = find(HealthCheckService.run(), 'error_digest_stale');
+
+        Assert.isNotNull(finding, 'Scheduled, but silent for three days.');
+        Assert.areEqual(HealthCheckService.SEVERITY_WARNING, finding.severity, 'A warning.');
+        Assert.areEqual(
+            SettingSections.ERROR_LOG,
+            finding.fixTarget,
+            'Fixed where it is scheduled.'
+        );
+    }
+
+    @IsTest
+    static void aDigestThatRanTodayOrIsNotScheduledIsNotReported() {
+        OrgShapeDetector.overrideShape = shape(false, false, false, false);
+        Nonprofit_Settings__c settings = TestDataFactory.defaultSettings();
+        settings.Error_Digest_Last_Run__c = System.now()
+            .addDays(-HealthCheckSettingsChecks.DIGEST_STALE_DAYS - 1);
+        TestDataFactory.saveSettings(settings);
+
+        Assert.isNull(
+            find(HealthCheckService.run(), 'error_digest_stale'),
+            'Not scheduled: an old last run means somebody stopped it.'
+        );
+
+        settings.Error_Digest_Last_Run__c = System.now().addHours(-3);
+        TestDataFactory.saveSettings(settings);
+        ErrorDigestScheduler.start();
+        Assert.isNull(
+            find(HealthCheckService.run(), 'error_digest_stale'),
+            'Scheduled and ran this morning.'
+        );
+    }
+
+    @IsTest
     static void automationThatIsRunningIsSaidSo() {
         OrgShapeDetector.overrideShape = shape(false, false, false, false);
 

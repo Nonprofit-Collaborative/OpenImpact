@@ -431,6 +431,9 @@ public with sharing class HealthCheckService {
         if (canManageSettings()) {
             steps.add(new CheckStep('error_log', new HealthCheckSettingsChecks.ErrorLogCheck()));
             steps.add(
+                new CheckStep('error_digest', new HealthCheckSettingsChecks.ErrorDigestCheck())
+            );
+            steps.add(
                 new CheckStep(
                     'people_without_household',
                     new HealthCheckHouseholdChecks.PeopleWithoutHouseholdCheck()
