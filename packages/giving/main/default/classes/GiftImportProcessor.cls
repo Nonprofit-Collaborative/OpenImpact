@@ -96,27 +96,42 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
             notLoaded.addAll(read.notLoaded);
             gifts.add(read);
         }
+        List<String> notes = new List<String>();
+        if (!gifts.isEmpty() && !Schema.SObjectType.Gift__c.isDeletable()) {
+            // A row is saved whole or not at all, which means deleting a gift whose credit or
+            // tribute was refused. Without that right a half-saved gift would stay behind, so
+            // the import is refused before anything is written, in the dry run too.
+            refuseAll(gifts, Label.Giving_Import_ErrorCannotDeleteGifts);
+            notes.add(Label.Giving_Import_ErrorCannotDeleteGifts);
+        }
         if (!gifts.isEmpty()) {
             matchExternalIds(pending(gifts));
             resolveDonors(pending(gifts), dryRun);
             GiftImportReferences.resolve(pending(gifts));
-            if (dryRun) {
-                report(gifts);
-            } else {
+            if (!dryRun) {
                 save(batch, pending(gifts));
-                shareWithEarlierRows(gifts);
-                report(gifts);
+            }
+            // A repeat of an earlier row shares its outcome, in the dry run as in the commit.
+            shareWithEarlierRows(gifts);
+            report(gifts);
+        }
+        if (!notLoaded.isEmpty()) {
+            notes.add(
+                String.format(
+                    Label.Giving_Import_LogAttributesNotLoaded,
+                    new List<String>{ String.join(new List<String>(notLoaded), ', ') }
+                )
+            );
+        }
+        return new ImportEntityResult(notes.isEmpty() ? null : String.join(notes, ' '), fileAmount);
+    }
+
+    private static void refuseAll(List<GiftImportRow> gifts, String reason) {
+        for (GiftImportRow item : gifts) {
+            if (item.error == null) {
+                item.error = reason;
             }
         }
-        return new ImportEntityResult(
-            notLoaded.isEmpty()
-                ? null
-                : String.format(
-                      Label.Giving_Import_LogAttributesNotLoaded,
-                      new List<String>{ String.join(new List<String>(notLoaded), ', ') }
-                  ),
-            fileAmount
-        );
     }
 
     /** The rows still on their way to a gift: not refused, and not matched to one. */
@@ -354,70 +369,84 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
         } catch (Exception refused) {
             // The designation is all or nothing across the chunk, so one refused gift would
             // take every other with it. Undo the attempt and apply each gift on its own, so
-            // only the gift the platform refuses loses its row.
+            // only the gift the platform refuses loses its row. The rollback matters: a
+            // designation can fail after part of it was written.
             Database.rollback(beforeFunds);
-            applyOneByOne(records, fundIdByGiftId, byGiftId, refused);
+            applyOneByOne(records, fundIdByGiftId, byGiftId);
         }
     }
 
     /**
-     * Each gift's fund on its own, while the transaction has room: a gift the chunk has no
-     * room left for is refused with the reason the whole chunk was, rather than risking a
-     * limit that would fail every row.
+     * Each gift's fund on its own, each attempt undone if it fails, while the transaction has
+     * room: a gift the chunk has no room left for is not attempted and says so, rather than
+     * risking a limit that would fail every row.
      */
     private static void applyOneByOne(
         List<Gift__c> records,
         Map<Id, Id> fundIdByGiftId,
-        Map<Id, GiftImportRow> byGiftId,
-        Exception chunkRefusal
+        Map<Id, GiftImportRow> byGiftId
     ) {
         for (Gift__c record : records) {
             GiftImportRow item = byGiftId.get(record.Id);
-            Exception refusal = chunkRefusal;
-            if (hasRoomForOneMore()) {
-                try {
-                    refuseNotApplied(
-                        applyChosenFunds(
-                            new List<Gift__c>{ record },
-                            new Map<Id, Id>{ record.Id => fundIdByGiftId.get(record.Id) }
-                        ),
-                        byGiftId
-                    );
-                    continue;
-                } catch (Exception rowRefused) {
-                    refusal = rowRefused;
-                }
+            if (!hasRoomForOneMore()) {
+                item.error = Label.Giving_Import_ErrorNotAttempted;
+                continue;
             }
-            item.error = String.format(
-                Label.Giving_Import_ErrorFailed,
-                new List<String>{ refusal.getMessage() }
-            );
+            Savepoint beforeThisGift = Database.setSavepoint();
+            try {
+                refuseNotApplied(
+                    applyChosenFunds(
+                        new List<Gift__c>{ record },
+                        new Map<Id, Id>{ record.Id => fundIdByGiftId.get(record.Id) }
+                    ),
+                    byGiftId
+                );
+            } catch (Exception rowRefused) {
+                Database.rollback(beforeThisGift);
+                item.error = String.format(
+                    Label.Giving_Import_ErrorFailed,
+                    new List<String>{ rowRefused.getMessage() }
+                );
+            }
         }
     }
 
+    /** Kept free for the rest of the chunk's work; a test raises it to run out of room. */
     @TestVisible
-    private static final Integer QUERIES_KEPT_FREE = 30;
+    private static Integer queriesKeptFree = 30;
     @TestVisible
-    private static final Integer STATEMENTS_KEPT_FREE = 20;
+    private static Integer statementsKeptFree = 20;
 
     /** Room for one more gift's designation and for the rest of the chunk's work after it. */
     private static Boolean hasRoomForOneMore() {
-        return Limits.getLimitQueries() - Limits.getQueries() > QUERIES_KEPT_FREE &&
-            Limits.getLimitDmlStatements() - Limits.getDmlStatements() > STATEMENTS_KEPT_FREE &&
+        return Limits.getLimitQueries() - Limits.getQueries() > queriesKeptFree &&
+            Limits.getLimitDmlStatements() - Limits.getDmlStatements() > statementsKeptFree &&
             Limits.getCpuTime() < Limits.getLimitCpuTime() * 0.7;
     }
 
-    /** Funds a test makes the platform refuse, to prove one refusal costs only its own row. */
+    /**
+     * Funds a test makes the platform refuse. The refusal comes after the designation and
+     * after a record of its own is written, so a test can see that a failed attempt leaves
+     * nothing behind.
+     */
     @TestVisible
     private static Set<Id> fundsRefusedForTest = new Set<Id>();
+    @TestVisible
+    private static final String WRITTEN_BEFORE_REFUSAL = 'Written before the refusal';
 
     private static Set<Id> applyChosenFunds(List<Gift__c> records, Map<Id, Id> fundIdByGiftId) {
+        Set<Id> notApplied = GiftService.applyChosenFunds(records, fundIdByGiftId);
         for (Id fundId : fundIdByGiftId.values()) {
             if (fundsRefusedForTest.contains(fundId)) {
+                Database.insert(
+                    new Fund__c(Name = WRITTEN_BEFORE_REFUSAL, Active__c = false),
+                    true,
+                    AccessLevel.USER_MODE
+                );
                 throw new DmlException('Refused for the test.');
             }
         }
-        return GiftService.applyChosenFunds(records, fundIdByGiftId);
+        return notApplied;
     }
 
     private static void refuseNotApplied(Set<Id> notApplied, Map<Id, GiftImportRow> byGiftId) {
