@@ -140,16 +140,22 @@ private class GiftPostingServiceTest {
         User david = david();
         System.runAs(david) {
             Map<Decimal, Gift__c> gifts = threeGifts();
+            // A system mode save, so field access is not what refuses it: the lock is.
             Gift__c typed = new Gift__c(
                 Id = gifts.get(250).Id,
                 Accounting_Posted_At__c = Datetime.now()
             );
             try {
-                Database.update(typed, true, AccessLevel.USER_MODE);
-                Assert.fail('The posting fields are read only to staff');
-            } catch (Exception refused) {
-                Assert.isNotNull(refused.getMessage(), 'Refused');
+                update typed;
+                Assert.fail('The posting fields are written only by marking posted');
+            } catch (DmlException refused) {
+                Assert.areEqual(
+                    Label.Giving_Posting_FieldsWrittenByPosting,
+                    refused.getDmlMessage(0),
+                    'The lock refuses it'
+                );
             }
+            Assert.isNull(reread(gifts.get(250).Id).Accounting_Posted_At__c, 'Nothing written');
         }
     }
 
@@ -178,10 +184,12 @@ private class GiftPostingServiceTest {
     static void unpostingClearsTheMarkAndLogsTheReason() {
         User jen = jen();
         Id giftId;
+        String postedAt;
         System.runAs(jen) {
             Map<Decimal, Gift__c> gifts = threeGifts();
             giftId = gifts.get(250).Id;
             GiftPostingService.markPosted(new Set<Id>{ giftId });
+            postedAt = reread(giftId).Accounting_Posted_At__c.format();
 
             Test.startTest();
             GiftPostingService.unpost(giftId, '  Wrong fund, fixing before the next export ');
@@ -203,6 +211,11 @@ private class GiftPostingServiceTest {
         Assert.isTrue(
             logs[0].Message__c.endsWith(': Wrong fund, fixing before the next export'),
             'The reason is kept: ' + logs[0].Message__c
+        );
+        Assert.isTrue(
+            logs[0]
+                .Message__c.contains('posted to accounting by Jen on ' + postedAt + ', unposted'),
+            'Who posted it and when are kept: ' + logs[0].Message__c
         );
         Assert.areEqual(jen.Id, logs[0].User__c, 'The log says who unposted');
     }

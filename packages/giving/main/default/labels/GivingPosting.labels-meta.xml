@@ -71,6 +71,8 @@
         <protected>true</protected>
         <shortDescription>Original of a locked gift not deleted</shortDescription>
         <value>A refund or write-off of this gift is posted to accounting or dated in a closed period, and the books name this gift as its original, so it cannot be deleted.</value>
+    </labels>
+    <labels>
         <fullName>Giving_Posting_NoPermission</fullName>
         <categories>Giving</categories>
         <language>en_US</language>
@@ -108,6 +110,6 @@
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Unposted gift log entry</shortDescription>
-        <value>Gift {0} unposted from accounting: {1}</value>
+        <value>Gift {0}, posted to accounting by {2} on {3}, unposted: {1}</value>
     </labels>
 </CustomLabels>

@@ -55,7 +55,14 @@ public with sharing class GiftPostingSelector {
 
     public static List<Gift__c> selectForPosting(Set<Id> giftIds) {
         return [
-            SELECT Id, Name, Status__c, Type__c, Gift_Date__c, Accounting_Posted_At__c
+            SELECT
+                Id,
+                Name,
+                Status__c,
+                Type__c,
+                Gift_Date__c,
+                Accounting_Posted_At__c,
+                Accounting_Posted_By__r.Name
             FROM Gift__c
             WHERE Id IN :giftIds
             WITH USER_MODE

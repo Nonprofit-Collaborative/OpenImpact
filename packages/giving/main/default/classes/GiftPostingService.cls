@@ -104,7 +104,12 @@ public with sharing class GiftPostingService {
             new List<String>{
                 String.format(
                     Label.Giving_Posting_UnpostLogged,
-                    new List<String>{ found[0].Name, reason.trim() }
+                    new List<String>{
+                        found[0].Name,
+                        reason.trim(),
+                        found[0].Accounting_Posted_By__r?.Name,
+                        found[0].Accounting_Posted_At__c.format()
+                    }
                 )
             },
             UNPOST_LOG_CONTEXT,
