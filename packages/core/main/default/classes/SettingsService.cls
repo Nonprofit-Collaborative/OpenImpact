@@ -189,6 +189,7 @@ public with sharing class SettingsService {
                 continue;
             }
             refuseIfMembershipDataWouldBeStranded(token, oldText, newText);
+            refuseIfDigestRecipientsAreNotUsers(token, newText);
             record.put(token, newValue);
             changes.add(
                 new Setting_Change__c(
@@ -230,6 +231,23 @@ public with sharing class SettingsService {
             return;
         }
         String refusal = CoexistenceService.membershipChangeRefusal(oldText, newText);
+        if (refusal != null) {
+            throw new SettingsException(refusal);
+        }
+    }
+
+    /**
+     * The error digest goes only to active users of the org (R-E5), so an address that is not
+     * one is refused here, where every write of the setting passes, with the addresses named.
+     */
+    private static void refuseIfDigestRecipientsAreNotUsers(
+        Schema.SObjectField token,
+        String newText
+    ) {
+        if (token != Nonprofit_Settings__c.Error_Digest_Recipients__c) {
+            return;
+        }
+        String refusal = ErrorDigestRecipients.refusal(newText);
         if (refusal != null) {
             throw new SettingsException(refusal);
         }
