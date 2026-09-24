@@ -1,6 +1,6 @@
 /**
  * The reads a gift import makes about what already exists in the org, whoever is importing
- * (R-DM1, R-GI9). ADR-0021 (system mode for package owned data) and ADR-NEXT.
+ * (R-DM1, R-GI9). ADR-0021 (system mode for package owned data) and ADR-0052.
  *
  * `without sharing` and `WITH SYSTEM_MODE`, because each answer is a fact about the org, not
  * about what the importing user may see: a gift already loaded under this external ID that the

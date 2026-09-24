@@ -9,6 +9,17 @@ private class ImportControllerTest {
         TestDataFactory.defaultSettings();
     }
 
+    /**
+     * The person a test that saves a file runs as: an administrator created for that test alone.
+     *
+     * Not the running user, because the running user's private library is shared with every other
+     * test class running in parallel, and a save into it fails when another test's transaction
+     * rolls back at the same moment. The full explanation is on `ReceiptTestDataFactory.issuer`.
+     */
+    private static User importer() {
+        return TestDataFactory.createUser('Importer', new List<String>{ 'Nonprofit_Admin' });
+    }
+
     private static Import_Template__c permittedTemplate() {
         ImportController.permissionOverride = true;
         return ImportTestDataFactory.template(
@@ -214,14 +225,16 @@ private class ImportControllerTest {
 
     @IsTest
     static void keepsTheUploadedFileWhenOneIsSent() {
-        ImportController.permissionOverride = true;
-        Test.startTest();
-        String documentId = ImportController.saveFile(
-            'donors.csv',
-            EncodingUtil.base64Encode(Blob.valueOf('Email\nana@example.org'))
-        );
-        Test.stopTest();
-        Assert.isNotNull(documentId, 'The original can be downloaded again.');
+        System.runAs(importer()) {
+            ImportController.permissionOverride = true;
+            Test.startTest();
+            String documentId = ImportController.saveFile(
+                'donors.csv',
+                EncodingUtil.base64Encode(Blob.valueOf('Email\nana@example.org'))
+            );
+            Test.stopTest();
+            Assert.isNotNull(documentId, 'The original can be downloaded again.');
+        }
     }
 
     @IsTest

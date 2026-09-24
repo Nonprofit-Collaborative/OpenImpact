@@ -1,0 +1,6 @@
+{
+  "externalId": "paypal:5TY05013RG002845M",
+  "amount": 25.0,
+  "paymentMethod": "Card",
+  "donorEmail": "luis.garcia2@example.org"
+}
