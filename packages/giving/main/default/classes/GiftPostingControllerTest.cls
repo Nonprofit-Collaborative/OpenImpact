@@ -18,8 +18,13 @@ private class GiftPostingControllerTest {
         );
     }
 
-    private static Gift__c gift(Decimal amount, String status, Date giftDate) {
+    /** The default fund and the close date are an administrator's, set outside Jen's work. */
+    @TestSetup
+    static void makeData() {
         GivingTestDataFactory.insertDefaultFund();
+    }
+
+    private static Gift__c gift(Decimal amount, String status, Date giftDate) {
         Contact ana = GivingTestDataFactory.insertHouseholdContact(
             'The Nolan Family',
             'Ana',
@@ -62,10 +67,13 @@ private class GiftPostingControllerTest {
 
     @IsTest
     static void saysWhenAGiftIsInAClosedPeriod() {
-        System.runAs(jen()) {
-            Gift__c gift = gift(250, 'Received', Date.today().addDays(-10));
-            GivingTestDataFactory.closeBooksThrough(Date.today().addDays(-1));
-
+        User jen = jen();
+        Gift__c gift;
+        System.runAs(jen) {
+            gift = gift(250, 'Received', Date.today().addDays(-10));
+        }
+        GivingTestDataFactory.closeBooksThrough(Date.today().addDays(-1));
+        System.runAs(jen) {
             GiftPostingController.PostingState state = GiftPostingController.getState(gift.Id);
 
             Assert.isFalse(state.posted);
@@ -76,10 +84,13 @@ private class GiftPostingControllerTest {
 
     @IsTest
     static void aPendingGiftIsNotInTheBooks() {
-        System.runAs(jen()) {
-            Gift__c gift = gift(75, 'Pending', Date.today().addDays(-10));
-            GivingTestDataFactory.closeBooksThrough(Date.today().addDays(-1));
-
+        User jen = jen();
+        Gift__c gift;
+        System.runAs(jen) {
+            gift = gift(75, 'Pending', Date.today().addDays(-10));
+        }
+        GivingTestDataFactory.closeBooksThrough(Date.today().addDays(-1));
+        System.runAs(jen) {
             GiftPostingController.PostingState state = GiftPostingController.getState(gift.Id);
 
             Assert.isFalse(state.inBooks);
