@@ -107,7 +107,7 @@ private class ImportProcessorBatchTest {
 
     /** Runs one pass the way the platform drives the batch, in chunks of this size. */
     private static Import_Batch__c runInChunks(Id batchId, Boolean dryRun, Integer chunkSize) {
-        ImportBatchService.resetRows(batchId);
+        ImportBatchService.beginPass(batchId);
         ImportProcessorBatch job = new ImportProcessorBatch(batchId, dryRun);
         List<Import_Row__c> chunk = new List<Import_Row__c>();
         Database.QueryLocatorIterator rows = job.start(null).iterator();
@@ -164,15 +164,18 @@ private class ImportProcessorBatchTest {
             ImportTemplateService.RULE_EMAIL
         );
         Import_Batch__c batch = ImportTestDataFactory.batch(template);
-        // Every row is a new person with a new organization: the most a dry run has to remember.
+        // Every row is a new person with a new organization, except that each later chunk opens
+        // with a person and organization the first chunk would create, so every chunk after the
+        // first finds one stored key under the same check.
         List<Map<String, String>> values = new List<Map<String, String>>();
         for (Integer i = 0; i < 20; i++) {
+            Integer who = i >= 5 && Math.mod(i, 5) == 0 ? i / 5 - 1 : i;
             values.add(
                 ImportTestDataFactory.donorRow(
-                    'Person' + i,
-                    'Surname' + i,
-                    'person' + i + '@example.org',
-                    'Organization ' + i
+                    'Person' + who,
+                    'Surname' + who,
+                    'person' + who + '@example.org',
+                    'Organization ' + who
                 )
             );
         }
@@ -182,7 +185,7 @@ private class ImportProcessorBatchTest {
         List<Integer> carried = new List<Integer>();
 
         Test.startTest();
-        ImportBatchService.resetRows(batch.Id);
+        ImportBatchService.beginPass(batch.Id);
         ImportProcessorBatch job = new ImportProcessorBatch(batch.Id, true);
         List<Import_Row__c> chunk = new List<Import_Row__c>();
         Database.QueryLocatorIterator rows = job.start(null).iterator();
@@ -202,6 +205,9 @@ private class ImportProcessorBatchTest {
         job.finish(null);
         Test.stopTest();
 
+        Import_Batch__c finished = ImportBatchSelector.selectById(batch.Id);
+        Assert.areEqual(17, finished.Rows_Created__c, 'Seventeen people would be new.');
+        Assert.areEqual(3, finished.Rows_Matched__c, 'The three repeats find them (R-IB12).');
         Assert.areEqual(4, queries.size(), 'Twenty rows at five a chunk is four chunks.');
         for (Integer index = 2; index < queries.size(); index++) {
             Assert.areEqual(queries[1], queries[index], 'Chunk ' + index + ' asks as often.');
@@ -211,7 +217,7 @@ private class ImportProcessorBatchTest {
             Assert.areEqual(carried[0], carried[index], 'Nothing carried grows (R-IB12).');
         }
         Assert.areEqual(
-            20,
+            17,
             [
                 SELECT COUNT()
                 FROM Import_Row__c
@@ -220,7 +226,7 @@ private class ImportProcessorBatchTest {
                     AND Person_1_Key__c != NULL
                     AND Organization_Key__c != NULL
             ],
-            'Each row keeps the digests of what it would create instead.'
+            'Each row that would create keeps the digests instead.'
         );
         Assert.areEqual(0, [SELECT COUNT() FROM Contact], 'A dry run writes no person.');
     }
@@ -730,7 +736,7 @@ private class ImportProcessorBatchTest {
         previewing.execute(null, ImportTestDataFactory.reload(batch.Id));
         previewing.finish(null);
         Import_Batch__c afterDryRun = ImportBatchSelector.selectById(batch.Id);
-        ImportBatchService.resetRows(batch.Id);
+        ImportBatchService.beginPass(batch.Id);
         ImportProcessorBatch committing = new ImportProcessorBatch(batch.Id, false);
         committing.execute(null, ImportTestDataFactory.reload(batch.Id));
         committing.finish(null);

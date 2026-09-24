@@ -169,6 +169,10 @@ browser too old to open a workbook says so; save the sheet as CSV instead. So do
 too large to open in the browser (more than 500,000 rows or 1,000 columns, or a sheet over
 100 MB once unpacked).
 
+**"This import is already running a dry run or a commit."** Only one run of an import goes
+at a time. Wait for the one running to finish (its results appear when it does), then start
+again. While it runs, rows it has not reached yet still show the previous run's result.
+
 **"No column was matched to a name or an email."** The dry run refuses to run when the
 mapping has no way to identify a person or an organization. Usually the file's header row
 is not the first row: a title line or a blank line above it means Open Impact read the

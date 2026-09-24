@@ -202,54 +202,88 @@ private class ImportBatchServiceTest {
     }
 
     @IsTest
-    static void resettingRowsPutsThemAllBackToPending() {
+    static void startingAPassWritesNoRowsAndThePassClearsWhatTheLastOneLeft() {
         Import_Batch__c batch = ImportTestDataFactory.batch(newTemplate());
-        List<Import_Row__c> rows = ImportTestDataFactory.rows(
-            batch,
-            new List<Map<String, String>>{
-                ImportTestDataFactory.donorRow('Ana', 'Ramirez', 'ana@example.org', null)
-            }
-        );
-        rows[0].Status__c = ImportRowProcessor.STATUS_REJECTED;
-        rows[0].Error_Message__c = 'Something went wrong';
+        List<Map<String, String>> values = new List<Map<String, String>>();
+        for (Integer i = 0; i < 50; i++) {
+            values.add(
+                ImportTestDataFactory.donorRow(
+                    'Ana' + i,
+                    'Ramirez',
+                    'ana' + i + '@example.org',
+                    null
+                )
+            );
+        }
+        List<Import_Row__c> rows = ImportTestDataFactory.rows(batch, values);
+        Contact stale = new Contact(LastName = 'Stale');
+        insert stale;
+        for (Import_Row__c row : rows) {
+            row.Status__c = ImportRowProcessor.STATUS_REJECTED;
+            row.Error_Message__c = 'Something went wrong';
+            row.Contact_1__c = stale.Id;
+            row.Gift_Id__c = 'a stale gift';
+            row.Person_1_Key__c = '0123456789abcdef';
+        }
         update rows;
 
         Test.startTest();
-        ImportBatchService.resetRows(batch.Id);
+        Integer before = Limits.getDmlRows();
+        ImportBatchService.startDryRun(batch.Id);
+        Integer written = Limits.getDmlRows() - before;
         Test.stopTest();
 
-        Import_Row__c after = ImportTestDataFactory.reload(batch.Id)[0];
-        Assert.areEqual(ImportRowProcessor.STATUS_PENDING, after.Status__c, 'Back to pending.');
-        Assert.isNull(after.Error_Message__c, 'And the old reason is cleared with it.');
+        // A reset of every staged row here fails past 10,000 rows (R-IB13).
+        Assert.isTrue(written < 5, 'Starting writes the batch, not its 50 rows: ' + written);
+        for (Import_Row__c after : [
+            SELECT Status__c, Error_Message__c, Contact_1__c, Gift_Id__c, Person_1_Key__c
+            FROM Import_Row__c
+            WHERE Import_Batch__c = :batch.Id
+        ]) {
+            Assert.areEqual(
+                ImportRowProcessor.STATUS_CREATED,
+                after.Status__c,
+                'Worked out again.'
+            );
+            Assert.isNull(after.Error_Message__c, 'The old reason is cleared.');
+            Assert.areNotEqual(stale.Id, after.Contact_1__c, 'The person is resolved again.');
+            Assert.isNull(after.Gift_Id__c, 'A stale gift is never reported.');
+            Assert.areNotEqual('0123456789abcdef', after.Person_1_Key__c, 'Nor a stale key.');
+        }
+        Assert.areEqual(
+            1,
+            ImportBatchSelector.selectById(batch.Id).Pass_Number__c,
+            'The first pass.'
+        );
     }
 
     @IsTest
-    static void resettingRowsForgetsWhatTheLastRunResolved() {
+    static void aSecondStartWhileARunIsInProgressIsRefused() {
         Import_Batch__c batch = ImportTestDataFactory.batch(newTemplate());
-        List<Import_Row__c> rows = ImportTestDataFactory.rows(
+        ImportTestDataFactory.rows(
             batch,
             new List<Map<String, String>>{
                 ImportTestDataFactory.donorRow('Ana', 'Ramirez', 'ana@example.org', null)
             }
         );
-        Contact ana = new Contact(LastName = 'Ramirez');
-        insert ana;
-        rows[0].Status__c = ImportRowProcessor.STATUS_CREATED;
-        rows[0].Contact_1__c = ana.Id;
-        rows[0].Gift_Id__c = 'a stale gift';
-        update rows;
 
         Test.startTest();
-        ImportBatchService.resetRows(batch.Id);
+        ImportBatchService.startDryRun(batch.Id);
+        try {
+            ImportBatchService.startDryRun(batch.Id);
+            Assert.fail('R-IB13: one pass of a batch at a time.');
+        } catch (ImportException e) {
+            Assert.areEqual(Label.Core_Import_ErrorRunInProgress, e.getMessage(), 'Said plainly.');
+        }
         Test.stopTest();
 
-        Import_Row__c after = [
-            SELECT Contact_1__c, Household__c, Gift_Id__c
-            FROM Import_Row__c
-            WHERE Id = :rows[0].Id
-        ];
-        Assert.isNull(after.Contact_1__c, 'A rerun resolves the person again.');
-        Assert.isNull(after.Gift_Id__c, 'And the gift, so a stale one is never reported.');
+        update new Import_Batch__c(Id = batch.Id, Status__c = ImportBatchService.STATUS_COMMITTING);
+        try {
+            ImportBatchService.startDryRun(batch.Id);
+            Assert.fail('Nor a dry run over a commit that is running.');
+        } catch (ImportException e) {
+            Assert.areEqual(Label.Core_Import_ErrorRunInProgress, e.getMessage(), 'The same.');
+        }
     }
 
     @IsTest

@@ -58,16 +58,29 @@ public with sharing class ImportRowSelector {
     private static final Integer DIGESTS_PER_QUERY = 1000;
 
     /**
-     * Which of these digests an earlier chunk of the current pass wrote as a person or an
-     * organization it would create (R-IB12). Only rows already processed in this pass carry
-     * one, since a pass starts from rows reset to Pending with no digests, so what this costs
-     * depends on the chunk's own digests and never on how many rows came before. In system
-     * mode (ADR-0021): the staged rows are the package's own bookkeeping.
+     * The batch's current pass (R-IB13), or null for a batch read without it, as a test that
+     * never started a pass reads it.
      */
     @NamespaceAccessible
-    public static Set<String> createdDigestsWrittenEarlier(Id batchId, Set<String> digests) {
+    public static Decimal passOf(Import_Batch__c batch) {
+        return batch != null && batch.isSet(Import_Batch__c.Pass_Number__c)
+            ? batch.Pass_Number__c
+            : null;
+    }
+
+    /**
+     * Which of these digests an earlier chunk of the current pass wrote as a person or an
+     * organization it would create (R-IB12). Only rows stamped with this pass are read (R-IB13),
+     * and only for the chunk's own digests, so what this costs never depends on how many rows
+     * came before. In system mode (ADR-0021): the staged rows are the package's own bookkeeping.
+     */
+    @NamespaceAccessible
+    public static Set<String> createdDigestsWrittenEarlier(
+        Import_Batch__c batch,
+        Set<String> digests
+    ) {
         return digestsWrittenEarlier(
-            batchId,
+            batch,
             digests,
             new List<String>{
                 'Person_1_Key__c',
@@ -84,17 +97,20 @@ public with sharing class ImportRowSelector {
      * processor's key (R-IR6): for Giving, the external IDs of the gifts a dry run would load.
      */
     @NamespaceAccessible
-    public static Set<String> processorDigestsWrittenEarlier(Id batchId, Set<String> digests) {
-        return digestsWrittenEarlier(batchId, digests, new List<String>{ 'Processor_Key__c' });
+    public static Set<String> processorDigestsWrittenEarlier(
+        Import_Batch__c batch,
+        Set<String> digests
+    ) {
+        return digestsWrittenEarlier(batch, digests, new List<String>{ 'Processor_Key__c' });
     }
 
     private static Set<String> digestsWrittenEarlier(
-        Id batchId,
+        Import_Batch__c batch,
         Set<String> digests,
         List<String> fields
     ) {
         Set<String> found = new Set<String>();
-        if (batchId == null || digests == null || digests.isEmpty()) {
+        if (batch == null || batch.Id == null || digests == null || digests.isEmpty()) {
             return found;
         }
         List<String> all = new List<String>(digests);
@@ -103,14 +119,14 @@ public with sharing class ImportRowSelector {
             for (Integer i = start; i < Math.min(start + DIGESTS_PER_QUERY, all.size()); i++) {
                 slice.add(all[i]);
             }
-            found.addAll(digestSlice(batchId, slice, fields, digests));
+            found.addAll(digestSlice(batch, slice, fields, digests));
         }
         return found;
     }
 
     /** One slice, kept out of the caller's loop so no query sits lexically inside one. */
     private static Set<String> digestSlice(
-        Id batchId,
+        Import_Batch__c batch,
         List<String> slice,
         List<String> fields,
         Set<String> wanted
@@ -123,13 +139,13 @@ public with sharing class ImportRowSelector {
             'SELECT ' +
                 String.join(fields, ', ') +
                 ' FROM Import_Row__c WHERE Import_Batch__c = :batchId' +
-                ' AND Status__c != :pending AND (' +
+                ' AND Pass_Number__c = :pass AND (' +
                 String.join(matches, ' OR ') +
                 ')',
             new Map<String, Object>{
-                'batchId' => batchId,
+                'batchId' => batch.Id,
                 'slice' => slice,
-                'pending' => ImportRowProcessor.STATUS_PENDING
+                'pass' => passOf(batch)
             },
             AccessLevel.SYSTEM_MODE
         );

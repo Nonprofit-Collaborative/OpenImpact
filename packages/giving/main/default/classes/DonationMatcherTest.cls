@@ -394,7 +394,7 @@ private class DonationMatcherTest {
 
     /** Runs one pass of an import the way the platform drives the batch, a chunk per row. */
     private static void runPass(Id batchId, Boolean dryRun) {
-        ImportBatchService.resetRows(batchId);
+        ImportBatchService.beginPass(batchId);
         ImportProcessorBatch job = new ImportProcessorBatch(batchId, dryRun);
         List<Import_Row__c> rows = new List<Import_Row__c>();
         Database.QueryLocatorIterator staged = job.start(null).iterator();

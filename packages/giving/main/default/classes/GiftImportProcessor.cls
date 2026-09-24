@@ -120,7 +120,7 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
         // is held to even when its first gift is in a later chunk (R-DM7).
         DonationMatcher matcher = DonationMatcher.forRun(batch, template, dryRun);
         if (!gifts.isEmpty()) {
-            matchExternalIds(pending(gifts), batch.Id, dryRun);
+            matchExternalIds(pending(gifts), batch, dryRun);
             matcher.refuseExistingUnderNeverMatch(gifts);
             GiftImportCredits.read(pending(gifts));
             resolveDonors(pending(gifts), dryRun);
@@ -275,7 +275,12 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
      * A row whose external ID names a gift already in the org, or one an earlier row of this
      * chunk makes, is that gift: the row is Matched and the gift is not changed.
      */
-    private static void matchExternalIds(List<GiftImportRow> gifts, Id batchId, Boolean dryRun) {
+    private static void matchExternalIds(
+        List<GiftImportRow> gifts,
+        Import_Batch__c batch,
+        Boolean dryRun
+    ) {
+        Id batchId = batch.Id;
         Set<String> externalIds = new Set<String>();
         for (GiftImportRow item : gifts) {
             if (item.externalId != null) {
@@ -300,7 +305,7 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
             for (String externalId : externalIds) {
                 digests.add(GiftImportRunState.key(externalId));
             }
-            loadedEarlier = ImportRowSelector.processorDigestsWrittenEarlier(batchId, digests);
+            loadedEarlier = ImportRowSelector.processorDigestsWrittenEarlier(batch, digests);
         }
         Map<String, GiftImportRow> firstInChunk = new Map<String, GiftImportRow>();
         for (GiftImportRow item : gifts) {

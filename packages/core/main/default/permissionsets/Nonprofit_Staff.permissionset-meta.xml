@@ -674,6 +674,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>false</editable>
+    <field>Import_Batch__c.Pass_Number__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
     <field>Import_Batch__c.Row_Count__c</field>
     <readable>true</readable>
   </fieldPermissions>

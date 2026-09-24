@@ -60,7 +60,8 @@ private class GiftImportRunStateTest {
         );
         Import_Batch__c batch = ImportTestDataFactory.batch(template);
         List<Map<String, String>> rows = new List<Map<String, String>>();
-        for (Integer i = 0; i < 4; i++) {
+        // A repeat in chunks 2 and 4 finds the key chunk 1 stored, under the same check.
+        for (String externalId : new List<String>{ 'order-0', 'order-0', 'order-1', 'ORDER-0' }) {
             rows.add(
                 new Map<String, String>{
                     'Contact1.Email' => 'ana@example.org',
@@ -68,7 +69,7 @@ private class GiftImportRunStateTest {
                     'Gift.Amount__c' => '25',
                     'Gift.Gift_Date__c' => '2026-03-15',
                     'Gift.Type__c' => 'cash',
-                    'Gift.External_Id__c' => 'order-' + i
+                    'Gift.External_Id__c' => externalId
                 }
             );
         }
@@ -101,14 +102,17 @@ private class GiftImportRunStateTest {
             Assert.areEqual(queries[1], queries[index], 'Chunk ' + index + ' asks as often.');
         }
         Assert.areEqual(
-            4,
+            2,
             [
                 SELECT COUNT()
                 FROM Import_Row__c
                 WHERE Import_Batch__c = :batch.Id AND Processor_Key__c != NULL
             ],
-            'Each row keeps its own external ID digest instead.'
+            'Each row that would load a gift keeps its external ID digest instead.'
         );
+        List<Import_Row__c> previewed = ImportTestDataFactory.reload(batch.Id);
+        Assert.areEqual(ImportRowProcessor.STATUS_MATCHED, previewed[1].Status__c, 'A repeat.');
+        Assert.areEqual(ImportRowProcessor.STATUS_MATCHED, previewed[3].Status__c, 'Another.');
         Assert.areEqual(0, [SELECT COUNT() FROM Gift__c], 'A dry run writes no gift.');
     }
 

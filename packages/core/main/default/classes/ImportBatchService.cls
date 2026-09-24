@@ -239,6 +239,10 @@ public with sharing class ImportBatchService {
         if (batch == null) {
             throw new ImportException(Label.Core_Import_ErrorBatchGone);
         }
+        if (STATUS_DRY_RUN.equals(batch.Status__c) || STATUS_COMMITTING.equals(batch.Status__c)) {
+            // Two passes of one batch at once would each overwrite the other's rows (R-IB13).
+            throw new ImportException(Label.Core_Import_ErrorRunInProgress);
+        }
         if (dryRun && hasCommitted(batch)) {
             throw new ImportException(Label.Core_Import_ErrorDryRunAfterCommit);
         }
@@ -262,7 +266,9 @@ public with sharing class ImportBatchService {
         ) {
             throw new ImportException(Label.Core_Import_ErrorPersonModeUnavailable);
         }
-        resetRows(batch.Id);
+        // No reset of the staged rows: each chunk clears and stamps its own, so a pass costs the
+        // same one write here however long the file (R-IB13).
+        batch.Pass_Number__c = nextPass(batch);
         batch.Status__c = dryRun ? STATUS_DRY_RUN : STATUS_COMMITTING;
         batch.Is_Dry_Run__c = dryRun;
         batch.Started_At__c = Datetime.now();
@@ -296,44 +302,24 @@ public with sharing class ImportBatchService {
     }
 
     /**
-     * Puts every staged row back to pending, so a re-run reports on the whole file rather
-     * than on whatever the last pass happened to leave behind. Runs in system mode for the
-     * reason ADR-0021 gives: the staged rows are the package's own bookkeeping.
+     * Starts a new pass of a batch without running it: the next Pass Number, one write however
+     * many rows the batch has (R-IB13). A test that drives the processor itself calls this
+     * where the platform would have called start.
      */
     @NamespaceAccessible
-    public static void resetRows(Id batchId) {
-        List<Import_Row__c> rows = Database.queryWithBinds(
-            'SELECT Id FROM Import_Row__c WHERE Import_Batch__c = :batchId AND Status__c != :pending',
-            new Map<String, Object>{
-                'batchId' => batchId,
-                'pending' => ImportRowProcessor.STATUS_PENDING
-            },
+    public static void beginPass(Id batchId) {
+        Import_Batch__c batch = ImportBatchSelector.selectById(batchId);
+        if (batch == null) {
+            throw new ImportException(Label.Core_Import_ErrorBatchGone);
+        }
+        Database.update(
+            new Import_Batch__c(Id = batch.Id, Pass_Number__c = nextPass(batch)),
             AccessLevel.SYSTEM_MODE
         );
-        if (rows.isEmpty()) {
-            return;
-        }
-        for (Import_Row__c row : rows) {
-            row.Status__c = ImportRowProcessor.STATUS_PENDING;
-            row.Error_Message__c = null;
-            // What a pass resolved is its own answer: the next pass works it out again, so a
-            // commit never acts on a gift or a household a dry run only described.
-            row.Household__c = null;
-            row.Contact_1__c = null;
-            row.Contact_2__c = null;
-            row.Person_1_Account__c = null;
-            row.Person_2_Account__c = null;
-            row.Organization__c = null;
-            row.Gift_Id__c = null;
-            row.Soft_Credit_Id__c = null;
-            row.Person_1_Key__c = null;
-            row.Person_2_Key__c = null;
-            row.Person_1_Name_Key__c = null;
-            row.Person_2_Name_Key__c = null;
-            row.Organization_Key__c = null;
-            row.Processor_Key__c = null;
-        }
-        Database.update(rows, false, AccessLevel.SYSTEM_MODE);
+    }
+
+    private static Decimal nextPass(Import_Batch__c batch) {
+        return batch.Pass_Number__c == null ? 1 : batch.Pass_Number__c + 1;
     }
 
     /**

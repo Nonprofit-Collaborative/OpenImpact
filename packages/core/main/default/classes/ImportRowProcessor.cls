@@ -144,7 +144,7 @@ public with sharing class ImportRowProcessor {
         Boolean personAccounts = ImportTemplateService.isPersonAccountMode(template);
         String rule = ImportTemplateService.normalizedRule(template.Matching_Rule__c);
 
-        List<Working> working = read(rows, mapping, outcome);
+        List<Working> working = read(batch, rows, mapping, outcome);
         resolveOrganizations(working, rule, batch, dryRun, outcome);
         resolvePeople(working, rule, batch, personAccounts, dryRun, outcome);
         tagAndNameHouseholds(working, batch, dryRun, outcome);
@@ -171,6 +171,7 @@ public with sharing class ImportRowProcessor {
 
     /** Parses every row's raw values into the entities they describe, and validates them. */
     private static List<Working> read(
+        Import_Batch__c batch,
         List<Import_Row__c> rows,
         ImportMapping mapping,
         Outcome outcome
@@ -178,13 +179,7 @@ public with sharing class ImportRowProcessor {
         Map<String, String> targets = mapping.targetsBySourceKey();
         List<Working> working = new List<Working>();
         for (Import_Row__c row : rows) {
-            // A pass writes its own digests or none, so a later chunk never reads a stale one.
-            row.Person_1_Key__c = null;
-            row.Person_2_Key__c = null;
-            row.Person_1_Name_Key__c = null;
-            row.Person_2_Name_Key__c = null;
-            row.Organization_Key__c = null;
-            row.Processor_Key__c = null;
+            startPass(row, ImportRowSelector.passOf(batch));
             Working item = new Working();
             item.row = row;
             item.values = rawValues(row);
@@ -380,7 +375,7 @@ public with sharing class ImportRowProcessor {
             for (String name : firstRowByName.keySet()) {
                 digests.add(digest(ORGANIZATION_DIGEST, name));
             }
-            Set<String> earlier = ImportRowSelector.createdDigestsWrittenEarlier(batch.Id, digests);
+            Set<String> earlier = ImportRowSelector.createdDigestsWrittenEarlier(batch, digests);
             for (Working item : working) {
                 if (item.organizationId != null || item.organizationKey == null) {
                     continue;
@@ -490,7 +485,7 @@ public with sharing class ImportRowProcessor {
         assignPerson(working, matches, ImportMapping.ENTITY_CONTACT_1, true);
         assignPerson(working, matches, ImportMapping.ENTITY_CONTACT_2, false);
         if (dryRun) {
-            markPeopleComing(working, batch.Id);
+            markPeopleComing(working, batch);
         }
         validate(working);
 
@@ -655,7 +650,7 @@ public with sharing class ImportRowProcessor {
      * earlier chunks' people are found on the rows that would create them, asked only for this
      * chunk's own keys, so nothing grows with the rows already read.
      */
-    private static void markPeopleComing(List<Working> working, Id batchId) {
+    private static void markPeopleComing(List<Working> working, Import_Batch__c batch) {
         Set<String> digests = new Set<String>();
         for (Working item : working) {
             if (item.person1Id == null && item.personKey1 != null) {
@@ -665,7 +660,7 @@ public with sharing class ImportRowProcessor {
                 digests.add(digest(PERSON_DIGEST, item.personKey2));
             }
         }
-        Set<String> earlier = ImportRowSelector.createdDigestsWrittenEarlier(batchId, digests);
+        Set<String> earlier = ImportRowSelector.createdDigestsWrittenEarlier(batch, digests);
         if (earlier.isEmpty()) {
             return;
         }
@@ -689,6 +684,34 @@ public with sharing class ImportRowProcessor {
     private static String digest(String kind, String key) {
         return EncodingUtil.convertToHex(Crypto.generateDigest('MD5', Blob.valueOf(kind + key)))
             .left(16);
+    }
+
+    /**
+     * Clears what an earlier pass left on a row and stamps it with this one (R-IB13). There is
+     * no reset of the rows before a pass, which for a large file would be more writes than one
+     * transaction allows, so each chunk does it for its own rows before working them out. What
+     * a pass resolved is its own answer: a commit never acts on a gift or a household a dry
+     * run only described, and a key is read only by the pass that wrote it (R-IB12).
+     */
+    @NamespaceAccessible
+    public static void startPass(Import_Row__c row, Decimal pass) {
+        row.Pass_Number__c = pass;
+        row.Status__c = STATUS_PENDING;
+        row.Error_Message__c = null;
+        row.Household__c = null;
+        row.Contact_1__c = null;
+        row.Contact_2__c = null;
+        row.Person_1_Account__c = null;
+        row.Person_2_Account__c = null;
+        row.Organization__c = null;
+        row.Gift_Id__c = null;
+        row.Soft_Credit_Id__c = null;
+        row.Person_1_Key__c = null;
+        row.Person_2_Key__c = null;
+        row.Person_1_Name_Key__c = null;
+        row.Person_2_Name_Key__c = null;
+        row.Organization_Key__c = null;
+        row.Processor_Key__c = null;
     }
 
     /** A row has to describe somebody. One that does not is rejected before anything is saved. */

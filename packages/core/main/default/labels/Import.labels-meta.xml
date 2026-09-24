@@ -633,6 +633,14 @@
         <value>Kept: you do not have access to delete this record, so the undo left it in place.</value>
     </labels>
     <labels>
+        <fullName>Core_Import_ErrorRunInProgress</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import error: a run is already in progress</shortDescription>
+        <value>This import is already running a dry run or a commit. Wait for it to finish, then try again.</value>
+    </labels>
+    <labels>
         <fullName>Core_Import_ErrorDryRunAfterCommit</fullName>
         <categories>Import</categories>
         <language>en_US</language>
