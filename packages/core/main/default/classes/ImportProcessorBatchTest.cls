@@ -386,6 +386,79 @@ private class ImportProcessorBatchTest {
         aCoupleSharingAKeyIsTwoPeople(ImportTemplateService.RULE_EMAIL, true, false, 200);
     }
 
+    /** Imports John and Jane Smith's row, sharing one key under the rule, as a new file. */
+    private static Import_Batch__c coupleFile(String rule, String janeFirstName) {
+        Map<String, String> couple = new Map<String, String>{
+            'Contact1.FirstName' => 'John',
+            'Contact1.LastName' => 'Smith',
+            'Contact1.MailingPostalCode' => '12345',
+            'Contact1.Email' => 'smiths@example.org',
+            'Contact2.FirstName' => janeFirstName,
+            'Contact2.LastName' => 'Smith',
+            'Contact2.MailingPostalCode' => '12345',
+            'Contact2.Email' => 'smiths@example.org'
+        };
+        ImportMapping mapping = new ImportMapping();
+        for (String target : couple.keySet()) {
+            mapping.columns.add(new ImportMapping.Column(target, target));
+        }
+        Import_Batch__c batch = ImportTestDataFactory.batch(
+            ImportTestDataFactory.template(mapping.serialize(), rule)
+        );
+        ImportTestDataFactory.rows(batch, new List<Map<String, String>>{ couple });
+        return batch;
+    }
+
+    private static void aCoupleLoadedAgainIsMatchedNotMadeAgain(String rule) {
+        Import_Batch__c first = coupleFile(rule, 'Jane');
+        Import_Batch__c again = coupleFile(rule, 'Jane');
+
+        Test.startTest();
+        runInChunks(first.Id, false, 200);
+        Import_Batch__c dryRun = runInChunks(again.Id, true, 200);
+        Import_Batch__c committed = runInChunks(again.Id, false, 200);
+        Test.stopTest();
+
+        Import_Row__c before = ImportTestDataFactory.reload(first.Id)[0];
+        Import_Row__c row = ImportTestDataFactory.reload(again.Id)[0];
+        Assert.areEqual(ImportRowProcessor.STATUS_MATCHED, row.Status__c, row.Error_Message__c);
+        Assert.areEqual(before.Contact_1__c, row.Contact_1__c, 'John matches John.');
+        Assert.areEqual(before.Contact_2__c, row.Contact_2__c, 'And Jane matches Jane.');
+        Map<Id, Contact> people = new Map<Id, Contact>([SELECT FirstName FROM Contact]);
+        Assert.areEqual(2, people.size(), 'Still two people, not a new Jane each time.');
+        Assert.areEqual('John', people.get(row.Contact_1__c).FirstName, 'John is not renamed.');
+        Assert.areEqual('Jane', people.get(row.Contact_2__c).FirstName, 'Nor is Jane.');
+        Assert.areEqual(1, dryRun.Rows_Matched__c, 'The dry run of the second file says so.');
+        Assert.areEqual(committed.Rows_Matched__c, dryRun.Rows_Matched__c, 'As the commit did.');
+        Assert.areEqual(committed.Rows_Created__c, dryRun.Rows_Created__c, 'Both counts.');
+    }
+
+    @IsTest
+    static void aCoupleWithOneSurnameAndPostalCodeLoadedAgainIsMatched() {
+        aCoupleLoadedAgainIsMatchedNotMadeAgain(ImportTemplateService.RULE_NAME_POSTAL);
+    }
+
+    @IsTest
+    static void aCoupleSharingOneEmailLoadedAgainIsMatched() {
+        aCoupleLoadedAgainIsMatchedNotMadeAgain(ImportTemplateService.RULE_EMAIL);
+    }
+
+    @IsTest
+    static void twoPeopleOnARowWithOneKeyAndOneFirstNameAreRefused() {
+        Import_Batch__c batch = coupleFile(ImportTemplateService.RULE_EMAIL, 'john');
+
+        Test.startTest();
+        Import_Batch__c dryRun = runInChunks(batch.Id, true, 200);
+        runInChunks(batch.Id, false, 200);
+        Test.stopTest();
+
+        Import_Row__c row = ImportTestDataFactory.reload(batch.Id)[0];
+        Assert.areEqual(ImportRowProcessor.STATUS_REJECTED, row.Status__c, 'Not guessed at.');
+        Assert.areEqual(Label.Core_Import_ErrorTwoPeopleOneKey, row.Error_Message__c, 'Why.');
+        Assert.areEqual(1, dryRun.Rows_Rejected__c, 'The dry run says so first.');
+        Assert.areEqual(0, [SELECT COUNT() FROM Contact], 'Nobody is created.');
+    }
+
     @IsTest
     static void rowsSharingAPersonWhoCouldNotBeSavedAreRejectedWithTheReason() {
         ImportMapping mapping = new ImportMapping();

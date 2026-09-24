@@ -481,15 +481,21 @@ public with sharing class ImportRowProcessor {
                 rule,
                 externalIdField
             );
-            // A row's two people are two people, even when the rule gives them one key (a
-            // couple with one surname and postal code, or one email). The second is then never
-            // matched, shared or remembered by that key: they are created (R-IB12). Clearing
-            // the key here holds the rule for matching, the dry run and the commit alike.
-            if (item.personKey2 != null && item.personKey2 == item.personKey1) {
-                item.personKey2 = null;
-            }
-            collect(item.personKey1, rule, emailKeys, namePostalKeys, externalIds);
-            collect(item.personKey2, rule, emailKeys, namePostalKeys, externalIds);
+            tellApartByFirstName(item, rule);
+            collect(
+                ImportMatcher.baseKey(item.personKey1),
+                rule,
+                emailKeys,
+                namePostalKeys,
+                externalIds
+            );
+            collect(
+                ImportMatcher.baseKey(item.personKey2),
+                rule,
+                emailKeys,
+                namePostalKeys,
+                externalIds
+            );
         }
 
         Map<String, Id> matches = matchPeople(
@@ -516,6 +522,51 @@ public with sharing class ImportRowProcessor {
             return;
         }
         savePeople(working, batch, personAccounts, outcome);
+    }
+
+    /**
+     * A row's two people are two people, even when the rule gives them one key (a couple with
+     * one surname and postal code, or one email). Each is then matched, shared and remembered
+     * by the shared key narrowed to their own first name, so neither is taken for the other,
+     * in this file or when it is loaded again (R-IB12). Two with one first name as well cannot
+     * be told apart, and the row is refused rather than guessed at.
+     */
+    private static void tellApartByFirstName(Working item, String rule) {
+        if (
+            item.personKey1 == null ||
+            item.personKey1 != item.personKey2 ||
+            ImportTemplateService.RULE_EXTERNAL_ID.equals(rule)
+        ) {
+            return;
+        }
+        String first1 = ImportMatcher.nameKey(
+            attribute(item.byEntity, ImportMapping.ENTITY_CONTACT_1, 'FirstName')
+        );
+        String first2 = ImportMatcher.nameKey(
+            attribute(item.byEntity, ImportMapping.ENTITY_CONTACT_2, 'FirstName')
+        );
+        if (first1 == first2) {
+            item.error = Label.Core_Import_ErrorTwoPeopleOneKey;
+            return;
+        }
+        item.personKey1 = ImportMatcher.firstNameKey(item.personKey1, first1);
+        item.personKey2 = ImportMatcher.firstNameKey(item.personKey2, first2);
+    }
+
+    /**
+     * Every key that finds a person this row creates: the shared key, and the same narrowed
+     * to their first name, so a later row finds them by whichever it holds (R-IB12).
+     */
+    private static List<String> keysFinding(Working item, Boolean isFirst) {
+        String key = ImportMatcher.baseKey(isFirst ? item.personKey1 : item.personKey2);
+        if (key == null) {
+            return new List<String>();
+        }
+        String entity = isFirst ? ImportMapping.ENTITY_CONTACT_1 : ImportMapping.ENTITY_CONTACT_2;
+        return new List<String>{
+            key,
+            ImportMatcher.firstNameKey(key, attribute(item.byEntity, entity, 'FirstName'))
+        };
     }
 
     private static void collect(
@@ -803,9 +854,7 @@ public with sharing class ImportRowProcessor {
                 return;
             }
             item.createdAnything = true;
-            if (key != null) {
-                keysInChunk.add(key);
-            }
+            keysInChunk.addAll(keysFinding(item, isFirst));
             rememberCreated(outcome, item, entity, rule, personAccounts);
         } else if (changes(stored.get(personId), item.byEntity.get(entity))) {
             item.updatedAnything = true;
@@ -834,7 +883,9 @@ public with sharing class ImportRowProcessor {
             (ImportTemplateService.RULE_EMAIL.equals(rule) ||
             String.isNotBlank(attribute(item.byEntity, entity, 'MailingPostalCode'))));
         if (key != null && findable) {
-            outcome.wouldCreate.add(digest(PERSON_DIGEST, key));
+            for (String finding : keysFinding(item, entity == ImportMapping.ENTITY_CONTACT_1)) {
+                outcome.wouldCreate.add(digest(PERSON_DIGEST, finding));
+            }
         }
     }
 
@@ -966,7 +1017,7 @@ public with sharing class ImportRowProcessor {
     ) {
         List<SObject> toCreate = new List<SObject>();
         List<Working> owners = new List<Working>();
-        List<String> ownerKeys = new List<String>();
+        List<List<String>> ownerKeys = new List<List<String>>();
         List<Working> sharing = new List<Working>();
         List<String> sharedKeys = new List<String>();
         Id personRecordTypeId = personAccounts ? anyPersonRecordTypeId() : null;
@@ -991,9 +1042,8 @@ public with sharing class ImportRowProcessor {
                 sharedKeys.add(key);
                 continue;
             }
-            if (key != null) {
-                keysBeingCreated.add(key);
-            }
+            List<String> finding = keysFinding(item, isFirst);
+            keysBeingCreated.addAll(finding);
             SObject person = personAccounts
                 ? (SObject) new Account(RecordTypeId = personRecordTypeId)
                 : (SObject) new Contact();
@@ -1008,18 +1058,19 @@ public with sharing class ImportRowProcessor {
             // writes membership down.
             toCreate.add(person);
             owners.add(item);
-            ownerKeys.add(key);
+            ownerKeys.add(finding);
         }
         List<Database.SaveResult> results = toCreate.isEmpty()
             ? new List<Database.SaveResult>()
             : Database.insert(toCreate, false, AccessLevel.USER_MODE);
         for (Integer i = 0; i < results.size(); i++) {
             Working owner = owners[i];
-            if (ownerKeys[i] != null) {
-                if (results[i].isSuccess()) {
-                    createdByKey.put(ownerKeys[i], results[i].getId());
-                } else {
-                    failedByKey.put(ownerKeys[i], message(results[i]));
+            for (String key : ownerKeys[i]) {
+                // The first person saved under a key is the one a later row shares.
+                if (results[i].isSuccess() && !createdByKey.containsKey(key)) {
+                    createdByKey.put(key, results[i].getId());
+                } else if (!results[i].isSuccess() && !failedByKey.containsKey(key)) {
+                    failedByKey.put(key, message(results[i]));
                 }
             }
             if (results[i].isSuccess()) {

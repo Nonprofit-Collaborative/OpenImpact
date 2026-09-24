@@ -73,6 +73,14 @@
         <value>This row could not be read. Check the file for stray quotation marks or line breaks inside a value.</value>
     </labels>
     <labels>
+        <fullName>Core_Import_ErrorTwoPeopleOneKey</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import error: a row's two people cannot be told apart</shortDescription>
+        <value>The two people on this row have the same matching details and the same first name, so they cannot be told apart. Give each their own first name.</value>
+    </labels>
+    <labels>
         <fullName>Core_Import_ErrorSamePersonNotSaved</fullName>
         <categories>Import</categories>
         <language>en_US</language>

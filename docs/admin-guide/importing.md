@@ -92,6 +92,13 @@ Three things are worth knowing about it.
   household page if that is what you want.
 - **A row with only a second person on it still works.** They get a household of their
   own, the same as anybody else.
+- **A couple who share an email, or a surname and postal code, are still two people.** When
+  the matching rule would find both people on a row by the same email or surname and postal
+  code, Open Impact tells them apart by first name. Loading the same file again finds each of
+  them rather than adding the second person again. Two people on one row with the same
+  matching details and the same first name cannot be told apart: that row is rejected.
+  Under the email rule, a second person who shares the first person's email needs a last
+  name unless they are already in your org with that email and first name.
 
 ## 5. Undoing an import
 

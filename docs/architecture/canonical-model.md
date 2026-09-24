@@ -1515,12 +1515,19 @@ because rows are checked before anybody is saved. One difference remains: a late
 not is Updated in the commit but Matched in the dry run, which has no saved record to compare
 it with; both count it once.
 
-**A row's two people are two people.** When the rule gives a row's second person the same key
-as its first (a couple with one surname and postal code, or one shared email), the second is
-never matched, shared or remembered by that key, whoever else holds it: an earlier row of the
-chunk, an earlier chunk, or a person already in the org. They are created, and joined to the
-first person's household (R-IR1a), in the commit and the dry run alike, and a first person
-never takes a second person's values.
+**A row's two people are two people.** When the Email or Name + Postal rule gives a row's two
+people one key (a couple with one surname and postal code, or one shared email), each is
+matched, shared and remembered by that key narrowed to their own first name: against the
+org's records (a record matches when its key and its first name both agree), against earlier
+rows of the chunk and against earlier chunks, in the commit and the dry run alike. So neither
+is ever taken for the other, and loading the same file again matches both rather than creating
+the second again. Every person an import creates is remembered under both the shared key and
+the narrowed one, so a later row naming them alone finds them too. A row whose two people also
+share a first name cannot be told apart and is rejected, saying so. Under the Email rule a
+second person with no last name of their own therefore matches only a record with the same
+email and first name; otherwise they are to be created, and are rejected without a last name
+as any new person is. Where the org holds several records under one key, the earliest created
+wins, and the lower identifier breaks a tie, so the same file always resolves the same way.
 
 ### Salesforce implementation
 
