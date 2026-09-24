@@ -567,15 +567,14 @@ private class GiftPostingLockTest {
         Test.stopTest();
 
         Assert.areEqual(0, [SELECT COUNT() FROM Gift__c WHERE Id = :gift.Id], 'Deleted.');
-        Assert.areEqual(
-            1,
-            [
-                SELECT COUNT()
-                FROM Error_Log__c
-                WHERE Context__c = 'Posting lock override' AND Message__c LIKE '%deleted%'
-            ],
-            'And written down.'
-        );
+        // Message__c is long text, which SOQL cannot filter on.
+        List<Error_Log__c> logs = [
+            SELECT Message__c
+            FROM Error_Log__c
+            WHERE Context__c = 'Posting lock override'
+        ];
+        Assert.areEqual(1, logs.size(), 'And written down.');
+        Assert.isTrue(logs[0].Message__c.contains('deleted'), logs[0].Message__c);
     }
 
     // -------------------------------------------------------------------------------------
