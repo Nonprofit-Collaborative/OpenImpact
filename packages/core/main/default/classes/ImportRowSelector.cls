@@ -79,6 +79,19 @@ public with sharing class ImportRowSelector {
         Import_Batch__c batch,
         Set<String> digests
     ) {
+        return createdDigestCounts(batch, digests).keySet();
+    }
+
+    /**
+     * The same, with how many times each was written: a shared key two people created would
+     * hold is written twice, so a later chunk knows it can no longer find one of them by it
+     * alone (R-IB12).
+     */
+    @NamespaceAccessible
+    public static Map<String, Integer> createdDigestCounts(
+        Import_Batch__c batch,
+        Set<String> digests
+    ) {
         return digestsWrittenEarlier(
             batch,
             digests,
@@ -101,15 +114,16 @@ public with sharing class ImportRowSelector {
         Import_Batch__c batch,
         Set<String> digests
     ) {
-        return digestsWrittenEarlier(batch, digests, new List<String>{ 'Processor_Key__c' });
+        return digestsWrittenEarlier(batch, digests, new List<String>{ 'Processor_Key__c' })
+            .keySet();
     }
 
-    private static Set<String> digestsWrittenEarlier(
+    private static Map<String, Integer> digestsWrittenEarlier(
         Import_Batch__c batch,
         Set<String> digests,
         List<String> fields
     ) {
-        Set<String> found = new Set<String>();
+        Map<String, Integer> found = new Map<String, Integer>();
         if (batch == null || batch.Id == null || digests == null || digests.isEmpty()) {
             return found;
         }
@@ -119,18 +133,18 @@ public with sharing class ImportRowSelector {
             for (Integer i = start; i < Math.min(start + DIGESTS_PER_QUERY, all.size()); i++) {
                 slice.add(all[i]);
             }
-            found.addAll(digestSlice(batch, slice, fields, digests));
+            found.putAll(digestSlice(batch, slice, fields));
         }
         return found;
     }
 
     /** One slice, kept out of the caller's loop so no query sits lexically inside one. */
-    private static Set<String> digestSlice(
+    private static Map<String, Integer> digestSlice(
         Import_Batch__c batch,
         List<String> slice,
-        List<String> fields,
-        Set<String> wanted
+        List<String> fields
     ) {
+        Set<String> wanted = new Set<String>(slice);
         List<String> matches = new List<String>();
         for (String field : fields) {
             matches.add(field + ' IN :slice');
@@ -149,12 +163,12 @@ public with sharing class ImportRowSelector {
             },
             AccessLevel.SYSTEM_MODE
         );
-        Set<String> found = new Set<String>();
+        Map<String, Integer> found = new Map<String, Integer>();
         for (Import_Row__c row : rows) {
             for (String field : fields) {
                 String value = (String) row.get(field);
                 if (value != null && wanted.contains(value)) {
-                    found.add(value);
+                    found.put(value, found.containsKey(value) ? found.get(value) + 1 : 1);
                 }
             }
         }

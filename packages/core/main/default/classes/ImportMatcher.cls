@@ -56,6 +56,14 @@ public with sharing class ImportMatcher {
         return key == null ? null : key.substringBefore(FIRST_NAME_SEPARATOR);
     }
 
+    /**
+     * The shared keys the last lookup found on more than one record, such as a couple at one
+     * address or with one email. A person is matched on such a key only by their first name,
+     * or when the row gives no first name (R-IB12).
+     */
+    @NamespaceAccessible
+    public static Set<String> heldByMany = new Set<String>();
+
     /** Records the first found under a key, and under the key narrowed to its first name. */
     private static void put(Map<String, Id> result, String key, String firstName, Id recordId) {
         if (key == null) {
@@ -63,6 +71,8 @@ public with sharing class ImportMatcher {
         }
         if (!result.containsKey(key)) {
             result.put(key, recordId);
+        } else if (result.get(key) != recordId) {
+            heldByMany.add(key);
         }
         String narrowed = firstNameKey(key, firstName);
         if (!result.containsKey(narrowed)) {

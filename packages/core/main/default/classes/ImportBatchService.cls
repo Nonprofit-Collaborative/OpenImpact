@@ -339,8 +339,14 @@ public with sharing class ImportBatchService {
     }
 
     /** When the batch's job ended, or null when it has not or is no longer on record. */
+    @TestVisible
+    private static Datetime jobEndedForTest;
+
     @NamespaceAccessible
     public static Datetime jobEndedAt(Import_Batch__c batch) {
+        if (jobEndedForTest != null) {
+            return jobEndedForTest;
+        }
         if (batch == null || String.isBlank(batch.Job_Id__c)) {
             return null;
         }

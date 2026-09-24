@@ -47,6 +47,23 @@ private class ImportUndoTest {
         );
     }
 
+    @IsTest
+    static void anAbortedCommitKeepsWhatChangedAfterItsJobEnded() {
+        Import_Batch__c batch = committedBatch();
+        batch.Status__c = ImportBatchService.STATUS_COMMITTING;
+        batch.Completed_At__c = null;
+        update batch;
+        ImportBatchService.jobRunningForTest = false;
+        // The job ended twenty minutes ago; Ana's record was changed after it, by the
+        // committer, which the commit itself cannot have done (R-IB9, R-IB13).
+        ImportBatchService.jobEndedForTest = Datetime.now().addMinutes(-20);
+        Contact ana = importedPerson(batch, 'Ramirez');
+
+        undo(batch);
+
+        Assert.areEqual(1, [SELECT COUNT() FROM Contact WHERE Id = :ana.Id], 'Ana is kept.');
+    }
+
     /** A person the import created, and the household it created for them, both tagged. */
     private static Contact importedPerson(Import_Batch__c batch, String lastName) {
         Contact person = new Contact(

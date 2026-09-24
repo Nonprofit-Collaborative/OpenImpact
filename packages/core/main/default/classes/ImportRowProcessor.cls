@@ -53,7 +53,51 @@ public with sharing class ImportRowProcessor {
      * people created under each, and why any could not be, so a second row naming the same
      * new person shares the first row's record rather than making another (R-IB4, R-IB12).
      */
-    private static Set<String> keysBeingCreated = new Set<String>();
+    private static ChunkPeople keysBeingCreated = new ChunkPeople();
+
+    /**
+     * The new people of one chunk: how many are created under each key, and which people
+     * (by first-name key) hold each shared key, counting a couple not yet created as two, so
+     * a row naming one partner alone is never given the other (R-IB12).
+     */
+    private class ChunkPeople {
+        Map<String, Integer> created = new Map<String, Integer>();
+        Map<String, Set<String>> people = new Map<String, Set<String>>();
+
+        void hold(String shared, String person) {
+            if (!people.containsKey(shared)) {
+                people.put(shared, new Set<String>());
+            }
+            people.get(shared).add(person);
+        }
+
+        Integer holding(String shared) {
+            return people.containsKey(shared) ? people.get(shared).size() : 0;
+        }
+    }
+
+    /** Counts the couples of the chunk, found by nobody yet, before anybody is created. */
+    private static ChunkPeople chunkPeople(List<Working> working) {
+        ChunkPeople chunk = new ChunkPeople();
+        for (Working item : working) {
+            for (Integer which = 1; which <= 2; which++) {
+                String key = which == 1 ? item.personKey1 : item.personKey2;
+                Id found = which == 1 ? item.person1Id : item.person2Id;
+                Boolean coming = which == 1 ? item.comingPerson1 : item.comingPerson2;
+                String shared = ImportMatcher.baseKey(key);
+                if (
+                    item.error == null &&
+                    key != null &&
+                    shared != key &&
+                    found == null &&
+                    !coming
+                ) {
+                    chunk.hold(shared, key);
+                }
+            }
+        }
+        return chunk;
+    }
     private static Map<String, Id> createdByKey = new Map<String, Id>();
     private static Map<String, String> failedByKey = new Map<String, String>();
 
@@ -122,6 +166,11 @@ public with sharing class ImportRowProcessor {
         Boolean comingPerson1 = false;
         /** In a dry run, true when an earlier chunk would create the row's second person. */
         Boolean comingPerson2 = false;
+        /** Whether a first name narrows the key, as it does under the Email and Name + Postal rules. */
+        Boolean byName = false;
+        /** How many records already hold each person's shared key: none, one, or several (2). */
+        Integer heldBefore1 = 0;
+        Integer heldBefore2 = 0;
         String error;
     }
 
@@ -456,6 +505,7 @@ public with sharing class ImportRowProcessor {
                 rule,
                 externalIdField
             );
+            item.byName = !ImportTemplateService.RULE_EXTERNAL_ID.equals(rule);
             tellApartByFirstName(item, rule);
             collect(
                 ImportMatcher.baseKey(item.personKey1),
@@ -473,6 +523,7 @@ public with sharing class ImportRowProcessor {
             );
         }
 
+        ImportMatcher.heldByMany = new Set<String>();
         Map<String, Id> matches = matchPeople(
             rule,
             personAccounts,
@@ -482,11 +533,11 @@ public with sharing class ImportRowProcessor {
             outcome
         );
 
-        assignPerson(working, matches, ImportMapping.ENTITY_CONTACT_1, true);
-        assignPerson(working, matches, ImportMapping.ENTITY_CONTACT_2, false);
-        if (dryRun) {
-            markPeopleComing(working, batch);
-        }
+        Map<String, Integer> earlier = dryRun
+            ? ImportRowSelector.createdDigestCounts(batch, digestsToAsk(working))
+            : new Map<String, Integer>();
+        findPerson(working, matches, earlier, true);
+        findPerson(working, matches, earlier, false);
         validate(working);
 
         if (dryRun) {
@@ -620,10 +671,61 @@ public with sharing class ImportRowProcessor {
         return ImportMatcher.byExternalId(type, externalIds);
     }
 
-    private static void assignPerson(
+    /**
+     * The key that finds this person by their first name: their own key when the row's two
+     * people share one (it is narrowed already), else the shared key narrowed to the first
+     * name the row gives. Null when the row gives none, or the rule does not use names.
+     */
+    private static String namedKey(Working item, Boolean isFirst) {
+        String key = isFirst ? item.personKey1 : item.personKey2;
+        if (key == null || !item.byName) {
+            return null;
+        }
+        if (ImportMatcher.baseKey(key) != key) {
+            return key;
+        }
+        String entity = isFirst ? ImportMapping.ENTITY_CONTACT_1 : ImportMapping.ENTITY_CONTACT_2;
+        String first = ImportMatcher.nameKey(attribute(item.byEntity, entity, 'FirstName'));
+        return first == null ? null : ImportMatcher.firstNameKey(key, first);
+    }
+
+    /** In a dry run, the digests of every key this chunk's people could be found by. */
+    private static Set<String> digestsToAsk(List<Working> working) {
+        Set<String> digests = new Set<String>();
+        for (Working item : working) {
+            for (Integer which = 1; which <= 2; which++) {
+                String key = which == 1 ? item.personKey1 : item.personKey2;
+                String named = namedKey(item, which == 1);
+                if (key != null) {
+                    digests.add(digest(PERSON_DIGEST, ImportMatcher.baseKey(key)));
+                }
+                if (named != null) {
+                    digests.add(digest(PERSON_DIGEST, named));
+                }
+            }
+        }
+        return digests;
+    }
+
+    private static Integer count(Map<String, Integer> counts, String key) {
+        Integer found = key == null ? null : counts.get(key);
+        return found == null ? 0 : found;
+    }
+
+    /**
+     * Finds one person of each row among those already there: in the org, and in a dry run
+     * among the people earlier chunks would create, which the commit will have created by the
+     * time it reaches this chunk (R-IB12). The first name is asked first. The shared key alone
+     * finds a person only when one record holds it, or when the row gives no first name (the
+     * earliest then). A person the shared key cannot tell apart from another holding it, such
+     * as a partner, is not found here, and is created unless an earlier row of the chunk
+     * creates them. A row's two people sharing one key are found by first name only. In a
+     * dry run the earlier chunks' people are asked for by digest, for this chunk's keys only.
+     */
+    private static void findPerson(
         List<Working> working,
         Map<String, Id> matches,
-        String entity,
+        Map<String, Integer> earlier,
         Boolean isFirst
     ) {
         for (Working item : working) {
@@ -631,49 +733,67 @@ public with sharing class ImportRowProcessor {
             if (key == null) {
                 continue;
             }
-            Id found = matches.get(key);
-            if (found == null) {
-                continue;
+            String shared = ImportMatcher.baseKey(key);
+            String named = namedKey(item, isFirst);
+            Integer heldEarlier = count(earlier, digest(PERSON_DIGEST, shared));
+            Integer held =
+                (matches.containsKey(shared)
+                    ? (ImportMatcher.heldByMany.contains(shared) ? 2 : 1)
+                    : 0) + heldEarlier;
+            Id found = named == null ? null : matches.get(named);
+            Boolean coming =
+                found == null &&
+                named != null &&
+                count(earlier, digest(PERSON_DIGEST, named)) > 0;
+            if (found == null && !coming && shared == key && (named == null || held == 1)) {
+                found = matches.get(shared);
+                coming = found == null && heldEarlier > 0;
             }
             if (isFirst) {
                 item.person1Id = found;
+                item.comingPerson1 = coming;
+                item.heldBefore1 = Math.min(held, 2);
             } else {
                 item.person2Id = found;
+                item.comingPerson2 = coming;
+                item.heldBefore2 = Math.min(held, 2);
             }
         }
     }
 
     /**
-     * In a dry run, marks the people an earlier chunk would create. The commit will have
-     * created them by the time it reaches this chunk and will match them, so the preview
-     * treats them as matched (R-IB12): not created again, and not missing a last name. The
-     * earlier chunks' people are found on the rows that would create them, asked only for this
-     * chunk's own keys, so nothing grows with the rows already read.
+     * Which person an earlier row of this chunk creates is this one, by the key to share, or
+     * null when this row creates them. By first name first; by the shared key alone only when
+     * nobody held it before the chunk and one person of the chunk holds it, or the row gives no
+     * first name. `created` counts the people of the chunk holding each key (R-IB12).
      */
-    private static void markPeopleComing(List<Working> working, Import_Batch__c batch) {
-        Set<String> digests = new Set<String>();
-        for (Working item : working) {
-            if (item.person1Id == null && item.personKey1 != null) {
-                digests.add(digest(PERSON_DIGEST, item.personKey1));
-            }
-            if (item.person2Id == null && item.personKey2 != null) {
-                digests.add(digest(PERSON_DIGEST, item.personKey2));
-            }
+    private static String keyToShare(Working item, Boolean isFirst, ChunkPeople chunk) {
+        String key = isFirst ? item.personKey1 : item.personKey2;
+        if (key == null) {
+            return null;
         }
-        Set<String> earlier = ImportRowSelector.createdDigestsWrittenEarlier(batch, digests);
-        if (earlier.isEmpty()) {
-            return;
+        String named = namedKey(item, isFirst);
+        if (named != null && count(chunk.created, named) > 0) {
+            return named;
         }
-        for (Working item : working) {
-            item.comingPerson1 =
-                item.person1Id == null &&
-                item.personKey1 != null &&
-                earlier.contains(digest(PERSON_DIGEST, item.personKey1));
-            item.comingPerson2 =
-                item.person2Id == null &&
-                item.personKey2 != null &&
-                earlier.contains(digest(PERSON_DIGEST, item.personKey2));
+        String shared = ImportMatcher.baseKey(key);
+        Integer heldBefore = isFirst ? item.heldBefore1 : item.heldBefore2;
+        Boolean alone = named == null
+            ? count(chunk.created, shared) > 0
+            : count(chunk.created, shared) == 1 && chunk.holding(shared) == 1;
+        return shared == key && heldBefore == 0 && alone ? shared : null;
+    }
+
+    /** Counts a person this chunk creates under every key that finds them. */
+    private static List<String> countCreated(Working item, Boolean isFirst, ChunkPeople chunk) {
+        List<String> finding = keysFinding(item, isFirst);
+        for (String key : finding) {
+            chunk.created.put(key, count(chunk.created, key) + 1);
         }
+        if (!finding.isEmpty()) {
+            chunk.hold(finding[0], finding[1]);
+        }
+        return finding;
     }
 
     /**
@@ -818,7 +938,7 @@ public with sharing class ImportRowProcessor {
         // person whose row has a first person before one whose row has not; the first row it
         // saves a new person for creates them and the rest share them. The preview walks the
         // chunk in the same order so it names the same row as the one that creates (R-IB12).
-        Set<String> keysInChunk = new Set<String>();
+        ChunkPeople keysInChunk = chunkPeople(working);
         List<Working> withFirst = new List<Working>();
         List<Working> withoutFirst = new List<Working>();
         for (Working item : working) {
@@ -846,20 +966,19 @@ public with sharing class ImportRowProcessor {
         Working item,
         Boolean isFirst,
         Map<Id, SObject> stored,
-        Set<String> keysInChunk,
+        ChunkPeople keysInChunk,
         String rule,
         Boolean personAccounts
     ) {
         String entity = isFirst ? ImportMapping.ENTITY_CONTACT_1 : ImportMapping.ENTITY_CONTACT_2;
         Id personId = isFirst ? item.person1Id : item.person2Id;
-        String key = isFirst ? item.personKey1 : item.personKey2;
         Boolean coming = isFirst ? item.comingPerson1 : item.comingPerson2;
         if (personId == null && !coming && describesPerson(item, entity)) {
-            if (key != null && keysInChunk.contains(key)) {
+            if (keyToShare(item, isFirst, keysInChunk) != null) {
                 return;
             }
             item.createdAnything = true;
-            keysInChunk.addAll(keysFinding(item, isFirst));
+            countCreated(item, isFirst, keysInChunk);
             rememberCreated(item, entity, rule, personAccounts);
         } else if (changes(stored.get(personId), item.byEntity.get(entity))) {
             item.updatedAnything = true;
@@ -924,7 +1043,7 @@ public with sharing class ImportRowProcessor {
         Boolean personAccounts,
         Outcome outcome
     ) {
-        keysBeingCreated = new Set<String>();
+        keysBeingCreated = chunkPeople(working);
         createdByKey = new Map<String, Id>();
         failedByKey = new Map<String, String>();
         insertPeople(
@@ -1050,14 +1169,13 @@ public with sharing class ImportRowProcessor {
             if (joiningAHousehold != null && joiningAHousehold != (item.row.Household__c != null)) {
                 continue;
             }
-            String key = isFirst ? item.personKey1 : item.personKey2;
-            if (key != null && keysBeingCreated.contains(key)) {
+            String shareKey = keyToShare(item, isFirst, keysBeingCreated);
+            if (shareKey != null) {
                 sharing.add(item);
-                sharedKeys.add(key);
+                sharedKeys.add(shareKey);
                 continue;
             }
-            List<String> finding = keysFinding(item, isFirst);
-            keysBeingCreated.addAll(finding);
+            List<String> finding = countCreated(item, isFirst, keysBeingCreated);
             SObject person = personAccounts
                 ? (SObject) new Account(RecordTypeId = personRecordTypeId)
                 : (SObject) new Contact();

@@ -1520,10 +1520,22 @@ it with; both count it once.
 people one key (a couple with one surname and postal code, or one shared email), each is
 matched, shared and remembered by that key narrowed to their own first name: against the
 org's records (a record matches when its key and its first name both agree), against earlier
-rows of the chunk and against earlier chunks, in the commit and the dry run alike. So neither
-is ever taken for the other, and loading the same file again matches both rather than creating
-the second again. Every person an import creates is remembered under both the shared key and
-the narrowed one, so a later row naming them alone finds them too. A row whose two people also
+rows of the chunk and against earlier chunks, in the commit and the dry run alike. Loading the
+same file again matches both rather than creating the second again. Every person an import
+creates is remembered under both the shared key and the narrowed one.
+
+**A person is found by first name before a shared key.** Under the same two rules, a row's
+person with a first name is looked for first by the key narrowed to it, in the org, among the
+people earlier chunks create and among those earlier rows of the chunk create. The shared key
+alone finds them only when exactly one person holds it, or when the row gives no first name
+(the earliest holder then). When several hold the shared key (a couple, or two couples at one
+address) and none has their first name, the person is created: a new record is the safe
+failure, where taking somebody else would rename them. A couple of the chunk not yet created
+counts as two holders, so a row naming one partner alone is never given the other. First names
+are compared ignoring case and surrounding spaces but not accents: "Jáne" is not "Jane", so an
+accented spelling of a name held with another spelling is created. One consequence follows the
+rule: where one record holds the shared key, a row with a different first name still matches
+it, as the rule has always matched, and its first name is updated. A row whose two people also
 share a first name cannot be told apart and is rejected, saying so. Under the Email rule a
 second person with no last name of their own therefore matches only a record with the same
 email and first name; otherwise they are to be created, and are rejected without a last name
@@ -4871,6 +4883,7 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.5 | 2026-09-24 | G-23 gift import and G-24 donation matching (ADR-0052). No object added. `Import_Template__c` gains `Donation_Matching__c`, `Match_Date_Window_Days__c` and `Match_Amount_Tolerance__c` (R-IT7); `Import_Batch__c` gains the control totals `Expected_Count__c`, `Expected_Amount__c` and `File_Amount__c` (R-IB10); `Giving_Settings__c` gains `Donation_Match_Date_Window_Days__c` and `Donation_Match_Amount_Tolerance__c`. R-IR1 adds the `Tribute` row entity; R-IR6 states the entity processor contract and R-IR7 how a row's outcome is folded; R-IB8 and R-IB9 let an undo delete what an entity processor tagged, with the processor's reasons to keep. New Section 25N, rules R-GI1 to R-GI9 and R-DM1 to R-DM6. |
 | v0.5 | 2026-09-24 | G-24 follow-up (ADR-0052, amended). `Import_Batch__c` gains `Processor_Settings_JSON__c`, one document the entity processor fills in a dry run and reads back in the commit, which Core never reads. R-IB11 added: a commit runs under the settings its dry run showed. R-DM7 added: donation matching's behaviour, window and tolerance are taken once per dry run and the commit uses them, not the template as edited since. R-IR6 and R-IT7 say so. |
 | v0.5 | 2026-09-24 | C-14 defect. No object or field added. R-IB12: a commit no longer creates a new person once per row when several rows of one chunk name them; the rows share the first row's record, and the dry run counts them the same way. |
+| v0.5 | 2026-09-24 | C-14 first names. No field added. R-IB12: a person is found by the key narrowed to their first name before the shared key, which alone finds them only when one person holds it or the row gives no first name; otherwise they are created. The same in the org, across chunks and within a chunk. |
 | v0.5 | 2026-09-24 | C-14 passes. `Import_Batch__c` and `Import_Row__c` gain `Pass_Number__c`, and `Import_Batch__c` gains `Job_Id__c`. R-IB13 added: a start is refused while the batch's job is running (a pass whose job was aborted reads Failed and can start again, and an aborted commit can be undone), the synchronous reset of every staged row is removed (it failed past 10,000 rows), and each chunk clears and stamps its own rows so keys are read only by the pass that wrote them. |
 | v0.5 | 2026-09-24 | C-14 dry run at scale. `Import_Row__c` gains `Person_1_Key__c`, `Person_2_Key__c`, `Person_1_Name_Key__c`, `Person_2_Name_Key__c`, `Organization_Key__c` and `Processor_Key__c`, indexed digests a dry run writes on the row that would create a record or load an external ID. R-IB12 and R-IR6: the digests are looked up per chunk instead of carried in the batch's state, so a dry run's heap no longer grows with the rows before the chunk. |
 | v0.5 | 2026-09-24 | C-14 dry run fix. No object or field added. R-IB12 added: a dry run carries, across chunks, digests of the people and organizations it would create, so a later chunk naming one counts it matched, as the commit does, rather than created again. |
