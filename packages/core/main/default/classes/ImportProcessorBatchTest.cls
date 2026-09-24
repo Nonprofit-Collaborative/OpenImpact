@@ -284,6 +284,117 @@ private class ImportProcessorBatchTest {
         Assert.areEqual(committed[1].Contact_1__c, committed[0].Contact_2__c, 'The same Ana.');
     }
 
+    /**
+     * Loads one row naming John and Jane, whose matching keys are the same under the rule, and
+     * checks that both are created, into one household, with neither renamed as the other.
+     */
+    private static void aCoupleSharingAKeyIsTwoPeople(String rule, Map<String, String> values) {
+        ImportMapping mapping = new ImportMapping();
+        for (String target : values.keySet()) {
+            mapping.columns.add(new ImportMapping.Column(target, target));
+        }
+        Import_Batch__c batch = ImportTestDataFactory.batch(
+            ImportTestDataFactory.template(mapping.serialize(), rule)
+        );
+        ImportTestDataFactory.rows(batch, new List<Map<String, String>>{ values });
+
+        Test.startTest();
+        Import_Batch__c dryRun = runInChunks(batch.Id, true, 200);
+        Import_Batch__c committed = runInChunks(batch.Id, false, 200);
+        Test.stopTest();
+
+        Import_Row__c row = ImportTestDataFactory.reload(batch.Id)[0];
+        Assert.areEqual(ImportRowProcessor.STATUS_CREATED, row.Status__c, row.Error_Message__c);
+        Assert.areNotEqual(row.Contact_1__c, row.Contact_2__c, 'Two people, not one.');
+        Map<Id, Contact> people = new Map<Id, Contact>([SELECT FirstName FROM Contact]);
+        Assert.areEqual(2, people.size(), 'John and Jane are both created.');
+        Assert.areEqual('John', people.get(row.Contact_1__c).FirstName, 'John is not renamed.');
+        Assert.areEqual('Jane', people.get(row.Contact_2__c).FirstName, 'Jane is herself.');
+        Assert.isNotNull(row.Household__c, 'The row has a household.');
+        Assert.areEqual(1, [SELECT COUNT() FROM Account], 'One household for the two of them.');
+        Assert.areEqual(committed.Rows_Created__c, dryRun.Rows_Created__c, 'As the dry run said.');
+    }
+
+    @IsTest
+    static void aCoupleWithOneSurnameAndPostalCodeIsTwoPeople() {
+        aCoupleSharingAKeyIsTwoPeople(
+            ImportTemplateService.RULE_NAME_POSTAL,
+            new Map<String, String>{
+                'Contact1.FirstName' => 'John',
+                'Contact1.LastName' => 'Smith',
+                'Contact1.MailingPostalCode' => '12345',
+                'Contact2.FirstName' => 'Jane',
+                'Contact2.LastName' => 'Smith',
+                'Contact2.MailingPostalCode' => '12345'
+            }
+        );
+    }
+
+    @IsTest
+    static void aCoupleSharingOneEmailIsTwoPeople() {
+        aCoupleSharingAKeyIsTwoPeople(
+            ImportTemplateService.RULE_EMAIL,
+            new Map<String, String>{
+                'Contact1.FirstName' => 'John',
+                'Contact1.LastName' => 'Smith',
+                'Contact1.Email' => 'smiths@example.org',
+                'Contact2.FirstName' => 'Jane',
+                'Contact2.LastName' => 'Smith',
+                'Contact2.Email' => 'smiths@example.org'
+            }
+        );
+    }
+
+    @IsTest
+    static void rowsSharingAPersonWhoCouldNotBeSavedAreRejectedWithTheReason() {
+        ImportMapping mapping = new ImportMapping();
+        for (
+            String target : new List<String>{
+                'Contact1.Email',
+                'Contact1.LastName',
+                'Contact1.Title'
+            }
+        ) {
+            mapping.columns.add(new ImportMapping.Column(target, target));
+        }
+        Import_Batch__c batch = ImportTestDataFactory.batch(
+            ImportTestDataFactory.template(mapping.serialize(), ImportTemplateService.RULE_EMAIL)
+        );
+        // Only the first row's title is too long for the field, so only the row that creates
+        // Ana fails to save; the two after it name her and share that failure.
+        List<Map<String, String>> rows = new List<Map<String, String>>();
+        for (Integer i = 0; i < 3; i++) {
+            rows.add(
+                new Map<String, String>{
+                    'Contact1.Email' => 'ana@example.org',
+                    'Contact1.LastName' => 'Ramirez',
+                    'Contact1.Title' => i == 0 ? 'x'.repeat(200) : 'Donor'
+                }
+            );
+        }
+        ImportTestDataFactory.rows(batch, rows);
+
+        Test.startTest();
+        runInChunks(batch.Id, false, 200);
+        Test.stopTest();
+
+        List<Import_Row__c> loaded = ImportTestDataFactory.reload(batch.Id);
+        Assert.areEqual(0, [SELECT COUNT() FROM Contact], 'Ana could not be saved.');
+        Assert.areEqual(ImportRowProcessor.STATUS_REJECTED, loaded[0].Status__c, 'Her row.');
+        String prefix = Label.Core_Import_ErrorSamePersonNotSaved.substringBefore('{0}');
+        for (Integer index = 1; index < 3; index++) {
+            Assert.areEqual(
+                ImportRowProcessor.STATUS_REJECTED,
+                loaded[index].Status__c,
+                'A row sharing her is rejected too: ' + index
+            );
+            Assert.isTrue(
+                loaded[index].Error_Message__c.startsWith(prefix),
+                'Saying the earlier row could not be saved: ' + loaded[index].Error_Message__c
+            );
+        }
+    }
+
     /** A processor that counts the chunks it has seen in the state it carries. */
     private class CountingProcessor implements ImportEntityProcessor {
         public List<ImportMapping.Target> targets() {

@@ -1507,7 +1507,9 @@ so under those rules the commit creates such a person again and the dry run coun
 Within one chunk the commit creates a new person once as well: rows naming the same new person
 by the same matching key, in either person column, share the record the first of them creates
 (first people are saved before second people, and a second person whose row has a first
-person before one whose row has not), and are not joined to a household for it. When that
+person before one whose row has not), and are not joined to a household for it. The two
+people of one row are never shared with each other, even when their keys agree (a couple with
+one surname and postal code, or one email): both are created, into the row's one household. When that
 person cannot be saved, the rows sharing them are rejected with the reason. The dry run walks
 the chunk in the same order and counts the same row as the one that creates. Unlike a person
 an earlier chunk would create, a later row of the same chunk must still carry a last name,
