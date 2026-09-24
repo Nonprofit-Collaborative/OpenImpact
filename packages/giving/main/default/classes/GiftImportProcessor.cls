@@ -35,7 +35,18 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
             target('Gift.In_Kind_Description__c', Label.Giving_Import_TargetInKindDescription),
             target('Gift.Fair_Market_Value__c', Label.Giving_Import_TargetFairMarketValue),
             target('Gift.Benefit_Description__c', Label.Giving_Import_TargetBenefitDescription),
-            target('Allocation.Fund', Label.Giving_Import_TargetFund)
+            target('Allocation.Fund', Label.Giving_Import_TargetFund),
+            target('SoftCredit.Role__c', Label.Giving_Import_TargetSoftCreditRole),
+            target('SoftCredit.Custom_Role__c', Label.Giving_Import_TargetSoftCreditCustomRole),
+            target('SoftCredit.Amount__c', Label.Giving_Import_TargetSoftCreditAmount),
+            target('SoftCredit.Party', Label.Giving_Import_TargetSoftCreditParty),
+            target('Tribute.Type__c', Label.Giving_Import_TargetTributeType),
+            target('Tribute.Honoree_Name__c', Label.Giving_Import_TargetTributeHonoree),
+            target(
+                'Tribute.Notification_Recipient_Name__c',
+                Label.Giving_Import_TargetTributeNotify
+            ),
+            target('Tribute.Message__c', Label.Giving_Import_TargetTributeMessage)
         };
         for (Integer index = 1; index <= GiftImportRow.MAX_PARTS; index++) {
             List<String> partNumber = new List<String>{ String.valueOf(index) };
@@ -98,7 +109,9 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
         }
         if (!gifts.isEmpty()) {
             matchExternalIds(pending(gifts));
+            GiftImportCredits.read(pending(gifts));
             resolveDonors(pending(gifts), dryRun);
+            GiftImportCredits.resolveParties(pending(gifts), dryRun);
             GiftImportReferences.resolve(pending(gifts));
             if (dryRun) {
                 report(gifts);
@@ -264,6 +277,7 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
         insertGifts(batch, split, true);
         applyFunds(saved(whole));
         insertParts(saved(split));
+        GiftImportCredits.save(gifts);
         undoTheUnfinished(gifts);
     }
 
@@ -461,6 +475,7 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
             if (item.error != null && item.giftId != null) {
                 unfinished.add(new Gift__c(Id = item.giftId));
                 item.giftId = null;
+                item.row.Soft_Credit_Id__c = null;
             }
         }
         if (!unfinished.isEmpty()) {
@@ -501,8 +516,95 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
         return new List<Schema.SObjectType>{ Gift__c.SObjectType };
     }
 
-    /** Why records must survive an undo: nothing yet beyond Core's own checks. */
+    /**
+     * Why records must survive an undo (R-GI9). A gift stays when a document the donor holds
+     * lists it: it carries a receipt number, a receipt of any status names it, or an issued
+     * year-end statement covers its donor and year (ADR-0010, ADR-0024). A person, household
+     * or organization stays while a gift this import made, and that is being kept, still names
+     * it as donor, household or soft credit.
+     */
     public Map<Id, String> reasonsToKeep(Id batchId, Schema.SObjectType type, Set<Id> recordIds) {
-        return new Map<Id, String>();
+        Map<Id, String> keep = new Map<Id, String>();
+        if (batchId == null || recordIds == null || recordIds.isEmpty()) {
+            return keep;
+        }
+        if (type == Gift__c.SObjectType) {
+            keepReceiptedGifts(keep, recordIds);
+        } else if (type == Contact.SObjectType || type == Account.SObjectType) {
+            keepDonorsOfKeptGifts(keep, batchId, recordIds);
+        }
+        return keep;
+    }
+
+    private static void keepReceiptedGifts(Map<Id, String> keep, Set<Id> giftIds) {
+        List<Gift__c> gifts = GiftImportIntegritySelector.selectForUndo(giftIds);
+        Set<Id> donorIds = new Set<Id>();
+        Set<Integer> years = new Set<Integer>();
+        for (Gift__c gift : gifts) {
+            if (gift.Receipt_Number__c != null || !gift.Receipts__r.isEmpty()) {
+                keep.put(gift.Id, Label.Giving_Import_UndoKeptReceipted);
+            } else if (gift.Gift_Date__c != null) {
+                donorIds.add(
+                    gift.Donor_Contact__c != null ? gift.Donor_Contact__c : gift.Donor_Account__c
+                );
+                years.add(gift.Gift_Date__c.year());
+            }
+        }
+        donorIds.remove(null);
+        if (donorIds.isEmpty()) {
+            return;
+        }
+        Set<String> covered = new Set<String>();
+        for (
+            Receipt__c statement : GiftImportIntegritySelector.selectIssuedStatements(
+                donorIds,
+                years
+            )
+        ) {
+            Id donor = statement.Donor_Contact__c != null
+                ? statement.Donor_Contact__c
+                : statement.Donor_Account__c;
+            covered.add(donor + ':' + statement.Statement_Year__c.intValue());
+        }
+        for (Gift__c gift : gifts) {
+            Id donor = gift.Donor_Contact__c != null
+                ? gift.Donor_Contact__c
+                : gift.Donor_Account__c;
+            if (
+                !keep.containsKey(gift.Id) &&
+                gift.Gift_Date__c != null &&
+                covered.contains(donor + ':' + gift.Gift_Date__c.year())
+            ) {
+                keep.put(gift.Id, Label.Giving_Import_UndoKeptStatement);
+            }
+        }
+    }
+
+    /**
+     * Runs after the gift pass, so the gifts this import made that still exist are the ones
+     * the undo kept (or could not delete), and their donors stay with them.
+     */
+    private static void keepDonorsOfKeptGifts(Map<Id, String> keep, Id batchId, Set<Id> recordIds) {
+        Set<Id> named = new Set<Id>();
+        for (
+            Gift__c gift : GiftImportIntegritySelector.selectImportedGiftsNaming(batchId, recordIds)
+        ) {
+            named.addAll(
+                new List<Id>{ gift.Donor_Contact__c, gift.Donor_Account__c, gift.Household__c }
+            );
+        }
+        for (
+            Soft_Credit__c credit : GiftImportIntegritySelector.selectImportedCreditsNaming(
+                batchId,
+                recordIds
+            )
+        ) {
+            named.addAll(new List<Id>{ credit.Contact__c, credit.Account__c });
+        }
+        for (Id recordId : named) {
+            if (recordId != null && recordIds.contains(recordId)) {
+                keep.put(recordId, Label.Giving_Import_UndoKeptDonor);
+            }
+        }
     }
 }

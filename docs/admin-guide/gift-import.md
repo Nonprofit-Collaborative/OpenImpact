@@ -63,8 +63,11 @@ A row is one gift. Besides the donor, it can carry:
   organization is. A file of company gifts that also lists a contact person should map a
   column, or set a default, of **Gift: donor** to `Organization`. `Household` makes the
   household the donor.
-- **The gift.** Amount, date and payment method are required. A file with no payment method
-  column can set one for every row as the mapping's default. Payment method is matched to Open Impact's
+- **The gift.** Amount, date and payment method are required, except that an in-kind gift
+  (payment method In-kind) has no amount: leave it empty or 0 and put what the goods were
+  worth in **Gift: fair market value**, with **Gift: in-kind description**. A file with no
+  payment method column can set one for every row as the mapping's default. Payment method is
+  matched to Open Impact's
   list whatever the capitals, and common words are understood: "credit card" is Card,
   "cheque" is Check, "bank transfer" is ACH. The appeal is named by its name. Payment
   reference, external ID, in-kind description and benefit description load as they are.
@@ -80,7 +83,7 @@ A row is one gift. Besides the donor, it can carry:
   `Contact1`, `Organization` or `Household` instead of the second person. A spouse already
   credited automatically as a household member is not credited twice.
 - **A tribute.** Map **Tribute: type** (In honor of, In memory of) and **Tribute: honoree
-  name**, and optionally who to notify and the message.
+  name**, and optionally the name of who to notify and the message.
 
 A row's gift and everything that comes with it is saved together or not at all. If the soft
 credit cannot be saved, the gift is not kept either, and the row is rejected with the reason.
@@ -161,4 +164,4 @@ to **Gift: external ID** from now on.
 | Gift: donor | Which record on the row gave the gift: `Contact1`, `Organization` or `Household` |
 | Gift: fund, Fund 1 to Fund 5, Amount 1 to Amount 5, Percent 1 to Percent 5 | The gift's allocations |
 | Soft credit: role, custom role, amount, credit whom | One soft credit on the gift |
-| Tribute: type, honoree name, notify (name and address), message | One tribute on the gift |
+| Tribute: type, honoree name, notify (name), message | One tribute on the gift |

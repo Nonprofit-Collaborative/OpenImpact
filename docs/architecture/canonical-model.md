@@ -3802,7 +3802,8 @@ created, and it is matched to nothing (R-DM2).
 package writes itself: Household, Status, Receipt Number, Tribute, Commitment, Installment,
 Original Gift, Matched Gift, Created By Import Batch and Sample Data. Status is always
 Received. Amount, Gift Date and Type are required (Type from a column or the template's
-default, never guessed), and a date is read as `YYYY-MM-DD` or in the
+default, never guessed), except that an In-kind gift has no amount (R-G12): an empty amount
+reads as 0 and any other amount rejects the row. A date is read as `YYYY-MM-DD` or in the
 running user's locale; a value that cannot be read rejects the row rather than defaulting.
 Type is matched to its picklist ignoring case, with a short list of the words payment files
 use ("credit card" is Card, "cheque" is Check, "bank transfer" is ACH, "in kind" is In-kind);
@@ -3893,8 +3894,9 @@ commitment's paid to date and balance update through the ordinary gift triggers 
 ### Salesforce implementation
 
 - **Service:** `GiftImportProcessor` (the `ImportEntityProcessor` Core finds by name),
-  `GiftImportRow` (one row's gift as read), `GiftImportSelector`, `DonationMatcher` (R-DM1 to
-  R-DM6).
+  `GiftImportRow` (one row's gift as read), `GiftImportReferences` (funds and appeals),
+  `GiftImportCredits` (soft credit and tribute), `GiftImportSelector`, `DonationMatcher`
+  (R-DM1 to R-DM6).
 - **Settings keys** (on `Giving_Settings__c`, Section 21A):
   `Donation_Match_Date_Window_Days__c`, `Donation_Match_Amount_Tolerance__c`.
 - **Template attributes** (on `Import_Template__c`, Section 15): `Donation_Matching__c`,

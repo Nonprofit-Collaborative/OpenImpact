@@ -384,4 +384,76 @@
         <shortDescription>Import column picker: tribute message</shortDescription>
         <value>Tribute: message</value>
     </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorSoftCreditRoleUnknown</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: soft credit role unknown</shortDescription>
+        <value>The soft credit role {0} is not one Open Impact knows. Use one of: {1}.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorCustomRoleMissing</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: Other role without a custom role</shortDescription>
+        <value>A soft credit with the role Other needs Soft credit: custom role.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorSoftCreditPartyChoice</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: credit whom value unknown</shortDescription>
+        <value>Soft credit: credit whom must be Contact1, Contact2, Organization or Household, not {0}.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorSoftCreditPartyMissing</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: nobody to soft credit</shortDescription>
+        <value>The soft credit names nobody the row has: map a second person, or say in Soft credit: credit whom who to credit.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorTributeTypeUnknown</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: tribute type unknown</shortDescription>
+        <value>The tribute type {0} is not one Open Impact knows. Use one of: {1}.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorTributeHonoreeMissing</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: tribute without an honoree</shortDescription>
+        <value>A tribute needs Tribute: honoree name.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_UndoKeptReceipted</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: gift kept, a receipt lists it</shortDescription>
+        <value>Kept: a receipt lists this gift, and the donor holds it. Void the receipt, then refund or write off the gift, if it was a mistake.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_UndoKeptStatement</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: gift kept, a year-end statement lists it</shortDescription>
+        <value>Kept: a year-end statement issued to the donor lists this gift. Void the statement first if the gift was a mistake.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_UndoKeptDonor</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: record kept, a kept gift names it</shortDescription>
+        <value>Kept: a gift this import made, which the undo is keeping, still names this record.</value>
+    </labels>
 </CustomLabels>

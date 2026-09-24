@@ -112,6 +112,11 @@ public with sharing class GiftImportRow {
     /** An earlier row of the same chunk whose gift this row's external ID also names. */
     public GiftImportRow sameAs;
 
+    // The row's soft credit and tribute (R-GI5, R-GI6), read by GiftImportCredits.
+    public Soft_Credit__c credit;
+    public String creditParty;
+    public Tribute__c tribute;
+
     private final Map<String, Map<String, String>> entities;
 
     public GiftImportRow(Import_Row__c row, Map<String, Map<String, String>> entities) {
@@ -430,8 +435,7 @@ public with sharing class GiftImportRow {
      * A money amount as files write it: currency signs, spaces and thousands separators are
      * ignored, and a dot is the decimal point. Null when what is left is not a number.
      */
-    @TestVisible
-    private static Decimal parseAmount(String text) {
+    public static Decimal parseAmount(String text) {
         if (String.isBlank(text)) {
             return null;
         }

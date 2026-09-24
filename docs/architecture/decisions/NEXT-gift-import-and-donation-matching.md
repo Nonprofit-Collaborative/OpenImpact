@@ -93,6 +93,8 @@ refused until a dry run matches.
 - **An existing gift found by External Id is the row's gift and is not changed.** The row is
   Matched. Updating it would need a journal of gift values and would collide with the receipt
   lock; the plan's purpose for the match is idempotence.
+- **An in-kind gift has no amount** (R-G12, the gift's own validation): an empty amount on an
+  In-kind row reads as 0, and any other amount rejects the row in the dry run.
 - **An inactive fund is accepted.** A migration of old gifts names funds that have closed.
 - **Dates** are read as `YYYY-MM-DD`, then in the running user's locale; an unreadable date
   rejects the row rather than defaulting to today.

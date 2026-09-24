@@ -1,6 +1,7 @@
 /**
- * The lookups a gift import makes in the importing user's own mode: funds and appeals (R-GI3,
- * R-GI4). One query each per chunk. What already exists is read by GiftImportIntegritySelector.
+ * The lookups a gift import makes within the importing user's sharing: funds and appeals (R-GI3,
+ * R-GI4) and the credits on the gifts it just made. What already exists in the org is read by
+ * GiftImportIntegritySelector.
  */
 public with sharing class GiftImportSelector {
     /**
@@ -28,6 +29,19 @@ public with sharing class GiftImportSelector {
             WHERE Id IN :ids OR Name IN :words
             WITH USER_MODE
             LIMIT 2000
+        ];
+    }
+
+    /**
+     * The soft credits already on these gifts, the automatic household ones included. The
+     * gifts are the ones this import just made, so the importing user can see them.
+     */
+    public static List<Soft_Credit__c> selectCreditsOnGifts(Set<Id> giftIds) {
+        return [
+            SELECT Id, Gift__c, Contact__c, Account__c, Role__c
+            FROM Soft_Credit__c
+            WHERE Gift__c IN :giftIds
+            WITH SYSTEM_MODE
         ];
     }
 
