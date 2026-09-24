@@ -494,7 +494,12 @@ private class ImportProcessorBatchTest {
 
         Import_Row__c before = ImportTestDataFactory.reload(first.Id)[0];
         Import_Row__c row = ImportTestDataFactory.reload(again.Id)[0];
-        Assert.areEqual(ImportRowProcessor.STATUS_MATCHED, row.Status__c, row.Error_Message__c);
+        Assert.areEqual(
+            ImportRowProcessor.STATUS_MATCHED,
+            row.Status__c,
+            // A null message fails the assertion itself, so the reason is never passed bare.
+            'The row loaded again is matched: ' + row.Error_Message__c
+        );
         Assert.areEqual(before.Contact_1__c, row.Contact_1__c, 'John matches John.');
         Assert.areEqual(before.Contact_2__c, row.Contact_2__c, 'And Jane matches Jane.');
         Map<Id, Contact> people = new Map<Id, Contact>([SELECT FirstName FROM Contact]);
