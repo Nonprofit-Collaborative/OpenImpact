@@ -145,26 +145,27 @@ private class GiftPostingServiceTest {
 
     @IsTest
     static void staffCannotWriteThePostingFieldsDirectly() {
-        User david = david();
-        System.runAs(david) {
-            Map<Integer, Gift__c> gifts = threeGifts();
-            // A system mode save, so field access is not what refuses it: the lock is.
-            Gift__c typed = new Gift__c(
-                Id = gifts.get(250).Id,
-                Accounting_Posted_At__c = Datetime.now()
-            );
-            try {
-                update typed;
-                Assert.fail('The posting fields are written only by marking posted');
-            } catch (DmlException refused) {
-                Assert.areEqual(
-                    Label.Giving_Posting_FieldsWrittenByPosting,
-                    refused.getDmlMessage(0),
-                    'The lock refuses it'
-                );
-            }
-            Assert.isNull(reread(gifts.get(250).Id).Accounting_Posted_At__c, 'Nothing written');
+        Map<Integer, Gift__c> gifts;
+        System.runAs(david()) {
+            gifts = threeGifts();
         }
+        // Saved as the administrator running the test, who may edit the field: field access
+        // does not refuse it, so the refusal checked here is the lock's.
+        Gift__c typed = new Gift__c(
+            Id = gifts.get(250).Id,
+            Accounting_Posted_At__c = Datetime.now()
+        );
+        try {
+            update typed;
+            Assert.fail('The posting fields are written only by marking posted');
+        } catch (DmlException refused) {
+            Assert.areEqual(
+                Label.Giving_Posting_FieldsWrittenByPosting,
+                refused.getDmlMessage(0),
+                'The lock refuses it'
+            );
+        }
+        Assert.isNull(reread(gifts.get(250).Id).Accounting_Posted_At__c, 'Nothing written');
     }
 
     @IsTest
