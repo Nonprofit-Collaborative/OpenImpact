@@ -4133,8 +4133,8 @@ page deletes the suggestion without a dismissal, because the pair no longer exis
 - **People merges** are the platform's. When a contact is deleted by a merge
   (`MasterRecordId` filled in `after delete`), its memberships are recreated on the survivor
   in junction mode, the households it was in are recounted but not tidied away, and the
-  real-time rollups that target Contact are recalculated at once (the Rollups page's full
-  recalculation, queued once per transaction).
+  real-time rollups that target Contact are recalculated at once (one full recalculation per
+  definition, as the nightly run does, queued once per transaction).
 - **Matching** is `Datacloud.FindDuplicatesByIds`, which evaluates the org's active duplicate
   rules. It is called for one object at a time, and for households only among accounts: a
   call that includes a person stored as an account is refused by the platform when no person

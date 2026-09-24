@@ -37,6 +37,9 @@ public with sharing class RollupService {
     /** The entities whose totals a merge has already recalculated in this transaction. */
     private static final Set<String> RECALCULATED_AFTER_MERGE = new Set<String>();
 
+    /** Queued jobs a merge leaves room for, for the automation that runs after it. */
+    private static final Integer QUEUEABLE_HEADROOM = 10;
+
     /** The one freshness attribute every target entity carries (canonical model Section 26). */
     @NamespaceAccessible
     public static final String FRESHNESS_FIELD = 'Rollups_Last_Calculated__c';
@@ -139,9 +142,12 @@ public with sharing class RollupService {
      * the engine, so it reads the children after the merge has finished moving them, and it
      * runs at most once per entity per transaction however many records one merge call removes.
      *
-     * The engine's own after-delete merge handling queued nothing in a test run, and its
-     * recalculation limited to named parents fails inside the vendored processor, so the whole
-     * recalculation, the path the Rollups page and the nightly run already use, is the one used.
+     * One definition is recalculated per call, as the nightly `RollupBatch` does: the engine's
+     * own after-delete merge handling queued nothing in a test run, and its recalculation of
+     * several definitions, or of named parents only, fails inside the vendored processor. Each
+     * call queues one job, so the loop stops while the transaction still has room for the
+     * queued jobs of whatever runs after it; a definition left out is reconciled by the nightly
+     * run when it is in Both mode.
      *
      * @param targetObject the entity whose records were merged
      * @param mergedRecords the deleted records, as the `after delete` trigger has them; only
@@ -172,7 +178,12 @@ public with sharing class RollupService {
             return;
         }
         RECALCULATED_AFTER_MERGE.add(targetObject.toLowerCase());
-        runFullRecalculation(definitions);
+        for (Rollup_Definition__c definition : definitions) {
+            if (Limits.getQueueableJobs() + QUEUEABLE_HEADROOM >= Limits.getLimitQueueableJobs()) {
+                return;
+            }
+            runFullRecalculation(new List<Rollup_Definition__c>{ definition });
+        }
     }
 
     // -------------------------------------------------------------------------------- scheduled
