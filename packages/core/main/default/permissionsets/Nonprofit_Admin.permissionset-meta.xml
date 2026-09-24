@@ -60,6 +60,10 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>DuplicateController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>ErrorLogController</apexClass>
     <enabled>true</enabled>
   </classAccesses>
@@ -629,6 +633,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
+    <field>Duplicate_Dismissal__c.Reason__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
     <field>Error_Log__c.Context__c</field>
     <readable>true</readable>
   </fieldPermissions>
@@ -780,6 +789,21 @@
   <fieldPermissions>
     <editable>true</editable>
     <field>Import_Batch__c.Undo_Deadline__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Import_Journal__c.Entries_JSON__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Import_Journal__c.Entry_Count__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Import_Journal__c.Phase__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -1109,6 +1133,15 @@
   </objectPermissions>
   <objectPermissions>
     <allowCreate>true</allowCreate>
+    <allowDelete>true</allowDelete>
+    <allowEdit>true</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Duplicate_Dismissal__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>true</allowCreate>
     <allowDelete>false</allowDelete>
     <allowEdit>false</allowEdit>
     <allowRead>true</allowRead>
@@ -1142,6 +1175,15 @@
     <modifyAllRecords>true</modifyAllRecords>
     <object>Import_Batch__c</object>
     <viewAllRecords>true</viewAllRecords>
+  </objectPermissions>
+  <objectPermissions>
+    <allowCreate>false</allowCreate>
+    <allowDelete>false</allowDelete>
+    <allowEdit>false</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Import_Journal__c</object>
+    <viewAllRecords>false</viewAllRecords>
   </objectPermissions>
   <objectPermissions>
     <allowCreate>true</allowCreate>

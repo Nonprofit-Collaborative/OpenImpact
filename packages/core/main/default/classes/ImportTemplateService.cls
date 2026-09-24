@@ -35,9 +35,33 @@ public with sharing class ImportTemplateService {
      */
     @NamespaceAccessible
     public static Integer materializeDefaults() {
+        List<Import_Template__c> toCreate = missingDefaults();
+        if (toCreate.isEmpty()) {
+            return 0;
+        }
+        Database.insert(toCreate, AccessLevel.USER_MODE);
+        return toCreate.size();
+    }
+
+    /**
+     * The names of the shipped templates this org does not have yet, without creating them, so
+     * Health Check can say what restoring them would add (C-21, ADR-0048).
+     */
+    @NamespaceAccessible
+    public static List<String> missingDefaultNames() {
+        List<String> names = new List<String>();
+        for (Import_Template__c template : missingDefaults()) {
+            names.add(template.Name);
+        }
+        return names;
+    }
+
+    /** The templates materializeDefaults would create: one per shipped default not yet here. */
+    private static List<Import_Template__c> missingDefaults() {
+        List<Import_Template__c> toCreate = new List<Import_Template__c>();
         List<Import_Template_Default__mdt> shipped = ImportTemplateSelector.selectShippedDefaults();
         if (shipped.isEmpty()) {
-            return 0;
+            return toCreate;
         }
         Set<String> keys = new Set<String>();
         for (Import_Template_Default__mdt row : shipped) {
@@ -47,7 +71,6 @@ public with sharing class ImportTemplateService {
         }
         Map<String, Import_Template__c> existing = ImportTemplateSelector.selectByKeys(keys);
         String personMode = defaultPersonMode();
-        List<Import_Template__c> toCreate = new List<Import_Template__c>();
         for (Import_Template_Default__mdt row : shipped) {
             if (String.isBlank(row.Template_Key__c) || existing.containsKey(row.Template_Key__c)) {
                 continue;
@@ -67,11 +90,7 @@ public with sharing class ImportTemplateService {
                 )
             );
         }
-        if (toCreate.isEmpty()) {
-            return 0;
-        }
-        Database.insert(toCreate, AccessLevel.USER_MODE);
-        return toCreate.size();
+        return toCreate;
     }
 
     /**
@@ -110,6 +129,62 @@ public with sharing class ImportTemplateService {
         template.Matching_Rule__c = normalizedRule(matchingRule);
         Database.update(template, AccessLevel.USER_MODE);
         return template;
+    }
+
+    /**
+     * Marks a template as the mapping for a file that arrives regularly, or not (R-IT6). The
+     * source name says which feed it is, and is required while the template is recurring. It
+     * is kept when the mark is taken off, so ticking the box again brings it back.
+     */
+    @NamespaceAccessible
+    public static Import_Template__c saveRecurring(
+        Id templateId,
+        Boolean isRecurring,
+        String sourceName
+    ) {
+        Import_Template__c template = ImportTemplateSelector.selectById(templateId);
+        if (template == null) {
+            throw new ImportException(Label.Core_Import_ErrorTemplateGone);
+        }
+        if (isRecurring == true && String.isBlank(sourceName)) {
+            throw new ImportException(Label.Core_Import_ErrorSourceNameRequired);
+        }
+        template.Is_Recurring__c = isRecurring == true;
+        if (String.isNotBlank(sourceName)) {
+            template.Source_Name__c = sourceName.trim().left(255);
+        }
+        Database.update(template, AccessLevel.USER_MODE);
+        return template;
+    }
+
+    /**
+     * The active recurring templates, the one loaded longest ago first and one never loaded
+     * before any of them, so the feed nobody has loaded is at the top of the Hub's list.
+     */
+    @NamespaceAccessible
+    public static List<Import_Template__c> recurringSources() {
+        List<Import_Template__c> never = new List<Import_Template__c>();
+        Map<Date, List<Import_Template__c>> byDate = new Map<Date, List<Import_Template__c>>();
+        for (Import_Template__c template : ImportTemplateSelector.selectActive()) {
+            if (template.Is_Recurring__c != true) {
+                continue;
+            }
+            if (template.Last_Import_Date__c == null) {
+                never.add(template);
+                continue;
+            }
+            if (!byDate.containsKey(template.Last_Import_Date__c)) {
+                byDate.put(template.Last_Import_Date__c, new List<Import_Template__c>());
+            }
+            byDate.get(template.Last_Import_Date__c).add(template);
+        }
+        List<Date> dates = new List<Date>(byDate.keySet());
+        dates.sort();
+        List<Import_Template__c> result = new List<Import_Template__c>(never);
+        for (Date lastImport : dates) {
+            result.addAll(byDate.get(lastImport));
+        }
+        return result;
     }
 
     /** Records that a template was used, so the Hub can say how stale a recurring feed is. */

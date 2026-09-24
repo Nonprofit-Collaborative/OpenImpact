@@ -80,6 +80,22 @@ private class ImportRowProcessorTest {
             .Created_By_Import_Batch__c,
             'So does the organization.'
         );
+        Assert.areEqual(
+            batch.Id,
+            [
+                SELECT Created_By_Import_Batch__c
+                FROM Account
+                WHERE Id IN (SELECT AccountId FROM Contact)
+                LIMIT 1
+            ]
+            .Created_By_Import_Batch__c,
+            'And the household made for the new person, so an undo can remove it too.'
+        );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Import_Journal__c],
+            'Nothing is journaled for records the import created: the tag is their record.'
+        );
     }
 
     @IsTest
@@ -96,6 +112,7 @@ private class ImportRowProcessorTest {
         Assert.areEqual(1, outcome.created, 'The preview says the row would create something.');
         Assert.areEqual(0, [SELECT COUNT() FROM Contact], 'And nothing at all was written.');
         Assert.areEqual(0, [SELECT COUNT() FROM Account], 'Not an organization either.');
+        Assert.areEqual(0, [SELECT COUNT() FROM Import_Journal__c], 'Nor a journal page.');
         Assert.areEqual(
             ImportRowProcessor.STATUS_CREATED,
             ImportTestDataFactory.reload(batch.Id)[0].Status__c,
@@ -573,10 +590,121 @@ private class ImportRowProcessorTest {
         Assert.areEqual(1, [SELECT COUNT() FROM Contact], 'The person was created.');
         Assert.areEqual(1, households().size(), 'And given a household of their own.');
         Assert.areEqual(
+            batch.Id,
+            [SELECT Created_By_Import_Batch__c FROM Account WHERE Id = :households()[0].Id]
+            .Created_By_Import_Batch__c,
+            'Which carries the import tag, because the import made it.'
+        );
+        Assert.areEqual(
             1,
             [SELECT COUNT() FROM Household_Member__c],
             'Joined to it by one membership row.'
         );
+    }
+
+    /**
+     * An update to a person the import matched is journaled with the value it replaced, so
+     * an undo can put it back (R-IJ3). A record the import created is not journaled: undoing
+     * it deletes it.
+     */
+    @IsTest
+    static void anUpdateToAMatchedPersonIsJournaledWithTheValueItReplaced() {
+        TestDataFactory.defaultSettings();
+        insert new Contact(
+            FirstName = 'Ana',
+            LastName = 'Ramirez',
+            Email = 'ana@example.org',
+            MailingCity = 'Salem'
+        );
+        given(
+            new List<Map<String, String>>{
+                ImportTestDataFactory.donorRow('Ana', 'Ramirez', 'ana@example.org', null)
+            }
+        );
+        Test.startTest();
+        run(false);
+        Test.stopTest();
+
+        List<Import_Journal__c> pages = ImportJournalService.pages(
+            batch.Id,
+            ImportJournalService.PHASE_COMMIT,
+            10
+        );
+        Assert.areEqual(1, pages.size(), 'The chunk wrote one journal page.');
+        List<Map<String, Object>> entries = ImportJournalService.entries(pages[0]);
+        Assert.areEqual(1, entries.size(), 'One record was updated.');
+        Map<String, Object> fields = (Map<String, Object>) entries[0].get('fields');
+        Map<String, Object> city = (Map<String, Object>) fields.get('MailingCity');
+        Assert.areEqual('Salem', city.get('before'), 'The value the import replaced is kept.');
+        Assert.areEqual('Portland', city.get('after'), 'Beside the value it wrote.');
+        Assert.areEqual(2, entries[0].get('row'), 'And the file row that wrote it.');
+        Assert.isNull(
+            [
+                SELECT Created_By_Import_Batch__c
+                FROM Account
+                WHERE Id IN (SELECT AccountId FROM Contact)
+                LIMIT 1
+            ]
+            .Created_By_Import_Batch__c,
+            'The household an existing person already had is never tagged, so an undo keeps it.'
+        );
+    }
+
+    /** Renaming a household the import did not create is journaled with the old name. */
+    @IsTest
+    static void renamingAnExistingHouseholdIsJournaledWithTheOldName() {
+        TestDataFactory.defaultSettings();
+        insert new Contact(FirstName = 'Ana', LastName = 'Ramirez', Email = 'ana@example.org');
+        Account household = [
+            SELECT Id, Name, Custom_Name__c
+            FROM Account
+            WHERE Id IN (SELECT AccountId FROM Contact)
+            LIMIT 1
+        ];
+        ImportMapping mapping = new ImportMapping();
+        mapping.columns.add(new ImportMapping.Column('Household', 'Household.Name'));
+        mapping.columns.add(new ImportMapping.Column('First Name', 'Contact1.FirstName'));
+        mapping.columns.add(new ImportMapping.Column('Last Name', 'Contact1.LastName'));
+        mapping.columns.add(new ImportMapping.Column('Email', 'Contact1.Email'));
+        template = ImportTestDataFactory.template(
+            mapping.serialize(),
+            ImportTemplateService.RULE_EMAIL
+        );
+        batch = ImportTestDataFactory.batch(template);
+        ImportTestDataFactory.rows(
+            batch,
+            new List<Map<String, String>>{
+                new Map<String, String>{
+                    'Household' => 'Ana and Luis Ramirez',
+                    'First Name' => 'Ana',
+                    'Last Name' => 'Ramirez',
+                    'Email' => 'ana@example.org'
+                }
+            }
+        );
+
+        Test.startTest();
+        run(false);
+        Test.stopTest();
+
+        Account renamed = [
+            SELECT Name, Created_By_Import_Batch__c
+            FROM Account
+            WHERE Id = :household.Id
+        ];
+        Assert.areEqual('Ana and Luis Ramirez', renamed.Name, 'The household was renamed.');
+        Assert.isNull(renamed.Created_By_Import_Batch__c, 'But not claimed by the import.');
+        Map<String, Object> entry = ImportJournalService.entries(
+            ImportJournalService.pages(batch.Id, ImportJournalService.PHASE_COMMIT, 10)[0]
+        )[0];
+        Map<String, Object> name = (Map<String, Object>) ((Map<String, Object>) entry.get('fields'))
+            .get('Name');
+        Assert.areEqual(
+            String.valueOf(household.Id),
+            (String) entry.get('id'),
+            'The entry names the household.'
+        );
+        Assert.areEqual(household.Name, name.get('before'), 'With the name it had before.');
     }
 
     private static Id organizationRecordTypeId() {

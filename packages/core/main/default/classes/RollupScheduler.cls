@@ -9,6 +9,18 @@ public with sharing class RollupScheduler implements Schedulable {
     /** The name the scheduled job carries, so the console can find it again. */
     public static final String JOB_NAME = 'Open Impact Rollups';
 
+    /**
+     * The name used for the job. A test gives it a name of its own, because the org a test runs
+     * in may already have the nightly run, which a test can neither see past nor stop.
+     */
+    @TestVisible
+    private static String jobNameInUse = JOB_NAME;
+
+    /** The name the nightly job is scheduled and found under. */
+    public static String jobName() {
+        return jobNameInUse;
+    }
+
     /** Two in the morning, which is after the day's data entry and before the day's reporting. */
     private static final String NIGHTLY_CRON = '0 0 2 * * ?';
 
@@ -25,7 +37,7 @@ public with sharing class RollupScheduler implements Schedulable {
         if (existing != null) {
             return existing;
         }
-        return System.schedule(JOB_NAME, NIGHTLY_CRON, new RollupScheduler());
+        return System.schedule(jobNameInUse, NIGHTLY_CRON, new RollupScheduler());
     }
 
     /** Stops the nightly run. */
@@ -66,7 +78,7 @@ public with sharing class RollupScheduler implements Schedulable {
         List<CronJobDetail> details = [
             SELECT Id
             FROM CronJobDetail
-            WHERE Name = :JOB_NAME AND JobType = '7'
+            WHERE Name = :jobNameInUse AND JobType = '7'
             WITH SYSTEM_MODE
             LIMIT 1
         ];

@@ -225,4 +225,50 @@ private class ImportControllerTest {
         Assert.isNull(ImportController.getBatch(null), 'No batch, no view, no exception.');
         Test.stopTest();
     }
+
+    private static Import_Batch__c committedBatch() {
+        Import_Batch__c batch = ImportTestDataFactory.batch(permittedTemplate());
+        batch.Is_Dry_Run__c = false;
+        batch.Status__c = ImportBatchService.STATUS_COMPLETE;
+        batch.Completed_At__c = Datetime.now().addMinutes(1);
+        batch.Undo_Deadline__c = Datetime.now().addDays(30);
+        update batch;
+        insert new Contact(LastName = 'Ramirez', Created_By_Import_Batch__c = batch.Id);
+        return batch;
+    }
+
+    @IsTest
+    static void previewsAnUndoThenStartsIt() {
+        Import_Batch__c batch = committedBatch();
+        Assert.isTrue(ImportController.getBatch(batch.Id).canUndo, 'The list offers Undo.');
+
+        ImportUndoService.Preview view = ImportController.previewUndo(batch.Id);
+        Assert.areEqual(1, view.people, 'The screen is shown what would be removed.');
+
+        Test.startTest();
+        ImportController.BatchView started = ImportController.startUndo(batch.Id, view.total);
+        Assert.areEqual(
+            ImportBatchService.STATUS_UNDOING,
+            started.status,
+            'The batch is marked as being undone before the work starts.'
+        );
+        Assert.isFalse(started.canUndo, 'And no longer offers Undo.');
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void undoNeedsThePermission() {
+        Import_Batch__c batch = committedBatch();
+        ImportController.permissionOverride = false;
+        try {
+            ImportController.previewUndo(batch.Id);
+            Assert.fail('Undoing an import needs the Manage Nonprofit Settings permission.');
+        } catch (AuraHandledException expected) {
+            Assert.areEqual(
+                Label.Core_Import_ErrorNoPermission,
+                expected.getMessage(),
+                'Saying so.'
+            );
+        }
+    }
 }

@@ -3,7 +3,7 @@
 For developers connecting a payment processor, online giving page or integration platform
 to Open Impact (feature X-03). The administrator's side, including the user and sign-in
 setup, is in the admin guide: [Inbound Gift API](../admin-guide/inbound-gift-api.md). The
-decisions behind this shape are in ADR-NEXT.
+decisions behind this shape are in ADR-0051.
 
 This contract is permanent once the Connect package is released as a managed package: new
 optional fields may be added, and nothing below will be removed or renamed.

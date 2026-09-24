@@ -25,7 +25,7 @@ Built so far (iteration 0.6):
   `InboundGiftAction` (the Record Inbound Gift Flow action), both thin over
   `InboundGiftService`, which checks each gift through `InboundGiftRequest`. `InboundGift` and
   `InboundGiftResult` are the request and result.
-  These four are the package's only `global` classes and are permanent (ADR-NEXT). Contract:
+  These four are the package's only `global` classes and are permanent (ADR-0051). Contract:
   `docs/api/inbound-gift-api.md`. Permission set: `Inbound_Gift_API`.
 - **Accounting export (X-04).** See `docs/admin-guide/accounting-export.md`.
 

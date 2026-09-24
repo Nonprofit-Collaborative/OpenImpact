@@ -5,7 +5,7 @@
  * Three outcomes and no fourth. `created`: this call recorded the gift. `existing`: an earlier
  * call did, and nothing changed. `rejected`: nothing was recorded, and `errorCode` says why in a
  * form a program can branch on. The four fields are `global` and permanent for the same reason
- * as `InboundGift` (ADR-NEXT); the codes and the status mapping below are `public`, so they stay
+ * as `InboundGift` (ADR-0051); the codes and the status mapping below are `public`, so they stay
  * inside the package.
  */
 global with sharing class InboundGiftResult {

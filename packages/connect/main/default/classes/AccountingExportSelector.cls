@@ -1,6 +1,6 @@
 /**
  * The reads behind the accounting export (feature X-04), all in user mode, so the file holds
- * the gifts the person running it can see, like any report (ADR-NEXT).
+ * the gifts the person running it can see, like any report (ADR-0051).
  *
  * Rows are handed to a sink in SOQL for loop chunks rather than returned as one list, so a
  * large range costs heap for the file being built, not for every record at once.

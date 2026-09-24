@@ -1,5 +1,5 @@
 /**
- * The Inbound Gift API permission set is all the integration user needs (X-03, ADR-NEXT): every
+ * The Inbound Gift API permission set is all the integration user needs (X-03, ADR-0051): every
  * test here runs as a user holding that set and nothing else, on the Standard User profile, and
  * records gifts through both entry points.
  *

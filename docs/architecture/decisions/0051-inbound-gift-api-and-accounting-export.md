@@ -1,4 +1,4 @@
-# ADR-NEXT: The inbound gift API keeps a small permanent surface, and the accounting export marks nothing
+# ADR-0051: The inbound gift API keeps a small permanent surface, and the accounting export marks nothing
 
 **Status:** Accepted
 **Date:** 2026-09-23

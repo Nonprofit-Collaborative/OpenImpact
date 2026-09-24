@@ -4,7 +4,7 @@
  * cannot drift apart in what they accept.
  *
  * `global` because a Flow in a subscriber org builds one and the REST body is read into it.
- * Every variable here is permanent once the package is managed (ADR-NEXT): a new optional
+ * Every variable here is permanent once the package is managed (ADR-0051): a new optional
  * variable may be added, none may be removed or renamed. The rules applied to these values are
  * in `InboundGiftService` and the API reference, `docs/api/inbound-gift-api.md`.
  */

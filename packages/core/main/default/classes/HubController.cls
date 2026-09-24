@@ -37,6 +37,20 @@ public with sharing class HubController {
         public Boolean seasonalAddressScheduled;
         @AuraEnabled
         public Boolean seasonalAddressStale;
+        @AuraEnabled
+        public List<RecurringSource> recurringSources;
+    }
+
+    /** One file that arrives regularly, and when it was last imported (R-IT6). */
+    public class RecurringSource {
+        @AuraEnabled
+        public String id;
+        @AuraEnabled
+        public String sourceName;
+        @AuraEnabled
+        public String templateName;
+        @AuraEnabled
+        public Date lastImportDate;
     }
 
     @AuraEnabled(cacheable=true)
@@ -59,6 +73,7 @@ public with sharing class HubController {
         model.newErrorCount = readNewErrorCount();
         readRollupFreshness(model);
         readSeasonalAddressRun(model);
+        model.recurringSources = readRecurringSources();
         return model;
     }
 
@@ -105,6 +120,31 @@ public with sharing class HubController {
             model.seasonalAddressScheduled = false;
             model.seasonalAddressStale = false;
         }
+    }
+
+    /**
+     * The files that arrive regularly and when each was last imported, oldest first, so the
+     * one nobody has loaded this month is at the top (R-IT6). Optional like the rest: a user
+     * who cannot read import templates loses the list, not the page.
+     */
+    private static List<RecurringSource> readRecurringSources() {
+        List<RecurringSource> result = new List<RecurringSource>();
+        if (!Schema.SObjectType.Import_Template__c.isAccessible()) {
+            return result;
+        }
+        try {
+            for (Import_Template__c template : ImportTemplateService.recurringSources()) {
+                RecurringSource source = new RecurringSource();
+                source.id = template.Id;
+                source.sourceName = template.Source_Name__c;
+                source.templateName = template.Name;
+                source.lastImportDate = template.Last_Import_Date__c;
+                result.add(source);
+            }
+        } catch (Exception e) {
+            ErrorLogger.log(e, ERROR_CONTEXT);
+        }
+        return result;
     }
 
     private static Integer readNewErrorCount() {

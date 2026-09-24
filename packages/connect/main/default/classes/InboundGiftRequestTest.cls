@@ -1,5 +1,5 @@
 /**
- * The checks an inbound gift passes before any query (X-03, ADR-NEXT), the gift it becomes, and
+ * The checks an inbound gift passes before any query (X-03, ADR-0051), the gift it becomes, and
  * the HTTP status each answer is given. Nothing here touches the database.
  */
 @IsTest

@@ -3,7 +3,7 @@
  * one gift per request. The contract is `docs/api/inbound-gift-api.md`.
  *
  * `global` because the platform requires it of a REST resource, and permanent for the same
- * reason as `InboundGift` (ADR-NEXT). All the work is in `InboundGiftService`; this class only
+ * reason as `InboundGift` (ADR-0051). All the work is in `InboundGiftService`; this class only
  * turns a request body into a gift and a result into a status code and a body.
  */
 @RestResource(urlMapping='/v1/gifts')

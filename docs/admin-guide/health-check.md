@@ -8,8 +8,10 @@ licenses are in play), whether your coexistence mode matches that, who can and c
 into the app, and anything that is currently getting in the way, such as paused automation
 or errors nobody has looked at.
 
-Every finding says what is wrong and what to do about it, and most of them have a button
-that takes you straight to the place where you fix it.
+Every finding says what is wrong and what to do about it, and most of them have a button.
+Some buttons take you to the page where you decide. Others fix the problem on the spot, but
+only when there is exactly one right answer, and only after you confirm (see **How a fix
+button works** below).
 
 Run it after you install, after you add people, and any time something feels wrong.
 
@@ -94,8 +96,14 @@ recommendation in step 5 is **NPSP coexistence**. Everything else is the same.
 | Access | Whether anyone holds the Override Receipt Lock permission, which is meant to be granted for one correction and taken away again. |
 | Settings | Whether Open Impact automation is paused, and says so plainly when it is running. |
 | Settings | Whether there are new entries in the Error Log that nobody has looked at. |
+| Settings | Whether anybody is in no household while every new person is meant to get one. |
+| Settings | Whether any household has nobody in it. |
 | Settings | Whether the fiscal year in Setup is the same month as the fiscal year start month in Nonprofit Settings. |
 | Settings | Whether receipts have been voided with the reason "Generation failed", which is a receipt run that did not finish. |
+| Settings | Whether any of the totals Open Impact ships are missing from the Rollups page. |
+| Settings | Whether any Open Impact automation is missing its on and off switch on the Automation page. |
+| Settings | Whether any import template Open Impact ships is missing from the Import page. |
+| Settings | Whether a total is set to be recalculated nightly while the nightly run is not scheduled. |
 
 Three of those are new: the Override Receipt Lock permission, the two fiscal years, and the
 failed receipts. Each one is a quiet problem, where nothing looks broken and the cost arrives
@@ -108,6 +116,67 @@ months later, so each is explained in full below.
 | **Someone can override the receipt lock** | One or more active people hold the **Override Receipt Lock** permission. Open Impact ships it assigned to nobody. | That permission is the only way to change or delete a gift that carries a receipt number. It is meant to be granted in Setup for one correction and removed the same day. Left assigned, the guarantee that a receipted gift cannot change quietly stops being a guarantee, and nothing in the app will tell you again. | Read the names in the finding. If nobody is in the middle of a correction right now, open **Setup, Custom Permissions, Override Receipt Lock** and take it off the permission set or profile that grants it. Every change made with it is already in the Error Log at Warning severity, so you can see what it was used for. |
 | **Your two fiscal years disagree** | The fiscal year in **Setup** starts in a different month from **Fiscal Year Start Month** in Nonprofit Settings. | Open Impact computes Giving This Year, Giving Last Year and Giving Two Years Ago from its own setting, and the packaged retention reports (LYBUNT, SYBUNT, new versus retained, conversion) read the fiscal year from Setup. When the two disagree, every one of those numbers is measured on a different year boundary. Nothing errors: a donor simply appears on the LYBUNT list while their Giving This Year is not zero, and usually nobody asks until a year end number is questioned. | Decide which month is right, then set both to it: **Setup, Company Information, Fiscal Year**, and **Nonprofit Settings, General, Fiscal Year Start Month**. The **Open general settings** button on the finding takes you to the second one. Recalculate rollups afterwards. |
 | **Receipts failed to generate** | There are receipts with status **Void** and the reason **Generation failed**. | Every receipt number is used once. When a document fails to generate after its number was handed out, Open Impact records the number as a void receipt so an auditor asking what happened to number 47 gets an answer. One of those is ordinary. A number of them means receipt generation is failing over and over, donors are not getting the documents they are waiting for, and nobody has looked. | Open the Error Log from the finding and read the receipt entries: they say what failed. Fix the cause (most often a missing letter template or a donor with no address), then re-run the receipt or the statement run. The void records stay: they are the audit trail for the numbers that were consumed, and deleting them is not a fix. |
+
+## How a fix button works
+
+Most buttons open a page. A button that changes something in your org works like this:
+
+1. The finding says exactly what the fix will do, counted from your org: for example
+   **3 shipped totals are missing**, followed by their names (Total Gifts, Largest Gift, Last
+   Gift Date) and what the fix will create.
+2. Click the button. A box headed **Before this fix runs** opens at the top of the panel, the
+   page scrolls to it, and it shows that sentence again with **Confirm** and **Cancel**.
+   Nothing has changed yet. **Cancel** or the Escape key closes it and takes you back to the
+   button.
+3. Click **Confirm**. The fix runs, the panel says what it did (for example **Done. Created:
+   Total Gifts, Largest Gift, Last Gift Date.**), and Health Check re-runs underneath it. If it
+   fails, nothing is changed, the panel says so in a sentence, and the details are in the Error
+   Log.
+
+The fix creates exactly what the box showed you. If something changed since Health Check last
+ran, for example a colleague restored the same totals a minute ago, the fix does nothing, says
+so, and Health Check runs again so you can read the finding as it is now.
+
+Every fix that runs is recorded under **Recent changes** in Nonprofit Settings, as
+**Health Check:** followed by the button's name, with what it created, your name and the time.
+
+Every fix only creates something that is missing or switches on something that is off. No
+fix deletes anything or changes a value you chose, and pressing it twice does no more than
+pressing it once. Most can be undone on their own page:
+
+| Finding | What the fix does | How to undo it |
+|---|---|---|
+| **Shipped totals are missing** | Creates the missing totals exactly as shipped. Each one starts calculating donor totals straight away, as it would have from install. Your own totals are not touched, and a shipped total whose field one of your own active totals already writes is skipped and named, so the two never overwrite each other. | Switch a total off on the Rollups page. Do not delete it: a deleted shipped total comes back the next time totals are restored or the package is upgraded (see Rollups). |
+| **Automation switches are missing** | Creates the missing switches, each set to its shipped default, so nothing that runs now stops. An automation that always runs, such as the receipt lock, is listed with its switch locked. | Switch any automation off on the Automation page. |
+| **Shipped import templates are missing** | Creates the missing templates. | There is no undo in the app: the Import page cannot delete or switch off a template. A template does nothing until somebody picks it for an import. |
+| **Nightly totals are not scheduled** | Schedules the nightly run at 2:00 AM. | **Stop the nightly recalculation** on the Rollups page. |
+| **Coexistence mode is not confirmed**, **Household membership does not fit Person Accounts**, **No new person is getting a household** | As described in the walkthrough and Common mistakes. | Change the setting back in Nonprofit Settings. |
+
+Some findings deliberately have no fix button, because the answer is yours to choose: who
+should be a Nonprofit Admin when nobody is, whether paused automation should resume, what
+to do about errors in the Error Log, and what should become of a person with no household or
+a household with nobody in it.
+
+## People with no household, and households with nobody in them
+
+Health Check finds these and links them; it never changes them. Cleaning them up in bulk
+belongs to the data hygiene console, planned for a later release.
+
+| Finding | Who is counted | Who is not counted | What to do |
+|---|---|---|---|
+| **People are not in a household** (amber) | With household membership on the person's account: every contact with no account. With membership records: every person, contact or person account, with no current membership (no end date, or one still to come). | A contact whose account is an organization: that person belongs to the organization. With membership records, a contact linked straight to a household: the separate membership finding covers it. Nobody at all while automatic household creation is off, because then a person without a household is your choice. | Open each linked person. With membership on the account, set the account to a household. With membership records, add them from the household's members panel. |
+| **Households have nobody in them** (blue) | Households with no contact on them, or with membership records, no current member. | Organizations. | Open each linked household and add a member, merge it into another household, or delete it. Some are kept on purpose, for example when **Delete a household once it is empty** is off (Nonprofit Settings, Households), or when merging two people emptied it: a merge never deletes a household, because gifts are credited to it, so merge it into the kept person's household (see Duplicates). |
+
+Each finding counts up to 1,000 and then says **More than 1,000**, so a large org gets its
+answer quickly, and links the first five records, oldest first. The counts use your own
+access, so these two findings are shown only to people with the Manage Nonprofit Settings
+permission. In an org that also has Nonprofit Cloud households, some of the people and
+households listed may belong to one: Open Impact cannot see that membership, and the finding
+says so.
+
+The four checks about shipped totals, switches, templates and the nightly run are shown only to
+people with the Manage Nonprofit Settings permission, because only they can act on them. The
+two household checks are shown only to them too, for the reason given above.
 
 If one check cannot run, the rest still run. The check that failed appears as its own finding
 saying so, and the details are written to the Error Log.
@@ -156,6 +225,14 @@ month, and they have to be the same month.
 **Deleting the "Generation failed" receipts to clear the finding.** Those records are what
 account for the numbers that were used. Deleting them turns an explained gap into an
 unexplained one, and the receipts still will not generate. Fix the cause and re-run.
+
+**Expecting a fix to tidy up.** The fixes only ever add what is missing. An automation switch
+left behind by an older version, or a total you created yourself, stays where it is. Nothing
+runs an automation whose switch is left over, so it does no harm.
+
+**Scheduling the nightly run only for the finding to come back.** The nightly-run finding only
+appears while at least one total is set to Scheduled or Both. If you switch every total to Real
+time, the finding goes away without the schedule, which is also correct.
 
 **Leaving automation paused.** Pausing automation for a bulk load is exactly right. Forgetting
 to turn it back on means households stop being created and names stop being recomputed, quietly.

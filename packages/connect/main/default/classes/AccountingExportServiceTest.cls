@@ -1,5 +1,5 @@
 /**
- * The accounting export (X-04, ADR-NEXT) for Jen, the bookkeeper, over one August of gifts.
+ * The accounting export (X-04, ADR-0051) for Jen, the bookkeeper, over one August of gifts.
  *
  * The gifts are written with automation paused, so each one carries exactly the allocations
  * written here: a split gift, a refund, a gift with none at all, and the gifts the file must

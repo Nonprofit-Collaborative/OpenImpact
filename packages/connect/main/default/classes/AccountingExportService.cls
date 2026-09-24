@@ -1,7 +1,7 @@
 /**
  * The accounting export (feature X-04): the gifts in a date range as a CSV file for the
  * bookkeeper's accounting system. Admin guide: `docs/admin-guide/accounting-export.md`;
- * decisions: ADR-NEXT.
+ * decisions: ADR-0051.
  *
  * - One row per allocation, so a split gift is a row per fund; a gift with no allocation at all
  *   is one row with no fund, so an unfiltered file never leaves money out.

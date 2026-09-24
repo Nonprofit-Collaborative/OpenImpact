@@ -65,6 +65,14 @@
         <value>Automation is running normally</value>
     </labels>
     <labels>
+        <fullName>Core_HealthCheck_CancelButton</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that closes the confirm box without running the fix.</shortDescription>
+        <value>Cancel</value>
+    </labels>
+    <labels>
         <fullName>Core_HealthCheck_CategoryAccess</fullName>
         <categories>Core</categories>
         <language>en_US</language>
@@ -113,6 +121,38 @@
         <value>One check could not run</value>
     </labels>
     <labels>
+        <fullName>Core_HealthCheck_ConfirmButton</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Button that runs a fix after it has been shown.</shortDescription>
+        <value>Confirm</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ConfirmHeading</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Heading of the box that asks before a fix runs.</shortDescription>
+        <value>Before this fix runs</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ConfirmIntro</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Text above the finding in the box that asks before a fix runs.</shortDescription>
+        <value>This is what the fix will do. Nothing changes until you confirm.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_ConfirmModeDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Confirm box text for Use recommended mode. {0} current, {1} new mode.</shortDescription>
+        <value>The coexistence mode changes from {0} to {1}.</value>
+    </labels>
+    <labels>
         <fullName>Core_HealthCheck_ConnectMissingDetail</fullName>
         <categories>Core</categories>
         <language>en_US</language>
@@ -135,6 +175,22 @@
         <protected>false</protected>
         <shortDescription>Label of the current mode on the org shape card.</shortDescription>
         <value>Coexistence mode</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_EmptyHouseholdsDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check detail: households with no current member.</shortDescription>
+        <value>Nobody is a current member of these households. Some may be kept on purpose, for example when empty households are not deleted automatically. Open each one to add a member, merge it into another household, or delete it. Health Check finds these and does not change them; cleaning them up in bulk belongs to the data hygiene console.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_EmptyHouseholdsTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check title: households with no members. {0} count or more than.</shortDescription>
+        <value>{0} households have nobody in them</value>
     </labels>
     <labels>
         <fullName>Core_HealthCheck_ErrorContext</fullName>
@@ -194,12 +250,44 @@
         <value>Your two fiscal years do not match</value>
     </labels>
     <labels>
+        <fullName>Core_HealthCheck_FixCreated</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>After a restore fix: what it created. {0} names.</shortDescription>
+        <value>Done. Created: {0}.</value>
+    </labels>
+    <labels>
         <fullName>Core_HealthCheck_FixFailed</fullName>
         <categories>Core</categories>
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>Shown when a fix button could not do what it says.</shortDescription>
         <value>That did not work, and nothing was changed. The details are in the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_FixScheduled</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>After the nightly run fix: what it did.</shortDescription>
+        <value>Done. The nightly run is scheduled every night at 2:00 AM.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_FixStale</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Fix refused: what it would change is not what the finding said.</shortDescription>
+        <value>Something changed since Health Check last ran, so this fix would not do exactly what you confirmed. Nothing was changed. Health Check has run again: read the finding and press its button again if it is still there.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_FixUnknown</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shown when the panel asks for a fix Health Check does not have.</shortDescription>
+        <value>Health Check does not have that fix. Run Health Check again.</value>
     </labels>
     <labels>
         <fullName>Core_HealthCheck_IndustriesDetected</fullName>
@@ -322,6 +410,30 @@
         <value>This org uses more than one currency</value>
     </labels>
     <labels>
+        <fullName>Core_HealthCheck_NightlyOffDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check detail: nightly run off. {0} waiting rollups, {1} nightly only.</shortDescription>
+        <value>{0} active totals are set to recalculate in the nightly run, and it is not scheduled. {1} of them recalculate only then, so their values are not being kept up to date. The fix schedules the run every night at 2:00 AM. Stop it on the Rollups page.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_NightlyOffFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Fix button: schedule the nightly rollup run.</shortDescription>
+        <value>Schedule the nightly run</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_NightlyOffTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check title: the nightly rollup run is not scheduled.</shortDescription>
+        <value>Nightly totals are not scheduled</value>
+    </labels>
+    <labels>
         <fullName>Core_HealthCheck_NoAdminDetail</fullName>
         <categories>Core</categories>
         <language>en_US</language>
@@ -410,6 +522,30 @@
         <value>Your org at a glance</value>
     </labels>
     <labels>
+        <fullName>Core_HealthCheck_OrphansFirstListed</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Says how many orphan records are linked. {0} number linked.</shortDescription>
+        <value>The first {0} are linked below.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_OrphansMoreThan</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Stands in for an orphan count at the cap. {0} the cap.</shortDescription>
+        <value>More than {0}</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_OrphansNativeNote</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Orphan findings in an org that also has Nonprofit Cloud households.</shortDescription>
+        <value>This org also has Nonprofit Cloud households, and Open Impact cannot see who belongs to those, so some of these may be in one.</value>
+    </labels>
+    <labels>
         <fullName>Core_HealthCheck_OverrideLockDetail</fullName>
         <categories>Core</categories>
         <language>en_US</language>
@@ -441,6 +577,30 @@
         <protected>false</protected>
         <shortDescription>Health Check title: someone holds the Override Receipt Lock permission</shortDescription>
         <value>Someone can override the receipt lock</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_PeopleWithoutHouseholdContactDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check detail: contacts with no account, in contact mode.</shortDescription>
+        <value>These contacts have no account, so they are in no household: their gifts count toward no household total, and no household name or greeting includes them. A contact whose account is an organization is not counted. Open each one and set its account to a household. Health Check finds these and does not change them; cleaning them up in bulk belongs to the data hygiene console.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_PeopleWithoutHouseholdJunctionDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check detail: people with no current membership, junction mode.</shortDescription>
+        <value>No current household membership names these people, so they are in no household: their gifts count toward no household total, and no household name or greeting includes them. Open each one and add them to a household from its members panel. Health Check finds these and does not change them; cleaning them up in bulk belongs to the data hygiene console.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_PeopleWithoutHouseholdTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check title: people in no household. {0} count or more than.</shortDescription>
+        <value>{0} people are not in a household</value>
     </labels>
     <labels>
         <fullName>Core_HealthCheck_PermissionRequired</fullName>
@@ -515,6 +675,38 @@
         <value>Re-run</value>
     </labels>
     <labels>
+        <fullName>Core_HealthCheck_RollupsMissingDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check detail: shipped rollups missing. {0} count, {1} names.</shortDescription>
+        <value>Open Impact ships totals this org does not have: {1}. The fix creates each one exactly as shipped, and each starts calculating donor totals straight away. Your own totals are not touched.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_RollupsMissingFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Fix button: create the missing shipped rollups.</shortDescription>
+        <value>Restore shipped totals</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_RollupsMissingTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check title: shipped rollups missing. {0} is the count.</shortDescription>
+        <value>{0} shipped totals are missing</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_RollupsSkippedDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Shipped totals not restored because an admin total writes the field. {0} names.</shortDescription>
+        <value>Not restored, because one of your own active totals already writes the same field: {0}.</value>
+    </labels>
+    <labels>
         <fullName>Core_HealthCheck_SalesObjectsDetected</fullName>
         <categories>Core</categories>
         <language>en_US</language>
@@ -545,6 +737,54 @@
         <protected>false</protected>
         <shortDescription>Screen reader text for a finding worth knowing about.</shortDescription>
         <value>Worth knowing</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_SwitchesMissingDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check detail: automation switches missing. {0} count, {1} names.</shortDescription>
+        <value>These automations run but have no switch on the Automation page, so they cannot be turned off there: {1}. The fix creates each switch set to its shipped default, so nothing that runs now stops. An automation that enforces a rule, such as the receipt lock, is listed with its switch locked, because it always runs. Switches you already have keep their setting.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_SwitchesMissingFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Fix button: create the missing automation switches.</shortDescription>
+        <value>Restore automation switches</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_SwitchesMissingTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check title: automation switches missing. {0} is the count.</shortDescription>
+        <value>{0} automation switches are missing</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_TemplatesMissingDetail</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check detail: import templates missing. {0} count, {1} names.</shortDescription>
+        <value>Open Impact ships import templates this org does not have: {1}. The fix creates each one exactly as shipped. Your own templates are not touched.</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_TemplatesMissingFix</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Fix button: create the missing shipped import templates.</shortDescription>
+        <value>Restore import templates</value>
+    </labels>
+    <labels>
+        <fullName>Core_HealthCheck_TemplatesMissingTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check title: import templates missing. {0} is the count.</shortDescription>
+        <value>{0} shipped import templates are missing</value>
     </labels>
     <labels>
         <fullName>Core_HealthCheck_Title</fullName>

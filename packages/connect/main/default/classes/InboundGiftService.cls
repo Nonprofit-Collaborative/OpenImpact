@@ -1,6 +1,6 @@
 /**
  * Records gifts sent by other systems (feature X-03), for the REST endpoint and the Flow action
- * alike. The contract is `docs/api/inbound-gift-api.md` and the decisions behind it ADR-NEXT.
+ * alike. The contract is `docs/api/inbound-gift-api.md` and the decisions behind it ADR-0051.
  *
  * Four rules shape everything here:
  *

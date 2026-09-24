@@ -1,5 +1,5 @@
 /**
- * The inbound gift API's rules (X-03, ADR-NEXT), tested through the service that the REST
+ * The inbound gift API's rules (X-03, ADR-0051), tested through the service that the REST
  * endpoint and the Flow action share.
  *
  * The donor is Luis Garcia, who gave online; the funds are the sample data's General Fund (the

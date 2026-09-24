@@ -98,6 +98,57 @@ private class ImportBatchServiceTest {
     }
 
     @IsTest
+    static void refusesADryRunOnceACommitHasStarted() {
+        Import_Template__c template = newTemplate();
+        List<String> statuses = new List<String>{
+            ImportBatchService.STATUS_COMPLETE,
+            ImportBatchService.STATUS_FAILED,
+            ImportBatchService.STATUS_UNDOING,
+            ImportBatchService.STATUS_UNDONE,
+            ImportBatchService.STATUS_UNDO_FAILED
+        };
+        List<Import_Batch__c> batches = new List<Import_Batch__c>();
+        for (String status : statuses) {
+            Import_Batch__c batch = ImportTestDataFactory.batch(template);
+            ImportTestDataFactory.rows(
+                batch,
+                new List<Map<String, String>>{
+                    ImportTestDataFactory.donorRow('Ana', 'Ramirez', 'ana@example.org', null)
+                }
+            );
+            batch.Status__c = status;
+            batch.Is_Dry_Run__c = false;
+            batch.Committed_By__c = UserInfo.getUserId();
+            batch.Completed_At__c = Datetime.now();
+            batch.Undo_Deadline__c = Datetime.now().addDays(30);
+            batches.add(batch);
+        }
+        update batches;
+
+        Test.startTest();
+        for (Import_Batch__c batch : batches) {
+            try {
+                ImportBatchService.startDryRun(batch.Id);
+                Assert.fail('R-IB1: no dry run over a batch in status ' + batch.Status__c + '.');
+            } catch (ImportException e) {
+                Assert.areEqual(
+                    Label.Core_Import_ErrorDryRunAfterCommit,
+                    e.getMessage(),
+                    'Said plainly, for ' + batch.Status__c + '.'
+                );
+            }
+        }
+        Test.stopTest();
+        Import_Batch__c after = [
+            SELECT Is_Dry_Run__c, Completed_At__c, Undo_Deadline__c
+            FROM Import_Batch__c
+            WHERE Id = :batches[0].Id
+        ];
+        Assert.isFalse(after.Is_Dry_Run__c, 'The committed batch is still undoable.');
+        Assert.isNotNull(after.Completed_At__c, 'And keeps its completion time.');
+    }
+
+    @IsTest
     static void refusesToCommitBeforeADryRun() {
         Import_Template__c template = newTemplate();
         Import_Batch__c batch = ImportTestDataFactory.batch(template);
@@ -224,12 +275,50 @@ private class ImportBatchServiceTest {
         Assert.areEqual(ImportBatchService.STATUS_COMPLETE, after.Status__c, 'It completed.');
         Assert.areEqual(UserInfo.getUserId(), after.Committed_By__c, 'The committer is recorded.');
         Assert.isNotNull(after.Undo_Deadline__c, 'And the undo window is open (R-IB6).');
+        Assert.isTrue(
+            after.Undo_Deadline__c >
+            Datetime.now().addDays(ImportBatchService.UNDO_WINDOW_DAYS - 1),
+            'With no setting the window is the shipped thirty days.'
+        );
         Assert.areEqual(
             Date.today(),
             [SELECT Last_Import_Date__c FROM Import_Template__c WHERE Id = :template.Id]
             .Last_Import_Date__c,
             'The template records that its feed was loaded today.'
         );
+    }
+
+    @IsTest
+    static void theUndoWindowIsStampedFromTheSettingAtCommit() {
+        Nonprofit_Settings__c settings = Nonprofit_Settings__c.getOrgDefaults();
+        settings.Import_Undo_Retention_Days__c = 7;
+        TestDataFactory.saveSettings(settings);
+        Import_Batch__c batch = ImportTestDataFactory.batch(newTemplate());
+
+        Test.startTest();
+        Import_Batch__c after = ImportBatchService.finish(batch.Id, false, false, null);
+        Test.stopTest();
+
+        Assert.isTrue(
+            after.Undo_Deadline__c <= Datetime.now().addDays(7) &&
+                after.Undo_Deadline__c > Datetime.now().addDays(6),
+            'The deadline is the commit time plus the days the org set (R-IB7).'
+        );
+    }
+
+    @IsTest
+    static void aNonsenseUndoWindowFallsBackAndALongOneIsHeldAtAYear() {
+        Nonprofit_Settings__c settings = Nonprofit_Settings__c.getOrgDefaults();
+        settings.Import_Undo_Retention_Days__c = 0;
+        TestDataFactory.saveSettings(settings);
+        Assert.areEqual(
+            ImportBatchService.UNDO_WINDOW_DAYS,
+            ImportBatchService.undoWindowDays(),
+            'Zero days would make every import permanent at once, so the default is used.'
+        );
+        settings.Import_Undo_Retention_Days__c = 900;
+        TestDataFactory.saveSettings(settings);
+        Assert.areEqual(365, ImportBatchService.undoWindowDays(), 'Over a year is held at a year.');
     }
 
     @IsTest
@@ -251,6 +340,10 @@ private class ImportBatchServiceTest {
         Test.stopTest();
         Assert.areEqual(ImportBatchService.STATUS_FAILED, after.Status__c, 'Marked as failed.');
         Assert.isTrue(after.Run_Log__c.contains('Chunk 1 failed'), 'With the reason in the log.');
+        Assert.isNotNull(
+            after.Undo_Deadline__c,
+            'The chunks that ran did write, so a failed commit can be undone too (R-IB7).'
+        );
     }
 
     @IsTest
