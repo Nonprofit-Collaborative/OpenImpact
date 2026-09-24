@@ -32,8 +32,9 @@ Two settings decide how donation matching behaves when a mapping does not say:
 
 Open Impact ships a **generic gift list** mapping. It reads donor first name, last name,
 email and organization, gift amount, date, payment method, payment reference and fund. For
-gifts exported from Nonprofit Cloud, use the mappings in [Migrating from Nonprofit
-Cloud](migrating-from-nonprofit-cloud.md) instead.
+gifts exported from Nonprofit Cloud or NPSP, use the mappings in [Migrating from Nonprofit
+Cloud](migrating-from-nonprofit-cloud.md) or [Migrating from NPSP](migrating-from-npsp.md)
+instead.
 
 ## 3. A five-minute walkthrough (as Maria)
 

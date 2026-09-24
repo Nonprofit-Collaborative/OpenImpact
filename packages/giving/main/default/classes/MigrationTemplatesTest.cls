@@ -20,7 +20,10 @@ private class MigrationTemplatesTest {
         'npc_gift_transactions',
         'npc_undesignated_gifts',
         'npc_organization_gifts',
-        'npc_person_accounts'
+        'npc_person_accounts',
+        'npsp_contacts',
+        'npsp_payments',
+        'npsp_organization_payments'
     };
 
     private static Import_Template__c template;
@@ -649,5 +652,189 @@ private class MigrationTemplatesTest {
             gift.Gift_Allocations__r[0].Fund__r.Name,
             'To the designated fund.'
         );
+    }
+
+    // -------------------------------------------------------------------------------------
+    // NPSP
+    // -------------------------------------------------------------------------------------
+
+    /** Sample file npsp-contacts.csv: the email addresses, the preferred one, and deceased. */
+    @IsTest
+    static void npspContactsBecomePeopleWithTheirEmailAddresses() {
+        TestDataFactory.defaultSettings();
+        given(
+            'npsp_contacts',
+            new List<Map<String, String>>{
+                new Map<String, String>{
+                    'Contact1.Salutation' => 'Ms.',
+                    'Contact1.FirstName' => 'Ana',
+                    'Contact1.LastName' => 'Okafor',
+                    'Contact1.Title' => 'Engineer',
+                    'Contact1.Birthdate' => '1980-06-01',
+                    'Contact1.Email' => 'ana.okafor@example.org',
+                    'Contact1.Personal_Email__c' => 'ana.okafor@example.org',
+                    'Contact1.Work_Email__c' => 'aokafor@example.com',
+                    'Contact1.Preferred_Email__c' => 'Personal',
+                    'Contact1.MailingCity' => 'Portland',
+                    'Contact1.MailingPostalCode' => '97201',
+                    'Contact1.Deceased__c' => 'false',
+                    'Contact1.HasOptedOutOfEmail' => 'false'
+                },
+                new Map<String, String>{
+                    'Contact1.FirstName' => 'Robert',
+                    'Contact1.LastName' => 'Hale',
+                    'Contact1.Deceased__c' => 'true',
+                    'Contact1.DoNotCall' => 'true'
+                }
+            }
+        );
+
+        List<Import_Row__c> preview = dryRunThenCommit();
+
+        List<Import_Row__c> committed = ImportTestDataFactory.reload(batch.Id);
+        Assert.areEqual(statuses(preview), statuses(committed), 'As the dry run said.');
+        for (Import_Row__c row : committed) {
+            Assert.areEqual(ImportRowProcessor.STATUS_CREATED, row.Status__c, why(row));
+            Assert.isNotNull(row.Household__c, 'Each person has a household.');
+        }
+        Contact ana = [
+            SELECT Title, Birthdate, Email, Personal_Email__c, Work_Email__c, Preferred_Email__c
+            FROM Contact
+            WHERE LastName = 'Okafor'
+        ];
+        Assert.areEqual('Engineer', ana.Title, 'Title.');
+        Assert.areEqual(Date.newInstance(1980, 6, 1), ana.Birthdate, 'Birthdate.');
+        Assert.areEqual('ana.okafor@example.org', ana.Personal_Email__c, 'Home email is personal.');
+        Assert.areEqual('aokafor@example.com', ana.Work_Email__c, 'Work email.');
+        Assert.areEqual('Personal', ana.Preferred_Email__c, 'The preferred one, by the same name.');
+        Assert.areEqual('ana.okafor@example.org', ana.Email, 'And the email to use.');
+        Contact robert = [SELECT Deceased__c, DoNotCall FROM Contact WHERE LastName = 'Hale'];
+        Assert.isTrue(robert.Deceased__c, 'Deceased comes across.');
+        if (importerMayEdit(Contact.DoNotCall)) {
+            Assert.isTrue(robert.DoNotCall, 'So does do not call.');
+        }
+    }
+
+    private static Map<String, String> payment(
+        String externalId,
+        String amount,
+        String paymentDate,
+        String method
+    ) {
+        return new Map<String, String>{
+            'Gift.External_Id__c' => externalId,
+            'Gift.Amount__c' => amount,
+            'Gift.Gift_Date__c' => paymentDate,
+            'Gift.Type__c' => method
+        };
+    }
+
+    /**
+     * Sample file npsp-payments.csv: paid payments from a donor already loaded, one with the
+     * opportunity's campaign, one with a tribute, and one whose tribute type is still NPSP's own
+     * word, which the dry run refuses naming the words Open Impact uses.
+     */
+    @IsTest
+    static void npspPaymentsBecomeGiftsWithTheirTributes() {
+        TestDataFactory.defaultSettings();
+        insert new Contact(
+            FirstName = 'Ana',
+            LastName = 'Okafor',
+            Email = 'ana.okafor@example.org'
+        );
+        fund('General Fund', true);
+        Appeal__c yearEnd = new Appeal__c(Name = 'Year End 2024', Active__c = true);
+        insert yearEnd;
+        Map<String, String> first = fromAna(
+            payment('a0B-0001', '150.00', '2024-12-10', 'Credit Card')
+        );
+        first.put('Gift.Appeal', 'Year End 2024');
+        Map<String, String> memorial = fromAna(payment('a0B-0002', '50.00', '2025-01-15', 'Check'));
+        memorial.put('Gift.Payment_Reference__c', '3312');
+        memorial.put('Tribute.Type__c', 'In memory of');
+        memorial.put('Tribute.Honoree_Name__c', 'Grace Okafor');
+        memorial.put('Tribute.Notification_Recipient_Name__c', 'Ben Okafor');
+        memorial.put('Tribute.Message__c', 'With love from Ana');
+        Map<String, String> unconverted = fromAna(
+            payment('a0B-0003', '25.00', '2025-02-01', 'Cash')
+        );
+        unconverted.put('Tribute.Type__c', 'Honor');
+        unconverted.put('Tribute.Honoree_Name__c', 'Grace Okafor');
+        given('npsp_payments', new List<Map<String, String>>{ first, memorial, unconverted });
+
+        List<Import_Row__c> preview = dryRunThenCommit();
+
+        List<Import_Row__c> committed = ImportTestDataFactory.reload(batch.Id);
+        Assert.areEqual(statuses(preview), statuses(committed), 'As the dry run said.');
+        Assert.areEqual(
+            ImportRowProcessor.STATUS_CREATED,
+            committed[0].Status__c,
+            why(committed[0])
+        );
+        Assert.areEqual(
+            ImportRowProcessor.STATUS_CREATED,
+            committed[1].Status__c,
+            why(committed[1])
+        );
+        Assert.areEqual(
+            ImportRowProcessor.STATUS_REJECTED,
+            committed[2].Status__c,
+            'Honor is not a tribute type here.'
+        );
+        Assert.isTrue(
+            committed[2].Error_Message__c.contains('Honor') &&
+            committed[2].Error_Message__c.contains('In honor of'),
+            'The message names the word to use instead: ' + committed[2].Error_Message__c
+        );
+
+        Map<String, Gift__c> gifts = giftsByExternalId();
+        Assert.areEqual(
+            new Set<String>{ 'a0B-0001', 'a0B-0002' },
+            gifts.keySet(),
+            'A gift per paid payment.'
+        );
+        Gift__c card = gifts.get('a0B-0001');
+        Assert.areEqual(150, card.Amount__c, 'The payment amount.');
+        Assert.areEqual(Date.newInstance(2024, 12, 10), card.Gift_Date__c, 'The payment date.');
+        Assert.areEqual('Card', card.Type__c, 'Credit Card is Card.');
+        Assert.areEqual(yearEnd.Id, card.Appeal__c, 'The campaign is the appeal of that name.');
+        Assert.areEqual('General Fund', card.Gift_Allocations__r[0].Fund__r.Name, 'Default fund.');
+        Tribute__c tribute = [
+            SELECT Type__c, Honoree_Name__c, Notification_Recipient_Name__c, Message__c
+            FROM Tribute__c
+            WHERE Gift__r.External_Id__c = 'a0B-0002'
+        ];
+        Assert.areEqual('In memory of', tribute.Type__c, 'Tribute type.');
+        Assert.areEqual('Grace Okafor', tribute.Honoree_Name__c, 'Honoree.');
+        Assert.areEqual('Ben Okafor', tribute.Notification_Recipient_Name__c, 'Who to tell.');
+        Assert.areEqual('With love from Ana', tribute.Message__c, 'And what to say.');
+        Assert.areEqual('3312', gifts.get('a0B-0002').Payment_Reference__c, 'The check number.');
+        Assert.areEqual(1, [SELECT COUNT() FROM Contact], 'The donor was found, not made again.');
+    }
+
+    /** Sample file npsp-organization-payments.csv: a club's payment. */
+    @IsTest
+    static void npspOrganizationPaymentsAreGivenByTheOrganization() {
+        TestDataFactory.defaultSettings();
+        fund('General Fund', true);
+        Map<String, String> club = payment('a0B-0101', '500.00', '2025-03-03', 'Check');
+        club.put('Organization.Name', 'Hillside Rotary Club');
+        club.put('Gift.Payment_Reference__c', '8841');
+        given('npsp_organization_payments', new List<Map<String, String>>{ club });
+
+        dryRunThenCommit();
+
+        Import_Row__c row = ImportTestDataFactory.reload(batch.Id)[0];
+        Assert.areEqual(ImportRowProcessor.STATUS_CREATED, row.Status__c, why(row));
+        Account organization = [
+            SELECT Id, RecordType.DeveloperName
+            FROM Account
+            WHERE Name = 'Hillside Rotary Club'
+        ];
+        Assert.areEqual('Organization', organization.RecordType.DeveloperName, 'An organization.');
+        Gift__c gift = giftsByExternalId().get('a0B-0101');
+        Assert.areEqual(organization.Id, gift.Donor_Account__c, 'Which gave the gift.');
+        Assert.isNull(gift.Donor_Contact__c, 'Nobody else did.');
+        Assert.areEqual(500, gift.Amount__c, 'The payment amount.');
     }
 }

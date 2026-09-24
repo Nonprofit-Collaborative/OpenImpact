@@ -561,13 +561,18 @@ four detection constants read alike.
 
 A shipped import template (`customMetadata/Import_Template_Default.*.md-meta.xml`) is exempt
 as a whole file, and only that custom metadata type is. Its mapping document names the columns
-of a file exported from another system, and a Data Loader export of Nonprofit Cloud heads its
-columns with that system's field paths, for example `GiftTransaction.OriginalAmount`. The importer
+of a file exported from another system, and a Data Loader export of NPSP or Nonprofit Cloud
+heads its columns with that system's field paths, for example
+`GiftTransaction.OriginalAmount` or `npe01__Opportunity__r.Campaign.Name`. The importer
 compares those words with a file's header row as text; nothing resolves them against the
 org's schema, so they bind nothing and cannot refuse a deployment. The script prints each such
 file under "Import template column headings, not references" on every run. Test classes get
 no such exemption: a test of a migration template reads the headings from the shipped
 mapping rather than spelling them out.
+
+`check-namespace.sh` treats the same files the same way in its prefixed-component check,
+because an NPSP export heads its columns with NPSP's own prefixed names (`npe01__`, `npsp__`).
+It lists them and does not fail on them. Its literal `openimpact__` check still covers them.
 
 ## What happens when the secrets are missing
 

@@ -1281,6 +1281,9 @@ template (v0.2). Giving ships the migration templates (v0.5), as rows of Core's
 | `npc_gift_transactions` | An export of gift transaction designations whose donor is a person, one row per designation |
 | `npc_organization_gifts` | The same export whose donor is not a person |
 | `npc_undesignated_gifts` | An export of gift transactions with no designation |
+| `npsp_contacts` | An export of NPSP contacts |
+| `npsp_payments` | An export of paid NPSP payments whose opportunity's account is individual |
+| `npsp_organization_payments` | The same export whose account is not individual |
 
 A migration template is a mapping document and nothing else: its column headings are the
 other system's API names as a Data Loader export heads them, held as data, so no package

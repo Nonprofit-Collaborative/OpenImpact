@@ -10,6 +10,13 @@
 #
 # Prints offending lines. Namespace-agnostic development is a hard requirement until the
 # namespace is registered (see docs/product-plan.md Section 4.3).
+#
+# Import template column headings: a shipped import template
+# (customMetadata/Import_Template_Default.*.md-meta.xml) names the columns of a file exported
+# from another system, and an NPSP export heads its columns with NPSP's own prefixed field
+# names, for example npe01__Payment_Amount__c. Those are text compared with a file's header
+# row, never a reference to a component of this package, so the prefixed-component check
+# lists them and does not fail on them. The literal 'openimpact__' check still covers them.
 
 set -euo pipefail
 
@@ -24,10 +31,19 @@ if [[ -d packages ]]; then
   fi
 
   echo "== Checking for explicit namespace-prefixed custom components =="
+  TEMPLATE_HEADINGS='/customMetadata/Import_Template_Default\.[^:]*\.md-meta\.xml:'
   if MATCHES=$(grep -rnE '[A-Za-z0-9]+__[A-Za-z0-9_]+__(c|r|mdt|e|b)' packages --include='*' --exclude='.gitkeep' 2>/dev/null); then
-    echo "$MATCHES"
-    echo "FAIL: found explicit namespace-prefixed component references above." >&2
-    FAILED=1
+    HEADINGS=$(printf '%s\n' "$MATCHES" | grep -E "$TEMPLATE_HEADINGS" | cut -d: -f1 | sort -u || true)
+    MATCHES=$(printf '%s\n' "$MATCHES" | grep -vE "$TEMPLATE_HEADINGS" || true)
+    if [[ -n "$HEADINGS" ]]; then
+      echo "== Import template column headings, not references =="
+      echo "$HEADINGS"
+    fi
+    if [[ -n "$MATCHES" ]]; then
+      echo "$MATCHES"
+      echo "FAIL: found explicit namespace-prefixed component references above." >&2
+      FAILED=1
+    fi
   fi
 fi
 
