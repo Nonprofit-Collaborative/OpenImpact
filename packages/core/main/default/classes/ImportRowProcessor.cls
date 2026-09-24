@@ -58,6 +58,15 @@ public with sharing class ImportRowProcessor {
     private static Set<Long> createdEarlier = new Set<Long>();
 
     /**
+     * In a commit, the matching keys of the people this chunk has set out to create, the
+     * people created under each, and why any could not be, so a second row naming the same
+     * new person shares the first row's record rather than making another (R-IB4, R-IB12).
+     */
+    private static Set<String> keysBeingCreated = new Set<String>();
+    private static Map<String, Id> createdByKey = new Map<String, Id>();
+    private static Map<String, String> failedByKey = new Map<String, String>();
+
+    /**
      * The attributes that can name or find a person. A full name column is not listed because
      * `splitFullNames` has already turned one into a first and last name by the time anything
      * asks this question.
@@ -741,52 +750,58 @@ public with sharing class ImportRowProcessor {
             }
         }
         Map<Id, SObject> stored = readStored(matchedIds, personAccounts, working);
+        // The commit saves every row's first person before any second person, and a second
+        // person whose row has a first person before one whose row has not; the first row it
+        // saves a new person for creates them and the rest share them. The preview walks the
+        // chunk in the same order so it names the same row as the one that creates (R-IB12).
+        Set<String> keysInChunk = new Set<String>();
+        List<Working> withFirst = new List<Working>();
+        List<Working> withoutFirst = new List<Working>();
         for (Working item : working) {
             if (item.error != null) {
                 continue;
             }
-            if (
-                item.person1Id == null &&
-                !item.comingPerson1 &&
-                describesPerson(item, ImportMapping.ENTITY_CONTACT_1)
-            ) {
-                item.createdAnything = true;
-                rememberCreated(
-                    outcome,
-                    item,
-                    ImportMapping.ENTITY_CONTACT_1,
-                    rule,
-                    personAccounts
-                );
-            } else if (
-                changes(
-                    stored.get(item.person1Id),
-                    item.byEntity.get(ImportMapping.ENTITY_CONTACT_1)
-                )
-            ) {
-                item.updatedAnything = true;
+            previewPerson(item, true, stored, keysInChunk, rule, personAccounts, outcome);
+            Boolean hasFirst =
+                item.person1Id != null ||
+                item.comingPerson1 ||
+                describesPerson(item, ImportMapping.ENTITY_CONTACT_1);
+            (hasFirst ? withFirst : withoutFirst).add(item);
+        }
+        withFirst.addAll(withoutFirst);
+        for (Working item : withFirst) {
+            previewPerson(item, false, stored, keysInChunk, rule, personAccounts, outcome);
+        }
+    }
+
+    /**
+     * One person of a row in the preview: created, unless an earlier chunk or an earlier row of
+     * this chunk would create them; otherwise updated when the row changes their stored values.
+     */
+    private static void previewPerson(
+        Working item,
+        Boolean isFirst,
+        Map<Id, SObject> stored,
+        Set<String> keysInChunk,
+        String rule,
+        Boolean personAccounts,
+        Outcome outcome
+    ) {
+        String entity = isFirst ? ImportMapping.ENTITY_CONTACT_1 : ImportMapping.ENTITY_CONTACT_2;
+        Id personId = isFirst ? item.person1Id : item.person2Id;
+        String key = isFirst ? item.personKey1 : item.personKey2;
+        Boolean coming = isFirst ? item.comingPerson1 : item.comingPerson2;
+        if (personId == null && !coming && describesPerson(item, entity)) {
+            if (key != null && keysInChunk.contains(key)) {
+                return;
             }
-            if (
-                item.person2Id == null &&
-                !item.comingPerson2 &&
-                describesPerson(item, ImportMapping.ENTITY_CONTACT_2)
-            ) {
-                item.createdAnything = true;
-                rememberCreated(
-                    outcome,
-                    item,
-                    ImportMapping.ENTITY_CONTACT_2,
-                    rule,
-                    personAccounts
-                );
-            } else if (
-                changes(
-                    stored.get(item.person2Id),
-                    item.byEntity.get(ImportMapping.ENTITY_CONTACT_2)
-                )
-            ) {
-                item.updatedAnything = true;
+            item.createdAnything = true;
+            if (key != null) {
+                keysInChunk.add(key);
             }
+            rememberCreated(outcome, item, entity, rule, personAccounts);
+        } else if (changes(stored.get(personId), item.byEntity.get(entity))) {
+            item.updatedAnything = true;
         }
     }
 
@@ -837,6 +852,9 @@ public with sharing class ImportRowProcessor {
         Boolean personAccounts,
         Outcome outcome
     ) {
+        keysBeingCreated = new Set<String>();
+        createdByKey = new Map<String, Id>();
+        failedByKey = new Map<String, String>();
         insertPeople(
             working,
             batch,
@@ -924,6 +942,11 @@ public with sharing class ImportRowProcessor {
      * `joiningAHousehold` selects which of them: true is the people whose row already knows
      * the household they belong to, false is the people whose row does not, and null is
      * everybody, which is what the first person of a row always is.
+     *
+     * A new person named on several rows of the chunk, by the same matching key in either
+     * person column, is created once, for the first of them; the others share that record, as
+     * a later chunk would find it, and are not joined to a household for it (R-IB12). When it
+     * cannot be saved, those rows are rejected with the reason.
      */
     private static void insertPeople(
         List<Working> working,
@@ -936,6 +959,9 @@ public with sharing class ImportRowProcessor {
     ) {
         List<SObject> toCreate = new List<SObject>();
         List<Working> owners = new List<Working>();
+        List<String> ownerKeys = new List<String>();
+        List<Working> sharing = new List<Working>();
+        List<String> sharedKeys = new List<String>();
         Id personRecordTypeId = personAccounts ? anyPersonRecordTypeId() : null;
         if (personAccounts && personRecordTypeId == null) {
             outcome.notes.add(Label.Core_Import_LogPersonRecordTypeMissing);
@@ -952,6 +978,15 @@ public with sharing class ImportRowProcessor {
             if (joiningAHousehold != null && joiningAHousehold != (item.row.Household__c != null)) {
                 continue;
             }
+            String key = isFirst ? item.personKey1 : item.personKey2;
+            if (key != null && keysBeingCreated.contains(key)) {
+                sharing.add(item);
+                sharedKeys.add(key);
+                continue;
+            }
+            if (key != null) {
+                keysBeingCreated.add(key);
+            }
             SObject person = personAccounts
                 ? (SObject) new Account(RecordTypeId = personRecordTypeId)
                 : (SObject) new Contact();
@@ -966,13 +1001,20 @@ public with sharing class ImportRowProcessor {
             // writes membership down.
             toCreate.add(person);
             owners.add(item);
+            ownerKeys.add(key);
         }
-        if (toCreate.isEmpty()) {
-            return;
-        }
-        List<Database.SaveResult> results = Database.insert(toCreate, false, AccessLevel.USER_MODE);
+        List<Database.SaveResult> results = toCreate.isEmpty()
+            ? new List<Database.SaveResult>()
+            : Database.insert(toCreate, false, AccessLevel.USER_MODE);
         for (Integer i = 0; i < results.size(); i++) {
             Working owner = owners[i];
+            if (ownerKeys[i] != null) {
+                if (results[i].isSuccess()) {
+                    createdByKey.put(ownerKeys[i], results[i].getId());
+                } else {
+                    failedByKey.put(ownerKeys[i], message(results[i]));
+                }
+            }
             if (results[i].isSuccess()) {
                 if (isFirst) {
                     owner.person1Id = results[i].getId();
@@ -984,6 +1026,29 @@ public with sharing class ImportRowProcessor {
                 owner.createdAnything = true;
             } else {
                 owner.error = message(results[i]);
+            }
+        }
+        shareCreatedPeople(sharing, sharedKeys, isFirst);
+    }
+
+    /** Gives rows naming a person an earlier row of the chunk created that person's record. */
+    private static void shareCreatedPeople(
+        List<Working> sharing,
+        List<String> sharedKeys,
+        Boolean isFirst
+    ) {
+        for (Integer i = 0; i < sharing.size(); i++) {
+            Id created = createdByKey.get(sharedKeys[i]);
+            if (created == null) {
+                String reason = failedByKey.get(sharedKeys[i]);
+                sharing[i].error = String.format(
+                    Label.Core_Import_ErrorSamePersonNotSaved,
+                    new List<String>{ reason == null ? Label.Core_Import_ErrorSaveFailed : reason }
+                );
+            } else if (isFirst) {
+                sharing[i].person1Id = created;
+            } else {
+                sharing[i].person2Id = created;
             }
         }
     }

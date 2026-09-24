@@ -61,7 +61,8 @@ or six rows.
    and a table of the rejected rows with the reason for each one. Select **Download
    exceptions** to get those rows back as a CSV you can fix in your spreadsheet. A new
    person or organization that appears on several rows is counted once as "would create";
-   their later rows count as matching them, which is what the commit will do.
+   their later rows count as matching them, which is what the commit will do. A donor with
+   twelve monthly gifts in the file becomes one person with one household, not twelve.
 7. If the preview is wrong, fix the file or the mapping and dry run again. Nothing you
    have done so far has changed a record.
 8. When the preview is right, select **Commit**. Processing runs in the background and

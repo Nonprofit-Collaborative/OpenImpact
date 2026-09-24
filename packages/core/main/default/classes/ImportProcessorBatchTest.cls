@@ -195,6 +195,95 @@ private class ImportProcessorBatchTest {
         );
     }
 
+    @IsTest
+    static void twelveRowsOfOneNewDonorInOneChunkCreateOnePerson() {
+        Import_Batch__c batch = ImportTestDataFactory.batch(
+            ImportTestDataFactory.template(
+                ImportTestDataFactory.donorMapping(),
+                ImportTemplateService.RULE_EMAIL
+            )
+        );
+        List<Map<String, String>> rows = new List<Map<String, String>>();
+        for (Integer month = 0; month < 12; month++) {
+            rows.add(ImportTestDataFactory.donorRow('Ana', 'Ramirez', 'ana@example.org', null));
+        }
+        rows.add(ImportTestDataFactory.donorRow('Ben', 'Okafor', 'ben@example.org', null));
+        ImportTestDataFactory.rows(batch, rows);
+
+        Test.startTest();
+        Import_Batch__c dryRun = runInChunks(batch.Id, true, 200);
+        Import_Batch__c committed = runInChunks(batch.Id, false, 200);
+        Test.stopTest();
+
+        Assert.areEqual(2, [SELECT COUNT() FROM Contact], 'Ana once and Ben, not twelve Anas.');
+        Set<Id> anas = new Set<Id>();
+        Set<Id> households = new Set<Id>();
+        for (Import_Row__c row : ImportTestDataFactory.reload(batch.Id)) {
+            if (row.Row_Number__c < rows.size()) {
+                anas.add(row.Contact_1__c);
+                households.add(row.Household__c);
+            }
+        }
+        Assert.areEqual(1, anas.size(), 'Every one of her rows names the same Ana.');
+        Assert.areEqual(1, households.size(), 'In one household.');
+        Assert.areEqual(2, committed.Rows_Created__c, 'Her first row and Ben created somebody.');
+        Assert.areEqual(11, committed.Rows_Matched__c, 'Her other eleven matched her.');
+        Assert.areEqual(committed.Rows_Created__c, dryRun.Rows_Created__c, 'As the dry run said.');
+        Assert.areEqual(committed.Rows_Matched__c, dryRun.Rows_Matched__c, 'Both counts.');
+    }
+
+    @IsTest
+    static void aSecondPersonColumnSharesTheNewPersonTheFirstColumnCreates() {
+        ImportMapping mapping = new ImportMapping();
+        for (
+            String target : new List<String>{
+                'Contact1.Email',
+                'Contact1.LastName',
+                'Contact2.Email',
+                'Contact2.LastName'
+            }
+        ) {
+            mapping.columns.add(new ImportMapping.Column(target, target));
+        }
+        Import_Batch__c batch = ImportTestDataFactory.batch(
+            ImportTestDataFactory.template(mapping.serialize(), ImportTemplateService.RULE_EMAIL)
+        );
+        // Ana is the second person on the first row and the first person on the second. The
+        // commit saves first people before second people, so the second row creates her.
+        ImportTestDataFactory.rows(
+            batch,
+            new List<Map<String, String>>{
+                new Map<String, String>{
+                    'Contact2.Email' => 'ana@example.org',
+                    'Contact2.LastName' => 'Ramirez'
+                },
+                new Map<String, String>{
+                    'Contact1.Email' => 'ana@example.org',
+                    'Contact1.LastName' => 'Ramirez'
+                }
+            }
+        );
+
+        Test.startTest();
+        runInChunks(batch.Id, true, 200);
+        List<Import_Row__c> previewed = ImportTestDataFactory.reload(batch.Id);
+        runInChunks(batch.Id, false, 200);
+        List<Import_Row__c> committed = ImportTestDataFactory.reload(batch.Id);
+        Test.stopTest();
+
+        Assert.areEqual(1, [SELECT COUNT() FROM Contact], 'One Ana.');
+        Assert.areEqual(ImportRowProcessor.STATUS_MATCHED, committed[0].Status__c, 'Shared.');
+        Assert.areEqual(ImportRowProcessor.STATUS_CREATED, committed[1].Status__c, 'Created.');
+        for (Integer index = 0; index < 2; index++) {
+            Assert.areEqual(
+                committed[index].Status__c,
+                previewed[index].Status__c,
+                'The dry run names the same row as the one that creates her: ' + index
+            );
+        }
+        Assert.areEqual(committed[1].Contact_1__c, committed[0].Contact_2__c, 'The same Ana.');
+    }
+
     /** A processor that counts the chunks it has seen in the state it carries. */
     private class CountingProcessor implements ImportEntityProcessor {
         public List<ImportMapping.Target> targets() {

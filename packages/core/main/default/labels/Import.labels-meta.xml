@@ -73,6 +73,14 @@
         <value>This row could not be read. Check the file for stray quotation marks or line breaks inside a value.</value>
     </labels>
     <labels>
+        <fullName>Core_Import_ErrorSamePersonNotSaved</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import row: its new person is on an earlier row that did not save</shortDescription>
+        <value>An earlier row of this file names the same new person, and they could not be saved: {0}</value>
+    </labels>
+    <labels>
         <fullName>Core_Import_ErrorOrganizationNotSaved</fullName>
         <categories>Import</categories>
         <language>en_US</language>

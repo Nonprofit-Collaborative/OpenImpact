@@ -1504,8 +1504,14 @@ refused for a missing last name, exactly as in the commit. A person is remembere
 the commit could find them again by the same key: an email is written to a contact but not to
 a person stored as an account, and a postal code only to a contact whose own column gave it,
 so under those rules the commit creates such a person again and the dry run counts it again.
-Within one chunk nothing changes: the commit and the dry run treat two rows naming the same new
-record the same way. One difference remains: a later row that brings a value the first row did
+Within one chunk the commit creates a new person once as well: rows naming the same new person
+by the same matching key, in either person column, share the record the first of them creates
+(first people are saved before second people, and a second person whose row has a first
+person before one whose row has not), and are not joined to a household for it. When that
+person cannot be saved, the rows sharing them are rejected with the reason. The dry run walks
+the chunk in the same order and counts the same row as the one that creates. Unlike a person
+an earlier chunk would create, a later row of the same chunk must still carry a last name,
+because rows are checked before anybody is saved. One difference remains: a later row that brings a value the first row did
 not is Updated in the commit but Matched in the dry run, which has no saved record to compare
 it with; both count it once.
 
@@ -4806,4 +4812,5 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.5 | 2026-09-23 | C-19 review. No object or field added. R-IB1: a dry run is refused on a batch that has started a commit or is in an undo status. R-IB8: a chunk the platform stopped, or an undo job that is no longer running, ends Undo failed. R-IB9: a tagged record is kept when anything created since points at it through any reference the org can filter on (not only custom ones), when something was created during the commit by somebody else, when the record was edited since or has an activity, and when the person undoing cannot delete it; the system-mode reads and writes are recorded against ADR-0021. R-IJ1: a page holds at most 200 entries, and one oversized entry is logged rather than losing the chunk's journal. |
 | v0.5 | 2026-09-24 | G-23 gift import and G-24 donation matching (ADR-0052). No object added. `Import_Template__c` gains `Donation_Matching__c`, `Match_Date_Window_Days__c` and `Match_Amount_Tolerance__c` (R-IT7); `Import_Batch__c` gains the control totals `Expected_Count__c`, `Expected_Amount__c` and `File_Amount__c` (R-IB10); `Giving_Settings__c` gains `Donation_Match_Date_Window_Days__c` and `Donation_Match_Amount_Tolerance__c`. R-IR1 adds the `Tribute` row entity; R-IR6 states the entity processor contract and R-IR7 how a row's outcome is folded; R-IB8 and R-IB9 let an undo delete what an entity processor tagged, with the processor's reasons to keep. New Section 25N, rules R-GI1 to R-GI9 and R-DM1 to R-DM6. |
 | v0.5 | 2026-09-24 | G-24 follow-up (ADR-0052, amended). `Import_Batch__c` gains `Processor_Settings_JSON__c`, one document the entity processor fills in a dry run and reads back in the commit, which Core never reads. R-IB11 added: a commit runs under the settings its dry run showed. R-DM7 added: donation matching's behaviour, window and tolerance are taken once per dry run and the commit uses them, not the template as edited since. R-IR6 and R-IT7 say so. |
+| v0.5 | 2026-09-24 | C-14 defect. No object or field added. R-IB12: a commit no longer creates a new person once per row when several rows of one chunk name them; the rows share the first row's record, and the dry run counts them the same way. |
 | v0.5 | 2026-09-24 | C-14 dry run fix. No object or field added. R-IB12 added: a dry run carries, across chunks, digests of the people and organizations it would create, so a later chunk naming one counts it matched, as the commit does, rather than created again. |
