@@ -480,8 +480,10 @@ public with sharing class InboundGiftService {
 
     /**
      * A save refused because another gift holds this external id, and not because some other
-     * unique field clashed. The field list is the evidence; the message is read only when the
-     * platform names no field.
+     * unique field clashed. The field list is the evidence. When the clashing gift is one the
+     * integration user cannot see, the platform names neither the field nor the record; the
+     * insert sets no other unique field (receipt numbers are assigned later, by update), so an
+     * unnamed clash can only be the external id.
      */
     private static Boolean isExternalIdClash(List<Database.Error> errors) {
         for (Database.Error error : errors) {
@@ -490,13 +492,7 @@ public with sharing class InboundGiftService {
             }
             List<String> fields = error.getFields();
             if (fields == null || fields.isEmpty()) {
-                String message = error.getMessage() == null ? '' : error.getMessage().toLowerCase();
-                for (String name : EXTERNAL_ID_NAMES) {
-                    if (message.contains(name)) {
-                        return true;
-                    }
-                }
-                continue;
+                return true;
             }
             for (String field : fields) {
                 if (field != null && EXTERNAL_ID_NAMES.contains(field.toLowerCase())) {
