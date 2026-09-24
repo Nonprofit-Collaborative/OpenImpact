@@ -329,9 +329,22 @@ public with sharing class SettingsService {
     }
 
     /**
-     * The same correction for a writer outside this class that saves the org's settings for the
-     * first time: the record to save next, putting back to blank every field that was blank on
-     * `saved` before the platform filled its default (ErrorDigestWriter).
+     * The record a system mode writer creates when the org has never saved its settings: owned
+     * by the org, with the shipped checkbox defaults on it (ADR-0035). Starting from a raw
+     * `getOrgDefaults()` instead would store every shipped-on feature as switched off.
+     */
+    @NamespaceAccessible
+    public static Nonprofit_Settings__c firstSaveRecord() {
+        return withShippedDefaults(
+            new Nonprofit_Settings__c(SetupOwnerId = UserInfo.getOrganizationId())
+        );
+    }
+
+    /**
+     * The same correction as `blanksKeptBlank` for a writer outside this class that saves the
+     * org's settings for the first time: the record to save next, putting back to blank every
+     * field that was blank on `saved` before the platform filled its default
+     * (OrgSettingsSystemWriter).
      */
     @NamespaceAccessible
     public static SObject blanksAfterFirstSave(SObject saved) {

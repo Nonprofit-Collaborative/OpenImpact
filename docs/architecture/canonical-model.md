@@ -628,7 +628,9 @@ that it does not count against the daily limit on email sent to addresses. A run
 nothing new sends nothing. One daily job, started and stopped in the settings console,
 sends it at most once a day or once a week as the administrator chooses; a run that sent or
 found nothing moves the covered window on, and a run that could not send leaves it where it
-was, so no entry is counted twice or dropped (ADR-NEXT).
+was, so no entry is counted twice or dropped. A run reads at most the newest 2,000 entries
+and says "more than 2,000" beyond that, so a flooded Error Log cannot stop the digest. A
+digest that is scheduled but has not run for two days is a Health Check warning (ADR-NEXT).
 
 ### Salesforce implementation
 
@@ -703,7 +705,8 @@ request to switch it on or off is refused (ADR-0024).
 **R-A5 A pause always ends by itself, on the record.** The global pause lasts 1, 2, 4, 8
 or 24 hours, 2 unless the administrator chooses otherwise. Its end is written when it
 starts, a one-time job clears it at that moment and records the resume as a Setting Change,
-and resuming by hand or pausing again cancels that job. A pause in effect that no job is
+and resuming by hand or pausing again cancels that job. The job clears only the end it was
+scheduled for, so it can never end a newer pause. A pause in effect that no job is
 scheduled to end, or that ends more than 24 hours ahead, is a Health Check warning. Neither
 the pause nor its end moves any automation's switch, and neither touches an Always Runs
 automation (R-A4).
