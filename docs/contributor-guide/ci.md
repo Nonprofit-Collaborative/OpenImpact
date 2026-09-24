@@ -292,6 +292,12 @@ cross reference id: []` while another transaction on that library rolls back). A
 does either runs as a person created for it: `TestDataFactory.createUser`, or
 `ReceiptTestDataFactory.issuer()` for a test that saves a receipt, letter or logo file.
 
+**A test run that returns no results is retried once.** When `sf apex run test` comes back
+with no test results and its output names `UNKNOWN_EXCEPTION` or a platform or network error
+(or is empty), the script waits `TEST_RETRY_WAIT_SECONDS` (300 by default) and runs the tests
+once more. A run with any result, including real failures, is never retried. Deploy stages
+that stall are resubmitted too: see "Stalled deploys" under `org-tests`.
+
 **The org allows a fixed number of test classes per rolling 24 hours** (`DailyAsyncApexTests`
 in `sf org list limits`). Several gate runs in a day can use it up, and then every run,
 including the gate, fails at once with `UNKNOWN_EXCEPTION` before any test starts.
@@ -347,6 +353,29 @@ does not call it yet, and Giving depends on Core.
 
 An `UNKNOWN_EXCEPTION` with zero component errors is a Salesforce side failure rather than
 something wrong with a component. Quote the ErrorId to Salesforce support.
+
+**Stalled deploys (2026-09-24).** From about 13:00 UTC, on oi-test, one stage per run (a
+different one each time) left its DeployRequest in Status Pending with a null StartDate. The
+blocking `--wait 30` then timed out (`ClientTimeoutError`) and failed the gate; the org was
+also reporting "Too many concurrent Apex compilations during resource mitigation".
+`sf project deploy cancel` reported Canceled, but the tooling DeployRequest stayed Pending, and
+about ten such requests remain there. Resubmitting the same stage deploys normally. So each
+stage is now submitted with `--async` and followed with `sf project deploy report` every
+`POLL_SECONDS` (15): a job still Pending with no start after `STALL_SECONDS` (300) is logged
+as `STALLED DEPLOY`, cancelled (best effort) and resubmitted once. A second stall fails the
+stage, naming both job ids. A job that has started is not a stall and keeps the 30 minute
+limit (`DEPLOY_WAIT_MINUTES`). Component errors are reported exactly as before. The script
+prints how many stalls it recovered before "Every stage deployed".
+
+Two client side faults were seen the same day and are handled too. A single report call hung
+for about 290 seconds on oi-test while its deploy finished in 2, so every report call is
+abandoned after `REPORT_TIMEOUT_SECONDS` (60). A stage on oi-pa failed on `Error (10): fetch
+failed` while the org reported that deploy Succeeded, so a transient client error (fetch
+failed, `ECONNRESET`, `ETIMEDOUT`, socket hang up, a 5xx) on a submit or a report is retried
+after a short backoff and never taken as a result. After a submit error, the newest
+DeployRequest created in the last minute is followed if there is one (the org lock means it
+is ours), so a stage is never deployed twice; otherwise the stage is resubmitted, up to three
+submits. Twenty unreadable reports in a row (`REPORT_FAILURE_LIMIT`) fail the stage.
 
 **Resolved 2026-09-22: the cause was in our files, not the platform.** 146 of the custom
 metadata records wrote `xsi:type="xsd:string"` (and `xsd:boolean`, `xsd:double`) without
