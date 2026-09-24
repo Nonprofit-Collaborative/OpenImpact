@@ -53,7 +53,7 @@ const CATEGORY_ORDER = ['OrgShape', 'Licenses', 'Access', 'Settings'];
  *
  * A fix that changes something (an "action:" target) never runs on the first click: the
  * panel shows what it will do, taken from the finding, and waits for Confirm (C-21,
- * ADR-NEXT). A fix that only opens a page runs at once, because opening a page changes
+ * ADR-0048). A fix that only opens a page runs at once, because opening a page changes
  * nothing.
  *
  * The confirm box is a dialog: opening it moves focus into it and scrolls it into view,

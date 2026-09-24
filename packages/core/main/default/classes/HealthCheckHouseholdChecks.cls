@@ -1,6 +1,6 @@
 /**
  * The Health Check questions about household data: is everyone in a household, and does
- * every household have somebody in it (plan Section 4.8, "orphaned records"; C-21, ADR-NEXT).
+ * every household have somebody in it (plan Section 4.8, "orphaned records"; C-21, ADR-0048).
  *
  * A fourth group beside the three ADR-0039 names, because those three ask about what the org
  * is, who can use it and how it is configured, and these ask about the records in it. They

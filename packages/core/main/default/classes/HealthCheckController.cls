@@ -85,13 +85,13 @@ public with sharing class HealthCheckController {
     private static Boolean failAfterFixForTest = false;
 
     /**
-     * Run one of the fixes ADR-NEXT allows, by its key, and return the re-run report with a
+     * Run one of the fixes ADR-0048 allows, by its key, and return the re-run report with a
      * sentence saying what the fix did.
      *
      * The panel sends back the fix scope of the finding the administrator confirmed. The fix
      * runs only when what it would change now is exactly that: otherwise something changed
      * since Health Check last ran, and the fix is refused with a sentence rather than creating
-     * something she has not read (ADR-NEXT condition 5). Everything runs inside one savepoint,
+     * something she has not read (ADR-0048 condition 5). Everything runs inside one savepoint,
      * so a failure leaves the org as it was, and a fix that ran is recorded in the settings
      * change history like any other change made on the console.
      *

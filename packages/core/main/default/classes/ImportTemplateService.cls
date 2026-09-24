@@ -45,7 +45,7 @@ public with sharing class ImportTemplateService {
 
     /**
      * The names of the shipped templates this org does not have yet, without creating them, so
-     * Health Check can say what restoring them would add (C-21, ADR-NEXT).
+     * Health Check can say what restoring them would add (C-21, ADR-0048).
      */
     @NamespaceAccessible
     public static List<String> missingDefaultNames() {

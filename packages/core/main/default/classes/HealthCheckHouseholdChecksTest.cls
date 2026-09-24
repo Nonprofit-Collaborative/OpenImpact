@@ -1,5 +1,5 @@
 /**
- * Health Check's orphan findings (C-21, ADR-NEXT): people in no household and households
+ * Health Check's orphan findings (C-21, ADR-0048): people in no household and households
  * with nobody in them, in both membership modes, with the cases the canonical model says are
  * not orphans, and a Platform-only shape where no person type exists.
  *

@@ -186,7 +186,7 @@ public with sharing class RollupService {
      * every upgrade, and twice in a row. Returns how many it created.
      *
      * A shipped default whose target field an active definition of the administrator's own
-     * already writes is not created (C-21, ADR-NEXT): two definitions writing one field would
+     * already writes is not created (C-21, ADR-0048): two definitions writing one field would
      * overwrite each other's total, and the one already here is her choice. Only her own
      * definitions count: shipped pairs such as the household and the organization giving total
      * write the same field for different accounts by design. `skippedDefaultNames` names them.
@@ -204,7 +204,7 @@ public with sharing class RollupService {
 
     /**
      * The names of the shipped defaults this org does not have yet, without creating them, so
-     * Health Check can say what restoring them would add (C-21, ADR-NEXT).
+     * Health Check can say what restoring them would add (C-21, ADR-0048).
      */
     @NamespaceAccessible
     public static List<String> missingDefaultNames() {
@@ -218,7 +218,7 @@ public with sharing class RollupService {
     /**
      * The names of the shipped defaults this org does not have and that restoring leaves out,
      * because an active definition the administrator made already writes the same target field
-     * (C-21, ADR-NEXT).
+     * (C-21, ADR-0048).
      */
     @NamespaceAccessible
     public static List<String> skippedDefaultNames() {

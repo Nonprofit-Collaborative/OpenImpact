@@ -1,4 +1,4 @@
-# ADR-NEXT: Health Check fix buttons create or set, never delete, and ask first
+# ADR-0048: Health Check fix buttons create or set, never delete, and ask first
 
 **Status:** Accepted (builder decision, conservative; confirm on review)
 **Date:** 2026-09-23

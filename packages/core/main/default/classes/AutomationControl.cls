@@ -240,7 +240,7 @@ public with sharing class AutomationControl {
 
     /**
      * The names of the shipped automations that have no switch row yet, without creating them,
-     * so Health Check can say what restoring them would add (C-21, ADR-NEXT).
+     * so Health Check can say what restoring them would add (C-21, ADR-0048).
      */
     @NamespaceAccessible
     public static List<String> missingDefaultNames() {

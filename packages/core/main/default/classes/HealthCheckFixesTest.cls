@@ -1,5 +1,5 @@
 /**
- * The Health Check fix buttons C-21 adds (ADR-NEXT): each finding names what is missing,
+ * The Health Check fix buttons C-21 adds (ADR-0048): each finding names what is missing,
  * counted from this org, and its fix creates exactly that, once, or schedules the nightly
  * run, once. Everything runs as Maria, who holds the permission the checks and the fixes are
  * gated on; the refusal is asserted as Priya.
@@ -197,7 +197,7 @@ private class HealthCheckFixesTest {
             FROM Rollup_Definition__c
             WHERE Definition_Key__c = 'Core_Household_Member_Count'
         ];
-        Assert.isFalse(memberCount.Active__c, 'A total she switched off stays off (ADR-NEXT).');
+        Assert.isFalse(memberCount.Active__c, 'A total she switched off stays off (ADR-0048).');
         Assert.areEqual(
             2,
             [SELECT COUNT() FROM Rollup_Definition__c],
@@ -324,7 +324,7 @@ private class HealthCheckFixesTest {
         Assert.areEqual(3, byName.size(), 'One switch for each automation, none twice.');
         Assert.isFalse(
             byName.get('Test_Household_Naming').Enabled__c,
-            'A switch she turned off stays off (ADR-NEXT).'
+            'A switch she turned off stays off (ADR-0048).'
         );
         Assert.isTrue(
             byName.get('Test_Address_Sync').Enabled__c,

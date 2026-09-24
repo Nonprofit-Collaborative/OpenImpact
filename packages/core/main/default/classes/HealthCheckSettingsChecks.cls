@@ -4,7 +4,7 @@
  * generation has been failing, and whether anything is waiting in the Error Log
  * (plan Section 4.8, feature C-11). Since C-21 it also asks whether the package defaults
  * materialized from shipped metadata are all here, and whether the nightly rollup run is
- * scheduled when a rollup needs it; those four findings carry a fix button (ADR-NEXT).
+ * scheduled when a rollup needs it; those four findings carry a fix button (ADR-0048).
  *
  * Two of these reach data that belongs to the Giving package. Neither reaches it at compile
  * time: ReceiptGapSelector and FiscalYearSelector answer dynamically, so a Platform-only org
@@ -50,7 +50,7 @@ public with sharing class HealthCheckSettingsChecks {
     }
 
     /**
-     * Shipped rollups this org does not have (ADR-0006, ADR-NEXT). A shipped total that one of
+     * Shipped rollups this org does not have (ADR-0006, ADR-0048). A shipped total that one of
      * the administrator's own active totals already writes is not restored, and the finding
      * says so rather than hiding it.
      */
@@ -129,7 +129,7 @@ public with sharing class HealthCheckSettingsChecks {
      * One finding naming the package defaults that are missing, or null when none is. The
      * title and detail take the count as {0} and the names as {1}, so the finding says what
      * its fix will create, counted from this org, and it carries the same names as its fix
-     * scope, so the fix creates exactly those (ADR-NEXT condition 5).
+     * scope, so the fix creates exactly those (ADR-0048 condition 5).
      */
     private static HealthCheckService.Finding missingDefaultsFinding(
         String key,

@@ -1,6 +1,6 @@
 /**
  * The reads behind Health Check's orphan findings: people who are in no household, and
- * households nobody is in (plan Section 4.8, C-21, ADR-NEXT). Detection only; nothing here
+ * households nobody is in (plan Section 4.8, C-21, ADR-0048). Detection only; nothing here
  * writes, and cleaning up is C-28's.
  *
  * "In a household" is read exactly as the canonical model defines membership, per mode

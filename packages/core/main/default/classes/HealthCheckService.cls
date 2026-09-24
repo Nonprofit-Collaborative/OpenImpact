@@ -12,9 +12,9 @@
  * - HealthCheckAccessChecks: who administers the app, who cannot see it, who holds the
  *   receipt lock override. Only asked of a viewer who may manage settings.
  * - HealthCheckSettingsChecks: automation, fiscal year, receipt generation, Error Log, and
- *   the package defaults and nightly run a fix button can restore (C-21, ADR-NEXT).
+ *   the package defaults and nightly run a fix button can restore (C-21, ADR-0048).
  * - HealthCheckHouseholdChecks: whether everyone is in a household and every household has
- *   somebody in it. Detection only, with no fix button (C-21, ADR-NEXT).
+ *   somebody in it. Detection only, with no fix button (C-21, ADR-0048).
  *
  * Every check is isolated. A check that throws becomes a finding of its own and is written
  * to the Error Log; the other checks still run, because a report that hides eight answers
@@ -44,7 +44,7 @@ public with sharing class HealthCheckService {
     public static final String FIX_ENABLE_AUTOMATIC_HOUSEHOLDS = 'action:enableAutomaticHouseholds';
 
     /**
-     * The fixes HealthCheckController.applyFix runs (C-21, ADR-NEXT). Each one only creates
+     * The fixes HealthCheckController.applyFix runs (C-21, ADR-0048). Each one only creates
      * what is missing or schedules what is not scheduled, so pressing it twice is pressing it
      * once. The key is what follows the action prefix in the fix target.
      */
@@ -61,7 +61,7 @@ public with sharing class HealthCheckService {
      * The finding carries this list, the panel sends it back with the fix request, and the
      * controller refuses to run when the list it computes then is different. So the fix creates
      * exactly what the administrator read in the confirm box, never what changed since
-     * (ADR-NEXT condition 5).
+     * (ADR-0048 condition 5).
      */
     public static List<String> fixScope(String fixKey) {
         if (FIX_KEY_RESTORE_ROLLUPS.equals(fixKey)) {
