@@ -219,4 +219,27 @@ private class ErrorDigestServiceTest {
             );
         }
     }
+
+    @IsTest
+    static void theFirstDigestKeepsTheShippedDefaults() {
+        Test.startTest();
+        ErrorDigestWriter.recordRun(System.now(), 'Nothing new.', System.now());
+        Test.stopTest();
+
+        Nonprofit_Settings__c saved = [
+            SELECT
+                Error_Digest_Last_Run__c,
+                Relationship_Auto_Reciprocal__c,
+                Auto_Create_Households__c,
+                Coexistence_Mode__c,
+                Household_Membership_Mode__c
+            FROM Nonprofit_Settings__c
+            WHERE SetupOwnerId = :UserInfo.getOrganizationId()
+        ];
+        Assert.isNotNull(saved.Error_Digest_Last_Run__c, 'The run is recorded.');
+        Assert.isTrue(saved.Relationship_Auto_Reciprocal__c, 'A feature that ships on stays on.');
+        Assert.isTrue(saved.Auto_Create_Households__c, 'Households are still created by default.');
+        Assert.isNull(saved.Coexistence_Mode__c, 'Nobody confirmed a coexistence mode.');
+        Assert.isNull(saved.Household_Membership_Mode__c, 'Nobody chose a membership mode.');
+    }
 }
