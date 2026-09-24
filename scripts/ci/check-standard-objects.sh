@@ -37,6 +37,17 @@
 # specific enough that the next reader can judge it.
 #
 # See docs/contributor-guide/ci.md, "Detection-only exemptions".
+#
+# Import template column headings
+# -------------------------------
+# A shipped import template (customMetadata/Import_Template_Default.*.md-meta.xml) names the
+# columns of a file exported from another system, and a Data Loader export of NPSP or Nonprofit
+# Cloud heads its columns with that system's field paths, for example
+# GiftTransaction.OriginalAmount. Those words are text the importer compares with a file's
+# header row; nothing resolves them against this org's schema, so they are not a reference to
+# the object and cannot refuse a deployment. Such files are listed on each run, like the
+# detection-only lines, and are not failures. Every other file type, and every other custom
+# metadata type, is still checked.
 
 set -euo pipefail
 
@@ -59,9 +70,11 @@ NPC_INCLUDES=(--include='*.cls' --include='*.trigger' --include='*.xml')
 NPC_EXCLUDE_DIR='vendor'
 
 MARKER='// detection-only:'
+TEMPLATE_HEADINGS='/customMetadata/Import_Template_Default.'
 
 FAILED=0
 EXEMPTED=()
+HEADINGS=()
 VIOLATIONS=()
 
 for DIR in "${DIRS[@]}"; do
@@ -78,6 +91,8 @@ for DIR in "${DIRS[@]}"; do
     FILE="${LINE%%:*}"
     if [[ "$FILE" == *.cls || "$FILE" == *.trigger ]] && [[ "$LINE" == *"$MARKER"* ]]; then
       EXEMPTED+=("$LINE")
+    elif [[ "$FILE" == *"$TEMPLATE_HEADINGS"*.md-meta.xml ]]; then
+      HEADINGS+=("$FILE")
     else
       VIOLATIONS+=("$LINE")
     fi
@@ -87,6 +102,11 @@ done
 if [[ "${#EXEMPTED[@]}" -gt 0 ]]; then
   echo "== Detection-only exemptions (${#EXEMPTED[@]}), review each one =="
   printf '%s\n' "${EXEMPTED[@]}"
+fi
+
+if [[ "${#HEADINGS[@]}" -gt 0 ]]; then
+  echo "== Import template column headings, not references =="
+  printf '%s\n' "${HEADINGS[@]}" | sort -u
 fi
 
 if [[ "${#VIOLATIONS[@]}" -gt 0 ]]; then

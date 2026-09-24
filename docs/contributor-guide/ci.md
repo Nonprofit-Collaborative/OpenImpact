@@ -557,6 +557,18 @@ standard Sales Cloud object) and nowhere else. Three of the four are printed as 
 the NPSP prefix is not a name the grep looks for, and carries the marker only so that the
 four detection constants read alike.
 
+### Import template column headings
+
+A shipped import template (`customMetadata/Import_Template_Default.*.md-meta.xml`) is exempt
+as a whole file, and only that custom metadata type is. Its mapping document names the columns
+of a file exported from another system, and a Data Loader export of Nonprofit Cloud heads its
+columns with that system's field paths, for example `GiftTransaction.OriginalAmount`. The importer
+compares those words with a file's header row as text; nothing resolves them against the
+org's schema, so they bind nothing and cannot refuse a deployment. The script prints each such
+file under "Import template column headings, not references" on every run. Test classes get
+no such exemption: a test of a migration template reads the headings from the shipped
+mapping rather than spelling them out.
+
 ## What happens when the secrets are missing
 
 The `org-tests` job checks for the secret first. If it is empty, every org-dependent
