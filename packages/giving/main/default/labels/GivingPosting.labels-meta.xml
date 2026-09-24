@@ -112,4 +112,68 @@
         <shortDescription>Unposted gift log entry</shortDescription>
         <value>Gift {0}, posted to accounting by {2} on {3}, unposted: {1}</value>
     </labels>
+    <labels>
+        <fullName>Giving_PostingCard_Title</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Posting card title</shortDescription>
+        <value>Posting</value>
+    </labels>
+    <labels>
+        <fullName>Giving_PostingCard_PostedBy</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Posted by prefix</shortDescription>
+        <value>Posted to accounting by</value>
+    </labels>
+    <labels>
+        <fullName>Giving_PostingCard_NotPosted</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Gift not posted</shortDescription>
+        <value>Not posted to accounting.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_PostingCard_NotInBooks</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Gift not in the books</shortDescription>
+        <value>Not in the books: Pending and in-kind gifts are in no accounting export, so this gift stays editable.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_PostingCard_ClosedPeriod</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Gift in a closed period</shortDescription>
+        <value>Dated in a closed period, so its date, amount, donor, payment method, reference and funds stay locked. The books are closed through</value>
+    </labels>
+    <labels>
+        <fullName>Giving_PostingCard_ReasonLabel</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Unpost reason label</shortDescription>
+        <value>Why is this gift being unposted?</value>
+    </labels>
+    <labels>
+        <fullName>Giving_PostingCard_UnpostButton</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Unpost button</shortDescription>
+        <value>Unpost</value>
+    </labels>
+    <labels>
+        <fullName>Giving_PostingCard_Unposted</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Gift unposted notice</shortDescription>
+        <value>Unposted. The reason is in the Error Log. Mark it posted again after your next export.</value>
+    </labels>
 </CustomLabels>
