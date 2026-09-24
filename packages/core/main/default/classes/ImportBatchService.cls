@@ -326,6 +326,12 @@ public with sharing class ImportBatchService {
             row.Organization__c = null;
             row.Gift_Id__c = null;
             row.Soft_Credit_Id__c = null;
+            row.Person_1_Key__c = null;
+            row.Person_2_Key__c = null;
+            row.Person_1_Name_Key__c = null;
+            row.Person_2_Name_Key__c = null;
+            row.Organization_Key__c = null;
+            row.Processor_Key__c = null;
         }
         Database.update(rows, false, AccessLevel.SYSTEM_MODE);
     }

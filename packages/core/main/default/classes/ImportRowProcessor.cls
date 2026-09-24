@@ -47,15 +47,6 @@ public with sharing class ImportRowProcessor {
     /** Prefixes a matching key before its digest, so a person and an organization never share one. */
     private static final String PERSON_DIGEST = 'person:';
     private static final String ORGANIZATION_DIGEST = 'organization:';
-    private static final String HEX_DIGITS = '0123456789abcdef';
-
-    /**
-     * In a dry run, the digests of the people and organizations earlier chunks of the same run
-     * would create (R-IB12). The commit creates each once, and a later chunk matches it; a dry
-     * run saves nothing, so without these it would count the same new person Created in every
-     * chunk that names them. Set by `process` for the chunk it runs; empty in a commit.
-     */
-    private static Set<Long> createdEarlier = new Set<Long>();
 
     /**
      * In a commit, the matching keys of the people this chunk has set out to create, the
@@ -108,12 +99,6 @@ public with sharing class ImportRowProcessor {
         /** The settings the entity processor ran this chunk under, in a dry run (R-IB11). */
         @NamespaceAccessible
         public String processorSettings;
-        /**
-         * In a dry run, the digests of the people and organizations this chunk would create,
-         * for the import batch to hand to the chunks after it (R-IB12).
-         */
-        @NamespaceAccessible
-        public Set<Long> wouldCreate = new Set<Long>();
     }
 
     /** One row's working state while the chunk is resolved. */
@@ -152,29 +137,7 @@ public with sharing class ImportRowProcessor {
         List<Import_Row__c> rows,
         Boolean dryRun
     ) {
-        return process(batch, template, mapping, rows, dryRun, null);
-    }
-
-    /**
-     * Resolves a chunk as above. In a dry run, `wouldCreateEarlier` holds the digests of the
-     * people and organizations earlier chunks of the run would create (R-IB12): a row naming
-     * one is counted matched, as the commit will count it, and the outcome's `wouldCreate`
-     * holds this chunk's own for the chunks after it.
-     */
-    @NamespaceAccessible
-    public static Outcome process(
-        Import_Batch__c batch,
-        Import_Template__c template,
-        ImportMapping mapping,
-        List<Import_Row__c> rows,
-        Boolean dryRun,
-        Set<Long> wouldCreateEarlier
-    ) {
         Outcome outcome = new Outcome();
-        createdEarlier = dryRun == true &&
-            wouldCreateEarlier != null
-            ? wouldCreateEarlier
-            : new Set<Long>();
         if (rows == null || rows.isEmpty()) {
             return outcome;
         }
@@ -215,6 +178,13 @@ public with sharing class ImportRowProcessor {
         Map<String, String> targets = mapping.targetsBySourceKey();
         List<Working> working = new List<Working>();
         for (Import_Row__c row : rows) {
+            // A pass writes its own digests or none, so a later chunk never reads a stale one.
+            row.Person_1_Key__c = null;
+            row.Person_2_Key__c = null;
+            row.Person_1_Name_Key__c = null;
+            row.Person_2_Name_Key__c = null;
+            row.Organization_Key__c = null;
+            row.Processor_Key__c = null;
             Working item = new Working();
             item.row = row;
             item.values = rawValues(row);
@@ -406,16 +376,26 @@ public with sharing class ImportRowProcessor {
             return;
         }
         if (dryRun) {
+            Set<String> digests = new Set<String>();
+            for (String name : firstRowByName.keySet()) {
+                digests.add(digest(ORGANIZATION_DIGEST, name));
+            }
+            Set<String> earlier = ImportRowSelector.createdDigestsWrittenEarlier(batch.Id, digests);
             for (Working item : working) {
                 if (item.organizationId != null || item.organizationKey == null) {
                     continue;
                 }
-                Long digest = digest(ORGANIZATION_DIGEST, item.organizationKey);
                 // An organization an earlier chunk would create is found by the commit here,
                 // so the row is not one that creates it (R-IB12).
-                if (!createdEarlier.contains(digest)) {
+                if (!earlier.contains(digest(ORGANIZATION_DIGEST, item.organizationKey))) {
                     item.createdAnything = true;
-                    outcome.wouldCreate.add(digest);
+                }
+            }
+            // The first row naming each new organization carries its digest for later chunks.
+            for (String name : firstRowByName.keySet()) {
+                String digest = digest(ORGANIZATION_DIGEST, name);
+                if (!earlier.contains(digest)) {
+                    firstRowByName.get(name).row.Organization_Key__c = digest;
                 }
             }
             return;
@@ -510,12 +490,12 @@ public with sharing class ImportRowProcessor {
         assignPerson(working, matches, ImportMapping.ENTITY_CONTACT_1, true);
         assignPerson(working, matches, ImportMapping.ENTITY_CONTACT_2, false);
         if (dryRun) {
-            markPeopleComing(working);
+            markPeopleComing(working, batch.Id);
         }
         validate(working);
 
         if (dryRun) {
-            countUpdatesInPreview(working, personAccounts, rule, outcome);
+            countUpdatesInPreview(working, personAccounts, rule);
             // Read, not written: an entity processor matching a gift to a household's pledge
             // needs the household a matched person is in, in the preview as in the commit.
             resolveHouseholds(working, personAccounts);
@@ -671,40 +651,44 @@ public with sharing class ImportRowProcessor {
     /**
      * In a dry run, marks the people an earlier chunk would create. The commit will have
      * created them by the time it reaches this chunk and will match them, so the preview
-     * treats them as matched (R-IB12): not created again, and not missing a last name.
+     * treats them as matched (R-IB12): not created again, and not missing a last name. The
+     * earlier chunks' people are found on the rows that would create them, asked only for this
+     * chunk's own keys, so nothing grows with the rows already read.
      */
-    private static void markPeopleComing(List<Working> working) {
-        if (createdEarlier.isEmpty()) {
+    private static void markPeopleComing(List<Working> working, Id batchId) {
+        Set<String> digests = new Set<String>();
+        for (Working item : working) {
+            if (item.person1Id == null && item.personKey1 != null) {
+                digests.add(digest(PERSON_DIGEST, item.personKey1));
+            }
+            if (item.person2Id == null && item.personKey2 != null) {
+                digests.add(digest(PERSON_DIGEST, item.personKey2));
+            }
+        }
+        Set<String> earlier = ImportRowSelector.createdDigestsWrittenEarlier(batchId, digests);
+        if (earlier.isEmpty()) {
             return;
         }
         for (Working item : working) {
             item.comingPerson1 =
                 item.person1Id == null &&
                 item.personKey1 != null &&
-                createdEarlier.contains(digest(PERSON_DIGEST, item.personKey1));
+                earlier.contains(digest(PERSON_DIGEST, item.personKey1));
             item.comingPerson2 =
                 item.person2Id == null &&
                 item.personKey2 != null &&
-                createdEarlier.contains(digest(PERSON_DIGEST, item.personKey2));
+                earlier.contains(digest(PERSON_DIGEST, item.personKey2));
         }
     }
 
     /**
-     * A matching key as a 64-bit number: the first eight bytes of its MD5 digest, so 64 bits
-     * keep two keys well clear of sharing one. The set of them costs about 8 MB of heap per
-     * million new records, which a dry run of a very large file can exceed (R-IB12). The digest
-     * is only compared, never shown.
+     * A matching key as sixteen hex digits: the first eight bytes of its MD5 digest, so 64
+     * bits keep two keys well clear of sharing one. It is kept on the row (Person 1 Key,
+     * Person 2 Key, Organization Key), compared only and never shown.
      */
-    private static Long digest(String kind, String key) {
-        String hex = EncodingUtil.convertToHex(
-            Crypto.generateDigest('MD5', Blob.valueOf(kind + key))
-        );
-        Long value = 0;
-        for (Integer index = 0; index < 16; index++) {
-            Long nibble = HEX_DIGITS.indexOf(hex.substring(index, index + 1));
-            value = (value << 4) | nibble;
-        }
-        return value;
+    private static String digest(String kind, String key) {
+        return EncodingUtil.convertToHex(Crypto.generateDigest('MD5', Blob.valueOf(kind + key)))
+            .left(16);
     }
 
     /** A row has to describe somebody. One that does not is rejected before anything is saved. */
@@ -795,8 +779,7 @@ public with sharing class ImportRowProcessor {
     private static void countUpdatesInPreview(
         List<Working> working,
         Boolean personAccounts,
-        String rule,
-        Outcome outcome
+        String rule
     ) {
         Set<Id> matchedIds = new Set<Id>();
         for (Working item : working) {
@@ -819,7 +802,7 @@ public with sharing class ImportRowProcessor {
             if (item.error != null) {
                 continue;
             }
-            previewPerson(item, true, stored, keysInChunk, rule, personAccounts, outcome);
+            previewPerson(item, true, stored, keysInChunk, rule, personAccounts);
             Boolean hasFirst =
                 item.person1Id != null ||
                 item.comingPerson1 ||
@@ -828,7 +811,7 @@ public with sharing class ImportRowProcessor {
         }
         withFirst.addAll(withoutFirst);
         for (Working item : withFirst) {
-            previewPerson(item, false, stored, keysInChunk, rule, personAccounts, outcome);
+            previewPerson(item, false, stored, keysInChunk, rule, personAccounts);
         }
     }
 
@@ -842,8 +825,7 @@ public with sharing class ImportRowProcessor {
         Map<Id, SObject> stored,
         Set<String> keysInChunk,
         String rule,
-        Boolean personAccounts,
-        Outcome outcome
+        Boolean personAccounts
     ) {
         String entity = isFirst ? ImportMapping.ENTITY_CONTACT_1 : ImportMapping.ENTITY_CONTACT_2;
         Id personId = isFirst ? item.person1Id : item.person2Id;
@@ -855,7 +837,7 @@ public with sharing class ImportRowProcessor {
             }
             item.createdAnything = true;
             keysInChunk.addAll(keysFinding(item, isFirst));
-            rememberCreated(outcome, item, entity, rule, personAccounts);
+            rememberCreated(item, entity, rule, personAccounts);
         } else if (changes(stored.get(personId), item.byEntity.get(entity))) {
             item.updatedAnything = true;
         }
@@ -870,7 +852,6 @@ public with sharing class ImportRowProcessor {
      * dry run says so too.
      */
     private static void rememberCreated(
-        Outcome outcome,
         Working item,
         String entity,
         String rule,
@@ -882,10 +863,20 @@ public with sharing class ImportRowProcessor {
             (!personAccounts &&
             (ImportTemplateService.RULE_EMAIL.equals(rule) ||
             String.isNotBlank(attribute(item.byEntity, entity, 'MailingPostalCode'))));
-        if (key != null && findable) {
-            for (String finding : keysFinding(item, entity == ImportMapping.ENTITY_CONTACT_1)) {
-                outcome.wouldCreate.add(digest(PERSON_DIGEST, finding));
-            }
+        if (key == null || !findable) {
+            return;
+        }
+        // Under the shared key and under the same narrowed to the first name, so a later row
+        // finds them by whichever it holds (R-IB12).
+        List<String> finding = keysFinding(item, entity == ImportMapping.ENTITY_CONTACT_1);
+        String shared = digest(PERSON_DIGEST, finding[0]);
+        String named = digest(PERSON_DIGEST, finding[1]);
+        if (entity == ImportMapping.ENTITY_CONTACT_1) {
+            item.row.Person_1_Key__c = shared;
+            item.row.Person_1_Name_Key__c = named;
+        } else {
+            item.row.Person_2_Key__c = shared;
+            item.row.Person_2_Name_Key__c = named;
         }
     }
 

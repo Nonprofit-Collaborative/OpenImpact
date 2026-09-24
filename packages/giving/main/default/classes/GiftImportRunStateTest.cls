@@ -37,6 +37,82 @@ private class GiftImportRunStateTest {
     }
 
     @IsTest
+    static void aDryRunChunkCarriesAndAsksTheSameHoweverManyExternalIdsCameBefore() {
+        TestDataFactory.defaultSettings();
+        insert new Fund__c(Name = 'General', Active__c = true, Is_Default__c = true);
+        insert new Contact(LastName = 'Ramirez', Email = 'ana@example.org');
+        ImportMapping mapping = new ImportMapping();
+        for (
+            String target : new List<String>{
+                'Contact1.Email',
+                'Contact1.LastName',
+                'Gift.Amount__c',
+                'Gift.Gift_Date__c',
+                'Gift.Type__c',
+                'Gift.External_Id__c'
+            }
+        ) {
+            mapping.columns.add(new ImportMapping.Column(target, target));
+        }
+        Import_Template__c template = ImportTestDataFactory.template(
+            mapping.serialize(),
+            ImportTemplateService.RULE_EMAIL
+        );
+        Import_Batch__c batch = ImportTestDataFactory.batch(template);
+        List<Map<String, String>> rows = new List<Map<String, String>>();
+        for (Integer i = 0; i < 4; i++) {
+            rows.add(
+                new Map<String, String>{
+                    'Contact1.Email' => 'ana@example.org',
+                    'Contact1.LastName' => 'Ramirez',
+                    'Gift.Amount__c' => '25',
+                    'Gift.Gift_Date__c' => '2026-03-15',
+                    'Gift.Type__c' => 'cash',
+                    'Gift.External_Id__c' => 'order-' + i
+                }
+            );
+        }
+        ImportTestDataFactory.rows(batch, rows);
+        List<Integer> queries = new List<Integer>();
+        List<Integer> carried = new List<Integer>();
+
+        System.runAs(maria()) {
+            Test.startTest();
+            ImportEntityProcessors.carriedState = null;
+            for (Import_Row__c row : ImportTestDataFactory.reload(batch.Id)) {
+                Integer before = Limits.getQueries();
+                ImportRowProcessor.process(
+                    batch,
+                    template,
+                    ImportMapping.parse(template.Column_Mapping_JSON__c),
+                    new List<Import_Row__c>{ row },
+                    true
+                );
+                queries.add(Limits.getQueries() - before);
+                carried.add(ImportEntityProcessors.carriedState.length());
+            }
+            Test.stopTest();
+        }
+
+        for (Integer index = 1; index < carried.size(); index++) {
+            Assert.areEqual(carried[0], carried[index], 'No external ID is carried (R-DM1).');
+        }
+        for (Integer index = 2; index < queries.size(); index++) {
+            Assert.areEqual(queries[1], queries[index], 'Chunk ' + index + ' asks as often.');
+        }
+        Assert.areEqual(
+            4,
+            [
+                SELECT COUNT()
+                FROM Import_Row__c
+                WHERE Import_Batch__c = :batch.Id AND Processor_Key__c != NULL
+            ],
+            'Each row keeps its own external ID digest instead.'
+        );
+        Assert.areEqual(0, [SELECT COUNT() FROM Gift__c], 'A dry run writes no gift.');
+    }
+
+    @IsTest
     static void aRepeatInALaterChunkIsMatchedInTheDryRunAsInTheCommit() {
         TestDataFactory.defaultSettings();
         insert new Fund__c(Name = 'General', Active__c = true, Is_Default__c = true);
@@ -107,15 +183,18 @@ private class GiftImportRunStateTest {
         ImportEntityProcessors.carriedState = 'not a state';
         GiftImportRunState state = GiftImportRunState.carried();
         Assert.isTrue(state.claimedInstallments.isEmpty(), 'No payments.');
-        Assert.isTrue(state.seenExternalIds.isEmpty(), 'No external IDs.');
+        Assert.isNull(state.settings, 'No matching values.');
 
-        state.seenExternalIds.add(GiftImportRunState.key('Order-7'));
+        String prefix = Installment__c.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED)
+            .getKeyPrefix();
+        state.claimedInstallments.add(Id.valueOf(prefix + '000000000001'));
         state.carry();
 
-        Assert.isTrue(
-            GiftImportRunState.carried()
-                .seenExternalIds.contains(GiftImportRunState.key('ORDER-7')),
-            'Carried, whatever the case.'
+        Assert.areEqual(1, GiftImportRunState.carried().claimedInstallments.size(), 'Carried.');
+        Assert.areEqual(
+            GiftImportRunState.key('Order-7'),
+            GiftImportRunState.key('ORDER-7'),
+            'An external ID has one key whatever its case.'
         );
     }
 
@@ -125,7 +204,6 @@ private class GiftImportRunStateTest {
         Assert.isNull(GiftImportRunState.carriedSettings(), 'Nothing carried yet.');
         GiftImportRunState state = GiftImportRunState.carried();
         state.settings = '{"donationMatching":"Match only"}';
-        state.seenExternalIds.add(GiftImportRunState.key('Order-7'));
         state.carry();
 
         Assert.areEqual(
@@ -135,10 +213,6 @@ private class GiftImportRunStateTest {
         );
         GiftImportRunState again = GiftImportRunState.carried();
         Assert.areEqual(state.settings, again.settings, 'And kept by a full read too.');
-        Assert.isTrue(
-            again.seenExternalIds.contains(GiftImportRunState.key('order-7')),
-            'With the rest.'
-        );
         ImportEntityProcessors.carriedState = 'not a state';
         Assert.isNull(GiftImportRunState.carriedSettings(), 'A state it did not write has none.');
     }

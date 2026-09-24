@@ -1492,13 +1492,12 @@ beyond the template values R-IT7 already carries (ADR-0014).
 **R-IB12 A dry run counts a new record once, however many chunks name it.** The commit
 creates a new person or organization in the first chunk that names it, and every later chunk
 finds it by the template's matching rule and counts the row Matched (or Updated). A dry run
-saves nothing for a later chunk to find, so it carries from chunk to chunk, in the dry run
-only, a 64-bit digest of the matching key of each person and organization it would create, as
-a set of numbers held in the import batch's state. That set costs about 8 MB per million new
-records, which is about 4 MB for a file of half a million rows with one new person each and
-about 12 MB at two new people and an organization a row, the whole of the 12 MB an
-asynchronous job may use: a dry run of a file that size can fail for want of heap (a known
-limit, to be removed by keeping the digests on the rows). A later row whose
+saves nothing for a later chunk to find, so it writes, in the dry run only, a 64-bit digest
+of the matching key of each person and organization it would create onto the row that would
+create it (Person 1 Key, Person 2 Key, their Name Keys, Organization Key, Section 17). Each chunk looks up only
+its own rows' keys among the rows earlier chunks of the same pass processed, so what a chunk
+holds and reads depends on the chunk, not on how many rows came before it, and a dry run of
+half a million rows needs no more heap for this than one of a thousand. A later row whose
 key is among them is counted as matching that record, not as creating it again, and is not
 refused for a missing last name, exactly as in the commit. A person is remembered only when
 the commit could find them again by the same key: an email is written to a contact but not to
@@ -1562,9 +1561,11 @@ wins, and the lower identifier breaks a tie, so the same file always resolves th
   `Gift__c` field ships in Giving (Section 18).
 - **Settings keys:** `Import_Chunk_Size__c` and `Import_Undo_Retention_Days__c`
   (Section 12).
-- **Carried between chunks, in a dry run only:** `ImportProcessorBatch` holds the digests of
-  the records earlier chunks would create and hands them to `ImportRowProcessor.process`
-  (R-IB12). Nothing is stored on the batch.
+- **Remembered between chunks, in a dry run only:** the digests of the records earlier chunks
+  would create are kept on those rows (`Person_1_Key__c`, `Person_2_Key__c`,
+  `Organization_Key__c`, Section 17) and each chunk queries only the digests it needs through
+  `ImportRowSelector.createdDigestsWrittenEarlier` (R-IB12). Nothing is carried in the batch's
+  state.
 - **Service:** `ImportBatchService`, `ImportBatchSelector`, `ImportProcessorBatch`,
   `ImportUndoService` and `ImportUndoBatch` (R-IB7 to R-IB9), `ImportController` (the one
   Aura-enabled entry point the import screens call), LWC `importWizard`, `importResults`,
@@ -1598,6 +1599,12 @@ processor resolves those in dependency order.
 | Organization | reference(Organization) | computed | The organization this row resolved to. |
 | Gift | text | computed | The gift this row resolved to, held as a record identifier (R-IR2). |
 | Soft Credit | text | computed | The soft credit this row resolved to, held as a record identifier (R-IR2). |
+| Person 1 Key | text | computed | In a dry run only, a digest of the matching key of the first person this row would create, so later chunks count that person once (R-IB12). Cleared when the row is processed again. |
+| Person 2 Key | text | computed | The same for the second person. |
+| Person 1 Name Key | text | computed | The same digest of the first person's key narrowed to their first name, so a later row finds them by either (R-IB12). |
+| Person 2 Name Key | text | computed | The same for the second person. |
+| Organization Key | text | computed | The same for the organization this row would create. |
+| Processor Key | text | computed | In a dry run only, a digest the entity processor writes for what this row would load, so later chunks of the same dry run can see it (R-IR6). Core never reads its meaning. |
 
 ### Relationships
 
@@ -1674,10 +1681,13 @@ column nothing can load yet. The contract, which ADR-0052 records:
   the total of the gift amounts it read, for the control totals (R-IB10), and in a dry run the
   settings it ran under, which the commit is held to (R-IB11).
 - **Carried state.** Each chunk runs in its own transaction. A processor that needs to know
-  what earlier chunks of the same run decided (the scheduled payments already matched,
-  R-DM4, and in a dry run the external IDs already loaded, R-DM1) keeps it in `ImportEntityProcessors.carriedState`, a string the import batch holds
-  between chunks and sets again before each one. Core never reads it, and a chunk that fails
-  does not change it.
+  what earlier chunks of the same run decided (the scheduled payments already matched, R-DM4)
+  keeps it in `ImportEntityProcessors.carriedState`, a string the import batch holds between
+  chunks and sets again before each one. Core never reads it, and a chunk that fails does not
+  change it. What grows with every row belongs on the rows instead: in a dry run the
+  processor writes a digest to a row's Processor Key, and a later chunk asks
+  `ImportRowSelector.processorDigestsWrittenEarlier` for only the digests it holds (in Giving,
+  the external IDs already loaded, R-DM1).
 - **Undo.** The processor names the objects it tags with the batch and gives its reasons to
   keep records (R-IB9).
 
@@ -1709,6 +1719,16 @@ when the corrected row is loaded again.
 | Organization | `Organization__c` | Lookup to Account |
 | Gift | `Gift_Id__c` | Text (18) |
 | Soft Credit | `Soft_Credit_Id__c` | Text (18) |
+| Person 1 Key | `Person_1_Key__c` | Text (16), External ID (indexed) |
+| Person 2 Key | `Person_2_Key__c` | Text (16), External ID (indexed) |
+| Person 1 Name Key | `Person_1_Name_Key__c` | Text (16), External ID (indexed) |
+| Person 2 Name Key | `Person_2_Name_Key__c` | Text (16), External ID (indexed) |
+| Organization Key | `Organization_Key__c` | Text (16), External ID (indexed) |
+| Processor Key | `Processor_Key__c` | Text (16), External ID (indexed) |
+
+The six keys are bookkeeping written and read in system mode (ADR-0021) and are in no
+permission set. They are marked External ID only so that they are indexed; they are not
+unique, and nothing outside the import reads them.
 
 - **Service:** `ImportRowProcessor`, `ImportMatcher`, `ImportRowSelector`,
   `ImportEntityProcessor` (the interface a dependent package implements to resolve the row
@@ -3984,13 +4004,12 @@ recorded values, or values that cannot be read, falls back to the template.
   installments, within the importing user's sharing), `GiftImportIntegritySelector` (what
   already exists: gifts by external ID, and the receipts, statements and gifts an undo must
   keep; `without sharing` under ADR-0021), `DonationMatcher` (R-DM1 to R-DM7),
-  `GiftImportRunState` (what one run carries from chunk to chunk: the claimed payments; in a
-  dry run, the matching values it took (R-DM7); and in a dry run the external IDs loaded, each
-  kept as a 64-bit digest of its lowercased value, while a commit finds those gifts by the batch
-  stamp instead). The external ID digests travel as JSON text, parsed and rewritten on every
-  chunk, and peak at about 25 MB of heap for 500,000 gifts: a dry run fails for want of heap at
-  roughly 120,000 to 150,000 gift rows with external IDs (a known limit, to be removed by
-  keeping the digests on the rows).
+  `GiftImportRunState` (what one run carries from chunk to chunk: the claimed payments, and in
+  a dry run the matching values it took, R-DM7). In a dry run an external ID loaded is not
+  carried: its 64-bit digest (of the lowercased value) is written to the row's Processor Key
+  and later chunks query only their own digests (R-IR6), while a commit finds those gifts by
+  the batch stamp. The claimed payments are still carried, one identifier per matched gift, so
+  a run that matches hundreds of thousands of scheduled payments is the remaining heap limit.
 - **Settings keys** (on `Giving_Settings__c`, Section 21A):
   `Donation_Match_Date_Window_Days__c`, `Donation_Match_Amount_Tolerance__c`.
 - **Template attributes** (on `Import_Template__c`, Section 15): `Donation_Matching__c`,
@@ -4827,4 +4846,5 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.5 | 2026-09-24 | G-23 gift import and G-24 donation matching (ADR-0052). No object added. `Import_Template__c` gains `Donation_Matching__c`, `Match_Date_Window_Days__c` and `Match_Amount_Tolerance__c` (R-IT7); `Import_Batch__c` gains the control totals `Expected_Count__c`, `Expected_Amount__c` and `File_Amount__c` (R-IB10); `Giving_Settings__c` gains `Donation_Match_Date_Window_Days__c` and `Donation_Match_Amount_Tolerance__c`. R-IR1 adds the `Tribute` row entity; R-IR6 states the entity processor contract and R-IR7 how a row's outcome is folded; R-IB8 and R-IB9 let an undo delete what an entity processor tagged, with the processor's reasons to keep. New Section 25N, rules R-GI1 to R-GI9 and R-DM1 to R-DM6. |
 | v0.5 | 2026-09-24 | G-24 follow-up (ADR-0052, amended). `Import_Batch__c` gains `Processor_Settings_JSON__c`, one document the entity processor fills in a dry run and reads back in the commit, which Core never reads. R-IB11 added: a commit runs under the settings its dry run showed. R-DM7 added: donation matching's behaviour, window and tolerance are taken once per dry run and the commit uses them, not the template as edited since. R-IR6 and R-IT7 say so. |
 | v0.5 | 2026-09-24 | C-14 defect. No object or field added. R-IB12: a commit no longer creates a new person once per row when several rows of one chunk name them; the rows share the first row's record, and the dry run counts them the same way. |
+| v0.5 | 2026-09-24 | C-14 dry run at scale. `Import_Row__c` gains `Person_1_Key__c`, `Person_2_Key__c`, `Person_1_Name_Key__c`, `Person_2_Name_Key__c`, `Organization_Key__c` and `Processor_Key__c`, indexed digests a dry run writes on the row that would create a record or load an external ID. R-IB12 and R-IR6: the digests are looked up per chunk instead of carried in the batch's state, so a dry run's heap no longer grows with the rows before the chunk. |
 | v0.5 | 2026-09-24 | C-14 dry run fix. No object or field added. R-IB12 added: a dry run carries, across chunks, digests of the people and organizations it would create, so a later chunk naming one counts it matched, as the commit does, rather than created again. |

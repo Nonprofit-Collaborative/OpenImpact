@@ -158,6 +158,74 @@ private class ImportProcessorBatchTest {
     }
 
     @IsTest
+    static void aDryRunChunkCostsTheSameHoweverManyChunksCameBefore() {
+        Import_Template__c template = ImportTestDataFactory.template(
+            ImportTestDataFactory.donorMapping(),
+            ImportTemplateService.RULE_EMAIL
+        );
+        Import_Batch__c batch = ImportTestDataFactory.batch(template);
+        // Every row is a new person with a new organization: the most a dry run has to remember.
+        List<Map<String, String>> values = new List<Map<String, String>>();
+        for (Integer i = 0; i < 20; i++) {
+            values.add(
+                ImportTestDataFactory.donorRow(
+                    'Person' + i,
+                    'Surname' + i,
+                    'person' + i + '@example.org',
+                    'Organization ' + i
+                )
+            );
+        }
+        ImportTestDataFactory.rows(batch, values);
+        List<Integer> queries = new List<Integer>();
+        List<Integer> queryRows = new List<Integer>();
+        List<Integer> carried = new List<Integer>();
+
+        Test.startTest();
+        ImportBatchService.resetRows(batch.Id);
+        ImportProcessorBatch job = new ImportProcessorBatch(batch.Id, true);
+        List<Import_Row__c> chunk = new List<Import_Row__c>();
+        Database.QueryLocatorIterator rows = job.start(null).iterator();
+        while (rows.hasNext()) {
+            chunk.add((Import_Row__c) rows.next());
+            if (chunk.size() == 5 || !rows.hasNext()) {
+                Integer queriesBefore = Limits.getQueries();
+                Integer rowsBefore = Limits.getQueryRows();
+                job.execute(null, chunk);
+                queries.add(Limits.getQueries() - queriesBefore);
+                queryRows.add(Limits.getQueryRows() - rowsBefore);
+                // What the batch holds between chunks, the Stateful job itself.
+                carried.add(JSON.serialize(job).length());
+                chunk = new List<Import_Row__c>();
+            }
+        }
+        job.finish(null);
+        Test.stopTest();
+
+        Assert.areEqual(4, queries.size(), 'Twenty rows at five a chunk is four chunks.');
+        for (Integer index = 2; index < queries.size(); index++) {
+            Assert.areEqual(queries[1], queries[index], 'Chunk ' + index + ' asks as often.');
+            Assert.areEqual(queryRows[1], queryRows[index], 'And reads as many rows.');
+        }
+        for (Integer index = 1; index < carried.size(); index++) {
+            Assert.areEqual(carried[0], carried[index], 'Nothing carried grows (R-IB12).');
+        }
+        Assert.areEqual(
+            20,
+            [
+                SELECT COUNT()
+                FROM Import_Row__c
+                WHERE
+                    Import_Batch__c = :batch.Id
+                    AND Person_1_Key__c != NULL
+                    AND Organization_Key__c != NULL
+            ],
+            'Each row keeps the digests of what it would create instead.'
+        );
+        Assert.areEqual(0, [SELECT COUNT() FROM Contact], 'A dry run writes no person.');
+    }
+
+    @IsTest
     static void aPersonTheCommitCannotFindAgainIsCountedCreatedInEachChunkByBoth() {
         // Name plus postal code, with the postal code only in the household column: the person
         // the commit creates carries no postal code of their own, so a later chunk cannot find
