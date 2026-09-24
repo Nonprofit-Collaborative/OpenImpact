@@ -33,7 +33,9 @@ written off (see Common mistakes).
 
 Once the file is in the accounting system, Jen clicks **Mark these gifts posted**, and those
 gifts are locked: their date, amount, donor, payment method, reference and funds can no longer
-change (see [Posting and Closed Periods](posting-and-closed-periods.md)). Ticking **Only gifts
+change (see [Posting and Closed Periods](posting-and-closed-periods.md)). If any row of the file
+changed since she downloaded it, even a fund share moved with the total unchanged, nothing is
+marked and the page asks her to download again. Ticking **Only gifts
 not yet posted** leaves posted gifts out of the file, so a gift entered late into a month she
 already exported turns up in her next file instead of being missed.
 

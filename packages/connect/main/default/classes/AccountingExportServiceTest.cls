@@ -270,8 +270,7 @@ private class AccountingExportServiceTest {
                 null,
                 null,
                 false,
-                3,
-                1
+                'a file downloaded before'
             );
         } catch (AuraHandledException refused) {
             markRefusal = refused.getMessage();
@@ -284,6 +283,7 @@ private class AccountingExportServiceTest {
         Assert.areEqual('accounting-export-2026-08-01-to-2026-08-31.csv', view.fileName);
         Assert.areEqual(5, view.rowCount);
         Assert.areEqual(410, view.total);
+        Assert.areEqual(64, view.digest.length(), 'A SHA-256 in hex');
         Assert.areEqual(Label.Connect_AccountingExport_ErrorDateOrder, refusal);
         Assert.areEqual(Label.Connect_AccountingExport_ChangedSinceDownload, markRefusal);
     }
@@ -294,10 +294,15 @@ private class AccountingExportServiceTest {
 
     /** Jen with the bookkeeper's permission sets, owning every August gift. */
     private static User bookkeeperOwningAugust() {
-        User jen = TestDataFactory.createUser(
-            'Jen',
-            new List<String>{ 'Nonprofit_Read_Only', 'Giving_Read_Only', 'Accounting_Export' }
+        return owningAugust(
+            TestDataFactory.createUser(
+                'Jen',
+                new List<String>{ 'Nonprofit_Read_Only', 'Giving_Read_Only', 'Accounting_Export' }
+            )
         );
+    }
+
+    private static User owningAugust(User jen) {
         List<Gift__c> handed = new List<Gift__c>();
         for (Gift__c gift : [SELECT Id FROM Gift__c]) {
             handed.add(new Gift__c(Id = gift.Id, OwnerId = jen.Id));
@@ -325,8 +330,7 @@ private class AccountingExportServiceTest {
                 null,
                 null,
                 false,
-                file.giftCount,
-                file.total
+                file.digest
             );
 
             Assert.areEqual(4, marked, 'The four gifts in the file');
@@ -369,8 +373,7 @@ private class AccountingExportServiceTest {
                 null,
                 null,
                 true,
-                file.giftCount,
-                file.total
+                file.digest
             );
         }
         Contact ana = [SELECT Id FROM Contact WHERE LastName = 'Garcia' LIMIT 1];
@@ -395,8 +398,7 @@ private class AccountingExportServiceTest {
                     null,
                     null,
                     false,
-                    file.giftCount,
-                    file.total
+                    file.digest
                 );
                 Assert.fail('The full file no longer matches the first download');
             } catch (AccountingExportService.ExportException refused) {
@@ -423,8 +425,7 @@ private class AccountingExportServiceTest {
                 building.Id,
                 null,
                 false,
-                1,
-                200
+                null
             );
             Assert.fail('A split gift would be locked with half of it exported');
         } catch (AccountingExportService.ExportException refused) {
@@ -434,11 +435,15 @@ private class AccountingExportServiceTest {
 
     @IsTest
     static void markingNeedsPostGifts() {
-        User reader = TestDataFactory.createUser(
-            'Reader',
-            new List<String>{ 'Nonprofit_Read_Only', 'Giving_Read_Only' }
+        User reader = owningAugust(
+            TestDataFactory.createUser(
+                'Reader',
+                new List<String>{ 'Nonprofit_Read_Only', 'Giving_Read_Only' }
+            )
         );
         System.runAs(reader) {
+            String digest = AccountingExportService.build(AUGUST_FIRST, AUGUST_LAST, null, null)
+                .digest;
             try {
                 AccountingExportService.markPosted(
                     AUGUST_FIRST,
@@ -446,13 +451,90 @@ private class AccountingExportServiceTest {
                     null,
                     null,
                     false,
-                    0,
-                    0
+                    digest
                 );
                 Assert.fail('Refused without Post Gifts');
             } catch (AccountingExportService.ExportException refused) {
                 Assert.areEqual(Label.Giving_Posting_NoPermission, refused.getMessage());
             }
         }
+    }
+
+    /** Jen downloads August, then someone changes it; her mark refuses and marks nothing. */
+    private static String markAfter(User jen, String digest) {
+        String refusal;
+        System.runAs(jen) {
+            try {
+                AccountingExportService.markPosted(
+                    AUGUST_FIRST,
+                    AUGUST_LAST,
+                    null,
+                    null,
+                    false,
+                    digest
+                );
+            } catch (AccountingExportService.ExportException refused) {
+                refusal = refused.getMessage();
+            }
+        }
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Gift__c WHERE Accounting_Posted_At__c != NULL],
+            'Nothing marked'
+        );
+        return refusal;
+    }
+
+    private static String downloadedDigest(User jen) {
+        String digest;
+        System.runAs(jen) {
+            digest = AccountingExportService.build(AUGUST_FIRST, AUGUST_LAST, null, null).digest;
+        }
+        return digest;
+    }
+
+    @IsTest
+    static void aSwapWithTheSameCountAndTotalStopsTheMark() {
+        User jen = bookkeeperOwningAugust();
+        String digest = downloadedDigest(jen);
+        Gift__c check = [SELECT Id FROM Gift__c WHERE Amount__c = 100 AND Type__c = 'Check'];
+        update new Gift__c(Id = check.Id, Gift_Date__c = Date.newInstance(2026, 9, 3));
+        Contact ana = [SELECT Id FROM Contact WHERE LastName = 'Garcia' LIMIT 1];
+        Gift__c swapped = gift(ana.Id, null, 100, 'Check', Date.newInstance(2026, 8, 6));
+        swapped.OwnerId = jen.Id;
+        insert swapped;
+        System.runAs(jen) {
+            AccountingExportService.ExportFile now = AccountingExportService.build(
+                AUGUST_FIRST,
+                AUGUST_LAST,
+                null,
+                null
+            );
+            Assert.areEqual(4, now.giftCount, 'Still four gifts');
+            Assert.areEqual(410, now.total, 'Still 410');
+        }
+
+        Assert.areEqual(
+            Label.Connect_AccountingExport_ChangedSinceDownload,
+            markAfter(jen, digest)
+        );
+    }
+
+    @IsTest
+    static void anAllocationMovedToAnotherFundStopsTheMark() {
+        User jen = bookkeeperOwningAugust();
+        String digest = downloadedDigest(jen);
+        Gift_Allocation__c building = [
+            SELECT Id
+            FROM Gift_Allocation__c
+            WHERE Fund__r.Name = 'Building Fund'
+        ];
+        Fund__c general = [SELECT Id FROM Fund__c WHERE Name = 'General Fund'];
+        update new Gift_Allocation__c(Id = building.Id, Fund__c = general.Id);
+
+        Assert.areEqual(
+            Label.Connect_AccountingExport_ChangedSinceDownload,
+            markAfter(jen, digest)
+        );
     }
 }

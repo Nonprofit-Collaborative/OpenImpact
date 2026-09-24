@@ -86,8 +86,10 @@ marking the export posted is the bookkeeper's step.
 
 The export page offers **Mark these gifts posted** after a download, and an **Only gifts not yet
 posted** choice, so a gift entered late into a month already posted is found by the next export.
-The page sends back the count and total it downloaded; the server reads the same range again and
-refuses if either differs, so a gift added after the download is not marked. Posting writes
+The page sends back a digest of the file it downloaded (SHA-256 over every row's gift Id, date,
+fund Id and amount, sorted); the server builds the same export again and marks nothing unless the
+digest matches. A count and a total were not enough: a gift moved out of the range and another of
+the same amount added, or an allocation moved to another fund, keep both and change the books. Posting writes
 only the two package fields, so the switchable Gift automations are bypassed for that save; the
 Always Runs locks still run. One call marks at most 5,000 gifts. An export narrowed to one fund
 is not marked: posting is per gift, so a gift split across two funds would be locked when only

@@ -218,7 +218,8 @@ describe('c-accounting-export', () => {
       fileName: 'accounting-export-2026-08-01-to-2026-08-31.csv',
       rowCount: 5,
       giftCount: 4,
-      total: 410
+      total: 410,
+      digest: 'abc123'
     };
 
     async function downloadAugust(element) {
@@ -236,7 +237,7 @@ describe('c-accounting-export', () => {
       expect(element.shadowRoot.querySelector('[data-id="mark-posted"]')).toBeNull();
     });
 
-    it('marks the downloaded gifts with the count and total it showed', async () => {
+    it('marks the downloaded gifts, sending the digest of the file', async () => {
       markPosted.mockResolvedValue(4);
       const element = mount();
       await downloadAugust(element);
@@ -250,8 +251,7 @@ describe('c-accounting-export', () => {
         fundId: null,
         paymentMethod: null,
         onlyUnposted: false,
-        giftCount: 4,
-        total: 410
+        digest: 'abc123'
       });
       expect(text(element, 'message')).toBe('Marked 4 gifts posted.');
       expect(element.shadowRoot.querySelector('[data-id="mark-posted"]')).toBeNull();

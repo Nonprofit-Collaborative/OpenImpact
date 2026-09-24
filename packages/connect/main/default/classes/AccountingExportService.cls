@@ -9,8 +9,9 @@
  *   (ADR-0022). A refund or write-off is a negative gift of its own (R-G3), so it is its own
  *   negative row on its own date. Pending gifts have not arrived and In-kind gifts are not money.
  * - The export itself writes nothing. After downloading, the bookkeeper can mark the gifts in
- *   the file posted (G-20): `markPosted` builds the same export again, refuses if the gift count
- *   or total no longer match what was downloaded, and hands the gifts to Giving's
+ *   the file posted (G-20): `markPosted` builds the same export again, refuses if its digest (a
+ *   SHA-256 of every row's gift, date, fund and amount) is not the one downloaded, and hands the
+ *   gifts to Giving's
  *   `GiftPostingService`, which locks them. `onlyUnposted` leaves posted gifts out, so a gift
  *   entered late into a month already exported turns up in the next file (ADR-NEXT).
  * - A range over the row limit is refused rather than cut short: a short file that looks
@@ -61,6 +62,8 @@ public with sharing class AccountingExportService {
         public Integer rowCount = 0;
         public Integer giftCount = 0;
         public Decimal total = 0;
+        /** SHA-256 of the sorted rows' gift Id, date, fund Id and amount; null with no rows. */
+        public String digest;
     }
 
     /** The payment methods the export can be narrowed to: every active gift type but In-kind. */
@@ -117,8 +120,9 @@ public with sharing class AccountingExportService {
 
     /**
      * Marks the gifts in a downloaded export posted to accounting, and returns how many it
-     * marked. The export is built again with the same choices; if its gift count or total is not
-     * the one downloaded, a gift was added, changed or refunded since, and nothing is marked.
+     * marked. The export is built again with the same choices; if its digest is not the one
+     * downloaded, a gift was added, removed, moved, changed or refunded since, and nothing is
+     * marked. A count and total would miss two changes that cancel out.
      * Refused with a fund chosen: a gift split across funds would be locked when only part of it
      * was in the file.
      */
@@ -128,18 +132,13 @@ public with sharing class AccountingExportService {
         Id fundId,
         String paymentMethod,
         Boolean onlyUnposted,
-        Integer downloadedGiftCount,
-        Decimal downloadedTotal
+        String downloadedDigest
     ) {
         if (fundId != null) {
             throw new ExportException(Label.Connect_AccountingExport_MarkNeedsAllFunds);
         }
         ExportFile again = build(fromDate, toDate, null, paymentMethod, onlyUnposted);
-        if (
-            again.giftCount != downloadedGiftCount ||
-            downloadedTotal == null ||
-            again.total != downloadedTotal.setScale(2)
-        ) {
+        if (again.digest == null || again.digest != downloadedDigest) {
             throw new ExportException(Label.Connect_AccountingExport_ChangedSinceDownload);
         }
         try {
@@ -153,6 +152,7 @@ public with sharing class AccountingExportService {
     private class Builder implements AccountingExportSelector.RowSink {
         private List<String> lines = new List<String>{ String.join(HEADER, ',') };
         private Set<Id> gifts = new Set<Id>();
+        private List<String> keys = new List<String>();
         private ExportFile result = new ExportFile();
         private Boolean onlyUnposted;
         public Boolean overLimit = false;
@@ -166,6 +166,7 @@ public with sharing class AccountingExportService {
             return add(
                 row.Gift__c,
                 gift,
+                row.Fund__c,
                 row.Fund__r == null ? null : row.Fund__r.Name,
                 row.Fund__r == null ? null : row.Fund__r.Accounting_Code__c,
                 row.Amount__c
@@ -173,10 +174,17 @@ public with sharing class AccountingExportService {
         }
 
         public Boolean unallocatedGift(Gift__c gift) {
-            return add(gift.Id, gift, null, null, gift.Amount__c);
+            return add(gift.Id, gift, null, null, null, gift.Amount__c);
         }
 
-        private Boolean add(Id giftId, Gift__c gift, String fund, String code, Decimal amount) {
+        private Boolean add(
+            Id giftId,
+            Gift__c gift,
+            Id fundId,
+            String fund,
+            String code,
+            Decimal amount
+        ) {
             if (onlyUnposted && gift.Accounting_Posted_At__c != null) {
                 return true;
             }
@@ -204,6 +212,17 @@ public with sharing class AccountingExportService {
             result.rowCount++;
             result.total += value;
             gifts.add(giftId);
+            keys.add(
+                String.join(
+                    new List<String>{
+                        giftId,
+                        String.valueOf(gift.Gift_Date__c),
+                        fundId,
+                        value.toPlainString()
+                    },
+                    '|'
+                )
+            );
             return true;
         }
 
@@ -212,6 +231,10 @@ public with sharing class AccountingExportService {
             result.giftIds = gifts;
             if (result.rowCount > 0) {
                 result.csv = String.join(lines, LINE_END) + LINE_END;
+                keys.sort();
+                result.digest = EncodingUtil.convertToHex(
+                    Crypto.generateDigest('SHA-256', Blob.valueOf(String.join(keys, '\n')))
+                );
             }
             return result;
         }

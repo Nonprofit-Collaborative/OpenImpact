@@ -32,6 +32,7 @@ public with sharing class AccountingExportSelector {
                 SELECT
                     Amount__c,
                     Gift__c,
+                    Fund__c,
                     Fund__r.Name,
                     Fund__r.Accounting_Code__c,
                     Gift__r.Name,
@@ -62,6 +63,7 @@ public with sharing class AccountingExportSelector {
             SELECT
                 Amount__c,
                 Gift__c,
+                Fund__c,
                 Fund__r.Name,
                 Fund__r.Accounting_Code__c,
                 Gift__r.Name,

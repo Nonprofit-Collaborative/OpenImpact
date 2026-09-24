@@ -38,7 +38,7 @@ const REVOKE_DELAY_MS = 1000;
  *
  * After a download, someone holding Post Gifts can mark the gifts in that file posted (G-20).
  * The page remembers what it downloaded and forgets it when any choice changes, so the button
- * always marks the file on screen, and the server checks the count and total again.
+ * always marks the file on screen, and the server builds it again and compares its digest.
  */
 export default class AccountingExport extends LightningElement {
   labels = {
@@ -150,7 +150,7 @@ export default class AccountingExport extends LightningElement {
         return;
       }
       this.save(view.fileName, view.csv);
-      this.downloaded = { choices, giftCount: view.giftCount, total: view.total };
+      this.downloaded = { choices, digest: view.digest };
       this.message = summary
         .replace('{0}', view.rowCount)
         .replace('{1}', view.giftCount)
@@ -169,8 +169,7 @@ export default class AccountingExport extends LightningElement {
     try {
       const count = await markPosted({
         ...this.downloaded.choices,
-        giftCount: this.downloaded.giftCount,
-        total: this.downloaded.total
+        digest: this.downloaded.digest
       });
       this.downloaded = undefined;
       this.message = marked.replace('{0}', count);
