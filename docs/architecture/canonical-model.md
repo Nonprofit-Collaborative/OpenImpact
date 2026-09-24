@@ -4132,9 +4132,10 @@ page deletes the suggestion without a dismissal, because the pair no longer exis
   `Nonprofit_Duplicate_Review` does, and the panel says so to anyone without it (ADR-NEXT).
 - **People merges** are the platform's. When a contact is deleted by a merge
   (`MasterRecordId` filled in `after delete`), its memberships are recreated on the survivor
-  in junction mode, the households it was in are recounted but not tidied away, and the
-  real-time rollups that target Contact are recalculated at once (one full recalculation per
-  definition, as the nightly run does, queued once per transaction).
+  in junction mode (all or none; only current rows count as already a member; a household
+  whose primary member was merged away gets the survivor as its primary, R-M3), the households
+  it was in are recounted but not tidied away, and the real-time rollups that target Contact
+  are recalculated for the survivors only.
 - **Matching** is `Datacloud.FindDuplicatesByIds`, which evaluates the org's active duplicate
   rules. It is called for one object at a time, and for households only among accounts: a
   call that includes a person stored as an account is refused by the platform when no person

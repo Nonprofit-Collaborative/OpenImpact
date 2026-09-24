@@ -524,9 +524,19 @@ public with sharing class HouseholdService {
      * would not be in the households the other record was in, and a household whose only
      * member was the merged-away record would be left with nobody.
      *
-     * A household the survivor is already in is skipped, so a merge never gives one person
-     * two rows in the same household. A moved row stays the survivor's primary household only
-     * when the survivor had no primary membership of their own (R-M2).
+     * Only a current row counts as already being a member: where the survivor is a current
+     * member of the household, the merged-away row is not copied, and otherwise it is, even
+     * when the survivor has an ended row there. An ended row is copied as history unless the
+     * survivor already has a row in that household.
+     *
+     * Primary is per household (R-M3, ADR-0044). Where the merged-away person was the
+     * household's primary member and the household has no other current primary, the
+     * survivor takes it: the copied row carries the flag, or the survivor's own current row
+     * is promoted. So a merge never leaves a household without the primary it had, and its
+     * Primary Contact keeps mirroring somebody.
+     *
+     * The rows are written all or none: a membership that cannot be written fails the merge
+     * rather than being lost.
      *
      * @param removed the rows `membershipsFor` read before the delete
      * @param survivorByMerged the survivor of each merged-away person
@@ -537,62 +547,121 @@ public with sharing class HouseholdService {
         Map<Id, Id> survivorByMerged
     ) {
         Set<Id> affected = new Set<Id>();
-        if (removed == null || removed.isEmpty() || survivorByMerged == null) {
+        if (
+            removed == null ||
+            removed.isEmpty() ||
+            survivorByMerged == null ||
+            survivorByMerged.isEmpty()
+        ) {
             return affected;
         }
         Set<Id> survivors = new Set<Id>(survivorByMerged.values());
-        Map<Id, Set<Id>> householdsBySurvivor = new Map<Id, Set<Id>>();
-        Set<Id> survivorsWithPrimary = new Set<Id>();
-        for (Id survivorId : survivors) {
-            householdsBySurvivor.put(survivorId, new Set<Id>());
-        }
+        Map<String, Household_Member__c> currentRowBySurvivorHousehold = new Map<String, Household_Member__c>();
+        Set<String> anyRowBySurvivorHousehold = new Set<String>();
         for (
             Household_Member__c existing : HouseholdSelector.getAllMembershipsForPeople(survivors)
         ) {
-            Id personId = existing.Contact__c != null ? existing.Contact__c : existing.Account__c;
-            if (!householdsBySurvivor.containsKey(personId)) {
+            Id personId = personOf(existing);
+            if (!survivors.contains(personId) || existing.Household__c == null) {
                 continue;
             }
-            householdsBySurvivor.get(personId).add(existing.Household__c);
-            if (existing.Is_Primary__c == true && existing.End_Date__c == null) {
-                survivorsWithPrimary.add(personId);
+            String key = survivorHouseholdKey(personId, existing.Household__c);
+            anyRowBySurvivorHousehold.add(key);
+            if (isCurrentMembership(existing) && !currentRowBySurvivorHousehold.containsKey(key)) {
+                currentRowBySurvivorHousehold.put(key, existing);
             }
         }
-        List<Household_Member__c> moved = new List<Household_Member__c>();
+        Set<Id> touched = new Set<Id>();
         for (Household_Member__c row : removed) {
-            Id personId = row.Contact__c != null ? row.Contact__c : row.Account__c;
-            Id survivorId = survivorByMerged.get(personId);
+            if (row.Household__c != null) {
+                touched.add(row.Household__c);
+            }
+        }
+        Set<Id> householdsWithPrimary = new Set<Id>();
+        for (Household_Member__c member : HouseholdSelector.getMemberships(touched)) {
+            if (member.Is_Primary__c == true) {
+                householdsWithPrimary.add(member.Household__c);
+            }
+        }
+        // Current rows first, so that an ended row never stands in the way of a current one.
+        List<Household_Member__c> ordered = new List<Household_Member__c>();
+        List<Household_Member__c> endedRows = new List<Household_Member__c>();
+        for (Household_Member__c row : removed) {
+            if (isCurrentMembership(row)) {
+                ordered.add(row);
+            } else {
+                endedRows.add(row);
+            }
+        }
+        ordered.addAll(endedRows);
+
+        List<Household_Member__c> created = new List<Household_Member__c>();
+        Map<Id, Household_Member__c> promoted = new Map<Id, Household_Member__c>();
+        for (Household_Member__c row : ordered) {
+            Id survivorId = survivorByMerged.get(personOf(row));
             if (survivorId == null || row.Household__c == null) {
                 continue;
             }
-            Set<Id> already = householdsBySurvivor.get(survivorId);
-            if (already.contains(row.Household__c)) {
+            Id householdId = row.Household__c;
+            String key = survivorHouseholdKey(survivorId, householdId);
+            Boolean current = isCurrentMembership(row);
+            Boolean takesPrimary =
+                current &&
+                row.Is_Primary__c == true &&
+                !householdsWithPrimary.contains(householdId);
+            if (current && currentRowBySurvivorHousehold.containsKey(key)) {
+                if (takesPrimary) {
+                    Id survivorRowId = currentRowBySurvivorHousehold.get(key).Id;
+                    promoted.put(
+                        survivorRowId,
+                        new Household_Member__c(Id = survivorRowId, Is_Primary__c = true)
+                    );
+                    householdsWithPrimary.add(householdId);
+                    affected.add(householdId);
+                }
                 continue;
             }
-            already.add(row.Household__c);
-            Boolean primary =
-                row.Is_Primary__c == true && !survivorsWithPrimary.contains(survivorId);
-            if (primary) {
-                survivorsWithPrimary.add(survivorId);
+            if (!current && anyRowBySurvivorHousehold.contains(key)) {
+                continue;
             }
             Household_Member__c copy = new Household_Member__c(
-                Household__c = row.Household__c,
+                Household__c = householdId,
                 Role__c = row.Role__c,
                 Start_Date__c = row.Start_Date__c,
                 End_Date__c = row.End_Date__c,
-                Is_Primary__c = primary
+                Is_Primary__c = takesPrimary
             );
             if (survivorId.getSObjectType() == Contact.SObjectType) {
                 copy.Contact__c = survivorId;
             } else {
                 copy.Account__c = survivorId;
             }
-            moved.add(copy);
-            affected.add(row.Household__c);
+            created.add(copy);
+            anyRowBySurvivorHousehold.add(key);
+            if (current) {
+                currentRowBySurvivorHousehold.put(key, copy);
+            }
+            if (takesPrimary) {
+                householdsWithPrimary.add(householdId);
+            }
+            affected.add(householdId);
         }
-        HouseholdWriter.createMemberships(moved);
+        HouseholdWriter.saveMergedMemberships(created, promoted.values());
         HOUSEHOLD_ID_BY_PERSON.clear();
         return affected;
+    }
+
+    private static Id personOf(Household_Member__c row) {
+        return row.Contact__c != null ? row.Contact__c : row.Account__c;
+    }
+
+    private static String survivorHouseholdKey(Id personId, Id householdId) {
+        return String.valueOf(personId) + '|' + String.valueOf(householdId);
+    }
+
+    /** Current as the membership selectors count it: no end date, or one after today. */
+    private static Boolean isCurrentMembership(Household_Member__c row) {
+        return row.End_Date__c == null || row.End_Date__c > Date.today();
     }
 
     /**

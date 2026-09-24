@@ -18,6 +18,26 @@ private class ContactMergeTest {
         ];
     }
 
+    /** Exactly one current primary member, and the household's Primary Contact names them. */
+    private static void assertOnePrimaryMirrored(Id householdId, Id personId) {
+        List<Household_Member__c> primaries = [
+            SELECT Contact__c
+            FROM Household_Member__c
+            WHERE
+                Household__c = :householdId
+                AND Is_Primary__c = TRUE
+                AND (End_Date__c = NULL
+                OR End_Date__c > TODAY)
+        ];
+        Assert.areEqual(1, primaries.size(), 'The household keeps exactly one current primary.');
+        Assert.areEqual(personId, primaries[0].Contact__c, 'And it is the survivor.');
+        Assert.areEqual(
+            personId,
+            [SELECT Primary_Contact__c FROM Account WHERE Id = :householdId].Primary_Contact__c,
+            'Its Primary Contact mirrors the primary member (ADR-0044).'
+        );
+    }
+
     private static Decimal memberCount(Id householdId) {
         return [SELECT Member_Count__c FROM Account WHERE Id = :householdId].Member_Count__c;
     }
@@ -91,7 +111,12 @@ private class ContactMergeTest {
             'Ana is now in the household Bea was in, as well as her own.'
         );
         Assert.isTrue(rowsByHousehold.get(hers.Id).Is_Primary__c, 'Her own stays primary.');
-        Assert.isFalse(rowsByHousehold.get(other.Id).Is_Primary__c, 'One primary only (R-M2).');
+        Assert.isTrue(
+            rowsByHousehold.get(other.Id).Is_Primary__c,
+            'Primary is per household (R-M3): Ana takes the primary Bea held there.'
+        );
+        assertOnePrimaryMirrored(hers.Id, ana.Id);
+        assertOnePrimaryMirrored(other.Id, ana.Id);
         Assert.areEqual(1, memberCount(other.Id), 'The other household counts Ana.');
         Assert.areEqual(
             0,
@@ -124,5 +149,70 @@ private class ContactMergeTest {
             [SELECT COUNT() FROM Account WHERE Id = :household.Id],
             'The household is kept.'
         );
+    }
+
+    @IsTest
+    static void inJunctionModeTheSurvivorAlreadyInTheHouseholdBecomesItsPrimary() {
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
+        Account household = HouseholdTestDataFactory.newHousehold('The Dupmerge Family');
+        insert household;
+        Contact ana = HouseholdTestDataFactory.newContact('Ana', 'Okafor');
+        Contact bea = HouseholdTestDataFactory.newContact('Bea', 'Lindqvist');
+        insert new List<Contact>{ ana, bea };
+        insert new List<Household_Member__c>{
+            new Household_Member__c(Household__c = household.Id, Contact__c = ana.Id),
+            new Household_Member__c(
+                Household__c = household.Id,
+                Contact__c = bea.Id,
+                Is_Primary__c = true
+            )
+        };
+
+        Test.startTest();
+        Database.merge(ana, bea.Id);
+        Test.stopTest();
+
+        Assert.areEqual(1, currentRowsOf(ana.Id).size(), 'Ana keeps her one row.');
+        assertOnePrimaryMirrored(household.Id, ana.Id);
+    }
+
+    @IsTest
+    static void inJunctionModeAnEndedRowDoesNotBlockACurrentOne() {
+        HouseholdTestDataFactory.junctionSettingsWithoutAutomaticHouseholds();
+        Account household = HouseholdTestDataFactory.newHousehold('The Dupmerge Family');
+        insert household;
+        Contact ana = HouseholdTestDataFactory.newContact('Ana', 'Okafor');
+        Contact bea = HouseholdTestDataFactory.newContact('Bea', 'Lindqvist');
+        insert new List<Contact>{ ana, bea };
+        insert new List<Household_Member__c>{
+            new Household_Member__c(
+                Household__c = household.Id,
+                Contact__c = ana.Id,
+                Start_Date__c = Date.today().addYears(-3),
+                End_Date__c = Date.today().addYears(-1)
+            ),
+            new Household_Member__c(
+                Household__c = household.Id,
+                Contact__c = bea.Id,
+                Is_Primary__c = true
+            )
+        };
+
+        Test.startTest();
+        Database.merge(ana, bea.Id);
+        Test.stopTest();
+
+        Assert.areEqual(
+            1,
+            currentRowsOf(ana.Id).size(),
+            'Ana is a current member: her old ended row did not count as already belonging.'
+        );
+        Assert.areEqual(
+            2,
+            [SELECT COUNT() FROM Household_Member__c WHERE Contact__c = :ana.Id],
+            'Her ended row is kept as history.'
+        );
+        assertOnePrimaryMirrored(household.Id, ana.Id);
+        Assert.areEqual(1, memberCount(household.Id), 'The household counts one person.');
     }
 }

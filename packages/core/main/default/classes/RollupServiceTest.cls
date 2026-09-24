@@ -357,11 +357,53 @@ private class RollupServiceTest {
             RollupService.lastMetadata[0].DeveloperName,
             'And it is the live one'
         );
-        RollupService.lastMetadata = null;
-        RollupService.runAfterMerge('Account', merged);
+        System.Assert.areEqual(
+            new Set<Id>{ Id.valueOf('001000000000001AAA') },
+            RollupService.lastParentIds,
+            'Only the survivor is recalculated, not every record the definition covers'
+        );
+    }
+
+    @IsTest
+    static void aFullRecalculationCallsTheEngineOncePerSourceEntity() {
+        Rollup_Definition__c byMembership = memberCountNamed(
+            'Members',
+            'Core_Source_Membership',
+            RollupService.MODE_BOTH,
+            true
+        );
+        Rollup_Definition__c byContact = memberCountNamed(
+            'Contacts',
+            'Core_Source_Contact',
+            RollupService.MODE_BOTH,
+            true
+        );
+        byContact.Source_Object__c = 'Contact';
+        byContact.Relationship_Path__c = 'AccountId';
+        Rollup_Definition__c alsoByMembership = memberCountNamed(
+            'Members again',
+            'Core_Source_Membership_Two',
+            RollupService.MODE_BOTH,
+            true
+        );
+        insert new List<Rollup_Definition__c>{ byMembership, byContact, alsoByMembership };
+        RollupService.skipEngine = true;
+
+        Test.startTest();
+        Integer ran = RollupService.runFullRecalculation(
+            new List<Rollup_Definition__c>{ byMembership, byContact, alsoByMembership }
+        );
+        Test.stopTest();
+
+        System.Assert.areEqual(3, ran, 'Every definition is recalculated');
+        System.Assert.areEqual(
+            2,
+            RollupService.lastEngineCalls,
+            'One engine call per source entity, because one call across two fails in the engine'
+        );
         System.Assert.isNull(
-            RollupService.lastMetadata,
-            'A second merge in the same transaction does not queue the recalculation again'
+            RollupService.lastParentIds,
+            'A full recalculation covers every record'
         );
     }
 

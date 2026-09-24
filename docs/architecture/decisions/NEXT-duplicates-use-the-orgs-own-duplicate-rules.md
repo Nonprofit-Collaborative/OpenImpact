@@ -56,20 +56,25 @@ app cannot perform, so that draft needed four Setup steps before anything worked
   as its last-scan line, so a partly failed scan never reads as a clean one.
 - **A people merge keeps what it touches.** The platform's merge deletes the merged-away
   contact and moves its children without saving them. Open Impact's contact triggers handle
-  the delete as a merge when `MasterRecordId` is filled in `after delete`: in junction mode the
-  merged-away person's memberships are recreated on the survivor (a household the survivor is
-  already in is skipped, and a moved row is primary only when the survivor had no primary);
-  in both modes a household the merged-away person was in is recounted but never tidied away
-  by the merge, because gifts and history credited to it would lose their household; and the
-  real-time totals that target Contact are recalculated at once, one full recalculation per
-  definition as the nightly run does, queued once per transaction (`RollupService.runAfterMerge`,
-  driven by the definitions that target Contact, so Core names no Giving object, ADR-0014). The
-  engine's own after-delete merge handling queued nothing in a test run, and its recalculation
-  of several definitions at once, or of named parents only, fails inside the vendored
-  processor, so the per-definition recalculation is used. It costs one full recalculation of
-  those definitions per merge transaction, which is what the nightly run does anyway; revisit
-  if bulk merging makes that too heavy. An emptied household is left for a person to merge into the
-  survivor's with R-H13.
+  the delete as a merge when `MasterRecordId` is filled in `after delete`:
+  - In junction mode the merged-away person's memberships are recreated on the survivor, all
+    or none, so a row that cannot be written fails the merge instead of going missing. Only a
+    current row counts as already being a member, so an ended row never blocks a current one.
+  - Primary stays per household (R-M3, ADR-0044). Where the merged-away person was a
+    household's primary member and nobody else there is, the survivor becomes its primary
+    (the copied row carries the flag, or the survivor's own row is promoted), so the
+    household's Primary Contact keeps mirroring somebody.
+  - In both modes a household the merged-away person was in is recounted but never tidied
+    away by the merge, because gifts and history credited to it would lose their household.
+    An emptied household is left for a person to merge into the survivor's with R-H13.
+  - The real-time totals that target Contact are recalculated for the survivors only
+    (`RollupService.runAfterMerge`, driven by the definitions that target Contact, so Core
+    names no Giving object, ADR-0014): by `after delete` the children already point at the
+    survivor, so the engine's recalculation is handed the survivors as its parents and counts
+    and reads only their children, one small queued job per source entity. The engine's own
+    after-delete merge handling queued nothing in a test run. When the transaction has too
+    little room left for the jobs, nothing is queued, an Info entry says so, and the nightly
+    run brings the totals up to date.
 
 ## Alternatives considered
 

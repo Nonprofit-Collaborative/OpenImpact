@@ -58,6 +58,11 @@ private class GivingContactMergeTest {
             [SELECT Contact__c FROM Soft_Credit__c WHERE Id = :credit.Id].Contact__c,
             'Bea\'s soft credit is now Ana\'s.'
         );
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM AsyncApexJob WHERE JobType = 'BatchApex'],
+            'The survivor is recalculated in a small queued job, never a batch over every gift.'
+        );
         Contact survivor = [SELECT Total_Giving__c FROM Contact WHERE Id = :ana.Id];
         GivingTestDataFactory.assertRollupWrote(survivor.Total_Giving__c);
         Assert.areEqual(
