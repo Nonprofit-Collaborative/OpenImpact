@@ -1269,7 +1269,7 @@ template that loads gifts carries how its gifts are matched to scheduled payment
 are Core attributes because a package cannot add attributes to another package's object
 (ADR-0014), and they are plain values, never references, so Core can hold them without
 knowing what they mean. The wizard shows them only when a gift processor is installed and
-the mapping loads a gift; an empty value means the org's default (ADR-NEXT).
+the mapping loads a gift; an empty value means the org's default (ADR-0052).
 
 **R-IT5 What v0.2 ships.** v0.2 ships a generic donor list template and a generic gift
 list template. The NPSP template set is v0.3 engineering work and the Agentforce
@@ -1471,7 +1471,7 @@ row that carries a readable gift amount, rejected or not, because the question i
 this is the file on paper. Each comparison is written to the Run Log with both numbers, and
 while either differs a commit is refused with a sentence naming them; the administrator
 corrects the file or the totals and runs a new dry run. An Expected Amount with no processor
-installed cannot be checked and is refused the same way (ADR-NEXT).
+installed cannot be checked and is refused the same way (ADR-0052).
 
 ### Salesforce implementation
 
@@ -1601,7 +1601,7 @@ them to an optional `ImportEntityProcessor` implementation, the class named
 `GiftImportProcessor`, found by namespace and name with `Type.forName` (the mechanism in
 ADR-0017). Where none is installed it leaves those columns staged on the row, says so in the
 run log, and counts the row on what it did resolve. A row is never rejected for carrying a
-column nothing can load yet. The contract, which ADR-NEXT records:
+column nothing can load yet. The contract, which ADR-0052 records:
 
 - **Targets.** The processor names the columns it loads, with their labels, and the column
   picker offers them. Where no processor is installed the picker offers the shipped gift
@@ -3782,7 +3782,7 @@ a payment the donor already owes (feature G-24). This section adds no object: th
 Core's (Sections 15 to 17A) and the records it makes are the ordinary Giving records of
 Sections 18 to 25. What it defines is the Giving package's `ImportEntityProcessor` (R-IR6),
 the class `GiftImportProcessor`, and the rules it keeps (plan Section 4.9, "Row semantics"
-and "Donation matching (Giving)"). The choices the plan leaves open are recorded in ADR-NEXT.
+and "Donation matching (Giving)"). The choices the plan leaves open are recorded in ADR-0052.
 
 ### Rules
 
@@ -4729,4 +4729,4 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.5 | 2026-09-23 | C-22, product-plan Section 11.2 item 8. No object or field added. R-M3's second half is implemented and its known-gaps row in Section 30 closed (ADR-0044, primary contact mirrors the primary member): in junction mode `Primary_Contact__c` mirrors the current member marked Is Primary, as that member's Contact or, for a Person Account, its person contact, and a hand edit of it on a household is refused. R-H5 now states the primary tiebreak the code already applied and which source each mode reads it from. R-H10 and the Household attribute table say which record is the mark in each mode. |
 | v0.5 | 2026-09-23 | C-19 Import 2.0. New Section 17A, `Import_Journal__c`, a page per chunk recording the updates an import made (value before and value written) and what an undo kept or did not put back, with rules R-IJ1 to R-IJ5. `Import_Batch__c` status gains Undoing and Undo failed; R-IB6 restated and R-IB7 (the undo window is stamped at commit), R-IB8 (one named batch, counted and confirmed, once, to the recycle bin) and R-IB9 (deletes only tagged records, keeps a tagged record that has gained something since, puts back only values nobody has changed since) added. R-IB3 now says the import tags the household it made a new person. R-IT6 added: a recurring template is listed on the Hub with its last import date, and nothing loads a file on a schedule. `Nonprofit_Settings__c` gains `Import_Undo_Retention_Days__c`. R-IR5 notes that undo does not read the staged rows. |
 | v0.5 | 2026-09-23 | C-19 review. No object or field added. R-IB1: a dry run is refused on a batch that has started a commit or is in an undo status. R-IB8: a chunk the platform stopped, or an undo job that is no longer running, ends Undo failed. R-IB9: a tagged record is kept when anything created since points at it through any reference the org can filter on (not only custom ones), when something was created during the commit by somebody else, when the record was edited since or has an activity, and when the person undoing cannot delete it; the system-mode reads and writes are recorded against ADR-0021. R-IJ1: a page holds at most 200 entries, and one oversized entry is logged rather than losing the chunk's journal. |
-| v0.5 | 2026-09-24 | G-23 gift import and G-24 donation matching (ADR-NEXT). No object added. `Import_Template__c` gains `Donation_Matching__c`, `Match_Date_Window_Days__c` and `Match_Amount_Tolerance__c` (R-IT7); `Import_Batch__c` gains the control totals `Expected_Count__c`, `Expected_Amount__c` and `File_Amount__c` (R-IB10); `Giving_Settings__c` gains `Donation_Match_Date_Window_Days__c` and `Donation_Match_Amount_Tolerance__c`. R-IR1 adds the `Tribute` row entity; R-IR6 states the entity processor contract and R-IR7 how a row's outcome is folded; R-IB8 and R-IB9 let an undo delete what an entity processor tagged, with the processor's reasons to keep. New Section 25N, rules R-GI1 to R-GI9 and R-DM1 to R-DM6. |
+| v0.5 | 2026-09-24 | G-23 gift import and G-24 donation matching (ADR-0052). No object added. `Import_Template__c` gains `Donation_Matching__c`, `Match_Date_Window_Days__c` and `Match_Amount_Tolerance__c` (R-IT7); `Import_Batch__c` gains the control totals `Expected_Count__c`, `Expected_Amount__c` and `File_Amount__c` (R-IB10); `Giving_Settings__c` gains `Donation_Match_Date_Window_Days__c` and `Donation_Match_Amount_Tolerance__c`. R-IR1 adds the `Tribute` row entity; R-IR6 states the entity processor contract and R-IR7 how a row's outcome is folded; R-IB8 and R-IB9 let an undo delete what an entity processor tagged, with the processor's reasons to keep. New Section 25N, rules R-GI1 to R-GI9 and R-DM1 to R-DM6. |
