@@ -8,7 +8,7 @@
  * settled on. Where none is installed the columns stay on the staged row and the run log says
  * so; no row is ever rejected for carrying one.
  *
- * The contract (R-IR6, R-IR7, R-IB9, ADR-NEXT) has three parts: the columns the processor
+ * The contract (R-IR6, R-IR7, R-IB9, ADR-0052) has three parts: the columns the processor
  * loads, the resolution of one chunk, and its part in an undo.
  */
 @NamespaceAccessible

@@ -31,6 +31,12 @@ public with sharing class RollupService {
     @NamespaceAccessible
     public static final String MODE_BOTH = 'Both';
 
+    /** The field the platform fills on a record deleted by a merge, naming the survivor. */
+    private static final String MERGE_SURVIVOR_FIELD = 'MasterRecordId';
+
+    /** Queued jobs a merge leaves room for, for the automation that runs after it. */
+    private static final Integer QUEUEABLE_HEADROOM = 10;
+
     /** The one freshness attribute every target entity carries (canonical model Section 26). */
     @NamespaceAccessible
     public static final String FRESHNESS_FIELD = 'Rollups_Last_Calculated__c';
@@ -53,6 +59,14 @@ public with sharing class RollupService {
     /** What the last call handed the engine, so a test can assert the mapping end to end. */
     @TestVisible
     private static List<Rollup__mdt> lastMetadata;
+
+    /** The records the last recalculation was limited to, or null when it covered every record. */
+    @TestVisible
+    private static Set<Id> lastParentIds;
+
+    /** How many separate engine calls the last recalculation made, one per source entity. */
+    @TestVisible
+    private static Integer lastEngineCalls;
 
     /** The modes a nightly run covers. */
     @NamespaceAccessible
@@ -122,6 +136,82 @@ public with sharing class RollupService {
         stampAfterRun(ran, targetIdsFor(ran, changedRecords));
     }
 
+    /**
+     * Recalculates the totals on the survivors of a merge (C-20).
+     *
+     * The platform's merge moves the merged-away record's children onto the survivor without
+     * saving them, so no trigger on a child runs and a real-time total on the survivor would
+     * not include them until the nightly run. By `after delete` the children already point at
+     * the survivor, so this recalculates every active real-time definition that targets the
+     * merged entity, whatever package declared it (Core names no child entity, ADR-0014), for
+     * the survivors only: the engine counts and reads the survivors' children, not the whole
+     * table, so a merge queues one small job per source entity and never a batch job while a
+     * survivor has fewer children than the engine's batching threshold.
+     *
+     * The engine's own after-delete merge handling queued nothing in a test run, which is why
+     * the survivors are handed to the recalculation the Rollups page uses instead. When the
+     * transaction has too little room left for those jobs, nothing is queued, an Info entry
+     * says so, and the nightly run brings a Both definition up to date.
+     *
+     * @param targetObject the entity whose records were merged
+     * @param mergedRecords the deleted records, as the `after delete` trigger has them; only
+     *        those with `MasterRecordId` filled were merged, and it names the survivor
+     */
+    @NamespaceAccessible
+    public static void runAfterMerge(String targetObject, List<SObject> mergedRecords) {
+        if (String.isBlank(targetObject) || mergedRecords == null) {
+            return;
+        }
+        Set<Id> survivorIds = new Set<Id>();
+        for (SObject record : mergedRecords) {
+            Object survivorId = record.getPopulatedFieldsAsMap().get(MERGE_SURVIVOR_FIELD);
+            if (survivorId != null) {
+                survivorIds.add((Id) survivorId);
+            }
+        }
+        runForSurvivors(targetObject, survivorIds);
+    }
+
+    /**
+     * Recalculates the real-time totals on these merge survivors, as `runAfterMerge` does
+     * once it has read the survivors off the deleted records. A person stored as an account
+     * has a second record behind it, its person contact, whose own totals the merge also
+     * changes; `AccountTriggerHandler` names those here, since the deleted account records
+     * only name the surviving account.
+     *
+     * @param targetObject the entity whose totals the merge changed
+     * @param survivorIds the records of that entity that survived the merge
+     */
+    @NamespaceAccessible
+    public static void runForSurvivors(String targetObject, Set<Id> survivorIds) {
+        if (String.isBlank(targetObject) || survivorIds == null || survivorIds.isEmpty()) {
+            return;
+        }
+        List<Rollup_Definition__c> definitions = RollupSelector.selectActiveForTarget(
+            targetObject,
+            REAL_TIME_MODES
+        );
+        if (definitions.isEmpty()) {
+            return;
+        }
+        Integer jobsNeeded = sourcesOf(definitions).size();
+        if (
+            Limits.getQueueableJobs() + jobsNeeded + QUEUEABLE_HEADROOM >
+            Limits.getLimitQueueableJobs()
+        ) {
+            ErrorLogger.logMessage(
+                String.format(
+                    System.Label.Core_Rollups_MergeRecalcDeferred,
+                    new List<String>{ targetObject }
+                ),
+                CONTEXT_REAL_TIME,
+                ErrorLogger.SEVERITY_INFO
+            );
+            return;
+        }
+        handToEngine(definitions, survivorIds, CONTEXT_REAL_TIME);
+    }
+
     // -------------------------------------------------------------------------------- scheduled
 
     /**
@@ -129,6 +219,10 @@ public with sharing class RollupService {
      *
      * This is the path R-R9 talks about: recalculating any set of records produces the same result
      * as calculating it the first time, so the nightly run reconciles whatever real time missed.
+     *
+     * The engine is called once per source entity. One call spanning definitions with different
+     * source entities fails inside the vendored engine, so definitions are grouped by source
+     * before they are handed over, and any mix of definitions is safe to pass.
      *
      * @param definitions the definitions to recalculate
      * @return how many were handed to the engine
@@ -138,30 +232,87 @@ public with sharing class RollupService {
         if (definitions == null || definitions.isEmpty()) {
             return 0;
         }
+        List<Rollup_Definition__c> ran = handToEngine(definitions, null, CONTEXT_RECALCULATE);
+        if (ran.isEmpty()) {
+            return 0;
+        }
+        stampAfterRun(ran, new Map<String, Set<Id>>());
+        return ran.size();
+    }
+
+    /**
+     * Hands these definitions to the engine's full recalculation, one call per source entity,
+     * limited to the given parent records when there are any. A definition that cannot be
+     * expressed is logged and skipped. Answers the definitions that were handed over.
+     */
+    private static List<Rollup_Definition__c> handToEngine(
+        List<Rollup_Definition__c> definitions,
+        Set<Id> parentIds,
+        String context
+    ) {
+        Map<String, List<Rollup__mdt>> metadataBySource = new Map<String, List<Rollup__mdt>>();
         List<Rollup__mdt> metadata = new List<Rollup__mdt>();
         List<Rollup_Definition__c> ran = new List<Rollup_Definition__c>();
         for (Rollup_Definition__c definition : definitions) {
             try {
-                metadata.addAll(
-                    RollupAdapter.toMetadata(new List<Rollup_Definition__c>{ definition })
+                List<Rollup__mdt> converted = RollupAdapter.toMetadata(
+                    new List<Rollup_Definition__c>{ definition }
                 );
+                String source = sourceOf(definition);
+                if (!metadataBySource.containsKey(source)) {
+                    metadataBySource.put(source, new List<Rollup__mdt>());
+                }
+                metadataBySource.get(source).addAll(converted);
+                metadata.addAll(converted);
                 ran.add(definition);
             } catch (Exception refused) {
-                ErrorLogger.log(refused, CONTEXT_RECALCULATE, definition.Id);
+                ErrorLogger.log(refused, context, definition.Id);
             }
         }
         if (metadata.isEmpty()) {
-            return 0;
+            return ran;
         }
         lastMetadata = metadata;
-        if (skipEngine != true) {
-            Rollup.performBulkFullRecalc(
-                metadata,
-                Rollup.InvocationPoint.FROM_FULL_RECALC_APEX.name()
-            );
+        lastParentIds = parentIds;
+        lastEngineCalls = metadataBySource.size();
+        if (skipEngine == true) {
+            return ran;
         }
-        stampAfterRun(ran, new Map<String, Set<Id>>());
-        return ran.size();
+        List<String> parents = new List<String>();
+        if (parentIds != null) {
+            for (Id parentId : parentIds) {
+                parents.add(String.valueOf(parentId));
+            }
+        }
+        for (List<Rollup__mdt> sameSource : metadataBySource.values()) {
+            if (parents.isEmpty()) {
+                Rollup.performBulkFullRecalc(
+                    sameSource,
+                    Rollup.InvocationPoint.FROM_FULL_RECALC_APEX.name()
+                );
+            } else {
+                Rollup.performBulkFullRecalcWithParentIds(
+                    JSON.serialize(sameSource),
+                    Rollup.InvocationPoint.FROM_FULL_RECALC_APEX.name(),
+                    parents
+                );
+            }
+        }
+        return ran;
+    }
+
+    private static Set<String> sourcesOf(List<Rollup_Definition__c> definitions) {
+        Set<String> sources = new Set<String>();
+        for (Rollup_Definition__c definition : definitions) {
+            sources.add(sourceOf(definition));
+        }
+        return sources;
+    }
+
+    private static String sourceOf(Rollup_Definition__c definition) {
+        return String.isBlank(definition.Source_Object__c)
+            ? ''
+            : definition.Source_Object__c.toLowerCase();
     }
 
     /**
