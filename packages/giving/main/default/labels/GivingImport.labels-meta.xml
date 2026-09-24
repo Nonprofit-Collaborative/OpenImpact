@@ -200,4 +200,188 @@
         <shortDescription>Gift import row rejected: no payment method</shortDescription>
         <value>The gift has no payment method. Map a column to it, or give the mapping a default payment method.</value>
     </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorInKindAmount</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row rejected: in-kind gift with an amount</shortDescription>
+        <value>An in-kind gift has no amount. Leave Gift: amount empty or 0, and put what the goods were worth in Gift: fair market value.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetAmount</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: gift amount</shortDescription>
+        <value>Gift: amount</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetDate</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: gift date</shortDescription>
+        <value>Gift: date</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetType</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: gift payment method</shortDescription>
+        <value>Gift: payment method</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetPaymentReference</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: gift payment reference</shortDescription>
+        <value>Gift: payment reference</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetExternalId</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: gift external ID</shortDescription>
+        <value>Gift: external ID</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetInKindDescription</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: gift in-kind description</shortDescription>
+        <value>Gift: in-kind description</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetFairMarketValue</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: gift fair market value</shortDescription>
+        <value>Gift: fair market value</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetBenefitDescription</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: gift benefit description</shortDescription>
+        <value>Gift: benefit description</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetAppeal</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: gift appeal</shortDescription>
+        <value>Gift: appeal</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetDonor</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: which record on the row gave the gift</shortDescription>
+        <value>Gift: donor</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetFund</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: the one fund a gift goes to</shortDescription>
+        <value>Gift: fund</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetFundPart</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: fund of split part {0}</shortDescription>
+        <value>Gift: fund {0}</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetAmountPart</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: amount of split part {0}</shortDescription>
+        <value>Gift: amount {0}</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetPercentPart</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: percent of split part {0}</shortDescription>
+        <value>Gift: percent {0}</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetSoftCreditRole</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: soft credit role</shortDescription>
+        <value>Soft credit: role</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetSoftCreditCustomRole</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: soft credit custom role</shortDescription>
+        <value>Soft credit: custom role</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetSoftCreditAmount</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: soft credit amount</shortDescription>
+        <value>Soft credit: amount</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetSoftCreditParty</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: who a soft credit credits</shortDescription>
+        <value>Soft credit: credit whom</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetTributeType</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: tribute type</shortDescription>
+        <value>Tribute: type</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetTributeHonoree</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: tribute honoree name</shortDescription>
+        <value>Tribute: honoree name</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetTributeNotify</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: tribute notification recipient</shortDescription>
+        <value>Tribute: notify (name)</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_TargetTributeMessage</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import column picker: tribute message</shortDescription>
+        <value>Tribute: message</value>
+    </labels>
 </CustomLabels>

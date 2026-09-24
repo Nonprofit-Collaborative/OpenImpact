@@ -23,6 +23,9 @@ public with sharing class GiftImportRow {
     public static final String DONOR_ORGANIZATION = 'Organization';
     public static final String DONOR_HOUSEHOLD = 'Household';
 
+    /** The payment method whose gifts carry no amount (R-G12). */
+    public static final String TYPE_IN_KIND = 'In-kind';
+
     /** The most parts a split can have in one row. */
     public static final Integer MAX_PARTS = 5;
 
@@ -98,6 +101,16 @@ public with sharing class GiftImportRow {
     public Map<Schema.SObjectField, Object> values = new Map<Schema.SObjectField, Object>();
     /** Gift attributes the file names that are no field the import may write. */
     public Set<String> notLoaded = new Set<String>();
+
+    // What the processor decides for the row (R-GI2, R-DM1).
+    public Id donorContactId;
+    public Id donorAccountId;
+    /** The gift this row made, or the one it matched by external ID. */
+    public Id giftId;
+    /** True when the row's gift already exists, found by its external ID. */
+    public Boolean matchedExisting = false;
+    /** An earlier row of the same chunk whose gift this row's external ID also names. */
+    public GiftImportRow sameAs;
 
     private final Map<String, Map<String, String>> entities;
 
@@ -185,9 +198,15 @@ public with sharing class GiftImportRow {
         }
     }
 
+    /**
+     * An in-kind gift has no amount (R-G12): what the goods were worth goes in Fair Market
+     * Value, so its amount is zero whether the file leaves it empty or writes 0.
+     */
     private void readAmount() {
         String text = value(ENTITY_GIFT, 'Amount__c');
+        Boolean inKind = isInKind();
         if (text == null) {
+            amount = inKind ? 0 : null;
             return;
         }
         Decimal parsed = parseAmount(text);
@@ -197,10 +216,26 @@ public with sharing class GiftImportRow {
             );
         }
         readableAmount = parsed;
-        if (parsed <= 0) {
+        if (inKind && parsed != 0) {
+            throw new GiftImportException(Label.Giving_Import_ErrorInKindAmount);
+        }
+        if (!inKind && parsed <= 0) {
             throw new GiftImportException(Label.Giving_Import_ErrorAmountNotPositive);
         }
         amount = parsed;
+    }
+
+    /** Whether the row's payment method reads as In-kind; an unreadable one is refused later. */
+    private Boolean isInKind() {
+        String text = value(ENTITY_GIFT, 'Type__c');
+        if (text == null) {
+            return false;
+        }
+        try {
+            return paymentMethod(text) == TYPE_IN_KIND;
+        } catch (GiftImportException unknown) {
+            return false;
+        }
     }
 
     private void readDate() {
