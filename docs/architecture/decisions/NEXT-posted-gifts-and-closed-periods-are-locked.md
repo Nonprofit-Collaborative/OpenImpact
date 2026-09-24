@@ -62,9 +62,8 @@ books. The close date must be at least two days before today, the day before yes
 so today is open wherever the closer and the person refunding are: a close through yesterday,
 set early in the morning east of the date line, would refuse a refund dated today in the
 Pacific. Only the date line extremes (UTC+13 and UTC+14 against UTC-10 and beyond) are further
-apart than that. Reversing a Pending
-gift dated in a closed period would bring the original into a closed month, so it is refused
-before anything is saved; such a gift is not in the books and can be deleted.
+apart than that. A Pending gift is never reversed (ADR-NEXT for Cancelled): one that will never
+be paid is cancelled, which keeps it out of the books, so a closed month does not refuse it.
 
 **Enforcement follows ADR-0024.** Two automations, `Gift_Posting_Lock` on Gift and
 `Gift_Allocation_Posting_Lock` on Gift Allocation, carry Always Runs, so the switch and the
@@ -137,10 +136,9 @@ existing error code, so no caller has to learn a new one.
 
 ## Consequences
 
-- **A Pending gift in a closed month cannot be written off.** Writing it off would add it and
-  its reversal to a month already in the books. The admin guide says to delete it, which the
-  accounting export guide already advised. Whether a write-off of a Pending gift should be money
-  at all is an open question for the owner, not settled here.
+- **A Pending gift in a closed month that will never be paid is cancelled.** The owner settled
+  the open question this ADR raised (ADR-NEXT for Cancelled): Cancelled is a status, not money,
+  so it moves nothing into a closed month, and a Pending gift is no longer written off.
 - A contact merge moves gifts to the surviving person without running gift triggers (C-20), so
   a locked gift's donor can change by merge. The person is the same; the books name them by the
   surviving record. Deleting a donor of a locked gift is refused; merge the record instead.
