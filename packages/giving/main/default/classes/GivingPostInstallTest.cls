@@ -183,6 +183,66 @@ private class GivingPostInstallTest {
      *
      * @return one key per shipped Giving row
      */
+    @IsTest
+    static void installingGivingCreatesTheSwitchesForItsAutomations() {
+        // Core's script runs before Giving's registry rows exist, so it cannot create their
+        // switches; without this the receipt lock and every giving automation had none (C-21).
+        GivingPostInstall handler = new GivingPostInstall();
+
+        Test.startTest();
+        Test.testInstall(handler, null);
+        Test.stopTest();
+
+        Map<String, Automation_Setting__c> byName = switchesByName();
+        for (Automation_Registry__mdt entry : [
+            SELECT DeveloperName
+            FROM Automation_Registry__mdt
+        ]) {
+            Assert.isTrue(
+                byName.containsKey(entry.DeveloperName),
+                'Every shipped automation has a switch, including ' + entry.DeveloperName
+            );
+        }
+        Assert.isTrue(
+            byName.get('Gift_Receipt_Lock').Always_Runs__c,
+            'The receipt lock is listed as always running, so the page can say why (ADR-0024).'
+        );
+    }
+
+    @IsTest
+    static void upgradingGivingKeepsASwitchTheAdminTurnedOff() {
+        GivingPostInstall handler = new GivingPostInstall();
+        Test.testInstall(handler, null);
+        Integer afterInstall = [SELECT COUNT() FROM Automation_Setting__c];
+        Automation_Setting__c acknowledgment = switchesByName().get('Gift_Acknowledgment');
+        update new Automation_Setting__c(Id = acknowledgment.Id, Enabled__c = false);
+
+        Test.startTest();
+        Test.testInstall(handler, new Version(1, 0), true);
+        Test.stopTest();
+
+        Assert.areEqual(
+            afterInstall,
+            [SELECT COUNT() FROM Automation_Setting__c],
+            'An upgrade creates no second switch.'
+        );
+        Assert.isFalse(
+            switchesByName().get('Gift_Acknowledgment').Enabled__c,
+            'A switch the admin turned off stays off across an upgrade.'
+        );
+    }
+
+    private static Map<String, Automation_Setting__c> switchesByName() {
+        Map<String, Automation_Setting__c> byName = new Map<String, Automation_Setting__c>();
+        for (Automation_Setting__c setting : [
+            SELECT Id, Automation_Name__c, Enabled__c, Always_Runs__c
+            FROM Automation_Setting__c
+        ]) {
+            byName.put(setting.Automation_Name__c, setting);
+        }
+        return byName;
+    }
+
     private static List<String> shippedGivingKeys() {
         List<String> keys = new List<String>();
         for (Rollup_Definition_Default__mdt shipped : [

@@ -33,7 +33,9 @@ The pause itself, the switches, the banner and the audit trail are all built and
 ## How to turn it on
 
 Automation control is on as soon as Open Impact is installed. There is nothing to enable
-and nothing to install.
+and nothing to install: installing or upgrading each package creates the switch for every
+automation it ships, and leaves every switch you already have as you set it. If a switch is
+ever missing, the automation still runs, and Health Check names it and offers to restore it.
 
 You will find it in two places:
 

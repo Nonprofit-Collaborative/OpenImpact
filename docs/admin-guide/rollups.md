@@ -107,7 +107,8 @@ it nothing recalculates overnight and the Hub tile stays in warning.
 
 **Restore shipped rollups** at the top of the page creates the shipped rollups this org
 does not have and leaves every other rollup exactly as it is, including ones you have
-edited or switched off. Press it if the page is empty on a fresh install, which means the
+edited or switched off. A shipped rollup whose target field one of your own active rollups
+already writes is not created, so the two never overwrite each other's total. Press it if the page is empty on a fresh install, which means the
 install-time step failed and the Error Log will say why, or if a rollup you need is not
 listed.
 
