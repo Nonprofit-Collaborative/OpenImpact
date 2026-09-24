@@ -1,7 +1,8 @@
 /**
  * The Health Check questions about how Open Impact is set up and what it has been doing:
- * whether automation is paused, whether the two fiscal years agree, whether receipt
- * generation has been failing, and whether anything is waiting in the Error Log
+ * whether automation is paused (and whether anything will end the pause), whether the two
+ * fiscal years agree, whether receipt generation has been failing, and whether anything is
+ * waiting in the Error Log
  * (plan Section 4.8, feature C-11). Since C-21 it also asks whether the package defaults
  * materialized from shipped metadata are all here, and whether the nightly rollup run is
  * scheduled when a rollup needs it; those four findings carry a fix button (ADR-0048).
@@ -214,15 +215,24 @@ public with sharing class HealthCheckSettingsChecks {
             );
         }
 
+        // A pause nothing will end on time is a warning rather than information: it was set
+        // before automatic resume existed, or somewhere other than the Automation page (R-A5).
+        Boolean withoutResume = AutomationControl.isPauseWithoutResume();
         String detail = String.format(
-            System.Label.Core_HealthCheck_AutomationPausedDetail,
+            withoutResume
+                ? System.Label.Core_HealthCheck_PausedNoResumeDetail
+                : System.Label.Core_HealthCheck_AutomationPausedDetail,
             new List<Object>{ pausedUntil.format() }
         );
         return new HealthCheckService.Finding(
-                'automation_paused',
-                System.Label.Core_HealthCheck_AutomationPausedTitle,
+                withoutResume ? 'automation_paused_no_resume' : 'automation_paused',
+                withoutResume
+                    ? System.Label.Core_HealthCheck_PausedNoResumeTitle
+                    : System.Label.Core_HealthCheck_AutomationPausedTitle,
                 detail,
-                HealthCheckService.SEVERITY_INFO,
+                withoutResume
+                    ? HealthCheckService.SEVERITY_WARNING
+                    : HealthCheckService.SEVERITY_INFO,
                 HealthCheckService.CATEGORY_SETTINGS
             )
             .withFix(

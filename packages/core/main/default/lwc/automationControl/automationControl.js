@@ -24,6 +24,8 @@ import EIGHT_HOURS from '@salesforce/label/c.Core_AutomationControl_EightHours';
 import TWENTY_FOUR_HOURS from '@salesforce/label/c.Core_AutomationControl_TwentyFourHours';
 import ERROR_PREFIX from '@salesforce/label/c.Core_AutomationControl_ErrorPrefix';
 import PAUSED_PREFIX from '@salesforce/label/c.Core_AutomationControl_PausedPrefix';
+import PAUSED_BY from '@salesforce/label/c.Core_AutomationControl_PausedBy';
+import RESUMES_ITSELF from '@salesforce/label/c.Core_AutomationControl_ResumesItself';
 import UNEXPECTED_ERROR from '@salesforce/label/c.Core_Automation_UnexpectedError';
 import ALWAYS_RUNS from '@salesforce/label/c.Core_Automation_AlwaysRuns';
 
@@ -50,6 +52,7 @@ export default class AutomationControl extends LightningElement {
     runsOn: RUNS_ON,
     errorPrefix: ERROR_PREFIX,
     pausedPrefix: PAUSED_PREFIX,
+    resumesItself: RESUMES_ITSELF,
     alwaysRuns: ALWAYS_RUNS
   };
 
@@ -90,6 +93,12 @@ export default class AutomationControl extends LightningElement {
 
   get pausedUntil() {
     return this.page ? this.page.pausedUntil : undefined;
+  }
+
+  /** "Paused by Maria Lopez.", or nothing when the pause was not set from this page. */
+  get pausedByText() {
+    const name = this.page ? this.page.pausedBy : undefined;
+    return name ? PAUSED_BY.replace('{0}', name) : undefined;
   }
 
   /**

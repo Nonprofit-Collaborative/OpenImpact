@@ -522,7 +522,9 @@ private class HealthCheckServiceTest {
         // The pause is not an editable setting with a shipped Setting Definition row: Maria sets
         // it from the Automation panel, and the settings service rightly refuses a key no row
         // names. The factory writes the same field the way the product does.
-        TestDataFactory.pausedSettings(2);
+        Nonprofit_Settings__c paused = TestDataFactory.pausedSettings(2);
+        // A pause set from the page has its resume scheduled with it (R-A5).
+        AutomationResumeJob.scheduleAt(paused.Automation_Paused_Until__c);
 
         HealthCheckService.Finding finding = find(HealthCheckService.run(), 'automation_paused');
 
@@ -537,6 +539,44 @@ private class HealthCheckServiceTest {
             find(HealthCheckService.run(), 'automation_running'),
             'Automation cannot be both paused and running.'
         );
+    }
+
+    @IsTest
+    static void aPauseNothingWillEndIsAWarning() {
+        OrgShapeDetector.overrideShape = shape(false, false, false, false);
+        // Written straight to the setting with no resume job, as a pause from before C-23 was.
+        TestDataFactory.pausedSettings(2);
+
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+        HealthCheckService.Finding finding = find(findings, 'automation_paused_no_resume');
+
+        Assert.isNotNull(finding, 'A pause with no automatic resume is reported.');
+        Assert.areEqual(
+            HealthCheckService.SEVERITY_WARNING,
+            finding.severity,
+            'Nothing will record its end, so it is a warning.'
+        );
+        Assert.areEqual(
+            HealthCheckService.SECTION_AUTOMATION,
+            finding.fixTarget,
+            'The fix is the Automation page, where Resume is.'
+        );
+        Assert.isNull(find(findings, 'automation_paused'), 'One finding about the pause, not two.');
+    }
+
+    @IsTest
+    static void aPauseEndingBeyondTheLongestOfferedIsAWarningEvenWithAJob() {
+        OrgShapeDetector.overrideShape = shape(false, false, false, false);
+        TestDataFactory.pausedSettings(AutomationControl.LONGEST_PAUSE_HOURS + 24);
+        AutomationResumeJob.scheduleAt(System.now().addHours(1));
+
+        HealthCheckService.Finding finding = find(
+            HealthCheckService.run(),
+            'automation_paused_no_resume'
+        );
+
+        Assert.isNotNull(finding, 'No page pause ends this late, so the job is not its end.');
+        Assert.areEqual(HealthCheckService.SEVERITY_WARNING, finding.severity, 'A warning.');
     }
 
     @IsTest
