@@ -337,6 +337,37 @@ private class GiftBatchServiceTest {
     }
 
     @IsTest
+    static void aLineDatedInAClosedPeriodRollsTheWholeBatchBack() {
+        fund('General', true);
+        Date closed = Date.today().toStartOfMonth().addDays(-1);
+        GivingTestDataFactory.closeBooksThrough(closed);
+        User fundraiser = david();
+
+        System.runAs(fundraiser) {
+            Contact ana = person();
+            Gift_Batch__c tuesday = batch(150, null, null);
+            tuesday.Default_Gift_Date__c = Date.today();
+            update tuesday;
+            Gift_Batch_Row__c late = line(tuesday.Id, ana.Id, null, 100);
+            late.Gift_Date__c = closed.addDays(-2);
+            insert new List<Gift_Batch_Row__c>{ late, line(tuesday.Id, ana.Id, null, 50) };
+
+            Test.startTest();
+            GiftBatchService.PostOutcome outcome = GiftBatchService.post(tuesday.Id);
+            Test.stopTest();
+
+            Assert.isFalse(outcome.success, 'The post fails.');
+            Assert.areEqual(1, outcome.lineProblems.size(), 'Only the late line is named.');
+            Assert.areEqual(late.Id, outcome.lineProblems[0].rowId);
+            Assert.isTrue(
+                outcome.lineProblems[0].message.startsWith('The books are closed through'),
+                outcome.lineProblems[0].message
+            );
+            Assert.areEqual(0, [SELECT COUNT() FROM Gift__c], 'No gift survives the rollback.');
+        }
+    }
+
+    @IsTest
     static void twoHundredLinesPostInOneGo() {
         fund('General', true);
         User fundraiser = david();

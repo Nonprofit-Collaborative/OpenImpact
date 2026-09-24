@@ -92,6 +92,11 @@ was meant for another organization, and the donor has asked for it back.
   Lock permission in Setup for the length of the correction, and every change made that way
   is written to the Error Log. The procedure is on the [Gifts page](gifts.md), under
   "Lifting the receipt lock".
+- **Refunding a gift that is posted to accounting or in a closed period.** That works: the
+  refund is a new gift dated today, so it lands in an open period and in Jen's next export.
+  The one refusal is writing off a Pending gift dated in a closed period, which would put money
+  into a month already in the books; delete that gift instead. See
+  [Posting and Closed Periods](posting-and-closed-periods.md).
 - **Refunding more than is left.** The action is refused with "This refund is larger than
   the amount left on the gift." Check the gift's **Refunds** related list: part of it may
   have gone back already.

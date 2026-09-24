@@ -120,6 +120,7 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
             DonationMatcher matcher = new DonationMatcher(template);
             matchExternalIds(pending(gifts), batch.Id);
             matcher.refuseExistingUnderNeverMatch(gifts);
+            refuseClosedPeriod(pending(gifts));
             GiftImportCredits.read(pending(gifts));
             resolveDonors(pending(gifts), dryRun);
             GiftImportCredits.resolveParties(pending(gifts), dryRun);
@@ -169,6 +170,31 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
             }
         }
         state.carry();
+    }
+
+    /**
+     * A row that would add a gift to the books in a closed accounting period is refused before
+     * anything is written, in the dry run as in the commit, with the sentence the gift's own
+     * save would give (R-G14, ADR-NEXT). A row matched to an existing gift adds nothing and is
+     * not asked. In-kind gifts are not in the books.
+     */
+    private static void refuseClosedPeriod(List<GiftImportRow> gifts) {
+        Date closed = GiftPostingLock.closedThrough();
+        if (closed == null || GiftPostingLock.canOverride()) {
+            return;
+        }
+        String reason = String.format(
+            Label.Giving_Posting_ClosedPeriodNewGift,
+            new List<String>{ closed.format() }
+        );
+        for (GiftImportRow item : gifts) {
+            if (
+                GiftPostingLock.isInClosedPeriod(item.giftDate, closed) &&
+                item.values.get(Gift__c.Type__c) != GiftPostingLock.TYPE_IN_KIND
+            ) {
+                item.error = reason;
+            }
+        }
     }
 
     private static void refuseAll(List<GiftImportRow> gifts, String reason) {
@@ -594,7 +620,8 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
     /**
      * Why records must survive an undo (R-GI9). A gift stays when a document the donor holds
      * lists it: it carries a receipt number, a receipt of any status names it, or an issued
-     * year-end statement covers its donor and year (ADR-0010, ADR-0024). A person, household
+     * year-end statement covers its donor and year (ADR-0010, ADR-0024), or it is locked by the
+     * posting lock: posted to accounting, or in the books in a closed period (ADR-NEXT). A person, household
      * or organization stays while a gift this import made, and that is being kept, still names
      * it as donor, household or soft credit.
      */
@@ -615,9 +642,14 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
         List<Gift__c> gifts = GiftImportIntegritySelector.selectForUndo(giftIds);
         Set<Id> donorIds = new Set<Id>();
         Set<Integer> years = new Set<Integer>();
+        Date closed = GiftPostingLock.closedThrough();
         for (Gift__c gift : gifts) {
             if (gift.Receipt_Number__c != null || !gift.Receipts__r.isEmpty()) {
                 keep.put(gift.Id, Label.Giving_Import_UndoKeptReceipted);
+            } else if (GiftPostingLock.isInBooks(gift) && GiftPostingLock.isPosted(gift)) {
+                keep.put(gift.Id, Label.Giving_Import_UndoKeptPosted);
+            } else if (GiftPostingLock.isLocked(gift, closed)) {
+                keep.put(gift.Id, Label.Giving_Import_UndoKeptClosedPeriod);
             } else if (gift.Gift_Date__c != null) {
                 donorIds.add(
                     gift.Donor_Contact__c != null ? gift.Donor_Contact__c : gift.Donor_Account__c

@@ -130,6 +130,9 @@ reason in the import's journal:
 - **A gift with a receipt.** Once a receipt or a year-end statement has gone to the donor
   listing the gift, the gift stays. Void the receipt and refund or write off the gift if it
   really was a mistake.
+- **A gift in the books.** A gift posted to accounting, or dated in a closed accounting
+  period, stays (see [Posting and Closed Periods](posting-and-closed-periods.md)). Refund it
+  if it was a mistake: the refund is dated today.
 - **The donor of a gift that stays.** A person, household or organization is not removed
   while a gift that is kept still names them.
 
@@ -138,6 +141,10 @@ pledge that gift had completed is active again. A pledge you marked complete you
 complete.
 
 ## 7. Common mistakes
+
+**`The books are closed through...` on a row.** The row's gift is dated in a closed accounting
+period, and the dry run refuses it as the import would. Date it after the close date, or ask
+the administrator (see [Posting and Closed Periods](posting-and-closed-periods.md)).
 
 **Rows rejected with "Not attempted: this chunk ran out of room".** One gift in the chunk was
 refused and the rest were retried one at a time until the chunk ran short of room. Nothing was

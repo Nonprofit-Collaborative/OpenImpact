@@ -524,4 +524,78 @@ private class GiftImportProcessorTest {
             'The organization gave.'
         );
     }
+
+    // -------------------------------------------------------------------------------------
+    // The posting lock (G-20, ADR-NEXT)
+    // -------------------------------------------------------------------------------------
+
+    @IsTest
+    static void aRowDatedInAClosedPeriodIsRefusedInTheDryRunAndTheCommit() {
+        fund('General', null, true);
+        Date closed = Date.today().toStartOfMonth().addDays(-1);
+        given(
+            new List<String>{ 'Gift.Amount__c', 'Gift.Gift_Date__c' },
+            new List<List<String>>{
+                new List<String>{ '10', String.valueOf(closed.addDays(-3)) },
+                new List<String>{ '20', String.valueOf(Date.today()) }
+            }
+        );
+        GivingTestDataFactory.closeBooksThrough(closed);
+
+        User maria = maria();
+        System.runAs(maria) {
+            Test.startTest();
+            run(true);
+            List<Import_Row__c> dry = rows();
+            Assert.areEqual(ImportRowProcessor.STATUS_REJECTED, dry[0].Status__c);
+            Assert.isTrue(
+                dry[0].Error_Message__c.startsWith('The books are closed through'),
+                dry[0].Error_Message__c
+            );
+            Assert.areEqual(ImportRowProcessor.STATUS_CREATED, dry[1].Status__c);
+            run(false);
+            Test.stopTest();
+        }
+
+        List<Import_Row__c> committed = rows();
+        Assert.areEqual(ImportRowProcessor.STATUS_REJECTED, committed[0].Status__c);
+        Assert.areEqual(ImportRowProcessor.STATUS_CREATED, committed[1].Status__c);
+        Assert.areEqual(1, [SELECT COUNT() FROM Gift__c], 'Only the gift dated today');
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Contact WHERE Email = 'donor0@example.org'],
+            'The refused row created no donor either'
+        );
+    }
+
+    @IsTest
+    static void anUndoKeepsPostedAndClosedPeriodGifts() {
+        fund('General', null, true);
+        given(
+            new List<String>{ 'Gift.Amount__c', 'Gift.Gift_Date__c' },
+            new List<List<String>>{
+                new List<String>{ '10', '2026-03-15' },
+                new List<String>{ '20', String.valueOf(Date.today()) },
+                new List<String>{ '30', String.valueOf(Date.today()) }
+            }
+        );
+        System.runAs(maria()) {
+            run(false);
+        }
+        Map<Decimal, Id> giftIds = new Map<Decimal, Id>();
+        for (Gift__c gift : [SELECT Id, Amount__c FROM Gift__c]) {
+            giftIds.put(gift.Amount__c, gift.Id);
+        }
+        Assert.areEqual(3, giftIds.size(), 'All three imported');
+        GivingTestDataFactory.closeBooksThrough(Date.newInstance(2026, 6, 30));
+        GiftPostingService.postPermission = true;
+        GiftPostingService.markPosted(new Set<Id>{ giftIds.get(20) });
+
+        Map<Id, String> keep = new GiftImportProcessor()
+            .reasonsToKeep(batch.Id, Gift__c.SObjectType, new Set<Id>(giftIds.values()));
+
+        Assert.areEqual(Label.Giving_Import_UndoKeptClosedPeriod, keep.get(giftIds.get(10)));
+        Assert.areEqual(Label.Giving_Import_UndoKeptPosted, keep.get(giftIds.get(20)));
+        Assert.isFalse(keep.containsKey(giftIds.get(30)), 'An open, unposted gift can go');
+    }
 }
