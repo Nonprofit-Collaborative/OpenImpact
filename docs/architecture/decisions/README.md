@@ -58,6 +58,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0047](0047-data-management-scope.md) | Data management runs in the org, compiles queries from a document, and is phased | Accepted |
 | [0048](0048-health-check-fixes-create-or-set-never-delete.md) | Health Check fix buttons create or set, never delete, and ask first | Accepted (builder decision) |
 | [0049](0049-xlsx-read-in-the-browser-without-sheetjs.md) | Excel workbooks are read in the browser without SheetJS | Accepted (builder decision) |
+| [NEXT](NEXT-gift-import-and-donation-matching.md) | Gift import through the entity processor seam, and donation matching | Accepted (builder decision) |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions
@@ -103,6 +104,8 @@ ADR-0048 is a builder decision for C-21 on which Health Check findings may carry
 orphaned records are detected there with no fix, by owner decision.
 ADR-0049 is a builder decision for C-19 on reading Excel workbooks in the browser without
 SheetJS.
+ADR-NEXT is a builder decision for G-23 and G-24 on the entity processor seam, the undo of
+imported gifts and the choices the plan leaves open for gift import and donation matching.
 
 ## Adding a new ADR
 
