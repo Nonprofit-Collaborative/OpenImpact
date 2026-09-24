@@ -41,7 +41,10 @@ private class AccountingExportServiceTest {
         goods.In_Kind_Description__c = 'Two laptops';
         goods.Fair_Market_Value__c = 500;
         Gift__c september = gift(ana.Id, null, 25, 'Check', Date.newInstance(2026, 9, 2));
-        insert new List<Gift__c>{ check, split, unallocated, pending, goods, september };
+        // A Pending gift that will never be paid (R-G16): not money, so in no file.
+        Gift__c cancelled = gift(ana.Id, null, 65, 'Check', Date.newInstance(2026, 8, 14));
+        cancelled.Status__c = 'Cancelled';
+        insert new List<Gift__c>{ check, split, unallocated, pending, goods, september, cancelled };
         Gift__c refund = gift(null, riverside.Id, -40, 'Card', Date.newInstance(2026, 8, 25));
         refund.Original_Gift__c = split.Id;
         insert refund;
@@ -52,6 +55,7 @@ private class AccountingExportServiceTest {
             allocation(split.Id, general.Id, 100),
             allocation(refund.Id, general.Id, -40),
             allocation(pending.Id, general.Id, 70),
+            allocation(cancelled.Id, general.Id, 65),
             allocation(september.Id, general.Id, 25)
         };
         Nonprofit_Settings__c running = TestDataFactory.defaultSettings();
@@ -90,6 +94,7 @@ private class AccountingExportServiceTest {
         Assert.areEqual(5, file.rowCount, file.csv);
         Assert.areEqual(4, file.giftCount, 'The split gift is two rows and one gift.');
         Assert.areEqual(410, file.total, 'The net: 100 + 300 + 50 - 40.');
+        Assert.isFalse(file.csv.contains(',65.00'), 'The Cancelled gift is not money: ' + file.csv);
         List<String> rows = lines(file);
         Assert.areEqual(
             'Date,Gift Number,Original Gift,Donor,Fund,Accounting Code,Payment Method,Reference,Amount',
