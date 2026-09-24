@@ -6,7 +6,7 @@
  * the few parts it needs with the browser's own DecompressionStream, and reads the XML with
  * DOMParser. It reads values, not formatting: a formula gives the value Excel last saved for
  * it, a date gives YYYY-MM-DD (with the time when there is one), and a number gives the digits
- * Excel stored. See ADR-NEXT (the workbook is read in the browser without SheetJS).
+ * Excel stored. See ADR-0049 (the workbook is read in the browser without SheetJS).
  */
 
 const EOCD_SIGNATURE = 0x06054b50;

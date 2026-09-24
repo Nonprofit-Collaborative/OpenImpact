@@ -1,10 +1,10 @@
-# ADR-NEXT: Excel workbooks are read in the browser without SheetJS
+# ADR-0049: Excel workbooks are read in the browser without SheetJS
 
-**Status:** Proposed
+**Status:** Accepted (builder decision)
 **Date:** 2026-09-23
-**Source:** builder decision under plan Section 9.3, feature C-19; departs from plan Section 4.9
+**Source:** builder decision under plan Section 9.3, feature C-19; departed from plan Section 4.9
 ("client-side parsing with SheetJS") and Section 9 (SheetJS as the one pre-approved
-third-party script)
+third-party script) as they then read. Both sections now cite this ADR.
 
 ## Context
 
@@ -38,6 +38,10 @@ or read the legacy binary .xls format.
 - A browser without `DecompressionStream`, a file that is not a workbook, or a zip feature
   the reader does not handle (ZIP64, encryption) is refused with a sentence that says to save
   the sheet as CSV and upload that. Nothing is guessed.
+- A workbook too large to read in the browser is refused the same way: a part whose declared
+  or inflated size is over 100 MB, a row past 500,000 or a column past 1,000. The declared
+  size is read from the central directory, so a small file claiming a huge sheet is refused
+  before it is inflated.
 - The reader is covered by Jest tests that build workbooks in the test, including a skipped
   row and column, rich text, inline strings, booleans, both date systems and stored (not
   compressed) parts.
@@ -57,8 +61,7 @@ or read the legacy binary .xls format.
 ## Consequences
 
 - No third-party script ships in the wizard, and plan Section 9's pre-approval of SheetJS is
-  unused. Plan Section 4.9 should read "client-side parsing" without naming SheetJS; the plan
-  owner makes that edit.
+  unused. The plan owner has since edited Sections 4.9 and 9 to match.
 - The reader is Open Impact's to maintain. Its scope is fixed by this ADR: first sheet,
   values only, .xlsx only. A request for more reopens the choice above rather than growing it.
 - Legacy .xls files and password-protected workbooks are not read; the message says to save
