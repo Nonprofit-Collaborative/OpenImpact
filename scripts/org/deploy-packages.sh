@@ -83,7 +83,12 @@
 # the same stage deploys normally. So each stage is submitted with --async and followed with
 # short report calls: a job still Pending with no start after STALL_SECONDS (300) is
 # cancelled, best effort, and resubmitted once; a second stall fails the stage naming both
-# job ids. A job that has started keeps the old 30 minute limit (DEPLOY_WAIT_MINUTES).
+# job ids. A job that has started keeps the old 30 minute limit (DEPLOY_WAIT_MINUTES). Each
+# report call is abandoned after REPORT_TIMEOUT_SECONDS (60): one hung for 290s on 2026-09-24.
+# A transient client error (fetch failed, ECONNRESET, a 5xx) on a submit or a report is
+# retried, not taken as a failure: the same day one stage failed on "fetch failed" while the
+# org reported that deploy Succeeded. After a submit error, the newest DeployRequest from the
+# last minute is followed if there is one, so a stage is never deployed twice.
 # POLL_SECONDS sets the report interval. `sf` is found on PATH, so a fake one can drive this
 # logic in a test.
 #
@@ -95,6 +100,9 @@ STAGE_PAUSE_SECONDS="${STAGE_PAUSE_SECONDS:-15}"
 STALL_SECONDS="${STALL_SECONDS:-300}"
 POLL_SECONDS="${POLL_SECONDS:-15}"
 DEPLOY_WAIT_MINUTES="${DEPLOY_WAIT_MINUTES:-30}"
+REPORT_TIMEOUT_SECONDS="${REPORT_TIMEOUT_SECONDS:-60}"
+REPORT_FAILURE_LIMIT="${REPORT_FAILURE_LIMIT:-20}"
+RETRY_BACKOFF_SECONDS="${RETRY_BACKOFF_SECONDS:-5}"
 STALLS_RECOVERED=0
 
 ALIAS="${1:-}"
@@ -107,45 +115,137 @@ shift || true
 CORE_ONLY=0
 [[ "${1:-}" == "--core-only" ]] && CORE_ONLY=1
 
+# Run a command with its output in a file, abandoning it (and the node process under the
+# sf wrapper) after $1 seconds. On 2026-09-24 a single `sf project deploy report` call hung
+# for about 290 seconds on oi-test while the deploy itself finished in 2, so no call is
+# allowed to hold up the stall check. macOS has no `timeout`; a polling loop is used rather
+# than a watchdog subshell, which could outlive the call it guarded.
+run_capped() {
+  local secs="$1" out="$2" pid kids ticks=0
+  shift 2
+  "$@" > "$out" 2> /dev/null &
+  pid=$!
+  while kill -0 "$pid" 2> /dev/null; do
+    if (( ticks >= secs * 5 )); then
+      # The parent first, so the wrapper cannot carry on once its child is gone.
+      kids="$(pgrep -P "$pid")"
+      kill "$pid" 2> /dev/null
+      [[ -n "$kids" ]] && kill $kids 2> /dev/null
+      : > "$out"
+      break
+    fi
+    sleep 0.2
+    ticks=$(( ticks + 1 ))
+  done
+  wait "$pid" 2> /dev/null
+  return 0
+}
+
+# A client side error that says nothing about the deploy: the request or its answer was lost
+# on the way. On 2026-09-24 a stage on oi-pa failed with "Error (10): fetch failed" while
+# the org's own report for that deploy said Succeeded.
+TRANSIENT_PATTERN='fetch failed|ECONNRESET|ETIMEDOUT|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|socket hang up|network|Service Unavailable|Bad Gateway|Gateway Time-?out|Internal Server Error|\b5[0-9][0-9]\b'
+
+# After a submit that errored in transit, find the deploy the org may have created anyway:
+# the newest DeployRequest created since a minute before the submit. The org lock means no
+# one else deploys meanwhile. Prints the id, or nothing.
+find_recent_deploy() {
+  local since="$1" capture
+  capture="$(mktemp)"
+  run_capped "$REPORT_TIMEOUT_SECONDS" "$capture" sf data query --use-tooling-api --target-org "$ALIAS" --json \
+    --query "SELECT Id FROM DeployRequest WHERE CreatedDate >= ${since} ORDER BY CreatedDate DESC LIMIT 1"
+  jq -r '.result.records[0].Id // empty' "$capture" 2> /dev/null
+  rm -f "$capture"
+}
+
 # Submit one deploy asynchronously and follow it with short report calls. Sets JOB_ID.
 # Returns 0 when it succeeded, 1 when it finished any other way (or ran past
 # DEPLOY_WAIT_MINUTES, the old --wait 30), and 2 when it was still Pending with no start
 # after STALL_SECONDS: a stall, which the caller cancels and resubmits. A job that has
-# started is never a stall, however long it runs.
+# started is never a stall, however long it runs. A transient client error on the submit or
+# on a report call is retried, never taken for a result.
 submit_and_follow() {
-  local out report state finished started deployed total shown="" submitted="$SECONDS"
+  local out report state finished started deployed total shown="" submitted since message
+  local capture try misses=0 verdict
+  capture="$(mktemp)"
   JOB_ID=""
-  out="$(sf project deploy start "$@" --async --ignore-conflicts --target-org "$ALIAS" --json 2>/dev/null)"
-  JOB_ID="$(jq -r '.result.id // empty' <<< "$out" 2>/dev/null)"
+  for try in 1 2 3; do
+    since="$(python3 -c 'import datetime as d; print((d.datetime.now(d.timezone.utc) - d.timedelta(seconds=60)).strftime("%Y-%m-%dT%H:%M:%SZ"))')"
+    run_capped 300 "$capture" sf project deploy start "$@" --async --ignore-conflicts --target-org "$ALIAS" --json
+    out="$(cat "$capture")"
+    JOB_ID="$(jq -r '.result.id // empty' <<< "$out" 2> /dev/null)"
+    [[ -n "$JOB_ID" ]] && break
+    message="$(jq -r '.message // empty' <<< "$out" 2> /dev/null)"
+    message="${message:-${out:-no output}}"
+    if ! grep -qiE "$TRANSIENT_PATTERN" <<< "$message" && [[ -n "$out" ]]; then
+      echo "The org did not accept the deploy:"
+      echo "$message"
+      rm -f "$capture"
+      return 1
+    fi
+    echo "== Transient client error on submit (${message:0:120}). Checking whether the org created the deploy anyway =="
+    JOB_ID="$(find_recent_deploy "$since")"
+    if [[ -n "$JOB_ID" ]]; then
+      echo "== The org did create it: following ${JOB_ID} rather than deploying the stage twice =="
+      break
+    fi
+    if [[ "$try" -lt 3 ]]; then
+      echo "== No deploy was created. Resubmitting in $(( try * 3 * RETRY_BACKOFF_SECONDS ))s =="
+      sleep $(( try * 3 * RETRY_BACKOFF_SECONDS ))
+    fi
+  done
   if [[ -z "$JOB_ID" ]]; then
-    echo "The org did not accept the deploy:"
-    jq -r '.message // empty' <<< "$out" 2>/dev/null || echo "$out"
+    echo "The deploy could not be submitted: three transient client errors in a row."
+    rm -f "$capture"
     return 1
   fi
+  submitted="$SECONDS"
   echo "Deploy ID: ${JOB_ID}"
   while true; do
     sleep "$POLL_SECONDS"
-    report="$(sf project deploy report --job-id "$JOB_ID" --target-org "$ALIAS" --json 2>/dev/null)"
-    read -r state finished started deployed total < <(jq -r '.result
+    : > "$capture"
+    run_capped "$REPORT_TIMEOUT_SECONDS" "$capture" sf project deploy report --job-id "$JOB_ID" --target-org "$ALIAS" --json
+    report="$(cat "$capture")"
+    state="" finished="" started="" deployed="" total=""
+    read -r state finished started deployed total < <(jq -r '.result // empty
       | "\(.status // "Unknown") \(.done // false) \(.startDate // "none") \(.numberComponentsDeployed // 0) \(.numberComponentsTotal // 0)"' \
-      <<< "$report" 2>/dev/null)
-    state="${state:-Unknown}" finished="${finished:-false}" started="${started:-none}"
-    if [[ "${state} ${deployed}/${total}" != "$shown" ]]; then
-      shown="${state} ${deployed}/${total}"
-      echo "Status: ${state} (${deployed:-0}/${total:-0} components, $(( SECONDS - submitted ))s)"
+      <<< "$report" 2> /dev/null)
+    verdict=""
+    if [[ -z "$state" ]]; then
+      # No readable report: a hung or failed call. Retry after a short backoff; a report that
+      # stays unreadable for REPORT_FAILURE_LIMIT calls in a row fails the stage.
+      misses=$(( misses + 1 ))
+      message="$(jq -r '.message // empty' <<< "$report" 2> /dev/null)"
+      echo "Report call ${misses} gave no status (${message:-no answer within ${REPORT_TIMEOUT_SECONDS}s}). Retrying."
+      if (( misses >= REPORT_FAILURE_LIMIT )); then
+        echo "No readable report for ${JOB_ID} in ${misses} calls in a row."
+        verdict=1
+      else
+        sleep $(( (misses < 4 ? misses : 4) * RETRY_BACKOFF_SECONDS ))
+      fi
+    else
+      misses=0
+      if [[ "${state} ${deployed}/${total}" != "$shown" ]]; then
+        shown="${state} ${deployed}/${total}"
+        echo "Status: ${state} (${deployed}/${total} components, $(( SECONDS - submitted ))s)"
+      fi
+      case "$state" in
+        Succeeded) verdict=0 ;;
+        SucceededPartial | Failed | Canceled) verdict=1 ;;
+      esac
+      [[ -z "$verdict" && "$finished" == "true" ]] && verdict=1
+      if [[ -z "$verdict" && "$state" =~ ^(Pending|Queued)$ && "$started" == "none" && "$deployed" -eq 0 ]] \
+        && (( SECONDS - submitted >= STALL_SECONDS )); then
+        verdict=2
+      fi
     fi
-    case "$state" in
-      Succeeded) return 0 ;;
-      SucceededPartial | Failed | Canceled) return 1 ;;
-    esac
-    [[ "$finished" == "true" ]] && return 1
-    if [[ "$state" =~ ^(Pending|Queued)$ && "$started" == "none" && "${deployed:-0}" -eq 0 ]] \
-      && (( SECONDS - submitted >= STALL_SECONDS )); then
-      return 2
+    if [[ -z "$verdict" ]] && (( SECONDS - submitted >= DEPLOY_WAIT_MINUTES * 60 )); then
+      echo "Timed out after ${DEPLOY_WAIT_MINUTES} minutes with the deploy still ${state:-unreported}."
+      verdict=1
     fi
-    if (( SECONDS - submitted >= DEPLOY_WAIT_MINUTES * 60 )); then
-      echo "Timed out after ${DEPLOY_WAIT_MINUTES} minutes with the deploy still ${state}."
-      return 1
+    if [[ -n "$verdict" ]]; then
+      rm -f "$capture"
+      return "$verdict"
     fi
   done
 }
@@ -179,7 +279,7 @@ deploy_stage() {
     [[ "$status" -ne 2 ]] && break
     stalled+=("$JOB_ID")
     echo "== STALLED DEPLOY: ${label}, job ${JOB_ID}, still Pending with no start after ${STALL_SECONDS}s. Cancelling it =="
-    sf project deploy cancel --job-id "$JOB_ID" --target-org "$ALIAS" --async --json > /dev/null 2>&1 || true
+    run_capped "$REPORT_TIMEOUT_SECONDS" /dev/null sf project deploy cancel --job-id "$JOB_ID" --target-org "$ALIAS" --async --json
     [[ "$attempt" -eq 1 ]] && echo "== Resubmitting ${label} once =="
   done
 

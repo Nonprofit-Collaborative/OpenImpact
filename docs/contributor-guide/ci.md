@@ -367,6 +367,16 @@ stage, naming both job ids. A job that has started is not a stall and keeps the 
 limit (`DEPLOY_WAIT_MINUTES`). Component errors are reported exactly as before. The script
 prints how many stalls it recovered before "Every stage deployed".
 
+Two client side faults were seen the same day and are handled too. A single report call hung
+for about 290 seconds on oi-test while its deploy finished in 2, so every report call is
+abandoned after `REPORT_TIMEOUT_SECONDS` (60). A stage on oi-pa failed on `Error (10): fetch
+failed` while the org reported that deploy Succeeded, so a transient client error (fetch
+failed, `ECONNRESET`, `ETIMEDOUT`, socket hang up, a 5xx) on a submit or a report is retried
+after a short backoff and never taken as a result. After a submit error, the newest
+DeployRequest created in the last minute is followed if there is one (the org lock means it
+is ours), so a stage is never deployed twice; otherwise the stage is resubmitted, up to three
+submits. Twenty unreadable reports in a row (`REPORT_FAILURE_LIMIT`) fail the stage.
+
 **Resolved 2026-09-22: the cause was in our files, not the platform.** 146 of the custom
 metadata records wrote `xsi:type="xsd:string"` (and `xsd:boolean`, `xsd:double`) without
 declaring the `xsd` prefix on the root element. The metadata API rejects such a record while
