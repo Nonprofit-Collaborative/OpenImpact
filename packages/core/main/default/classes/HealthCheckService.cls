@@ -11,7 +11,10 @@
  * - HealthCheckOrgShapeChecks: what is installed, and whether the mode matches it.
  * - HealthCheckAccessChecks: who administers the app, who cannot see it, who holds the
  *   receipt lock override. Only asked of a viewer who may manage settings.
- * - HealthCheckSettingsChecks: automation, fiscal year, receipt generation, Error Log.
+ * - HealthCheckSettingsChecks: automation, fiscal year, receipt generation, Error Log, and
+ *   the package defaults and nightly run a fix button can restore (C-21, ADR-0048).
+ * - HealthCheckHouseholdChecks: whether everyone is in a household and every household has
+ *   somebody in it. Detection only, with no fix button (C-21, ADR-0048).
  *
  * Every check is isolated. A check that throws becomes a finding of its own and is written
  * to the Error Log; the other checks still run, because a report that hides eight answers
@@ -39,6 +42,44 @@ public with sharing class HealthCheckService {
     public static final String FIX_APPLY_RECOMMENDED_MODE = 'action:applyRecommendedMode';
     public static final String FIX_APPLY_JUNCTION_MEMBERSHIP = 'action:applyJunctionMembership';
     public static final String FIX_ENABLE_AUTOMATIC_HOUSEHOLDS = 'action:enableAutomaticHouseholds';
+
+    /**
+     * The fixes HealthCheckController.applyFix runs (C-21, ADR-0048). Each one only creates
+     * what is missing or schedules what is not scheduled, so pressing it twice is pressing it
+     * once. The key is what follows the action prefix in the fix target.
+     */
+    public static final String FIX_KEY_RESTORE_ROLLUPS = 'restoreShippedRollups';
+    public static final String FIX_KEY_RESTORE_AUTOMATION_SWITCHES = 'restoreAutomationSwitches';
+    public static final String FIX_KEY_RESTORE_IMPORT_TEMPLATES = 'restoreImportTemplates';
+    public static final String FIX_KEY_SCHEDULE_NIGHTLY_ROLLUPS = 'scheduleNightlyRollups';
+
+    /**
+     * What one of those fixes would change if it ran now: the names of the rows it would create,
+     * or the name of the job it would schedule. Empty when it would change nothing, null for a
+     * key that is not one of them.
+     *
+     * The finding carries this list, the panel sends it back with the fix request, and the
+     * controller refuses to run when the list it computes then is different. So the fix creates
+     * exactly what the administrator read in the confirm box, never what changed since
+     * (ADR-0048 condition 5).
+     */
+    public static List<String> fixScope(String fixKey) {
+        if (FIX_KEY_RESTORE_ROLLUPS.equals(fixKey)) {
+            return RollupService.missingDefaultNames();
+        }
+        if (FIX_KEY_RESTORE_AUTOMATION_SWITCHES.equals(fixKey)) {
+            return AutomationControl.missingDefaultNames();
+        }
+        if (FIX_KEY_RESTORE_IMPORT_TEMPLATES.equals(fixKey)) {
+            return ImportTemplateService.missingDefaultNames();
+        }
+        if (FIX_KEY_SCHEDULE_NIGHTLY_ROLLUPS.equals(fixKey)) {
+            return RollupScheduler.isScheduled()
+                ? new List<String>()
+                : new List<String>{ RollupScheduler.jobName() };
+        }
+        return null;
+    }
 
     /** The settings console tab that hosts every section a fix can point at. */
     public static final String SETTINGS_TAB = 'Nonprofit_Settings';
@@ -133,6 +174,12 @@ public with sharing class HealthCheckService {
         public String fixTarget;
         @AuraEnabled
         public String category;
+        /** What the fix would change, as fixScope computed it for this report. */
+        @AuraEnabled
+        public List<String> fixScope;
+        /** Records the finding is about, to open one by one. Never a fix. */
+        @AuraEnabled
+        public List<Link> links;
 
         public Finding(String key, String title, String detail, String severity, String category) {
             this.key = key;
@@ -146,6 +193,34 @@ public with sharing class HealthCheckService {
             this.fixLabel = fixLabel;
             this.fixTarget = fixTarget;
             return this;
+        }
+
+        public Finding withScope(List<String> fixScope) {
+            this.fixScope = fixScope;
+            return this;
+        }
+
+        public Finding withLinks(List<Link> links) {
+            this.links = links;
+            return this;
+        }
+    }
+
+    /** One record a finding names, with where to open it. */
+    public class Link {
+        @AuraEnabled
+        public String label;
+        @AuraEnabled
+        public String url;
+
+        public Link(SObject record) {
+            this.label = String.valueOf(record.get('Name'));
+            this.url =
+                '/lightning/r/' +
+                record.getSObjectType().getDescribe().getName() +
+                '/' +
+                record.Id +
+                '/view';
         }
     }
 
@@ -180,6 +255,9 @@ public with sharing class HealthCheckService {
         public String settingsTabApiName;
         @AuraEnabled
         public String sectionStateKey;
+        /** After a fix: what it created or scheduled, and what it left out. Null otherwise. */
+        @AuraEnabled
+        public String fixOutcome;
 
         public Report() {
             this.findings = new List<Finding>();
@@ -268,7 +346,9 @@ public with sharing class HealthCheckService {
      * The checks to run, in reading order. The access and Error Log counts are only asked
      * for when the viewer can actually see the answer: a person without the administrator
      * permission sees their own permission set assignments and nothing else, and a count
-     * taken from that is confidently wrong, which is worse than no count at all.
+     * taken from that is confidently wrong, which is worse than no count at all. The package
+     * defaults checks are gated the same way, because only that viewer can press their fix,
+     * and so are the household counts, which are read with the viewer's own access.
      */
     private static List<CheckStep> steps() {
         List<CheckStep> steps = new List<CheckStep>();
@@ -350,6 +430,42 @@ public with sharing class HealthCheckService {
 
         if (canManageSettings()) {
             steps.add(new CheckStep('error_log', new HealthCheckSettingsChecks.ErrorLogCheck()));
+            steps.add(
+                new CheckStep(
+                    'people_without_household',
+                    new HealthCheckHouseholdChecks.PeopleWithoutHouseholdCheck()
+                )
+            );
+            steps.add(
+                new CheckStep(
+                    'households_without_members',
+                    new HealthCheckHouseholdChecks.HouseholdsWithoutMembersCheck()
+                )
+            );
+            steps.add(
+                new CheckStep(
+                    'shipped_rollups',
+                    new HealthCheckSettingsChecks.ShippedRollupsCheck()
+                )
+            );
+            steps.add(
+                new CheckStep(
+                    'automation_switches',
+                    new HealthCheckSettingsChecks.AutomationSwitchesCheck()
+                )
+            );
+            steps.add(
+                new CheckStep(
+                    'import_templates',
+                    new HealthCheckSettingsChecks.ImportTemplatesCheck()
+                )
+            );
+            steps.add(
+                new CheckStep(
+                    'nightly_rollups',
+                    new HealthCheckSettingsChecks.NightlyRollupsCheck()
+                )
+            );
         }
 
         return steps;

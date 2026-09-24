@@ -7,6 +7,7 @@
 @IsTest
 private class CorePostInstallTest {
     private static final String ROLLUP_CONTEXT = 'CorePostInstall.ensureRollupDefaults';
+    private static final String SWITCH_CONTEXT = 'CorePostInstall.ensureAutomationSwitches';
     private static final String RETRY_CONTEXT = 'CorePostInstallRetryQueueable.execute';
     private static final String MODE_CONTEXT = 'CorePostInstall.applyRecommendedMode';
 
@@ -30,35 +31,112 @@ private class CorePostInstallTest {
         );
     }
 
+    /**
+     * The person who installs the package in one test: somebody created for that test alone.
+     *
+     * Not the running user, because the running user is shared. Test classes run in parallel
+     * as the same person, and a PermissionSetAssignment for a given person and group is one
+     * row whoever inserts it: when another class (SetupAssistantControllerTest, for one) gives
+     * the running user the Nonprofit Admin role at the same moment as the job here, one of
+     * the two inserts is refused, the job logs the refusal as it should, and the role count
+     * here reads 0. A person nobody else can see has no such neighbour. It also means the
+     * permission set assertions prove the install gave it, rather than finding the one the
+     * test org's run script assigned to the running user beforehand.
+     *
+     * @return the installer's Id, holding no Open Impact access yet
+     */
+    private static Id newInstaller() {
+        return TestDataFactory.createUser('Installer', new List<String>()).Id;
+    }
+
+    /**
+     * Installs the package for the first time, as the given person.
+     *
+     * Test.testInstall has no way to name the installer, and the one it names is the running
+     * user (see newInstaller), so the handler is given a context that states the person.
+     * Nothing else in the context is read by the handler.
+     *
+     * @param handler the install handler under test
+     * @param installerId the person pressing Install
+     */
+    private static void install(CorePostInstall handler, Id installerId) {
+        handler.onInstall(new InstallBy(installerId, null, false));
+    }
+
+    /**
+     * Upgrades from version 1.0 as the given person, as a push upgrade.
+     *
+     * @param handler the install handler under test
+     * @param installerId the person the upgrade is recorded against
+     */
+    private static void upgrade(CorePostInstall handler, Id installerId) {
+        handler.onInstall(new InstallBy(installerId, new Version(1, 0), true));
+    }
+
+    /** What the platform tells an install handler, with the installer stated. */
+    private class InstallBy implements InstallContext {
+        private final Id installer;
+        private final Version previous;
+        private final Boolean pushed;
+
+        InstallBy(Id installer, Version previous, Boolean pushed) {
+            this.installer = installer;
+            this.previous = previous;
+            this.pushed = pushed;
+        }
+
+        public Id organizationId() {
+            return UserInfo.getOrganizationId();
+        }
+
+        public Id installerId() {
+            return installer;
+        }
+
+        public Version previousVersion() {
+            return previous;
+        }
+
+        public Boolean isUpgrade() {
+            return previous != null;
+        }
+
+        public Boolean isPush() {
+            return pushed;
+        }
+    }
+
     @IsTest
     static void installAlwaysGivesTheInstallerTheAdminPermissionSet() {
+        Id installer = newInstaller();
         // The permission set is the step that must never depend on timing: it has no
         // calculation status, so it works the moment the job the install queues runs.
         CorePostInstall handler = new CorePostInstall();
 
         Test.startTest();
-        Test.testInstall(handler, null);
+        install(handler, installer);
         Test.stopTest();
 
         Assert.areEqual(
             1,
-            countPermissionSetAssignments(UserInfo.getUserId()),
+            countPermissionSetAssignments(installer),
             'The person who installs the package should hold the Nonprofit Admin permission set.'
         );
     }
 
     @IsTest
     static void installGivesTheInstallerTheRoleWhenItIsReady() {
+        Id installer = newInstaller();
         TestDataFactory.prepareRoleGroup(AccessService.ADMIN_ROLE);
         CorePostInstall handler = new CorePostInstall();
 
         Test.startTest();
-        Test.testInstall(handler, null);
+        install(handler, installer);
         Test.stopTest();
 
         Assert.areEqual(
             1,
-            countRoleAssignments(UserInfo.getUserId()),
+            countRoleAssignments(installer),
             'A prepared role should be given by the job the install queued, on its first look.'
         );
         // The install queues exactly one job, because giving access is a setup object write
@@ -74,6 +152,7 @@ private class CorePostInstallTest {
 
     @IsTest
     static void installQueuesARetryWhenTheRoleIsNotReadyYet() {
+        Id installer = newInstaller();
         // The state a real org is in during the minutes after an install: the packaged group
         // is there, but the platform is still calculating it and will refuse to assign it.
         // Leaving Test.calculatePermissionSetGroup uncalled does not produce that state, which
@@ -88,17 +167,17 @@ private class CorePostInstallTest {
         // test, so that attempt fails and the job logs it, which is why this asserts on the
         // one job the install itself queued rather than on the whole chain.
         Test.startTest();
-        Test.testInstall(handler, null);
+        install(handler, installer);
         Test.stopTest();
 
         Assert.areEqual(
             1,
-            countPermissionSetAssignments(UserInfo.getUserId()),
+            countPermissionSetAssignments(installer),
             'The installer is working regardless, because the permission set does not wait.'
         );
         Assert.areEqual(
             0,
-            countRoleAssignments(UserInfo.getUserId()),
+            countRoleAssignments(installer),
             'A role the platform is still calculating cannot be handed out during the install.'
         );
         Assert.areEqual(
@@ -110,22 +189,23 @@ private class CorePostInstallTest {
 
     @IsTest
     static void upgradingAnOrgThatIsAlreadySetUpChangesNothing() {
+        Id installer = newInstaller();
         TestDataFactory.prepareRoleGroup(AccessService.ADMIN_ROLE);
         CorePostInstall handler = new CorePostInstall();
-        Test.testInstall(handler, null);
+        install(handler, installer);
 
         Test.startTest();
-        Test.testInstall(handler, new Version(1, 0), true);
+        upgrade(handler, installer);
         Test.stopTest();
 
         Assert.areEqual(
             1,
-            countPermissionSetAssignments(UserInfo.getUserId()),
+            countPermissionSetAssignments(installer),
             'An upgrade should leave exactly one permission set assignment, not add a second.'
         );
         Assert.areEqual(
             1,
-            countRoleAssignments(UserInfo.getUserId()),
+            countRoleAssignments(installer),
             'An upgrade should leave exactly one role assignment, not add a second.'
         );
     }
@@ -155,21 +235,23 @@ private class CorePostInstallTest {
 
     @IsTest
     static void theRetryJobAssignsTheRoleOnceItIsPrepared() {
+        Id installer = newInstaller();
         TestDataFactory.prepareRoleGroup(AccessService.ADMIN_ROLE);
 
         Test.startTest();
-        System.enqueueJob(new CorePostInstallRetryQueueable(UserInfo.getUserId()));
+        System.enqueueJob(new CorePostInstallRetryQueueable(installer));
         Test.stopTest();
 
         Assert.areEqual(
             1,
-            countRoleAssignments(UserInfo.getUserId()),
+            countRoleAssignments(installer),
             'The background job should hand out the role once the platform has prepared it.'
         );
     }
 
     @IsTest
     static void theRetryJobWaitsBetweenAttemptsRatherThanBurningThroughThemAtOnce() {
+        Id installer = newInstaller();
         // The defect this covers: the job used to re-enqueue itself immediately, with no
         // delay, so all MAX_ATTEMPTS attempts burned through within seconds of install,
         // long before the platform leaves the group's Status as Updating. The fix is the
@@ -184,7 +266,7 @@ private class CorePostInstallTest {
         );
         PermissionSetGroupSelector.systemModeOverride = groupStillBeingCalculated();
         CorePostInstallRetryQueueable job = new CorePostInstallRetryQueueable(
-            UserInfo.getUserId(),
+            installer,
             CorePostInstallRetryQueueable.MAX_ATTEMPTS
         );
 
@@ -199,21 +281,19 @@ private class CorePostInstallTest {
 
         Assert.areEqual(
             0,
-            countRoleAssignments(UserInfo.getUserId()),
+            countRoleAssignments(installer),
             'A role the platform is still calculating cannot be handed out yet.'
         );
     }
 
     @IsTest
     static void theRetryJobGivesUpQuietlyOnItsLastAttempt() {
+        Id installer = newInstaller();
         // One attempt left and a role the platform is still calculating: the job records a
         // warning and stops rather than queueing for ever or throwing. The state is stated
         // rather than assumed, for the reason given in installQueuesARetryWhenTheRoleIsNotReadyYet.
         PermissionSetGroupSelector.systemModeOverride = groupStillBeingCalculated();
-        CorePostInstallRetryQueueable job = new CorePostInstallRetryQueueable(
-            UserInfo.getUserId(),
-            1
-        );
+        CorePostInstallRetryQueueable job = new CorePostInstallRetryQueueable(installer, 1);
 
         Test.startTest();
         job.execute(null);
@@ -221,7 +301,7 @@ private class CorePostInstallTest {
 
         Assert.areEqual(
             0,
-            countRoleAssignments(UserInfo.getUserId()),
+            countRoleAssignments(installer),
             'Giving up should leave the org as it was, with the permission set doing the work.'
         );
         Assert.areEqual(0, countRetryJobs(), 'The last attempt should not queue another.');
@@ -254,6 +334,7 @@ private class CorePostInstallTest {
 
     @IsTest
     static void installCreatesTheShippedRollupsSoTheTotalsAreNotBlank() {
+        Id installer = newInstaller();
         // The defect this covers: nothing called ensureDefaults, so a fresh org had no
         // Rollup Definition records at all and every giving total stayed empty (ADR-0029).
         RollupSelector.defaultsOverride = new List<Rollup_Definition_Default__mdt>{
@@ -262,7 +343,7 @@ private class CorePostInstallTest {
         CorePostInstall handler = new CorePostInstall();
 
         Test.startTest();
-        Test.testInstall(handler, null);
+        install(handler, installer);
         Test.stopTest();
 
         List<Rollup_Definition__c> created = [
@@ -287,11 +368,12 @@ private class CorePostInstallTest {
 
     @IsTest
     static void upgradingDoesNotCreateASecondCopyOrUndoAnEdit() {
+        Id installer = newInstaller();
         RollupSelector.defaultsOverride = new List<Rollup_Definition_Default__mdt>{
             memberCountDefault()
         };
         CorePostInstall handler = new CorePostInstall();
-        Test.testInstall(handler, null);
+        install(handler, installer);
         Rollup_Definition__c afterInstall = [
             SELECT Id, Active__c, Mode__c
             FROM Rollup_Definition__c
@@ -305,7 +387,7 @@ private class CorePostInstallTest {
         );
 
         Test.startTest();
-        Test.testInstall(handler, new Version(1, 0), true);
+        upgrade(handler, installer);
         Test.stopTest();
 
         List<Rollup_Definition__c> afterUpgrade = [
@@ -331,6 +413,7 @@ private class CorePostInstallTest {
 
     @IsTest
     static void anOrgWithoutTheModuleGetsNoneOfItsRollups() {
+        Id installer = newInstaller();
         // Core installs before any module, so on a Core-only org a module's shipped rows name
         // objects the org does not have. That is the case this stands for: the source entity
         // named here is in no package, so the giving total must not be materialized.
@@ -353,7 +436,7 @@ private class CorePostInstallTest {
         CorePostInstall handler = new CorePostInstall();
 
         Test.startTest();
-        Test.testInstall(handler, null);
+        install(handler, installer);
         Test.stopTest();
 
         Assert.areEqual(
@@ -363,13 +446,14 @@ private class CorePostInstallTest {
         );
         Assert.areEqual(
             1,
-            countPermissionSetAssignments(UserInfo.getUserId()),
+            countPermissionSetAssignments(installer),
             'And skipping it leaves the rest of the install alone.'
         );
     }
 
     @IsTest
     static void aRollupThatCannotBeCreatedIsLoggedRatherThanFailingTheInstall() {
+        Id installer = newInstaller();
         // A shipped row whose label is longer than the Rollup Name attribute allows, which is
         // the shape of any bad packaged row: the insert throws where nobody can see it.
         Rollup_Definition_Default__mdt tooLong = memberCountDefault();
@@ -380,7 +464,7 @@ private class CorePostInstallTest {
         Test.startTest();
         // No try/catch here on purpose: an exception escaping this call fails the test, which
         // is the assertion that an install is never aborted by this step.
-        Test.testInstall(handler, null);
+        install(handler, installer);
         Test.stopTest();
 
         Assert.areEqual(
@@ -409,13 +493,114 @@ private class CorePostInstallTest {
         );
         Assert.areEqual(
             1,
-            countPermissionSetAssignments(UserInfo.getUserId()),
+            countPermissionSetAssignments(installer),
             'And the rest of the install still ran, so the installer can open the console.'
         );
     }
 
     @IsTest
+    static void installCreatesTheAutomationSwitchesSoThePageIsNotEmpty() {
+        Id installer = newInstaller();
+        // The defect this covers: nothing created the switch rows, so the Automation page was
+        // empty on every org until somebody pressed a Health Check fix (C-21).
+        Automation_Registry__mdt lock = TestDataFactory.registryEntry('Test_Receipt_Lock', true);
+        lock.Always_Runs__c = true;
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>{
+            TestDataFactory.registryEntry('Test_Household_Naming', true),
+            lock
+        };
+        CorePostInstall handler = new CorePostInstall();
+
+        Test.startTest();
+        install(handler, installer);
+        Test.stopTest();
+
+        Map<String, Automation_Setting__c> byName = switchesByName();
+        Assert.areEqual(2, byName.size(), 'The install creates one switch per automation.');
+        Assert.isTrue(
+            byName.get('Test_Household_Naming').Enabled__c,
+            'Each set to its shipped default.'
+        );
+        Assert.isTrue(
+            byName.get('Test_Receipt_Lock').Always_Runs__c,
+            'And an automation that always runs is listed as one (ADR-0024).'
+        );
+    }
+
+    @IsTest
+    static void upgradingCreatesNoSecondSwitchAndKeepsOneTurnedOff() {
+        Id installer = newInstaller();
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>{
+            TestDataFactory.registryEntry('Test_Household_Naming', true)
+        };
+        CorePostInstall handler = new CorePostInstall();
+        install(handler, installer);
+        Automation_Setting__c afterInstall = switchesByName().get('Test_Household_Naming');
+        // Maria switches household naming off.
+        update new Automation_Setting__c(Id = afterInstall.Id, Enabled__c = false);
+        // The upgrade ships a second automation.
+        AutomationRegistrySelector.registryOverride.add(
+            TestDataFactory.registryEntry('Test_Address_Sync', true)
+        );
+
+        Test.startTest();
+        upgrade(handler, installer);
+        Test.stopTest();
+
+        Map<String, Automation_Setting__c> byName = switchesByName();
+        Assert.areEqual(2, byName.size(), 'Only the newly shipped automation gets a switch.');
+        Assert.areEqual(
+            afterInstall.Id,
+            byName.get('Test_Household_Naming').Id,
+            'The existing switch is the same record, not a replacement.'
+        );
+        Assert.isFalse(
+            byName.get('Test_Household_Naming').Enabled__c,
+            'A switch the admin turned off stays off across an upgrade.'
+        );
+    }
+
+    @IsTest
+    static void aSwitchThatCannotBeCreatedIsLoggedRatherThanFailingTheInstall() {
+        Id installer = newInstaller();
+        // A registry label longer than the switch's Name allows: the insert throws.
+        Automation_Registry__mdt tooLong = TestDataFactory.registryEntry('Test_Too_Long', true);
+        tooLong.MasterLabel = 'x'.repeat(100);
+        AutomationRegistrySelector.registryOverride = new List<Automation_Registry__mdt>{ tooLong };
+        CorePostInstall handler = new CorePostInstall();
+
+        Test.startTest();
+        // No try/catch on purpose: an exception escaping this call fails the test.
+        install(handler, installer);
+        Test.stopTest();
+
+        Assert.areEqual(0, [SELECT COUNT() FROM Automation_Setting__c], 'Nothing is created.');
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Error_Log__c WHERE Context__c = :SWITCH_CONTEXT],
+            'The failure is in the Error Log, under the step that failed.'
+        );
+        Assert.areEqual(
+            1,
+            countPermissionSetAssignments(installer),
+            'And the rest of the install still ran.'
+        );
+    }
+
+    private static Map<String, Automation_Setting__c> switchesByName() {
+        Map<String, Automation_Setting__c> byName = new Map<String, Automation_Setting__c>();
+        for (Automation_Setting__c setting : [
+            SELECT Id, Automation_Name__c, Enabled__c, Always_Runs__c
+            FROM Automation_Setting__c
+        ]) {
+            byName.put(setting.Automation_Name__c, setting);
+        }
+        return byName;
+    }
+
+    @IsTest
     static void installPutsTheRecommendedModeInForceSoHouseholdsCanForm() {
+        Id installer = newInstaller();
         // The defect this covers: applyRecommendedIfUnset was never called from the install,
         // so a Person Accounts org stayed in contact membership, which cannot hold a person
         // stored as an account, and households silently never formed.
@@ -425,7 +610,7 @@ private class CorePostInstallTest {
         CorePostInstall handler = new CorePostInstall();
 
         Test.startTest();
-        Test.testInstall(handler, null);
+        install(handler, installer);
         Test.stopTest();
 
         Assert.areEqual(
@@ -447,6 +632,7 @@ private class CorePostInstallTest {
 
     @IsTest
     static void upgradingLeavesAModeTheAdministratorChoseAlone() {
+        Id installer = newInstaller();
         // Maria chose standalone and the simple way of belonging on purpose. An upgrade that
         // detects Person Accounts must not argue with her: that is what IfUnset means.
         CoexistenceService.setMode(CoexistenceService.MODE_STANDALONE);
@@ -461,7 +647,7 @@ private class CorePostInstallTest {
         CorePostInstall handler = new CorePostInstall();
 
         Test.startTest();
-        Test.testInstall(handler, new Version(1, 0), true);
+        upgrade(handler, installer);
         Test.stopTest();
 
         Assert.areEqual(
@@ -478,6 +664,7 @@ private class CorePostInstallTest {
 
     @IsTest
     static void aModeThatCannotBeSavedIsLoggedRatherThanFailingTheInstall() {
+        Id installer = newInstaller();
         // A recommendation nothing in the org can store: a settings row the console does not
         // know is refused by SettingsService, which is the shape of any failure on this step.
         SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
@@ -486,7 +673,7 @@ private class CorePostInstallTest {
         Test.startTest();
         // No try/catch here on purpose: an exception escaping this call fails the test, which
         // is the assertion that an install is never aborted by this step.
-        Test.testInstall(handler, null);
+        install(handler, installer);
         Test.stopTest();
 
         Assert.areEqual(
@@ -501,13 +688,14 @@ private class CorePostInstallTest {
         );
         Assert.areEqual(
             1,
-            countPermissionSetAssignments(UserInfo.getUserId()),
+            countPermissionSetAssignments(installer),
             'And the rest of the install still ran, so the installer can open the console.'
         );
     }
 
     @IsTest
     static void theHubCanCountWhatTheInstallLogged() {
+        Id installer = newInstaller();
         // The role is prepared so that the one failure counted is the one this test causes: a
         // role still being calculated would have the access job try to wait, which a test
         // cannot do, and log that as well.
@@ -518,7 +706,7 @@ private class CorePostInstallTest {
         // The Error Log is written through a platform event, delivered at Test.stopTest, so
         // the count is taken after it.
         Test.startTest();
-        Test.testInstall(handler, null);
+        install(handler, installer);
         Test.stopTest();
 
         Assert.areEqual(

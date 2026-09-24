@@ -195,12 +195,68 @@ public with sharing class AutomationControl {
      * Creates an Automation Setting row for every shipped automation that does not have one yet,
      * and leaves every existing row exactly as the administrator left it. Safe to call on every
      * install, every upgrade, and twice in a row. Returns how many rows it created.
+     *
+     * Called by each package's post-install script (through `ensureDefaultsDuringInstall`), so
+     * the Automation page lists every switch from the first install, and by the Health Check fix
+     * (C-21), which enforces Manage Nonprofit Settings before it gets here.
      */
     @NamespaceAccessible
     public static Integer ensureDefaults() {
+        List<Automation_Setting__c> toCreate = missingDefaults();
+        if (toCreate.isEmpty()) {
+            return 0;
+        }
+        // Written through AutomationSettingsWriter in system mode (ADR-0021): every row carries
+        // Always_Runs__c, which no packaged permission set may edit, so a user mode insert is
+        // refused for everyone, and in a post-install script nobody holds a permission set at
+        // all. Nothing here comes from user input: every value is copied from the package's own
+        // shipped registry.
+        AutomationSettingsWriter.insertSwitches(toCreate);
+        clearCache();
+        return toCreate.size();
+    }
+
+    /**
+     * The same thing, called from a post-install script, where nothing may throw. An install
+     * must not fail because a switch row could not be created: an automation with no row still
+     * runs, and Health Check names the missing switches and restores them. So a failure is
+     * written to the Error Log and the caller is told nothing was created.
+     *
+     * @param context the calling script, so the Error Log entry names it
+     * @return how many rows were created, and zero when the step failed
+     */
+    @NamespaceAccessible
+    public static Integer ensureDefaultsDuringInstall(String context) {
+        try {
+            return ensureDefaults();
+        } catch (Exception failed) {
+            ErrorLogger.log(
+                failed,
+                String.isBlank(context) ? 'AutomationControl.ensureDefaults' : context
+            );
+            return 0;
+        }
+    }
+
+    /**
+     * The names of the shipped automations that have no switch row yet, without creating them,
+     * so Health Check can say what restoring them would add (C-21, ADR-0048).
+     */
+    @NamespaceAccessible
+    public static List<String> missingDefaultNames() {
+        List<String> names = new List<String>();
+        for (Automation_Setting__c setting : missingDefaults()) {
+            names.add(setting.Name);
+        }
+        return names;
+    }
+
+    /** The switch rows ensureDefaults would create: one per shipped automation not yet here. */
+    private static List<Automation_Setting__c> missingDefaults() {
+        List<Automation_Setting__c> toCreate = new List<Automation_Setting__c>();
         List<Automation_Registry__mdt> registry = shippedRegistry();
         if (registry.isEmpty()) {
-            return 0;
+            return toCreate;
         }
         Set<String> existingNames = new Set<String>();
         for (Automation_Setting__c setting : AutomationSettingSelector.selectAllForFramework()) {
@@ -208,7 +264,6 @@ public with sharing class AutomationControl {
                 existingNames.add(setting.Automation_Name__c.toLowerCase());
             }
         }
-        List<Automation_Setting__c> toCreate = new List<Automation_Setting__c>();
         for (Automation_Registry__mdt entry : registry) {
             if (
                 String.isBlank(entry.DeveloperName) ||
@@ -233,16 +288,7 @@ public with sharing class AutomationControl {
                 )
             );
         }
-        if (toCreate.isEmpty()) {
-            return 0;
-        }
-        // System mode on purpose: ADR-0006 has the post-install script materialize these rows,
-        // and a post-install context holds no permission sets, so a user mode insert would fail
-        // on a fresh install. Nothing here comes from user input: every value is copied from the
-        // package's own shipped metadata.
-        Database.insert(toCreate, AccessLevel.SYSTEM_MODE);
-        clearCache();
-        return toCreate.size();
+        return toCreate;
     }
 
     private static List<Automation_Registry__mdt> shippedRegistry() {
