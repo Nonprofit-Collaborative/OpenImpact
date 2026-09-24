@@ -144,4 +144,20 @@
         <shortDescription>Error digest: sending failed with no reason given.</shortDescription>
         <value>the platform gave no reason</value>
     </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_PermissionRequired</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: the permission a change needs.</shortDescription>
+        <value>Scheduling or sending the error digest needs the Manage Nonprofit Settings permission, which comes with the Nonprofit Admin role.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_UnexpectedError</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: unexpected failure.</shortDescription>
+        <value>Something went wrong with the error digest. The details are in the Error Log.</value>
+    </labels>
 </CustomLabels>
