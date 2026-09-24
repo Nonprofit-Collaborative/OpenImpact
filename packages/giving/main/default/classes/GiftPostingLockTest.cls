@@ -239,7 +239,7 @@ private class GiftPostingLockTest {
         String moved = refusalOf(new Gift_Allocation__c(Id = existing.Id, Fund__c = building.Id));
         String removed = deleteRefusal(new Gift_Allocation__c(Id = existing.Id));
         Database.SaveResult added = Database.insert(
-            GivingTestDataFactory.buildAllocation(gift.Id, building.Id, 0),
+            GivingTestDataFactory.buildAllocation(gift.Id, building.Id, 10),
             false
         );
         Test.stopTest();
@@ -247,6 +247,117 @@ private class GiftPostingLockTest {
         Assert.areEqual(Label.Giving_Posting_AllocationLocked, moved, 'No fund changes.');
         Assert.areEqual(Label.Giving_Posting_AllocationLocked, removed, 'None is taken away.');
         Assert.isFalse(added.isSuccess(), 'None is added.');
+        Assert.isTrue(
+            messagesOf(added.getErrors()).contains(Label.Giving_Posting_AllocationLocked),
+            'Refused by the lock: ' + messagesOf(added.getErrors())
+        );
+    }
+
+    private static List<String> messagesOf(List<Database.Error> errors) {
+        List<String> messages = new List<String>();
+        for (Database.Error error : errors) {
+            messages.add(error.getMessage());
+        }
+        return messages;
+    }
+
+    @IsTest
+    static void anAllocationIsNotRestoredOntoALockedGift() {
+        TestDataFactory.pausedSettings(2);
+        AutomationControl.clearCache();
+        Gift_Allocation__c existing = giftOf(250).Gift_Allocations__r[0];
+        delete existing;
+        GivingTestDataFactory.closeBooksThrough(lastClosedDay());
+
+        Test.startTest();
+        Database.UndeleteResult result = Database.undelete(existing.Id, false);
+        Test.stopTest();
+
+        Assert.isFalse(result.isSuccess(), 'Restoring is adding a fund to the books.');
+        Assert.isTrue(
+            messagesOf(result.getErrors()).contains(Label.Giving_Posting_AllocationLocked),
+            'Refused by the lock, pause or no pause: ' + messagesOf(result.getErrors())
+        );
+    }
+
+    // -------------------------------------------------------------------------------------
+    // What a locked gift names (R-G15)
+    // -------------------------------------------------------------------------------------
+
+    private static Contact ana() {
+        return [SELECT Id FROM Contact WHERE LastName = 'Nolan' LIMIT 1];
+    }
+
+    @IsTest
+    static void theDonorOfALockedGiftIsNotDeleted() {
+        GivingTestDataFactory.closeBooksThrough(lastClosedDay());
+
+        Test.startTest();
+        String refusal = deleteRefusal(ana());
+        Test.stopTest();
+
+        Assert.areEqual(Label.Giving_Posting_DonorLocked, refusal);
+        Assert.isNotNull(giftOf(250).Donor_Contact__c, 'The books still name Ana.');
+    }
+
+    @IsTest
+    static void aDonorWhoseGiftsAreAllOpenIsDeleted() {
+        Contact ben = ben();
+        update new Gift__c(Id = giftOf(40).Id, Donor_Contact__c = ben.Id);
+        GivingTestDataFactory.closeBooksThrough(lastClosedDay());
+
+        Test.startTest();
+        String refusal = deleteRefusal(ben);
+        Test.stopTest();
+
+        Assert.isNull(refusal, 'Ben\'s only gift is dated today and not posted.');
+    }
+
+    @IsTest
+    static void theDonorOfALockedGiftCanStillBeMerged() {
+        GivingTestDataFactory.closeBooksThrough(lastClosedDay());
+        Contact ben = ben();
+
+        Test.startTest();
+        Database.MergeResult result = Database.merge(ben, ana().Id, false);
+        Test.stopTest();
+
+        Assert.isTrue(result.isSuccess(), 'A merge is not a delete: ' + result.getErrors());
+        Assert.areEqual(ben.Id, giftOf(250).Donor_Contact__c, 'The gift moved to Ben.');
+    }
+
+    @IsTest
+    static void theOrganizationDonorOfALockedGiftIsNotDeleted() {
+        Account riverside = new Account(Name = 'Riverside Foundation');
+        insert riverside;
+        Gift__c grant = GivingTestDataFactory.buildGift(null, 500);
+        grant.Donor_Account__c = riverside.Id;
+        grant.Gift_Date__c = inClosedPeriod();
+        insert grant;
+        GivingTestDataFactory.closeBooksThrough(lastClosedDay());
+
+        Test.startTest();
+        String refusal = deleteRefusal(riverside);
+        Test.stopTest();
+
+        Assert.areEqual(Label.Giving_Posting_DonorLocked, refusal);
+    }
+
+    @IsTest
+    static void theOriginalOfAPostedRefundIsNotDeleted() {
+        Gift__c original = giftOf(40);
+        Id refundId = GiftService.refund(original.Id, 10, 'Returned');
+        markPosted(refundId);
+        // Paused, so the switchable rule that already guards an original with a refund is out of
+        // the way and only the lock is left to refuse.
+        TestDataFactory.pausedSettings(2);
+        AutomationControl.clearCache();
+
+        Test.startTest();
+        String refusal = deleteRefusal(new Gift__c(Id = original.Id));
+        Test.stopTest();
+
+        Assert.areEqual(Label.Giving_Posting_OriginalLocked, refusal);
     }
 
     @IsTest
