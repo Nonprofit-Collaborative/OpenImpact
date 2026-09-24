@@ -61,6 +61,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0050](0050-duplicates-use-the-orgs-own-duplicate-rules.md) | Duplicate detection uses the org's own duplicate rules, and Open Impact ships none | Accepted (builder decision) |
 | [0051](0051-inbound-gift-api-and-accounting-export.md) | The inbound gift API keeps a small permanent surface, and the accounting export marks nothing | Accepted |
 | [0052](0052-gift-import-and-donation-matching.md) | Gift import through the entity processor seam, and donation matching | Accepted (builder decision) |
+| [NEXT](NEXT-posted-gifts-and-closed-periods-are-locked.md) | Posted gifts and closed periods are locked by a rule that always runs | Accepted (builder decision) |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions
@@ -112,6 +113,8 @@ ADR-0051 is a builder decision for X-03, X-04 and X-06, recording the permanent 
 the inbound gift API and why the accounting export marks no gift.
 ADR-0052 is a builder decision for G-23 and G-24 on the entity processor seam, the undo of
 imported gifts and the choices the plan leaves open for gift import and donation matching.
+ADR-NEXT is a builder decision for G-20 on what a posted gift and a closed period lock, who
+may post, unpost and reopen, and how the lock meets imports, undo, gift batches and the API.
 
 ## Adding a new ADR
 

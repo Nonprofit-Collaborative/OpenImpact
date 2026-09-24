@@ -1790,6 +1790,8 @@ refund is another gift rather than an edit (ADR-0010).
 | Benefit Value | decimal | no | The organization's good faith estimate of what the benefit was worth, which the receipt subtracts to state the deductible amount (v0.4, G-13, R-RC7). |
 | Intangible Religious Benefits | boolean | yes (defaults false) | Whether the only thing the donor received in return was an intangible religious benefit, which is a sentence the receipt must carry instead of a value (v0.4, G-13, R-RC7). |
 | Created By Import Batch | reference(Import Batch) | no | The import that created this gift, so it can be found and, from v0.5, undone. |
+| Posted to Accounting | datetime | no | When the gift was marked as entered in the accounting system; empty while it is not. Package written (v0.6, G-20, R-G13). |
+| Posted to Accounting By | reference(User) | no | Who marked it posted; empty while it is not (v0.6, G-20, R-G13). |
 
 ### Relationships
 
@@ -1909,6 +1911,41 @@ a retention report (ADR-0026). Because Amount is zero and never changes, a mista
 gift is corrected by writing it off or by correcting the description, not by a negative gift:
 R-G3 has nothing to reverse.
 
+**R-G13 Posted to accounting (G-20, ADR-NEXT).** A gift is posted when Posted to Accounting is
+set. Posted to Accounting and Posted to Accounting By are read only in every packaged
+permission set and are written only by `GiftPostingService`, through `GiftPostingWriter` in
+system mode (ADR-0021); any other save that sets, changes or clears them is refused by R-G14's
+automation. Marking posted needs the `Post_Gifts` custom permission, touches only gifts that are
+in the books (R-G14) and not yet posted, and leaves every other gift unchanged, so marking the
+same gifts twice changes nothing. Unposting needs `Post_Gifts` and a reason, clears both
+attributes, and writes an Error Log entry at Warning naming the gift, who posted it and when, and
+the reason. A gift batch's Posted status (R-GB4) is a different thing: it says the batch's lines
+became gifts, not that the gifts are in the books.
+
+**R-G14 Posted gifts and closed periods are locked (G-20, ADR-NEXT).** A gift is **in the books**
+when its Status is Received, Refunded or Written off and its Type is not In-kind, which is what
+the accounting export reads (ADR-0051). A gift is **locked** when it is in the books and is either
+posted (R-G13) or dated on or before Books Closed Through (Section 21A). While a gift is locked:
+
+- Gift Date, Amount, Donor Contact, Donor Account, Type, Payment Reference and Original Gift do
+  not change, and its allocations are not added, changed or deleted (R-GA5);
+- its Status may move among Received, Refunded and Written off, which is what R-G3 does to an
+  original, and may not move to Pending;
+- it is not deleted.
+
+No gift enters the books in a closed period: an insert, an undelete, or an update that leaves a
+gift in the books and dated on or before Books Closed Through when it was not locked before, is
+refused. A refund or write-off of a locked gift is a negative gift dated today, which is always
+open because Books Closed Through is earlier than today, so R-G3 is unaffected. A refund or
+write-off that would move a Pending gift dated in a closed period into the books is refused before
+anything is saved. Every other attribute stays editable.
+
+The enforcement runs from `Gift_Posting_Lock` and `Gift_Allocation_Posting_Lock`, both Always
+Runs (R-A4). The one way past is the `Override_Posting_Lock` custom permission, on no permission
+set: every save or delete it lets through writes an Error Log entry at Warning naming the gift and
+what changed. It is separate from `Override_Receipt_Lock` (R-G4), which reaches nothing but the
+receipt.
+
 ### Salesforce implementation
 
 - **Object:** `Gift__c`, auto-number Name with format `G-{000000}`, private
@@ -1942,11 +1979,20 @@ R-G3 has nothing to reverse.
 | Intangible Religious Benefits | `Intangible_Religious_Benefits__c` | Checkbox (v0.4) |
 | Created By Import Batch | `Created_By_Import_Batch__c` | Lookup to `Import_Batch__c` |
 | Sample Data | `Sample_Data__c` | Checkbox (v0.4) |
+| Posted to Accounting | `Accounting_Posted_At__c` | Date/Time, package written (v0.6, R-G13) |
+| Posted to Accounting By | `Accounting_Posted_By__c` | Lookup to User, package written (v0.6, R-G13) |
 
 - **Service:** `GiftService`, `GiftDomain`, `GiftSelector`, LWC `quickGiftEntry` (G-03).
 - **Receipt lock:** handler `GiftReceiptLockHandler`, registry record
   `Automation_Registry.Gift_Receipt_Lock` (execution order 5, Always Runs), custom
   permission `Override_Receipt_Lock` (granted to nobody by the package).
+- **Posting and period lock (G-20):** `GiftPostingLock` holds the R-G14 rules, run by
+  `GiftPostingLockHandler` from registry record `Automation_Registry.Gift_Posting_Lock`
+  (execution order 15, after `Gift_Core_Rules` fills in an empty date, Always Runs).
+  `GiftPostingService` marks and unposts (R-G13) through `GiftPostingWriter`. Custom permissions
+  `Post_Gifts` (on `Giving_Admin` and Connect's `Accounting_Export`) and `Override_Posting_Lock`
+  (granted to nobody). LWC `giftPosting` on the gift page shows the posting and offers Unpost; LWC
+  `accountingPeriods` sets Books Closed Through.
 
 ---
 
@@ -1992,6 +2038,11 @@ gift's allocations with negative amounts, so fund totals correct themselves.
 against that appeal is allocated to it unless staff choose otherwise. This is a proposal
 in the entry form, never a rule that rewrites a saved allocation.
 
+**R-GA5 A locked gift's allocations are fixed (G-20).** An allocation whose gift is locked
+(R-G14) is not inserted, deleted, or changed in Fund, Amount or Percent, so each fund's share of a
+gift in the books stays what the books hold. The same override and the same Error Log entry as
+R-G14 apply.
+
 ### Salesforce implementation
 
 - **Object:** `Gift_Allocation__c`, auto-number Name with format `GA-{000000}`.
@@ -2004,6 +2055,9 @@ in the entry form, never a rule that rewrites a saved allocation.
 | Percent | `Percent__c` | Percent |
 
 - **Service:** `AllocationService`, `AllocationDomain`.
+- **Lock (R-GA5):** `GiftAllocationPostingLockHandler`, registry record
+  `Automation_Registry.Gift_Allocation_Posting_Lock` (execution order 20, after
+  `Gift_Allocation_Totals` works out the amount, Always Runs).
 
 ---
 
@@ -2213,6 +2267,16 @@ import settings, because that is where an administrator looks for how an import 
 | `Donation_Match_Date_Window_Days__c` | integer | 7 | How many days either side of a scheduled payment's due date an imported gift may fall and still be matched to it, for a template that does not set its own (R-DM3). |
 | `Donation_Match_Amount_Tolerance__c` | decimal | 0 | How far an imported gift's amount may differ from a scheduled payment's expected amount and still be matched to it, for a template that does not set its own; zero means the amounts must be equal (R-DM3). |
 
+### v0.6 keys
+
+Added by the posting flag and period lock (G-20, ADR-NEXT). Set on the Accounting Periods page,
+reached from the Giving section of the console, and deliberately not named by a Setting
+Definition row, so the console's generic save cannot write it past the page's checks.
+
+| Key | Type | Default | Definition |
+|---|---|---|---|
+| `Books_Closed_Through__c` | date | empty | The last day of the latest closed accounting period; empty means no period is closed. Gifts in the books dated on or before it are locked (R-G14). It is earlier than today and moves only forward; moving it back or clearing it needs `Override_Posting_Lock` and writes an Error Log entry at Warning. Every change is a Setting Change. |
+
 ### Rules
 
 **R-GS1 Same contract as Core settings.** Protected, hierarchical, written synchronously
@@ -2256,6 +2320,7 @@ these keys, which is what makes a module that is off leave nothing behind.
 | Acknowledgments Last Run Summary | `Acknowledgments_Last_Run_Summary__c` | Text(255) |
 | Donation Match Date Window Days | `Donation_Match_Date_Window_Days__c` | Number(3, 0) |
 | Donation Match Amount Tolerance | `Donation_Match_Amount_Tolerance__c` | Currency(16, 2) |
+| Books Closed Through | `Books_Closed_Through__c` | Date (v0.6) |
 
 - **Service:** Core `SettingsService`, reading and writing this object through the
   `Settings_Object__c` field on `Setting_Definition__mdt` (ADR-0017).
@@ -4595,7 +4660,8 @@ Batch Row (25M), the line of a batch.
 
 The v0.6 inbound gift API (X-03) and accounting export (X-04) add no Connect entity: the
 API writes ordinary gifts through Giving, and the export reads gifts and allocations and
-records nothing (ADR-0051). The posting flag plan Section 4.12 mentions is G-20's, in Giving.
+records nothing (ADR-0051). The posting flag plan Section 4.12 mentions is G-20's, in Giving:
+two attributes on Gift and one Giving settings key, and no new entity (R-G13, R-G14, ADR-NEXT).
 
 Two v0.4 entities have attributes that already exist on `Gift__c` from v0.2, because the
 object is not worth altering later for fields this cheap: Acknowledgment Status,
@@ -4671,6 +4737,7 @@ None open. R-M3's Primary Contact mirror, the only entry, was closed on 2026-09-
 | v0.5 | 2026-09-23 | C-21 Health Check v2 (ADR-0048). No object, field, settings key or rollup row added. Health Check reads state the model already defines: shipped rollup definitions, automation switch rows and import templates not yet materialized from their shipped defaults (Section 13), the nightly rollup run when an active definition is in Scheduled or Both mode (Section 14). Recorded against R-A2: an `Automation_Setting__c` row whose registry entry is no longer shipped is left alone, because no fix deletes a record. `Automation_Setting__c` rows are now materialized by Core's and Giving's post-install scripts, one per shipped registry entry not yet present, never touching an existing row (before C-21 nothing created them). Recorded against R-R6: a shipped rollup default is not materialized when an active, administrator-made definition (`Is_Package_Default__c` false) already writes the same target entity and attribute; shipped defaults are not counted against each other, because household and organization pairs write one attribute for different accounts. Health Check detects orphans without changing them (cleanup is C-28): a person in no household, reported only while `Auto_Create_Households__c` is on (R-C1), which in contact mode is a Contact with no Account (a Contact whose Account is an Organization belongs to it, Section 7) and in junction mode a Contact or person account with no current Household Member row (R-M2, R-M4; a Contact whose Account is a Household is left to the membership check); and a Household with no current member (in contact mode no Contact on it, in junction mode no current row naming a person). Person accounts are recognised by the org's person record types, never by a person account field. |
 | v0.5 | 2026-09-23 | C-20 duplicate detection (ADR-0050). One object added, `Duplicate_Dismissal__c` (Section 29A) with `Pair_Key__c` and `Reason__c`, which holds a decision rather than a finding. Detection is the org's own active duplicate rules; Open Impact ships none, and the suggestions are the standard `DuplicateRecordSet` and `DuplicateRecordItem` records. A scan started from Nonprofit Settings evaluates those rules against the people and households already in the org. Rules R-DP1 to R-DP5 added. |
 | v0.6 | 2026-09-23 | X-03, X-04 and X-06, the Connect integration surface (ADR-0051). No object or field added. R-G7 is reworded: the inbound gift API answers a resend with the gift already recorded and never edits it, and refuses a resend whose amount differs. The accounting export reads `Gift__c`, `Gift_Allocation__c` and `Fund__c` and writes nothing: the posting flag plan Section 4.12 names belongs to G-20 in Giving, and no Connect object records export runs. Section 30 notes that X-03 and X-04 add no Connect entity. |
+| v0.6 | 2026-09-24 | G-20 posting flag and period lock (ADR-NEXT). No object added. `Gift__c` gains `Accounting_Posted_At__c` (Date/Time) and `Accounting_Posted_By__c` (Lookup to User), both package written and read only in every permission set (R-G13). `Giving_Settings__c` gains `Books_Closed_Through__c` (Date), set on the Accounting Periods page and named by no Setting Definition row. New rules R-G13 (posting and unposting), R-G14 (a gift in the books that is posted or dated in a closed period is locked; nothing enters the books in a closed period) and R-GA5 (a locked gift's allocations are fixed). Two Always Runs automations, `Gift_Posting_Lock` and `Gift_Allocation_Posting_Lock`, and two custom permissions, `Post_Gifts` and `Override_Posting_Lock`, the second on no permission set. |
 
 ---
 ## 32. Entity ownership by package

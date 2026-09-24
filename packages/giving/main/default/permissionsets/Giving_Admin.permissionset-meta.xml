@@ -256,6 +256,10 @@
   </customPermissions>
   <customPermissions>
     <enabled>true</enabled>
+    <name>Post_Gifts</name>
+  </customPermissions>
+  <customPermissions>
+    <enabled>true</enabled>
     <name>Send_Acknowledgments</name>
   </customPermissions>
   <fieldPermissions>
@@ -851,6 +855,16 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Gift_Batch__c.Status__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Gift__c.Accounting_Posted_At__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Gift__c.Accounting_Posted_By__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>

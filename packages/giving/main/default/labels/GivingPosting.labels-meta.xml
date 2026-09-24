@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Giving_Posting_PostedGiftLocked</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Posted gift is locked</shortDescription>
+        <value>This gift has been posted to accounting, so its date, amount, donor, payment method, reference and funds cannot change and it cannot be deleted. Record a refund instead, or ask your bookkeeper to unpost it first.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_ClosedGiftLocked</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Gift in a closed period is locked</shortDescription>
+        <value>This gift is dated in a closed accounting period (the books are closed through {0}), so its date, amount, donor, payment method, reference and funds cannot change and it cannot be deleted. Record a refund instead: it is dated today.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_ClosedPeriodNewGift</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>No new gift in a closed period</shortDescription>
+        <value>The books are closed through {0}, so a gift dated on or before that day cannot be added to them. Date the gift after {0}, or ask your administrator.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_FieldsWrittenByPosting</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Posted to Accounting is written by posting</shortDescription>
+        <value>Posted to Accounting is filled in only by marking gifts posted on the Accounting Export page, and cleared only by Unpost on the gift.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_AllocationLocked</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Funds of a gift in the books are locked</shortDescription>
+        <value>This gift is in the books (posted to accounting, or dated in a closed accounting period), so its funds and the amount to each cannot change. Record a refund instead.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_OverrideLogged</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Error Log line for a posting lock override</shortDescription>
+        <value>Posting lock override on gift {0}: {1}.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_ReversalIntoClosedPeriod</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Pending gift in a closed period</shortDescription>
+        <value>This gift is Pending and dated in a closed accounting period (the books are closed through {0}), so recording a refund or write-off would put it into that period. If it will never be paid, delete it instead.</value>
+    </labels>
+</CustomLabels>
