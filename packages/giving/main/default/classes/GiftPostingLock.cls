@@ -87,25 +87,6 @@ public with sharing class GiftPostingLock {
         return isInBooks(gift) && (isPosted(gift) || isInClosedPeriod(gift.Gift_Date__c, closed));
     }
 
-    /**
-     * Why a refund or write-off that would move this Pending gift into the books must be refused
-     * before anything is saved, or null. `GiftService.recordReversal` asks, so the refusal comes
-     * as a sentence rather than as a failed save after the negative gift was inserted.
-     */
-    public static String refusalForStatusChange(Gift__c original, String newStatus) {
-        if (newStatus == null || isInBooks(original) || canOverride()) {
-            return null;
-        }
-        Date closed = closedThrough();
-        if (!isInClosedPeriod(original.Gift_Date__c, closed)) {
-            return null;
-        }
-        return String.format(
-            Label.Giving_Posting_ReversalIntoClosedPeriod,
-            new List<String>{ closed.format() }
-        );
-    }
-
     // -------------------------------------------------------------------------------------
     // Gifts
     // -------------------------------------------------------------------------------------

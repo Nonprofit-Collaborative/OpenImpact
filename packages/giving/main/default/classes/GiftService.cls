@@ -896,6 +896,18 @@ public with sharing class GiftService {
         if (original.Amount__c == null || original.Amount__c <= 0) {
             throw new GiftServiceException(Label.Giving_Gift_CannotReverseNegative);
         }
+        // R-G3: only money received goes back. A Pending gift that will never be paid is
+        // cancelled instead (R-G16); a Refunded or Written off one has nothing left and is
+        // answered by the callers with what already happened to it.
+        String status = String.isBlank(original.Status__c) ? STATUS_RECEIVED : original.Status__c;
+        if (
+            status == GiftStatusRules.STATUS_PENDING ||
+            status == GiftStatusRules.STATUS_CANCELLED
+        ) {
+            throw new GiftServiceException(
+                String.format(Label.Giving_Gift_ReverseNeedsReceived, new List<String>{ status })
+            );
+        }
         return original;
     }
 
@@ -916,12 +928,6 @@ public with sharing class GiftService {
         String reason,
         String newOriginalStatus
     ) {
-        // G-20: moving a Pending gift dated in a closed period into the books is refused by the
-        // posting lock. Asked first, so nothing is saved and the person reads why (R-G14).
-        String closedPeriod = GiftPostingLock.refusalForStatusChange(original, newOriginalStatus);
-        if (closedPeriod != null) {
-            throw new GiftServiceException(closedPeriod);
-        }
         Gift__c reversal = new Gift__c(
             Donor_Contact__c = original.Donor_Contact__c,
             Donor_Account__c = original.Donor_Account__c,

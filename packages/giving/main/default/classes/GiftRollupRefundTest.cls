@@ -94,6 +94,34 @@ private class GiftRollupRefundTest {
         Assert.areEqual(1, recalculated.Gift_Count__c, 'Still one gift given.');
     }
 
+    /**
+     * A Pending gift that will never be paid is cancelled, not written off (R-G16): no negative
+     * gift, and the cancelled gift counts in neither the total nor the gift count.
+     */
+    @IsTest
+    static void aCancelledGiftCountsNowhere() {
+        Contact ana = [SELECT Id FROM Contact LIMIT 1];
+        Gift__c received = GivingTestDataFactory.buildGift(ana.Id, 250);
+        Gift__c pledged = GivingTestDataFactory.buildGift(ana.Id, 40);
+        pledged.Status__c = 'Pending';
+        insert new List<Gift__c>{ received, pledged };
+        update new Gift__c(Id = pledged.Id, Status__c = 'Cancelled');
+
+        Test.startTest();
+        RollupService.ensureDefaults();
+        RollupService.runFullRecalculation(definitionsFor(new Set<String>{ KEY_TOTAL, KEY_COUNT }));
+        Test.stopTest();
+
+        Contact recalculated = [
+            SELECT Total_Giving__c, Gift_Count__c
+            FROM Contact
+            WHERE Id = :ana.Id
+        ];
+        GivingTestDataFactory.assertRollupWrote(recalculated.Total_Giving__c);
+        Assert.areEqual(250, recalculated.Total_Giving__c, 'Only the received gift');
+        Assert.areEqual(1, recalculated.Gift_Count__c, 'Only the received gift');
+    }
+
     private static List<Rollup_Definition__c> definitionsFor(Set<String> keys) {
         List<Rollup_Definition__c> definitions = [
             SELECT

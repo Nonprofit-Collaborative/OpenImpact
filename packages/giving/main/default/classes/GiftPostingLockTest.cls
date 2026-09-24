@@ -446,7 +446,7 @@ private class GiftPostingLockTest {
     }
 
     @IsTest
-    static void aPendingGiftInAClosedMonthIsNotWrittenOffIntoIt() {
+    static void aPendingGiftInAClosedMonthIsCancelledNotWrittenOff() {
         GivingTestDataFactory.closeBooksThrough(lastClosedDay());
         Gift__c pending = giftOf(75);
         Integer before = [SELECT COUNT() FROM Gift__c];
@@ -458,18 +458,20 @@ private class GiftPostingLockTest {
         } catch (GiftService.GiftServiceException refused) {
             refusal = refused.getMessage();
         }
+        update new Gift__c(Id = pending.Id, Status__c = 'Cancelled');
         Test.stopTest();
 
         Assert.areEqual(
-            String.format(
-                Label.Giving_Posting_ReversalIntoClosedPeriod,
-                new List<String>{ lastClosedDay().format() }
-            ),
+            String.format(Label.Giving_Gift_ReverseNeedsReceived, new List<String>{ 'Pending' }),
             refusal,
-            'A write-off would put the gift and its reversal into a month already in the books.'
+            'Nothing was received, so nothing is written off (R-G3).'
         );
-        Assert.areEqual(before, [SELECT COUNT() FROM Gift__c], 'Nothing was saved.');
-        Assert.areEqual('Pending', giftOf(75).Status__c, 'The gift is as it was.');
+        Assert.areEqual(before, [SELECT COUNT() FROM Gift__c], 'No negative gift.');
+        Assert.areEqual(
+            'Cancelled',
+            giftOf(75).Status__c,
+            'Neither Pending nor Cancelled is in the books, so the lock lets it through (R-G16).'
+        );
     }
 
     @IsTest

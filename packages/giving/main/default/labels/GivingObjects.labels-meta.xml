@@ -240,4 +240,44 @@
         <shortDescription>Refund screen: success message</shortDescription>
         <value>Recorded. The gift it reverses now shows what happened.</value>
     </labels>
+    <labels>
+        <fullName>Giving_Gift_ReverseNeedsReceived</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Refund or write-off of a gift not Received</shortDescription>
+        <value>Only a received gift can be refunded or written off. This gift is {0}: if it is Pending and will never be paid, set its Status to Cancelled.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Gift_CancelOnlyPending</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Only a Pending gift is cancelled</shortDescription>
+        <value>Only a Pending gift can be cancelled. A gift that was received is refunded or written off instead.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Gift_CancelledOnlyToPending</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>A Cancelled gift moves only to Pending</shortDescription>
+        <value>A Cancelled gift can only be set back to Pending. Set it to Pending first, then to Received when the money arrives.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Gift_CancelledLogged</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Error Log entry for a cancelled gift</shortDescription>
+        <value>Gift {0} cancelled: it will not be paid.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Gift_UncancelledLogged</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Error Log entry for a gift set back to Pending</shortDescription>
+        <value>Gift {0} set back from Cancelled to Pending.</value>
+    </labels>
 </CustomLabels>

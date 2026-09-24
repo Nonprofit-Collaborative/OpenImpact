@@ -49,14 +49,6 @@
         <value>Posting lock override on gift {0}: {1}.</value>
     </labels>
     <labels>
-        <fullName>Giving_Posting_ReversalIntoClosedPeriod</fullName>
-        <categories>Giving</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Pending gift in a closed period</shortDescription>
-        <value>This gift is Pending and dated in a closed accounting period (the books are closed through {0}), so recording a refund or write-off would put it into that period. If it will never be paid, delete it instead.</value>
-    </labels>
-    <labels>
         <fullName>Giving_Posting_DonorLocked</fullName>
         <categories>Giving</categories>
         <language>en_US</language>
