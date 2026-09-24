@@ -6,9 +6,11 @@
  * about what the importing user may see: a gift already loaded under this external ID that the
  * user cannot see must still stop a second copy (the platform refuses the duplicate anyway, and
  * the row would fail with a message naming nothing), and a receipt the user cannot see must still
- * keep its gift when an import is undone. None of these reads is shown to anybody: each only
- * decides whether a row is matched or a record is kept. The inputs are values from the staged
- * rows or identifiers the import itself made; nothing reaches a dynamic query.
+ * keep its gift when an import is undone. What the importing user can learn from them is
+ * limited to what the platform's own duplicate refusal would tell: a row that repeats a hidden
+ * gift's external ID is Matched and its row carries that gift's ID, and an undo that keeps a
+ * gift says so. No field of a hidden record is shown. The inputs are values from the staged rows
+ * or identifiers the import itself made; nothing reaches a dynamic query.
  */
 public without sharing class GiftImportIntegritySelector {
     /** The gifts already carrying these external identifiers (R-DM1). */
