@@ -25,6 +25,8 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
     private Decimal fileAmount;
     /** The entity processor's own state, handed from chunk to chunk (R-IR6). */
     private String processorState;
+    /** The settings the entity processor ran a dry run under, for the commit (R-IB11). */
+    private String processorSettings;
 
     public ImportProcessorBatch(Id batchId, Boolean dryRun) {
         this.batchId = batchId;
@@ -97,6 +99,9 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
             if (outcome.fileAmount != null) {
                 fileAmount = (fileAmount == null ? 0 : fileAmount) + outcome.fileAmount;
             }
+            if (String.isNotBlank(outcome.processorSettings)) {
+                processorSettings = outcome.processorSettings;
+            }
         } catch (Exception e) {
             // The chunk is lost, not the run. Every row in it is marked with the reason so
             // that nothing disappears without an explanation an administrator can read.
@@ -121,7 +126,14 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
             );
             lines.addAll(new List<String>(notes));
             lines.addAll(log);
-            ImportBatchService.finish(batchId, dryRun, failed, lines, fileAmount);
+            ImportBatchService.finish(
+                batchId,
+                dryRun,
+                failed,
+                lines,
+                fileAmount,
+                processorSettings
+            );
         } catch (Exception e) {
             ErrorLogger.log(e, 'ImportProcessorBatch.finish');
         }

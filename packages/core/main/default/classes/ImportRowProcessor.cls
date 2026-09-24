@@ -83,6 +83,9 @@ public with sharing class ImportRowProcessor {
          */
         @NamespaceAccessible
         public Decimal fileAmount;
+        /** The settings the entity processor ran this chunk under, in a dry run (R-IB11). */
+        @NamespaceAccessible
+        public String processorSettings;
     }
 
     /** One row's working state while the chunk is resolved. */
@@ -1303,6 +1306,9 @@ public with sharing class ImportRowProcessor {
             }
             if (result != null && result.fileAmount != null) {
                 outcome.fileAmount = result.fileAmount;
+            }
+            if (result != null && String.isNotBlank(result.settings)) {
+                outcome.processorSettings = result.settings;
             }
         } catch (Exception e) {
             ErrorLogger.log(e, 'ImportRowProcessor.offerToEntityProcessor');

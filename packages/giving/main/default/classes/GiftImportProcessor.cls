@@ -116,8 +116,10 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
             notes.add(Label.Giving_Import_ErrorCannotDeleteGifts);
         }
         Integer paying = 0;
+        // Taken on every chunk, rows with gifts or not, so a dry run records what the commit
+        // is held to even when its first gift is in a later chunk (R-DM7).
+        DonationMatcher matcher = DonationMatcher.forRun(batch, template, dryRun);
         if (!gifts.isEmpty()) {
-            DonationMatcher matcher = new DonationMatcher(template);
             matchExternalIds(pending(gifts), batch.Id);
             matcher.refuseExistingUnderNeverMatch(gifts);
             GiftImportCredits.read(pending(gifts));
@@ -152,7 +154,12 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
                 )
             );
         }
-        return new ImportEntityResult(notes.isEmpty() ? null : String.join(notes, ' '), fileAmount);
+        ImportEntityResult result = new ImportEntityResult(
+            notes.isEmpty() ? null : String.join(notes, ' '),
+            fileAmount
+        );
+        result.settings = dryRun ? matcher.record() : null;
+        return result;
     }
 
     /**

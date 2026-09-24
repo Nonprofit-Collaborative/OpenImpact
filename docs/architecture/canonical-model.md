@@ -1269,7 +1269,9 @@ template that loads gifts carries how its gifts are matched to scheduled payment
 are Core attributes because a package cannot add attributes to another package's object
 (ADR-0014), and they are plain values, never references, so Core can hold them without
 knowing what they mean. The wizard shows them only when a gift processor is installed and
-the mapping loads a gift; an empty value means the org's default (ADR-0052).
+the mapping loads a gift; an empty value means the org's default (ADR-0052). A commit does not
+read them: it runs under the values its dry run recorded on the batch (R-IB11, R-DM7), so a
+template edited after the dry run changes the next dry run, not the commit.
 
 **R-IT5 What v0.2 ships.** v0.2 ships a generic donor list template and a generic gift
 list template. The NPSP template set is v0.3 engineering work and the Agentforce
@@ -1338,6 +1340,7 @@ undoes.
 | Expected Count | integer | no | The number of rows the administrator expects the file to hold, a control total checked by the dry run (R-IB10). |
 | Expected Amount | decimal | no | The total the administrator expects the file's gift amounts to add up to, a control total checked by the dry run (R-IB10). |
 | File Amount | decimal | computed | The total of the file's gift amounts as the last pass read them, written only when an entity processor reads amounts (R-IB10). |
+| Processor Settings | long text | computed | The settings the entity processor ran the last dry run under, as a document only that processor reads; the commit runs under them (R-IB11). |
 
 ### Relationships
 
@@ -1473,6 +1476,19 @@ while either differs a commit is refused with a sentence naming them; the admini
 corrects the file or the totals and runs a new dry run. An Expected Amount with no processor
 installed cannot be checked and is refused the same way (ADR-0052).
 
+**R-IB11 A commit runs under the settings its dry run showed.** An entity processor whose
+decisions depend on settings (for Giving, donation matching's behaviour, date window and
+amount tolerance, R-DM7) takes them once, on the dry run's first chunk, and hands them back
+with each chunk's result (R-IR6). The dry run records them on the batch as Processor Settings,
+replacing the last dry run's, and the commit hands the batch, with them, to the processor,
+which runs under them rather than under the template or the org settings as they stand at
+commit. A template edited between the dry run and the commit therefore changes the next dry
+run and not the commit. A batch whose dry run recorded none (one dry run before this rule)
+runs under the template, as before. Processor Settings is one document Core never reads, not
+an attribute per setting: the values are the processor's own (an empty template value means a
+Giving setting Core cannot resolve), and a module's settings do not become Core attributes
+beyond the template values R-IT7 already carries (ADR-0014).
+
 ### Salesforce implementation
 
 - **Object:** `Import_Batch__c`, auto-number Name with format `IB-{000000}`.
@@ -1498,6 +1514,7 @@ installed cannot be checked and is refused the same way (ADR-0052).
 | Expected Count | `Expected_Count__c` | Number (9, 0) |
 | Expected Amount | `Expected_Amount__c` | Currency (16, 2) |
 | File Amount | `File_Amount__c` | Currency (16, 2) |
+| Processor Settings | `Processor_Settings_JSON__c` | Long Text Area (32768) |
 
 - **Batch tag on other objects:** `Created_By_Import_Batch__c`, a Lookup to
   `Import_Batch__c`, on Account (households and organizations), on Contact, and on
@@ -1610,8 +1627,9 @@ column nothing can load yet. The contract, which ADR-0052 records:
   and the people and written them onto the rows (their references, and Status Rejected with
   the reason where Core rejected the row), with each row's values grouped by entity and the
   template's defaults applied. It must be bulk safe, must write nothing when the pass is a dry
-  run, and must not throw: a failure belongs on its row. It returns a note for the run log and
-  the total of the gift amounts it read, for the control totals (R-IB10).
+  run, and must not throw: a failure belongs on its row. It returns a note for the run log,
+  the total of the gift amounts it read, for the control totals (R-IB10), and in a dry run the
+  settings it ran under, which the commit is held to (R-IB11).
 - **Carried state.** Each chunk runs in its own transaction. A processor that needs to know
   what earlier chunks of the same run decided (the scheduled payments already matched,
   R-DM4, and in a dry run the external IDs already loaded, R-DM1) keeps it in `ImportEntityProcessors.carriedState`, a string the import batch holds
@@ -3885,7 +3903,8 @@ its Household is the donor's household. A donor that does not exist yet has no c
 date window of the gift's date, either side, and its Expected Amount differs from the gift's
 amount by no more than the amount tolerance. Each comes from the template (R-IT7), and when
 the template is empty from the org's defaults (`Donation_Match_Date_Window_Days__c`, 7, and
-`Donation_Match_Amount_Tolerance__c`, 0: the amounts must be equal).
+`Donation_Match_Amount_Tolerance__c`, 0: the amounts must be equal). A commit uses the
+values its dry run took (R-DM7).
 
 **R-DM4 Closest date wins, and a tie is refused.** Among matching candidates the one whose
 due date is closest to the gift's date wins. Two at the same distance are a tie: the row is
@@ -3907,6 +3926,13 @@ Installment and that installment's Commitment set, so the installment's status a
 commitment's paid to date and balance update through the ordinary gift triggers and rollups
 (R-IN2, R-IN3, Section 26). Nothing else is written to the installment or the commitment.
 
+**R-DM7 The commit matches as the dry run did.** The behaviour, the window and the tolerance
+are resolved (template, else org setting, else shipped default) once per dry run, on its first
+chunk, carried to its later chunks and recorded on the batch (R-IB11). The commit reads them
+from the batch, never from the template or the settings, so an edit made after the dry run
+cannot make the commit match, refuse or create what the dry run did not show. A batch with no
+recorded values, or values that cannot be read, falls back to the template.
+
 ### Salesforce implementation
 
 - **Service:** `GiftImportProcessor` (the `ImportEntityProcessor` Core finds by name),
@@ -3914,9 +3940,9 @@ commitment's paid to date and balance update through the ordinary gift triggers 
   `GiftImportCredits` (soft credit and tribute), `GiftImportSelector` (funds, appeals and open
   installments, within the importing user's sharing), `GiftImportIntegritySelector` (what
   already exists: gifts by external ID, and the receipts, statements and gifts an undo must
-  keep; `without sharing` under ADR-0021), `DonationMatcher` (R-DM1 to R-DM6),
+  keep; `without sharing` under ADR-0021), `DonationMatcher` (R-DM1 to R-DM7),
   `GiftImportRunState` (what one run carries from chunk to chunk: claimed payments, and in a
-  dry run the external IDs loaded, each kept as a 64-bit digest of the lowercased value; a
+  dry run the matching values it took and the external IDs loaded, each kept as a 64-bit digest of the lowercased value; a
   commit finds those gifts by the batch stamp instead).
 - **Settings keys** (on `Giving_Settings__c`, Section 21A):
   `Donation_Match_Date_Window_Days__c`, `Donation_Match_Amount_Tolerance__c`.
@@ -4752,3 +4778,4 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.5 | 2026-09-23 | C-19 Import 2.0. New Section 17A, `Import_Journal__c`, a page per chunk recording the updates an import made (value before and value written) and what an undo kept or did not put back, with rules R-IJ1 to R-IJ5. `Import_Batch__c` status gains Undoing and Undo failed; R-IB6 restated and R-IB7 (the undo window is stamped at commit), R-IB8 (one named batch, counted and confirmed, once, to the recycle bin) and R-IB9 (deletes only tagged records, keeps a tagged record that has gained something since, puts back only values nobody has changed since) added. R-IB3 now says the import tags the household it made a new person. R-IT6 added: a recurring template is listed on the Hub with its last import date, and nothing loads a file on a schedule. `Nonprofit_Settings__c` gains `Import_Undo_Retention_Days__c`. R-IR5 notes that undo does not read the staged rows. |
 | v0.5 | 2026-09-23 | C-19 review. No object or field added. R-IB1: a dry run is refused on a batch that has started a commit or is in an undo status. R-IB8: a chunk the platform stopped, or an undo job that is no longer running, ends Undo failed. R-IB9: a tagged record is kept when anything created since points at it through any reference the org can filter on (not only custom ones), when something was created during the commit by somebody else, when the record was edited since or has an activity, and when the person undoing cannot delete it; the system-mode reads and writes are recorded against ADR-0021. R-IJ1: a page holds at most 200 entries, and one oversized entry is logged rather than losing the chunk's journal. |
 | v0.5 | 2026-09-24 | G-23 gift import and G-24 donation matching (ADR-0052). No object added. `Import_Template__c` gains `Donation_Matching__c`, `Match_Date_Window_Days__c` and `Match_Amount_Tolerance__c` (R-IT7); `Import_Batch__c` gains the control totals `Expected_Count__c`, `Expected_Amount__c` and `File_Amount__c` (R-IB10); `Giving_Settings__c` gains `Donation_Match_Date_Window_Days__c` and `Donation_Match_Amount_Tolerance__c`. R-IR1 adds the `Tribute` row entity; R-IR6 states the entity processor contract and R-IR7 how a row's outcome is folded; R-IB8 and R-IB9 let an undo delete what an entity processor tagged, with the processor's reasons to keep. New Section 25N, rules R-GI1 to R-GI9 and R-DM1 to R-DM6. |
+| v0.5 | 2026-09-24 | G-24 follow-up (ADR-0052, amended). `Import_Batch__c` gains `Processor_Settings_JSON__c`, one document the entity processor fills in a dry run and reads back in the commit, which Core never reads. R-IB11 added: a commit runs under the settings its dry run showed. R-DM7 added: donation matching's behaviour, window and tolerance are taken once per dry run and the commit uses them, not the template as edited since. R-IR6 and R-IT7 say so. |

@@ -2,8 +2,8 @@
  * What one gift import run carries from chunk to chunk (R-DM1, R-DM4). Each chunk is its own
  * transaction, so Core's import batch holds this as `ImportEntityProcessors.carriedState`: the
  * scheduled payments earlier chunks matched, and the external IDs of the gifts earlier chunks of
- * a dry run would load (a commit finds those gifts themselves). A dry run then reports what
- * the commit will do.
+ * a dry run would load (a commit finds those gifts themselves), and the donation matching
+ * values a dry run took on its first chunk. A dry run then reports what the commit will do.
  *
  * An external ID is kept as a digest of its lowercased value, so the state grows by the same
  * small amount per row however long the identifiers are. The digest is only compared.
@@ -11,11 +11,14 @@
 public with sharing class GiftImportRunState {
     private static final String CLAIMED_KEY = 'claimedInstallments';
     private static final String SEEN_KEY = 'seenExternalIds';
+    private static final String SETTINGS_KEY = 'settings';
 
     /** The scheduled payments earlier chunks matched (R-DM4). */
     public Set<Id> claimedInstallments = new Set<Id>();
     /** The digests of the external IDs earlier chunks loaded (R-DM1). */
     public Set<String> seenExternalIds = new Set<String>();
+    /** The matching values a dry run took on its first chunk, for the rest (R-DM7). */
+    public String settings;
 
     /** The state earlier chunks left. A state this class did not write carries nothing. */
     public static GiftImportRunState carried() {
@@ -32,6 +35,8 @@ public with sharing class GiftImportRunState {
             for (Object value : listAt(values, SEEN_KEY)) {
                 state.seenExternalIds.add(String.valueOf(value));
             }
+            Object settings = values.get(SETTINGS_KEY);
+            state.settings = settings == null ? null : String.valueOf(settings);
         } catch (Exception unreadable) {
             return new GiftImportRunState();
         }
@@ -48,7 +53,8 @@ public with sharing class GiftImportRunState {
         ImportEntityProcessors.carriedState = JSON.serialize(
             new Map<String, Object>{
                 CLAIMED_KEY => new List<Id>(claimedInstallments),
-                SEEN_KEY => new List<String>(seenExternalIds)
+                SEEN_KEY => new List<String>(seenExternalIds),
+                SETTINGS_KEY => settings
             }
         );
     }

@@ -357,6 +357,23 @@ public with sharing class ImportBatchService {
         List<String> logLines,
         Decimal fileAmount
     ) {
+        return finish(batchId, dryRun, failed, logLines, fileAmount, null);
+    }
+
+    /**
+     * Closes a run as above. A dry run also records the settings the entity processor ran
+     * under, replacing the last dry run's, and the commit is held to them (R-IB11). A commit
+     * leaves them as its dry run recorded them.
+     */
+    @NamespaceAccessible
+    public static Import_Batch__c finish(
+        Id batchId,
+        Boolean dryRun,
+        Boolean failed,
+        List<String> logLines,
+        Decimal fileAmount,
+        String processorSettings
+    ) {
         Import_Batch__c batch = ImportBatchSelector.selectById(batchId);
         if (batch == null) {
             return null;
@@ -368,6 +385,9 @@ public with sharing class ImportBatchService {
         batch.Rows_Rejected__c = count(counts, ImportRowProcessor.STATUS_REJECTED);
         batch.Completed_At__c = Datetime.now();
         batch.File_Amount__c = fileAmount == null ? null : fileAmount.setScale(2);
+        if (dryRun == true) {
+            batch.Processor_Settings_JSON__c = processorSettings;
+        }
         List<String> lines = logLines == null ? new List<String>() : new List<String>(logLines);
         lines.addAll(controlTotalLines(batch));
         batch.Run_Log__c = String.join(lines, '\n').abbreviate(32768);

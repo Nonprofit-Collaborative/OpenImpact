@@ -188,6 +188,95 @@ private class ImportProcessorBatchTest {
         );
     }
 
+    /** A processor that reports the settings it ran under, and what a commit was handed. */
+    private class SettingsProcessor implements ImportEntityProcessor {
+        public List<ImportMapping.Target> targets() {
+            return new List<ImportMapping.Target>();
+        }
+
+        public ImportEntityResult resolve(
+            Import_Batch__c batch,
+            Import_Template__c template,
+            List<Import_Row__c> rows,
+            Map<Id, Map<String, Map<String, String>>> entitiesByRowId,
+            Boolean dryRun
+        ) {
+            ImportEntityResult result = new ImportEntityResult();
+            if (dryRun) {
+                result.settings = '{"window":7}';
+            } else {
+                handedToTheCommit = batch.Processor_Settings_JSON__c;
+                result.settings = '{"window":0}';
+            }
+            return result;
+        }
+
+        public List<Schema.SObjectType> taggedObjects() {
+            return new List<Schema.SObjectType>();
+        }
+
+        public Map<Id, String> reasonsToKeep(
+            Id batchId,
+            Schema.SObjectType type,
+            Set<Id> recordIds
+        ) {
+            return new Map<Id, String>();
+        }
+    }
+
+    private static String handedToTheCommit;
+
+    @IsTest
+    static void theCommitIsHandedTheSettingsItsDryRunRecorded() {
+        ImportMapping mapping = new ImportMapping();
+        for (
+            String target : new List<String>{
+                'Contact1.Email',
+                'Contact1.LastName',
+                'Gift.Amount__c'
+            }
+        ) {
+            mapping.columns.add(new ImportMapping.Column(target, target));
+        }
+        Import_Batch__c batch = ImportTestDataFactory.batch(
+            ImportTestDataFactory.template(mapping.serialize(), ImportTemplateService.RULE_EMAIL)
+        );
+        ImportTestDataFactory.rows(
+            batch,
+            new List<Map<String, String>>{
+                new Map<String, String>{
+                    'Contact1.Email' => 'ana@example.org',
+                    'Contact1.LastName' => 'Ramirez',
+                    'Gift.Amount__c' => '10'
+                }
+            }
+        );
+        ImportEntityProcessors.processorOverride = new SettingsProcessor();
+
+        Test.startTest();
+        ImportProcessorBatch previewing = new ImportProcessorBatch(batch.Id, true);
+        previewing.execute(null, ImportTestDataFactory.reload(batch.Id));
+        previewing.finish(null);
+        Import_Batch__c afterDryRun = ImportBatchSelector.selectById(batch.Id);
+        ImportBatchService.resetRows(batch.Id);
+        ImportProcessorBatch committing = new ImportProcessorBatch(batch.Id, false);
+        committing.execute(null, ImportTestDataFactory.reload(batch.Id));
+        committing.finish(null);
+        Test.stopTest();
+
+        Assert.areEqual(
+            '{"window":7}',
+            afterDryRun.Processor_Settings_JSON__c,
+            'The dry run recorded what it ran under (R-IB11).'
+        );
+        Assert.areEqual('{"window":7}', handedToTheCommit, 'And the commit was handed it.');
+        Assert.areEqual(
+            '{"window":7}',
+            ImportBatchSelector.selectById(batch.Id).Processor_Settings_JSON__c,
+            'A commit does not replace what its dry run recorded.'
+        );
+    }
+
     @IsTest
     static void aChunkThatDiesRejectsItsOwnRowsAndSaysWhy() {
         Import_Batch__c batch = staged(2);
