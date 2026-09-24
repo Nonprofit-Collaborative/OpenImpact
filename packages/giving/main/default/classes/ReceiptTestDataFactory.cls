@@ -68,6 +68,28 @@ public class ReceiptTestDataFactory {
     }
 
     /**
+     * The person a test that stores a file runs as: an administrator created for that test alone.
+     *
+     * Not the running user, because the running user is shared. Every file a user saves goes into
+     * that user's private library, and test classes run in parallel as the same person, each in a
+     * transaction that rolls back. When one of those transactions rolls back while another is
+     * saving a file into the same library, the second save is refused with
+     * `INVALID_CROSS_REFERENCE_KEY, invalid cross reference id: []`, naming no field. Measured on
+     * the test org with eight transactions saving and rolling back at once: about one save in 160
+     * refused as the shared user, and none in twelve rounds from a user created for the test. A
+     * person created for one test has a library nobody else writes to.
+     *
+     * The running user's profile and the same two roles `run-org-tests.sh` gives the running
+     * user, so a test has exactly the access it had before.
+     */
+    public static User issuer() {
+        return TestDataFactory.createUserOnTheRunningUsersProfile(
+            'Issuer',
+            new List<String>{ 'Nonprofit_Admin', 'Giving_Admin' }
+        );
+    }
+
+    /**
      * Everything a receipt needs before it can be issued: an organization to issue it, a numbering
      * prefix, a letter of each kind, permission to issue and to manage the letters, a renderer
      * that does not need a PDF engine, and a default fund so the gifts being receipted can be

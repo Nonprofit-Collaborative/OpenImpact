@@ -1,0 +1,5 @@
+{
+  "outcome": "rejected",
+  "errorCode": "invalid_field",
+  "message": "amount must be greater than zero, with at most two decimal places."
+}
