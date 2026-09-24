@@ -456,4 +456,20 @@
         <shortDescription>Import undo journal: record kept, a kept gift names it</shortDescription>
         <value>Kept: a gift this import made, which the undo is keeping, still names this record.</value>
     </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorNotAttempted</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import row not attempted: the chunk ran out of room</shortDescription>
+        <value>Not attempted: this chunk ran out of room before this gift could be finished. Load this row again.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_ErrorCannotDeleteGifts</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gift import refused: the importer cannot delete gifts</shortDescription>
+        <value>A gift import needs permission to delete gifts, because it removes a gift it could not finish. Ask your administrator for the Giving Admin permission set.</value>
+    </labels>
 </CustomLabels>
