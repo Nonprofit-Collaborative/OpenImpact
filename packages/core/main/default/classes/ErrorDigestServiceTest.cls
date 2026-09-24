@@ -221,6 +221,66 @@ private class ErrorDigestServiceTest {
     }
 
     @IsTest
+    static void aFloodedErrorLogStillGetsItsDigest() {
+        TestDataFactory.defaultSettings();
+        User admin = maria();
+        List<Error_Log__c> logs = new List<Error_Log__c>();
+        for (Integer i = 0; i < 5; i++) {
+            logs.add(entry('Household naming', ErrorLogger.SEVERITY_ERROR, ErrorLogger.STATUS_NEW));
+        }
+        insert logs;
+        ErrorDigestService.entryCap = 3;
+        ErrorDigestService.capturedMessages = new List<Messaging.SingleEmailMessage>();
+
+        ErrorDigestService.Outcome outcome;
+        System.runAs(admin) {
+            Test.startTest();
+            outcome = ErrorDigestService.sendNow();
+            Test.stopTest();
+        }
+
+        Assert.isTrue(outcome.sent, 'More than it can count, and the digest still goes out.');
+        Assert.areEqual(3, outcome.entries, 'It counted up to its cap.');
+        Assert.isTrue(outcome.summary.contains('3+'), 'And says there were more.');
+        String body = ErrorDigestService.capturedMessages[0].getPlainTextBody();
+        Assert.isTrue(body.contains('Household naming: 3'), 'The counts cover what it read.');
+        Assert.isTrue(
+            body.contains(Label.Core_ErrorDigest_Capped.substringBefore('{0}')),
+            'And the email says the numbers are the newest few.'
+        );
+        Assert.isNotNull(settings().Error_Digest_Covered_Until__c, 'The window moved on.');
+    }
+
+    @IsTest
+    static void aFailedSendKeepsTheWindowAndIsLoggedOnce() {
+        TestDataFactory.defaultSettings();
+        User admin = maria();
+        insert entry('Household naming', ErrorLogger.SEVERITY_ERROR, ErrorLogger.STATUS_NEW);
+        ErrorDigestService.sendFailureForTest = 'email is switched off for this org';
+
+        ErrorDigestService.Outcome first;
+        ErrorDigestService.Outcome second;
+        System.runAs(admin) {
+            Test.startTest();
+            first = ErrorDigestService.sendNow();
+            second = ErrorDigestService.sendNow();
+            Test.stopTest();
+        }
+
+        Assert.isFalse(first.sent || second.sent, 'Nothing could be sent.');
+        Assert.isTrue(first.summary.contains('email is switched off'), 'The run says why.');
+        Assert.isNull(
+            settings().Error_Digest_Covered_Until__c,
+            'The window stays, so the next run tries the same entries again.'
+        );
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Error_Log__c WHERE Context__c = 'Error digest'],
+            'The same reason twice is one Error Log entry, not one a day.'
+        );
+    }
+
+    @IsTest
     static void theFirstDigestKeepsTheShippedDefaults() {
         Test.startTest();
         ErrorDigestWriter.recordRun(System.now(), 'Nothing new.', System.now());

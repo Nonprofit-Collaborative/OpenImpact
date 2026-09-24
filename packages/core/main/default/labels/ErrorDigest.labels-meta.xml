@@ -144,4 +144,20 @@
         <shortDescription>Error digest: sending failed with no reason given.</shortDescription>
         <value>the platform gave no reason</value>
     </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_Capped</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest: more new entries than it counts; {0} is the number counted.</shortDescription>
+        <value>There are more new entries than one digest counts. The numbers below cover the newest {0}.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_NoRoom</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest reason: no query allowance left to count entries.</shortDescription>
+        <value>too little of this run's allowance for reading records was left to count the entries</value>
+    </labels>
 </CustomLabels>
