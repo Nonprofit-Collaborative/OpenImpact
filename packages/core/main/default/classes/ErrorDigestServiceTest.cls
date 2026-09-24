@@ -148,13 +148,16 @@ private class ErrorDigestServiceTest {
 
         ErrorDigestService.Outcome early;
         ErrorDigestService.Outcome due;
+        Test.startTest();
         System.runAs(admin) {
-            Test.startTest();
             early = ErrorDigestService.runScheduled();
-            setDigest(null, ErrorDigestService.FREQUENCY_WEEKLY, System.now().addDays(-7));
-            due = ErrorDigestService.runScheduled();
-            Test.stopTest();
         }
+        // Moving the window back is test setup, not something Maria does: the setting is protected.
+        setDigest(null, ErrorDigestService.FREQUENCY_WEEKLY, System.now().addDays(-7));
+        System.runAs(admin) {
+            due = ErrorDigestService.runScheduled();
+        }
+        Test.stopTest();
 
         Assert.isFalse(early.sent, 'Two days into the week, the scheduled run waits.');
         Assert.isTrue(
