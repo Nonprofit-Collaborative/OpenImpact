@@ -268,22 +268,81 @@ private class ImportBatchServiceTest {
         );
 
         Test.startTest();
-        ImportBatchService.startDryRun(batch.Id);
+        Id jobId = ImportBatchService.startDryRun(batch.Id);
+        Assert.areEqual(
+            jobId,
+            ImportBatchSelector.selectById(batch.Id).Job_Id__c,
+            'The job is recorded with the pass.'
+        );
+        ImportBatchService.jobRunningForTest = true;
         try {
             ImportBatchService.startDryRun(batch.Id);
             Assert.fail('R-IB13: one pass of a batch at a time.');
         } catch (ImportException e) {
             Assert.areEqual(Label.Core_Import_ErrorRunInProgress, e.getMessage(), 'Said plainly.');
         }
+        ImportBatchService.jobRunningForTest = null;
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void aRunWhoseJobWasAbortedCanStartAgain() {
+        Import_Batch__c batch = ImportTestDataFactory.batch(newTemplate());
+        ImportTestDataFactory.rows(
+            batch,
+            new List<Map<String, String>>{
+                ImportTestDataFactory.donorRow('Ana', 'Ramirez', 'ana@example.org', null)
+            }
+        );
+        // Left in Dry run by a job the platform aborted: no job is running for it.
+        update new Import_Batch__c(Id = batch.Id, Status__c = ImportBatchService.STATUS_DRY_RUN);
+        ImportBatchService.jobRunningForTest = false;
+        Import_Batch__c stuck = ImportBatchSelector.selectById(batch.Id);
+        Assert.areEqual(
+            ImportBatchService.STATUS_FAILED,
+            ImportUndoService.effectiveStatus(stuck),
+            'It reads as failed, not as running for ever.'
+        );
+
+        Test.startTest();
+        ImportBatchService.startDryRun(batch.Id);
         Test.stopTest();
 
-        update new Import_Batch__c(Id = batch.Id, Status__c = ImportBatchService.STATUS_COMMITTING);
-        try {
-            ImportBatchService.startDryRun(batch.Id);
-            Assert.fail('Nor a dry run over a commit that is running.');
-        } catch (ImportException e) {
-            Assert.areEqual(Label.Core_Import_ErrorRunInProgress, e.getMessage(), 'The same.');
-        }
+        Assert.areEqual(
+            ImportBatchService.STATUS_DRY_RUN_COMPLETE,
+            ImportBatchSelector.selectById(batch.Id).Status__c,
+            'The dry run ran again.'
+        );
+    }
+
+    @IsTest
+    static void anAbortedCommitReadsFailedAndCanBeUndone() {
+        Import_Batch__c batch = ImportTestDataFactory.batch(newTemplate());
+        ImportTestDataFactory.rows(
+            batch,
+            new List<Map<String, String>>{
+                ImportTestDataFactory.donorRow('Ana', 'Ramirez', 'ana@example.org', null)
+            }
+        );
+        update new Import_Batch__c(
+            Id = batch.Id,
+            Status__c = ImportBatchService.STATUS_DRY_RUN_COMPLETE
+        );
+
+        Test.startTest();
+        ImportBatchService.startCommit(batch.Id);
+        // The platform aborts the job before its finish: the batch is still Committing.
+        ImportBatchService.jobRunningForTest = false;
+        Import_Batch__c stuck = ImportBatchSelector.selectById(batch.Id);
+        Assert.areEqual(ImportBatchService.STATUS_COMMITTING, stuck.Status__c, 'As left.');
+        Assert.areEqual(
+            ImportBatchService.STATUS_FAILED,
+            ImportUndoService.effectiveStatus(stuck),
+            'It reads as failed.'
+        );
+        Assert.isNotNull(stuck.Committed_By__c, 'Stamped when the commit started.');
+        Assert.isNull(ImportUndoService.refusal(stuck), 'So what it wrote can be undone.');
+        Test.stopTest();
     }
 
     @IsTest

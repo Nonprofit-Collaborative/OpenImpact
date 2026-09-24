@@ -235,11 +235,19 @@ public with sharing class ImportBatchService {
     }
 
     private static Id start(Id batchId, Boolean dryRun) {
-        Import_Batch__c batch = ImportBatchSelector.selectById(batchId);
+        // Locked, so two starts at once cannot both find no job running (R-IB13).
+        List<Import_Batch__c> locked = [
+            SELECT Id
+            FROM Import_Batch__c
+            WHERE Id = :batchId
+            WITH USER_MODE
+            FOR UPDATE
+        ];
+        Import_Batch__c batch = locked.isEmpty() ? null : ImportBatchSelector.selectById(batchId);
         if (batch == null) {
             throw new ImportException(Label.Core_Import_ErrorBatchGone);
         }
-        if (STATUS_DRY_RUN.equals(batch.Status__c) || STATUS_COMMITTING.equals(batch.Status__c)) {
+        if (isRunning(batch)) {
             // Two passes of one batch at once would each overwrite the other's rows (R-IB13).
             throw new ImportException(Label.Core_Import_ErrorRunInProgress);
         }
@@ -278,12 +286,65 @@ public with sharing class ImportBatchService {
         batch.Rows_Updated__c = 0;
         batch.Rows_Matched__c = 0;
         batch.Rows_Rejected__c = 0;
-        Database.update(batch, AccessLevel.USER_MODE);
-        return Database.executeBatch(
+        if (!dryRun) {
+            // Stamped now as well as at the finish, so a commit the platform aborts part way
+            // can still be undone (R-IB7, R-IB13).
+            batch.Committed_By__c = UserInfo.getUserId();
+            batch.Undo_Deadline__c = Datetime.now().addDays(undoWindowDays());
+        }
+        // Enqueued before the write, so the job is recorded with the pass; both roll back
+        // together if the write fails.
+        batch.Job_Id__c = Database.executeBatch(
             new ImportProcessorBatch(batch.Id, dryRun),
             scopeSize(batch.Chunk_Size__c)
         );
+        Database.update(batch, AccessLevel.USER_MODE);
+        return batch.Job_Id__c;
     }
+
+    /** Set by a test to stand for the platform's answer about a batch's job. */
+    @TestVisible
+    private static Boolean jobRunningForTest;
+
+    /**
+     * Whether the batch's dry run or commit is really running: its status says so and its job
+     * is queued or processing. A pass the platform aborted, or whose finish failed, keeps its
+     * status with no job behind it, and is not running (R-IB13). Read in system mode: the job
+     * may be another user's.
+     */
+    @NamespaceAccessible
+    public static Boolean isRunning(Import_Batch__c batch) {
+        if (
+            batch == null ||
+            !(STATUS_DRY_RUN.equals(batch.Status__c) || STATUS_COMMITTING.equals(batch.Status__c))
+        ) {
+            return false;
+        }
+        if (jobRunningForTest != null) {
+            return jobRunningForTest;
+        }
+        if (String.isBlank(batch.Job_Id__c)) {
+            return false;
+        }
+        Id jobId = batch.Job_Id__c;
+        Set<String> running = RUNNING_JOB_STATUSES;
+        return ![
+                SELECT Id
+                FROM AsyncApexJob
+                WHERE Id = :jobId AND Status IN :running
+                WITH SYSTEM_MODE
+                LIMIT 1
+            ]
+            .isEmpty();
+    }
+
+    /** AsyncApexJob statuses that mean a job has not finished yet. */
+    private static final Set<String> RUNNING_JOB_STATUSES = new Set<String>{
+        'Holding',
+        'Queued',
+        'Preparing',
+        'Processing'
+    };
 
     /**
      * Whether a commit of this batch has started, whatever became of it since: committing,

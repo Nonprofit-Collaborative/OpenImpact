@@ -173,6 +173,11 @@ too large to open in the browser (more than 500,000 rows or 1,000 columns, or a 
 at a time. Wait for the one running to finish (its results appear when it does), then start
 again. While it runs, rows it has not reached yet still show the previous run's result.
 
+**An import shows Failed although you did not see it fail.** Salesforce stopped its dry run or
+commit before it finished (for example, the job was aborted in Setup). Run the dry run again.
+A commit that was stopped this way can be undone like any failed commit: what it had already
+loaded is removed.
+
 **"No column was matched to a name or an email."** The dry run refuses to run when the
 mapping has no way to identify a person or an organization. Usually the file's header row
 is not the first row: a title line or a blank line above it means Open Impact read the
