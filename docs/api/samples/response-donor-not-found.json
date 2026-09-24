@@ -1,0 +1,5 @@
+{
+  "outcome": "rejected",
+  "errorCode": "donor_not_found",
+  "message": "No person has this donorEmail. Add the donor first, then send the gift again."
+}
