@@ -606,8 +606,8 @@ the app rather than in debug logs (plan Sections 2.3 and 4.8).
 message an administrator can act on. A silent catch is a review failure.
 **R-E2** Error Log writing never itself throws; a failure to log is swallowed rather
 than masking the original error.
-**R-E3** The Hub shows a tile of unresolved errors, and an optional daily digest email
-goes to the admin (feature C-23, v0.6).
+**R-E3** The Hub shows a tile of unresolved errors, and an optional digest email goes to
+the administrators (feature C-23, v0.6, R-E5).
 **R-E4 The entry outlives the transaction it documents.** Most failures worth recording
 end in a rollback: the save is refused and everything written in that transaction is
 undone, an Error Log row included. So an entry is not written directly. It is published as
@@ -617,6 +617,18 @@ publishing itself fails. Publishing is governed by Create on the event, so all t
 packaged permission sets grant Read and Create on **Error Log Event**, Read Only
 included. A user holding none of them falls back to the direct write, and for that user
 the entry survives only when the transaction commits.
+**R-E5 The digest counts; it never quotes.** The error digest is one email per recipient
+about the entries created since the window the last digest covered that are still New:
+how many, how many by Context and by Severity, and the newest 25 by record name with a link
+to each, plus a link to the whole list. It never carries Message, Technical Detail or
+Record Reference, so it holds less about a donor than the entries themselves. It goes only
+to active users of the org (those holding Manage Nonprofit Settings, or those whose email
+addresses the administrator lists), at most 50 of them, addressed to each user record so
+that it does not count against the daily limit on email sent to addresses. A run that finds
+nothing new sends nothing. One daily job, started and stopped in the settings console,
+sends it at most once a day or once a week as the administrator chooses; a run that sent or
+found nothing moves the covered window on, and a run that could not send leaves it where it
+was, so no entry is counted twice or dropped (ADR-NEXT).
 
 ### Salesforce implementation
 
@@ -668,6 +680,13 @@ automation resumes by itself. While it is in the future, no packaged trigger log
 and the Hub shows a banner. This satisfies the C-04 acceptance criterion ("Pause all
 automation for 2 hours") and the auto-expiry requirement in C-23.
 
+Since C-23 the end of a pause is also recorded. Pausing schedules a one-time job for the
+moment the pause ends; the job clears the value and writes the Setting Change for the
+resume, as the Resume button does. The comparison with the clock still decides whether
+automation runs, so it resumes on time even when the job is late; the job is what puts the
+resume in the audit trail. Who paused is read from the Setting Change that started the
+pause rather than stored a second time (R-A5, ADR-NEXT).
+
 ### Rules
 
 **R-A1** Every packaged trigger goes through the trigger framework and is therefore
@@ -681,6 +700,13 @@ logging.
 convenience, so the dispatcher does not consult the bypass, the pause or the switch for it.
 The console still lists it, with its switch off and disabled and a line saying why, and a
 request to switch it on or off is refused (ADR-0024).
+**R-A5 A pause always ends by itself, on the record.** The global pause lasts 1, 2, 4, 8
+or 24 hours, 2 unless the administrator chooses otherwise. Its end is written when it
+starts, a one-time job clears it at that moment and records the resume as a Setting Change,
+and resuming by hand or pausing again cancels that job. A pause in effect that no job is
+scheduled to end, or that ends more than 24 hours ahead, is a Health Check warning. Neither
+the pause nor its end moves any automation's switch, and neither touches an Always Runs
+automation (R-A4).
 
 ### Salesforce implementation
 
@@ -831,6 +857,19 @@ Added by Import 2.0 (C-19).
 | Key | Type | Default | Definition |
 |---|---|---|---|
 | `Import_Undo_Retention_Days__c` | integer | 30 | How many days after a commit an import can still be undone. Stamped onto the batch when it commits, so changing it never moves the deadline of an import that has already run (R-IB7). |
+
+### v0.6 keys
+
+Added by the error digest (C-23, R-E5). The digest is switched on and off by scheduling
+its job from the console, as the nightly jobs are (ADR-0038), so it has no on and off key.
+
+| Key | Type | Default | Definition |
+|---|---|---|---|
+| `Error_Digest_Recipients__c` | text (255) | empty | The email addresses of the users who receive the error digest, separated by commas. Each has to belong to an active user of this org. Empty sends it to every active user holding Manage Nonprofit Settings. |
+| `Error_Digest_Frequency__c` | picklist(Daily, Weekly) | Daily | How often the error digest may be sent. Stored as text (ADR-0019); empty reads as Daily. |
+| `Error_Digest_Covered_Until__c` | datetime | empty | The end of the window the last digest run covered; the next digest counts entries created after it. Written by the job. |
+| `Error_Digest_Last_Run__c` | datetime | empty | When the digest job last ran, whether or not it sent anything. Written by the job. |
+| `Error_Digest_Last_Run_Summary__c` | text (255) | empty | What the last digest run did, in one sentence. Written by the job. |
 
 ### Rules
 
@@ -4671,7 +4710,7 @@ None open. R-M3's Primary Contact mirror, the only entry, was closed on 2026-09-
 | v0.5 | 2026-09-23 | C-21 Health Check v2 (ADR-0048). No object, field, settings key or rollup row added. Health Check reads state the model already defines: shipped rollup definitions, automation switch rows and import templates not yet materialized from their shipped defaults (Section 13), the nightly rollup run when an active definition is in Scheduled or Both mode (Section 14). Recorded against R-A2: an `Automation_Setting__c` row whose registry entry is no longer shipped is left alone, because no fix deletes a record. `Automation_Setting__c` rows are now materialized by Core's and Giving's post-install scripts, one per shipped registry entry not yet present, never touching an existing row (before C-21 nothing created them). Recorded against R-R6: a shipped rollup default is not materialized when an active, administrator-made definition (`Is_Package_Default__c` false) already writes the same target entity and attribute; shipped defaults are not counted against each other, because household and organization pairs write one attribute for different accounts. Health Check detects orphans without changing them (cleanup is C-28): a person in no household, reported only while `Auto_Create_Households__c` is on (R-C1), which in contact mode is a Contact with no Account (a Contact whose Account is an Organization belongs to it, Section 7) and in junction mode a Contact or person account with no current Household Member row (R-M2, R-M4; a Contact whose Account is a Household is left to the membership check); and a Household with no current member (in contact mode no Contact on it, in junction mode no current row naming a person). Person accounts are recognised by the org's person record types, never by a person account field. |
 | v0.5 | 2026-09-23 | C-20 duplicate detection (ADR-0050). One object added, `Duplicate_Dismissal__c` (Section 29A) with `Pair_Key__c` and `Reason__c`, which holds a decision rather than a finding. Detection is the org's own active duplicate rules; Open Impact ships none, and the suggestions are the standard `DuplicateRecordSet` and `DuplicateRecordItem` records. A scan started from Nonprofit Settings evaluates those rules against the people and households already in the org. Rules R-DP1 to R-DP5 added. |
 | v0.6 | 2026-09-23 | X-03, X-04 and X-06, the Connect integration surface (ADR-0051). No object or field added. R-G7 is reworded: the inbound gift API answers a resend with the gift already recorded and never edits it, and refuses a resend whose amount differs. The accounting export reads `Gift__c`, `Gift_Allocation__c` and `Fund__c` and writes nothing: the posting flag plan Section 4.12 names belongs to G-20 in Giving, and no Connect object records export runs. Section 30 notes that X-03 and X-04 add no Connect entity. |
-
+| v0.6 | 2026-09-24 | C-23 automation pause with automatic resume, and the error digest (ADR-NEXT). No object added. `Nonprofit_Settings__c` gains five keys (Section 12, v0.6 keys): `Error_Digest_Recipients__c`, `Error_Digest_Frequency__c`, `Error_Digest_Covered_Until__c`, `Error_Digest_Last_Run__c` and `Error_Digest_Last_Run_Summary__c`. New rules R-A5 (a pause ends by itself through a one-time job that records the resume) and R-E5 (the digest counts and links, never quotes, and goes only to active users); R-E3 reworded to point at R-E5. |
 ---
 ## 32. Entity ownership by package
 One row per entity in the model, so a contributor or an agent can tell at a glance which
@@ -4686,7 +4725,7 @@ included; standard objects the packages extend are named by the entity that gove
 | Error Log | Core | v0.1 | 9 |
 | Automation Setting | Core | v0.1 | 10 |
 | Setting Change | Core | v0.1 | 11 |
-| Nonprofit Settings | Core | v0.1, extended v0.2 and v0.3 | 12 |
+| Nonprofit Settings | Core | v0.1, extended v0.2, v0.3, v0.5 and v0.6 | 12 |
 | Naming Pattern (shipped default) | Core | v0.1 | 13 |
 | Automation Registry (shipped default) | Core | v0.1 | 13 |
 | Rollup Definition | Core | v0.2 | 14 |

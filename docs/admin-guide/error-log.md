@@ -35,6 +35,51 @@ Nonprofit Admin role can change an entry's status.
 Errors are recorded whatever else is happening: turning an automation off, or pausing all
 automation, never stops the Error Log from recording a problem.
 
+## The error digest email
+
+If nobody opens the Hub for a few days, nobody sees the tile. The error digest fixes that:
+once a day (or once a week), Open Impact emails a short summary of the new entries to the
+people who look after it. It is off until you switch it on.
+
+What the email says:
+
+- how many new entries arrived since the last digest, counting only the ones still marked
+  **New**;
+- how many came from each source (for example "Household naming: 4") and how many at each
+  severity;
+- the 25 newest, each as its entry number with a link that opens it;
+- a link to the whole Error Log, and how many entries in all are still New.
+
+It never copies an entry's message, its technical detail or the record it names. Those stay
+in Salesforce, where the same access rules as always decide who can read them. Click a link
+to see the rest.
+
+If nothing new has arrived, no email is sent at all.
+
+### Switch it on
+
+1. Open **Nonprofit Settings** and click **Error Log** in the left navigation.
+2. In **Digest recipients**, leave the box empty to send the digest to everyone who holds
+   the Manage Nonprofit Settings permission (the Nonprofit Admin role), or type the email
+   addresses of the people who should get it, separated by commas. Each address has to be
+   the email address of an active user of your Salesforce: the digest is never sent to
+   anyone outside it, and an address that is not a user's is refused when you save.
+3. In **Digest frequency**, choose **Every day** or **Once a week**, then click **Save**.
+4. In the **Error digest** panel, click **Schedule**. The panel now says the digest is
+   scheduled and when it runs next: every morning at 7:00, after the nightly jobs, so their
+   problems are in it. A weekly digest checks every morning and sends once seven days have
+   passed since the last one.
+5. Click **Send now** to try it. If there are new entries, the email arrives in a minute or
+   two; if not, the panel says there was nothing new and no email went out.
+
+The panel always shows when the digest last ran, what it did in one sentence (for example
+"Sent 7 new entries to 2 people" or "Nothing new since Sep 23, 7:00 AM: no email sent"),
+and who it goes to. Click **Stop** to switch it off.
+
+Sending the digest does not use up your organization's daily email allowance: it goes to
+users of your own Salesforce, which the platform does not count. At most 50 people receive
+it.
+
 ## A five-minute walkthrough
 
 Maria has heard from a colleague that "something did not save this morning."
@@ -59,9 +104,15 @@ Maria has heard from a colleague that "something did not save this morning."
 
 ## Common mistakes
 
-- **Treating the Error Log as a to-do list that someone else owns.** Nobody is emailed
-  about these yet (a daily summary email arrives in a later release). If you do not look at
-  the tile, nobody looks at it.
+- **Treating the Error Log as a to-do list that someone else owns.** Unless you switch on
+  the error digest, nobody is emailed about these. If you do not look at the tile, nobody
+  looks at it.
+- **Expecting the digest to arrive when your organization blocks email.** If your
+  Salesforce is set to send system email only (Setup, Deliverability), no digest can be
+  sent. The panel's last run says so, and an entry appears in the Error Log. Whoever
+  administers your Salesforce can change the setting.
+- **Marking entries Acknowledged and expecting them in the digest.** The digest counts only
+  entries that are still New, because those are the ones nobody has looked at.
 - **Deleting entries to clear the list.** Use the status instead. Marking something
   Resolved keeps the history, which is what you want the next time the same thing happens,
   and it keeps the tile count accurate either way.

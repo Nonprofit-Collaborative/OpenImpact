@@ -94,7 +94,7 @@ recommendation in step 5 is **NPSP coexistence**. Everything else is the same.
 | Access | Whether anyone holds the Nonprofit Admin role. |
 | Access | Whether active users with a Salesforce license have no Open Impact role at all. |
 | Access | Whether anyone holds the Override Receipt Lock permission, which is meant to be granted for one correction and taken away again. |
-| Settings | Whether Open Impact automation is paused, and says so plainly when it is running. |
+| Settings | Whether Open Impact automation is paused, and says so plainly when it is running. A pause that nothing is set to end, or that ends more than 24 hours from now, is a warning. |
 | Settings | Whether there are new entries in the Error Log that nobody has looked at. |
 | Settings | Whether anybody is in no household while every new person is meant to get one. |
 | Settings | Whether any household has nobody in it. |
@@ -237,4 +237,7 @@ time, the finding goes away without the schedule, which is also correct.
 **Leaving automation paused.** Pausing automation for a bulk load is exactly right. Forgetting
 to turn it back on means households stop being created and names stop being recomputed, quietly.
 That is why the paused finding is always shown, with the time it expires. If you see it and you
-are not in the middle of a load, resume automation.
+are not in the middle of a load, resume automation. If it says **Automation is paused with no
+automatic resume**, the pause will not end by itself on time: it was started before automatic
+resume existed, or somewhere other than the Automation page. Resume it there and pause again
+for a set time if you need to (see the [Automation control page](automation-control.md)).
