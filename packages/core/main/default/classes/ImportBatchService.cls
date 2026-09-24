@@ -147,6 +147,9 @@ public with sharing class ImportBatchService {
         if (batch == null) {
             throw new ImportException(Label.Core_Import_ErrorBatchGone);
         }
+        if (dryRun && hasCommitted(batch)) {
+            throw new ImportException(Label.Core_Import_ErrorDryRunAfterCommit);
+        }
         Import_Template__c template = ImportTemplateSelector.selectById(batch.Import_Template__c);
         if (template == null) {
             throw new ImportException(Label.Core_Import_ErrorTemplateGone);
@@ -182,6 +185,22 @@ public with sharing class ImportBatchService {
             new ImportProcessorBatch(batch.Id, dryRun),
             scopeSize(batch.Chunk_Size__c)
         );
+    }
+
+    /**
+     * Whether a commit of this batch has started, whatever became of it since: committing,
+     * committed, failed part way, or in any undo status. A dry run over such a batch would
+     * mark it a dry run, so it could never be undone, clear its completion time, and a second
+     * commit would move its undo window (R-IB1).
+     */
+    private static Boolean hasCommitted(Import_Batch__c batch) {
+        return batch.Is_Dry_Run__c == false ||
+            batch.Committed_By__c != null ||
+            STATUS_COMMITTING.equals(batch.Status__c) ||
+            STATUS_COMPLETE.equals(batch.Status__c) ||
+            STATUS_UNDOING.equals(batch.Status__c) ||
+            STATUS_UNDONE.equals(batch.Status__c) ||
+            STATUS_UNDO_FAILED.equals(batch.Status__c);
     }
 
     /**

@@ -574,7 +574,7 @@
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>Import undo journal: kept, something was added since</shortDescription>
-        <value>Kept: something recorded after the import points at this record, such as a gift or a relationship.</value>
+        <value>Kept: something recorded after the import points at this record, such as a gift, an activity or a relationship.</value>
     </labels>
     <labels>
         <fullName>Core_Import_UndoKeptHasPeople</fullName>
@@ -599,6 +599,30 @@
         <protected>false</protected>
         <shortDescription>Import undo journal: kept, could not be checked</shortDescription>
         <value>Kept: the undo could not check whether anything depends on this record, so it left it in place. The Error Log has the details.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoKeptEdited</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: kept, edited since</shortDescription>
+        <value>Kept: somebody changed this record, or logged an activity on it, after the import.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_UndoKeptNoAccess</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: kept, no access to delete</shortDescription>
+        <value>Kept: you do not have access to delete this record, so the undo left it in place.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorDryRunAfterCommit</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import error: dry run after a commit</shortDescription>
+        <value>This import has already been committed, so it cannot be run as a dry run again. Start a new import to preview the file.</value>
     </labels>
     <labels>
         <fullName>Core_Import_LogUndone</fullName>
@@ -767,5 +791,13 @@
         <protected>false</protected>
         <shortDescription>Import wizard: the browser cannot open workbooks</shortDescription>
         <value>This browser cannot open Excel files. Save the sheet as CSV and upload that, or use a current version of Chrome, Edge, Firefox or Safari.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_XlsxTooLarge</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: an Excel file too large to open</shortDescription>
+        <value>This Excel file is too large to open in the browser: it has more than 500,000 rows or 1,000 columns, or a sheet over 100 MB. Save the sheet as CSV and upload that.</value>
     </labels>
 </CustomLabels>

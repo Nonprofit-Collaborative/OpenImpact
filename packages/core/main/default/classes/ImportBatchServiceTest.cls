@@ -98,6 +98,57 @@ private class ImportBatchServiceTest {
     }
 
     @IsTest
+    static void refusesADryRunOnceACommitHasStarted() {
+        Import_Template__c template = newTemplate();
+        List<String> statuses = new List<String>{
+            ImportBatchService.STATUS_COMPLETE,
+            ImportBatchService.STATUS_FAILED,
+            ImportBatchService.STATUS_UNDOING,
+            ImportBatchService.STATUS_UNDONE,
+            ImportBatchService.STATUS_UNDO_FAILED
+        };
+        List<Import_Batch__c> batches = new List<Import_Batch__c>();
+        for (String status : statuses) {
+            Import_Batch__c batch = ImportTestDataFactory.batch(template);
+            ImportTestDataFactory.rows(
+                batch,
+                new List<Map<String, String>>{
+                    ImportTestDataFactory.donorRow('Ana', 'Ramirez', 'ana@example.org', null)
+                }
+            );
+            batch.Status__c = status;
+            batch.Is_Dry_Run__c = false;
+            batch.Committed_By__c = UserInfo.getUserId();
+            batch.Completed_At__c = Datetime.now();
+            batch.Undo_Deadline__c = Datetime.now().addDays(30);
+            batches.add(batch);
+        }
+        update batches;
+
+        Test.startTest();
+        for (Import_Batch__c batch : batches) {
+            try {
+                ImportBatchService.startDryRun(batch.Id);
+                Assert.fail('R-IB1: no dry run over a batch in status ' + batch.Status__c + '.');
+            } catch (ImportException e) {
+                Assert.areEqual(
+                    Label.Core_Import_ErrorDryRunAfterCommit,
+                    e.getMessage(),
+                    'Said plainly, for ' + batch.Status__c + '.'
+                );
+            }
+        }
+        Test.stopTest();
+        Import_Batch__c after = [
+            SELECT Is_Dry_Run__c, Completed_At__c, Undo_Deadline__c
+            FROM Import_Batch__c
+            WHERE Id = :batches[0].Id
+        ];
+        Assert.isFalse(after.Is_Dry_Run__c, 'The committed batch is still undoable.');
+        Assert.isNotNull(after.Completed_At__c, 'And keeps its completion time.');
+    }
+
+    @IsTest
     static void refusesToCommitBeforeADryRun() {
         Import_Template__c template = newTemplate();
         Import_Batch__c batch = ImportTestDataFactory.batch(template);

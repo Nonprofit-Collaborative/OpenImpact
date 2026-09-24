@@ -345,14 +345,15 @@ public with sharing class ImportController {
         view.id = batch.Id;
         view.name = batch.Name;
         view.fileName = batch.File_Name__c;
-        view.status = batch.Status__c;
+        // An undo whose job was aborted shows as Undo failed, which it is (R-IB8).
+        view.status = ImportUndoService.effectiveStatus(batch);
         view.isDryRun = batch.Is_Dry_Run__c;
         view.isFinished =
-            ImportBatchService.STATUS_DRY_RUN_COMPLETE.equals(batch.Status__c) ||
-            ImportBatchService.STATUS_COMPLETE.equals(batch.Status__c) ||
-            ImportBatchService.STATUS_FAILED.equals(batch.Status__c) ||
-            ImportBatchService.STATUS_UNDONE.equals(batch.Status__c) ||
-            ImportBatchService.STATUS_UNDO_FAILED.equals(batch.Status__c);
+            ImportBatchService.STATUS_DRY_RUN_COMPLETE.equals(view.status) ||
+            ImportBatchService.STATUS_COMPLETE.equals(view.status) ||
+            ImportBatchService.STATUS_FAILED.equals(view.status) ||
+            ImportBatchService.STATUS_UNDONE.equals(view.status) ||
+            ImportBatchService.STATUS_UNDO_FAILED.equals(view.status);
         view.rowCount = intOf(batch.Row_Count__c);
         view.created = intOf(batch.Rows_Created__c);
         view.updated = intOf(batch.Rows_Updated__c);

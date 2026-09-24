@@ -31,6 +31,13 @@ public with sharing class ImportJournalService {
     @TestVisible
     private static Integer maxDocumentLength = 131072;
 
+    /**
+     * The most entries one page holds, so an undo putting back one page stays inside one
+     * transaction's limits (R-IJ1).
+     */
+    @TestVisible
+    private static Integer maxEntriesPerPage = 200;
+
     /** How long a label or a reason may be; neither is needed to put anything back. */
     private static final Integer MAX_TEXT_LENGTH = 255;
 
@@ -105,7 +112,7 @@ public with sharing class ImportJournalService {
      * running user cannot edit it.
      *
      * @return true when everything was written (or there was nothing to write), false when a
-     *         write failed; the failure is already in the Error Log
+     *         write failed or an entry was too large to keep; either is already in the Error Log
      */
     @NamespaceAccessible
     public static Boolean write(Id batchId, String phase, List<Map<String, Object>> entries) {
@@ -114,7 +121,9 @@ public with sharing class ImportJournalService {
         }
         try {
             List<Import_Journal__c> pages = new List<Import_Journal__c>();
-            for (List<Map<String, Object>> page : paginate(entries)) {
+            Integer paged = 0;
+            for (List<Map<String, Object>> page : paginate(entries, batchId)) {
+                paged += page.size();
                 pages.add(
                     new Import_Journal__c(
                         Import_Batch__c = batchId,
@@ -124,8 +133,10 @@ public with sharing class ImportJournalService {
                     )
                 );
             }
-            Database.insert(pages, AccessLevel.SYSTEM_MODE);
-            return true;
+            if (!pages.isEmpty()) {
+                Database.insert(pages, AccessLevel.SYSTEM_MODE);
+            }
+            return paged == entries.size();
         } catch (Exception e) {
             ErrorLogger.log(e, 'ImportJournalService.write', batchId);
             return false;
@@ -186,17 +197,30 @@ public with sharing class ImportJournalService {
     }
 
     /**
-     * Splits the entries into pages that each fit the attribute, halving until they do. A
-     * single entry too large for a page on its own is refused rather than cut short.
+     * Splits the entries into pages that each fit the attribute and the entry cap, halving
+     * until they do. A single entry too large for a page on its own is never cut short: it is
+     * left out and written to the Error Log, and the others are still written (R-IJ1).
      */
-    private static List<List<Map<String, Object>>> paginate(List<Map<String, Object>> entries) {
+    private static List<List<Map<String, Object>>> paginate(
+        List<Map<String, Object>> entries,
+        Id batchId
+    ) {
         List<List<Map<String, Object>>> result = new List<List<Map<String, Object>>>();
-        if (document(entries).length() <= maxDocumentLength) {
+        if (
+            entries.size() <= maxEntriesPerPage &&
+            document(entries).length() <= maxDocumentLength
+        ) {
             result.add(entries);
             return result;
         }
         if (entries.size() == 1) {
-            throw new ImportException(Label.Core_Import_JournalEntryTooLarge);
+            ErrorLogger.logMessage(
+                Label.Core_Import_JournalEntryTooLarge,
+                'ImportJournalService.write',
+                ErrorLogger.SEVERITY_ERROR,
+                batchId
+            );
+            return result;
         }
         Integer half = entries.size() / 2;
         List<Map<String, Object>> first = new List<Map<String, Object>>();
@@ -204,8 +228,8 @@ public with sharing class ImportJournalService {
         for (Integer i = 0; i < entries.size(); i++) {
             (i < half ? first : second).add(entries[i]);
         }
-        result.addAll(paginate(first));
-        result.addAll(paginate(second));
+        result.addAll(paginate(first, batchId));
+        result.addAll(paginate(second, batchId));
         return result;
     }
 

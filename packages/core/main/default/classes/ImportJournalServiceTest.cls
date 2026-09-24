@@ -88,21 +88,49 @@ private class ImportJournalServiceTest {
     }
 
     @IsTest
-    static void aFailedWriteIsReportedNotThrown() {
+    static void anEntryTooLargeForAnyPageIsLoggedAndTheOthersAreWritten() {
         Import_Batch__c batch = newBatch();
-        ImportJournalService.maxDocumentLength = 10;
+        Map<String, Object> small = anUpdate(2);
+        Map<String, Object> large = anUpdate(3);
+        ((Map<String, Object>) large.get('fields'))
+            .put(
+                'Description',
+                new Map<String, Object>{ 'before' => 'x'.repeat(4000), 'after' => 'y'.repeat(4000) }
+            );
+        ImportJournalService.maxDocumentLength = 2000;
         Test.startTest();
         Boolean written = ImportJournalService.write(
             batch.Id,
             ImportJournalService.PHASE_COMMIT,
-            new List<Map<String, Object>>{ anUpdate(2) }
+            new List<Map<String, Object>>{ small, large }
         );
         Test.stopTest();
         Assert.isFalse(written, 'The caller is told, so the run log can say so (R-IJ4).');
         Assert.areEqual(
-            0,
-            [SELECT COUNT() FROM Import_Journal__c],
-            'And nothing half written is left.'
+            1,
+            ImportJournalService.entryCount(batch.Id, ImportJournalService.PHASE_COMMIT),
+            'The entry that fits is still written (R-IJ1).'
+        );
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Error_Log__c WHERE Context__c = 'ImportJournalService.write'],
+            'And the one that does not is in the Error Log.'
+        );
+    }
+
+    @IsTest
+    static void aPageHoldsAtMostTheEntryCap() {
+        Import_Batch__c batch = newBatch();
+        ImportJournalService.maxEntriesPerPage = 2;
+        ImportJournalService.write(
+            batch.Id,
+            ImportJournalService.PHASE_COMMIT,
+            new List<Map<String, Object>>{ anUpdate(2), anUpdate(3), anUpdate(4), anUpdate(5) }
+        );
+        Assert.areEqual(
+            2,
+            [SELECT COUNT() FROM Import_Journal__c WHERE Import_Batch__c = :batch.Id],
+            'Four entries at two a page are two pages.'
         );
     }
 

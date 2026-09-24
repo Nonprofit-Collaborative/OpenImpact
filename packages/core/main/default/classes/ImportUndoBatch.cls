@@ -10,6 +10,9 @@
  * Every delete query is filtered by one bound batch identifier and nothing else, and the tag
  * is checked again on each record before it is deleted. A tagged record that has gained
  * something since the import is kept, and journaled with the reason.
+ *
+ * A chunk the platform stops (a governor limit) cannot be caught; `finish` reads the job's
+ * error count so such an undo ends Undo failed, and can be run again, rather than Undone.
  */
 @NamespaceAccessible
 public with sharing class ImportUndoBatch implements Database.Batchable<SObject>, Database.Stateful {
@@ -35,17 +38,48 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         'rollupcalcitem__c'
     };
 
-    private static final Integer MAX_CHUNK = 200;
+    /**
+     * The most records one delete chunk takes. Smaller than a save's usual 200, because the
+     * checks and the delete's own automation share one transaction's limits.
+     */
+    private static final Integer MAX_CHUNK = 100;
 
-    /** Headroom left for the queries after the guard, so a busy chunk keeps rather than fails. */
-    private static final Integer QUERY_HEADROOM = 10;
+    /**
+     * The share of a transaction's queries the checks leave for the delete and the automation
+     * it sets off: half, so 100 of a batch chunk's 200. A check that would eat into them keeps
+     * its records instead (R-IB9): a governor limit cannot be caught, so the only safe answer
+     * is not to reach it.
+     */
+    private static final Integer QUERY_HEADROOM_DIVISOR = 2;
+
+    /** How many child relationships one check query asks about (SOQL allows 20). */
+    private static final Integer RELATIONSHIPS_PER_QUERY = 20;
+
+    /**
+     * How long after a commit completes its own follow-on work (rollups, household naming,
+     * run as the person who committed) may still be writing to what it created.
+     */
+    private static final Integer SETTLE_MINUTES = 10;
+
+    /**
+     * Set only by tests: the error count a job reports when the platform stopped a chunk,
+     * which a test cannot bring about for real.
+     */
+    @TestVisible
+    private static Integer jobErrorsForTest;
+
+    /** The relationships each object is checked through, described once per transaction. */
+    private static final Map<Schema.SObjectType, List<Schema.ChildRelationship>> CHECKED = new Map<Schema.SObjectType, List<Schema.ChildRelationship>>();
 
     private final Id batchId;
     private final Integer countedAtStart;
     private final String pass;
+    private final Datetime undoStartedAt;
     private Integer restored;
     private Boolean failed;
     private Datetime completedAt;
+    private Datetime startedAt;
+    private Id committedBy;
 
     /**
      * Starts the first pass of the undo of one batch. `countedAtStart` is the total the person
@@ -54,7 +88,14 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
     @NamespaceAccessible
     public static Id run(Id batchId, Integer countedAtStart) {
         return Database.executeBatch(
-            new ImportUndoBatch(batchId, countedAtStart, PASSES[0], 0, false),
+            new ImportUndoBatch(
+                batchId,
+                countedAtStart,
+                PASSES[0],
+                0,
+                false,
+                toTheSecond(Datetime.now())
+            ),
             scopeFor(PASSES[0], batchId)
         );
     }
@@ -67,23 +108,46 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         Integer restored,
         Boolean failed
     ) {
+        this(batchId, countedAtStart, pass, restored, failed, toTheSecond(Datetime.now()));
+    }
+
+    /**
+     * `undoStartedAt` is when the person pressed Undo, to the second the platform stamps
+     * records with, so what the undo itself changes is never mistaken for work done since the
+     * import (R-IB9).
+     */
+    @TestVisible
+    private ImportUndoBatch(
+        Id batchId,
+        Integer countedAtStart,
+        String pass,
+        Integer restored,
+        Boolean failed,
+        Datetime undoStartedAt
+    ) {
         this.batchId = batchId;
         this.countedAtStart = countedAtStart;
         this.pass = pass;
         this.restored = restored;
         this.failed = failed;
+        this.undoStartedAt = undoStartedAt;
     }
 
     public Database.QueryLocator start(Database.BatchableContext context) {
         Id owner = batchId;
-        completedAt = [
-            SELECT Completed_At__c
+        Import_Batch__c batch = [
+            SELECT Completed_At__c, Started_At__c, Committed_By__c
             FROM Import_Batch__c
             WHERE Id = :owner
             WITH SYSTEM_MODE
             LIMIT 1
-        ]
-        .Completed_At__c;
+        ];
+        completedAt = batch.Completed_At__c;
+        startedAt = batch.Started_At__c;
+        committedBy = batch.Committed_By__c;
+        // Every query below is in system mode, so a tagged record the person cannot see is
+        // still met, refused by the user-mode delete, and journaled as kept (R-IB9), instead
+        // of silently staying behind.
         if (PASS_RESTORE.equals(pass)) {
             String phase = ImportJournalService.PHASE_COMMIT;
             return Database.getQueryLocator(
@@ -91,7 +155,8 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
                     SELECT Id, Entries_JSON__c
                     FROM Import_Journal__c
                     WHERE Import_Batch__c = :owner AND Phase__c = :phase
-                    ORDER BY Name DESC
+                    WITH SYSTEM_MODE
+                    ORDER BY CreatedDate DESC, Id DESC
                 ]
             );
         }
@@ -101,6 +166,7 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
                     SELECT Id, Name, Created_By_Import_Batch__c
                     FROM Contact
                     WHERE Created_By_Import_Batch__c = :owner
+                    WITH SYSTEM_MODE
                 ]
             );
         }
@@ -111,6 +177,7 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
                     SELECT Id, Name, Created_By_Import_Batch__c
                     FROM Account
                     WHERE Created_By_Import_Batch__c = :owner AND RecordTypeId IN :personTypes
+                    WITH SYSTEM_MODE
                 ]
             );
         }
@@ -122,6 +189,7 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
                     Created_By_Import_Batch__c = :owner
                     AND (RecordTypeId = NULL
                     OR RecordTypeId NOT IN :personTypes)
+                WITH SYSTEM_MODE
             ]
         );
     }
@@ -144,11 +212,21 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
     }
 
     public void finish(Database.BatchableContext context) {
+        if (chunkStopped(context)) {
+            failed = true;
+        }
         Integer next = PASSES.indexOf(pass) + 1;
         try {
             if (next < PASSES.size()) {
                 Database.executeBatch(
-                    new ImportUndoBatch(batchId, countedAtStart, PASSES[next], restored, failed),
+                    new ImportUndoBatch(
+                        batchId,
+                        countedAtStart,
+                        PASSES[next],
+                        restored,
+                        failed,
+                        undoStartedAt
+                    ),
                     scopeFor(PASSES[next], batchId)
                 );
                 return;
@@ -158,6 +236,29 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
             failed = true;
         }
         ImportUndoService.finish(batchId, countedAtStart, restored, failed);
+    }
+
+    /**
+     * Whether the platform stopped any chunk of this pass. A governor limit cannot be caught,
+     * so `execute` never gets to say it failed and the state it would have set is lost; the
+     * job's own error count is the one record of it (R-IB8).
+     */
+    private Boolean chunkStopped(Database.BatchableContext context) {
+        if (jobErrorsForTest != null) {
+            return jobErrorsForTest > 0;
+        }
+        if (context == null || context.getJobId() == null) {
+            return false;
+        }
+        Id jobId = context.getJobId();
+        List<AsyncApexJob> jobs = [
+            SELECT NumberOfErrors
+            FROM AsyncApexJob
+            WHERE Id = :jobId
+            WITH SYSTEM_MODE
+            LIMIT 1
+        ];
+        return !jobs.isEmpty() && jobs[0].NumberOfErrors != null && jobs[0].NumberOfErrors > 0;
     }
 
     // -------------------------------------------------------------------------------------
@@ -394,7 +495,8 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
     /**
      * Deletes this chunk's tagged records, keeping the ones that have gained something since
      * the import. Deleted in the running user's own mode, to the recycle bin (R-IB8). A record
-     * the platform refuses is kept and journaled, never retried in a wider form.
+     * the platform refuses is kept and journaled, never retried in a wider form; one the
+     * person has no access to delete is journaled as that.
      */
     private void deleteTagged(List<SObject> records, List<Map<String, Object>> journal) {
         Map<Id, SObject> tagged = new Map<Id, SObject>();
@@ -406,7 +508,14 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         if (tagged.isEmpty()) {
             return;
         }
-        Map<Id, String> keep = reasonsToKeep(tagged.keySet(), records[0].getSObjectType());
+        Schema.SObjectType type = records[0].getSObjectType();
+        if (!type.getDescribe(SObjectDescribeOptions.DEFERRED).isDeletable()) {
+            for (SObject record : tagged.values()) {
+                journal.add(kept(record, Label.Core_Import_UndoKeptNoAccess));
+            }
+            return;
+        }
+        Map<Id, String> keep = reasonsToKeep(tagged.keySet(), type);
         List<SObject> toDelete = new List<SObject>();
         for (SObject record : tagged.values()) {
             if (keep.containsKey(record.Id)) {
@@ -425,39 +534,48 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         );
         for (Integer i = 0; i < results.size(); i++) {
             if (!results[i].isSuccess()) {
-                journal.add(kept(toDelete[i], message(results[i].getErrors())));
+                journal.add(kept(toDelete[i], refusedBecause(results[i].getErrors())));
             }
         }
     }
 
+    /** Why the platform refused a delete, in the undo's own words where it was access. */
+    private static String refusedBecause(List<Database.Error> errors) {
+        for (Database.Error error : errors) {
+            if (
+                error.getStatusCode() == StatusCode.INSUFFICIENT_ACCESS_OR_READONLY ||
+                error.getStatusCode() == StatusCode.INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY
+            ) {
+                return Label.Core_Import_UndoKeptNoAccess;
+            }
+        }
+        return message(errors);
+    }
+
     /**
-     * Why each of these records is not the import's to delete. Kept when anything created
-     * after the import points at it through a custom reference, and, for a household or an
-     * organization, when a person is still on it or something outside Open Impact depends on
-     * it (ADR-0036). A person stored as an account is not judged by its own contact.
+     * Why each of these records is not the import's to delete (R-IB9): it was edited or had an
+     * activity logged since; anything created since points at it through any reference the org
+     * can filter on; or, for a household or an organization, a person is still on it or
+     * something outside Open Impact depends on it (ADR-0036).
      */
     private Map<Id, String> reasonsToKeep(Set<Id> ids, Schema.SObjectType type) {
         Map<Id, String> keep = new Map<Id, String>();
-        Map<String, Object> gainedBinds = new Map<String, Object>{
-            'ids' => ids,
-            'since' => completedAt
-        };
-        for (Schema.ChildRelationship relationship : type.getDescribe().getChildRelationships()) {
-            String reference = gainedReference(relationship);
-            if (reference == null) {
-                continue;
+        markEdited(keep, ids, type);
+        List<Schema.ChildRelationship> relationships = checkedRelationships(type);
+        for (Integer i = 0; i < relationships.size(); i += RELATIONSHIPS_PER_QUERY) {
+            List<Schema.ChildRelationship> chunk = new List<Schema.ChildRelationship>();
+            for (
+                Integer j = i; j < Math.min(i + RELATIONSHIPS_PER_QUERY, relationships.size()); j++
+            ) {
+                chunk.add(relationships[j]);
             }
-            List<String> guard = gainedQuery(type, relationship, reference);
-            if (guard != null) {
-                markKept(keep, guard[0], guard[1], gainedBinds, Label.Core_Import_UndoKeptGained);
-            }
+            markGained(keep, ids, type, chunk);
         }
         if (PASS_ACCOUNTS.equals(pass)) {
             Map<String, Object> binds = new Map<String, Object>{ 'ids' => ids };
             markKept(
                 keep,
                 'SELECT Id FROM Account WHERE Id IN :ids AND Id IN (SELECT AccountId FROM Contact)',
-                'Id',
                 binds,
                 Label.Core_Import_UndoKeptHasPeople
             );
@@ -465,7 +583,6 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
                 keep,
                 'SELECT Id FROM Account WHERE Id IN :ids AND Id IN ' +
                 '(SELECT Household__c FROM Household_Member__c WHERE Contact__c != NULL OR Account__c != NULL)',
-                'Id',
                 binds,
                 Label.Core_Import_UndoKeptHasPeople
             );
@@ -477,123 +594,258 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
     }
 
     /**
-     * The reference field of a child relationship that counts as something gained: a custom
-     * reference from a custom object, a contact or an account, which the org can filter on.
-     * The import's own bookkeeping and the vendored rollup engine's work items do not count.
+     * Keeps a record somebody edited since the import, or logged an activity on. An edit
+     * counts when it was made by somebody other than the committer after the commit started,
+     * or by anybody once the commit's own follow-on work has settled; an edit the undo itself
+     * made (a household renamed as its imported members go) does not count.
      */
-    private static String gainedReference(Schema.ChildRelationship relationship) {
-        Schema.DescribeFieldResult field = relationship.getField().getDescribe();
-        Schema.DescribeSObjectResult child = relationship.getChildSObject()
-            .getDescribe(SObjectDescribeOptions.DEFERRED);
-        String childName = child.getName();
-        String localName = childName.countMatches('__') > 1
-            ? childName.substringAfter('__')
-            : childName;
-        Boolean ownKind =
-            childName.endsWith('__c') ||
-            childName == 'Account' ||
-            childName == 'Contact';
-        if (
-            !field.isCustom() ||
-            !field.isFilterable() ||
-            !child.isQueryable() ||
-            !ownKind ||
-            NOT_GAINED.contains(localName.toLowerCase())
-        ) {
-            return null;
+    private void markEdited(Map<Id, String> keep, Set<Id> ids, Schema.SObjectType type) {
+        Map<String, Schema.SObjectField> fields = type.getDescribe(SObjectDescribeOptions.DEFERRED)
+            .fields.getMap();
+        Boolean hasActivities = fields.containsKey('lastactivitydate');
+        String query =
+            'SELECT Id, LastModifiedDate, LastModifiedById' +
+            (hasActivities ? ', LastActivityDate' : '') +
+            ' FROM ' +
+            type.getDescribe(SObjectDescribeOptions.DEFERRED).getName() +
+            ' WHERE Id IN :ids';
+        List<SObject> rows = guardQuery(keep, ids, query, new Map<String, Object>{ 'ids' => ids });
+        if (rows == null) {
+            return;
         }
-        return field.getName();
+        Datetime checkedAt = Datetime.now();
+        for (SObject row : rows) {
+            Datetime modified = (Datetime) row.get('LastModifiedDate');
+            Id modifiedBy = (Id) row.get('LastModifiedById');
+            Boolean byTheUndo =
+                modifiedBy == UserInfo.getUserId() &&
+                modified >= undoStartedAt &&
+                modified <= checkedAt;
+            Boolean edited =
+                (startedAt != null &&
+                committedBy != null &&
+                modified >= startedAt &&
+                modifiedBy != committedBy) ||
+                (completedAt != null &&
+                modified > completedAt.addMinutes(SETTLE_MINUTES));
+            Boolean activity = hasActivities && row.get('LastActivityDate') != null;
+            if ((edited && !byTheUndo) || activity) {
+                keep.put(row.Id, Label.Core_Import_UndoKeptEdited);
+            }
+        }
     }
 
     /**
-     * The guard query for one gained reference, and the field of its rows that names the kept
-     * record; null when the reference cannot point at these records. Three shapes, because
-     * SOQL refuses a semi-join whose inner and outer objects are the same, and on an org with
-     * Person Accounts an account's child relationships include references to its contact:
-     *
-     * - a reference to the same object (an account's employer): the later rows themselves;
-     * - a reference to this object: a semi-join, so a donor with thousands of later gifts
-     *   costs one row;
-     * - a reference to a contact, for a person stored as an account: a semi-join on the
-     *   account's own contact.
+     * Keeps the records anything created since points at, through one group of child
+     * relationships, asked in one query with a subquery each. A group that cannot be asked
+     * together is split in half and each half asked again, so one relationship the org cannot
+     * filter this way costs a handful of queries, is logged once, and keeps only what it could
+     * not check.
      */
-    private List<String> gainedQuery(
+    private void markGained(
+        Map<Id, String> keep,
+        Set<Id> ids,
         Schema.SObjectType type,
-        Schema.ChildRelationship relationship,
-        String reference
+        List<Schema.ChildRelationship> relationships
     ) {
-        String parent = type.getDescribe(SObjectDescribeOptions.DEFERRED).getName();
-        String child = relationship.getChildSObject()
-            .getDescribe(SObjectDescribeOptions.DEFERRED)
-            .getName();
-        List<Schema.SObjectType> targets = relationship.getField().getDescribe().getReferenceTo();
-        String laterRows =
-            ' IN (SELECT ' +
-            reference +
+        if (relationships.isEmpty()) {
+            return;
+        }
+        Map<String, Object> binds = new Map<String, Object>{
+            'ids' => ids,
+            'completedAt' => completedAt,
+            'startedAt' => startedAt,
+            'committedBy' => committedBy,
+            'undoer' => UserInfo.getUserId(),
+            'undoStartedAt' => undoStartedAt,
+            'checkedAt' => Datetime.now()
+        };
+        if (relationships.size() == 1) {
+            List<SObject> rows = guardQuery(keep, ids, gainedQuery(type, relationships), binds);
+            if (rows != null) {
+                gainedFrom(keep, rows);
+            }
+            return;
+        }
+        if (!enoughQueries()) {
+            notChecked(keep, ids);
+            return;
+        }
+        try {
+            gainedFrom(
+                keep,
+                Database.queryWithBinds(
+                    gainedQuery(type, relationships),
+                    binds,
+                    AccessLevel.SYSTEM_MODE
+                )
+            );
+        } catch (Exception e) {
+            // Not logged here: the half that holds the relationship that failed logs it.
+            Integer half = relationships.size() / 2;
+            List<Schema.ChildRelationship> first = new List<Schema.ChildRelationship>();
+            List<Schema.ChildRelationship> second = new List<Schema.ChildRelationship>();
+            for (Integer i = 0; i < relationships.size(); i++) {
+                if (i < half) {
+                    first.add(relationships[i]);
+                } else {
+                    second.add(relationships[i]);
+                }
+            }
+            markGained(keep, ids, type, first);
+            markGained(keep, ids, type, second);
+        }
+    }
+
+    /**
+     * Keeps each row whose subqueries found anything. Read from the fields the query actually
+     * filled rather than by relationship name: an empty subquery comes back as nothing, and
+     * asking for it by name can throw.
+     */
+    private static void gainedFrom(Map<Id, String> keep, List<SObject> rows) {
+        for (SObject row : rows) {
+            for (Object value : row.getPopulatedFieldsAsMap().values()) {
+                if (value instanceof List<SObject> && !((List<SObject>) value).isEmpty()) {
+                    if (!keep.containsKey(row.Id)) {
+                        keep.put(row.Id, Label.Core_Import_UndoKeptGained);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * One query asking, for each relationship, whether a row created since points at the
+     * record. "Since" is after the commit completed, or during the commit by somebody other
+     * than the committer (R-IB9); a row the undo itself made is not counted.
+     */
+    private String gainedQuery(
+        Schema.SObjectType type,
+        List<Schema.ChildRelationship> relationships
+    ) {
+        String since = completedAt == null ? 'CreatedDate != NULL' : 'CreatedDate > :completedAt';
+        if (startedAt != null && committedBy != null) {
+            since += ' OR (CreatedDate >= :startedAt AND CreatedById != :committedBy)';
+        }
+        String filter =
+            '(' +
+            since +
+            ') AND (CreatedById != :undoer OR CreatedDate < :undoStartedAt OR CreatedDate > :checkedAt)';
+        List<String> subqueries = new List<String>();
+        for (Schema.ChildRelationship relationship : relationships) {
+            subqueries.add(
+                '(SELECT Id FROM ' +
+                    relationship.getRelationshipName() +
+                    ' WHERE ' +
+                    filter +
+                    ' LIMIT 1)'
+            );
+        }
+        return 'SELECT Id, ' +
+            String.join(subqueries, ', ') +
             ' FROM ' +
-            child +
-            ' WHERE CreatedDate > :since)';
-        if (targets.contains(type) && parent == child) {
-            return new List<String>{
-                'SELECT ' +
-                reference +
-                ' FROM ' +
-                child +
-                ' WHERE ' +
-                reference +
-                ' IN :ids AND CreatedDate > :since',
-                reference
-            };
+            type.getDescribe(SObjectDescribeOptions.DEFERRED).getName() +
+            ' WHERE Id IN :ids';
+    }
+
+    /**
+     * The child relationships a record is checked through: every one with a name, through a
+     * reference the org can filter on, to an object that stamps who created a row and when.
+     * Found by describing the record's object, never by naming another object, so a gift, an
+     * activity or a record in a package that did not exist when this was written counts the
+     * same (R-IB9). Not counted: the import's own bookkeeping, the rollup engine's work items,
+     * and a standard object's read-only views (activity history, attachments as listed on a
+     * record), which the running user could not create a row in.
+     */
+    private static List<Schema.ChildRelationship> checkedRelationships(Schema.SObjectType type) {
+        if (CHECKED.containsKey(type)) {
+            return CHECKED.get(type);
         }
-        if (targets.contains(type)) {
-            return new List<String>{
-                'SELECT Id FROM ' +
-                parent +
-                ' WHERE Id IN :ids AND Id' +
-                laterRows,
-                'Id'
-            };
+        List<Schema.ChildRelationship> result = new List<Schema.ChildRelationship>();
+        for (Schema.ChildRelationship relationship : type.getDescribe().getChildRelationships()) {
+            if (
+                String.isBlank(relationship.getRelationshipName()) ||
+                relationship.isDeprecatedAndHidden() ||
+                !relationship.getField().getDescribe().isFilterable()
+            ) {
+                continue;
+            }
+            Schema.DescribeSObjectResult child = relationship.getChildSObject()
+                .getDescribe(SObjectDescribeOptions.DEFERRED);
+            String childName = child.getName();
+            String localName = childName.countMatches('__') > 1
+                ? childName.substringAfter('__')
+                : childName;
+            Map<String, Schema.SObjectField> childFields = child.fields.getMap();
+            if (
+                NOT_GAINED.contains(localName.toLowerCase()) ||
+                !childFields.containsKey('createddate') ||
+                !childFields.containsKey('createdbyid') ||
+                (!child.isCustom() && !child.isCreateable())
+            ) {
+                continue;
+            }
+            result.add(relationship);
         }
-        if (PASS_PERSON_ACCOUNTS.equals(pass) && targets.contains(Contact.SObjectType)) {
-            return new List<String>{
-                'SELECT Id FROM Account WHERE Id IN :ids AND PersonContactId' + laterRows,
-                'Id'
-            };
-        }
-        return null;
+        CHECKED.put(type, result);
+        return result;
     }
 
     /**
      * Marks the ids a guard query returns as kept. Read in system mode (ADR-0021): a guard
      * that cannot see a gift would answer "nothing depends on this" for exactly the record it
-     * must keep. A guard that cannot run, or would leave too few queries for the delete,
-     * keeps every record it was asked about: not knowing is not the same as knowing nothing
-     * depends on it.
+     * must keep.
      */
     private void markKept(
         Map<Id, String> keep,
         String query,
-        String keptField,
         Map<String, Object> binds,
         String reason
     ) {
-        Set<Id> ids = (Set<Id>) binds.get('ids');
-        if (Limits.getQueries() >= Limits.getLimitQueries() - QUERY_HEADROOM) {
-            for (Id recordId : ids) {
-                keep.put(recordId, Label.Core_Import_UndoKeptNotChecked);
-            }
+        List<SObject> rows = guardQuery(keep, (Set<Id>) binds.get('ids'), query, binds);
+        if (rows == null) {
             return;
         }
-        try {
-            for (SObject record : Database.queryWithBinds(query, binds, AccessLevel.SYSTEM_MODE)) {
-                Id keptId = (Id) record.get(keptField);
-                if (!keep.containsKey(keptId)) {
-                    keep.put(keptId, reason);
-                }
+        for (SObject record : rows) {
+            if (!keep.containsKey(record.Id)) {
+                keep.put(record.Id, reason);
             }
+        }
+    }
+
+    /**
+     * Runs one check in system mode. A check that cannot run, or would leave the delete too
+     * few queries, keeps every record it was asked about and returns null: not knowing is not
+     * the same as knowing nothing depends on it.
+     */
+    private List<SObject> guardQuery(
+        Map<Id, String> keep,
+        Set<Id> ids,
+        String query,
+        Map<String, Object> binds
+    ) {
+        if (!enoughQueries()) {
+            notChecked(keep, ids);
+            return null;
+        }
+        try {
+            return Database.queryWithBinds(query, binds, AccessLevel.SYSTEM_MODE);
         } catch (Exception e) {
-            ErrorLogger.log(e, 'ImportUndoBatch.markKept', batchId);
-            for (Id recordId : ids) {
+            ErrorLogger.log(e, 'ImportUndoBatch.guardQuery', batchId);
+            notChecked(keep, ids);
+            return null;
+        }
+    }
+
+    private static Boolean enoughQueries() {
+        return Limits.getQueries() < Limits.getLimitQueries() / QUERY_HEADROOM_DIVISOR;
+    }
+
+    /** Keeps each record not already kept for a reason a check found. */
+    private static void notChecked(Map<Id, String> keep, Set<Id> ids) {
+        for (Id recordId : ids) {
+            if (!keep.containsKey(recordId)) {
                 keep.put(recordId, Label.Core_Import_UndoKeptNotChecked);
             }
         }
@@ -629,10 +881,15 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         return String.join(parts, ' ');
     }
 
+    /** A time cut to the whole second, the precision the platform stamps records with. */
+    private static Datetime toTheSecond(Datetime value) {
+        return Datetime.newInstance((value.getTime() / 1000) * 1000);
+    }
+
     /**
-     * How many records a pass takes at once: one journal page when putting values back, since
-     * a page can hold a whole chunk's updates, and otherwise the batch's own chunk size, held
-     * at the 200 records a delete is normally made in.
+     * How many records a pass takes at once: one journal page when putting values back (a
+     * page holds at most a chunk's worth of updates, R-IJ1), and otherwise the batch's own
+     * chunk size, held at MAX_CHUNK so the checks and the delete fit one transaction.
      */
     private static Integer scopeFor(String pass, Id batchId) {
         if (PASS_RESTORE.equals(pass)) {

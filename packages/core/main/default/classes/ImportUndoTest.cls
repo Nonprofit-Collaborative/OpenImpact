@@ -17,7 +17,9 @@ private class ImportUndoTest {
         );
         batch.Is_Dry_Run__c = false;
         batch.Status__c = ImportBatchService.STATUS_COMPLETE;
+        batch.Started_At__c = Datetime.now().addMinutes(-5);
         batch.Completed_At__c = Datetime.now().addMinutes(1);
+        batch.Committed_By__c = UserInfo.getUserId();
         batch.Undo_Deadline__c = Datetime.now().addDays(30);
         update batch;
         return batch;
@@ -49,19 +51,46 @@ private class ImportUndoTest {
         return organization;
     }
 
-    /** Starts the undo, then runs the delete passes the first pass would have chained. */
+    /** Starts the undo and runs its job, then the delete passes once more over what is left. */
     private static void undo(Import_Batch__c batch) {
         Integer total = ImportUndoService.preview(batch.Id).total;
         Test.startTest();
         ImportUndoService.start(batch.Id, total);
         Test.stopTest();
+        runDeletePasses(batch, total, Datetime.now());
+    }
+
+    /**
+     * The same, with the moment the undo started given, so a test can tell what the undo did
+     * apart from what the test itself did a moment before.
+     */
+    private static void undo(Import_Batch__c batch, Datetime undoStartedAt) {
+        Integer total = ImportUndoService.preview(batch.Id).total;
+        // Latched and queued only: a test runs a queued job at Test.stopTest, and there is
+        // none here, so the passes below are the only ones that run, each with this start.
+        ImportUndoService.start(batch.Id, total);
+        runDeletePasses(batch, total, undoStartedAt);
+    }
+
+    private static void runDeletePasses(
+        Import_Batch__c batch,
+        Integer total,
+        Datetime undoStartedAt
+    ) {
         List<String> passes = new List<String>{
             ImportUndoBatch.PASS_CONTACTS,
             ImportUndoBatch.PASS_PERSON_ACCOUNTS,
             ImportUndoBatch.PASS_ACCOUNTS
         };
         for (String pass : passes) {
-            ImportUndoBatch job = new ImportUndoBatch(batch.Id, total, pass, 0, false);
+            ImportUndoBatch job = new ImportUndoBatch(
+                batch.Id,
+                total,
+                pass,
+                0,
+                false,
+                undoStartedAt
+            );
             Database.QueryLocatorIterator records = job.start(null).iterator();
             List<SObject> scope = new List<SObject>();
             while (records.hasNext()) {
@@ -74,6 +103,18 @@ private class ImportUndoTest {
                 job.finish(null);
             }
         }
+    }
+
+    private static String undoJournal(Import_Batch__c batch) {
+        String text = '';
+        for (Import_Journal__c page : [
+            SELECT Entries_JSON__c
+            FROM Import_Journal__c
+            WHERE Import_Batch__c = :batch.Id AND Phase__c = :ImportJournalService.PHASE_UNDO
+        ]) {
+            text += page.Entries_JSON__c;
+        }
+        return text;
     }
 
     private static Boolean exists(Id recordId) {
@@ -172,6 +213,100 @@ private class ImportUndoTest {
             0,
             [SELECT COUNT() FROM Error_Log__c],
             'A reference from the same object is checked without a semi-join SOQL refuses.'
+        );
+    }
+
+    @IsTest
+    static void aRecordSomebodyEditedSinceIsKept() {
+        Import_Batch__c batch = committedBatch();
+        batch.Started_At__c = Datetime.now().addHours(-3);
+        batch.Completed_At__c = Datetime.now().addHours(-2);
+        update batch;
+        Contact imported = importedPerson(batch, 'Ramirez');
+
+        // The person was saved just now, long after the commit settled, by somebody who is
+        // not the undo: an edit since.
+        undo(batch, Datetime.now().addHours(1));
+
+        Assert.isTrue(exists(imported.Id), 'An edit since the import keeps the record (R-IB9).');
+        Assert.isTrue(
+            undoJournal(batch).contains(Label.Core_Import_UndoKeptEdited),
+            'And the journal says why.'
+        );
+    }
+
+    @IsTest
+    static void anActivityRecordedSinceKeepsThePerson() {
+        Import_Batch__c batch = committedBatch();
+        Contact imported = importedPerson(batch, 'Ramirez');
+        // An activity is a standard object Core never names: it is found through the
+        // person's child relationships, the same way a gift is (R-IB9).
+        Task call = new Task(Subject = 'Thank-you call', WhoId = imported.Id);
+        insert call;
+        Test.setCreatedDate(call.Id, Datetime.now().addHours(1));
+
+        undo(batch);
+
+        Assert.isTrue(exists(imported.Id), 'An activity logged since keeps the person.');
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM Error_Log__c WHERE Context__c = 'ImportUndoBatch.guardQuery'],
+            'Every relationship could be checked.'
+        );
+    }
+
+    @IsTest
+    static void anUndoThePlatformStoppedEndsUndoFailedAndCanRunAgain() {
+        Import_Batch__c batch = committedBatch();
+        Contact imported = importedPerson(batch, 'Ramirez');
+        Integer total = ImportUndoService.preview(batch.Id).total;
+        // Latched and queued, never run: where a chunk the platform stopped leaves things,
+        // with its delete rolled back and the records still there.
+        ImportUndoService.start(batch.Id, total);
+        ImportUndoBatch.jobErrorsForTest = 1;
+        // The last pass finishing: the state execute would have set is lost with the chunk,
+        // and only the job's error count says what happened.
+        new ImportUndoBatch(batch.Id, total, ImportUndoBatch.PASS_ACCOUNTS, 0, false).finish(null);
+
+        Assert.areEqual(
+            ImportBatchService.STATUS_UNDO_FAILED,
+            [SELECT Status__c FROM Import_Batch__c WHERE Id = :batch.Id].Status__c,
+            'A chunk the platform stopped is a failure, not a success (R-IB8).'
+        );
+        ImportUndoService.Preview again = ImportUndoService.preview(batch.Id);
+        Assert.isTrue(again.allowed, 'And the undo can be run again.');
+
+        ImportUndoBatch.jobErrorsForTest = null;
+        runDeletePasses(batch, again.total, Datetime.now());
+
+        Assert.isFalse(exists(imported.Id), 'The second run finishes the work.');
+        Assert.areEqual(
+            ImportBatchService.STATUS_UNDONE,
+            [SELECT Status__c FROM Import_Batch__c WHERE Id = :batch.Id].Status__c,
+            'And ends Undone.'
+        );
+        Assert.isTrue(total > 0, 'There was something to undo.');
+    }
+
+    @IsTest
+    static void anUndoWhoseJobWasAbortedCanRunAgain() {
+        Import_Batch__c batch = committedBatch();
+        importedPerson(batch, 'Ramirez');
+        batch.Status__c = ImportBatchService.STATUS_UNDOING;
+        update batch;
+
+        ImportUndoService.Preview view = ImportUndoService.preview(batch.Id);
+
+        Assert.isTrue(
+            view.allowed,
+            'Undoing with no undo job queued or running is an aborted undo, not a running one.'
+        );
+        Assert.areEqual(
+            ImportBatchService.STATUS_UNDO_FAILED,
+            ImportUndoService.effectiveStatus(
+                [SELECT Status__c FROM Import_Batch__c WHERE Id = :batch.Id]
+            ),
+            'And it is shown as Undo failed (R-IB8).'
         );
     }
 

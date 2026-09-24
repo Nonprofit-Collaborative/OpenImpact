@@ -18,6 +18,17 @@
  */
 @NamespaceAccessible
 public with sharing class ImportUndoService {
+    /** AsyncApexJob statuses that mean a job has not finished yet. */
+    private static final Set<String> RUNNING_JOB_STATUSES = new Set<String>{
+        'Holding',
+        'Queued',
+        'Preparing',
+        'Processing'
+    };
+
+    /** Whether an undo job is queued or running, asked once per transaction. */
+    private static Boolean undoJobRunning;
+
     /** What an undo would do, or why it cannot be done. */
     @NamespaceAccessible
     public class Preview {
@@ -110,6 +121,7 @@ public with sharing class ImportUndoService {
         }
         batch.Status__c = ImportBatchService.STATUS_UNDOING;
         Database.update(batch, AccessLevel.SYSTEM_MODE);
+        undoJobRunning = true;
     }
 
     /**
@@ -161,7 +173,8 @@ public with sharing class ImportUndoService {
     /**
      * Why this batch cannot be undone, or blank when it can. A commit that failed part way is
      * undoable, because the chunks that ran did write (R-IB7), and so is an undo that stopped
-     * on an error, because running it again only finishes it (R-IB8).
+     * on an error, or whose job was aborted, because running it again only finishes it
+     * (R-IB8).
      */
     @NamespaceAccessible
     public static String refusal(Import_Batch__c batch) {
@@ -171,16 +184,17 @@ public with sharing class ImportUndoService {
         if (batch.Is_Dry_Run__c == true) {
             return Label.Core_Import_UndoErrorDryRun;
         }
+        String status = effectiveStatus(batch);
         if (
-            ImportBatchService.STATUS_UNDOING.equals(batch.Status__c) ||
-            ImportBatchService.STATUS_UNDONE.equals(batch.Status__c)
+            ImportBatchService.STATUS_UNDOING.equals(status) ||
+            ImportBatchService.STATUS_UNDONE.equals(status)
         ) {
             return Label.Core_Import_UndoErrorAlreadyUndone;
         }
         if (
-            !(ImportBatchService.STATUS_COMPLETE.equals(batch.Status__c) ||
-            ImportBatchService.STATUS_FAILED.equals(batch.Status__c) ||
-            ImportBatchService.STATUS_UNDO_FAILED.equals(batch.Status__c)) ||
+            !(ImportBatchService.STATUS_COMPLETE.equals(status) ||
+            ImportBatchService.STATUS_FAILED.equals(status) ||
+            ImportBatchService.STATUS_UNDO_FAILED.equals(status)) ||
             batch.Undo_Deadline__c == null ||
             batch.Completed_At__c == null
         ) {
@@ -193,6 +207,43 @@ public with sharing class ImportUndoService {
             );
         }
         return null;
+    }
+
+    /**
+     * The batch's status as it really stands: Undoing with no undo job queued or running
+     * means the job was aborted, which is Undo failed, so it can be run again rather than
+     * staying Undoing for ever (R-IB8).
+     */
+    @NamespaceAccessible
+    public static String effectiveStatus(Import_Batch__c batch) {
+        if (batch == null) {
+            return null;
+        }
+        if (ImportBatchService.STATUS_UNDOING.equals(batch.Status__c) && !isUndoJobRunning()) {
+            return ImportBatchService.STATUS_UNDO_FAILED;
+        }
+        return batch.Status__c;
+    }
+
+    /**
+     * Whether any undo job is queued or running. Batches carry no job reference, so this asks
+     * about the undo job class; a second undo running for another batch only delays the
+     * moment an aborted one is seen as failed. Read in system mode: the job may be another
+     * user's.
+     */
+    private static Boolean isUndoJobRunning() {
+        if (undoJobRunning == null) {
+            Set<String> running = RUNNING_JOB_STATUSES;
+            undoJobRunning = ![
+                    SELECT Id
+                    FROM AsyncApexJob
+                    WHERE ApexClass.Name = 'ImportUndoBatch' AND Status IN :running
+                    WITH SYSTEM_MODE
+                    LIMIT 1
+                ]
+                .isEmpty();
+        }
+        return undoJobRunning;
     }
 
     /**
