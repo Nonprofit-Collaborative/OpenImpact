@@ -1,4 +1,4 @@
-# ADR-NEXT: Gift import through the entity processor seam, and donation matching
+# ADR-0052: Gift import through the entity processor seam, and donation matching
 
 **Status:** Accepted (builder decision)
 **Date:** 2026-09-24
