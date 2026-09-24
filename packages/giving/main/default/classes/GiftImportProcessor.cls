@@ -116,14 +116,13 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
             resolveDonors(pending(gifts), dryRun);
             GiftImportCredits.resolveParties(pending(gifts), dryRun);
             GiftImportReferences.resolve(pending(gifts));
-            paying = matcher.match(pending(gifts));
-            if (dryRun) {
-                report(gifts);
-            } else {
+            matcher.match(pending(gifts));
+            if (!dryRun) {
                 save(batch, pending(gifts));
                 shareWithEarlierRows(gifts);
-                report(gifts);
             }
+            paying = matcher.carryClaims(gifts);
+            report(gifts);
         }
         List<String> notes = new List<String>();
         if (paying > 0) {

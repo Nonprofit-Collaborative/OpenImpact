@@ -3880,7 +3880,8 @@ the template is empty from the org's defaults (`Donation_Match_Date_Window_Days_
 **R-DM4 Closest date wins, and a tie is refused.** Among matching candidates the one whose
 due date is closest to the gift's date wins. Two at the same distance are a tie: the row is
 rejected naming both, because choosing between two payments is a decision for a person.
-Within one chunk an installment an earlier row claimed is no longer a candidate.
+Within one run an installment an earlier row claimed is no longer a candidate, in a dry
+run as in a commit: the claims are carried from chunk to chunk (R-IR6).
 
 **R-DM5 Four behaviours.** The template's Donation Matching is one of:
 

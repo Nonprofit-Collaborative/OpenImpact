@@ -114,15 +114,15 @@ refused until a dry run matches.
 - **The amount** is compared with the installment's Expected Amount, not what is left to pay:
   Paid Amount is a rollup that can lag, and a comparison that depends on timing would make the
   dry run disagree with the commit.
-- **Within one chunk**, an installment an earlier row claimed is not offered to a later one.
+- **Within one run**, an installment an earlier row claimed is not offered to a later one,
+  across chunks too: the processor carries the claimed installments in the state Core's
+  import batch holds between chunks (`ImportEntityProcessors.carriedState`), so a dry run
+  reports what the commit will do.
 - **A row repeating an earlier row's external ID in the same file** is that row's gift, under
   every behaviour: under Never match only a gift that already existed before the file rejects
   the row.
 - **An organization donor has no household**, so only its own commitments are candidates. A
   donor the import would create has none, so in a dry run Match only rejects that row.
-- **Across chunks**, a commit needs nothing more: a payment an earlier chunk paid is no longer
-  open. A dry run writes nothing, so two rows in different chunks can both report the same
-  payment; the commit then links only the first.
 - **Precedence** is the template's value, else the org setting, else the shipped default (7
   days, exact amount), applied in Apex (ADR-0035). An empty template value means the setting.
 

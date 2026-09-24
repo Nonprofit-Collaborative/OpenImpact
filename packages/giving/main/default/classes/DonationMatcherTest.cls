@@ -104,6 +104,28 @@ private class DonationMatcherTest {
     }
 
     @IsTest
+    static void aPaymentAnEarlierChunkClaimedIsNotOfferedAgain() {
+        Contact ana = GivingTestDataFactory.insertHouseholdContact('Ramirez', 'Ana', 'Ramirez');
+        List<Installment__c> payments = pledge(ana.Id, new Map<Integer, Decimal>{ 15 => 100 });
+        List<GiftImportRow> firstChunk = new List<GiftImportRow>{
+            gift(ana.Id, ana.AccountId, 100)
+        };
+        List<GiftImportRow> secondChunk = new List<GiftImportRow>{
+            gift(ana.Id, ana.AccountId, 100)
+        };
+
+        match(null, firstChunk);
+        Integer paying = new DonationMatcher(null).carryClaims(firstChunk);
+        // The next chunk is a new transaction; Core's batch hands this state back to it.
+        Assert.isNotNull(ImportEntityProcessors.carriedState, 'The claim is carried.');
+        match(null, secondChunk);
+
+        Assert.areEqual(1, paying, 'The first chunk pays the payment.');
+        Assert.areEqual(payments[0].Id, firstChunk[0].installmentId, 'Matched.');
+        Assert.isNull(secondChunk[0].installmentId, 'So the dry run agrees with the commit.');
+    }
+
+    @IsTest
     static void theTemplateWindowAndToleranceComeBeforeTheSettings() {
         Giving_Settings__c settings = Giving_Settings__c.getOrgDefaults();
         settings.Donation_Match_Date_Window_Days__c = 1;

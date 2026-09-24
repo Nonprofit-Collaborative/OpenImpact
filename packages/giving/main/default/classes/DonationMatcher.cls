@@ -69,7 +69,8 @@ public with sharing class DonationMatcher {
 
     /**
      * Finds each gift's open installment (R-DM2 to R-DM4) and applies the behaviour (R-DM5).
-     * Returns how many gifts will pay one, for the run log.
+     * A payment an earlier row of this run claimed is not offered again. Returns how many
+     * gifts were matched.
      */
     public Integer match(List<GiftImportRow> gifts) {
         if (behaviour == ALWAYS_CREATE) {
@@ -97,7 +98,7 @@ public with sharing class DonationMatcher {
             ? new List<Installment__c>()
             : GiftImportSelector.selectOpenInstallments(donorIds, householdIds, earliest, latest);
 
-        Set<Id> claimed = new Set<Id>();
+        Set<Id> claimed = claimedEarlier();
         Integer matched = 0;
         for (GiftImportRow item : gifts) {
             if (item.error != null || item.matchedExisting) {
@@ -124,6 +125,51 @@ public with sharing class DonationMatcher {
             }
         }
         return matched;
+    }
+
+    private static final String CLAIMED_KEY = 'claimedInstallments';
+
+    /**
+     * The scheduled payments earlier chunks of this run matched (R-DM4). Each chunk is its own
+     * transaction, so Core's import batch carries them; a dry run then reports what the commit
+     * will do rather than offering one payment to a row in every chunk.
+     */
+    private static Set<Id> claimedEarlier() {
+        Set<Id> claimed = new Set<Id>();
+        String carried = ImportEntityProcessors.carriedState;
+        if (String.isBlank(carried)) {
+            return claimed;
+        }
+        try {
+            Map<String, Object> state = (Map<String, Object>) JSON.deserializeUntyped(carried);
+            for (Object value : (List<Object>) state.get(CLAIMED_KEY)) {
+                claimed.add(Id.valueOf(String.valueOf(value)));
+            }
+        } catch (Exception unreadable) {
+            // A state this class did not write claims nothing.
+            return new Set<Id>();
+        }
+        return claimed;
+    }
+
+    /**
+     * Adds the payments this chunk's gifts pay, once each row's outcome is final, to what the
+     * next chunk is told was claimed. Returns how many of this chunk's gifts pay one, for the
+     * run log.
+     */
+    public Integer carryClaims(List<GiftImportRow> gifts) {
+        Set<Id> claimed = claimedEarlier();
+        Integer paying = 0;
+        for (GiftImportRow item : gifts) {
+            if (item.error == null && !item.matchedExisting && item.installmentId != null) {
+                claimed.add(item.installmentId);
+                paying++;
+            }
+        }
+        ImportEntityProcessors.carriedState = JSON.serialize(
+            new Map<String, Object>{ CLAIMED_KEY => new List<Id>(claimed) }
+        );
+        return paying;
     }
 
     /**
