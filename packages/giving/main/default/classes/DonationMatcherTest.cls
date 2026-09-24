@@ -56,7 +56,8 @@ private class DonationMatcherTest {
             new Map<String, Map<String, String>>{
                 'Gift' => new Map<String, String>{
                     'Amount__c' => String.valueOf(amount),
-                    'Gift_Date__c' => '2026-03-15'
+                    'Gift_Date__c' => '2026-03-15',
+                    'Type__c' => 'Cash'
                 }
             }
         );
@@ -223,12 +224,17 @@ private class DonationMatcherTest {
         );
         insert ana;
         List<Installment__c> payments = pledge(ana.Id, new Map<Integer, Decimal>{ 14 => 100 });
+        // Paying a payment updates it in the importer's own mode, so Maria, who imports, is
+        // the one who can edit this pledge: she owns it.
+        User importer = maria();
+        update new Commitment__c(Id = payments[0].Commitment__c, OwnerId = importer.Id);
         ImportMapping mapping = new ImportMapping();
         Map<String, String> row = new Map<String, String>{
             'Contact1.Email' => 'ana@example.org',
             'Contact1.LastName' => 'Ramirez',
             'Gift.Amount__c' => '100',
-            'Gift.Gift_Date__c' => '2026-03-15'
+            'Gift.Gift_Date__c' => '2026-03-15',
+            'Gift.Type__c' => 'Card'
         };
         for (String target : row.keySet()) {
             mapping.columns.add(new ImportMapping.Column(target, target));
@@ -240,7 +246,7 @@ private class DonationMatcherTest {
         Import_Batch__c batch = ImportTestDataFactory.batch(template);
         ImportTestDataFactory.rows(batch, new List<Map<String, String>>{ row });
 
-        System.runAs(maria()) {
+        System.runAs(importer) {
             Test.startTest();
             ImportRowProcessor.process(
                 batch,
@@ -257,7 +263,11 @@ private class DonationMatcherTest {
             FROM Import_Row__c
             WHERE Import_Batch__c = :batch.Id
         ];
-        Assert.areEqual(ImportRowProcessor.STATUS_CREATED, after.Status__c, after.Error_Message__c);
+        Assert.areEqual(
+            ImportRowProcessor.STATUS_CREATED,
+            after.Status__c,
+            'Created: ' + after.Error_Message__c
+        );
         Gift__c made = [
             SELECT Installment__c, Commitment__c
             FROM Gift__c
