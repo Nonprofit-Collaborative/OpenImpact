@@ -26,12 +26,14 @@ private class AutomationResumeJobTest {
 
     @IsTest
     static void anExpiredPauseIsClearedAndTheResumeIsAudited() {
-        TestDataFactory.pausedSettings(-1);
+        Datetime ended = TestDataFactory.pausedSettings(-1).Automation_Paused_Until__c;
         User maria = nonprofitAdmin();
 
         System.runAs(maria) {
             Test.startTest();
-            AutomationResumeJob.scheduleAt(System.now().addHours(1));
+            // A job set for a moment already past cannot be scheduled, so this one is set for
+            // later; it carries the end it clears, and scheduled jobs run at stopTest anyway.
+            AutomationResumeJob.schedule(ended, System.now().addHours(1));
             Test.stopTest();
         }
 
@@ -103,6 +105,43 @@ private class AutomationResumeJobTest {
     }
 
     @IsTest
+    static void aJobForAnEarlierPauseLeavesTheNewerOneAlone() {
+        Datetime stored = TestDataFactory.pausedSettings(-1).Automation_Paused_Until__c;
+        User maria = nonprofitAdmin();
+
+        System.runAs(maria) {
+            Test.startTest();
+            AutomationResumeJob.schedule(stored.addMinutes(-30), System.now().addHours(1));
+            Test.stopTest();
+        }
+
+        Assert.areEqual(stored, storedPause(), 'Not the pause this job was set for: untouched.');
+        Assert.areEqual(0, [SELECT COUNT() FROM Setting_Change__c], 'And no resume is audited.');
+    }
+
+    @IsTest
+    static void aPauseStillPausesWhenItsResumeCannotBeScheduled() {
+        TestDataFactory.defaultSettings();
+        User maria = nonprofitAdmin();
+        AutomationControl.schedulingFailsForTest = true;
+
+        System.runAs(maria) {
+            Test.startTest();
+            AutomationControl.pauseAll(2);
+            Test.stopTest();
+        }
+
+        Assert.isTrue(AutomationControl.isPaused(), 'The pause happens anyway.');
+        Assert.isTrue(resumeJobs().isEmpty(), 'With no resume scheduled.');
+        Assert.isTrue(AutomationControl.isPauseWithoutResume(), 'Which Health Check reports.');
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Error_Log__c WHERE Context__c LIKE 'Automation pause%'],
+            'And the failure is in the Error Log.'
+        );
+    }
+
+    @IsTest
     static void aResumeThatFiresBeforeTheEndLeavesThePauseAlone() {
         TestDataFactory.defaultSettings();
         User maria = nonprofitAdmin();
@@ -116,6 +155,7 @@ private class AutomationResumeJobTest {
 
         Assert.isTrue(AutomationControl.isPaused(), 'The pause still has two hours to run.');
         Assert.areEqual(1, [SELECT COUNT() FROM Setting_Change__c], 'Only the pause is audited.');
+        Assert.areEqual(1, resumeJobs().size(), 'The early job set itself again for the end.');
     }
 
     @IsTest
