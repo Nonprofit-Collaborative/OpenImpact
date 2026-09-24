@@ -92,6 +92,24 @@ public with sharing class HouseholdWriter {
     }
 
     /**
+     * The membership rows a people merge gives the survivor, and the survivor's rows it makes
+     * primary. All or none, in system mode (upkeep, ADR-0021): a row that cannot be written
+     * fails the merge, so nothing is lost and the merged-away person's households are
+     * untouched, rather than a membership quietly going missing.
+     */
+    public static void saveMergedMemberships(
+        List<Household_Member__c> created,
+        List<Household_Member__c> promoted
+    ) {
+        if (created != null && !created.isEmpty()) {
+            Database.insert(created, true, AccessLevel.SYSTEM_MODE);
+        }
+        if (promoted != null && !promoted.isEmpty()) {
+            Database.update(promoted, true, AccessLevel.SYSTEM_MODE);
+        }
+    }
+
+    /**
      * Removes households the package created that have been left with no members. This one
      * runs with the user's own access, and a refusal is logged rather than thrown, so that
      * tidying up never fails somebody's save.

@@ -36,62 +36,66 @@ private class ReceiptServiceTest {
 
     @IsTest
     static void aGiftIsNotReceiptedTwice() {
-        ReceiptTestDataFactory.setUpReceipting();
-        Contact donor = GivingTestDataFactory.insertHouseholdContact(
-            'The Diallo Family',
-            'Awa',
-            'Diallo'
-        );
-        Gift__c gift = ReceiptTestDataFactory.plainCashGift(
-            donor.Id,
-            90,
-            Date.newInstance(2026, 1, 6)
-        );
-        insert gift;
-        ReceiptService.issueForGift(gift.Id);
-
-        Test.startTest();
-        try {
-            ReceiptService.issueForGift(gift.Id);
-            Assert.fail('The same gift was receipted twice.');
-        } catch (ReceiptService.ReceiptServiceException refused) {
-            Assert.areEqual(
-                Label.Giving_Receipt_GiftAlreadyReceipted,
-                refused.getMessage(),
-                'It points at void and reissue.'
+        System.runAs(ReceiptTestDataFactory.issuer()) {
+            ReceiptTestDataFactory.setUpReceipting();
+            Contact donor = GivingTestDataFactory.insertHouseholdContact(
+                'The Diallo Family',
+                'Awa',
+                'Diallo'
             );
+            Gift__c gift = ReceiptTestDataFactory.plainCashGift(
+                donor.Id,
+                90,
+                Date.newInstance(2026, 1, 6)
+            );
+            insert gift;
+            ReceiptService.issueForGift(gift.Id);
+
+            Test.startTest();
+            try {
+                ReceiptService.issueForGift(gift.Id);
+                Assert.fail('The same gift was receipted twice.');
+            } catch (ReceiptService.ReceiptServiceException refused) {
+                Assert.areEqual(
+                    Label.Giving_Receipt_GiftAlreadyReceipted,
+                    refused.getMessage(),
+                    'It points at void and reissue.'
+                );
+            }
+            Test.stopTest();
         }
-        Test.stopTest();
     }
 
     @IsTest
     static void aVoidWithoutAReasonIsRefused() {
-        ReceiptTestDataFactory.setUpReceipting();
-        Contact donor = GivingTestDataFactory.insertHouseholdContact(
-            'The Ferreira Family',
-            'Luis',
-            'Ferreira'
-        );
-        Gift__c gift = ReceiptTestDataFactory.plainCashGift(
-            donor.Id,
-            60,
-            Date.newInstance(2026, 1, 7)
-        );
-        insert gift;
-        Receipt__c issued = ReceiptService.issueForGift(gift.Id);
-
-        Test.startTest();
-        try {
-            ReceiptService.voidReceipt(issued.Id, '   ');
-            Assert.fail('A receipt was voided with no reason.');
-        } catch (ReceiptService.ReceiptServiceException refused) {
-            Assert.areEqual(
-                Label.Giving_Receipt_VoidNeedsReason,
-                refused.getMessage(),
-                'It asks for a reason.'
+        System.runAs(ReceiptTestDataFactory.issuer()) {
+            ReceiptTestDataFactory.setUpReceipting();
+            Contact donor = GivingTestDataFactory.insertHouseholdContact(
+                'The Ferreira Family',
+                'Luis',
+                'Ferreira'
             );
+            Gift__c gift = ReceiptTestDataFactory.plainCashGift(
+                donor.Id,
+                60,
+                Date.newInstance(2026, 1, 7)
+            );
+            insert gift;
+            Receipt__c issued = ReceiptService.issueForGift(gift.Id);
+
+            Test.startTest();
+            try {
+                ReceiptService.voidReceipt(issued.Id, '   ');
+                Assert.fail('A receipt was voided with no reason.');
+            } catch (ReceiptService.ReceiptServiceException refused) {
+                Assert.areEqual(
+                    Label.Giving_Receipt_VoidNeedsReason,
+                    refused.getMessage(),
+                    'It asks for a reason.'
+                );
+            }
+            Test.stopTest();
         }
-        Test.stopTest();
     }
 
     @IsTest
@@ -156,30 +160,38 @@ private class ReceiptServiceTest {
 
     @IsTest
     static void theGiftPageKnowsWhetherItCanOfferToIssue() {
-        ReceiptTestDataFactory.setUpReceipting();
-        Contact donor = GivingTestDataFactory.insertHouseholdContact(
-            'The Haddad Family',
-            'Nour',
-            'Haddad'
-        );
-        Gift__c gift = ReceiptTestDataFactory.plainCashGift(
-            donor.Id,
-            300,
-            Date.newInstance(2026, 1, 8)
-        );
-        insert gift;
+        System.runAs(ReceiptTestDataFactory.issuer()) {
+            ReceiptTestDataFactory.setUpReceipting();
+            Contact donor = GivingTestDataFactory.insertHouseholdContact(
+                'The Haddad Family',
+                'Nour',
+                'Haddad'
+            );
+            Gift__c gift = ReceiptTestDataFactory.plainCashGift(
+                donor.Id,
+                300,
+                Date.newInstance(2026, 1, 8)
+            );
+            insert gift;
 
-        Test.startTest();
-        ReceiptController.GiftReceiptState before = ReceiptController.getGiftReceiptState(gift.Id);
-        ReceiptController.ReceiptView issued = ReceiptController.issue(gift.Id);
-        ReceiptController.GiftReceiptState afterwards = ReceiptController.getGiftReceiptState(
-            gift.Id
-        );
-        Test.stopTest();
+            Test.startTest();
+            ReceiptController.GiftReceiptState before = ReceiptController.getGiftReceiptState(
+                gift.Id
+            );
+            ReceiptController.ReceiptView issued = ReceiptController.issue(gift.Id);
+            ReceiptController.GiftReceiptState afterwards = ReceiptController.getGiftReceiptState(
+                gift.Id
+            );
+            Test.stopTest();
 
-        Assert.isFalse(before.alreadyReceipted, 'A new gift has no receipt.');
-        Assert.isNotNull(issued.receiptNumber, 'Issuing returns the number that was printed.');
-        Assert.isTrue(afterwards.alreadyReceipted, 'Afterwards the gift is receipted.');
-        Assert.areEqual(1, afterwards.receipts.size(), 'The gift lists the document it produced.');
+            Assert.isFalse(before.alreadyReceipted, 'A new gift has no receipt.');
+            Assert.isNotNull(issued.receiptNumber, 'Issuing returns the number that was printed.');
+            Assert.isTrue(afterwards.alreadyReceipted, 'Afterwards the gift is receipted.');
+            Assert.areEqual(
+                1,
+                afterwards.receipts.size(),
+                'The gift lists the document it produced.'
+            );
+        }
     }
 }
