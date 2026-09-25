@@ -9,14 +9,14 @@ private class SetupAssistantServiceTest {
     }
 
     @IsTest
-    static void shipsEightStepsInOrder() {
+    static void shipsSevenStepsInOrderOnCoreAlone() {
         SetupAssistantTestExtension.useNone();
 
         Test.startTest();
         List<SetupAssistantService.Step> steps = SetupAssistantService.getSteps();
         Test.stopTest();
 
-        Assert.areEqual(8, steps.size(), 'The plan describes eight setup steps');
+        Assert.areEqual(7, steps.size(), 'Core alone ships seven setup steps (ADR-NEXT)');
         for (Integer i = 0; i < steps.size(); i++) {
             Assert.areEqual(
                 i + 1,
@@ -38,7 +38,7 @@ private class SetupAssistantServiceTest {
         );
         Assert.areEqual(
             '/lightning/setup/ManageUsers/home',
-            steps[3].setupPath,
+            steps[2].setupPath,
             'Creating a colleague who has never signed in is the one part of access Salesforce keeps in Setup'
         );
     }
@@ -216,10 +216,10 @@ private class SetupAssistantServiceTest {
         List<SetupAssistantService.Step> steps = SetupAssistantService.getSteps();
         Test.stopTest();
 
-        Assert.areEqual(9, steps.size(), 'The module adds one step to Core\'s eight');
+        Assert.areEqual(8, steps.size(), 'The module adds one step to Core\'s seven');
         Assert.areEqual(SetupAssistantTestExtension.STEP_KEY, steps[2].key, 'It comes third');
         Assert.areEqual(3, steps[2].position, 'And is numbered where it stands');
-        Assert.areEqual('funddefaults', steps[3].key, 'The Core steps after it move down one');
+        Assert.areEqual('access', steps[3].key, 'The Core steps after it move down one');
         Assert.areEqual(
             SetupAssistantService.RULE_SETTING,
             steps[2].completionRule,
@@ -267,7 +267,7 @@ private class SetupAssistantServiceTest {
         List<SetupAssistantService.Step> steps = SetupAssistantService.getSteps();
         Test.stopTest();
 
-        Assert.areEqual(8, steps.size(), 'A module that throws is left out, and setup still opens');
+        Assert.areEqual(7, steps.size(), 'A module that throws is left out, and setup still opens');
     }
 
     @IsTest

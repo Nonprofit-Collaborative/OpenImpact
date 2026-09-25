@@ -4,8 +4,7 @@ import getState from '@salesforce/apex/SetupAssistantController.getState';
 import completeStep from '@salesforce/apex/SetupAssistantController.completeStep';
 import skipStep from '@salesforce/apex/SetupAssistantController.skipStep';
 import applyCoexistence from '@salesforce/apex/SetupAssistantController.applyCoexistence';
-import saveOrganizationIdentity from '@salesforce/apex/SetupAssistantController.saveOrganizationIdentity';
-import saveDefaults from '@salesforce/apex/SetupAssistantController.saveDefaults';
+import saveStepValues from '@salesforce/apex/SetupAssistantController.saveStepValues';
 import assignAccess from '@salesforce/apex/SetupAssistantController.assignAccess';
 import resetSetup from '@salesforce/apex/SetupAssistantController.reset';
 
@@ -29,12 +28,7 @@ jest.mock(
   { virtual: true }
 );
 jest.mock(
-  '@salesforce/apex/SetupAssistantController.saveOrganizationIdentity',
-  () => ({ default: jest.fn() }),
-  { virtual: true }
-);
-jest.mock(
-  '@salesforce/apex/SetupAssistantController.saveDefaults',
+  '@salesforce/apex/SetupAssistantController.saveStepValues',
   () => ({ default: jest.fn() }),
   { virtual: true }
 );
@@ -55,6 +49,30 @@ const STEP_DEFINITIONS = [
   ['verify', 'Check that everything works', 'Action']
 ];
 
+// The fields each step declares, as Apex sends them: Core's own and those a module adds.
+const STEP_FIELDS = {
+  funddefaults: [
+    {
+      fieldType: 'Record',
+      key: 'Default_Fund__c',
+      label: 'Default fund',
+      objectApiName: 'Fund__c'
+    },
+    {
+      fieldType: 'Record',
+      key: 'Default_Appeal__c',
+      label: 'Default appeal',
+      objectApiName: 'Appeal__c'
+    }
+  ],
+  identity: [
+    { fieldType: 'Text', key: 'Organization_Legal_Name__c', label: 'Legal name', value: null }
+  ],
+  verify: [
+    { fieldType: 'Navigate', label: 'Enter your first gift', navigationTarget: 'Gift_Entry' }
+  ]
+};
+
 function steps(completedKeys = [], skippedKeys = []) {
   return STEP_DEFINITIONS.map(([key, label, rule], index) => ({
     key,
@@ -65,7 +83,9 @@ function steps(completedKeys = [], skippedKeys = []) {
     target: 'General',
     setupPath: null,
     completionRule: rule,
-    isAvailable: key !== 'funddefaults',
+    isAvailable: true,
+    fields: STEP_FIELDS[key] || [],
+    advanceOnSave: key === 'funddefaults',
     skipped: skippedKeys.includes(key),
     completed: completedKeys.includes(key)
   }));
@@ -86,14 +106,6 @@ function state(overrides = {}) {
       currentMode: null,
       modes: ['Standalone', 'NPSP', 'AgentforceNonprofit']
     },
-    giving: {
-      isPresent: false,
-      fundObject: null,
-      appealObject: null,
-      defaultFundId: null,
-      defaultAppealId: null
-    },
-    identity: { Organization_Legal_Name__c: null },
     modules: [{ name: 'Core', present: true, docsUrl: 'https://example.invalid/core' }],
     roles: [
       { developerName: 'Nonprofit_Admin', label: 'Nonprofit Admin' },
@@ -126,8 +138,9 @@ describe('c-setup-assistant', () => {
     completeStep.mockResolvedValue(state({ completedKeys: ['modules'] }));
     skipStep.mockResolvedValue(state({ skippedKeys: ['funddefaults'] }));
     applyCoexistence.mockResolvedValue(state({ completedKeys: ['coexistence'] }));
-    saveOrganizationIdentity.mockResolvedValue(state({ completedKeys: ['identity'] }));
-    saveDefaults.mockResolvedValue(state({ completedKeys: ['funddefaults'] }));
+    saveStepValues.mockResolvedValue(
+      state({ completedKeys: ['coexistence', 'naming', 'funddefaults'] })
+    );
     assignAccess.mockResolvedValue(state({ completedKeys: ['access'] }));
     resetSetup.mockResolvedValue(state());
   });
@@ -200,41 +213,39 @@ describe('c-setup-assistant', () => {
     expect(completeStep).toHaveBeenCalledWith({ stepKey: 'access' });
   });
 
-  it('tells Maria to install Giving instead of showing pickers she cannot use', async () => {
+  it('shows the fields a step declares and saves them through one method', async () => {
     getState.mockResolvedValue(state({ completedKeys: ['coexistence', 'naming'] }));
     const element = build();
     await settle();
 
-    expect(element.shadowRoot.querySelector('[data-id="giving-missing"]')).not.toBeNull();
-    expect(element.shadowRoot.querySelector('[data-id="fund-picker"]')).toBeNull();
-  });
-
-  it('offers the fund and appeal pickers once Giving is installed', async () => {
-    getState.mockResolvedValue(
-      state({
-        completedKeys: ['coexistence', 'naming'],
-        giving: {
-          isPresent: true,
-          fundObject: 'Fund__c',
-          appealObject: 'Appeal__c',
-          defaultFundId: null,
-          defaultAppealId: null
-        }
+    const panel = element.shadowRoot.querySelector('c-setup-step-fields');
+    expect(panel.fields.map((field) => field.key)).toEqual([
+      'Default_Fund__c',
+      'Default_Appeal__c'
+    ]);
+    panel.dispatchEvent(
+      new CustomEvent('save', {
+        detail: { values: { Default_Fund__c: 'a01000000000001', Default_Appeal__c: null } }
       })
     );
+    await settle();
+
+    expect(saveStepValues).toHaveBeenCalledWith({
+      stepKey: 'funddefaults',
+      values: { Default_Fund__c: 'a01000000000001', Default_Appeal__c: null }
+    });
+    // The fund and appeal step asks one question, so answering it moves on.
+    expect(element.shadowRoot.querySelector('[data-id="step-label"]').textContent).toContain(
+      'Give your colleagues access'
+    );
+  });
+
+  it('shows no field panel on a step that declares no fields', async () => {
+    getState.mockResolvedValue(state({ completedKeys: ['coexistence'] }));
     const element = build();
     await settle();
 
-    const fund = element.shadowRoot.querySelector('[data-id="fund-picker"]');
-    expect(fund.objectApiName).toBe('Fund__c');
-    fund.dispatchEvent(new CustomEvent('change', { detail: { recordId: 'a01000000000001' } }));
-    click(element, 'save-defaults');
-    await settle();
-
-    expect(saveDefaults).toHaveBeenCalledWith({
-      fundId: 'a01000000000001',
-      appealId: undefined
-    });
+    expect(element.shadowRoot.querySelector('c-setup-step-fields')).toBeNull();
   });
 
   it('gives a colleague a role from inside the assistant', async () => {
@@ -294,23 +305,47 @@ describe('c-setup-assistant', () => {
     expect(element.shadowRoot.querySelector('[data-id="complete-heading"]')).not.toBeNull();
   });
 
-  it('saves the organization identity the receipts need', async () => {
+  it('saves the organization step and stays on it for the remaining answers', async () => {
     getState.mockResolvedValue(
       state({ completedKeys: ['coexistence', 'naming', 'funddefaults', 'access'] })
+    );
+    saveStepValues.mockResolvedValue(
+      state({ completedKeys: ['coexistence', 'naming', 'funddefaults', 'access', 'identity'] })
     );
     const element = build();
     await settle();
 
-    element.shadowRoot.querySelector('c-setup-step-identity').dispatchEvent(
+    element.shadowRoot.querySelector('c-setup-step-fields').dispatchEvent(
       new CustomEvent('save', {
         detail: { values: { Organization_Legal_Name__c: 'Riverside Community Aid' } }
       })
     );
     await settle();
 
-    expect(saveOrganizationIdentity).toHaveBeenCalledWith({
+    expect(saveStepValues).toHaveBeenCalledWith({
+      stepKey: 'identity',
       values: { Organization_Legal_Name__c: 'Riverside Community Aid' }
     });
+    expect(element.shadowRoot.querySelector('[data-id="step-label"]').textContent).toContain(
+      "Set your organization's identity"
+    );
+  });
+
+  it('shows a save error on the step and stays there', async () => {
+    getState.mockResolvedValue(state({ completedKeys: ['coexistence', 'naming'] }));
+    saveStepValues.mockRejectedValue({ body: { message: 'That record is not a fund.' } });
+    const element = build();
+    await settle();
+
+    element.shadowRoot
+      .querySelector('c-setup-step-fields')
+      .dispatchEvent(new CustomEvent('save', { detail: { values: { Default_Fund__c: 'x' } } }));
+    await settle();
+
+    expect(element.shadowRoot.textContent).toContain('That record is not a fund.');
+    expect(element.shadowRoot.querySelector('[data-id="step-label"]').textContent).toContain(
+      'Choose your default fund and appeal'
+    );
   });
 
   it('shows the household naming panel now that C-02 ships it', async () => {
@@ -340,7 +375,7 @@ describe('c-setup-assistant', () => {
     expect(element.shadowRoot.querySelector('[data-id="sample-panel"]')).not.toBeNull();
   });
 
-  it('says the first gift check is waiting when Giving is not installed', async () => {
+  it('shows the button a module adds to the last step', async () => {
     getState.mockResolvedValue(
       state({
         completedKeys: [
@@ -357,7 +392,8 @@ describe('c-setup-assistant', () => {
     const element = build();
     await settle();
 
-    expect(element.shadowRoot.querySelector('[data-id="verify-missing"]')).not.toBeNull();
+    const panel = element.shadowRoot.querySelector('c-setup-step-fields');
+    expect(panel.fields[0].navigationTarget).toBe('Gift_Entry');
   });
 
   it('opens on a step Maria skipped the next time she comes back', async () => {
