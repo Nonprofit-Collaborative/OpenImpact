@@ -123,7 +123,7 @@ private class OpportunityMirrorServiceTest {
     }
 
     @IsTest
-    static void aChangeToTheGiftFollowsItAndAMoveOutOfTheTotalsLosesTheOpportunity() {
+    static void aChangeToTheGiftFollowsItAndACancelledGiftLosesTheOpportunity() {
         User admin = maria();
         Gift__c given = gift(100);
         System.runAs(admin) {
@@ -137,6 +137,7 @@ private class OpportunityMirrorServiceTest {
         System.runAs(admin) {
             update new Gift__c(Id = given.Id, Amount__c = 150);
             update new Gift__c(Id = given.Id, Status__c = 'Pending');
+            update new Gift__c(Id = given.Id, Status__c = 'Cancelled');
         }
         Test.stopTest();
 
@@ -144,7 +145,7 @@ private class OpportunityMirrorServiceTest {
         Assert.areEqual(linked, saved.Opportunity_Id__c, 'The same Opportunity, not a new one.');
         SObject copy = opportunity(linked);
         Assert.areEqual(150, (Decimal) copy.get('Amount'), 'The new amount followed it.');
-        Assert.areEqual(false, copy.get('IsWon'), 'A Pending gift is not a won Opportunity.');
+        Assert.areEqual(false, copy.get('IsWon'), 'A Cancelled gift is a lost Opportunity.');
         Assert.areEqual(1, countOpportunities(), 'Nothing is ever deleted or duplicated.');
     }
 
@@ -239,8 +240,9 @@ private class OpportunityMirrorServiceTest {
     }
 
     @IsTest
-    static void someoneWithoutOpportunityAccessStillSavesAndIsLoggedOnce() {
-        // David enters gifts but was not given the Opportunity Mirror permission set.
+    static void someoneWithoutThePermissionSetStillHasTheirGiftsCopied() {
+        // David enters gifts and may create Opportunities, but was not given the Opportunity
+        // Mirror permission set, so he cannot see the Opportunity ID field (R-OM5).
         User david = TestDataFactory.createUser('David', new List<String>{ 'Giving_Admin' });
         // David's profile sees only what he owns, so he is given a donor of his own.
         Account household = new Account(Name = 'The Chen Household', OwnerId = david.Id);
@@ -252,22 +254,21 @@ private class OpportunityMirrorServiceTest {
             OwnerId = david.Id
         );
         insert mei;
-        List<Gift__c> gifts = new List<Gift__c>{
-            GivingTestDataFactory.buildGift(mei.Id, 10),
-            GivingTestDataFactory.buildGift(mei.Id, 20)
-        };
+        Gift__c given = GivingTestDataFactory.buildGift(mei.Id, 10);
         Test.startTest();
         System.runAs(david) {
-            insert new List<Gift__c>{ gifts[0] };
-            insert new List<Gift__c>{ gifts[1] };
+            insert given;
+            update new Gift__c(Id = given.Id, Amount__c = 15);
         }
         Test.stopTest();
-        Assert.isNull(reread(gifts[0].Id).Opportunity_Id__c, 'The gift saves, uncopied.');
-        Assert.isNull(reread(gifts[1].Id).Opportunity_Id__c, 'So does the next one.');
+        String linked = reread(given.Id).Opportunity_Id__c;
         if (!OpportunityMirrorService.isAvailable()) {
+            Assert.isNull(linked, 'Without Opportunity the mirror does nothing.');
             return;
         }
-        Assert.areEqual(1, warnings().size(), 'Once per transaction, not once per save (R-OM5).');
+        Assert.isNotNull(linked, 'The link is written onto the gift being saved.');
+        Assert.areEqual(15, (Decimal) opportunity(linked).get('Amount'), 'His change followed.');
+        Assert.areEqual(0, warnings().size(), 'Nothing skipped.');
     }
 
     @IsTest
