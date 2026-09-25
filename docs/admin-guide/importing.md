@@ -224,13 +224,11 @@ counted them as would create, because a dry run saves nothing for the rule to ch
 **The run log says "Not loaded: you do not have access to" a field.** Your user may not
 edit that field, so its column was skipped on every row, in the dry run and in the commit, and
 the rest of each row loaded. The run log names each such field once. The Nonprofit Admin role
-lets you edit the fields the shipped mappings use (email, phone numbers, mailing address,
-title, birthdate, and the Email Opt Out, Fax Opt Out and Do Not Call flags, and the
-billing address of households and organizations), so this usually
-means a column mapped to some other field, or a user without that role. Ask your Salesforce
-administrator for edit access to the field and import the file again: the second import
-matches the people it already created and adds the missing values. Where people are person
-accounts, access to the person fields follows the contact fields of the same name.
+lets you edit the standard fields import mappings use (see "Fields the Nonprofit Admin role
+can import" below), so this usually means a column mapped to some other field, or a user
+without that role. Ask your Salesforce administrator for edit access to the field and import
+the file again: the second import matches the people it already created and adds the
+missing values.
 
 **Gift columns in the file were not loaded.** Gifts are loaded by the Giving module. Without
 it, gift columns are recognized and kept with the staged row, and the run log says so. With
@@ -239,6 +237,27 @@ it installed, see [Importing gifts](gift-import.md).
 **"The control totals do not match."** The dry run counted a different number of rows, or a
 different total of gift amounts, from the control totals you typed. The run log gives both
 numbers. Fix the file or the totals and dry run again; the commit is refused until they agree.
+
+## Fields the Nonprofit Admin role can import
+
+Salesforce controls standard fields one by one, and a person with only a minimal profile
+could otherwise not write them. So the Nonprofit Admin permission set grants read and edit
+access to the standard fields the import mappings write:
+
+| Object | Fields |
+|---|---|
+| Contact | Email, Phone, Mobile Phone, Home Phone, Mailing Address, Title, Birthdate, Email Opt Out, Fax Opt Out, Do Not Call |
+| Account (households and organizations) | Billing Address, Phone, Website |
+
+Where people are person accounts, access to their person fields (Person Email, Person
+Mailing Address and the rest) follows the contact fields of the same name, and a person's
+phone is the account's Phone.
+
+**Birthdate is sensitive.** It is granted so a migration file's birthdates are not lost, but
+your organization may not want everyone with Nonprofit Admin to see it. To withhold it, give
+your administrators a permission set that does not include it, or ask your Salesforce
+administrator to remove Birthdate from a cloned role: the importer then skips the column and
+says so in the run log, and nothing else in Open Impact needs it.
 
 ## Field reference
 
