@@ -13,7 +13,7 @@
  *   SHA-256 of every row's gift, date, fund and amount) is not the one downloaded, and hands the
  *   gifts to Giving's
  *   `GiftPostingService`, which locks them. `onlyUnposted` leaves posted gifts out, so a gift
- *   entered late into a month already exported turns up in the next file (ADR-NEXT).
+ *   entered late into a month already exported turns up in the next file (ADR-0053).
  * - A range over the row limit is refused rather than cut short: a short file that looks
  *   complete reconciles to nothing.
  *

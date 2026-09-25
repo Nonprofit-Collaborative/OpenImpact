@@ -1,5 +1,5 @@
 /**
- * The Posting card on a gift's page (G-20, ADR-NEXT): what it says about a gift, and the unpost
+ * The Posting card on a gift's page (G-20, ADR-0053): what it says about a gift, and the unpost
  * it carries for Jen.
  */
 @IsTest

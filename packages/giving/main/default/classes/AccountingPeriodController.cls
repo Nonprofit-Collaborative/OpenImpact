@@ -1,5 +1,5 @@
 /**
- * The Accounting Periods page of the Nonprofit Settings console (G-20, R-G14, ADR-NEXT).
+ * The Accounting Periods page of the Nonprofit Settings console (G-20, R-G14, ADR-0053).
  *
  * It holds the one setting that closes the books: `Giving_Settings__c.Books_Closed_Through__c`.
  * The setting has no Setting Definition row naming its key, so the console's generic save cannot

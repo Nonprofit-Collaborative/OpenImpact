@@ -1,5 +1,5 @@
 /**
- * Marks gifts posted to accounting and unposts them (G-20, canonical model R-G13, ADR-NEXT).
+ * Marks gifts posted to accounting and unposts them (G-20, canonical model R-G13, ADR-0053).
  *
  * The only code that writes `Accounting_Posted_At__c` and `Accounting_Posted_By__c`. Both fields
  * are read only in every packaged permission set, and the posting lock refuses any change to

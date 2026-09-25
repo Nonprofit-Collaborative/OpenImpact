@@ -14,7 +14,7 @@ import REASON_REQUIRED from '@salesforce/label/c.Giving_Posting_ReasonRequired';
 import UNEXPECTED_ERROR from '@salesforce/label/c.Giving_Periods_UnexpectedError';
 
 /**
- * The Posting card on a gift's page (G-20, ADR-NEXT).
+ * The Posting card on a gift's page (G-20, ADR-0053).
  *
  * A person about to change a gift sees here why they cannot: it is posted, or it is dated in a
  * closed period. The bookkeeper unposts it from here, and only with a reason, because an unpost

@@ -4,7 +4,7 @@
 **Date:** 2026-09-08
 **Source:** product owner decision on a defect found in feature G-02; corrects the filter
 sentence in canonical model Section 26 and upholds rule R-R9
-**Amended by:** ADR-NEXT (A Pending gift that will never be paid is cancelled, not written off),
+**Amended by:** ADR-0054 (A Pending gift that will never be paid is cancelled, not written off),
   which adds the Cancelled status; the rollup filter below already leaves it out, as it leaves out
   Pending.
 

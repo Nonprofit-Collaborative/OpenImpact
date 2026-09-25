@@ -3,7 +3,7 @@
  *
  * DOCUMENTED EXCEPTION to the "user mode DML" rule (plan Section 4.13), under ADR-0021.
  *
- * ADR-NEXT makes `Gift__c.Accounting_Posted_At__c` and `Accounting_Posted_By__c` read only in
+ * ADR-0053 makes `Gift__c.Accounting_Posted_At__c` and `Accounting_Posted_By__c` read only in
  * every packaged permission set: a posting mark a person can type is a mark nobody recorded, and
  * it would lock or unlock a gift without the unpost reason being logged. Nobody edits the fields,
  * so the package has to write them, and a user mode write would be refused for the bookkeeper.

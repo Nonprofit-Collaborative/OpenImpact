@@ -4,7 +4,7 @@
 **Date:** 2026-09-09
 **Source:** the question ADR-0023 recorded as still open and sent to G-10; restates rules
 R-G11 (Section 18) and R-SC5 (Section 24) of the canonical model
-**Amended by:** ADR-NEXT (A Pending gift that will never be paid is cancelled, not written off),
+**Amended by:** ADR-0054 (A Pending gift that will never be paid is cancelled, not written off),
   under which only a Received gift is refunded; a Cancelled gift creates no negative Matched Donor
   credit.
 

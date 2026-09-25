@@ -1,5 +1,5 @@
 /**
- * The reads behind the posting and closed period lock (G-20, ADR-NEXT).
+ * The reads behind the posting and closed period lock (G-20, ADR-0053).
  *
  * `selectLockStateByIds` runs in system mode for field and object access and keeps the running
  * user's sharing (the class is `with sharing`): it decides whether a save is refused, and a rule

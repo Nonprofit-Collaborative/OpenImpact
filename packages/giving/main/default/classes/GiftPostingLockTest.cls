@@ -1,5 +1,5 @@
 /**
- * The posting and closed period lock (G-20, R-G14, R-GA5, ADR-NEXT), from both sides.
+ * The posting and closed period lock (G-20, R-G14, R-GA5, ADR-0053), from both sides.
  *
  * Jen has put last month into the books. David cannot change what she holds, add to it, or take
  * from it, however he tries, and a pause of all automation does not help him. He can still

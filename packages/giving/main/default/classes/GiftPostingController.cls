@@ -1,5 +1,5 @@
 /**
- * The Posting card on a gift's page (G-20, R-G13, ADR-NEXT).
+ * The Posting card on a gift's page (G-20, R-G13, ADR-0053).
  *
  * It answers what a person looking at a gift wants to know before they try to change it: is it
  * posted to accounting, by whom and when, and is it dated in a closed period. It carries the one

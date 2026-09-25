@@ -13,7 +13,7 @@ import READ_ONLY from '@salesforce/label/c.Giving_Periods_ReadOnly';
 import UNEXPECTED_ERROR from '@salesforce/label/c.Giving_Periods_UnexpectedError';
 
 /**
- * The Accounting Periods page (G-20, ADR-NEXT), reached from the Giving section of the Nonprofit
+ * The Accounting Periods page (G-20, ADR-0053), reached from the Giving section of the Nonprofit
  * Settings console.
  *
  * It shows the date the books are closed through and moves it. The rules live in the controller:

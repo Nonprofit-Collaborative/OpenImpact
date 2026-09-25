@@ -1,5 +1,5 @@
 /**
- * The Accounting Periods page (G-20, R-G14, ADR-NEXT).
+ * The Accounting Periods page (G-20, R-G14, ADR-0053).
  *
  * Maria closes last month. She can close further, never through yesterday or today, and she cannot reopen a
  * month unless she holds Override Posting Lock, in which case the reopening is written down.

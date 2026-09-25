@@ -1,4 +1,4 @@
-# ADR-NEXT: Posted gifts and closed periods are locked by a rule that always runs
+# ADR-0053: Posted gifts and closed periods are locked by a rule that always runs
 
 **Status:** Accepted (builder decision)
 **Date:** 2026-09-24
@@ -65,7 +65,7 @@ books. The close date must be at least two days before today, the day before yes
 so today is open wherever the closer and the person refunding are: a close through yesterday,
 set early in the morning east of the date line, would refuse a refund dated today in the
 Pacific. Only the date line extremes (UTC+13 and UTC+14 against UTC-10 and beyond) are further
-apart than that. A Pending gift is never reversed (ADR-NEXT for Cancelled): one that will never
+apart than that. A Pending gift is never reversed (ADR-0054): one that will never
 be paid is cancelled, which keeps it out of the books, so a closed month does not refuse it.
 
 **Enforcement follows ADR-0024.** Two automations, `Gift_Posting_Lock` on Gift and
@@ -140,7 +140,7 @@ existing error code, so no caller has to learn a new one.
 ## Consequences
 
 - **A Pending gift in a closed month that will never be paid is cancelled.** The owner settled
-  the open question this ADR raised (ADR-NEXT for Cancelled): Cancelled is a status, not money,
+  the open question this ADR raised (ADR-0054): Cancelled is a status, not money,
   so it moves nothing into a closed month, and a Pending gift is no longer written off.
 - A contact merge moves gifts to the surviving person without running gift triggers (C-20), so
   a locked gift's donor can change by merge. The person is the same; the books name them by the

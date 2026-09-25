@@ -181,7 +181,7 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
     /**
      * A row that would add a gift to the books in a closed accounting period is refused before
      * anything is written, in the dry run as in the commit, with the sentence the gift's own
-     * save would give (R-G14, ADR-NEXT). A row matched to an existing gift adds nothing and is
+     * save would give (R-G14, ADR-0053). A row matched to an existing gift adds nothing and is
      * not asked. In-kind gifts are not in the books.
      */
     private static void refuseClosedPeriod(List<GiftImportRow> gifts) {
@@ -640,7 +640,7 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
      * Why records must survive an undo (R-GI9). A gift stays when a document the donor holds
      * lists it: it carries a receipt number, a receipt of any status names it, or an issued
      * year-end statement covers its donor and year (ADR-0010, ADR-0024), or it is locked by the
-     * posting lock: posted to accounting, or in the books in a closed period (ADR-NEXT). A person, household
+     * posting lock: posted to accounting, or in the books in a closed period (ADR-0053). A person, household
      * or organization stays while a gift this import made, and that is being kept, still names
      * it as donor, household or soft credit.
      */

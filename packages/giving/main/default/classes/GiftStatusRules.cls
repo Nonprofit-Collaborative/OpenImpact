@@ -1,5 +1,5 @@
 /**
- * How a gift's Status may move around Cancelled (R-G16, ADR-NEXT for Cancelled).
+ * How a gift's Status may move around Cancelled (R-G16, ADR-0054).
  *
  * Cancelled is a Pending gift that will never be paid. It is not money, so it creates no negative
  * gift and every total, the accounting export and receipts leave it out by reading only Received,

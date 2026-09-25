@@ -1,5 +1,5 @@
 /**
- * Cancelled gifts (R-G16, ADR-NEXT for Cancelled).
+ * Cancelled gifts (R-G16, ADR-0054).
  *
  * Ana pledged 40 at the gala and it never came. David cancels it; nothing else is created, it
  * leaves her receipts and frees the installment it was meant to pay. Then the check turns up

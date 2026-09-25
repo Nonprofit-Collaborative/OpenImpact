@@ -1,11 +1,10 @@
-# ADR-NEXT: A Pending gift that will never be paid is cancelled, not written off
+# ADR-0054: A Pending gift that will never be paid is cancelled, not written off
 
 **Status:** Accepted
 **Date:** 2026-09-24
 **Source:** product owner decision of 2026-09-24 on the G-20 builder's recommendation; amends
 plan Section 5.2 feature G-04 ("Refund and write-off as linked negative gifts"), ADR-0022,
-ADR-0023 and ADR-0031. Cited as "ADR-NEXT for Cancelled" until it is numbered, to tell it apart
-from the G-20 ADR-NEXT on the same stack.
+ADR-0023 and ADR-0031.
 
 ## Context
 
@@ -71,7 +70,7 @@ status, which a migration of history needs, and the posting lock still runs.
   negative gift to carry one, and its credits already drop out of every total with its status. A
   Cancelled gift is not half of a new matching gift pair, like a Refunded or Written off one
   (R-G11).
-- **G-20 ADR-NEXT:** a write-off never moves a Pending gift into the books any more, so the
+- **G-20 ADR-0053:** a write-off never moves a Pending gift into the books any more, so the
   refusal `GiftPostingLock.refusalForStatusChange` gave a write-off into a closed period is
   removed with its label; the lock's own refusal on save is unchanged.
 

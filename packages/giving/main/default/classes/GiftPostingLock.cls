@@ -1,5 +1,5 @@
 /**
- * The posting and closed period lock (G-20, canonical model R-G13, R-G14, R-GA5, ADR-NEXT).
+ * The posting and closed period lock (G-20, canonical model R-G13, R-G14, R-GA5, ADR-0053).
  *
  * A gift is in the books when the accounting export would write it: Status Received, Refunded
  * or Written off, and Type not In-kind (ADR-0051, ADR-0022). It is locked when it is in the books

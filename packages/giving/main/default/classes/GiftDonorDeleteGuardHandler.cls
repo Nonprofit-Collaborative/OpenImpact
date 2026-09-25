@@ -1,5 +1,5 @@
 /**
- * The delete guard on people and organizations for the posting lock (G-20, R-G15, ADR-NEXT).
+ * The delete guard on people and organizations for the posting lock (G-20, R-G15, ADR-0053).
  *
  * A locked gift's Donor Contact and Donor Account are cleared by the platform when the record
  * they name is deleted, and no gift trigger runs when that happens. So a Contact or Account that
