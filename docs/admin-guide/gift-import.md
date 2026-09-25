@@ -120,6 +120,10 @@ Each mapping says what to do, on the matching step of the wizard:
 The same step lets a mapping use its own window and allowed difference instead of the ones in
 **Nonprofit Settings**. Leave them empty to use the settings.
 
+The commit matches under the choice, window and allowed difference the dry run used. If you
+change them on the mapping, or in **Nonprofit Settings**, after a dry run, run the dry run
+again: the commit keeps to what the last dry run showed you.
+
 ## 6. Undoing a gift import
 
 Undo removes the gifts the import created, with their allocations, soft credits and
