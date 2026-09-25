@@ -128,4 +128,52 @@
     <shortDescription>Opportunity name when the donor is not visible</shortDescription>
     <value>Donor</value>
   </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_AmountNotAboveZero</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Opportunity mirror log: opportunity amount not above zero</shortDescription>
+    <value>The Opportunity has no amount above zero, so no gift was made from it.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_NoDonor</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Opportunity mirror log: opportunity names no donor</shortDescription>
+    <value>The Opportunity has no primary contact and no account, so no gift was made from it. Give it a primary contact or an account, and the next run makes the gift.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_LogOneOpportunity</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Opportunity mirror log: one opportunity refused</shortDescription>
+    <value>The Opportunity mirror could not make a gift from the Opportunity {0}: {1}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_LogManyOpportunities</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Opportunity mirror log: many opportunities refused, one reason</shortDescription>
+    <value>The Opportunity mirror could not make gifts from {0} Opportunities ({1}): {2}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_LogRunOpportunities</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Opportunity mirror log: what a gifts to opportunities run did</shortDescription>
+    <value>Opportunity mirror run, Gifts to Opportunities: {0} Opportunities created, {1} updated, {2} already up to date, {3} could not be copied (see the Warnings), {4} left because the direction changed during the run.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_LogRunGifts</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Opportunity mirror log: what an opportunities to gifts run did</shortDescription>
+    <value>Opportunity mirror run, Opportunities to Gifts: {0} gifts made, {2} Opportunities already had a gift, {3} could not become gifts (see the Warnings), {4} left because the direction changed during the run.</value>
+  </labels>
 </CustomLabels>

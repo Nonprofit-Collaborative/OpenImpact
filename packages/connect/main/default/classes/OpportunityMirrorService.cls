@@ -96,12 +96,21 @@ public with sharing class OpportunityMirrorService {
             refusals.addAll(other.refusals);
         }
 
-        /** Writes the grouped refusals as Warnings, in one statement. */
+        /** Writes the grouped refusals of gifts as Warnings, in one statement. */
         public void writeRefusals() {
             refusals.write(
                 CONTEXT,
                 Label.Connect_OpportunityMirror_LogOne,
                 Label.Connect_OpportunityMirror_LogMany
+            );
+        }
+
+        /** Writes the grouped refusals of Opportunities that could not become gifts. */
+        public void writeOpportunityRefusals() {
+            refusals.write(
+                CONTEXT,
+                Label.Connect_OpportunityMirror_LogOneOpportunity,
+                Label.Connect_OpportunityMirror_LogManyOpportunities
             );
         }
     }
@@ -115,6 +124,11 @@ public with sharing class OpportunityMirrorService {
 
     public static Schema.SObjectType roleType() {
         return OpportunityMirrorContext.roleType();
+    }
+
+    /** The contact role object's name, or null in an org without Opportunity. */
+    public static String roleObjectName() {
+        return roleType() == null ? null : roleType().getDescribe().getName();
     }
 
     public static Boolean isAvailable() {

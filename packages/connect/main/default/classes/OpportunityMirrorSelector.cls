@@ -14,6 +14,7 @@ public with sharing class OpportunityMirrorSelector {
     // detection-only: stage records are read by name so Connect installs without Opportunity
     private static final String STAGE_OBJECT = 'OpportunityStage';
     private static final String PERSON_CONTACT_FIELD = 'PersonContactId';
+    private static final String IS_PERSON_ACCOUNT_FIELD = 'IsPersonAccount'; // detection-only: field map key, queried only where it exists
 
     /**
      * The Opportunities with these identifiers that the running user can see, keyed by Id.
@@ -151,5 +152,78 @@ public with sharing class OpportunityMirrorSelector {
             }
         }
         return query + ' ORDER BY Gift_Date__c, Id';
+    }
+
+    /**
+     * The won Opportunities an Opportunities to Gifts run turns into gifts: closed on or after the
+     * start date, oldest first (R-OM7). Those already named by a gift are left out per chunk.
+     */
+    public static String wonOpportunitiesQuery(String opportunityObject, List<String> fields) {
+        return 'SELECT ' +
+            String.escapeSingleQuotes(String.join(fields, ', ')) +
+            ' FROM ' +
+            String.escapeSingleQuotes(opportunityObject) +
+            ' WHERE IsWon = TRUE AND CloseDate >= :startDate ORDER BY CloseDate, Id';
+    }
+
+    /** The Opportunity ID of every gift that names one of these, the running user can see. */
+    public static Set<String> linkedOpportunityIds(Set<String> opportunityIds) {
+        Set<String> linked = new Set<String>();
+        if (opportunityIds == null || opportunityIds.isEmpty()) {
+            return linked;
+        }
+        for (Gift__c gift : [
+            SELECT Opportunity_Id__c
+            FROM Gift__c
+            WHERE Opportunity_Id__c IN :opportunityIds
+            WITH USER_MODE
+        ]) {
+            linked.add(gift.Opportunity_Id__c);
+        }
+        return linked;
+    }
+
+    /** The appeal whose Campaign ID is each of these Campaigns, keyed by Campaign ID. */
+    public static Map<String, Id> appealIdsByCampaignId(Set<String> campaignIds) {
+        Map<String, Id> byCampaign = new Map<String, Id>();
+        if (campaignIds == null || campaignIds.isEmpty()) {
+            return byCampaign;
+        }
+        for (Appeal__c appeal : [
+            SELECT Id, Campaign_Id__c
+            FROM Appeal__c
+            WHERE Campaign_Id__c IN :campaignIds
+            WITH USER_MODE
+        ]) {
+            byCampaign.put(appeal.Campaign_Id__c, appeal.Id);
+        }
+        return byCampaign;
+    }
+
+    /**
+     * The account of each of these contacts that is the contact half of a person account, by
+     * contact. Empty in an org that does not store people as accounts.
+     */
+    public static Map<Id, Id> personAccountByContact(Set<Id> contactIds) {
+        Map<Id, Id> byContact = new Map<Id, Id>();
+        if (
+            contactIds == null ||
+            contactIds.isEmpty() ||
+            !Schema.SObjectType.Contact.fields.getMap().containsKey(IS_PERSON_ACCOUNT_FIELD)
+        ) {
+            return byContact;
+        }
+        for (
+            SObject person : Database.queryWithBinds(
+                'SELECT Id, AccountId FROM Contact WHERE Id IN :contactIds AND ' +
+                    IS_PERSON_ACCOUNT_FIELD +
+                    ' = TRUE',
+                new Map<String, Object>{ 'contactIds' => contactIds },
+                AccessLevel.USER_MODE
+            )
+        ) {
+            byContact.put(person.Id, (Id) person.get('AccountId'));
+        }
+        return byContact;
     }
 }
