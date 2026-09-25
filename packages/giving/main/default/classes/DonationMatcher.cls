@@ -21,6 +21,16 @@ public with sharing class DonationMatcher {
     private static final String KEY_WINDOW = 'Donation_Match_Date_Window_Days__c';
     private static final String KEY_TOLERANCE = 'Donation_Match_Amount_Tolerance__c';
 
+    private static final String RECORD_BEHAVIOUR = 'donationMatching';
+    private static final String RECORD_WINDOW = 'matchDateWindowDays';
+    private static final String RECORD_TOLERANCE = 'matchAmountTolerance';
+    private static final Set<String> BEHAVIOURS = new Set<String>{
+        MATCH_OR_CREATE,
+        ALWAYS_CREATE,
+        MATCH_ONLY,
+        NEVER_MATCH
+    };
+
     private final String behaviour;
     private final Integer windowDays;
     private final Decimal tolerance;
@@ -35,6 +45,74 @@ public with sharing class DonationMatcher {
         Decimal allowed = template == null ? null : template.Match_Amount_Tolerance__c;
         allowed = allowed != null ? allowed : setting(KEY_TOLERANCE);
         tolerance = allowed == null || allowed < 0 ? DEFAULT_TOLERANCE : allowed;
+    }
+
+    private DonationMatcher(String behaviour, Integer windowDays, Decimal tolerance) {
+        this.behaviour = behaviour;
+        this.windowDays = windowDays;
+        this.tolerance = tolerance;
+    }
+
+    /**
+     * How one pass of an import matches (R-DM7). A dry run takes the template's values, and
+     * the org's where the template is empty, on its first chunk and carries them to the rest;
+     * a commit runs under the values its dry run recorded on the batch, never the template's
+     * as they stand now. A batch whose dry run recorded none, which is every batch dry run
+     * before the values were recorded, falls back to the template.
+     */
+    public static DonationMatcher forRun(
+        Import_Batch__c batch,
+        Import_Template__c template,
+        Boolean dryRun
+    ) {
+        if (dryRun == true) {
+            DonationMatcher taken = fromRecord(GiftImportRunState.carriedSettings());
+            if (taken == null) {
+                // The first chunk: the only time the whole state is read to add the values.
+                taken = new DonationMatcher(template);
+                GiftImportRunState state = GiftImportRunState.carried();
+                state.settings = taken.record();
+                state.carry();
+            }
+            return taken;
+        }
+        DonationMatcher recorded = fromRecord(
+            batch == null ? null : batch.Processor_Settings_JSON__c
+        );
+        return recorded == null ? new DonationMatcher(template) : recorded;
+    }
+
+    /** The values this matcher runs under, as the document the batch keeps (R-DM7). */
+    public String record() {
+        return JSON.serialize(
+            new Map<String, Object>{
+                RECORD_BEHAVIOUR => behaviour,
+                RECORD_WINDOW => windowDays,
+                RECORD_TOLERANCE => tolerance
+            }
+        );
+    }
+
+    /** The matcher a recorded document describes, or null when it describes none. */
+    @TestVisible
+    private static DonationMatcher fromRecord(String recorded) {
+        if (String.isBlank(recorded)) {
+            return null;
+        }
+        try {
+            Map<String, Object> values = (Map<String, Object>) JSON.deserializeUntyped(recorded);
+            String chosen = (String) values.get(RECORD_BEHAVIOUR);
+            Object days = values.get(RECORD_WINDOW);
+            Object allowed = values.get(RECORD_TOLERANCE);
+            if (!BEHAVIOURS.contains(chosen) || days == null || allowed == null) {
+                return null;
+            }
+            Integer window = Decimal.valueOf(String.valueOf(days)).intValue();
+            Decimal within = Decimal.valueOf(String.valueOf(allowed));
+            return window < 0 || within < 0 ? null : new DonationMatcher(chosen, window, within);
+        } catch (Exception unreadable) {
+            return null;
+        }
     }
 
     private static Decimal setting(String key) {

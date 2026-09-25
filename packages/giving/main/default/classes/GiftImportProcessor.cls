@@ -116,9 +116,11 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
             notes.add(Label.Giving_Import_ErrorCannotDeleteGifts);
         }
         Integer paying = 0;
+        // Taken on every chunk, rows with gifts or not, so a dry run records what the commit
+        // is held to even when its first gift is in a later chunk (R-DM7).
+        DonationMatcher matcher = DonationMatcher.forRun(batch, template, dryRun);
         if (!gifts.isEmpty()) {
-            DonationMatcher matcher = new DonationMatcher(template);
-            matchExternalIds(pending(gifts), batch.Id);
+            matchExternalIds(pending(gifts), batch, dryRun);
             matcher.refuseExistingUnderNeverMatch(gifts);
             refuseClosedPeriod(pending(gifts));
             GiftImportCredits.read(pending(gifts));
@@ -153,23 +155,27 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
                 )
             );
         }
-        return new ImportEntityResult(notes.isEmpty() ? null : String.join(notes, ' '), fileAmount);
+        ImportEntityResult result = new ImportEntityResult(
+            notes.isEmpty() ? null : String.join(notes, ' '),
+            fileAmount
+        );
+        result.settings = dryRun ? matcher.record() : null;
+        return result;
     }
 
     /**
-     * The external IDs a dry run's chunk would load, for the next chunk to match (R-DM1), since
-     * the dry run saves no gift for it to find. A commit needs none of this: the gift is there,
-     * stamped with the batch, so the state stays small however long the file. A refused row is
-     * not remembered: its repeat is loaded on its own, in the dry run as in the commit.
+     * The external IDs a dry run's chunk would load, for a later chunk to match (R-DM1), since
+     * the dry run saves no gift for it to find: each such row keeps a digest of its own as its
+     * Processor Key, which Core saves with the row. A commit needs none of this: the gift is
+     * there, stamped with the batch. A refused row is not remembered: its repeat is loaded on
+     * its own, in the dry run as in the commit.
      */
     private static void rememberExternalIds(List<GiftImportRow> gifts) {
-        GiftImportRunState state = GiftImportRunState.carried();
         for (GiftImportRow item : gifts) {
             if (item.error == null && !item.matchedExisting && item.externalId != null) {
-                state.seenExternalIds.add(GiftImportRunState.key(item.externalId));
+                item.row.Processor_Key__c = GiftImportRunState.key(item.externalId);
             }
         }
-        state.carry();
     }
 
     /**
@@ -295,7 +301,12 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
      * A row whose external ID names a gift already in the org, or one an earlier row of this
      * chunk makes, is that gift: the row is Matched and the gift is not changed.
      */
-    private static void matchExternalIds(List<GiftImportRow> gifts, Id batchId) {
+    private static void matchExternalIds(
+        List<GiftImportRow> gifts,
+        Import_Batch__c batch,
+        Boolean dryRun
+    ) {
+        Id batchId = batch.Id;
         Set<String> externalIds = new Set<String>();
         for (GiftImportRow item : gifts) {
             if (item.externalId != null) {
@@ -313,7 +324,15 @@ public with sharing class GiftImportProcessor implements ImportEntityProcessor {
                 madeByThisRun.add(gift.External_Id__c.toLowerCase());
             }
         }
-        Set<String> loadedEarlier = GiftImportRunState.carried().seenExternalIds;
+        // A dry run asks the rows earlier chunks wrote, for this chunk's external IDs only.
+        Set<String> loadedEarlier = new Set<String>();
+        if (dryRun) {
+            Set<String> digests = new Set<String>();
+            for (String externalId : externalIds) {
+                digests.add(GiftImportRunState.key(externalId));
+            }
+            loadedEarlier = ImportRowSelector.processorDigestsWrittenEarlier(batch, digests);
+        }
         Map<String, GiftImportRow> firstInChunk = new Map<String, GiftImportRow>();
         for (GiftImportRow item : gifts) {
             if (item.externalId == null) {
