@@ -30,8 +30,17 @@ private class ImportMatcherTest {
             new Set<String>{ 'ana@example.org', 'BEN@EXAMPLE.ORG', 'nobody@example.org' }
         );
         Test.stopTest();
-        Assert.areEqual(2, found.size(), 'Both known emails match and the unknown one does not.');
+        Assert.areEqual(
+            2,
+            sharedKeys(found),
+            'Both known emails match and the unknown one does not.'
+        );
         Assert.isNotNull(found.get('ana@example.org'), 'Keyed by the email folded to lower case.');
+        Assert.areEqual(
+            found.get('ana@example.org'),
+            found.get(ImportMatcher.firstNameKey('ana@example.org', 'Ana')),
+            'And by the email narrowed to her first name (R-IB12).'
+        );
     }
 
     @IsTest
@@ -44,7 +53,7 @@ private class ImportMatcherTest {
             }
         );
         Test.stopTest();
-        Assert.areEqual(1, found.size(), 'Only the name at the right postal code matches.');
+        Assert.areEqual(1, sharedKeys(found), 'Only the name at the right postal code matches.');
     }
 
     @IsTest
@@ -147,6 +156,17 @@ private class ImportMatcherTest {
             new Set<String>{ null, '', '   ', 'ana@example.org' }
         );
         Test.stopTest();
-        Assert.areEqual(1, found.size(), 'Only the real key was looked up.');
+        Assert.areEqual(1, sharedKeys(found), 'Only the real key was looked up.');
+    }
+
+    /** The keys a lookup was asked for, leaving out each one narrowed to a first name. */
+    private static Integer sharedKeys(Map<String, Id> found) {
+        Integer count = 0;
+        for (String key : found.keySet()) {
+            if (ImportMatcher.baseKey(key) == key) {
+                count++;
+            }
+        }
+        return count;
     }
 }

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Person_1_Name_Key__c</fullName>
+  <description>In a dry run, a digest of the matching key narrowed to the first name of the first person this row would create, so a later chunk finds them by either key as the commit will (R-IB12). Empty otherwise. Indexed, compared only, never shown.</description>
+  <externalId>true</externalId>
+  <label>Person 1 Name Key</label>
+  <length>16</length>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Text</type>
+  <unique>false</unique>
+</CustomField>

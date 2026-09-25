@@ -59,7 +59,10 @@ or six rows.
 6. Select **Dry run**. Nothing is written. When it finishes you see four counts, "would
    create", "would update", "would match and change nothing", and "would be rejected",
    and a table of the rejected rows with the reason for each one. Select **Download
-   exceptions** to get those rows back as a CSV you can fix in your spreadsheet.
+   exceptions** to get those rows back as a CSV you can fix in your spreadsheet. A new
+   person or organization that appears on several rows is counted once as "would create";
+   their later rows count as matching them, which is what the commit will do. A donor with
+   twelve monthly gifts in the file becomes one person with one household, not twelve.
 7. If the preview is wrong, fix the file or the mapping and dry run again. Nothing you
    have done so far has changed a record.
 8. When the preview is right, select **Commit**. Processing runs in the background and
@@ -89,6 +92,23 @@ Three things are worth knowing about it.
   household page if that is what you want.
 - **A row with only a second person on it still works.** They get a household of their
   own, the same as anybody else.
+- **A couple who share an email, or a surname and postal code, are still two people.** When
+  the matching rule would find both people on a row by the same email or surname and postal
+  code, Open Impact tells them apart by first name. A row naming one of them alone is matched
+  by first name too, so "Jane Smith" finds Jane, not John. When several people share the
+  email, or the surname and postal code, and none has the row's first name, a new person is
+  created rather than a guess made. First names are compared ignoring capitals but not
+  accents: "Jáne" and "Jane" are different names. A row naming Jane alone in the same file
+  as the couple's row finds the same Jane, in the couple's household, whichever row comes
+  first.
+- **Where only one person has that email, or surname and postal code, a row with another
+  first name matches them.** Today, with only John Smith at an address, a "Jane Smith" row
+  at that address is matched to John and his first name is changed to Jane. Check the dry
+  run's Updated rows for this before you commit. (This rule is under review.) Loading the same file again finds each of
+  them rather than adding the second person again. Two people on one row with the same
+  matching details and the same first name cannot be told apart: that row is rejected.
+  Under the email rule, a second person who shares the first person's email needs a last
+  name unless they are already in your org with that email and first name.
 
 ## 5. Undoing an import
 
@@ -159,6 +179,16 @@ browser too old to open a workbook says so; save the sheet as CSV instead. So do
 too large to open in the browser (more than 500,000 rows or 1,000 columns, or a sheet over
 100 MB once unpacked).
 
+**"This import is already running a dry run or a commit."** Only one run of an import goes
+at a time. Wait for the one running to finish (its results appear when it does), then start
+again. While it runs, rows it has not reached yet still show the previous run's result.
+
+**An import shows Failed although you did not see it fail.** Salesforce stopped its dry run or
+commit before it finished (for example, the job was aborted in Setup). If it was a dry run,
+run the dry run again. If it was a commit, part of the file may already be loaded, and a
+committed import cannot be dry run or committed again: undo it, which removes what it loaded
+(anything changed since it stopped is kept), then upload the file as a new import.
+
 **"No column was matched to a name or an email."** The dry run refuses to run when the
 mapping has no way to identify a person or an organization. Usually the file's header row
 is not the first row: a title line or a blank line above it means Open Impact read the
@@ -180,6 +210,13 @@ splits it, or split the column in your spreadsheet.
 throw away the rest of the file. The failed rows are counted as rejected, each carries the
 reason, and none of them wrote anything. Fix those rows in your spreadsheet, save them as
 a smaller file, and import that file on its own.
+
+**Salesforce warned about duplicates, and the import saved the people anyway.** An import
+saves past a duplicate rule set to alert, as a bulk load does, so a couple at one address or
+a person resembling someone already here is not rejected. Afterwards run the duplicate scan
+(see [Duplicates](duplicates.md)) to review any pair it made. A duplicate rule set to
+**Block** still blocks: those rows are rejected with the rule's message, although the dry run
+counted them as would create, because a dry run saves nothing for the rule to check.
 
 **Gift columns in the file were not loaded.** Gifts are loaded by the Giving module. Without
 it, gift columns are recognized and kept with the staged row, and the run log says so. With

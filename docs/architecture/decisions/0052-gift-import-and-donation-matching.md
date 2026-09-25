@@ -166,3 +166,23 @@ refused until a dry run matches.
   credits on the import's own gifts) runs in user mode: what the user cannot see, the user
   cannot allocate to or pay.
 - Undo keeps more than it did: people who gave a receipted gift stay. That is the point.
+
+## Amendment, 2026-09-24: the commit matches under the values its dry run used
+
+The first version re-read the template's matching behaviour, window and tolerance (and the
+org settings behind them) on every chunk of the commit, so a template edited between the dry
+run and the commit made the commit match, refuse or create gifts nobody had previewed. The dry
+run now takes the resolved values once, on its first chunk, carries them to its later chunks,
+and returns them with each chunk's `ImportEntityResult` as `settings`. Core records them on
+the batch as `Processor_Settings_JSON__c` when the dry run finishes, and the commit's processor
+reads them from the batch it is handed rather than from the template. A batch dry run before
+this change has none and runs under the template, as before (canonical model R-IB11, R-DM7).
+
+The values are kept as one document Core never reads, not as three matching fields on
+`Import_Batch__c`. The resolved values include the org default a template leaves empty, which
+is a Giving setting Core cannot resolve, so only the processor can take the snapshot; one
+opaque field keeps Core free of a second set of matching attributes (the template's three,
+above, are the administrator's input and stay); and any later processor setting that the
+commit must honour uses the same field without another Core change. Consequences: Core now
+carries one more field that only matters with a processor installed, read only to both
+permission sets.
