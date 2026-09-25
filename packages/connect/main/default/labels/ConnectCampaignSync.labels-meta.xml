@@ -40,4 +40,12 @@
     <shortDescription>Appeal save refused: Campaign ID is not one</shortDescription>
     <value>Campaign ID must be the record ID of a Campaign (18 characters, starting 701), or empty.</value>
   </labels>
+  <labels>
+    <fullName>Connect_CampaignSync_LogRunSummary</fullName>
+    <categories>Connect, Campaign Sync</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Campaign sync log: what a Sync all appeals pass did</shortDescription>
+    <value>Sync all appeals, pass {0} of 2: {1} Campaigns created, {2} updated, {3} already up to date, {4} could not be copied (each has its own Warning).</value>
+  </labels>
 </CustomLabels>

@@ -8,6 +8,14 @@
  * exist (plan Section 4.2, ADR-0013).
  */
 public with sharing class CampaignSyncSelector {
+    /** AsyncApexJob statuses that mean a job has not finished yet. */
+    private static final Set<String> RUNNING_JOB_STATUSES = new Set<String>{
+        'Queued',
+        'Preparing',
+        'Processing',
+        'Holding'
+    };
+
     /** The appeal attributes R-CS2 copies, plus the link. */
     public static final String APPEAL_FIELDS = 'Id, Name, Description__c, Start_Date__c, End_Date__c, Goal__c, Cost__c, Active__c, Parent_Appeal__c, Campaign_Id__c';
 
@@ -47,5 +55,35 @@ public with sharing class CampaignSyncSelector {
                 AccessLevel.USER_MODE
             )
         );
+    }
+
+    /** The query Sync all appeals walks: every visible appeal, or only the linked children. */
+    public static String allAppealsQuery(Boolean childrenOnly) {
+        String query = 'SELECT ' + APPEAL_FIELDS + ' FROM Appeal__c';
+        if (childrenOnly == true) {
+            query += ' WHERE Parent_Appeal__c != NULL AND Campaign_Id__c != NULL';
+        }
+        return query + ' ORDER BY CreatedDate, Id';
+    }
+
+    /** How many appeals the running user can see, and how many of them have a Campaign. */
+    public static Integer countAppeals(Boolean linkedOnly) {
+        if (linkedOnly == true) {
+            return [SELECT COUNT() FROM Appeal__c WHERE Campaign_Id__c != NULL WITH USER_MODE];
+        }
+        return [SELECT COUNT() FROM Appeal__c WITH USER_MODE];
+    }
+
+    /** True while a Sync all appeals job is queued or running. */
+    public static Boolean hasRunningJob(String className) {
+        Set<String> runningStatuses = RUNNING_JOB_STATUSES;
+        return ![
+                SELECT Id
+                FROM AsyncApexJob
+                WHERE ApexClass.Name = :className AND Status IN :runningStatuses
+                WITH USER_MODE
+                LIMIT 1
+            ]
+            .isEmpty();
     }
 }

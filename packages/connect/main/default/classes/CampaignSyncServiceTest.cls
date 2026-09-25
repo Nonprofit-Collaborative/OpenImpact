@@ -151,6 +151,26 @@ private class CampaignSyncServiceTest {
     }
 
     @IsTest
+    static void anAppealThatAlreadyMatchesIsNotWrittenAgain() {
+        User admin = maria();
+        Appeal__c spring = springAppeal();
+        System.runAs(admin) {
+            insert spring;
+        }
+        if (!CampaignSyncService.isAvailable()) {
+            return;
+        }
+        CampaignSyncService.Result result;
+        Test.startTest();
+        System.runAs(admin) {
+            result = CampaignSyncService.syncSaved(new List<Appeal__c>{ reread(spring.Id) });
+        }
+        Test.stopTest();
+        Assert.areEqual(1, result.unchanged, 'Nothing changed, so nothing is written.');
+        Assert.areEqual(0, result.updated + result.created + result.failed, 'No DML at all.');
+    }
+
+    @IsTest
     static void aChildAppealsCampaignSitsUnderItsParentsCampaign() {
         User admin = maria();
         Appeal__c gala = new Appeal__c(Name = 'Capital campaign', Active__c = true);
@@ -174,6 +194,39 @@ private class CampaignSyncServiceTest {
             Id.valueOf(reread(gala.Id).Campaign_Id__c),
             campaign(reread(calls.Id).Campaign_Id__c).get('ParentId'),
             'Parent Appeal becomes Parent Campaign (R-CS2).'
+        );
+    }
+
+    @IsTest
+    static void aParentLinkedInTheSameCallIsPutAboveItsChild() {
+        User admin = maria();
+        switchOn(false);
+        Appeal__c parent = new Appeal__c(Name = 'Year-end', Active__c = true);
+        insert parent;
+        Appeal__c child = new Appeal__c(
+            Name = 'Year-end: second letter',
+            Active__c = true,
+            Parent_Appeal__c = parent.Id
+        );
+        insert child;
+        if (!CampaignSyncService.isAvailable()) {
+            return;
+        }
+        // Neither has a Campaign yet: both were saved while the sync was off. Maria's catch-up
+        // copies the child before the parent, which is the order that needs the second update.
+        switchOn(true);
+
+        Test.startTest();
+        System.runAs(admin) {
+            CampaignSyncService.syncSaved(
+                new List<Appeal__c>{ reread(child.Id), reread(parent.Id) }
+            );
+        }
+        Test.stopTest();
+        Assert.areEqual(
+            Id.valueOf(reread(parent.Id).Campaign_Id__c),
+            campaign(reread(child.Id).Campaign_Id__c).get('ParentId'),
+            'The child is put under a parent whose Campaign was made later in the same call.'
         );
     }
 

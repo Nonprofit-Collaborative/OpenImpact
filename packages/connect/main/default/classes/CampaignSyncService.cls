@@ -208,6 +208,71 @@ public with sharing class CampaignSyncService {
             rowsLeft >= 2 * appealCount + SAFETY_MARGIN;
     }
 
+    /**
+     * Sync all appeals: appeals already saved. Copies them, then stores any new link on the
+     * appeal with this automation bypassed, since the copy has just been made. A chunk whose
+     * links cannot be stored is rolled back whole, Campaigns included, so a Campaign is never
+     * left without the appeal that points at it and made again by the next run.
+     */
+    public static Result syncSaved(List<Appeal__c> appeals) {
+        Result result = new Result();
+        if (appeals == null || appeals.isEmpty() || !isAvailable()) {
+            return result;
+        }
+        Map<Id, String> linkBefore = new Map<Id, String>();
+        List<Appeal__c> valid = new List<Appeal__c>();
+        for (Appeal__c appeal : appeals) {
+            linkBefore.put(appeal.Id, appeal.Campaign_Id__c);
+            // A value typed while the sync was off was never checked (R-CS8).
+            if (normalizeLink(appeal)) {
+                valid.add(appeal);
+            } else {
+                result.failed++;
+                log(
+                    String.format(
+                        Label.Connect_CampaignSync_LogFailed,
+                        new List<Object>{
+                            appeal.Name,
+                            Label.Connect_CampaignSync_InvalidCampaignId
+                        }
+                    ),
+                    appeal
+                );
+            }
+        }
+        if (valid.isEmpty()) {
+            return result;
+        }
+        Integer refused = result.failed;
+        Savepoint beforeChunk = Database.setSavepoint();
+        try {
+            result = copy(valid);
+            result.failed += refused;
+            List<Appeal__c> links = new List<Appeal__c>();
+            for (Appeal__c appeal : valid) {
+                if (!same(appeal.Campaign_Id__c, linkBefore.get(appeal.Id))) {
+                    links.add(
+                        new Appeal__c(Id = appeal.Id, Campaign_Id__c = appeal.Campaign_Id__c)
+                    );
+                }
+            }
+            if (!links.isEmpty()) {
+                AutomationControl.bypass(AUTOMATION_NAME);
+                try {
+                    Database.update(links, AccessLevel.USER_MODE);
+                } finally {
+                    AutomationControl.clearBypass(AUTOMATION_NAME);
+                }
+            }
+        } catch (Exception unexpected) {
+            Database.rollback(beforeChunk);
+            ErrorLogger.log(unexpected, CONTEXT);
+            result = new Result();
+            result.failed = appeals.size();
+        }
+        return result;
+    }
+
     // ------------------------------------------------------------------------------ the copy
 
     /**
