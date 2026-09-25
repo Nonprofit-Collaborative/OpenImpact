@@ -598,27 +598,7 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
-    <field>Contact.MailingCity</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>true</editable>
-    <field>Contact.MailingCountry</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>true</editable>
-    <field>Contact.MailingPostalCode</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>true</editable>
-    <field>Contact.MailingState</field>
-    <readable>true</readable>
-  </fieldPermissions>
-  <fieldPermissions>
-    <editable>true</editable>
-    <field>Contact.MailingStreet</field>
+    <field>Contact.MailingAddress</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
