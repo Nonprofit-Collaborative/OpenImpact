@@ -569,6 +569,11 @@ file under "Import template column headings, not references" on every run. Test 
 no such exemption: a test of a migration template reads the headings from the shipped
 mapping rather than spelling them out.
 
+The exemption is decided on the file's path, never on a line's content, so an Apex comment that
+names such a path is still checked. It covers whole files, which is safe only while the type
+has no MetadataRelationship field: a value in such a field is resolved against the org at
+deploy time, so if the type ever gains one, revisit the exemption.
+
 ## What happens when the secrets are missing
 
 The `org-tests` job checks for the secret first. If it is empty, every org-dependent
