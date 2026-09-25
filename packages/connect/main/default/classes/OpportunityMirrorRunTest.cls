@@ -232,6 +232,19 @@ private class OpportunityMirrorRunTest {
             return;
         }
         Assert.areEqual(0, OpportunityGiftService.recordTypeIds().size(), 'Matches nothing.');
+        Test.startTest();
+        System.runAs(maria()) {
+            OpportunityMirrorBatch.run();
+        }
+        Test.stopTest();
+        List<Error_Log__c> named = [
+            SELECT Message__c
+            FROM Error_Log__c
+            WHERE Context__c = :RUN_CONTEXT AND Severity__c = 'Warning'
+            WITH SYSTEM_MODE
+        ];
+        Assert.areEqual(1, named.size(), 'The unknown name is named once a run.');
+        Assert.isTrue(named[0].Message__c.contains('No_Such_Record_Type'), 'By its name.');
         Assert.isTrue(
             OpportunityMirrorSelector.wonOpportunitiesQuery(
                     'Opportunity',

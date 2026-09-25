@@ -50,21 +50,47 @@ public with sharing class OpportunityGiftService {
      * rather than gifts from every Opportunity.
      */
     public static Set<Id> recordTypeIds() {
-        String listed = Connect_Settings__c.getOrgDefaults()?.Opportunity_Mirror_Record_Types__c;
-        if (String.isBlank(listed)) {
+        List<String> names = listedRecordTypes();
+        if (names.isEmpty()) {
             return null;
         }
-        Map<String, Schema.RecordTypeInfo> byName = OpportunityMirrorService.opportunityType()
-            .getDescribe()
-            .getRecordTypeInfosByDeveloperName();
+        Map<String, Schema.RecordTypeInfo> byName = recordTypesByName();
         Set<Id> ids = new Set<Id>();
-        for (String name : listed.split(',')) {
-            Schema.RecordTypeInfo info = byName.get(name.trim());
-            if (info != null) {
-                ids.add(info.getRecordTypeId());
+        for (String name : names) {
+            if (byName.containsKey(name)) {
+                ids.add(byName.get(name).getRecordTypeId());
             }
         }
         return ids;
+    }
+
+    /** The names in the record type list the org does not have, for a run to name once. */
+    public static List<String> unknownRecordTypes() {
+        List<String> unknown = new List<String>();
+        Map<String, Schema.RecordTypeInfo> byName = recordTypesByName();
+        for (String name : listedRecordTypes()) {
+            if (!byName.containsKey(name)) {
+                unknown.add(name);
+            }
+        }
+        return unknown;
+    }
+
+    private static List<String> listedRecordTypes() {
+        String listed = Connect_Settings__c.getOrgDefaults()?.Opportunity_Mirror_Record_Types__c;
+        List<String> names = new List<String>();
+        for (String name : String.isBlank(listed) ? new List<String>() : listed.split(',')) {
+            if (String.isNotBlank(name)) {
+                names.add(name.trim());
+            }
+        }
+        return names;
+    }
+
+    private static Map<String, Schema.RecordTypeInfo> recordTypesByName() {
+        return OpportunityMirrorService.opportunityType()
+            .getDescribe()
+            .getRecordTypeInfosByDeveloperName();
     }
 
     /**
@@ -160,7 +186,7 @@ public with sharing class OpportunityGiftService {
             Boolean duplicate = false;
             for (Database.Error error : saved[i].getErrors()) {
                 messages.add(error.getMessage());
-                duplicate |= error.getStatusCode() == StatusCode.DUPLICATE_VALUE;
+                duplicate |= isLinkDuplicate(error);
             }
             if (duplicate) {
                 // Another run made its gift first: the Opportunity already has one.
@@ -175,5 +201,18 @@ public with sharing class OpportunityGiftService {
             );
         }
         return result;
+    }
+
+    /** Only a duplicate on the gift's Opportunity link means another run made the gift first. */
+    private static Boolean isLinkDuplicate(Database.Error error) {
+        if (error.getStatusCode() != StatusCode.DUPLICATE_VALUE) {
+            return false;
+        }
+        String link = Gift__c.Opportunity_Id__c.getDescribe().getName();
+        List<String> fields = error.getFields();
+        // Some unique index refusals name the field only in the message.
+        return fields != null && !fields.isEmpty()
+            ? fields.contains(link)
+            : error.getMessage().contains(link);
     }
 }

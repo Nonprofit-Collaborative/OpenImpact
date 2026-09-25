@@ -435,4 +435,86 @@ private class OpportunityMirrorCopyTest {
         Assert.isTrue(both.contains('left in place'), both);
         Assert.isTrue(both.contains('makes a new gift'), 'Opportunities to Gifts says so: ' + both);
     }
+
+    @IsTest
+    static void aSaverWhoCannotReadTheAppealsCampaignLeavesTheOpportunitysCampaign() {
+        // Ana links appeals to Campaigns; Maria sees Campaigns but not the appeal's Campaign ID.
+        User ana = TestDataFactory.createUserOnTheRunningUsersProfile(
+            'Ana',
+            new List<String>{ 'Giving_Admin', 'Opportunity_Mirror', 'Campaign_Sync' }
+        );
+        User admin = maria();
+        if (!OpportunityMirrorService.isAvailable() || !CampaignSyncService.isAvailable()) {
+            return;
+        }
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            update new List<User>{
+                new User(Id = ana.Id, UserPermissionsMarketingUser = true),
+                new User(Id = admin.Id, UserPermissionsMarketingUser = true)
+            };
+        }
+        SObject autumn = CampaignSyncService.campaignType().newSObject();
+        autumn.put('Name', 'Autumn mailing');
+        SObject spring = CampaignSyncService.campaignType().newSObject();
+        spring.put('Name', 'Spring mailing');
+        SObject open = openOpportunity(luis().AccountId);
+        Appeal__c appeal = GivingTestDataFactory.buildAppeal('Spring appeal');
+        System.runAs(ana) {
+            insert new List<SObject>{ autumn, spring };
+            open.put(OpportunityMirrorService.CAMPAIGN_FIELD, autumn.Id);
+            insert open;
+            appeal.Campaign_Id__c = spring.Id;
+            insert appeal;
+        }
+        Gift__c given = gift(80);
+        given.Appeal__c = appeal.Id;
+        given.Opportunity_Id__c = open.Id;
+        Test.startTest();
+        System.runAs(admin) {
+            Assert.isFalse(
+                Appeal__c.Campaign_Id__c.getDescribe().isAccessible(),
+                'Maria cannot read the appeal\'s Campaign ID.'
+            );
+            insert given;
+        }
+        Test.stopTest();
+        SObject copy = opportunity(open.Id);
+        Assert.areEqual(80, (Decimal) copy.get('Amount'), 'The gift is still copied.');
+        Assert.areEqual(
+            autumn.Id,
+            copy.get(OpportunityMirrorService.CAMPAIGN_FIELD),
+            'The Campaign is left as it was, never cleared (R-OM3).'
+        );
+    }
+
+    @IsTest
+    static void aRetriedUpdateThatClearsALinkKeepsNoRolledBackOpportunity() {
+        User admin = maria();
+        Gift__c cleared = gift(10);
+        Gift__c refused = gift(30);
+        System.runAs(admin) {
+            insert new List<Gift__c>{ cleared, refused };
+        }
+        List<Database.SaveResult> saved;
+        Test.startTest();
+        System.runAs(admin) {
+            saved = Database.update(
+                new List<Gift__c>{
+                    new Gift__c(Id = cleared.Id, Opportunity_Id__c = null),
+                    new Gift__c(Id = refused.Id, Amount__c = 0)
+                },
+                false
+            );
+        }
+        Test.stopTest();
+        Assert.isTrue(saved[0].isSuccess(), 'The cleared gift saves.');
+        Assert.isFalse(saved[1].isSuccess(), 'A zero amount is refused by Giving.');
+        if (!OpportunityMirrorService.isAvailable()) {
+            return;
+        }
+        String linked = reread(cleared.Id).Opportunity_Id__c;
+        Assert.isNotNull(linked, 'Linked again after the retry.');
+        Assert.areEqual(1, primaryRoles(linked).size(), 'To an Opportunity that exists.');
+        Assert.areEqual(3, countOpportunities(), 'Both first copies and one new one, no more.');
+    }
 }

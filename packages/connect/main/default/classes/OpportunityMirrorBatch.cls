@@ -86,6 +86,18 @@ public with sharing class OpportunityMirrorBatch implements Database.Batchable<S
         if (direction == OpportunityMirrorService.OPPORTUNITIES_TO_GIFTS) {
             Date startDate = OpportunityGiftService.startDate();
             Set<Id> recordTypeIds = OpportunityGiftService.recordTypeIds();
+            List<String> unknown = OpportunityGiftService.unknownRecordTypes();
+            if (!unknown.isEmpty()) {
+                // Once a run: a mistyped name otherwise matches nothing without a word.
+                ErrorLogger.logMessage(
+                    String.format(
+                        Label.Connect_OpportunityMirror_UnknownRecordTypes,
+                        new List<Object>{ String.join(unknown, ', ') }
+                    ),
+                    LOG_CONTEXT,
+                    ErrorLogger.SEVERITY_WARNING
+                );
+            }
             return Database.getQueryLocatorWithBinds(
                 OpportunityMirrorSelector.wonOpportunitiesQuery(
                     OpportunityMirrorService.opportunityType().getDescribe().getName(),
