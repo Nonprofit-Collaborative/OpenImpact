@@ -120,7 +120,7 @@ private class ErrorLoggerTest {
         List<String> messages = new List<String>();
         List<Id> recordIds = new List<Id>();
         for (Integer i = 0; i < 200; i++) {
-            messages.add('Appeal ' + i + ' could not be copied to its Campaign.');
+            messages.add('Appeal ' + i + ' could not be copied.');
             recordIds.add(Math.mod(i, 2) == 0 ? aboutMe : null);
         }
         messages.add('A message with no record beside it.');
@@ -128,7 +128,7 @@ private class ErrorLoggerTest {
 
         Test.startTest();
         Integer statementsBefore = Limits.getPublishImmediateDML();
-        ErrorLogger.logMessages(messages, recordIds, 'Campaign sync', ErrorLogger.SEVERITY_WARNING);
+        ErrorLogger.logMessages(messages, recordIds, 'Appeal copy', ErrorLogger.SEVERITY_WARNING);
         Integer statementsAfter = Limits.getPublishImmediateDML();
         Test.stopTest();
 
