@@ -554,19 +554,6 @@ public with sharing class SetupAssistantService {
                 .withTarget(SettingSections.HOUSEHOLDS)
                 .completedBy(null, 'Household_Name_Pattern__c')
         );
-        // Transitional, removed when the assistant switches to the field panel later in this
-        // stack (C-29): the fund and appeal step stays in Core until Giving contributes it,
-        // so the flow keeps its eight steps at every point in the stack.
-        Step fundDefaults = new Step(
-                'funddefaults',
-                30,
-                System.Label.Core_SetupAssistant_Step3Label,
-                System.Label.Core_SetupAssistant_Step3Description
-            )
-            .withTarget(SettingSections.GIVING)
-            .completedBy(null, 'Default_Fund__c');
-        fundDefaults.isAvailable = ModuleDetectionService.isGivingPresent();
-        steps.add(fundDefaults);
         Step access = new Step(
                 'access',
                 40,
