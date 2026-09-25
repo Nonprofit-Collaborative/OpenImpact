@@ -14,7 +14,8 @@
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>Health Check detail: gifts in a closed period that are not posted.</shortDescription>
-        <value>These gifts are dated on or before the day the books are closed through, so they are already locked from editing, but nothing has marked them posted to accounting. Either mark them posted from the Accounting Export page, once they are actually in the books you exported, or move Books Closed Through back to reopen the period (needs the Override Posting Lock permission).</value>
+        <value
+    >These gifts are dated on or before the day the books are closed through, so they are already locked from editing, but nothing has marked them posted to accounting. If they genuinely belong in the export you already sent, mark them posted from the Accounting Export page (Connect). Without Connect, or if they should not have been closed yet, move Books Closed Through back to reopen the period (needs the Override Posting Lock permission).</value>
     </labels>
     <labels>
         <fullName>Giving_HealthCheck_UnpostedClosedPeriodMoreThan</fullName>
@@ -37,7 +38,7 @@
         <categories>Giving</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Fix button: open the Accounting Periods page.</shortDescription>
-        <value>Open Accounting Periods</value>
+        <shortDescription>Fix button: open Giving settings (no more specific page target exists).</shortDescription>
+        <value>Open Giving settings</value>
     </labels>
 </CustomLabels>

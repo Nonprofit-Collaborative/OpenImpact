@@ -5,10 +5,11 @@
  * this one rather than inside Core.
  *
  * Whether a gift is in the books, and what "locked" means, is `GiftPostingLock`'s rule
- * (ADR-0022, ADR-0053): a gift with a counting status (Received, Refunded or Written off) and
- * a type other than In-kind. This class asks nothing about that rule Core does not already
- * enforce; it only reports what the rule finds, capped and linked the way
- * `HealthCheckHouseholdChecks` reports orphan records in Core.
+ * (ADR-0022, ADR-0053): a gift with a counting status (Received, Refunded or Written off, or a
+ * blank status, which `GiftPostingLock.isInBooks` also reads as Received) and a type other than
+ * In-kind. This class asks nothing about that rule Core does not already enforce; it only
+ * reports what the rule finds, capped and linked the way `HealthCheckHouseholdChecks` reports
+ * orphan records in Core.
  *
  * Only asked of a viewer who may manage settings (`HealthCheckService.canManageSettings()`):
  * posting and the close date are an administrator's business. `HealthCheckGivingSelector` reads
@@ -16,8 +17,11 @@
  * ships with Private sharing (R-G14), so a viewer's own record sharing narrows which gifts they
  * own or share, not which gifts are actually locked and unposted, and a Health Check finding
  * that silently under-counts because the administrator does not happen to share every gift is a
- * wrong answer, not a narrower one. The permission check above is the access control that
- * matters here, the same as it is for every other Settings-category check that reads org-wide
+ * wrong answer, not a narrower one. ADR-0021, amended by this ADR, keeps this as a named
+ * exception to "reads that reach a user stay in user mode," so the gate matters twice as much
+ * as it would for a shared read: `HealthCheckGivingSelector` asserts
+ * `canManageSettings()` itself, not only this class, the same permission check that is the
+ * access control that matters for every other Settings-category check that reads org-wide
  * state.
  */
 public with sharing class HealthCheckGivingChecks {

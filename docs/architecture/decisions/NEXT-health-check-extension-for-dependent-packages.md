@@ -5,7 +5,7 @@
 **Source:** ADR-0053's recorded follow-up ("A Health Check finding for unposted gifts in a
 closed period... Not built: the plan does not ask for it, and a new Core finding naming a
 Giving rule runs against C-29. Recorded as follow-up work"); builder decision under plan
-Section 9.3
+Section 9.3; amends ADR-0021
 
 ## Context
 
@@ -68,6 +68,35 @@ Periods page's own section, and the detail names both ways out: mark the gifts p
 they are genuinely in an export, or move Books Closed Through back (which needs Override
 Posting Lock and is logged, per ADR-0053).
 
+## Amendment to ADR-0021: an explicit sharing exception for a read that reaches a user
+
+ADR-0021's last condition keeps two kinds of read apart: a read that computes a package-owned
+value may run in system mode, but "reads that reach a user... stay in user mode." The count and
+the linked gifts behind this finding reach a user directly, an administrator reading Health
+Check, and still have to run without sharing to be correct, which is the case that line was
+written to rule out. This amendment records why this one read is an exception rather than a
+violation.
+
+- **Why.** Gift__c ships Private sharing (R-G14). A count of gifts locked and unposted in a
+  closed period is a fact about the organization's books, not about which gifts the viewer
+  happens to own or share; an administrator who owns only some of the org's gifts would
+  otherwise see a Health Check finding that silently under-counts, which is a wrong answer, not
+  a narrower one. `WITH SYSTEM_MODE` alone does not reach this: it lifts field and object
+  security, but record sharing is decided by the querying class's `with sharing`/`without
+  sharing` keyword, not by the query's security mode clause, so the read has to live in a class
+  that gives up sharing.
+- **What is exposed.** `HealthCheckGivingSelector` exposes exactly two shapes of answer, both
+  capped: `countUnpostedInClosedPeriod` returns an integer, capped at the finding's own cap plus
+  one so the report can say "more than"; `unpostedInClosedPeriod` returns at most five gifts,
+  each carrying only `Id`, `Name` (the gift's AutoNumber) and `Gift_Date__c`, to link a few
+  examples. No donor, amount, payment reference or any other field crosses the sharing boundary,
+  and nothing here is ever returned to a viewer who may not manage settings.
+- **The gate.** `HealthCheckService.canManageSettings()` is asserted inside
+  `HealthCheckGivingSelector` itself, not only by its caller (`HealthCheckGivingChecks`), so a
+  future caller cannot reach this without-sharing read by skipping the check;
+  `HealthCheckGivingSelectorTest.aViewerWithoutManageSettingsGetsNothingEvenCalledDirectly`
+  proves it directly, bypassing `findings()` entirely.
+
 ## Alternatives considered
 
 - **A Core finding, reading `Gift__c` dynamically the way `ReceiptGapSelector` reads
@@ -98,3 +127,8 @@ Posting Lock and is logged, per ADR-0053).
   (`HealthCheckGivingChecksTest`, `GivingHealthCheckExtensionTest`).
 - `docs/admin-guide/health-check.md` gains one row; nothing about how Health Check is reached
   or read changes.
+- ADR-0021 carries an "Amended by" line pointing here: its own reads-that-reach-a-user
+  restriction has one named exception, this finding's selector, which is why the exception is
+  written up above rather than folded quietly into ADR-0021's own text.
+- Any future Health Check extension whose read also has to cross a sharing boundary to reach a
+  user cites this amendment directly rather than reopening ADR-0021 for a second exception.

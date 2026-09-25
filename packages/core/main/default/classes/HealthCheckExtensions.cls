@@ -53,14 +53,20 @@ public with sharing class HealthCheckExtensions {
         if (extensionType == null) {
             return null;
         }
+        Object candidate;
         try {
-            Object candidate = extensionType.newInstance();
-            return candidate instanceof HealthCheckExtension
-                ? (HealthCheckExtension) candidate
-                : null;
+            candidate = extensionType.newInstance();
         } catch (Exception cannotBuild) {
             ErrorLogger.log(cannotBuild, 'HealthCheckExtensions.resolve');
             return null;
         }
+        if (candidate instanceof HealthCheckExtension) {
+            return (HealthCheckExtension) candidate;
+        }
+        ErrorLogger.log(
+            new System.TypeException(CLASS_NAME + ' does not implement HealthCheckExtension'),
+            'HealthCheckExtensions.resolve'
+        );
+        return null;
     }
 }
