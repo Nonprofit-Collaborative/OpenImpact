@@ -82,7 +82,7 @@ def check(path):
 
     for tag, limit in (("label", LABEL_MAX), ("description", DESCRIPTION_MAX)):
         element = root.find(q(tag))
-        text = (element.text or "").strip() if element is not None else ""
+        text = (element.text or "") if element is not None else ""
         if len(text) > limit:
             problems.append(
                 f"{name}: {tag} is {len(text)} characters, over the platform's limit of "
