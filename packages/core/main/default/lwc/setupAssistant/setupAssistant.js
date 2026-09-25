@@ -50,7 +50,7 @@ const SETTINGS_PAGE = '/lightning/n/Nonprofit_Settings';
  * opens on the step Maria stopped at. Steps that belong to another feature render that
  * feature's component dynamically, so a step whose module is not installed shows a notice
  * instead of breaking the page. A step's fields, including the ones a module adds, come from
- * Apex and are shown by one field panel (ADR-NEXT, C-29).
+ * Apex and are shown by one field panel (ADR-0059, C-29).
  */
 export default class SetupAssistant extends LightningElement {
   /** Set by the Hub home page when Maria asked to reopen a finished setup. */

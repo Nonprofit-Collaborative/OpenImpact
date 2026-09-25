@@ -11,7 +11,7 @@ const FILE = 'File';
 const NAVIGATE = 'Navigate';
 
 /**
- * The fields of one Setup Assistant step, whichever package declared them (C-29, ADR-NEXT):
+ * The fields of one Setup Assistant step, whichever package declared them (C-29, ADR-0059):
  * text boxes, record pickers, file uploads and buttons that open another tab. The step's
  * fields come from Apex with their labels, limits and current values, so a module adds a field
  * to a step without Core knowing what it is.

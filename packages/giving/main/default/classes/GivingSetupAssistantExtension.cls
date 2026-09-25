@@ -1,6 +1,6 @@
 /**
  * The class Core finds by name (in `SetupAssistantExtensions.EXTENSION_CLASSES`) to add
- * Giving's part of the Setup Assistant (C-29, ADR-NEXT): the fund and appeal step, the receipt
+ * Giving's part of the Setup Assistant (C-29, ADR-0059): the fund and appeal step, the receipt
  * fields and wording of the identity step, and the first gift check on the last step. With
  * these the assistant reads exactly as it did before Core was made neutral.
  *
@@ -10,7 +10,7 @@
  */
 @NamespaceAccessible
 public with sharing class GivingSetupAssistantExtension implements SetupAssistantExtension {
-    /** Giving's settings object, which holds the defaults and the receipt identity (ADR-NEXT). */
+    /** Giving's settings object, which holds the defaults and the receipt identity (ADR-0059). */
     private static final String DEFAULTS_OBJECT = 'Giving_Settings__c';
     private static final String IDENTITY_OBJECT = DEFAULTS_OBJECT;
 

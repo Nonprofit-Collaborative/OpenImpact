@@ -6,7 +6,7 @@
  *
  * Three questions. Whether receipt generation has been failing is asked of every viewer; who
  * holds the receipt lock override and which locked gifts are unposted are asked only of a
- * viewer who may manage settings. The first two moved here from Core with C-29 (ADR-NEXT),
+ * viewer who may manage settings. The first two moved here from Core with C-29 (ADR-0059),
  * with their keys, wording, severities, categories and fixes unchanged.
  *
  * Whether a gift is in the books, and what "locked" means, is `GiftPostingLock`'s rule

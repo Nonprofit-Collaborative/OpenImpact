@@ -1,5 +1,5 @@
 /**
- * A stand-in module for Core's Setup Assistant tests (C-29, ADR-NEXT). Core is tested on its
+ * A stand-in module for Core's Setup Assistant tests (C-29, ADR-0059). Core is tested on its
  * own, where no module is installed, and beside Giving, whose steps would change what each
  * test counts. Each test therefore says which modules it runs with: none, this one, or one
  * that fails.
