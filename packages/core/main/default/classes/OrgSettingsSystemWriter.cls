@@ -19,19 +19,60 @@
  * adds no permission of its own and elevates nothing else.
  */
 public without sharing class OrgSettingsSystemWriter {
+    /**
+     * Test seam: a record inserted just before this writer's own first insert, as another run
+     * that found no record at the same moment would have done. Apex cannot stage two real
+     * transactions racing, so this is how a test reaches the duplicate path.
+     */
+    @TestVisible
+    private static Nonprofit_Settings__c competingFirstSaveForTest;
+
     public static void save(Map<Schema.SObjectField, Object> values) {
         Nonprofit_Settings__c stored = lockStored();
         if (stored != null) {
-            Nonprofit_Settings__c changes = new Nonprofit_Settings__c(Id = stored.Id);
-            putAll(changes, values);
-            Database.update(changes, AccessLevel.SYSTEM_MODE);
+            updateKeys(stored.Id, values);
         } else {
             Nonprofit_Settings__c created = SettingsService.firstSaveRecord();
             putAll(created, values);
-            Database.insert(created, AccessLevel.SYSTEM_MODE);
-            Database.update(SettingsService.blanksAfterFirstSave(created), AccessLevel.SYSTEM_MODE);
+            if (insertFirst(created)) {
+                Database.update(
+                    SettingsService.blanksAfterFirstSave(created),
+                    AccessLevel.SYSTEM_MODE
+                );
+            } else {
+                // Another run (the seasonal job and the digest on a new org, say) created the
+                // record between this one's read and its insert. Lock theirs and save only these
+                // keys on it, so neither run's values are lost.
+                updateKeys(lockStored().Id, values);
+            }
         }
         SettingsService.clearCache();
+    }
+
+    /**
+     * Inserts the org's first settings record. False when one already exists because another
+     * run inserted it first; any other failure is thrown.
+     */
+    private static Boolean insertFirst(Nonprofit_Settings__c created) {
+        if (competingFirstSaveForTest != null) {
+            Database.insert(competingFirstSaveForTest, AccessLevel.SYSTEM_MODE);
+            competingFirstSaveForTest = null;
+        }
+        try {
+            Database.insert(created, AccessLevel.SYSTEM_MODE);
+            return true;
+        } catch (DmlException collided) {
+            if (collided.getDmlType(0) == StatusCode.DUPLICATE_VALUE) {
+                return false;
+            }
+            throw collided;
+        }
+    }
+
+    private static void updateKeys(Id recordId, Map<Schema.SObjectField, Object> values) {
+        Nonprofit_Settings__c changes = new Nonprofit_Settings__c(Id = recordId);
+        putAll(changes, values);
+        Database.update(changes, AccessLevel.SYSTEM_MODE);
     }
 
     /**

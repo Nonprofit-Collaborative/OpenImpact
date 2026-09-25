@@ -51,8 +51,10 @@ administrator starts and stops from the settings console, with a visible last ru
    count against the daily limit on email sent to addresses, and at most 50 users receive it.
 6. **The digest runs daily and sends only when something is new.** One job runs every morning
    at 07:00, after the nightly jobs. A Weekly setting sends when seven days have passed since
-   the last window it covered, compared by date in the org's time zone so a clock change never
-   skips a day. A run with nothing new sends nothing and still moves the window on; a run that
+   the last window it covered, compared by local date so a clock change never skips a day. The
+   date is the running user's (`Datetime.date()`), and the scheduled job runs as the
+   administrator who scheduled it, so it is that person's time zone, the same one the 07:00
+   schedule uses. A run with nothing new sends nothing and still moves the window on; a run that
    could not send leaves the window where it was, so nothing is lost, and writes to the Error
    Log only when its reason differs from the last run's. The run holds a lock on the settings
    record from reading the window to moving it, so Send now and the scheduled run never both

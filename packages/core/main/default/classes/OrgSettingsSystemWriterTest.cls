@@ -66,4 +66,40 @@ private class OrgSettingsSystemWriterTest {
         Assert.isFalse(saved.Relationship_Auto_Reciprocal__c, 'A deliberate off is left alone.');
         Assert.areEqual('Standalone', saved.Coexistence_Mode__c, 'A chosen mode is left alone.');
     }
+
+    @IsTest
+    static void twoFirstSavesAtOnceKeepBothRunsValues() {
+        OrgSettingsSystemWriter.competingFirstSaveForTest = new Nonprofit_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Seasonal_Address_Last_Run_Summary__c = 'Swapped 2 households.',
+            Relationship_Auto_Reciprocal__c = true,
+            Auto_Create_Households__c = true
+        );
+        Datetime until = System.now().addHours(2);
+
+        Test.startTest();
+        AutomationSettingsWriter.savePausedUntil(until);
+        Test.stopTest();
+
+        Assert.areEqual(
+            1,
+            [
+                SELECT COUNT()
+                FROM Nonprofit_Settings__c
+                WHERE SetupOwnerId = :UserInfo.getOrganizationId()
+            ],
+            'Still one org-level record: the losing insert became an update.'
+        );
+        Nonprofit_Settings__c saved = [
+            SELECT Automation_Paused_Until__c, Seasonal_Address_Last_Run_Summary__c
+            FROM Nonprofit_Settings__c
+            WHERE SetupOwnerId = :UserInfo.getOrganizationId()
+        ];
+        Assert.areEqual(until, saved.Automation_Paused_Until__c, 'This run saved its key.');
+        Assert.areEqual(
+            'Swapped 2 households.',
+            saved.Seasonal_Address_Last_Run_Summary__c,
+            'And the run that won keeps its own.'
+        );
+    }
 }
