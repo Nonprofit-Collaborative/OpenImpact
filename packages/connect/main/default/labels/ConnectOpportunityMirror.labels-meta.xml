@@ -352,4 +352,228 @@
     <shortDescription>Page: unexpected failure</shortDescription>
     <value>Something went wrong. The Error Log has the details.</value>
   </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_Title</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page title</shortDescription>
+    <value>Opportunity mirror</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_Intro</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page introduction</shortDescription>
+    <value>Keeps gifts and Salesforce Opportunities in step, in the direction chosen in Nonprofit Settings. Run now copies what is waiting; the nightly run catches up every night at 01:30.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_DirectionGifts</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: Gifts to Opportunities is on</shortDescription>
+    <value>Direction: Gifts to Opportunities. Every gift in the totals gets a matching Opportunity.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_DirectionOpportunities</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: Opportunities to Gifts is on</shortDescription>
+    <value>Direction: Opportunities to Gifts. Won Opportunities closed on or after {0} become gifts.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_NoStartDate</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: no start date set</shortDescription>
+    <value>Direction: Opportunities to Gifts, but no start date is set, so no Opportunity becomes a gift. Set Opportunity mirror start date in Nonprofit Settings.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_RunNow</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Button: start a run</shortDescription>
+    <value>Run now</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_ScheduleNightly</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Button: schedule the nightly run</shortDescription>
+    <value>Schedule nightly</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_StopSchedule</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Button: stop the nightly run</shortDescription>
+    <value>Stop nightly run</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_NextRun</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: when the nightly run next starts</shortDescription>
+    <value>Next nightly run: {0}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_NotScheduled</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: nightly run not scheduled</shortDescription>
+    <value>The nightly run is not scheduled.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_Started</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: a run was started</shortDescription>
+    <value>The run has started. Its summary is written to the Error Log when it ends.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_ReconciliationTitle</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Section title: reconciliation</shortDescription>
+    <value>Reconciliation</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_ReconciliationIntro</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Section introduction: reconciliation</shortDescription>
+    <value>Compare the gifts in the totals dated in a range with the won Opportunities closed in it, as you can see them.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_FromDate</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Field label: range start</shortDescription>
+    <value>From</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_ToDate</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Field label: range end</shortDescription>
+    <value>To</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_Compare</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Button: compare a range</shortDescription>
+    <value>Compare</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_CopyAgain</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Button: copy a range again</shortDescription>
+    <value>Copy these gifts again</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_GiftSide</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: gift count and total</shortDescription>
+    <value>Gifts: {0}, total {1}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_OpportunitySide</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: won Opportunity count and total</shortDescription>
+    <value>Won Opportunities: {0}, total {1}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_NoDifferences</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: nothing differs</shortDescription>
+    <value>No differences.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_DifferenceCount</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: how many differences are listed</shortDescription>
+    <value>{0} differences. The first {1} are listed.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_ColumnGift</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Column: gift</shortDescription>
+    <value>Gift</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_ColumnGiftAmount</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Column: gift amount</shortDescription>
+    <value>Gift amount</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_ColumnGiftDate</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Column: gift date</shortDescription>
+    <value>Gift date</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_ColumnOpportunity</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Column: Opportunity</shortDescription>
+    <value>Opportunity</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_ColumnOpportunityAmount</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Column: Opportunity amount</shortDescription>
+    <value>Opportunity amount</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_ColumnCloseDate</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Column: close date</shortDescription>
+    <value>Close date</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_ColumnDifference</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Column: difference</shortDescription>
+    <value>Difference</value>
+  </labels>
 </CustomLabels>
