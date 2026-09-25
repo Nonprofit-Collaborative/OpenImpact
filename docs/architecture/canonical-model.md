@@ -1269,7 +1269,9 @@ template that loads gifts carries how its gifts are matched to scheduled payment
 are Core attributes because a package cannot add attributes to another package's object
 (ADR-0014), and they are plain values, never references, so Core can hold them without
 knowing what they mean. The wizard shows them only when a gift processor is installed and
-the mapping loads a gift; an empty value means the org's default (ADR-0052).
+the mapping loads a gift; an empty value means the org's default (ADR-0052). A commit does not
+read them: it runs under the values its dry run recorded on the batch (R-IB11, R-DM7), so a
+template edited after the dry run changes the next dry run, not the commit.
 
 **R-IT5 What v0.2 ships.** v0.2 ships a generic donor list template and a generic gift
 list template. The NPSP template set is v0.3 engineering work and the Agentforce
@@ -1338,6 +1340,9 @@ undoes.
 | Expected Count | integer | no | The number of rows the administrator expects the file to hold, a control total checked by the dry run (R-IB10). |
 | Expected Amount | decimal | no | The total the administrator expects the file's gift amounts to add up to, a control total checked by the dry run (R-IB10). |
 | File Amount | decimal | computed | The total of the file's gift amounts as the last pass read them, written only when an entity processor reads amounts (R-IB10). |
+| Processor Settings | long text | computed | The settings the entity processor ran the last dry run under, as a document only that processor reads; the commit runs under them (R-IB11). |
+| Pass Number | integer | computed | How many dry runs and commits have been started on this batch; the current one is the latest (R-IB13). |
+| Job Id | text | computed | The job running the current dry run or commit, so a pass still running can be told from one the platform aborted (R-IB13). |
 
 ### Relationships
 
@@ -1473,6 +1478,103 @@ while either differs a commit is refused with a sentence naming them; the admini
 corrects the file or the totals and runs a new dry run. An Expected Amount with no processor
 installed cannot be checked and is refused the same way (ADR-0052).
 
+**R-IB11 A commit runs under the settings its dry run showed.** An entity processor whose
+decisions depend on settings (for Giving, donation matching's behaviour, date window and
+amount tolerance, R-DM7) takes them once, on the dry run's first chunk, and hands them back
+with each chunk's result (R-IR6). The dry run records them on the batch as Processor Settings,
+replacing the last dry run's, and the commit hands the batch, with them, to the processor,
+which runs under them rather than under the template or the org settings as they stand at
+commit. A template edited between the dry run and the commit therefore changes the next dry
+run and not the commit. A batch whose dry run recorded none (one dry run before this rule)
+runs under the template, as before. Processor Settings is one document Core never reads, not
+an attribute per setting: the values are the processor's own (an empty template value means a
+Giving setting Core cannot resolve), and a module's settings do not become Core attributes
+beyond the template values R-IT7 already carries (ADR-0014).
+
+**R-IB12 A dry run counts a new record once, however many chunks name it.** The commit
+creates a new person or organization in the first chunk that names it, and every later chunk
+finds it by the template's matching rule and counts the row Matched (or Updated). A dry run
+saves nothing for a later chunk to find, so it writes, in the dry run only, a 64-bit digest
+of the matching key of each person and organization it would create onto the row that would
+create it (Person 1 Key, Person 2 Key, their Name Keys, Organization Key, Section 17). Each chunk looks up only
+its own rows' keys among the rows earlier chunks of the same pass processed (R-IB13), so what a chunk
+holds and reads depends on the chunk, not on how many rows came before it, and a dry run of
+half a million rows needs no more heap for this than one of a thousand. A later row whose
+key is among them is counted as matching that record, not as creating it again, and is not
+refused for a missing last name, exactly as in the commit. A person is remembered only when
+the commit could find them again by the same key: an email is written to a contact but not to
+a person stored as an account, and a postal code only to a contact whose own column gave it,
+so under those rules the commit creates such a person again and the dry run counts it again.
+Within one chunk the commit creates a new person once as well: rows naming the same new person
+by the same matching key, in either person column, share the record the first of them creates
+(first people are saved before second people, and a second person whose row has a first
+person before one whose row has not), and are not joined to a household for it. When that
+person cannot be saved, the rows sharing them are rejected with the reason. The dry run walks
+the chunk in the same order and counts the same row as the one that creates. Unlike a person
+an earlier chunk would create, a later row of the same chunk must still carry a last name,
+because rows are checked before anybody is saved. One difference remains: a later row that brings a value the first row did
+not is Updated in the commit but Matched in the dry run, which has no saved record to compare
+it with; both count it once.
+
+**A row's two people are two people.** When the Email or Name + Postal rule gives a row's two
+people one key (a couple with one surname and postal code, or one shared email), each is
+matched, shared and remembered by that key narrowed to their own first name: against the
+org's records (a record matches when its key and its first name both agree), against earlier
+rows of the chunk and against earlier chunks, in the commit and the dry run alike. Loading the
+same file again matches both rather than creating the second again. Every person an import
+creates is remembered under both the shared key and the narrowed one.
+
+**A person is found by first name before a shared key.** Under the same two rules, a row's
+person with a first name is looked for first by the key narrowed to it, in the org, among the
+people earlier chunks create and among those earlier rows of the chunk create. The shared key
+alone finds them only when exactly one person holds it, or when the row gives no first name
+(the earliest holder then). When several hold the shared key (a couple, or two couples at one
+address) and none has their first name, the person is created: a new record is the safe
+failure, where taking somebody else would rename them. A couple of the chunk not yet created
+counts as two holders, so a row naming one partner alone is never given the other. A row
+naming alone the second person of a couple of the same chunk waits until the couple is saved
+(first people are saved before second people) and then shares that partner, so both rows
+name one person in the couple's one household, whichever row comes first. A lookup of the
+org reads at most 5,000 records, filtered on both the last names and the postal codes of the
+chunk; where it stops at that cap, another holder of the key may be unseen, so the keys it
+covers find a person by first name only, and otherwise create them, and a warning is logged. First names
+are compared ignoring case and surrounding spaces but not accents: "Jáne" is not "Jane", so an
+accented spelling of a name held with another spelling is created. One consequence follows the
+rule: where one record holds the shared key, a row with a different first name still matches
+it, as the rule has always matched, and its first name is updated. A row whose two people also
+share a first name cannot be told apart and is rejected, saying so. Under the Email rule a
+second person with no last name of their own therefore matches only a record with the same
+email and first name; otherwise they are to be created, and are rejected without a last name
+as any new person is. Where the org holds several records under one key, the earliest created
+wins, and the lower identifier breaks a tie, so the same file always resolves the same way.
+
+**An import saves past a duplicate alert, not past a block.** People, organizations and
+household names are saved past a duplicate rule that only alerts, as an administrator's bulk
+load is: the file is people the organization chose to add, and an alert would otherwise
+reject every row resembling somebody, the second person of a couple included. The pair is
+left for the duplicate scan to propose (R-DP3, ADR-0050). A rule the org set to block still
+blocks, and the row is rejected with the rule's own message. The dry run saves nothing, so no
+duplicate rule runs in it: a row a blocking rule will refuse is counted as creating there.
+
+**R-IB13 One pass at a time, and each pass reads only its own rows.** Starting a dry run or
+a commit is refused while a job for that batch is actually running (queued, preparing,
+processing or holding), saying an import is already running on it; the batch is read and
+locked for the check, so two starts at once cannot both pass it. The status alone does not
+refuse: a pass the platform aborted, or whose finish failed, leaves the batch in Dry run or
+Committing with no job behind it, and it can simply be started again. A Committing batch with
+no running job reads as Failed, with the commit's user and undo window stamped, so the chunks
+it wrote can be undone (R-IB7); for that undo the commit ended when its job did, or when it
+started where the job is no longer on record, so every change made since, the committer's
+own included, is kept (R-IB9). Such a batch cannot be dry run or committed again. Each start adds one to the batch's Pass Number and changes
+nothing else on the rows: there is no reset of the staged rows before a pass, which for a
+large file would be more writes than one transaction allows. Instead every pass processes
+every row of the batch, and each chunk clears what an earlier pass left on its rows (status,
+message, the records resolved and the keys) before working them out again, and stamps them
+with the pass. A key is looked up only on rows stamped with the current pass (R-IB12), so a
+key from an earlier pass is never read. While a pass runs, rows it has not reached yet still
+show the last pass's outcome; the batch's counts are read back when it finishes, by which time
+every row belongs to it.
+
 ### Salesforce implementation
 
 - **Object:** `Import_Batch__c`, auto-number Name with format `IB-{000000}`.
@@ -1498,6 +1600,9 @@ installed cannot be checked and is refused the same way (ADR-0052).
 | Expected Count | `Expected_Count__c` | Number (9, 0) |
 | Expected Amount | `Expected_Amount__c` | Currency (16, 2) |
 | File Amount | `File_Amount__c` | Currency (16, 2) |
+| Processor Settings | `Processor_Settings_JSON__c` | Long Text Area (32768) |
+| Pass Number | `Pass_Number__c` | Number (9, 0) |
+| Job Id | `Job_Id__c` | Text (18) |
 
 - **Batch tag on other objects:** `Created_By_Import_Batch__c`, a Lookup to
   `Import_Batch__c`, on Account (households and organizations), on Contact, and on
@@ -1505,6 +1610,11 @@ installed cannot be checked and is refused the same way (ADR-0052).
   `Gift__c` field ships in Giving (Section 18).
 - **Settings keys:** `Import_Chunk_Size__c` and `Import_Undo_Retention_Days__c`
   (Section 12).
+- **Remembered between chunks, in a dry run only:** the digests of the records earlier chunks
+  would create are kept on those rows (`Person_1_Key__c`, `Person_2_Key__c`,
+  `Organization_Key__c`, Section 17) and each chunk queries only the digests it needs through
+  `ImportRowSelector.createdDigestsWrittenEarlier` (R-IB12). Nothing is carried in the batch's
+  state.
 - **Service:** `ImportBatchService`, `ImportBatchSelector`, `ImportProcessorBatch`,
   `ImportUndoService` and `ImportUndoBatch` (R-IB7 to R-IB9), `ImportController` (the one
   Aura-enabled entry point the import screens call), LWC `importWizard`, `importResults`,
@@ -1538,6 +1648,13 @@ processor resolves those in dependency order.
 | Organization | reference(Organization) | computed | The organization this row resolved to. |
 | Gift | text | computed | The gift this row resolved to, held as a record identifier (R-IR2). |
 | Soft Credit | text | computed | The soft credit this row resolved to, held as a record identifier (R-IR2). |
+| Person 1 Key | text | computed | In a dry run only, a digest of the matching key of the first person this row would create, so later chunks count that person once (R-IB12). Cleared when the row is processed again. |
+| Person 2 Key | text | computed | The same for the second person. |
+| Person 1 Name Key | text | computed | The same digest of the first person's key narrowed to their first name, so a later row finds them by either (R-IB12). |
+| Person 2 Name Key | text | computed | The same for the second person. |
+| Organization Key | text | computed | The same for the organization this row would create. |
+| Pass Number | integer | computed | The pass of its import that last processed this row (R-IB13). |
+| Processor Key | text | computed | In a dry run only, a digest the entity processor writes for what this row would load, so later chunks of the same dry run can see it (R-IR6). Core never reads its meaning. |
 
 ### Relationships
 
@@ -1610,13 +1727,17 @@ column nothing can load yet. The contract, which ADR-0052 records:
   and the people and written them onto the rows (their references, and Status Rejected with
   the reason where Core rejected the row), with each row's values grouped by entity and the
   template's defaults applied. It must be bulk safe, must write nothing when the pass is a dry
-  run, and must not throw: a failure belongs on its row. It returns a note for the run log and
-  the total of the gift amounts it read, for the control totals (R-IB10).
+  run, and must not throw: a failure belongs on its row. It returns a note for the run log,
+  the total of the gift amounts it read, for the control totals (R-IB10), and in a dry run the
+  settings it ran under, which the commit is held to (R-IB11).
 - **Carried state.** Each chunk runs in its own transaction. A processor that needs to know
-  what earlier chunks of the same run decided (the scheduled payments already matched,
-  R-DM4, and in a dry run the external IDs already loaded, R-DM1) keeps it in `ImportEntityProcessors.carriedState`, a string the import batch holds
-  between chunks and sets again before each one. Core never reads it, and a chunk that fails
-  does not change it.
+  what earlier chunks of the same run decided (the scheduled payments already matched, R-DM4)
+  keeps it in `ImportEntityProcessors.carriedState`, a string the import batch holds between
+  chunks and sets again before each one. Core never reads it, and a chunk that fails does not
+  change it. What grows with every row belongs on the rows instead: in a dry run the
+  processor writes a digest to a row's Processor Key, and a later chunk asks
+  `ImportRowSelector.processorDigestsWrittenEarlier` for only the digests it holds (in Giving,
+  the external IDs already loaded, R-DM1).
 - **Undo.** The processor names the objects it tags with the batch and gives its reasons to
   keep records (R-IB9).
 
@@ -1648,6 +1769,17 @@ when the corrected row is loaded again.
 | Organization | `Organization__c` | Lookup to Account |
 | Gift | `Gift_Id__c` | Text (18) |
 | Soft Credit | `Soft_Credit_Id__c` | Text (18) |
+| Person 1 Key | `Person_1_Key__c` | Text (16), External ID (indexed) |
+| Person 2 Key | `Person_2_Key__c` | Text (16), External ID (indexed) |
+| Person 1 Name Key | `Person_1_Name_Key__c` | Text (16), External ID (indexed) |
+| Person 2 Name Key | `Person_2_Name_Key__c` | Text (16), External ID (indexed) |
+| Organization Key | `Organization_Key__c` | Text (16), External ID (indexed) |
+| Processor Key | `Processor_Key__c` | Text (16), External ID (indexed) |
+| Pass Number | `Pass_Number__c` | Number (9, 0) |
+
+The six keys and the row's Pass Number are bookkeeping written and read in system mode
+(ADR-0021), in no permission set. The keys are marked External ID only so that they are
+indexed; they are not unique, and nothing outside the import reads them.
 
 - **Service:** `ImportRowProcessor`, `ImportMatcher`, `ImportRowSelector`,
   `ImportEntityProcessor` (the interface a dependent package implements to resolve the row
@@ -3885,7 +4017,8 @@ its Household is the donor's household. A donor that does not exist yet has no c
 date window of the gift's date, either side, and its Expected Amount differs from the gift's
 amount by no more than the amount tolerance. Each comes from the template (R-IT7), and when
 the template is empty from the org's defaults (`Donation_Match_Date_Window_Days__c`, 7, and
-`Donation_Match_Amount_Tolerance__c`, 0: the amounts must be equal).
+`Donation_Match_Amount_Tolerance__c`, 0: the amounts must be equal). A commit uses the
+values its dry run took (R-DM7).
 
 **R-DM4 Closest date wins, and a tie is refused.** Among matching candidates the one whose
 due date is closest to the gift's date wins. Two at the same distance are a tie: the row is
@@ -3907,6 +4040,13 @@ Installment and that installment's Commitment set, so the installment's status a
 commitment's paid to date and balance update through the ordinary gift triggers and rollups
 (R-IN2, R-IN3, Section 26). Nothing else is written to the installment or the commitment.
 
+**R-DM7 The commit matches as the dry run did.** The behaviour, the window and the tolerance
+are resolved (template, else org setting, else shipped default) once per dry run, on its first
+chunk, carried to its later chunks and recorded on the batch (R-IB11). The commit reads them
+from the batch, never from the template or the settings, so an edit made after the dry run
+cannot make the commit match, refuse or create what the dry run did not show. A batch with no
+recorded values, or values that cannot be read, falls back to the template.
+
 ### Salesforce implementation
 
 - **Service:** `GiftImportProcessor` (the `ImportEntityProcessor` Core finds by name),
@@ -3914,10 +4054,13 @@ commitment's paid to date and balance update through the ordinary gift triggers 
   `GiftImportCredits` (soft credit and tribute), `GiftImportSelector` (funds, appeals and open
   installments, within the importing user's sharing), `GiftImportIntegritySelector` (what
   already exists: gifts by external ID, and the receipts, statements and gifts an undo must
-  keep; `without sharing` under ADR-0021), `DonationMatcher` (R-DM1 to R-DM6),
-  `GiftImportRunState` (what one run carries from chunk to chunk: claimed payments, and in a
-  dry run the external IDs loaded, each kept as a 64-bit digest of the lowercased value; a
-  commit finds those gifts by the batch stamp instead).
+  keep; `without sharing` under ADR-0021), `DonationMatcher` (R-DM1 to R-DM7),
+  `GiftImportRunState` (what one run carries from chunk to chunk: the claimed payments, and in
+  a dry run the matching values it took, R-DM7). In a dry run an external ID loaded is not
+  carried: its 64-bit digest (of the lowercased value) is written to the row's Processor Key
+  and later chunks query only their own digests (R-IR6), while a commit finds those gifts by
+  the batch stamp. The claimed payments are still carried, one identifier per matched gift, so
+  a run that matches hundreds of thousands of scheduled payments is the remaining heap limit.
 - **Settings keys** (on `Giving_Settings__c`, Section 21A):
   `Donation_Match_Date_Window_Days__c`, `Donation_Match_Amount_Tolerance__c`.
 - **Template attributes** (on `Import_Template__c`, Section 15): `Donation_Matching__c`,
@@ -4752,3 +4895,9 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.5 | 2026-09-23 | C-19 Import 2.0. New Section 17A, `Import_Journal__c`, a page per chunk recording the updates an import made (value before and value written) and what an undo kept or did not put back, with rules R-IJ1 to R-IJ5. `Import_Batch__c` status gains Undoing and Undo failed; R-IB6 restated and R-IB7 (the undo window is stamped at commit), R-IB8 (one named batch, counted and confirmed, once, to the recycle bin) and R-IB9 (deletes only tagged records, keeps a tagged record that has gained something since, puts back only values nobody has changed since) added. R-IB3 now says the import tags the household it made a new person. R-IT6 added: a recurring template is listed on the Hub with its last import date, and nothing loads a file on a schedule. `Nonprofit_Settings__c` gains `Import_Undo_Retention_Days__c`. R-IR5 notes that undo does not read the staged rows. |
 | v0.5 | 2026-09-23 | C-19 review. No object or field added. R-IB1: a dry run is refused on a batch that has started a commit or is in an undo status. R-IB8: a chunk the platform stopped, or an undo job that is no longer running, ends Undo failed. R-IB9: a tagged record is kept when anything created since points at it through any reference the org can filter on (not only custom ones), when something was created during the commit by somebody else, when the record was edited since or has an activity, and when the person undoing cannot delete it; the system-mode reads and writes are recorded against ADR-0021. R-IJ1: a page holds at most 200 entries, and one oversized entry is logged rather than losing the chunk's journal. |
 | v0.5 | 2026-09-24 | G-23 gift import and G-24 donation matching (ADR-0052). No object added. `Import_Template__c` gains `Donation_Matching__c`, `Match_Date_Window_Days__c` and `Match_Amount_Tolerance__c` (R-IT7); `Import_Batch__c` gains the control totals `Expected_Count__c`, `Expected_Amount__c` and `File_Amount__c` (R-IB10); `Giving_Settings__c` gains `Donation_Match_Date_Window_Days__c` and `Donation_Match_Amount_Tolerance__c`. R-IR1 adds the `Tribute` row entity; R-IR6 states the entity processor contract and R-IR7 how a row's outcome is folded; R-IB8 and R-IB9 let an undo delete what an entity processor tagged, with the processor's reasons to keep. New Section 25N, rules R-GI1 to R-GI9 and R-DM1 to R-DM6. |
+| v0.5 | 2026-09-24 | G-24 follow-up (ADR-0052, amended). `Import_Batch__c` gains `Processor_Settings_JSON__c`, one document the entity processor fills in a dry run and reads back in the commit, which Core never reads. R-IB11 added: a commit runs under the settings its dry run showed. R-DM7 added: donation matching's behaviour, window and tolerance are taken once per dry run and the commit uses them, not the template as edited since. R-IR6 and R-IT7 say so. |
+| v0.5 | 2026-09-24 | C-14 defect. No object or field added. R-IB12: a commit no longer creates a new person once per row when several rows of one chunk name them; the rows share the first row's record, and the dry run counts them the same way. |
+| v0.5 | 2026-09-24 | C-14 first names. No field added. R-IB12: a person is found by the key narrowed to their first name before the shared key, which alone finds them only when one person holds it or the row gives no first name; otherwise they are created. The same in the org, across chunks and within a chunk. |
+| v0.5 | 2026-09-24 | C-14 passes. `Import_Batch__c` and `Import_Row__c` gain `Pass_Number__c`, and `Import_Batch__c` gains `Job_Id__c`. R-IB13 added: a start is refused while the batch's job is running (a pass whose job was aborted reads Failed and can start again, and an aborted commit can be undone), the synchronous reset of every staged row is removed (it failed past 10,000 rows), and each chunk clears and stamps its own rows so keys are read only by the pass that wrote them. |
+| v0.5 | 2026-09-24 | C-14 dry run at scale. `Import_Row__c` gains `Person_1_Key__c`, `Person_2_Key__c`, `Person_1_Name_Key__c`, `Person_2_Name_Key__c`, `Organization_Key__c` and `Processor_Key__c`, indexed digests a dry run writes on the row that would create a record or load an external ID. R-IB12 and R-IR6: the digests are looked up per chunk instead of carried in the batch's state, so a dry run's heap no longer grows with the rows before the chunk. |
+| v0.5 | 2026-09-24 | C-14 dry run fix. No object or field added. R-IB12 added: a dry run carries, across chunks, digests of the people and organizations it would create, so a later chunk naming one counts it matched, as the commit does, rather than created again. |
