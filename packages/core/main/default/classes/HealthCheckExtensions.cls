@@ -1,7 +1,7 @@
 /**
- * Finds the Health Check extension a dependent package installed, or answers that there is
- * none, which is the ordinary case in an org without Giving (G-20 follow-up, ADR-0053,
- * ADR-0057).
+ * Finds the Health Check extensions dependent packages installed, or answers that there are
+ * none, which is the ordinary case in an org without Giving or Connect (G-20 follow-up,
+ * ADR-0053, ADR-0057, amended by feature X-01 for Connect's).
  *
  * The class is found by namespace and name, the pattern `ImportEntityProcessors` uses for the
  * same reason (R-IR6): a class name is not an API name, so it takes no `__` prefix. A class
@@ -10,45 +10,61 @@
  */
 @NamespaceAccessible
 public with sharing class HealthCheckExtensions {
-    /** The class name a dependent package registers to add findings (G-20 follow-up). */
+    /**
+     * The class names dependent packages register to add findings, in the order they are asked:
+     * Giving's (G-20 follow-up), then Connect's, for its nightly mirror run (X-01).
+     */
     @NamespaceAccessible
-    public static final String CLASS_NAME = 'GivingHealthCheckExtension';
+    public static final List<String> EXTENSION_CLASSES = new List<String>{
+        'GivingHealthCheckExtension',
+        'ConnectHealthCheckExtension'
+    };
 
-    /** Injected by Core's tests, which have no other package to resolve a real one from. */
+    /** Injected by Core's tests by class name, since no other package is there to resolve. */
     @TestVisible
-    private static HealthCheckExtension extensionOverride;
+    private static Map<String, HealthCheckExtension> overrides = new Map<String, HealthCheckExtension>();
 
-    /** Set by Core's tests to see the org as having no extension at all. */
+    /** Set by Core's tests to see the org as having no extension beyond those injected. */
     @TestVisible
     private static Boolean noneForTest = false;
 
-    private static Boolean looked = false;
-    private static HealthCheckExtension found;
+    /** Each class looked up so far this transaction, null when it is not installed. */
+    private static Map<String, HealthCheckExtension> found = new Map<String, HealthCheckExtension>();
 
-    /** The installed extension, or null. Looked up once per transaction. */
+    /**
+     * Every installed extension, keyed by the name a failure of it is reported under
+     * (`giving_extension`, `connect_extension`), so one that throws never hides another's. Each
+     * is looked up once per transaction.
+     */
     @NamespaceAccessible
-    public static HealthCheckExtension find() {
-        if (extensionOverride != null) {
-            return extensionOverride;
+    public static Map<String, HealthCheckExtension> findAll() {
+        Map<String, HealthCheckExtension> byKey = new Map<String, HealthCheckExtension>();
+        for (String className : EXTENSION_CLASSES) {
+            HealthCheckExtension extension = overrides.get(className);
+            if (extension == null && noneForTest != true) {
+                if (!found.containsKey(className)) {
+                    found.put(className, resolve(className));
+                }
+                extension = found.get(className);
+            }
+            if (extension != null) {
+                byKey.put(
+                    className.removeEnd('HealthCheckExtension').toLowerCase() + '_extension',
+                    extension
+                );
+            }
         }
-        if (noneForTest == true) {
-            return null;
-        }
-        if (!looked) {
-            looked = true;
-            found = resolve();
-        }
-        return found;
+        return byKey;
     }
 
-    private static HealthCheckExtension resolve() {
+    private static HealthCheckExtension resolve(String className) {
         String prefix = NamespaceUtil.prefix();
         Type extensionType = Type.forName(
             String.isBlank(prefix) ? null : prefix.removeEnd('__'),
-            CLASS_NAME
+            className
         );
         if (extensionType == null) {
-            extensionType = Type.forName(CLASS_NAME);
+            extensionType = Type.forName(className);
         }
         if (extensionType == null) {
             return null;
@@ -64,7 +80,7 @@ public with sharing class HealthCheckExtensions {
             return (HealthCheckExtension) candidate;
         }
         ErrorLogger.log(
-            new System.TypeException(CLASS_NAME + ' does not implement HealthCheckExtension'),
+            new System.TypeException(className + ' does not implement HealthCheckExtension'),
             'HealthCheckExtensions.resolve'
         );
         return null;

@@ -29,6 +29,11 @@ Salesforce grants DuplicateRecordSet and DuplicateRecordItem only to Sales Cloud
 Cloud licenses, so a permission set granting them cannot be assigned to a Salesforce Platform
 user. Such objects may appear only in the optional sets named for them, and those sets may be
 in no permission set group, because a role has to be assignable to everybody.
+
+Two limits the platform enforces only at deploy time are checked too: a permission set's label
+may be at most 80 characters and its description at most 255, counted as the platform counts
+them, with the line breaks and indentation the XML carries. Opportunity_Mirror's description
+broke the Connect deploy on oi-test at 272 characters while every static check passed.
 """
 
 import glob
@@ -42,6 +47,10 @@ NS = "http://soap.sforce.com/2006/04/metadata"
 # grant them (C-20, ADR-0050 on duplicate detection).
 LICENSE_LIMITED_OBJECTS = {"DuplicateRecordSet", "DuplicateRecordItem"}
 OPTIONAL_LICENSE_SETS = {"Nonprofit_Duplicate_Review"}
+
+# The platform's own limits on a permission set's label and description (Metadata API).
+LABEL_MAX = 80
+DESCRIPTION_MAX = 255
 
 
 def q(tag):
@@ -70,6 +79,15 @@ def check(path):
 
     def report(kind, value):
         problems.append(f"{name}: {kind} {value}, which no package ships")
+
+    for tag, limit in (("label", LABEL_MAX), ("description", DESCRIPTION_MAX)):
+        element = root.find(q(tag))
+        text = (element.text or "") if element is not None else ""
+        if len(text) > limit:
+            problems.append(
+                f"{name}: {tag} is {len(text)} characters, over the platform's limit of "
+                f"{limit}, so the deploy refuses the permission set"
+            )
 
     for entry in root.findall(q("classAccesses")):
         value = entry.find(q("apexClass")).text

@@ -384,16 +384,19 @@ public with sharing class HealthCheckService {
      * own answer.
      */
     private static List<Finding> extensionFindings() {
-        HealthCheckExtension extension = HealthCheckExtensions.find();
-        if (extension == null) {
-            return new List<Finding>();
+        List<Finding> all = new List<Finding>();
+        Map<String, HealthCheckExtension> byKey = HealthCheckExtensions.findAll();
+        for (String key : byKey.keySet()) {
+            try {
+                List<Finding> extra = byKey.get(key).findings();
+                if (extra != null) {
+                    all.addAll(extra);
+                }
+            } catch (Exception e) {
+                all.add(checkFailed(key, e));
+            }
         }
-        try {
-            List<Finding> extra = extension.findings();
-            return extra == null ? new List<Finding>() : extra;
-        } catch (Exception e) {
-            return new List<Finding>{ checkFailed('giving_extension', e) };
-        }
+        return all;
     }
 
     /**

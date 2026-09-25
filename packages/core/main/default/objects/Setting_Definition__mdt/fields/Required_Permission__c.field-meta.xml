@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Required_Permission__c</fullName>
+  <description>
+    Optional. The API name of a custom permission, without a namespace prefix; when set, the console
+    shows this row, and finds it in search, only for someone who has that permission (the name as
+    given, else with the package namespace). For a module page whose controller only a module
+    permission set opens.
+  </description>
+  <externalId>false</externalId>
+  <fieldManageability>DeveloperControlled</fieldManageability>
+  <label>Required Permission</label>
+  <length>80</length>
+  <required>false</required>
+  <type>Text</type>
+  <unique>false</unique>
+</CustomField>

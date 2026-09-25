@@ -6,7 +6,7 @@
  * Core is neutral (plan Section 4.1, C-29): it may not know what a gift is or what an
  * accounting period is, so a finding about posting or a closed period cannot be written here.
  * Core never calls into Giving to find this; it looks up an implementation by name with
- * `Type.forName` (`HealthCheckExtensions.find()`) and calls it if one is installed. Where none
+ * `Type.forName` (`HealthCheckExtensions.findAll()`) and calls it if one is installed. Where none
  * is, `findings()` is never invoked and nothing is missing: an org without Giving has nothing
  * to say about posting.
  */

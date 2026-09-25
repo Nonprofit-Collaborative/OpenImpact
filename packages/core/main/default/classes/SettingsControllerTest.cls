@@ -165,6 +165,50 @@ private class SettingsControllerTest {
     }
 
     @IsTest
+    static void aRowForAModulePermissionIsHiddenFromThoseWithoutIt() {
+        stubDefinitions();
+        SettingDefinitionSelector.stubbedRows.add(
+            new Setting_Definition__mdt(
+                DeveloperName = 'Module_Page',
+                MasterLabel = 'Mirror page',
+                Section__c = SettingSections.AUTOMATION,
+                Module__c = 'Connect',
+                Data_Type__c = 'Component',
+                Component__c = 'modulePage',
+                Required_Permission__c = 'Permission_Nobody_Holds',
+                Sort_Order__c = 2
+            )
+        );
+        SettingDefinitionSelector.stubbedRows.add(
+            new Setting_Definition__mdt(
+                DeveloperName = 'Held_Page',
+                MasterLabel = 'Held page',
+                Section__c = SettingSections.AUTOMATION,
+                Module__c = 'Connect',
+                Data_Type__c = 'Component',
+                Component__c = 'heldPage',
+                Required_Permission__c = EDIT_PERMISSION,
+                Sort_Order__c = 3
+            )
+        );
+
+        Test.startTest();
+        SettingsController.ConsoleModel model = SettingsController.getConsoleModel();
+        List<SettingsController.SearchHit> hits = SettingsController.search('mirror page');
+        Test.stopTest();
+
+        Set<String> shown = new Set<String>();
+        for (SettingsController.SectionModel section : model.sections) {
+            for (SettingsController.SettingModel setting : section.settings) {
+                shown.add(setting.key);
+            }
+        }
+        Assert.isFalse(shown.contains('Module_Page'), 'Not shown without the permission.');
+        Assert.isTrue(shown.contains('Held_Page'), 'Shown to one who holds it, named unprefixed.');
+        Assert.isTrue(hits.isEmpty(), 'Nor found by search.');
+    }
+
+    @IsTest
     static void savesWhatMariaChanged() {
         stubDefinitions();
         Assert.isTrue(

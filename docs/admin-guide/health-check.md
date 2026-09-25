@@ -106,12 +106,13 @@ recommendation in step 5 is **NPSP coexistence**. Everything else is the same.
 | Settings | Whether any import template Open Impact ships is missing from the Import page. |
 | Settings | Whether a total is set to be recalculated nightly while the nightly run is not scheduled. |
 | Settings | Whether any gift dated in a closed accounting period has not been marked posted to accounting. |
+| Settings | With Connect: whether the Opportunity mirror's nightly run is scheduled but has not completed a run for more than two days. |
 
-Four of those are new: the Override Receipt Lock permission, the two fiscal years, the
-failed receipts, and the unposted gifts in a closed period. Each one is a quiet problem, where
+Five of those are new: the Override Receipt Lock permission, the two fiscal years, the
+failed receipts, the unposted gifts in a closed period, and the stalled Opportunity mirror. Each one is a quiet problem, where
 nothing looks broken and the cost arrives months later, so each is explained in full below.
 
-## The four quiet findings
+## The five quiet findings
 
 | Finding | What it means | Why it matters | What to do |
 |---|---|---|---|
@@ -119,6 +120,7 @@ nothing looks broken and the cost arrives months later, so each is explained in 
 | **Your two fiscal years disagree** | The fiscal year in **Setup** starts in a different month from **Fiscal Year Start Month** in Nonprofit Settings. | Open Impact computes Giving This Year, Giving Last Year and Giving Two Years Ago from its own setting, and the packaged retention reports (LYBUNT, SYBUNT, new versus retained, conversion) read the fiscal year from Setup. When the two disagree, every one of those numbers is measured on a different year boundary. Nothing errors: a donor simply appears on the LYBUNT list while their Giving This Year is not zero, and usually nobody asks until a year end number is questioned. | Decide which month is right, then set both to it: **Setup, Company Information, Fiscal Year**, and **Nonprofit Settings, General, Fiscal Year Start Month**. The **Open general settings** button on the finding takes you to the second one. Recalculate rollups afterwards. |
 | **Receipts failed to generate** | There are receipts with status **Void** and the reason **Generation failed**. | Every receipt number is used once. When a document fails to generate after its number was handed out, Open Impact records the number as a void receipt so an auditor asking what happened to number 47 gets an answer. One of those is ordinary. A number of them means receipt generation is failing over and over, donors are not getting the documents they are waiting for, and nobody has looked. | Open the Error Log from the finding and read the receipt entries: they say what failed. Fix the cause (most often a missing letter template or a donor with no address), then re-run the receipt or the statement run. The void records stay: they are the audit trail for the numbers that were consumed, and deleting them is not a fix. |
 | **Gifts in a closed period are not posted** | One or more gifts are dated on or before **Books Closed Through**, so they are already locked from editing, but nothing has marked them **Posted to Accounting**. | A gift in this state fell into a closed period without the ordinary export-and-mark step ever reaching it: the period was closed before it was exported, or it was entered after the close. Either way, your books and Open Impact can quietly disagree about what has actually been recorded, and the gift is now locked, so nobody can fix it by editing the gift itself. | Read the linked gifts. If they genuinely belong in the export you already sent your accounting system, mark them posted from the **Accounting Export** page in Connect. Without Connect, or if they should not have been closed yet, move **Books Closed Through** back on the Accounting Periods page, which needs the **Override Posting Lock** permission and is written to the Error Log. The **Open Giving settings** button on the finding opens the Giving section, which the Accounting Periods page lives in. |
+| **The Opportunity mirror has not run** | The Opportunity mirror's nightly run is scheduled and a direction is chosen, but no run has completed for more than two days. | The scheduled run executes as the person who scheduled it. When that person is deactivated, or loses the Opportunity Mirror permission set or Opportunity access, every run fails before it starts, and gifts and Opportunities quietly drift apart. | Open **Opportunity mirror** from the Giving section of Nonprofit Settings, read **Last completed run**, then **Stop nightly run** and **Schedule nightly** again as someone who can still run it. The Error Log says why the runs failed. |
 
 ## How a fix button works
 

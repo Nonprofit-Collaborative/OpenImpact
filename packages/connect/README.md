@@ -35,10 +35,21 @@ Built so far (iteration 0.6):
   reached only through describe. Off until `Connect_Settings__c.Campaign_Sync_Enabled__c` is
   switched on. `ConnectPostInstall` creates Connect's automation switches. Permission set:
   `Campaign_Sync`. See `docs/admin-guide/campaign-sync.md` and canonical model Section 29B.
+- **Opportunity mirror (X-01).** The `Opportunity_Mirror` automation on Gift
+  (`OpportunityMirrorTriggerHandler` over `OpportunityMirrorService`) copies each gift to its
+  Opportunity before it is saved, in Gifts to Opportunities, and stores the link in
+  `Gift__c.Opportunity_Id__c`. `OpportunityMirrorBatch` is Run now and the nightly run
+  (`OpportunityMirrorSchedulable`); in Opportunities to Gifts it makes gifts through
+  `OpportunityGiftService`. `OpportunityMirrorReconciliation` compares a date range. All are
+  started from the `opportunityMirror` page. Off until
+  `Connect_Settings__c.Opportunity_Mirror_Direction__c` is chosen. Shared pieces with Campaign
+  sync are in `ConnectSync`. Permission set: `Opportunity_Mirror`. See
+  `docs/admin-guide/opportunity-mirror.md` and canonical model Section 29C.
 
 ## How to test it alone
 
 Deploy Core, Giving and then Connect (`scripts/org/deploy-packages.sh` does all three), then
-run the `InboundGift*Test`, `AccountingExport*Test`, `CampaignSync*Test` and
-`ConnectPostInstallTest` classes. The Campaign sync tests check that nothing happens on an
-org without Campaign, and exercise the copy where Campaign exists.
+run the `InboundGift*Test`, `AccountingExport*Test`, `CampaignSync*Test`, `ConnectSyncTest`,
+`OpportunityMirror*Test` and `ConnectPostInstallTest` classes. The Campaign sync and Opportunity
+mirror tests check that nothing happens on an org without Campaign or Opportunity, and exercise
+the copy where they exist.

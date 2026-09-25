@@ -1065,7 +1065,7 @@ private class HealthCheckServiceTest {
 
     /**
      * A dependent package's findings (G-20 follow-up, ADR-0057): Core resolves
-     * `HealthCheckExtensions.find()` and folds its list in, isolated exactly like a check
+     * `HealthCheckExtensions.findAll()` and folds its list in, isolated exactly like a check
      * that throws. Core has no Giving package to install a real one, so the extension itself
      * is the test double here, the same way `ImportEntityProcessors` tests stand in for a row
      * processor.
@@ -1073,16 +1073,19 @@ private class HealthCheckServiceTest {
     @IsTest
     static void reportIncludesFindingsFromAnInstalledExtension() {
         OrgShapeDetector.overrideShape = shape(true, false, false, false);
-        HealthCheckExtensions.extensionOverride = new FakeExtension(
-            new List<HealthCheckService.Finding>{
-                new HealthCheckService.Finding(
-                    'unposted_gifts_closed_period',
-                    'Title',
-                    'Detail',
-                    HealthCheckService.SEVERITY_WARNING,
-                    HealthCheckService.CATEGORY_SETTINGS
-                )
-            }
+        HealthCheckExtensions.overrides.put(
+            'GivingHealthCheckExtension',
+            new FakeExtension(
+                new List<HealthCheckService.Finding>{
+                    new HealthCheckService.Finding(
+                        'unposted_gifts_closed_period',
+                        'Title',
+                        'Detail',
+                        HealthCheckService.SEVERITY_WARNING,
+                        HealthCheckService.CATEGORY_SETTINGS
+                    )
+                }
+            )
         );
 
         List<HealthCheckService.Finding> findings = HealthCheckService.run();
@@ -1117,7 +1120,7 @@ private class HealthCheckServiceTest {
     @IsTest
     static void anExtensionThatThrowsDoesNotTakeTheReportDown() {
         OrgShapeDetector.overrideShape = shape(true, false, false, false);
-        HealthCheckExtensions.extensionOverride = new BrokenExtension();
+        HealthCheckExtensions.overrides.put('GivingHealthCheckExtension', new BrokenExtension());
 
         List<HealthCheckService.Finding> findings = HealthCheckService.run();
 
@@ -1132,6 +1135,39 @@ private class HealthCheckServiceTest {
             null,
             find(findings, 'org_shape'),
             'The rest of the report survives an extension that throws.'
+        );
+    }
+
+    @IsTest
+    static void oneExtensionThatThrowsDoesNotHideAnother() {
+        OrgShapeDetector.overrideShape = shape(true, false, false, false);
+        HealthCheckExtensions.overrides.put(
+            'GivingHealthCheckExtension',
+            new FakeExtension(
+                new List<HealthCheckService.Finding>{
+                    new HealthCheckService.Finding(
+                        'unposted_gifts_closed_period',
+                        'Title',
+                        'Detail',
+                        HealthCheckService.SEVERITY_WARNING,
+                        HealthCheckService.CATEGORY_SETTINGS
+                    )
+                }
+            )
+        );
+        HealthCheckExtensions.overrides.put('ConnectHealthCheckExtension', new BrokenExtension());
+
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+
+        System.assertNotEquals(
+            null,
+            find(findings, 'unposted_gifts_closed_period'),
+            'Giving\'s finding is reported.'
+        );
+        System.assertNotEquals(
+            null,
+            find(findings, 'check_failed_connect_extension'),
+            'Connect\'s failure is reported by its own name.'
         );
     }
 
