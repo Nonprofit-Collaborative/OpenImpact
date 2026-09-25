@@ -1,4 +1,4 @@
-# ADR-NEXT: The Opportunity mirror keeps its link on the gift, runs one way at a time, and reconciles on a page
+# ADR-0058: The Opportunity mirror keeps its link on the gift, runs one way at a time, and reconciles on a page
 
 **Status:** Accepted (builder decision)
 **Date:** 2026-09-25

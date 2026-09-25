@@ -6,7 +6,7 @@
 closed period... Not built: the plan does not ask for it, and a new Core finding naming a
 Giving rule runs against C-29. Recorded as follow-up work"); builder decision under plan
 Section 9.3; amends ADR-0021
-**Amended by:** ADR-NEXT on the Opportunity mirror (`HealthCheckExtensions` also looks up
+**Amended by:** ADR-0058 (`HealthCheckExtensions` also looks up
 Connect's `ConnectHealthCheckExtension`)
 
 ## Context

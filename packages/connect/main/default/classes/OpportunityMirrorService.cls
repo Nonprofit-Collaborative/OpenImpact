@@ -1,6 +1,6 @@
 /**
  * The Opportunity mirror, Gifts to Opportunities (feature X-01, canonical model Section 29C,
- * ADR-NEXT on the Opportunity mirror): a one-way copy of each gift in the totals to a standard
+ * ADR-0058): a one-way copy of each gift in the totals to a standard
  * Salesforce Opportunity with its primary contact role.
  *
  * Two callers share one copy, as in Campaign sync. The `Opportunity_Mirror` automation calls
@@ -47,7 +47,7 @@ public with sharing class OpportunityMirrorService {
     private static final Integer DML_STATEMENTS_NEEDED = 4;
     /**
      * The org's own Opportunity automation runs inside the gift's save and its cost is unknown
-     * (ADR-NEXT decision 3), so a copy starts only with these shares of the limits unspent.
+     * (ADR-0058 decision 3), so a copy starts only with these shares of the limits unspent.
      */
     private static final Decimal CPU_SHARE_NEEDED = 0.4;
     private static final Decimal LIMIT_SHARE_NEEDED = 0.5;
