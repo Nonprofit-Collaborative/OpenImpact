@@ -132,24 +132,24 @@ new here.
 8. **Nothing the org had is deleted.** A deleted gift leaves its Opportunity; the reconciliation
    page lists it as a won Opportunity without a gift. A linked Opportunity the saver cannot find
    is "deleted or not visible to you" and is not replaced.
-9. **The reconciliation report is a page, not a report.** A packaged report type over
-   Opportunity would stop Connect installing on a Platform-only org (constraint 1). The page reads
-   a date range in user mode, refuses a range over 10,000 gifts or 10,000 won Opportunities
-   rather than showing part of it (ADR-0051), and shows each side's count and total and the
-   differences. Each side's read stops at 10,001 records, and the query rows it can need (twice
-   that per side, for the linked lookups) are checked before it starts, so a range too large is
-   refused in words instead of failing on a limit; gifts are read in a SOQL for loop to keep the
-   heap small. A viewer without read access to Opportunity, its
-   Name, Amount and Close Date, or the Opportunity ID is refused in words, and a won Opportunity
-   is reported as having "no gift visible to you", which is all a user mode read can say.
-   The page's reads require the custom permission `Use_Opportunity_Mirror`, carried by the
-   Opportunity Mirror permission set, rather than relying on class access alone; the console
-   shows the page's row only to someone who has it, through a new optional Setting Definition
-   attribute, `Required_Permission__c`, since a console user without the set could not open the
-   page anyway (ADR-0038 point 3 read for a module page gated by its own permission set). The
-   attribute holds the permission's name without a namespace prefix; the console tries the name
-   as given, then with the package namespace, so no prefix is ever written into metadata. In
-   Gifts to Opportunities the page offers a run over the range to put the differences right.
+9. **The reconciliation report is a page, not a report.** A packaged report type over Opportunity
+   would stop Connect installing on a Platform-only org (constraint 1). The page reads a date range
+   in user mode, refuses a range over 10,000 gifts or 10,000 won Opportunities rather than showing
+   part of it (ADR-0051), and shows each side's count and total and the differences. Each side's
+   read stops at 10,001 records, and the query rows it can need (twice that per side, for the
+   linked lookups, so 10,000 a side holds in a fresh transaction) are checked before it starts, so
+   a range too large is refused in words instead of failing on a limit; gifts are read in a SOQL
+   for loop to keep the heap small. A viewer without read access to Opportunity, its Name, Amount
+   and Close Date, or the Opportunity ID is refused in words, and a won Opportunity is reported as
+   having "no gift visible to you", which is all a user mode read can say. The page's reads require
+   the custom permission `Use_Opportunity_Mirror`, carried by the Opportunity Mirror permission
+   set, rather than relying on class access alone; the console shows the page's row only to someone
+   who has it, through a new optional Setting Definition attribute, `Required_Permission__c`, since
+   a console user without the set could not open the page anyway (ADR-0038 point 3 read for a
+   module page gated by its own permission set). The attribute holds the permission's name without
+   a namespace prefix; the console tries the name as given, then with the package namespace, so no
+   prefix is ever written into metadata. In Gifts to Opportunities the page offers a run over the
+   range to put the differences right.
 10. **Shared seams with Campaign sync.** The value comparison, the limit headroom check and the
     identifier check move from Campaign sync into one Connect class, `ConnectSync`, which both
     copies use, so they cannot drift apart. The grouped Warnings live there too. Campaign sync
