@@ -1135,6 +1135,36 @@ private class HealthCheckServiceTest {
         );
     }
 
+    @IsTest
+    static void oneExtensionThatThrowsDoesNotHideAnother() {
+        OrgShapeDetector.overrideShape = shape(true, false, false, false);
+        HealthCheckExtensions.extensionOverride = new FakeExtension(
+            new List<HealthCheckService.Finding>{
+                new HealthCheckService.Finding(
+                    'unposted_gifts_closed_period',
+                    'Title',
+                    'Detail',
+                    HealthCheckService.SEVERITY_WARNING,
+                    HealthCheckService.CATEGORY_SETTINGS
+                )
+            }
+        );
+        HealthCheckExtensions.connectOverride = new BrokenExtension();
+
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+
+        System.assertNotEquals(
+            null,
+            find(findings, 'unposted_gifts_closed_period'),
+            'Giving\'s finding is reported.'
+        );
+        System.assertNotEquals(
+            null,
+            find(findings, 'check_failed_connect_extension'),
+            'Connect\'s failure is reported by its own name.'
+        );
+    }
+
     private class FakeExtension implements HealthCheckExtension {
         private List<HealthCheckService.Finding> toReturn;
         FakeExtension(List<HealthCheckService.Finding> toReturn) {

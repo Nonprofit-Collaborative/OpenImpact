@@ -1,6 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
   <labels>
+    <fullName>Connect_HealthCheck_MirrorNotRunTitle</fullName>
+    <categories>Connect, Opportunity Mirror, Health Check</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Health Check: mirror has not run, title</shortDescription>
+    <value>The Opportunity mirror has not run</value>
+  </labels>
+  <labels>
+    <fullName>Connect_HealthCheck_MirrorNotRunDetail</fullName>
+    <categories>Connect, Opportunity Mirror, Health Check</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Health Check: mirror has not run, detail</shortDescription>
+    <value>The Opportunity mirror's nightly run is scheduled, but no run has completed since {0}. It runs as the person who scheduled it: if they were deactivated or lost access, every run fails before it starts. Open Opportunity mirror in Nonprofit Settings, then stop the nightly run and schedule it again as someone who can run it. The Error Log says why the runs failed.</value>
+  </labels>
+  <labels>
     <fullName>Connect_OpportunityMirror_DifferenceCountAll</fullName>
     <categories>Connect, Opportunity Mirror</categories>
     <language>en_US</language>

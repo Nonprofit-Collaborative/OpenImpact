@@ -46,6 +46,12 @@ public with sharing class OpportunityMirrorSchedulable implements Schedulable {
         return existing == null ? null : existing.NextFireTime;
     }
 
+    /** When the nightly run was scheduled, or null when it is not, for Health Check. */
+    public static Datetime scheduledAt() {
+        CronTrigger existing = job();
+        return existing == null ? null : existing.StartTime;
+    }
+
     /** True while a run is queued or in progress, so only one runs at a time. */
     public static Boolean isRunning() {
         Set<String> statuses = RUNNING_JOB_STATUSES;
@@ -64,7 +70,7 @@ public with sharing class OpportunityMirrorSchedulable implements Schedulable {
 
     private static CronTrigger job() {
         List<CronTrigger> jobs = [
-            SELECT Id, NextFireTime
+            SELECT Id, NextFireTime, StartTime
             FROM CronTrigger
             WHERE CronJobDetail.Name = :JOB_NAME AND CronJobDetail.JobType = :SCHEDULED_APEX
             WITH SYSTEM_MODE
