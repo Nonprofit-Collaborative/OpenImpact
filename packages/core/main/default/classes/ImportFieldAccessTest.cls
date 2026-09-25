@@ -84,6 +84,15 @@ private class ImportFieldAccessTest {
         );
     }
 
+    /** Why rows were rejected, for an assertion message. */
+    private static String rowErrors() {
+        List<String> errors = new List<String>();
+        for (Import_Row__c row : ImportTestDataFactory.reload(batch.Id)) {
+            errors.add(row.Status__c + ': ' + row.Error_Message__c);
+        }
+        return String.join(errors, '; ');
+    }
+
     private static String noAccessNote(Schema.SObjectField field) {
         return String.format(
             Label.Core_Import_LogAttributeNoAccess,
@@ -122,7 +131,11 @@ private class ImportFieldAccessTest {
             }
         }
         Assert.areEqual(1, mentions, 'Once for the field, not once for each of the two rows.');
-        Assert.areEqual(2, committed.created, 'The rest of each row still loads.');
+        Assert.areEqual(
+            2,
+            committed.created,
+            'The rest of each row still loads: ' + rowErrors() + ' ' + committed.notes
+        );
         Assert.areEqual(
             0,
             [SELECT COUNT() FROM Contact WHERE AssistantName != NULL],
@@ -141,7 +154,11 @@ private class ImportFieldAccessTest {
         }
         Test.stopTest();
 
-        Assert.areEqual(2, committed.created, 'Both people were created.');
+        Assert.areEqual(
+            2,
+            committed.created,
+            'Both people were created: ' + rowErrors() + ' ' + committed.notes
+        );
         for (Contact created : [SELECT HasOptedOutOfEmail, DoNotCall FROM Contact]) {
             Assert.isTrue(created.HasOptedOutOfEmail, 'The email opt-out from the file stuck.');
             Assert.isTrue(created.DoNotCall, 'So did Do Not Call.');
