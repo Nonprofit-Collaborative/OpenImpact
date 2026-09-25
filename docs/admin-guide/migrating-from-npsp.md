@@ -56,9 +56,11 @@ in section 4 produce. Create a default fund called **General Fund** and an appea
 
 ## 4. Moving everything, step by step
 
-Do it in this order. People come before gifts because a gift file that names a new donor on
-several rows creates that donor once per row; with the people already loaded, every row finds
-them by email.
+Do it in this order. People come before gifts because the contacts file carries each person's
+full details (address, phones, preferences), which a gift file does not. A donor the gift file
+names on several rows is created once either way, but only with the few details a gift row
+has. With the people already loaded, every gift row finds its donor by email. An export of up
+to 500,000 rows can be dry run as one file; split anything larger.
 
 1. **Appeals and funds.** Create them in Open Impact by hand, with the names your NPSP
    campaigns and general accounting units have. There is no import for them yet.
@@ -169,11 +171,19 @@ These are not loaded by the three mappings. Each has what to do in the meantime.
 column still has NPSP's words. Replace them (section 4, step 5) and load the file again: rows
 already loaded are matched, not duplicated.
 
-**The same person appears twice after a payment file.** The payment file was loaded before the
-contacts file, and the person was new, so each of their payments created them. Undo the payment
-import, load the contacts file, and load the payment file again. The same happens to a donor with
-no email address, because **Email exact** has nothing to match on: check the dry run's "would
-create" count.
+**The same person appears on several records after a payment file.** The donor had no email
+address, so **Email exact** had nothing to match or group their payments on, and each payment
+created them. Give such donors an email address before the export, or check the dry run's
+"would create" count: a donor with an email is created once however many payments they made.
+
+**A person's first name changed after a payment file.** Where only one person has the row's
+email, a row with a different first name is matched to them and their first name is updated
+(see [Importing](importing.md)). Check the dry run's Updated rows before you commit.
+
+**Salesforce warned about duplicates and the import saved the people anyway.** A duplicate
+rule set to alert does not stop an import. Run the duplicate scan afterwards
+([Duplicates](duplicates.md)). A rule set to **Block** still rejects the row with the rule's
+message.
 
 **A tribute appears on every gift of one opportunity.** The opportunity had several payments and
 each carried its tribute. Delete the extra tributes, and next time clear the tribute columns on
