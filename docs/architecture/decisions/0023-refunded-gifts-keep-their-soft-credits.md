@@ -4,6 +4,9 @@
 **Date:** 2026-09-08
 **Source:** rule collision found while fixing the rollup filter defect (ADR-0022) and left
 open there; corrects rules R-SC3, R-SC5 and R-SC6 in canonical model Section 24
+**Amended by:** ADR-0054 (A Pending gift that will never be paid is cancelled, not written off),
+  under which a Cancelled gift keeps its soft credits, which count nowhere, and no negative gift
+  reverses them.
 
 ## Context
 

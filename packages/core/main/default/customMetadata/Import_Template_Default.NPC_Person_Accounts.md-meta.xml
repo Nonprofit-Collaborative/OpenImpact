@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <label>Nonprofit Cloud: person accounts</label>
+  <protected>true</protected>
+  <values>
+    <field>Template_Key__c</field>
+    <value xsi:type="xsd:string">npc_person_accounts</value>
+  </values>
+  <values>
+    <field>Description__c</field>
+    <value
+      xsi:type="xsd:string"
+    >People exported from Nonprofit Cloud, where each person is a person account: name, email, phones, birthdate, mailing address and whether they asked not to be emailed or called. Each person gets a household of their own. Use it to bring people into an org that does not already have them; the export is on the "Migrating from Nonprofit Cloud" page of the admin guide.</value>
+  </values>
+  <values>
+    <field>Column_Mapping_JSON__c</field>
+    <value
+      xsi:type="xsd:string"
+    >{"version": 1, "columns": [{"source": "Salutation", "target": "Contact1.Salutation"}, {"source": "FirstName", "target": "Contact1.FirstName"}, {"source": "LastName", "target": "Contact1.LastName"}, {"source": "PersonEmail", "target": "Contact1.Email"}, {"source": "Phone", "target": "Contact1.Phone"}, {"source": "PersonMobilePhone", "target": "Contact1.MobilePhone"}, {"source": "PersonHomePhone", "target": "Contact1.HomePhone"}, {"source": "PersonBirthdate", "target": "Contact1.Birthdate"}, {"source": "PersonMailingStreet", "target": "Contact1.MailingStreet"}, {"source": "PersonMailingCity", "target": "Contact1.MailingCity"}, {"source": "PersonMailingState", "target": "Contact1.MailingState"}, {"source": "PersonMailingPostalCode", "target": "Contact1.MailingPostalCode"}, {"source": "PersonMailingCountry", "target": "Contact1.MailingCountry"}, {"source": "PersonHasOptedOutOfEmail", "target": "Contact1.HasOptedOutOfEmail"}, {"source": "PersonDoNotCall", "target": "Contact1.DoNotCall"}]}</value>
+  </values>
+  <values>
+    <field>Default_Values_JSON__c</field>
+    <value xsi:type="xsd:string">{"version": 1, "defaults": []}</value>
+  </values>
+  <values>
+    <field>Matching_Rule__c</field>
+    <value xsi:type="xsd:string">Email exact</value>
+  </values>
+  <values>
+    <field>Person_Mode__c</field>
+    <value xsi:type="xsd:string">Contacts</value>
+  </values>
+  <values>
+    <field>Default_Active__c</field>
+    <value xsi:type="xsd:boolean">true</value>
+  </values>
+</CustomMetadata>

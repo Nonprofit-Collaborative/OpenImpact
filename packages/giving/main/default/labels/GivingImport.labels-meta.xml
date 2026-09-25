@@ -504,4 +504,20 @@
         <shortDescription>Gift import refused: the importer cannot delete gifts</shortDescription>
         <value>A gift import needs permission to delete gifts, because it removes a gift it could not finish. Ask your administrator for the Giving Admin permission set.</value>
     </labels>
+    <labels>
+        <fullName>Giving_Import_UndoKeptPosted</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: gift kept, posted to accounting</shortDescription>
+        <value>Kept: this gift is posted to accounting. If it was a mistake, record a refund, or ask your bookkeeper to unpost it first.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Import_UndoKeptClosedPeriod</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import undo journal: gift kept, closed period</shortDescription>
+        <value>Kept: this gift is dated in a closed accounting period. If it was a mistake, record a refund: it is dated today.</value>
+    </labels>
 </CustomLabels>

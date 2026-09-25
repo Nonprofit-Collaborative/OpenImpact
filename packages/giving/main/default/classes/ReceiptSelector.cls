@@ -90,7 +90,8 @@ public with sharing class ReceiptSelector {
      * statement covers what the household gave rather than what one member of it gave. Upkeep, not display: the batch composes documents for donors
      * the running user has no reason to be able to see.
      *
-     * Pending gifts are left out because the money has not arrived, and a receipt says it has.
+     * Pending and Cancelled gifts are left out because the money has not arrived, and a receipt
+     * says it has.
      * Refunded and written off gifts are kept, because a statement that silently dropped them
      * would not reconcile with what the donor believes they gave; R-RC8 puts the status on the
      * line instead.
@@ -119,7 +120,7 @@ public with sharing class ReceiptSelector {
             WHERE
                 Gift_Date__c >= :firstDay
                 AND Gift_Date__c < :firstDayAfter
-                AND Status__c != 'Pending'
+                AND Status__c NOT IN ('Pending', 'Cancelled')
                 AND (Household__c IN :donorIds
                 OR Donor_Account__c IN :donorIds)
             WITH SYSTEM_MODE

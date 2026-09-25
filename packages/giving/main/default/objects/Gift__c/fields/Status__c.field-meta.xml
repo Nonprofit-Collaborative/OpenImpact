@@ -5,7 +5,7 @@
   <inlineHelpText>
     Where the gift stands. Giving totals count Received, and count Refunded and Written off
     so that a reversed gift and the negative gift reversing it cancel. Pending is never
-    counted.
+    counted, and neither is Cancelled: a Pending gift that will never be paid.
   </inlineHelpText>
   <label>Status</label>
   <required>true</required>
@@ -34,6 +34,11 @@
         <fullName>Written off</fullName>
         <default>false</default>
         <label>Written off</label>
+      </value>
+      <value>
+        <fullName>Cancelled</fullName>
+        <default>false</default>
+        <label>Cancelled</label>
       </value>
     </valueSetDefinition>
   </valueSet>

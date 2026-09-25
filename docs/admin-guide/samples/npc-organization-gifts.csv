@@ -1,0 +1,2 @@
+GiftTransactionId,GiftTransaction.OriginalAmount,GiftTransaction.TransactionDate,GiftTransaction.PaymentMethod,GiftTransaction.PaymentIdentifier,GiftTransaction.Campaign.Name,GiftTransaction.Donor.Name,GiftDesignation.Name,Amount,Fund 2,Amount 2
+6gt-3001,1000.00,2025-02-28,Check,20417,,Riverside Foundation,Scholarships,600.00,General Fund,400.00

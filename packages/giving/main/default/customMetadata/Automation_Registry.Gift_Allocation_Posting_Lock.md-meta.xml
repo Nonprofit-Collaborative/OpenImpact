@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>Gift Allocation: posting lock</label>
+    <protected>true</protected>
+    <values>
+        <field>Object_Name__c</field>
+        <value xsi:type="xsd:string">Gift_Allocation__c</value>
+    </values>
+    <values>
+        <field>Handler_Class__c</field>
+        <value xsi:type="xsd:string">GiftAllocationPostingLockHandler</value>
+    </values>
+    <values>
+        <field>Execution_Order__c</field>
+        <value xsi:type="xsd:double">20</value>
+    </values>
+    <values>
+        <field>Enabled_By_Default__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>Always_Runs__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>Description__c</field>
+        <value
+      xsi:type="xsd:string"
+    >Keeps the funds of a gift in the books the way the books hold them: an allocation of a gift that is posted to accounting, or dated on or before the date the books are closed through, cannot be added, changed or deleted. This automation enforces a rule rather than doing work for you, so it cannot be switched off here and pausing automation does not suspend it. The one way past it is the Override Posting Lock permission, which an administrator grants in Setup and every use of which is written to the Error Log.</value>
+    </values>
+</CustomMetadata>

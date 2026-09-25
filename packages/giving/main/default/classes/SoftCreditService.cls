@@ -26,6 +26,7 @@ public with sharing class SoftCreditService {
     public static final String ROLE_MATCHED_DONOR = 'Matched Donor';
     public static final String STATUS_REFUNDED = 'Refunded';
     public static final String STATUS_WRITTEN_OFF = 'Written off';
+    public static final String STATUS_CANCELLED = 'Cancelled';
 
     private static final String SETTINGS_OBJECT = 'Giving_Settings__c';
     private static final String SETTING_AUTOMATIC_HOUSEHOLD_CREDITS = 'Automatic_Household_Soft_Credits__c';

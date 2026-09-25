@@ -1,0 +1,68 @@
+<template>
+    <lightning-card title={labels.title} icon-name="standard:document">
+        <div class="slds-var-p-horizontal_medium">
+            <template lwc:if={errorMessage}>
+                <p class="slds-text-color_error slds-var-m-bottom_x-small" data-id="error" role="alert">
+                    {errorMessage}
+                </p>
+            </template>
+            <template lwc:if={noticeMessage}>
+                <p class="slds-var-m-bottom_x-small" data-id="notice" role="status" aria-live="polite">
+                    {noticeMessage}
+                </p>
+            </template>
+
+            <template lwc:if={isPosted}>
+                <p data-id="posted">
+                    {labels.postedBy} {state.postedBy},
+                    <lightning-formatted-date-time
+                        value={state.postedAt}
+                        year="numeric"
+                        month="short"
+                        day="numeric"
+                        hour="2-digit"
+                        minute="2-digit"
+                    ></lightning-formatted-date-time>
+                </p>
+            </template>
+            <template lwc:if={showNotPosted}>
+                <p data-id="not-posted">{labels.notPosted}</p>
+            </template>
+            <template lwc:if={showNotInBooks}>
+                <p data-id="not-in-books">{labels.notInBooks}</p>
+            </template>
+
+            <template lwc:if={inClosedPeriod}>
+                <p class="slds-var-m-top_x-small" data-id="closed-period">
+                    {labels.closedPeriod}
+                    <lightning-formatted-date-time
+                        value={state.closedThrough}
+                        year="numeric"
+                        month="long"
+                        day="numeric"
+                        time-zone="UTC"
+                    ></lightning-formatted-date-time>.
+                </p>
+            </template>
+
+            <template lwc:if={canUnpost}>
+                <div class="slds-var-m-top_small">
+                    <lightning-input
+                        data-id="reason"
+                        label={labels.reasonLabel}
+                        value={reason}
+                        onchange={handleReasonChange}
+                    ></lightning-input>
+                    <lightning-button
+                        class="slds-var-m-top_x-small"
+                        data-id="unpost"
+                        variant="destructive-text"
+                        label={labels.unpost}
+                        disabled={unpostDisabled}
+                        onclick={handleUnpost}
+                    ></lightning-button>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>
