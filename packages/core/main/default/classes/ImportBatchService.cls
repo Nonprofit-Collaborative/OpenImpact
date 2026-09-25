@@ -235,9 +235,21 @@ public with sharing class ImportBatchService {
     }
 
     private static Id start(Id batchId, Boolean dryRun) {
-        Import_Batch__c batch = ImportBatchSelector.selectById(batchId);
+        // Locked, so two starts at once cannot both find no job running (R-IB13).
+        List<Import_Batch__c> locked = [
+            SELECT Id
+            FROM Import_Batch__c
+            WHERE Id = :batchId
+            WITH USER_MODE
+            FOR UPDATE
+        ];
+        Import_Batch__c batch = locked.isEmpty() ? null : ImportBatchSelector.selectById(batchId);
         if (batch == null) {
             throw new ImportException(Label.Core_Import_ErrorBatchGone);
+        }
+        if (isRunning(batch)) {
+            // Two passes of one batch at once would each overwrite the other's rows (R-IB13).
+            throw new ImportException(Label.Core_Import_ErrorRunInProgress);
         }
         if (dryRun && hasCommitted(batch)) {
             throw new ImportException(Label.Core_Import_ErrorDryRunAfterCommit);
@@ -262,7 +274,9 @@ public with sharing class ImportBatchService {
         ) {
             throw new ImportException(Label.Core_Import_ErrorPersonModeUnavailable);
         }
-        resetRows(batch.Id);
+        // No reset of the staged rows: each chunk clears and stamps its own, so a pass costs the
+        // same one write here however long the file (R-IB13).
+        batch.Pass_Number__c = nextPass(batch);
         batch.Status__c = dryRun ? STATUS_DRY_RUN : STATUS_COMMITTING;
         batch.Is_Dry_Run__c = dryRun;
         batch.Started_At__c = Datetime.now();
@@ -272,12 +286,88 @@ public with sharing class ImportBatchService {
         batch.Rows_Updated__c = 0;
         batch.Rows_Matched__c = 0;
         batch.Rows_Rejected__c = 0;
-        Database.update(batch, AccessLevel.USER_MODE);
-        return Database.executeBatch(
+        if (!dryRun) {
+            // Stamped now as well as at the finish, so a commit the platform aborts part way
+            // can still be undone (R-IB7, R-IB13).
+            batch.Committed_By__c = UserInfo.getUserId();
+            batch.Undo_Deadline__c = Datetime.now().addDays(undoWindowDays());
+        }
+        // Enqueued before the write, so the job is recorded with the pass; both roll back
+        // together if the write fails.
+        batch.Job_Id__c = Database.executeBatch(
             new ImportProcessorBatch(batch.Id, dryRun),
             scopeSize(batch.Chunk_Size__c)
         );
+        Database.update(batch, AccessLevel.USER_MODE);
+        return batch.Job_Id__c;
     }
+
+    /** Set by a test to stand for the platform's answer about a batch's job. */
+    @TestVisible
+    private static Boolean jobRunningForTest;
+
+    /**
+     * Whether the batch's dry run or commit is really running: its status says so and its job
+     * is queued or processing. A pass the platform aborted, or whose finish failed, keeps its
+     * status with no job behind it, and is not running (R-IB13). Read in system mode: the job
+     * may be another user's.
+     */
+    @NamespaceAccessible
+    public static Boolean isRunning(Import_Batch__c batch) {
+        if (
+            batch == null ||
+            !(STATUS_DRY_RUN.equals(batch.Status__c) || STATUS_COMMITTING.equals(batch.Status__c))
+        ) {
+            return false;
+        }
+        if (jobRunningForTest != null) {
+            return jobRunningForTest;
+        }
+        if (String.isBlank(batch.Job_Id__c)) {
+            return false;
+        }
+        Id jobId = batch.Job_Id__c;
+        Set<String> running = RUNNING_JOB_STATUSES;
+        return ![
+                SELECT Id
+                FROM AsyncApexJob
+                WHERE Id = :jobId AND Status IN :running
+                WITH SYSTEM_MODE
+                LIMIT 1
+            ]
+            .isEmpty();
+    }
+
+    /** When the batch's job ended, or null when it has not or is no longer on record. */
+    @TestVisible
+    private static Datetime jobEndedForTest;
+
+    @NamespaceAccessible
+    public static Datetime jobEndedAt(Import_Batch__c batch) {
+        if (jobEndedForTest != null) {
+            return jobEndedForTest;
+        }
+        if (batch == null || String.isBlank(batch.Job_Id__c)) {
+            return null;
+        }
+        Id jobId = batch.Job_Id__c;
+        List<AsyncApexJob> jobs = [
+            SELECT CompletedDate
+            FROM AsyncApexJob
+            WHERE Id = :jobId
+            WITH SYSTEM_MODE
+            LIMIT 1
+        ];
+        return jobs.isEmpty() ? null : jobs[0].CompletedDate;
+    }
+
+    /** AsyncApexJob statuses that mean a job has not finished yet. */
+    private static final Set<String> RUNNING_JOB_STATUSES = new Set<String>{
+        'Holding',
+        'Queued',
+        'Preparing',
+        'Processing'
+    };
 
     /**
      * Whether a commit of this batch has started, whatever became of it since: committing,
@@ -296,38 +386,24 @@ public with sharing class ImportBatchService {
     }
 
     /**
-     * Puts every staged row back to pending, so a re-run reports on the whole file rather
-     * than on whatever the last pass happened to leave behind. Runs in system mode for the
-     * reason ADR-0021 gives: the staged rows are the package's own bookkeeping.
+     * Starts a new pass of a batch without running it: the next Pass Number, one write however
+     * many rows the batch has (R-IB13). A test that drives the processor itself calls this
+     * where the platform would have called start.
      */
     @NamespaceAccessible
-    public static void resetRows(Id batchId) {
-        List<Import_Row__c> rows = Database.queryWithBinds(
-            'SELECT Id FROM Import_Row__c WHERE Import_Batch__c = :batchId AND Status__c != :pending',
-            new Map<String, Object>{
-                'batchId' => batchId,
-                'pending' => ImportRowProcessor.STATUS_PENDING
-            },
+    public static void beginPass(Id batchId) {
+        Import_Batch__c batch = ImportBatchSelector.selectById(batchId);
+        if (batch == null) {
+            throw new ImportException(Label.Core_Import_ErrorBatchGone);
+        }
+        Database.update(
+            new Import_Batch__c(Id = batch.Id, Pass_Number__c = nextPass(batch)),
             AccessLevel.SYSTEM_MODE
         );
-        if (rows.isEmpty()) {
-            return;
-        }
-        for (Import_Row__c row : rows) {
-            row.Status__c = ImportRowProcessor.STATUS_PENDING;
-            row.Error_Message__c = null;
-            // What a pass resolved is its own answer: the next pass works it out again, so a
-            // commit never acts on a gift or a household a dry run only described.
-            row.Household__c = null;
-            row.Contact_1__c = null;
-            row.Contact_2__c = null;
-            row.Person_1_Account__c = null;
-            row.Person_2_Account__c = null;
-            row.Organization__c = null;
-            row.Gift_Id__c = null;
-            row.Soft_Credit_Id__c = null;
-        }
-        Database.update(rows, false, AccessLevel.SYSTEM_MODE);
+    }
+
+    private static Decimal nextPass(Import_Batch__c batch) {
+        return batch.Pass_Number__c == null ? 1 : batch.Pass_Number__c + 1;
     }
 
     /**
@@ -357,6 +433,23 @@ public with sharing class ImportBatchService {
         List<String> logLines,
         Decimal fileAmount
     ) {
+        return finish(batchId, dryRun, failed, logLines, fileAmount, null);
+    }
+
+    /**
+     * Closes a run as above. A dry run also records the settings the entity processor ran
+     * under, replacing the last dry run's, and the commit is held to them (R-IB11). A commit
+     * leaves them as its dry run recorded them.
+     */
+    @NamespaceAccessible
+    public static Import_Batch__c finish(
+        Id batchId,
+        Boolean dryRun,
+        Boolean failed,
+        List<String> logLines,
+        Decimal fileAmount,
+        String processorSettings
+    ) {
         Import_Batch__c batch = ImportBatchSelector.selectById(batchId);
         if (batch == null) {
             return null;
@@ -368,6 +461,9 @@ public with sharing class ImportBatchService {
         batch.Rows_Rejected__c = count(counts, ImportRowProcessor.STATUS_REJECTED);
         batch.Completed_At__c = Datetime.now();
         batch.File_Amount__c = fileAmount == null ? null : fileAmount.setScale(2);
+        if (dryRun == true) {
+            batch.Processor_Settings_JSON__c = processorSettings;
+        }
         List<String> lines = logLines == null ? new List<String>() : new List<String>(logLines);
         lines.addAll(controlTotalLines(batch));
         batch.Run_Log__c = String.join(lines, '\n').abbreviate(32768);
