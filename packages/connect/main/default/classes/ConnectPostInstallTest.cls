@@ -1,6 +1,6 @@
 /**
  * Installing Connect creates the Automation page's switch for Campaign sync, switched on, and
- * an upgrade leaves an administrator's choice alone (ADR-NEXT on Campaign sync).
+ * an upgrade leaves an administrator's choice alone (ADR-0056 on Campaign sync).
  */
 @IsTest
 private class ConnectPostInstallTest {

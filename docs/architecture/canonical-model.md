@@ -4887,7 +4887,7 @@ it. Nothing on a Campaign is ever copied back to an appeal.
 
 Campaign sync is not an entity of its own. It is one attribute on Appeal, held by Connect
 because Giving may not name Campaign, and a switch on Connect Settings. There is no link
-object: an appeal has at most one Campaign, so the link is the attribute (ADR-NEXT, Campaign
+object: an appeal has at most one Campaign, so the link is the attribute (ADR-0056, Campaign
 sync keeps its link on the appeal).
 
 ### Attributes added to Appeal

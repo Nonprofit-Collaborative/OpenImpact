@@ -1,4 +1,4 @@
-# ADR-NEXT: Campaign sync keeps its link on the appeal, writes with the saver's access, and is off until switched on
+# ADR-0056: Campaign sync keeps its link on the appeal, writes with the saver's access, and is off until switched on
 
 **Status:** Accepted (builder decision)
 **Date:** 2026-09-24 (amended 2026-09-25 after review)

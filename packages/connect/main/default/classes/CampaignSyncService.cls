@@ -1,5 +1,5 @@
 /**
- * Campaign sync (feature X-02, canonical model Section 29B, ADR-NEXT on where the link lives):
+ * Campaign sync (feature X-02, canonical model Section 29B, ADR-0056 on where the link lives):
  * a one-way copy of each appeal to a standard Salesforce Campaign.
  *
  * Two callers share one copy. The `Campaign_Sync` automation calls `syncBeforeSave` while an
