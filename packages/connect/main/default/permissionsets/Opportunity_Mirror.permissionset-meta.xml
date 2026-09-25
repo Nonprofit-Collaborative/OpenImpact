@@ -19,4 +19,8 @@
     <field>Gift__c.Opportunity_Id__c</field>
     <readable>true</readable>
   </fieldPermissions>
+  <tabSettings>
+    <tab>Opportunity_Mirror</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
 </PermissionSet>
