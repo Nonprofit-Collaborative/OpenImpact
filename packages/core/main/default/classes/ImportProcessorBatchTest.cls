@@ -105,6 +105,491 @@ private class ImportProcessorBatchTest {
         );
     }
 
+    /** Runs one pass the way the platform drives the batch, in chunks of this size. */
+    private static Import_Batch__c runInChunks(Id batchId, Boolean dryRun, Integer chunkSize) {
+        ImportBatchService.beginPass(batchId);
+        ImportProcessorBatch job = new ImportProcessorBatch(batchId, dryRun);
+        List<Import_Row__c> chunk = new List<Import_Row__c>();
+        Database.QueryLocatorIterator rows = job.start(null).iterator();
+        while (rows.hasNext()) {
+            chunk.add((Import_Row__c) rows.next());
+            if (chunk.size() == chunkSize || !rows.hasNext()) {
+                job.execute(null, chunk);
+                chunk = new List<Import_Row__c>();
+            }
+        }
+        job.finish(null);
+        return ImportBatchSelector.selectById(batchId);
+    }
+
+    @IsTest
+    static void aNewPersonInTwoChunksIsCreatedOnceInTheDryRunAsInTheCommit() {
+        Import_Template__c template = ImportTestDataFactory.template(
+            ImportTestDataFactory.donorMapping(),
+            ImportTemplateService.RULE_EMAIL
+        );
+        Import_Batch__c batch = ImportTestDataFactory.batch(template);
+        // Ana, and her organization, are new, and appear again in the second chunk.
+        ImportTestDataFactory.rows(
+            batch,
+            new List<Map<String, String>>{
+                ImportTestDataFactory.donorRow('Ana', 'Ramirez', 'ana@example.org', 'Rose City'),
+                ImportTestDataFactory.donorRow('Ben', 'Okafor', 'ben@example.org', null),
+                ImportTestDataFactory.donorRow('Ana', 'Ramirez', 'ANA@example.org', 'Rose City')
+            }
+        );
+
+        Test.startTest();
+        Import_Batch__c dryRun = runInChunks(batch.Id, true, 2);
+        Import_Batch__c committed = runInChunks(batch.Id, false, 2);
+        Test.stopTest();
+
+        Assert.areEqual(2, dryRun.Rows_Created__c, 'Ana is created once, not once a chunk.');
+        Assert.areEqual(1, dryRun.Rows_Matched__c, 'Her second row matches her (R-IB12).');
+        Assert.areEqual(dryRun.Rows_Created__c, committed.Rows_Created__c, 'As the commit did.');
+        Assert.areEqual(dryRun.Rows_Matched__c, committed.Rows_Matched__c, 'And matched.');
+        Assert.areEqual(dryRun.Rows_Updated__c, committed.Rows_Updated__c, 'And updated.');
+        Assert.areEqual(2, [SELECT COUNT() FROM Contact], 'Two people exist.');
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Account WHERE Name = 'Rose City'],
+            'One organization.'
+        );
+    }
+
+    @IsTest
+    static void aDryRunChunkCostsTheSameHoweverManyChunksCameBefore() {
+        Import_Template__c template = ImportTestDataFactory.template(
+            ImportTestDataFactory.donorMapping(),
+            ImportTemplateService.RULE_EMAIL
+        );
+        Import_Batch__c batch = ImportTestDataFactory.batch(template);
+        // Every row is a new person with a new organization, except that each later chunk opens
+        // with a person and organization the first chunk would create, so every chunk after the
+        // first finds one stored key under the same check.
+        List<Map<String, String>> values = new List<Map<String, String>>();
+        for (Integer i = 0; i < 20; i++) {
+            Integer who = i >= 5 && Math.mod(i, 5) == 0 ? i / 5 - 1 : i;
+            values.add(
+                ImportTestDataFactory.donorRow(
+                    'Person' + who,
+                    'Surname' + who,
+                    'person' + who + '@example.org',
+                    'Organization ' + who
+                )
+            );
+        }
+        ImportTestDataFactory.rows(batch, values);
+        List<Integer> queries = new List<Integer>();
+        List<Integer> queryRows = new List<Integer>();
+        List<Integer> carried = new List<Integer>();
+
+        Test.startTest();
+        ImportBatchService.beginPass(batch.Id);
+        ImportProcessorBatch job = new ImportProcessorBatch(batch.Id, true);
+        List<Import_Row__c> chunk = new List<Import_Row__c>();
+        Database.QueryLocatorIterator rows = job.start(null).iterator();
+        while (rows.hasNext()) {
+            chunk.add((Import_Row__c) rows.next());
+            if (chunk.size() == 5 || !rows.hasNext()) {
+                Integer queriesBefore = Limits.getQueries();
+                Integer rowsBefore = Limits.getQueryRows();
+                job.execute(null, chunk);
+                queries.add(Limits.getQueries() - queriesBefore);
+                queryRows.add(Limits.getQueryRows() - rowsBefore);
+                // What the batch holds between chunks, the Stateful job itself.
+                carried.add(JSON.serialize(job).length());
+                chunk = new List<Import_Row__c>();
+            }
+        }
+        job.finish(null);
+        Test.stopTest();
+
+        Import_Batch__c finished = ImportBatchSelector.selectById(batch.Id);
+        Assert.areEqual(17, finished.Rows_Created__c, 'Seventeen people would be new.');
+        Assert.areEqual(3, finished.Rows_Matched__c, 'The three repeats find them (R-IB12).');
+        Assert.areEqual(4, queries.size(), 'Twenty rows at five a chunk is four chunks.');
+        for (Integer index = 2; index < queries.size(); index++) {
+            Assert.areEqual(queries[1], queries[index], 'Chunk ' + index + ' asks as often.');
+            Assert.areEqual(queryRows[1], queryRows[index], 'And reads as many rows.');
+        }
+        for (Integer index = 1; index < carried.size(); index++) {
+            Assert.areEqual(carried[0], carried[index], 'Nothing carried grows (R-IB12).');
+        }
+        // The digest fields are in no permission set and are read in system mode (ADR-0021).
+        Assert.areEqual(
+            17,
+            Database.countQueryWithBinds(
+                'SELECT COUNT() FROM Import_Row__c WHERE Import_Batch__c = :batchId' +
+                ' AND Person_1_Key__c != NULL AND Organization_Key__c != NULL',
+                new Map<String, Object>{ 'batchId' => batch.Id },
+                AccessLevel.SYSTEM_MODE
+            ),
+            'Each row that would create keeps the digests instead.'
+        );
+        Assert.areEqual(0, [SELECT COUNT() FROM Contact], 'A dry run writes no person.');
+    }
+
+    @IsTest
+    static void aPersonTheCommitCannotFindAgainIsCountedCreatedInEachChunkByBoth() {
+        // Name plus postal code, with the postal code only in the household column: the person
+        // the commit creates carries no postal code of their own, so a later chunk cannot find
+        // them and creates them again. The dry run must say so, not promise a match.
+        ImportMapping mapping = new ImportMapping();
+        mapping.columns.add(new ImportMapping.Column('Last Name', 'Contact1.LastName'));
+        mapping.columns.add(new ImportMapping.Column('Zip', 'Household.BillingPostalCode'));
+        Import_Batch__c batch = ImportTestDataFactory.batch(
+            ImportTestDataFactory.template(
+                mapping.serialize(),
+                ImportTemplateService.RULE_NAME_POSTAL
+            )
+        );
+        Map<String, String> ramirez = new Map<String, String>{
+            'Last Name' => 'Ramirez',
+            'Zip' => '97201'
+        };
+        ImportTestDataFactory.rows(batch, new List<Map<String, String>>{ ramirez, ramirez });
+
+        Test.startTest();
+        Import_Batch__c dryRun = runInChunks(batch.Id, true, 1);
+        Import_Batch__c committed = runInChunks(batch.Id, false, 1);
+        Test.stopTest();
+
+        Assert.areEqual(
+            committed.Rows_Created__c,
+            dryRun.Rows_Created__c,
+            'The dry run counts what the commit creates.'
+        );
+        Assert.areEqual(committed.Rows_Matched__c, dryRun.Rows_Matched__c, 'And matches.');
+        Assert.areEqual(
+            [SELECT COUNT() FROM Contact],
+            dryRun.Rows_Created__c,
+            'One created row per person the commit made.'
+        );
+    }
+
+    @IsTest
+    static void twelveRowsOfOneNewDonorInOneChunkCreateOnePerson() {
+        Import_Batch__c batch = ImportTestDataFactory.batch(
+            ImportTestDataFactory.template(
+                ImportTestDataFactory.donorMapping(),
+                ImportTemplateService.RULE_EMAIL
+            )
+        );
+        List<Map<String, String>> rows = new List<Map<String, String>>();
+        for (Integer month = 0; month < 12; month++) {
+            rows.add(ImportTestDataFactory.donorRow('Ana', 'Ramirez', 'ana@example.org', null));
+        }
+        rows.add(ImportTestDataFactory.donorRow('Ben', 'Okafor', 'ben@example.org', null));
+        ImportTestDataFactory.rows(batch, rows);
+
+        Test.startTest();
+        Import_Batch__c dryRun = runInChunks(batch.Id, true, 200);
+        Import_Batch__c committed = runInChunks(batch.Id, false, 200);
+        Test.stopTest();
+
+        Assert.areEqual(2, [SELECT COUNT() FROM Contact], 'Ana once and Ben, not twelve Anas.');
+        Set<Id> anas = new Set<Id>();
+        Set<Id> households = new Set<Id>();
+        for (Import_Row__c row : ImportTestDataFactory.reload(batch.Id)) {
+            if (row.Row_Number__c < rows.size()) {
+                anas.add(row.Contact_1__c);
+                households.add(row.Household__c);
+            }
+        }
+        Assert.areEqual(1, anas.size(), 'Every one of her rows names the same Ana.');
+        Assert.areEqual(1, households.size(), 'In one household.');
+        Assert.areEqual(2, committed.Rows_Created__c, 'Her first row and Ben created somebody.');
+        Assert.areEqual(11, committed.Rows_Matched__c, 'Her other eleven matched her.');
+        Assert.areEqual(committed.Rows_Created__c, dryRun.Rows_Created__c, 'As the dry run said.');
+        Assert.areEqual(committed.Rows_Matched__c, dryRun.Rows_Matched__c, 'Both counts.');
+    }
+
+    @IsTest
+    static void aSecondPersonColumnSharesTheNewPersonTheFirstColumnCreates() {
+        ImportMapping mapping = new ImportMapping();
+        for (
+            String target : new List<String>{
+                'Contact1.Email',
+                'Contact1.LastName',
+                'Contact2.Email',
+                'Contact2.LastName'
+            }
+        ) {
+            mapping.columns.add(new ImportMapping.Column(target, target));
+        }
+        Import_Batch__c batch = ImportTestDataFactory.batch(
+            ImportTestDataFactory.template(mapping.serialize(), ImportTemplateService.RULE_EMAIL)
+        );
+        // Ana is the second person on the first row and the first person on the second. The
+        // commit saves first people before second people, so the second row creates her.
+        ImportTestDataFactory.rows(
+            batch,
+            new List<Map<String, String>>{
+                new Map<String, String>{
+                    'Contact2.Email' => 'ana@example.org',
+                    'Contact2.LastName' => 'Ramirez'
+                },
+                new Map<String, String>{
+                    'Contact1.Email' => 'ana@example.org',
+                    'Contact1.LastName' => 'Ramirez'
+                }
+            }
+        );
+
+        Test.startTest();
+        runInChunks(batch.Id, true, 200);
+        List<Import_Row__c> previewed = ImportTestDataFactory.reload(batch.Id);
+        runInChunks(batch.Id, false, 200);
+        List<Import_Row__c> committed = ImportTestDataFactory.reload(batch.Id);
+        Test.stopTest();
+
+        Assert.areEqual(1, [SELECT COUNT() FROM Contact], 'One Ana.');
+        Assert.areEqual(ImportRowProcessor.STATUS_MATCHED, committed[0].Status__c, 'Shared.');
+        Assert.areEqual(ImportRowProcessor.STATUS_CREATED, committed[1].Status__c, 'Created.');
+        for (Integer index = 0; index < 2; index++) {
+            Assert.areEqual(
+                committed[index].Status__c,
+                previewed[index].Status__c,
+                'The dry run names the same row as the one that creates her: ' + index
+            );
+        }
+        Assert.areEqual(committed[1].Contact_1__c, committed[0].Contact_2__c, 'The same Ana.');
+    }
+
+    /**
+     * John and Jane Smith share one matching key under the rule. Loads their row, after a row
+     * naming John alone when `johnRowFirst`, or with John already in the org when `johnExists`,
+     * and checks both are two people in one household, John never renamed as Jane, and the dry
+     * run counting what the commit did (R-IB12).
+     */
+    private static void aCoupleSharingAKeyIsTwoPeople(
+        String rule,
+        Boolean johnExists,
+        Boolean johnRowFirst,
+        Integer chunkSize
+    ) {
+        Map<String, String> john = new Map<String, String>{
+            'Contact1.FirstName' => 'John',
+            'Contact1.LastName' => 'Smith',
+            'Contact1.MailingPostalCode' => '12345',
+            'Contact1.Email' => 'smiths@example.org'
+        };
+        Map<String, String> couple = new Map<String, String>(john);
+        couple.putAll(
+            new Map<String, String>{
+                'Contact2.FirstName' => 'Jane',
+                'Contact2.LastName' => 'Smith',
+                'Contact2.MailingPostalCode' => '12345',
+                'Contact2.Email' => 'smiths@example.org'
+            }
+        );
+        ImportMapping mapping = new ImportMapping();
+        for (String target : couple.keySet()) {
+            mapping.columns.add(new ImportMapping.Column(target, target));
+        }
+        Import_Batch__c batch = ImportTestDataFactory.batch(
+            ImportTestDataFactory.template(mapping.serialize(), rule)
+        );
+        ImportTestDataFactory.rows(
+            batch,
+            johnRowFirst
+                ? new List<Map<String, String>>{ john, couple }
+                : new List<Map<String, String>>{ couple }
+        );
+        if (johnExists) {
+            insert new Contact(
+                FirstName = 'John',
+                LastName = 'Smith',
+                MailingPostalCode = '12345',
+                Email = 'smiths@example.org'
+            );
+        }
+
+        Test.startTest();
+        Import_Batch__c dryRun = runInChunks(batch.Id, true, chunkSize);
+        Import_Batch__c committed = runInChunks(batch.Id, false, chunkSize);
+        Test.stopTest();
+
+        List<Import_Row__c> rows = ImportTestDataFactory.reload(batch.Id);
+        Import_Row__c row = rows[rows.size() - 1];
+        Assert.areNotEqual(
+            ImportRowProcessor.STATUS_REJECTED,
+            row.Status__c,
+            'The couple loads: ' + row.Error_Message__c
+        );
+        Assert.areNotEqual(row.Contact_1__c, row.Contact_2__c, 'Two people, not one.');
+        Map<Id, Contact> people = new Map<Id, Contact>([SELECT FirstName FROM Contact]);
+        Assert.areEqual(2, people.size(), 'John and Jane, each once.');
+        Assert.areEqual('John', people.get(row.Contact_1__c).FirstName, 'John is not renamed.');
+        Assert.areEqual('Jane', people.get(row.Contact_2__c).FirstName, 'Jane is herself.');
+        Assert.areEqual(1, [SELECT COUNT() FROM Account], 'One household for the two of them.');
+        Assert.areEqual(committed.Rows_Created__c, dryRun.Rows_Created__c, 'As the dry run said.');
+        Assert.areEqual(committed.Rows_Matched__c, dryRun.Rows_Matched__c, 'Both counts.');
+        Assert.areEqual(committed.Rows_Updated__c, dryRun.Rows_Updated__c, 'All three.');
+    }
+
+    @IsTest
+    static void aCoupleWithOneSurnameAndPostalCodeIsTwoPeople() {
+        aCoupleSharingAKeyIsTwoPeople(ImportTemplateService.RULE_NAME_POSTAL, false, false, 200);
+    }
+
+    @IsTest
+    static void aCoupleSharingOneEmailIsTwoPeople() {
+        aCoupleSharingAKeyIsTwoPeople(ImportTemplateService.RULE_EMAIL, false, false, 200);
+    }
+
+    @IsTest
+    static void aCoupleAfterARowNamingHimInTheSameChunkIsTwoPeople() {
+        aCoupleSharingAKeyIsTwoPeople(ImportTemplateService.RULE_NAME_POSTAL, false, true, 200);
+    }
+
+    @IsTest
+    static void aCoupleAfterARowNamingHimInAnEarlierChunkIsTwoPeople() {
+        aCoupleSharingAKeyIsTwoPeople(ImportTemplateService.RULE_NAME_POSTAL, false, true, 1);
+    }
+
+    @IsTest
+    static void aCoupleWhoseHusbandIsAlreadyHereIsTwoPeople() {
+        aCoupleSharingAKeyIsTwoPeople(ImportTemplateService.RULE_NAME_POSTAL, true, false, 200);
+    }
+
+    @IsTest
+    static void aCoupleSharingAnEmailWhoseHusbandIsAlreadyHereIsTwoPeople() {
+        aCoupleSharingAKeyIsTwoPeople(ImportTemplateService.RULE_EMAIL, true, false, 200);
+    }
+
+    /** Imports John and Jane Smith's row, sharing one key under the rule, as a new file. */
+    private static Import_Batch__c coupleFile(String rule, String janeFirstName) {
+        Map<String, String> couple = new Map<String, String>{
+            'Contact1.FirstName' => 'John',
+            'Contact1.LastName' => 'Smith',
+            'Contact1.MailingPostalCode' => '12345',
+            'Contact1.Email' => 'smiths@example.org',
+            'Contact2.FirstName' => janeFirstName,
+            'Contact2.LastName' => 'Smith',
+            'Contact2.MailingPostalCode' => '12345',
+            'Contact2.Email' => 'smiths@example.org'
+        };
+        ImportMapping mapping = new ImportMapping();
+        for (String target : couple.keySet()) {
+            mapping.columns.add(new ImportMapping.Column(target, target));
+        }
+        Import_Batch__c batch = ImportTestDataFactory.batch(
+            ImportTestDataFactory.template(mapping.serialize(), rule)
+        );
+        ImportTestDataFactory.rows(batch, new List<Map<String, String>>{ couple });
+        return batch;
+    }
+
+    private static void aCoupleLoadedAgainIsMatchedNotMadeAgain(String rule) {
+        Import_Batch__c first = coupleFile(rule, 'Jane');
+        Import_Batch__c again = coupleFile(rule, 'Jane');
+
+        Test.startTest();
+        runInChunks(first.Id, false, 200);
+        Import_Batch__c dryRun = runInChunks(again.Id, true, 200);
+        Import_Batch__c committed = runInChunks(again.Id, false, 200);
+        Test.stopTest();
+
+        Import_Row__c before = ImportTestDataFactory.reload(first.Id)[0];
+        Import_Row__c row = ImportTestDataFactory.reload(again.Id)[0];
+        Assert.areEqual(
+            ImportRowProcessor.STATUS_MATCHED,
+            row.Status__c,
+            // A null message fails the assertion itself, so the reason is never passed bare.
+            'The row loaded again is matched: ' + row.Error_Message__c
+        );
+        Assert.areEqual(before.Contact_1__c, row.Contact_1__c, 'John matches John.');
+        Assert.areEqual(before.Contact_2__c, row.Contact_2__c, 'And Jane matches Jane.');
+        Map<Id, Contact> people = new Map<Id, Contact>([SELECT FirstName FROM Contact]);
+        Assert.areEqual(2, people.size(), 'Still two people, not a new Jane each time.');
+        Assert.areEqual('John', people.get(row.Contact_1__c).FirstName, 'John is not renamed.');
+        Assert.areEqual('Jane', people.get(row.Contact_2__c).FirstName, 'Nor is Jane.');
+        Assert.areEqual(1, dryRun.Rows_Matched__c, 'The dry run of the second file says so.');
+        Assert.areEqual(committed.Rows_Matched__c, dryRun.Rows_Matched__c, 'As the commit did.');
+        Assert.areEqual(committed.Rows_Created__c, dryRun.Rows_Created__c, 'Both counts.');
+    }
+
+    @IsTest
+    static void aCoupleWithOneSurnameAndPostalCodeLoadedAgainIsMatched() {
+        aCoupleLoadedAgainIsMatchedNotMadeAgain(ImportTemplateService.RULE_NAME_POSTAL);
+    }
+
+    @IsTest
+    static void aCoupleSharingOneEmailLoadedAgainIsMatched() {
+        aCoupleLoadedAgainIsMatchedNotMadeAgain(ImportTemplateService.RULE_EMAIL);
+    }
+
+    @IsTest
+    static void twoPeopleOnARowWithOneKeyAndOneFirstNameAreRefused() {
+        Import_Batch__c batch = coupleFile(ImportTemplateService.RULE_EMAIL, 'john');
+
+        Test.startTest();
+        Import_Batch__c dryRun = runInChunks(batch.Id, true, 200);
+        runInChunks(batch.Id, false, 200);
+        Test.stopTest();
+
+        Import_Row__c row = ImportTestDataFactory.reload(batch.Id)[0];
+        Assert.areEqual(ImportRowProcessor.STATUS_REJECTED, row.Status__c, 'Not guessed at.');
+        Assert.areEqual(Label.Core_Import_ErrorTwoPeopleOneKey, row.Error_Message__c, 'Why.');
+        Assert.areEqual(1, dryRun.Rows_Rejected__c, 'The dry run says so first.');
+        Assert.areEqual(0, [SELECT COUNT() FROM Contact], 'Nobody is created.');
+    }
+
+    @IsTest
+    static void rowsSharingAPersonWhoCouldNotBeSavedAreRejectedWithTheReason() {
+        ImportMapping mapping = new ImportMapping();
+        for (
+            String target : new List<String>{
+                'Contact1.Email',
+                'Contact1.LastName',
+                'Contact1.ReportsToId'
+            }
+        ) {
+            mapping.columns.add(new ImportMapping.Column(target, target));
+        }
+        Import_Batch__c batch = ImportTestDataFactory.batch(
+            ImportTestDataFactory.template(mapping.serialize(), ImportTemplateService.RULE_EMAIL)
+        );
+        // Only the first row reports to an account, which a contact cannot, so only the row
+        // that creates Ana fails to save; the two after it name her and share that failure. (A
+        // value too long for its field is shortened to fit, so it cannot make a save fail.)
+        Account notAPerson = new Account(Name = 'Not a person');
+        insert notAPerson;
+        List<Map<String, String>> rows = new List<Map<String, String>>();
+        for (Integer i = 0; i < 3; i++) {
+            rows.add(
+                new Map<String, String>{
+                    'Contact1.Email' => 'ana@example.org',
+                    'Contact1.LastName' => 'Ramirez',
+                    'Contact1.ReportsToId' => i == 0 ? (String) notAPerson.Id : ''
+                }
+            );
+        }
+        ImportTestDataFactory.rows(batch, rows);
+
+        Test.startTest();
+        runInChunks(batch.Id, false, 200);
+        Test.stopTest();
+
+        List<Import_Row__c> loaded = ImportTestDataFactory.reload(batch.Id);
+        Assert.areEqual(0, [SELECT COUNT() FROM Contact], 'Ana could not be saved.');
+        Assert.areEqual(ImportRowProcessor.STATUS_REJECTED, loaded[0].Status__c, 'Her row.');
+        String prefix = Label.Core_Import_ErrorSamePersonNotSaved.substringBefore('{0}');
+        for (Integer index = 1; index < 3; index++) {
+            Assert.areEqual(
+                ImportRowProcessor.STATUS_REJECTED,
+                loaded[index].Status__c,
+                'A row sharing her is rejected too: ' + index
+            );
+            Assert.isTrue(
+                loaded[index].Error_Message__c.startsWith(prefix),
+                'Saying the earlier row could not be saved: ' + loaded[index].Error_Message__c
+            );
+        }
+    }
+
     /** A processor that counts the chunks it has seen in the state it carries. */
     private class CountingProcessor implements ImportEntityProcessor {
         public List<ImportMapping.Target> targets() {
@@ -185,6 +670,95 @@ private class ImportProcessorBatchTest {
             'xx',
             ImportEntityProcessors.carriedState,
             'The second chunk started from what the first left.'
+        );
+    }
+
+    /** A processor that reports the settings it ran under, and what a commit was handed. */
+    private class SettingsProcessor implements ImportEntityProcessor {
+        public List<ImportMapping.Target> targets() {
+            return new List<ImportMapping.Target>();
+        }
+
+        public ImportEntityResult resolve(
+            Import_Batch__c batch,
+            Import_Template__c template,
+            List<Import_Row__c> rows,
+            Map<Id, Map<String, Map<String, String>>> entitiesByRowId,
+            Boolean dryRun
+        ) {
+            ImportEntityResult result = new ImportEntityResult();
+            if (dryRun) {
+                result.settings = '{"window":7}';
+            } else {
+                handedToTheCommit = batch.Processor_Settings_JSON__c;
+                result.settings = '{"window":0}';
+            }
+            return result;
+        }
+
+        public List<Schema.SObjectType> taggedObjects() {
+            return new List<Schema.SObjectType>();
+        }
+
+        public Map<Id, String> reasonsToKeep(
+            Id batchId,
+            Schema.SObjectType type,
+            Set<Id> recordIds
+        ) {
+            return new Map<Id, String>();
+        }
+    }
+
+    private static String handedToTheCommit;
+
+    @IsTest
+    static void theCommitIsHandedTheSettingsItsDryRunRecorded() {
+        ImportMapping mapping = new ImportMapping();
+        for (
+            String target : new List<String>{
+                'Contact1.Email',
+                'Contact1.LastName',
+                'Gift.Amount__c'
+            }
+        ) {
+            mapping.columns.add(new ImportMapping.Column(target, target));
+        }
+        Import_Batch__c batch = ImportTestDataFactory.batch(
+            ImportTestDataFactory.template(mapping.serialize(), ImportTemplateService.RULE_EMAIL)
+        );
+        ImportTestDataFactory.rows(
+            batch,
+            new List<Map<String, String>>{
+                new Map<String, String>{
+                    'Contact1.Email' => 'ana@example.org',
+                    'Contact1.LastName' => 'Ramirez',
+                    'Gift.Amount__c' => '10'
+                }
+            }
+        );
+        ImportEntityProcessors.processorOverride = new SettingsProcessor();
+
+        Test.startTest();
+        ImportProcessorBatch previewing = new ImportProcessorBatch(batch.Id, true);
+        previewing.execute(null, ImportTestDataFactory.reload(batch.Id));
+        previewing.finish(null);
+        Import_Batch__c afterDryRun = ImportBatchSelector.selectById(batch.Id);
+        ImportBatchService.beginPass(batch.Id);
+        ImportProcessorBatch committing = new ImportProcessorBatch(batch.Id, false);
+        committing.execute(null, ImportTestDataFactory.reload(batch.Id));
+        committing.finish(null);
+        Test.stopTest();
+
+        Assert.areEqual(
+            '{"window":7}',
+            afterDryRun.Processor_Settings_JSON__c,
+            'The dry run recorded what it ran under (R-IB11).'
+        );
+        Assert.areEqual('{"window":7}', handedToTheCommit, 'And the commit was handed it.');
+        Assert.areEqual(
+            '{"window":7}',
+            ImportBatchSelector.selectById(batch.Id).Processor_Settings_JSON__c,
+            'A commit does not replace what its dry run recorded.'
         );
     }
 
