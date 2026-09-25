@@ -2,6 +2,7 @@ import { createElement } from 'lwc';
 import AccountingExport from 'c/accountingExport';
 import getPaymentMethods from '@salesforce/apex/AccountingExportController.getPaymentMethods';
 import exportGifts from '@salesforce/apex/AccountingExportController.exportGifts';
+import markPosted from '@salesforce/apex/AccountingExportController.markPosted';
 
 jest.mock(
   '@salesforce/apex/AccountingExportController.getPaymentMethods',
@@ -18,6 +19,22 @@ jest.mock(
   {
     virtual: true
   }
+);
+
+jest.mock(
+  '@salesforce/apex/AccountingExportController.markPosted',
+  () => ({ default: jest.fn() }),
+  { virtual: true }
+);
+
+jest.mock('@salesforce/customPermission/Post_Gifts', () => ({ default: true }), {
+  virtual: true
+});
+
+jest.mock(
+  '@salesforce/label/c.Connect_AccountingExport_Marked',
+  () => ({ default: 'Marked {0} gifts posted.' }),
+  { virtual: true }
 );
 
 jest.mock(
@@ -137,7 +154,8 @@ describe('c-accounting-export', () => {
       fromDate: '2026-08-01',
       toDate: '2026-08-31',
       fundId: 'a01000000000001AAA',
-      paymentMethod: 'Check'
+      paymentMethod: 'Check',
+      onlyUnposted: false
     });
     expect(clicked).toEqual([
       { href: 'blob:export', download: 'accounting-export-2026-08-01-to-2026-08-31.csv' }
@@ -162,7 +180,8 @@ describe('c-accounting-export', () => {
       fromDate: '2026-08-01',
       toDate: '2026-08-31',
       fundId: null,
-      paymentMethod: null
+      paymentMethod: null,
+      onlyUnposted: false
     });
     expect(clicked).toEqual([]);
     expect(text(element, 'message')).toBe('No gifts in this range.');
@@ -191,5 +210,103 @@ describe('c-accounting-export', () => {
 
     expect(clicked).toEqual([]);
     expect(text(element, 'error')).toBe('The To date is before the From date.');
+  });
+
+  describe('marking the file posted', () => {
+    const AUGUST = {
+      csv: 'Date,Gift Number\r\n',
+      fileName: 'accounting-export-2026-08-01-to-2026-08-31.csv',
+      rowCount: 5,
+      giftCount: 4,
+      total: 410,
+      digest: 'abc123'
+    };
+
+    async function downloadAugust(element) {
+      exportGifts.mockResolvedValue(AUGUST);
+      chooseAugust(element);
+      await flush();
+      click(element);
+      await flush();
+    }
+
+    it('offers nothing before a download', async () => {
+      const element = mount();
+      chooseAugust(element);
+      await flush();
+      expect(element.shadowRoot.querySelector('[data-id="mark-posted"]')).toBeNull();
+    });
+
+    it('marks the downloaded gifts, sending the digest of the file', async () => {
+      markPosted.mockResolvedValue(4);
+      const element = mount();
+      await downloadAugust(element);
+
+      element.shadowRoot.querySelector('[data-id="mark-posted"]').click();
+      await flush();
+
+      expect(markPosted).toHaveBeenCalledWith({
+        fromDate: '2026-08-01',
+        toDate: '2026-08-31',
+        fundId: null,
+        paymentMethod: null,
+        onlyUnposted: false,
+        digest: 'abc123'
+      });
+      expect(text(element, 'message')).toBe('Marked 4 gifts posted.');
+      expect(element.shadowRoot.querySelector('[data-id="mark-posted"]')).toBeNull();
+    });
+
+    it('forgets the download when a choice changes', async () => {
+      const element = mount();
+      await downloadAugust(element);
+      expect(element.shadowRoot.querySelector('[data-id="mark-posted"]')).not.toBeNull();
+
+      change(element, 'only-unposted', { checked: true });
+      await flush();
+
+      expect(element.shadowRoot.querySelector('[data-id="mark-posted"]')).toBeNull();
+    });
+
+    it('asks for all funds instead of marking a one-fund file', async () => {
+      exportGifts.mockResolvedValue(AUGUST);
+      const element = mount();
+      chooseAugust(element);
+      change(element, 'fund', { recordId: 'a01000000000001AAA' });
+      await flush();
+      click(element);
+      await flush();
+
+      expect(element.shadowRoot.querySelector('[data-id="mark-posted"]')).toBeNull();
+      expect(element.shadowRoot.querySelector('[data-id="needs-all-funds"]')).not.toBeNull();
+    });
+
+    it('sends Only gifts not yet posted with the download', async () => {
+      exportGifts.mockResolvedValue(AUGUST);
+      const element = mount();
+      chooseAugust(element);
+      change(element, 'only-unposted', { checked: true });
+      await flush();
+      click(element);
+      await flush();
+
+      expect(exportGifts).toHaveBeenCalledWith(expect.objectContaining({ onlyUnposted: true }));
+    });
+
+    it("shows the server's refusal when the gifts changed", async () => {
+      markPosted.mockRejectedValue({
+        body: { message: 'Gifts in this range changed since you downloaded the file.' }
+      });
+      const element = mount();
+      await downloadAugust(element);
+
+      element.shadowRoot.querySelector('[data-id="mark-posted"]').click();
+      await flush();
+
+      expect(text(element, 'error')).toBe(
+        'Gifts in this range changed since you downloaded the file.'
+      );
+      expect(element.shadowRoot.querySelector('[data-id="mark-posted"]')).not.toBeNull();
+    });
   });
 });

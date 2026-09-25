@@ -72,7 +72,7 @@ step 3 above.
 
 **The numbers look too small.** The money charts count gifts with the status **Received**,
 **Refunded**, or **Written off**. A gift left at Pending, for example a pledge payment that
-has not arrived, is deliberately excluded so that the totals match the bank. Open Recent
+has not arrived, or Cancelled because it never will, is deliberately excluded so that the totals match the bank. Open Recent
 gifts and look at the status column if a gift you expected is missing.
 
 The two reversed statuses are in that list on purpose. A refund is recorded as a second

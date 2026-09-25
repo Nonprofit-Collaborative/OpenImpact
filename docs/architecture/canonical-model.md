@@ -1280,10 +1280,29 @@ the mapping loads a gift; an empty value means the org's default (ADR-0052). A c
 read them: it runs under the values its dry run recorded on the batch (R-IB11, R-DM7), so a
 template edited after the dry run changes the next dry run, not the commit.
 
-**R-IT5 What v0.2 ships.** v0.2 ships a generic donor list template and a generic gift
-list template. The NPSP template set is v0.3 engineering work and the Agentforce
-Nonprofit set is v0.5 (plan Section 6); both are new shipped-default rows, not new
-attributes.
+**R-IT5 What ships.** Core ships a generic donor list template and a generic gift list
+template (v0.2). The migration templates (v0.5) are rows of the same type, placed by what
+they load: a template that loads only people and organizations ships from Core, so an org
+with only Core installed can use it, and a template that loads any gift target ships from
+Giving, the way Giving ships its rollup definition defaults. Each has a sample export in
+`docs/admin-guide/samples/` that `check-custom-metadata.py` compares with its headings.
+
+| Template Key | Package | Reads |
+|---|---|---|
+| `npc_person_accounts` | Core | An export of Nonprofit Cloud person accounts |
+| `npc_gift_transactions` | Giving | An export of gift transaction designations whose donor is a person, one row per designation |
+| `npc_organization_gifts` | Giving | The same export whose donor is not a person |
+| `npc_undesignated_gifts` | Giving | An export of gift transactions with no designation |
+| `npsp_contacts` | Core | An export of NPSP contacts |
+| `npsp_payments` | Giving | An export of paid NPSP payments whose opportunity's account is individual |
+| `npsp_organization_payments` | Giving | The same export whose account is not individual |
+
+A migration template is a mapping document and nothing else: its column headings are the
+other system's API names as a Data Loader export heads them, held as data, so no package
+gains a metadata or compile-time reference to the source objects (ADR-0013). They are new
+shipped-default rows, not new attributes. One template reads one export shape, because an
+import saves the file's own columns back to the template it used (admin guide, "Migrating
+from Nonprofit Cloud", section 5).
 
 ### Salesforce implementation
 
@@ -1914,7 +1933,7 @@ refund is another gift rather than an edit (ADR-0010).
 | Gift Date | date | yes | The date the gift was received, which is the date that appears on the receipt. |
 | Amount | decimal | yes | The money received, negative for a refund or a write-off, and zero on an in-kind gift, which is goods rather than money (R-G12). |
 | Type | picklist(Cash, Check, Card, ACH, Stock, In-kind, Grant, Other) | yes | How the gift arrived. |
-| Status | picklist(Received, Pending, Refunded, Written off) | yes | Where the gift stands; only Received gifts count in the packaged giving totals. |
+| Status | picklist(Received, Pending, Refunded, Written off, Cancelled) | yes | Where the gift stands; Received, Refunded and Written off count in the packaged giving totals, so a reversal nets against its original (ADR-0022), and Pending and Cancelled do not. Cancelled is a Pending gift that will never be paid (R-G16). |
 | Appeal | reference(Appeal) | no | The fundraising effort this gift responded to. |
 | Acknowledgment Status | picklist(Not required, To acknowledge, Acknowledged, Do not acknowledge) | yes (defaults To acknowledge) | Whether this gift still needs a thank you. |
 | Acknowledgment Date | date | no | The date the thank you was sent. |
@@ -1933,6 +1952,8 @@ refund is another gift rather than an edit (ADR-0010).
 | Benefit Value | decimal | no | The organization's good faith estimate of what the benefit was worth, which the receipt subtracts to state the deductible amount (v0.4, G-13, R-RC7). |
 | Intangible Religious Benefits | boolean | yes (defaults false) | Whether the only thing the donor received in return was an intangible religious benefit, which is a sentence the receipt must carry instead of a value (v0.4, G-13, R-RC7). |
 | Created By Import Batch | reference(Import Batch) | no | The import that created this gift, so it can be found and, from v0.5, undone. |
+| Posted to Accounting | datetime | no | When the gift was marked as entered in the accounting system; empty while it is not. Package written (v0.6, G-20, R-G13). |
+| Posted to Accounting By | reference(User) | no | Who marked it posted; empty while it is not (v0.6, G-20, R-G13). |
 
 ### Relationships
 
@@ -1968,7 +1989,9 @@ happened, and it carries the same type and date semantics as any other gift. The
 money went back is typed once, on the negative gift, in Refund Reason: the original gift is
 not edited to hold it, because editing the original is the thing this rule exists to
 prevent. A partial refund leaves the original at Received, because part of it is still a
-gift the organization holds.
+gift the organization holds. Only a Received gift is refunded or written off: a Pending gift
+held no money to give back, and one that will never be paid is cancelled instead (R-G16,
+ADR-0054).
 
 **R-G4 Amount immutability.** Once a Receipt Number is present, Amount, Gift Date, the
 donor references, and the In-kind Description do not change, and the gift is not deleted.
@@ -2052,6 +2075,66 @@ a retention report (ADR-0026). Because Amount is zero and never changes, a mista
 gift is corrected by writing it off or by correcting the description, not by a negative gift:
 R-G3 has nothing to reverse.
 
+**R-G13 Posted to accounting (G-20, ADR-0053).** A gift is posted when Posted to Accounting is
+set. Posted to Accounting and Posted to Accounting By are read only in every packaged
+permission set and are written only by `GiftPostingService`, through `GiftPostingWriter` in
+system mode (ADR-0021); any other save that sets, changes or clears them is refused by R-G14's
+automation. Marking posted needs the `Post_Gifts` custom permission, touches only gifts that are
+in the books (R-G14) and not yet posted, and leaves every other gift unchanged, so marking the
+same gifts twice changes nothing. Unposting needs `Post_Gifts` and a reason, clears both
+attributes, and writes an Error Log entry at Warning naming the gift, who posted it and when, and
+the reason. A gift batch's Posted status (R-GB4) is a different thing: it says the batch's lines
+became gifts, not that the gifts are in the books.
+
+**R-G14 Posted gifts and closed periods are locked (G-20, ADR-0053).** A gift is **in the books**
+when its Status is Received, Refunded or Written off and its Type is not In-kind, which is what
+the accounting export reads (ADR-0051). A gift is **locked** when it is in the books and is either
+posted (R-G13) or dated on or before Books Closed Through (Section 21A). While a gift is locked:
+
+- Gift Date, Amount, Donor Contact, Donor Account, Type, Payment Reference and Original Gift do
+  not change, and its allocations are not added, changed or deleted (R-GA5);
+- its Status may move among Received, Refunded and Written off, which is what R-G3 does to an
+  original, and may not move to Pending;
+- it is not deleted.
+
+No gift enters the books in a closed period: an insert, an undelete, or an update that leaves a
+gift in the books and dated on or before Books Closed Through when it was not locked before, is
+refused. A refund or write-off of a locked gift is a negative gift dated today, which is always
+open because Books Closed Through is at least two days before today, so today is open in every
+time zone and R-G3 is unaffected. A Pending gift is never written off (R-G3), so no reversal moves
+one into the books; a Pending gift dated in a closed period that will never be paid is cancelled,
+which the lock allows because neither Pending nor Cancelled is in the books (R-G16). Every other
+attribute stays editable.
+
+**R-G15 What a locked gift names is not deleted (G-20, ADR-0053).** Donor Contact, Donor Account
+and Original Gift are cleared by the platform when the record they name is deleted, and no gift
+trigger runs when that happens. So a person or organization that a locked gift names as donor,
+and a gift that a locked gift names as its original, is not deleted. A merge is not a delete for
+this rule: the losing record's gifts move to the surviving one (C-20). The same override and the
+same Error Log entry as R-G14 apply.
+
+**R-G16 A Pending gift that will never be paid is cancelled (ADR-0054).** Cancelled
+is a status, not a money event: no negative gift is created, and a Cancelled gift is outside every
+packaged giving total, the accounting export, receipts and statements, acknowledgments and the
+retention reports, because each of them counts only Received, Refunded and Written off (Section
+26, ADR-0022, ADR-0051). Status moves only these ways around it: Pending to Cancelled, and
+Cancelled back to Pending when the gift turns out to be coming after all. No other status moves to
+or from Cancelled, and Pending does not move to Refunded or Written off. A gift may be created
+Cancelled, which is what an import of history needs. Cancelling unlinks the gift from the
+installment it was expected to pay, so the installment is recalculated and is open for the next
+gift, as a delete would leave it (R-CM4); the commitment link stays, as history, and moving the
+gift back to Pending does not link it again. Its soft credits are kept and count nowhere, because
+the soft credit totals read the gift's status (ADR-0023), and it is not half of a new matching gift
+pair (R-G11). Every move into or out of Cancelled writes an Error Log entry at Info naming the
+gift and who moved it. These rules run from the Gift core rules automation, so pausing automation
+lets a data load set any status.
+
+The enforcement runs from `Gift_Posting_Lock` and `Gift_Allocation_Posting_Lock`, both Always
+Runs (R-A4). The one way past is the `Override_Posting_Lock` custom permission, on no permission
+set: every save or delete it lets through writes an Error Log entry at Warning naming the gift and
+what changed. It is separate from `Override_Receipt_Lock` (R-G4), which reaches nothing but the
+receipt.
+
 ### Salesforce implementation
 
 - **Object:** `Gift__c`, auto-number Name with format `G-{000000}`, private
@@ -2065,7 +2148,7 @@ R-G3 has nothing to reverse.
 | Gift Date | `Gift_Date__c` | Date |
 | Amount | `Amount__c` | Currency |
 | Type | `Type__c` | Picklist: Cash, Check, Card, ACH, Stock, In-kind, Grant, Other |
-| Status | `Status__c` | Picklist: Received, Pending, Refunded, Written off |
+| Status | `Status__c` | Picklist: Received, Pending, Refunded, Written off, Cancelled |
 | Appeal | `Appeal__c` | Lookup to `Appeal__c` |
 | Acknowledgment Status | `Acknowledgment_Status__c` | Picklist: Not required, To acknowledge, Acknowledged, Do not acknowledge |
 | Acknowledgment Date | `Acknowledgment_Date__c` | Date |
@@ -2085,11 +2168,24 @@ R-G3 has nothing to reverse.
 | Intangible Religious Benefits | `Intangible_Religious_Benefits__c` | Checkbox (v0.4) |
 | Created By Import Batch | `Created_By_Import_Batch__c` | Lookup to `Import_Batch__c` |
 | Sample Data | `Sample_Data__c` | Checkbox (v0.4) |
+| Posted to Accounting | `Accounting_Posted_At__c` | Date/Time, package written (v0.6, R-G13) |
+| Posted to Accounting By | `Accounting_Posted_By__c` | Lookup to User, package written (v0.6, R-G13) |
 
 - **Service:** `GiftService`, `GiftDomain`, `GiftSelector`, LWC `quickGiftEntry` (G-03).
 - **Receipt lock:** handler `GiftReceiptLockHandler`, registry record
   `Automation_Registry.Gift_Receipt_Lock` (execution order 5, Always Runs), custom
   permission `Override_Receipt_Lock` (granted to nobody by the package).
+- **Posting and period lock (G-20):** `GiftPostingLock` holds the R-G14 rules, run by
+  `GiftPostingLockHandler` from registry record `Automation_Registry.Gift_Posting_Lock`
+  (execution order 15, after `Gift_Core_Rules` fills in an empty date, Always Runs).
+  `GiftPostingService` marks and unposts (R-G13) through `GiftPostingWriter`. Custom permissions
+  `Post_Gifts` (on `Giving_Admin` and Connect's `Accounting_Export`) and `Override_Posting_Lock`
+  (granted to nobody). LWC `giftPosting` on the gift page shows the posting and offers Unpost; LWC
+  `accountingPeriods` sets Books Closed Through.
+- **Named records (R-G15):** `GiftPostingLock.enforceOnDelete` refuses deleting an original;
+  `GiftDonorDeleteGuardHandler` runs on Contact and Account from registry records
+  `Automation_Registry.Gift_Donor_Delete_Guard_Contact` and `..._Account` (Always Runs), through
+  Core's own triggers.
 
 ---
 
@@ -2135,6 +2231,11 @@ gift's allocations with negative amounts, so fund totals correct themselves.
 against that appeal is allocated to it unless staff choose otherwise. This is a proposal
 in the entry form, never a rule that rewrites a saved allocation.
 
+**R-GA5 A locked gift's allocations are fixed (G-20).** An allocation whose gift is locked
+(R-G14) is not inserted, deleted, or changed in Fund, Amount or Percent, so each fund's share of a
+gift in the books stays what the books hold. The same override and the same Error Log entry as
+R-G14 apply.
+
 ### Salesforce implementation
 
 - **Object:** `Gift_Allocation__c`, auto-number Name with format `GA-{000000}`.
@@ -2147,6 +2248,9 @@ in the entry form, never a rule that rewrites a saved allocation.
 | Percent | `Percent__c` | Percent |
 
 - **Service:** `AllocationService`, `AllocationDomain`.
+- **Lock (R-GA5):** `GiftAllocationPostingLockHandler`, registry record
+  `Automation_Registry.Gift_Allocation_Posting_Lock` (execution order 20, after
+  `Gift_Allocation_Totals` works out the amount, Always Runs).
 
 ---
 
@@ -2356,6 +2460,16 @@ import settings, because that is where an administrator looks for how an import 
 | `Donation_Match_Date_Window_Days__c` | integer | 7 | How many days either side of a scheduled payment's due date an imported gift may fall and still be matched to it, for a template that does not set its own (R-DM3). |
 | `Donation_Match_Amount_Tolerance__c` | decimal | 0 | How far an imported gift's amount may differ from a scheduled payment's expected amount and still be matched to it, for a template that does not set its own; zero means the amounts must be equal (R-DM3). |
 
+### v0.6 keys
+
+Added by the posting flag and period lock (G-20, ADR-0053). Set on the Accounting Periods page,
+reached from the Giving section of the console, and deliberately not named by a Setting
+Definition row, so the console's generic save cannot write it past the page's checks.
+
+| Key | Type | Default | Definition |
+|---|---|---|---|
+| `Books_Closed_Through__c` | date | empty | The last day of the latest closed accounting period; empty means no period is closed. Gifts in the books dated on or before it are locked (R-G14). It is at least two days before today (so today is open in every time zone) and moves only forward; moving it back or clearing it needs `Override_Posting_Lock` and writes an Error Log entry at Warning. Every change is a Setting Change. |
+
 ### Rules
 
 **R-GS1 Same contract as Core settings.** Protected, hierarchical, written synchronously
@@ -2399,6 +2513,7 @@ these keys, which is what makes a module that is off leave nothing behind.
 | Acknowledgments Last Run Summary | `Acknowledgments_Last_Run_Summary__c` | Text(255) |
 | Donation Match Date Window Days | `Donation_Match_Date_Window_Days__c` | Number(3, 0) |
 | Donation Match Amount Tolerance | `Donation_Match_Amount_Tolerance__c` | Currency(16, 2) |
+| Books Closed Through | `Books_Closed_Through__c` | Date (v0.6) |
 
 - **Service:** Core `SettingsService`, reading and writing this object through the
   `Settings_Object__c` field on `Setting_Definition__mdt` (ADR-0017).
@@ -3003,7 +3118,8 @@ themselves (ADR-0016, IRS Publication 1771).
 
 **R-RC8 A statement states the status of every line.** A consolidated statement prints
 each gift's status on that gift's line, not once in a footer, so a reader cannot mistake
-which of a year's gifts was refunded.
+which of a year's gifts was refunded. Pending and Cancelled gifts are not on it: no money
+arrived (R-G16).
 
 **R-RC9 One receipt per donor, year and type, per run.** Donor Year Key is unique, so a
 batch chunk that is retried after a failure resumes the run rather than issuing a second
@@ -3410,7 +3526,7 @@ which is the deliberate act of thanking a donor again. Both leave the earlier ro
 so "we sent it twice" reads as two rows rather than as silence.
 
 **R-AK8 Only a positive received gift is ever acknowledged.** A gift whose Status is
-Refunded, Written off or Pending, and any gift whose Amount is zero or negative, is never
+Refunded, Written off, Pending or Cancelled, and any gift whose Amount is zero or negative, is never
 queued and never sent, so the negative gift that records a refund (R-G3) is outside this
 feature entirely. Refunding a gift does not withdraw its acknowledgment: the donor was
 thanked, and that happened.
@@ -4115,7 +4231,7 @@ Every definition here uses source entity Gift with the base filter `Status` in
 Received`, is what makes R-R9 true: a refund is a negative gift whose own status is
 Received while the original it reverses is moved to Refunded, so a filter that admitted
 only Received would keep the negative rows and drop the positive one, and a fully refunded
-gift would subtract itself twice (ADR-0022). Pending, Failed, and any other status that
+gift would subtract itself twice (ADR-0022). Pending, Cancelled, Failed, and any other status that
 does not represent money the organization holds stay outside the filter.
 
 The rows that count, rather than add, carry `Amount__c` greater than 0 on top of that
@@ -4749,7 +4865,8 @@ Batch Row (25M), the line of a batch.
 
 The v0.6 inbound gift API (X-03) and accounting export (X-04) add no Connect entity: the
 API writes ordinary gifts through Giving, and the export reads gifts and allocations and
-records nothing (ADR-0051). The posting flag plan Section 4.12 mentions is G-20's, in Giving.
+records nothing (ADR-0051). The posting flag plan Section 4.12 mentions is G-20's, in Giving:
+two attributes on Gift and one Giving settings key, and no new entity (R-G13, R-G14, ADR-0053).
 
 Two v0.4 entities have attributes that already exist on `Gift__c` from v0.2, because the
 object is not worth altering later for fields this cheap: Acknowledgment Status,
@@ -4825,6 +4942,8 @@ None open. R-M3's Primary Contact mirror, the only entry, was closed on 2026-09-
 | v0.5 | 2026-09-23 | C-21 Health Check v2 (ADR-0048). No object, field, settings key or rollup row added. Health Check reads state the model already defines: shipped rollup definitions, automation switch rows and import templates not yet materialized from their shipped defaults (Section 13), the nightly rollup run when an active definition is in Scheduled or Both mode (Section 14). Recorded against R-A2: an `Automation_Setting__c` row whose registry entry is no longer shipped is left alone, because no fix deletes a record. `Automation_Setting__c` rows are now materialized by Core's and Giving's post-install scripts, one per shipped registry entry not yet present, never touching an existing row (before C-21 nothing created them). Recorded against R-R6: a shipped rollup default is not materialized when an active, administrator-made definition (`Is_Package_Default__c` false) already writes the same target entity and attribute; shipped defaults are not counted against each other, because household and organization pairs write one attribute for different accounts. Health Check detects orphans without changing them (cleanup is C-28): a person in no household, reported only while `Auto_Create_Households__c` is on (R-C1), which in contact mode is a Contact with no Account (a Contact whose Account is an Organization belongs to it, Section 7) and in junction mode a Contact or person account with no current Household Member row (R-M2, R-M4; a Contact whose Account is a Household is left to the membership check); and a Household with no current member (in contact mode no Contact on it, in junction mode no current row naming a person). Person accounts are recognised by the org's person record types, never by a person account field. |
 | v0.5 | 2026-09-23 | C-20 duplicate detection (ADR-0050). One object added, `Duplicate_Dismissal__c` (Section 29A) with `Pair_Key__c` and `Reason__c`, which holds a decision rather than a finding. Detection is the org's own active duplicate rules; Open Impact ships none, and the suggestions are the standard `DuplicateRecordSet` and `DuplicateRecordItem` records. A scan started from Nonprofit Settings evaluates those rules against the people and households already in the org. Rules R-DP1 to R-DP5 added. |
 | v0.6 | 2026-09-23 | X-03, X-04 and X-06, the Connect integration surface (ADR-0051). No object or field added. R-G7 is reworded: the inbound gift API answers a resend with the gift already recorded and never edits it, and refuses a resend whose amount differs. The accounting export reads `Gift__c`, `Gift_Allocation__c` and `Fund__c` and writes nothing: the posting flag plan Section 4.12 names belongs to G-20 in Giving, and no Connect object records export runs. Section 30 notes that X-03 and X-04 add no Connect entity. |
+| v0.6 | 2026-09-24 | G-20 posting flag and period lock (ADR-0053). No object added. `Gift__c` gains `Accounting_Posted_At__c` (Date/Time) and `Accounting_Posted_By__c` (Lookup to User), both package written and read only in every permission set (R-G13). `Giving_Settings__c` gains `Books_Closed_Through__c` (Date), set on the Accounting Periods page and named by no Setting Definition row. New rules R-G13 (posting and unposting), R-G14 (a gift in the books that is posted or dated in a closed period is locked; nothing enters the books in a closed period) and R-GA5 (a locked gift's allocations are fixed). Two Always Runs automations, `Gift_Posting_Lock` and `Gift_Allocation_Posting_Lock`, and two custom permissions, `Post_Gifts` and `Override_Posting_Lock`, the second on no permission set. |
+| v0.6 | 2026-09-24 | Cancelled gift status, by the owner's decision (ADR-0054, amending G-04, ADR-0022, ADR-0023 and ADR-0031). No object added. `Gift__c.Status__c` gains Cancelled. New R-G16: a Pending gift that will never be paid is cancelled, with no negative gift, outside every total, the export and receipts, and allowed in a closed period; it moves only between Pending and Cancelled and unlinks its installment. R-G3: only a Received gift is refunded or written off. R-G14, R-AK8, R-RC8 and Section 26 name Cancelled. |
 
 ---
 ## 32. Entity ownership by package

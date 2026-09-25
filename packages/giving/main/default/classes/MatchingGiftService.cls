@@ -381,7 +381,7 @@ public with sharing class MatchingGiftService {
     }
 
     /**
-     * A gift that has been refunded or written off is not money the organization has, so it is
+     * A gift that has been refunded, written off or cancelled is not money the organization has, so it is
      * not half of a new matching gift pair. The refund is recorded on the gift itself rather than
      * by deleting it, so without this the link would outlive the money (R-G11, R-SC5).
      *
@@ -391,7 +391,8 @@ public with sharing class MatchingGiftService {
     private static Boolean isClosedOut(Gift__c gift) {
         return gift != null &&
             (SoftCreditService.STATUS_REFUNDED.equals(gift.Status__c) ||
-            SoftCreditService.STATUS_WRITTEN_OFF.equals(gift.Status__c));
+            SoftCreditService.STATUS_WRITTEN_OFF.equals(gift.Status__c) ||
+            SoftCreditService.STATUS_CANCELLED.equals(gift.Status__c));
     }
 
     private static void insertCredits(List<Soft_Credit__c> credits) {

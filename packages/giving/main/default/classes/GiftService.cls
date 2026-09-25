@@ -896,6 +896,18 @@ public with sharing class GiftService {
         if (original.Amount__c == null || original.Amount__c <= 0) {
             throw new GiftServiceException(Label.Giving_Gift_CannotReverseNegative);
         }
+        // R-G3: only money received goes back. A Pending gift that will never be paid is
+        // cancelled instead (R-G16); a Refunded or Written off one has nothing left and is
+        // answered by the callers with what already happened to it.
+        String status = String.isBlank(original.Status__c) ? STATUS_RECEIVED : original.Status__c;
+        if (
+            status == GiftStatusRules.STATUS_PENDING ||
+            status == GiftStatusRules.STATUS_CANCELLED
+        ) {
+            throw new GiftServiceException(
+                String.format(Label.Giving_Gift_ReverseNeedsReceived, new List<String>{ status })
+            );
+        }
         return original;
     }
 
