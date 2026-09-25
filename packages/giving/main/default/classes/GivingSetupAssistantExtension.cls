@@ -10,13 +10,9 @@
  */
 @NamespaceAccessible
 public with sharing class GivingSetupAssistantExtension implements SetupAssistantExtension {
-    /** Core's settings object, where the fund and appeal keys live until C-29 moves them. */
-    @TestVisible
-    private static final String DEFAULTS_OBJECT = SettingsService.CORE_SETTINGS_OBJECT;
-
-    /** Core's settings object, where the receipt identity keys live until C-29 moves them. */
-    @TestVisible
-    private static final String IDENTITY_OBJECT = SettingsService.CORE_SETTINGS_OBJECT;
+    /** Giving's settings object, which holds the defaults and the receipt identity (ADR-NEXT). */
+    private static final String DEFAULTS_OBJECT = 'Giving_Settings__c';
+    private static final String IDENTITY_OBJECT = DEFAULTS_OBJECT;
 
     /**
      * A tax identification number in the United States: two digits, a hyphen, seven digits.
