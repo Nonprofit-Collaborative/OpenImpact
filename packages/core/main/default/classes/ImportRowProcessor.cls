@@ -1555,6 +1555,14 @@ public with sharing class ImportRowProcessor {
                 continue;
             }
             Object current = populated.get(lookupKey);
+            if (isCheckbox(stored, lookupKey)) {
+                // A checkbox is compared as the value the save would write: "Yes" in the file
+                // is the true already stored, not a change to journal on every re-import.
+                if ((Boolean) convertCheckbox(incoming) != (current == true)) {
+                    result.put(attributeName, incoming);
+                }
+                continue;
+            }
             String currentText = current == null ? '' : String.valueOf(current);
             if (!currentText.equalsIgnoreCase(incoming)) {
                 result.put(attributeName, incoming);
@@ -2086,13 +2094,22 @@ public with sharing class ImportRowProcessor {
         return fieldMaps.get(type);
     }
 
+    /** Whether a stored record's field is a checkbox. */
+    private static Boolean isCheckbox(SObject stored, String lowerCaseName) {
+        Schema.SObjectField field = fieldsOf(stored.getSObjectType()).get(lowerCaseName);
+        return field != null && field.getDescribe().getType() == Schema.DisplayType.BOOLEAN;
+    }
+
+    /** A checkbox column's value as the save writes it; the one reading for both. */
+    private static Boolean convertCheckbox(String value) {
+        return 'true'.equalsIgnoreCase(value) || 'yes'.equalsIgnoreCase(value) || '1'.equals(value);
+    }
+
     /** A column value as the field's type, for the few types a spreadsheet carries. */
     private static Object convert(String value, Schema.DescribeFieldResult describe) {
         Schema.DisplayType kind = describe.getType();
         if (kind == Schema.DisplayType.BOOLEAN) {
-            return 'true'.equalsIgnoreCase(value) ||
-                'yes'.equalsIgnoreCase(value) ||
-                '1'.equals(value);
+            return convertCheckbox(value);
         }
         if (
             kind == Schema.DisplayType.CURRENCY ||
