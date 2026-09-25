@@ -1,12 +1,44 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
   <labels>
+    <fullName>Connect_OpportunityMirror_DeletedKept</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Deleted gift: its Opportunity is left in place</shortDescription>
+    <value>Its Opportunity is left in place. Delete it, or close it as lost, yourself if it should go.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_DeletedRemade</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Deleted gift: its Opportunity will become a gift again</shortDescription>
+    <value>Its Opportunity is left in place, and while it is won the next run makes a new gift from it. Close it as lost, or delete it, if the gift should stay gone.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_LogDeletedOne</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Deleted gift log: one gift</shortDescription>
+    <value>The gift {0}, linked to an Opportunity, was deleted. {1}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_LogDeletedMany</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Deleted gift log: several gifts</shortDescription>
+    <value>{0} gifts linked to Opportunities were deleted ({1}). {2}</value>
+  </labels>
+  <labels>
     <fullName>Connect_OpportunityMirror_LogNoAccess</fullName>
     <categories>Connect, Opportunity Mirror</categories>
     <language>en_US</language>
     <protected>false</protected>
     <shortDescription>Opportunity mirror log: saver cannot write opportunities</shortDescription>
-    <value>The Opportunity mirror skipped {0} gift(s): the person who saved them cannot create and edit Opportunities, or does not have the Opportunity Mirror permission set. The next run of the Opportunity mirror copies them.</value>
+    <value>The Opportunity mirror skipped {0} gift(s): the person who saved them cannot create and edit Opportunities. The next run of the Opportunity mirror copies them, and any change to a gift that already has one.</value>
   </labels>
   <labels>
     <fullName>Connect_OpportunityMirror_LogNoHeadroom</fullName>
@@ -46,7 +78,7 @@
     <language>en_US</language>
     <protected>false</protected>
     <shortDescription>Opportunity mirror log: org has no closed stage to use</shortDescription>
-    <value>Salesforce has no active closed stage of the kind this gift needs (won for a gift in the totals, lost for a Pending or Cancelled one), so its Opportunity could not be written. Activate a Closed Won and a Closed Lost stage in Setup.</value>
+    <value>Salesforce has no active closed stage of the kind this gift needs (won for a gift in the totals, lost for a Cancelled one), so its Opportunity could not be written. Activate a Closed Won and a Closed Lost stage in Setup.</value>
   </labels>
   <labels>
     <fullName>Connect_OpportunityMirror_InvalidOpportunityId</fullName>

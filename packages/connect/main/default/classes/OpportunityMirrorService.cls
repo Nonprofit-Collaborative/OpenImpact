@@ -32,29 +32,28 @@ public with sharing class OpportunityMirrorService {
         'Written off'
     };
 
-    // detection-only: Opportunity is resolved through describe so Connect installs without it
-    private static final String OPPORTUNITY_OBJECT = 'Opportunity';
-    // detection-only: its contact roles are resolved the same way
-    private static final String ROLE_OBJECT = 'OpportunityContactRole';
-    private static final String CAMPAIGN_FIELD = 'CampaignId';
-    private static final String DONATION_RECORD_TYPE = 'Donation';
-    private static final String DONOR_ROLE = 'Donor';
+    public static final String CAMPAIGN_FIELD = OpportunityMirrorContext.CAMPAIGN_FIELD;
+    public static final String DONOR_ROLE = OpportunityMirrorContext.DONOR_ROLE;
+    private static final String STATUS_CANCELLED = 'Cancelled';
     private static final String WON_STAGE = 'Closed Won';
     private static final String LOST_STAGE = 'Closed Lost';
 
-    /** What one copy costs at most: six reads, and two Opportunity and two role writes. */
-    private static final Integer QUERIES_NEEDED = 6;
+    /**
+     * What one copy costs at most: seven reads (the linked Opportunities, the appeals' Campaigns,
+     * contact and account names, person contacts, stages and contact roles), and two Opportunity
+     * and two role writes.
+     */
+    private static final Integer QUERIES_NEEDED = 7;
     private static final Integer DML_STATEMENTS_NEEDED = 4;
-    /** The org's own Opportunity automation runs inside the gift's save (ADR-NEXT). */
+    /**
+     * The org's own Opportunity automation runs inside the gift's save and its cost is unknown
+     * (ADR-NEXT decision 3), so a copy starts only with these shares of the limits unspent.
+     */
     private static final Decimal CPU_SHARE_NEEDED = 0.4;
+    private static final Decimal LIMIT_SHARE_NEEDED = 0.5;
 
     /** The Opportunity field each copied gift attribute is compared on (R-OM3). */
-    private static final List<String> COMPARED = new List<String>{
-        'Amount',
-        'CloseDate',
-        'StageName',
-        'AccountId'
-    };
+    public static final List<String> COMPARED = OpportunityMirrorContext.COMPARED;
     /** The gift attributes whose change starts a copy. */
     private static final List<Schema.SObjectField> WATCHED = new List<Schema.SObjectField>{
         Gift__c.Amount__c,
@@ -67,9 +66,6 @@ public with sharing class OpportunityMirrorService {
         Gift__c.Opportunity_Id__c
     };
 
-    private static Schema.SObjectType resolvedOpportunity;
-    private static Schema.SObjectType resolvedRole;
-    private static Boolean typesResolved = false;
     private static Map<Boolean, String> stageByWon;
 
     /** Each once-per-transaction Warning, so a large save does not write it per chunk. */
@@ -109,22 +105,11 @@ public with sharing class OpportunityMirrorService {
 
     /** The Opportunity object, or null in an org without it (a Platform-only org). */
     public static Schema.SObjectType opportunityType() {
-        resolveTypes();
-        return resolvedOpportunity;
+        return OpportunityMirrorContext.opportunityType();
     }
 
-    private static Schema.SObjectType roleType() {
-        resolveTypes();
-        return resolvedRole;
-    }
-
-    private static void resolveTypes() {
-        if (!typesResolved) {
-            Map<String, Schema.SObjectType> globals = Schema.getGlobalDescribe();
-            resolvedOpportunity = globals.get(OPPORTUNITY_OBJECT);
-            resolvedRole = globals.get(ROLE_OBJECT);
-            typesResolved = true;
-        }
+    public static Schema.SObjectType roleType() {
+        return OpportunityMirrorContext.roleType();
     }
 
     public static Boolean isAvailable() {
@@ -144,19 +129,17 @@ public with sharing class OpportunityMirrorService {
     }
 
     /**
-     * Whether the running user can make the copy at all: create and edit Opportunities, and read
-     * and edit the gift's Opportunity ID, which the Opportunity Mirror permission set grants.
+     * Whether the running user can make the copy made when a gift is saved: create and edit
+     * Opportunities (R-OM5). Nothing more: the Opportunity ID is written onto the gift being
+     * saved, which is not checked against the saver's field access, so a gift-entry user without
+     * the Opportunity Mirror permission set still has a linked gift's changes copied.
      */
     public static Boolean canCopy() {
         if (!isAvailable()) {
             return false;
         }
         Schema.DescribeSObjectResult opportunity = opportunityType().getDescribe();
-        Schema.DescribeFieldResult link = Gift__c.Opportunity_Id__c.getDescribe();
-        return opportunity.isCreateable() &&
-            opportunity.isUpdateable() &&
-            link.isAccessible() &&
-            link.isUpdateable();
+        return opportunity.isCreateable() && opportunity.isUpdateable();
     }
 
     // ------------------------------------------------------------------------- the two callers
@@ -189,7 +172,7 @@ public with sharing class OpportunityMirrorService {
         }
         if (!canCopy()) {
             result.skipped = scope.size();
-            logNoAccess(scope.size(), oldById == null);
+            logNoAccess(scope.size());
             return result;
         }
         if (!hasHeadroom(scope.size())) {
@@ -268,6 +251,32 @@ public with sharing class OpportunityMirrorService {
         return result;
     }
 
+    /**
+     * The automation's after-delete path (R-OM9): the Opportunity of a deleted gift is left in
+     * place, and one Warning per message names the gifts and their Opportunities, for the
+     * administrator to delete or close. In Opportunities to Gifts it also says the next run makes
+     * a new gift from an Opportunity still won.
+     */
+    public static void warnDeleted(List<Gift__c> deleted) {
+        if (deleted == null || deleted.isEmpty() || !isAvailable() || direction() == OFF) {
+            return;
+        }
+        String message = direction() == OPPORTUNITIES_TO_GIFTS
+            ? Label.Connect_OpportunityMirror_DeletedRemade
+            : Label.Connect_OpportunityMirror_DeletedKept;
+        ConnectSync.Warnings warnings = new ConnectSync.Warnings();
+        for (Gift__c gift : deleted) {
+            if (gift.Opportunity_Id__c != null) {
+                warnings.add(message, gift.Name + ' (' + gift.Opportunity_Id__c + ')', gift.Id);
+            }
+        }
+        warnings.write(
+            CONTEXT,
+            Label.Connect_OpportunityMirror_LogDeletedOne,
+            Label.Connect_OpportunityMirror_LogDeletedMany
+        );
+    }
+
     // ------------------------------------------------------------------------ which gifts
 
     /** R-OM2 and R-OM4: whether this save of the gift needs a copy. */
@@ -287,12 +296,12 @@ public with sharing class OpportunityMirrorService {
     }
 
     /**
-     * Written when someone who cannot create Opportunities creates gifts in a save of their own,
-     * once per transaction; never from a background job, where an import of many chunks would
-     * repeat it for every chunk (R-OM5).
+     * Written when someone who cannot create Opportunities creates or changes gifts in a save of
+     * their own, once per transaction; never from a background job, where an import of many
+     * chunks would repeat it for every chunk (R-OM5). The next run copies them either way.
      */
-    private static void logNoAccess(Integer howMany, Boolean creating) {
-        if (!creating || noAccessLogged || System.isBatch() || System.isQueueable()) {
+    private static void logNoAccess(Integer howMany) {
+        if (noAccessLogged || System.isBatch() || System.isQueueable()) {
             return;
         }
         noAccessLogged = true;
@@ -314,7 +323,8 @@ public with sharing class OpportunityMirrorService {
             QUERIES_NEEDED,
             DML_STATEMENTS_NEEDED,
             3 * giftCount,
-            CPU_SHARE_NEEDED
+            CPU_SHARE_NEEDED,
+            LIMIT_SHARE_NEEDED
         );
     }
 
@@ -327,7 +337,7 @@ public with sharing class OpportunityMirrorService {
      */
     private static Result copy(List<Gift__c> gifts) {
         Result result = new Result();
-        Context context = new Context(gifts);
+        OpportunityMirrorContext context = new OpportunityMirrorContext(gifts);
 
         List<SObject> inserts = new List<SObject>();
         List<Gift__c> insertedFor = new List<Gift__c>();
@@ -336,8 +346,15 @@ public with sharing class OpportunityMirrorService {
         List<Gift__c> linked = new List<Gift__c>();
 
         for (Gift__c gift : gifts) {
-            String stage = context.stageFor(IN_TOTALS.contains(gift.Status__c));
-            if (stage == null) {
+            // A Pending gift leaves its Opportunity's stage alone (R-OM3), so linking an open
+            // Opportunity to a pledge never closes it; it never gets a new Opportunity.
+            Boolean keepsStage = keepsStage(gift.Status__c);
+            if (keepsStage && gift.Opportunity_Id__c == null) {
+                result.unchanged++;
+                continue;
+            }
+            String stage = keepsStage ? null : stage(IN_TOTALS.contains(gift.Status__c));
+            if (!keepsStage && stage == null) {
                 result.failed++;
                 result.refusals.add(Label.Connect_OpportunityMirror_NoStage, nameOf(gift), gift.Id);
                 continue;
@@ -356,6 +373,9 @@ public with sharing class OpportunityMirrorService {
                 continue;
             }
             desired.Id = existing.Id;
+            if (keepsStage) {
+                desired.put('StageName', existing.get('StageName'));
+            }
             linked.add(gift);
             if (context.differs(desired, existing)) {
                 updates.add(desired);
@@ -406,7 +426,11 @@ public with sharing class OpportunityMirrorService {
      * has none, the donor put on the existing one where it names someone else. A role the platform
      * refuses is logged; the Opportunity stays.
      */
-    private static void writeContactRoles(List<Gift__c> gifts, Context context, Result result) {
+    private static void writeContactRoles(
+        List<Gift__c> gifts,
+        OpportunityMirrorContext context,
+        Result result
+    ) {
         Map<Id, Gift__c> giftByOpportunity = new Map<Id, Gift__c>();
         for (Gift__c gift : gifts) {
             if (context.personOf(gift) != null) {
@@ -589,6 +613,11 @@ public with sharing class OpportunityMirrorService {
         return String.join(messages, ' ');
     }
 
+    /** Whether a gift of this status leaves its Opportunity's stage as it is (R-OM3). */
+    private static Boolean keepsStage(String status) {
+        return !IN_TOTALS.contains(status) && status != STATUS_CANCELLED;
+    }
+
     /** The won or lost stage (R-OM3), read once per transaction. */
     private static String stage(Boolean won) {
         if (stageByWon == null) {
@@ -606,162 +635,5 @@ public with sharing class OpportunityMirrorService {
             }
         }
         return stageByWon.get(won);
-    }
-
-    /**
-     * What one copy reads, read once for all the gifts in it: the Opportunities already linked,
-     * the appeals' Campaigns, the donors' names and person contacts, and what the org's schema
-     * offers (record type, the Donor role, the Campaign field).
-     */
-    private class Context {
-        final Map<Id, SObject> current;
-        final Map<Id, String> campaignByAppeal = new Map<Id, String>();
-        final Map<Id, String> names;
-        final Map<Id, Id> personContactByAccount;
-        final Boolean hasCampaign;
-        final Boolean donorRoleExists;
-        final Id donationRecordTypeId;
-        final Schema.SObjectType campaignType;
-
-        Context(List<Gift__c> gifts) {
-            Schema.DescribeSObjectResult describe = opportunityType().getDescribe();
-            Map<String, Schema.SObjectField> fields = describe.fields.getMap();
-            hasCampaign = fields.containsKey(CAMPAIGN_FIELD.toLowerCase());
-            campaignType = CampaignSyncService.campaignType();
-            Schema.RecordTypeInfo donation = describe.getRecordTypeInfosByDeveloperName()
-                .get(DONATION_RECORD_TYPE);
-            donationRecordTypeId = donation != null &&
-                donation.isActive() &&
-                donation.isAvailable()
-                ? donation.getRecordTypeId()
-                : null;
-            donorRoleExists = hasActiveValue(
-                roleType().getDescribe().fields.getMap().get('role'),
-                DONOR_ROLE
-            );
-
-            Set<Id> linkedIds = new Set<Id>();
-            Set<Id> appealIds = new Set<Id>();
-            // Names are needed only for a new Opportunity, person contacts for every role.
-            Set<Id> namedContactIds = new Set<Id>();
-            Set<Id> namedAccountIds = new Set<Id>();
-            Set<Id> donorAccountIds = new Set<Id>();
-            for (Gift__c gift : gifts) {
-                if (gift.Opportunity_Id__c != null) {
-                    linkedIds.add(Id.valueOf(gift.Opportunity_Id__c));
-                } else {
-                    addIfSet(namedContactIds, gift.Donor_Contact__c);
-                    addIfSet(namedAccountIds, gift.Donor_Account__c);
-                }
-                addIfSet(appealIds, gift.Appeal__c);
-                if (gift.Donor_Contact__c == null) {
-                    addIfSet(donorAccountIds, gift.Donor_Account__c);
-                }
-            }
-            List<String> read = new List<String>{ 'Id' };
-            read.addAll(COMPARED);
-            if (hasCampaign) {
-                read.add(CAMPAIGN_FIELD);
-            }
-            current = OpportunityMirrorSelector.opportunitiesById(
-                describe.getName(),
-                read,
-                linkedIds
-            );
-            if (
-                hasCampaign &&
-                campaignType != null &&
-                !appealIds.isEmpty() &&
-                Appeal__c.Campaign_Id__c.getDescribe().isAccessible()
-            ) {
-                campaignByAppeal.putAll(CampaignSyncSelector.campaignIdsByAppealId(appealIds));
-            }
-            names = OpportunityMirrorSelector.namesById(namedContactIds, namedAccountIds);
-            personContactByAccount = OpportunityMirrorSelector.personContactIds(donorAccountIds);
-        }
-
-        String stageFor(Boolean won) {
-            return stage(won);
-        }
-
-        /** The person on the primary contact role: the donor contact, or a person account's. */
-        Id personOf(Gift__c gift) {
-            if (gift.Donor_Contact__c != null) {
-                return gift.Donor_Contact__c;
-            }
-            return gift.Donor_Account__c == null
-                ? null
-                : personContactByAccount.get(gift.Donor_Account__c);
-        }
-
-        SObject desiredOpportunity(Gift__c gift, String stageName) {
-            SObject opportunity = opportunityType().newSObject();
-            opportunity.put('Amount', gift.Amount__c);
-            opportunity.put('CloseDate', gift.Gift_Date__c);
-            opportunity.put('StageName', stageName);
-            opportunity.put(
-                'AccountId',
-                gift.Donor_Account__c != null ? gift.Donor_Account__c : gift.Household__c
-            );
-            if (hasCampaign) {
-                Id campaignId = gift.Appeal__c == null
-                    ? null
-                    : ConnectSync.idOf(campaignByAppeal.get(gift.Appeal__c), campaignType);
-                opportunity.put(CAMPAIGN_FIELD, campaignId);
-            }
-            return opportunity;
-        }
-
-        /** What only a new Opportunity gets: its name and the Donation record type. */
-        void prepareNew(SObject opportunity, Gift__c gift) {
-            Id donor = gift.Donor_Contact__c != null
-                ? gift.Donor_Contact__c
-                : gift.Donor_Account__c;
-            String donorName = names.containsKey(donor)
-                ? names.get(donor)
-                : Label.Connect_OpportunityMirror_UnknownDonor;
-            opportunity.put(
-                'Name',
-                String.format(
-                        Label.Connect_OpportunityMirror_OpportunityName,
-                        new List<Object>{ donorName, String.valueOf(gift.Gift_Date__c) }
-                    )
-                    .left(120)
-            );
-            if (donationRecordTypeId != null) {
-                opportunity.put('RecordTypeId', donationRecordTypeId);
-            }
-        }
-
-        Boolean differs(SObject desired, SObject existing) {
-            List<String> fields = new List<String>(COMPARED);
-            if (hasCampaign) {
-                fields.add(CAMPAIGN_FIELD);
-            }
-            for (String field : fields) {
-                if (!ConnectSync.same(desired.get(field), existing.get(field))) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-
-    private static void addIfSet(Set<Id> ids, Id value) {
-        if (value != null) {
-            ids.add(value);
-        }
-    }
-
-    private static Boolean hasActiveValue(Schema.SObjectField field, String value) {
-        if (field == null) {
-            return false;
-        }
-        for (Schema.PicklistEntry entry : field.getDescribe().getPicklistValues()) {
-            if (entry.isActive() && entry.getValue() == value) {
-                return true;
-            }
-        }
-        return false;
     }
 }
