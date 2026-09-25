@@ -637,7 +637,7 @@
         <categories>Core</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Setup assistant: a typed value is longer than the field allows. {0} field label, {1} character limit</shortDescription>
+        <shortDescription>Setup assistant: value too long. {0} field label, {1} character limit</shortDescription>
         <value>{0} can be at most {1} characters, so nothing was saved.</value>
     </labels>
     <labels>
