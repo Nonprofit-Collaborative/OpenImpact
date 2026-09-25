@@ -411,12 +411,15 @@ public with sharing class ImportMatcher {
                 ACCOUNT_BILLING_POSTAL_CODE_FIELD
             }
         ) {
+            // Each postal code the user may not read is named in the run log, even when the
+            // other still matches: a person holding their postal code only there is not found.
             if (readable(Account.SObjectType, field)) {
                 postalFields.add(field);
+            } else {
+                skippedFor(Account.SObjectType, field);
             }
         }
         if (postalFields.isEmpty()) {
-            skippedFor(Account.SObjectType, ACCOUNT_POSTAL_CODE_FIELD);
             return result;
         }
         Map<String, Set<String>> byName = postalCodesByLastName(keys);
