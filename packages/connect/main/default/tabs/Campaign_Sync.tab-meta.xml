@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>
+    Copies appeals to Salesforce Campaigns: status, counts and Sync all appeals.
+  </description>
+  <flexiPage>Campaign_Sync</flexiPage>
+  <label>Campaign Sync</label>
+  <motif>Custom25: Envelope</motif>
+</CustomTab>

@@ -129,6 +129,7 @@ Each feature adds its row here when its page is written.
 | NPSP import templates | [migrating-from-npsp.md](migrating-from-npsp.md) | Giving | v0.5 |
 | C-01 Household members | [household-members.md](household-members.md) | Core | v0.1 |
 | X-09 Nonprofit Cloud households | [nonprofit-cloud-households.md](nonprofit-cloud-households.md) | Core | v0.6 |
+| X-02 Campaign sync | [campaign-sync.md](campaign-sync.md) | Connect | v0.6 |
 | X-03 Inbound gift API | [inbound-gift-api.md](inbound-gift-api.md) | Connect | v0.6 |
 | X-04 Accounting export | [accounting-export.md](accounting-export.md) | Connect | v0.6 |
 | G-20 Posting and closed periods | [posting-and-closed-periods.md](posting-and-closed-periods.md) | Giving | v0.6 |
