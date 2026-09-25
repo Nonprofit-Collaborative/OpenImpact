@@ -353,6 +353,56 @@ private class HealthCheckGivingChecksTest {
     }
 
     @IsTest
+    static void pastTheCapTheReceiptFindingSaysMoreThan() {
+        ReceiptGenerationFailureSelector.Result failures = receipts(true, 1000);
+        failures.capped = true;
+        ReceiptGenerationFailureSelector.resultOverride = failures;
+        User jen = jen();
+        System.runAs(jen) {
+            Map<String, Object> finding = findByKey(
+                HealthCheckGivingChecks.findings(),
+                'receipt_generation_failed'
+            );
+            String expected = String.format(
+                Label.Giving_HealthCheck_ReceiptFailedMoreThan,
+                new List<Object>{ (1000).format() }
+            );
+            System.assert(
+                ((String) finding.get('title')).startsWith(expected),
+                'A capped count is reported as more than the cap.'
+            );
+        }
+    }
+
+    @IsTest
+    static void oneGivingCheckThatThrowsDoesNotHideTheOthers() {
+        quietReceiptChecks();
+        // Names left null make the holder sentence throw, a real failure inside one check.
+        HealthCheckGivingChecks.holdersOverride = holders(true, 2, null);
+        ReceiptGenerationFailureSelector.resultOverride = receipts(true, 9);
+        User jen = jen();
+        System.runAs(jen) {
+            List<HealthCheckService.Finding> findings = HealthCheckGivingChecks.findings();
+
+            System.assertNotEquals(
+                null,
+                findByKey(findings, 'check_failed_override_receipt_lock'),
+                'The check that threw is reported as failed, by its own key.'
+            );
+            System.assertEquals(
+                null,
+                findByKey(findings, 'override_receipt_lock'),
+                'The check that threw has no finding of its own.'
+            );
+            System.assertNotEquals(
+                null,
+                findByKey(findings, 'receipt_generation_failed'),
+                'The other Giving checks still report.'
+            );
+        }
+    }
+
+    @IsTest
     static void noFailedOrUnreadableReceiptsMeansNoFinding() {
         User jen = jen();
         System.runAs(jen) {
