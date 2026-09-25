@@ -68,17 +68,20 @@ private class GiftPostingControllerTest {
     @IsTest
     static void saysWhenAGiftIsInAClosedPeriod() {
         User jen = jen();
+        // Taken once: Date.today() differs between the test user and Jen near midnight when
+        // their time zones differ.
+        Date closeDate = Date.today().addDays(-1);
         Gift__c gift;
         System.runAs(jen) {
-            gift = gift(250, 'Received', Date.today().addDays(-10));
+            gift = gift(250, 'Received', closeDate.addDays(-9));
         }
-        GivingTestDataFactory.closeBooksThrough(Date.today().addDays(-1));
+        GivingTestDataFactory.closeBooksThrough(closeDate);
         System.runAs(jen) {
             GiftPostingController.PostingState state = GiftPostingController.getState(gift.Id);
 
             Assert.isFalse(state.posted);
             Assert.isTrue(state.inClosedPeriod, 'Locked by the close date');
-            Assert.areEqual(Date.today().addDays(-1), state.closedThrough);
+            Assert.areEqual(closeDate, state.closedThrough);
         }
     }
 
