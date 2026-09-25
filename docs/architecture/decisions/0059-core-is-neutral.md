@@ -1,4 +1,4 @@
-# ADR-NEXT: Core is neutral: the nonprofit app, wording, giving and receipt settings and Setup Assistant steps live in Giving
+# ADR-0059: Core is neutral: the nonprofit app, wording, giving and receipt settings and Setup Assistant steps live in Giving
 
 **Status:** Accepted (builder decision, under the owner decision recorded in ADR-0046)
 **Date:** 2026-09-25
