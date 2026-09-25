@@ -168,6 +168,16 @@ public with sharing class OpportunityMirrorService {
                 continue;
             }
             Gift__c old = oldById == null ? null : oldById.get(gift.Id);
+            if (
+                gift.Opportunity_Id__c != null &&
+                (old == null ||
+                old.Opportunity_Id__c == null) &&
+                createdHere.contains(Id.valueOf(gift.Opportunity_Id__c))
+            ) {
+                // A link this save wrote, now rolled back by a retry: made again, never left
+                // pointing at an Opportunity that no longer exists.
+                gift.Opportunity_Id__c = null;
+            }
             if (inScope(gift, old)) {
                 scope.add(gift);
             }
@@ -371,16 +381,7 @@ public with sharing class OpportunityMirrorService {
                 insertedFor.add(gift);
                 continue;
             }
-            Id linkedId = Id.valueOf(gift.Opportunity_Id__c);
-            SObject existing = context.current.get(linkedId);
-            if (existing == null && createdHere.contains(linkedId)) {
-                // Rolled back by a retried save: made again, never left pointing at nothing.
-                gift.Opportunity_Id__c = null;
-                context.prepareNew(desired, gift);
-                inserts.add(desired);
-                insertedFor.add(gift);
-                continue;
-            }
+            SObject existing = context.current.get(Id.valueOf(gift.Opportunity_Id__c));
             if (existing == null) {
                 result.failed++;
                 result.refusals.add(Label.Connect_OpportunityMirror_Missing, nameOf(gift), gift.Id);
