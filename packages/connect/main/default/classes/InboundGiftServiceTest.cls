@@ -350,6 +350,29 @@ private class InboundGiftServiceTest {
     }
 
     @IsTest
+    static void aGiftDatedInAClosedPeriodIsNotSavedAndSaysWhy() {
+        // Written as InboundGiftAccessTest writes Giving settings: the org default, directly.
+        Giving_Settings__c settings = Giving_Settings__c.getOrgDefaults();
+        settings.SetupOwnerId = UserInfo.getOrganizationId();
+        settings.Books_Closed_Through__c = Date.today().addDays(-1);
+        upsert settings;
+        InboundGift late = gift('p:closed', 10);
+        late.giftDate = Date.today().addDays(-5);
+
+        InboundGiftResult result = recordOne(late);
+        InboundGiftResult today = recordOne(gift('p:today', 10));
+
+        Assert.areEqual(InboundGiftResult.ERROR_NOT_SAVED, result.errorCode);
+        Assert.areEqual(422, InboundGiftResult.httpStatus(result), 'Not worth retrying as sent');
+        Assert.isTrue(
+            result.message.contains('The books are closed through'),
+            'The lock says why: ' + result.message
+        );
+        Assert.areEqual(InboundGiftResult.OUTCOME_CREATED, today.outcome, 'Today is open');
+        Assert.areEqual(1, [SELECT COUNT() FROM Gift__c]);
+    }
+
+    @IsTest
     static void anExternalIdHeldByAGiftTheUserCannotSeeIsAConflict() {
         Contact luis = [SELECT Id FROM Contact WHERE Email = :LUIS_EMAIL];
         insert new Gift__c(

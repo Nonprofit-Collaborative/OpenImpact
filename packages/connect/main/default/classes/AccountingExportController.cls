@@ -30,6 +30,9 @@ public with sharing class AccountingExportController {
         public Integer giftCount;
         @AuraEnabled
         public Decimal total;
+        /** What `markPosted` compares, so it marks exactly the rows downloaded. */
+        @AuraEnabled
+        public String digest;
     }
 
     /** The payment methods the page offers, each labelled as the org labels it. */
@@ -50,20 +53,23 @@ public with sharing class AccountingExportController {
         Date fromDate,
         Date toDate,
         Id fundId,
-        String paymentMethod
+        String paymentMethod,
+        Boolean onlyUnposted
     ) {
         try {
             AccountingExportService.ExportFile built = AccountingExportService.build(
                 fromDate,
                 toDate,
                 fundId,
-                paymentMethod
+                paymentMethod,
+                onlyUnposted
             );
             ExportView view = new ExportView();
             view.csv = built.csv;
             view.rowCount = built.rowCount;
             view.giftCount = built.giftCount;
             view.total = built.total;
+            view.digest = built.digest;
             view.fileName =
                 'accounting-export-' +
                 String.valueOf(fromDate) +
@@ -71,6 +77,37 @@ public with sharing class AccountingExportController {
                 String.valueOf(toDate) +
                 '.csv';
             return view;
+        } catch (AccountingExportService.ExportException refused) {
+            throw asAuraException(refused.getMessage());
+        } catch (Exception unexpected) {
+            ErrorLogger.log(unexpected, CONTEXT);
+            throw asAuraException(Label.Connect_AccountingExport_ErrorFailed);
+        }
+    }
+
+    /**
+     * Marks the gifts in the file just downloaded posted to accounting (G-20). The page sends
+     * the same choices and the digest of the file it downloaded; the service builds the file
+     * again and marks nothing unless the digest matches.
+     */
+    @AuraEnabled
+    public static Integer markPosted(
+        Date fromDate,
+        Date toDate,
+        Id fundId,
+        String paymentMethod,
+        Boolean onlyUnposted,
+        String digest
+    ) {
+        try {
+            return AccountingExportService.markPosted(
+                fromDate,
+                toDate,
+                fundId,
+                paymentMethod,
+                onlyUnposted,
+                digest
+            );
         } catch (AccountingExportService.ExportException refused) {
             throw asAuraException(refused.getMessage());
         } catch (Exception unexpected) {

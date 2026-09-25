@@ -89,6 +89,20 @@ public class GivingTestDataFactory {
     }
 
     /**
+     * Closes the books through a date, as Maria does on the Accounting Periods page (G-20), and
+     * clears the lock's once per transaction answer about the override, so the next save asks.
+     */
+    public static void closeBooksThrough(Date lastClosedDay) {
+        Giving_Settings__c settings = Giving_Settings__c.getOrgDefaults();
+        if (settings.Id == null) {
+            settings.SetupOwnerId = UserInfo.getOrganizationId();
+        }
+        settings.Books_Closed_Through__c = lastClosedDay;
+        upsert settings;
+        GiftPostingLock.overrideHeld = null;
+    }
+
+    /**
      * An allocation of part of a gift to a fund.
      */
     public static Gift_Allocation__c buildAllocation(Id giftId, Id fundId, Decimal amount) {

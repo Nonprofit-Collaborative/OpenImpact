@@ -40,6 +40,18 @@ jest.mock(
   { virtual: true }
 );
 
+jest.mock(
+  '@salesforce/label/c.Core_AutomationControl_PausedBy',
+  () => ({ default: 'Paused by {0}.' }),
+  { virtual: true }
+);
+
+jest.mock(
+  '@salesforce/label/c.Core_AutomationControl_ResumesItself',
+  () => ({ default: 'It turns itself back on then.' }),
+  { virtual: true }
+);
+
 const RUNNING_PAGE = {
   paused: false,
   pausedUntil: null,
@@ -154,6 +166,29 @@ describe('c-automation-control', () => {
     expect(region).not.toBeNull();
     expect(region.getAttribute('aria-live')).toBe('polite');
     expect(banner.querySelector('lightning-icon')).not.toBeNull();
+  });
+
+  it('names who paused and says the pause ends by itself', async () => {
+    const element = createComponent();
+    getPage.emit({ ...PAUSED_PAGE, pausedBy: 'Maria Lopez' });
+    await flush();
+
+    const pausedBy = element.shadowRoot.querySelector('[data-id="paused-by"]');
+    expect(pausedBy).not.toBeNull();
+    expect(pausedBy.textContent).toBe('Paused by Maria Lopez.');
+    const detail = element.shadowRoot.querySelector('[data-id="paused-detail"]');
+    expect(detail.textContent).toContain('It turns itself back on then.');
+  });
+
+  it('leaves the name out when nobody is on record as pausing', async () => {
+    const element = createComponent();
+    getPage.emit(PAUSED_PAGE);
+    await flush();
+
+    expect(element.shadowRoot.querySelector('[data-id="paused-by"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[data-id="paused-detail"]').textContent).toContain(
+      'It turns itself back on then.'
+    );
   });
 
   it('offers the five pause lengths and pauses for the one chosen', async () => {

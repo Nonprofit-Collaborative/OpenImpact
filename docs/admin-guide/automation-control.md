@@ -60,15 +60,16 @@ the records in first and the automatic housekeeping to happen afterwards, so not
    automation Open Impact ships, each with a plain-language description and a switch.
 3. At the top of the page, choose **2 hours** in the **How long** list, then click
    **Pause all automation**. The page now shows a yellow bar: "Automation is paused until
-   3:40 PM." Every switch in the list is still where you left it: pausing does not change
-   anything you have chosen.
+   3:40 PM. Paused by Maria Lopez. It turns itself back on then." Every switch in the list
+   is still where you left it: pausing does not change anything you have chosen.
 4. Click **Home**. The same banner appears at the top of the Hub, so anyone else working
    today can see why records are not updating themselves.
 5. Load your spreadsheet. Nothing runs automatically while you do.
 6. Come back to **Nonprofit Settings**, then **Automation**, and click **Resume
    automation**. The banner disappears and the automation starts running again on the next
    record anyone saves. If you forget this step, nothing breaks: automation turns itself
-   back on at the two hour mark.
+   back on at the two hour mark, and the change is recorded like any other (see "How long
+   a pause lasts" below).
 7. Now switch off a single automation instead. Find **Household naming** in the list and
    click its switch to **Off**. Only that one stops running. Everything else carries on.
    (In v0.1 the list is empty until feature C-01 adds the first automations, so there is
@@ -78,6 +79,26 @@ the records in first and the automatic housekeeping to happen afterwards, so not
 
 That is the whole feature: one switch per automation, one switch for all of them, and it
 expires by itself.
+
+## How long a pause lasts
+
+You choose the length when you pause: 1, 2, 4, 8 or 24 hours. Two hours is already
+selected, because most spreadsheet loads are done in less. There is no longer choice and no
+"until I say so": a pause always ends by itself.
+
+When the time is up, automation starts again at that moment, whether or not anybody has the
+page open. Open Impact also writes the end of the pause into the list of recent changes at the
+bottom of Nonprofit Settings, with the time it ended and the name of the person who paused, as
+if they had clicked **Resume automation** themselves. So the list always shows every pause
+with its start and its end.
+
+Clicking **Resume automation** early, or pausing again to get more time, replaces the
+scheduled end: the new length counts from the moment you click.
+
+If Health Check says **Automation is paused with no automatic resume**, a pause is in effect
+that nothing is set to end: usually one started before this version of Open Impact, or one
+set somewhere other than this page. Open this page, click **Resume automation**, and pause
+again for a set time if you still need to.
 
 ## Automations that always run
 
@@ -91,10 +112,15 @@ the line "This automation enforces a rule, so it always runs. It cannot be switc
 here and a pause does not suspend it." Clicking the switch does nothing, and if a change
 somehow reaches the server it is refused with the same explanation.
 
-The one shipped today is **Gift: receipt lock**. It refuses a change to the amount, the
-date, the donor or the receipt number of a gift that carries a receipt number, and it
-refuses to delete such a gift. That rule is what a receipt in a donor's hands means: see
-the [Gifts page](gifts.md).
+Three ship today:
+
+- **Gift: receipt lock** refuses a change to the amount, the date, the donor or the receipt
+  number of a gift that carries a receipt number, and refuses to delete such a gift. That
+  rule is what a receipt in a donor's hands means: see the [Gifts page](gifts.md).
+- **Gift: posting lock** and **Gift Allocation: posting lock** refuse a change to a gift that
+  is posted to accounting or dated in a closed period, and to its funds, and refuse a new gift
+  in a closed period. See [Posting and Closed Periods](posting-and-closed-periods.md); that
+  lock has its own override, Override Posting Lock.
 
 If you genuinely have to change a receipted gift, there is a way, and it is deliberately
 not on this page. It is the Override Receipt Lock permission, described under "Lifting the
@@ -103,6 +129,9 @@ receipt lock" on the [Gifts page](gifts.md). Every change made with it is writte
 
 ## Common mistakes
 
+- **Expecting the pause to last longer than 24 hours.** It cannot. For a load that runs
+  over several days, pause again each morning, or switch off only the automation that is
+  in your way: a switch stays where you put it.
 - **Pausing and forgetting, then wondering why names are wrong.** While automation is
   paused, new people do not get households and names are not recomputed. The records are
   fine, they are just not finished. Resume automation and then re-save the records, or run

@@ -45,12 +45,11 @@ public without sharing class SeasonalAddressWriter {
      * they are the whole of C-18's "visible last run" (R-AD8).
      */
     public static void recordRun(Datetime finishedAt, String summary) {
-        Nonprofit_Settings__c settings = Nonprofit_Settings__c.getOrgDefaults();
-        settings.Seasonal_Address_Last_Run__c = finishedAt;
-        settings.Seasonal_Address_Last_Run_Summary__c = summary;
-        if (settings.Id == null) {
-            settings.SetupOwnerId = UserInfo.getOrganizationId();
-        }
-        Database.upsert(settings, AccessLevel.SYSTEM_MODE);
+        OrgSettingsSystemWriter.save(
+            new Map<Schema.SObjectField, Object>{
+                Nonprofit_Settings__c.Seasonal_Address_Last_Run__c => finishedAt,
+                Nonprofit_Settings__c.Seasonal_Address_Last_Run_Summary__c => summary
+            }
+        );
     }
 }

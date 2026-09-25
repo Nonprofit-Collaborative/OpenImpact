@@ -26,7 +26,10 @@ public without sharing class GiftImportIntegritySelector {
     // The undo's questions (R-GI9): a receipt the undoing user cannot see must still keep its
     // gift, and a gift that stays must still keep its donor.
 
-    /** The gifts with their receipt number and whether any receipt names them. */
+    /**
+     * The gifts with their receipt number, whether any receipt names them, and what the posting
+     * lock reads.
+     */
     public static List<Gift__c> selectForUndo(Set<Id> giftIds) {
         return [
             SELECT
@@ -35,6 +38,9 @@ public without sharing class GiftImportIntegritySelector {
                 Donor_Contact__c,
                 Donor_Account__c,
                 Gift_Date__c,
+                Status__c,
+                Type__c,
+                Accounting_Posted_At__c,
                 (SELECT Id FROM Receipts__r LIMIT 1)
             FROM Gift__c
             WHERE Id IN :giftIds

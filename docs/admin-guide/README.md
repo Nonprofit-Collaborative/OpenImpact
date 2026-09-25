@@ -132,3 +132,4 @@ Each feature adds its row here when its page is written.
 | X-02 Campaign sync | [campaign-sync.md](campaign-sync.md) | Connect | v0.6 |
 | X-03 Inbound gift API | [inbound-gift-api.md](inbound-gift-api.md) | Connect | v0.6 |
 | X-04 Accounting export | [accounting-export.md](accounting-export.md) | Connect | v0.6 |
+| G-20 Posting and closed periods | [posting-and-closed-periods.md](posting-and-closed-periods.md) | Giving | v0.6 |

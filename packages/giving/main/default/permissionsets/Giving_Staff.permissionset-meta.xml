@@ -100,6 +100,10 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>GiftAllocationPostingLockHandler</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>GiftAllocationSelector</apexClass>
     <enabled>true</enabled>
   </classAccesses>
@@ -116,6 +120,18 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>GiftDonorDeleteGuardHandler</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>GiftPostingController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>GiftPostingLockHandler</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>GiftReceiptLockHandler</apexClass>
     <enabled>true</enabled>
   </classAccesses>
@@ -125,6 +141,10 @@
   </classAccesses>
   <classAccesses>
     <apexClass>GiftService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>GiftStatusRules</apexClass>
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
@@ -781,6 +801,16 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Gift_Batch__c.Status__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Gift__c.Accounting_Posted_At__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Gift__c.Accounting_Posted_By__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>

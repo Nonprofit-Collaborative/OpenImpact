@@ -5,7 +5,8 @@
  *
  *   1. a per transaction bypass, for tests and for internal bulk operations that deliberately
  *      run without a handler;
- *   2. the org wide pause, held as a datetime on Nonprofit Settings, so it expires by itself;
+ *   2. the org wide pause, held as a datetime on Nonprofit Settings, so it expires by itself,
+ *      with a one-time `AutomationResumeJob` that records the end (R-A5, ADR-0055);
  *   3. the per automation switch, held as a row per automation on Automation Setting.
  *
  * An automation whose shipped registry row carries `Always_Runs__c` is none of these three
@@ -25,6 +26,12 @@ public with sharing class AutomationControl {
     public static final String MANAGE_SETTINGS_PERMISSION = 'Manage_Nonprofit_Settings';
 
     private static final Set<Integer> ALLOWED_PAUSE_HOURS = new Set<Integer>{ 1, 2, 4, 8, 24 };
+
+    /** The longest pause the page offers. A pause ending later than this is not one it set. */
+    @NamespaceAccessible
+    public static final Integer LONGEST_PAUSE_HOURS = 24;
+
+    private static final String RESUME_SCHEDULE_CONTEXT = 'Automation pause: scheduling the automatic resume';
     private static final Set<String> BYPASSED_NAMES = new Set<String>();
 
     private static Map<String, Boolean> enabledByName;
@@ -130,23 +137,120 @@ public with sharing class AutomationControl {
         return FeatureManagement.checkPermission(MANAGE_SETTINGS_PERMISSION);
     }
 
+    /** Test seam: makes scheduling the resume fail, as it does when the org has 100 jobs. */
+    @TestVisible
+    private static Boolean schedulingFailsForTest = false;
+
     private static void requirePermission() {
         if (!canManage()) {
             throw new AutomationControlException(Label.Core_Automation_NoPermission);
         }
     }
 
+    /**
+     * Pauses everything for the given number of hours and schedules the job that records the
+     * end. A job that cannot be scheduled (the org already has 100) does not stop the pause:
+     * automation still resumes on time, the failure goes to the Error Log, and Health Check
+     * reports a pause with no automatic resume.
+     */
     @NamespaceAccessible
     public static Datetime pauseAll(Integer hours) {
         if (hours == null || !ALLOWED_PAUSE_HOURS.contains(hours)) {
             throw new AutomationControlException(Label.Core_Automation_PauseHoursInvalid);
         }
-        return writePausedUntil(System.now().addHours(hours));
+        Datetime until = writePausedUntil(System.now().addHours(hours));
+        try {
+            if (schedulingFailsForTest) {
+                throw new AutomationControlException('Scheduling refused for this test.');
+            }
+            AutomationResumeJob.scheduleAt(until);
+        } catch (Exception failed) {
+            ErrorLogger.log(failed, RESUME_SCHEDULE_CONTEXT);
+        }
+        return until;
     }
 
+    /**
+     * Resumes now and cancels the scheduled resume. A resume job left behind would find no
+     * pause and change nothing, so failing to cancel it is logged rather than refused.
+     */
     @NamespaceAccessible
     public static void resumeAll() {
         writePausedUntil(null);
+        try {
+            AutomationResumeJob.cancel();
+        } catch (Exception failed) {
+            ErrorLogger.log(failed, RESUME_SCHEDULE_CONTEXT);
+        }
+    }
+
+    /**
+     * Clears a pause whose end has passed and records the resume, as the Resume button would.
+     * Called by `AutomationResumeJob`, which runs as the administrator who paused; the
+     * permission was checked when the pause was set, and this can only do what the clock has
+     * already done, so it is not checked again. A pause still running, or none, is left alone.
+     *
+     * @return true when a pause was cleared
+     */
+    @NamespaceAccessible
+    public static Boolean resumeExpiredPause() {
+        return resumeExpiredPause(null);
+    }
+
+    /**
+     * The same, for the pause ending at `expectedEnd` only. The stored end is read under a lock
+     * on the settings record, so a pause saved a moment ago is either seen (and left alone,
+     * because its end differs) or waits until this has finished. A null `expectedEnd` clears
+     * whatever expired pause is stored.
+     */
+    @NamespaceAccessible
+    public static Boolean resumeExpiredPause(Datetime expectedEnd) {
+        Datetime stored = OrgSettingsSystemWriter.lockStored()?.Automation_Paused_Until__c;
+        if (stored == null || stored > System.now()) {
+            return false;
+        }
+        if (expectedEnd != null && !sameSecond(stored, expectedEnd)) {
+            return false;
+        }
+        AutomationSettingsWriter.savePausedUntil(null);
+        SettingsService.clearCache();
+        SettingsService.logChange(PAUSE_SETTING_NAME, String.valueOf(stored), '');
+        return true;
+    }
+
+    private static Boolean sameSecond(Datetime first, Datetime second) {
+        return first.getTime() / 1000 == second.getTime() / 1000;
+    }
+
+    /**
+     * The name of the person who started the pause in effect, read from the Setting Change the
+     * pause wrote, or null when automation is running or the pause was not set from the page.
+     */
+    @NamespaceAccessible
+    public static String pausedBy() {
+        if (!isPaused()) {
+            return null;
+        }
+        Setting_Change__c latest = SettingChangeSelector.latestFor(PAUSE_SETTING_NAME);
+        if (latest == null || String.isBlank(latest.New_Value__c)) {
+            return null;
+        }
+        return latest.Changed_By__r?.Name;
+    }
+
+    /**
+     * True when a pause is in effect that nothing will end on time: no resume job is scheduled,
+     * or its end is further ahead than the longest pause the page offers. Such a pause was set
+     * before automatic resume existed or somewhere other than the Automation page (R-A5).
+     */
+    @NamespaceAccessible
+    public static Boolean isPauseWithoutResume() {
+        Datetime until = pausedUntil();
+        if (until == null) {
+            return false;
+        }
+        return until > System.now().addHours(LONGEST_PAUSE_HOURS) ||
+            AutomationResumeJob.scheduledAt() == null;
     }
 
     private static Datetime writePausedUntil(Datetime until) {
