@@ -1,7 +1,8 @@
 /**
  * The Health Check questions about how Open Impact is set up and what it has been doing:
- * whether automation is paused, whether the two fiscal years agree, whether receipt
- * generation has been failing, and whether anything is waiting in the Error Log
+ * whether automation is paused (and whether anything will end the pause), whether the two
+ * fiscal years agree, whether receipt generation has been failing, and whether anything is
+ * waiting in the Error Log
  * (plan Section 4.8, feature C-11). Since C-21 it also asks whether the package defaults
  * materialized from shipped metadata are all here, and whether the nightly rollup run is
  * scheduled when a rollup needs it; those four findings carry a fix button (ADR-0048).
@@ -39,6 +40,13 @@ public with sharing class HealthCheckSettingsChecks {
     public class ReceiptGenerationCheck implements HealthCheckService.Check {
         public HealthCheckService.Finding run() {
             return receiptGenerationFinding();
+        }
+    }
+
+    /** A scheduled error digest that has stopped running. */
+    public class ErrorDigestCheck implements HealthCheckService.Check {
+        public HealthCheckService.Finding run() {
+            return errorDigestFinding();
         }
     }
 
@@ -214,15 +222,24 @@ public with sharing class HealthCheckSettingsChecks {
             );
         }
 
+        // A pause nothing will end on time is a warning rather than information: it was set
+        // before automatic resume existed, or somewhere other than the Automation page (R-A5).
+        Boolean withoutResume = AutomationControl.isPauseWithoutResume();
         String detail = String.format(
-            System.Label.Core_HealthCheck_AutomationPausedDetail,
+            withoutResume
+                ? System.Label.Core_HealthCheck_PausedNoResumeDetail
+                : System.Label.Core_HealthCheck_AutomationPausedDetail,
             new List<Object>{ pausedUntil.format() }
         );
         return new HealthCheckService.Finding(
-                'automation_paused',
-                System.Label.Core_HealthCheck_AutomationPausedTitle,
+                withoutResume ? 'automation_paused_no_resume' : 'automation_paused',
+                withoutResume
+                    ? System.Label.Core_HealthCheck_PausedNoResumeTitle
+                    : System.Label.Core_HealthCheck_AutomationPausedTitle,
                 detail,
-                HealthCheckService.SEVERITY_INFO,
+                withoutResume
+                    ? HealthCheckService.SEVERITY_WARNING
+                    : HealthCheckService.SEVERITY_INFO,
                 HealthCheckService.CATEGORY_SETTINGS
             )
             .withFix(
@@ -324,5 +341,36 @@ public with sharing class HealthCheckSettingsChecks {
                 System.Label.Core_HealthCheck_ErrorLogFix,
                 ErrorLogCountSelector.listViewUrl()
             );
+    }
+
+    /** How long a scheduled daily digest may go without a run before it is a finding. */
+    @TestVisible
+    private static final Integer DIGEST_STALE_DAYS = 2;
+
+    /**
+     * Whether the error digest is scheduled but has not run for more than two days (ADR-0055).
+     * The job runs as the person who scheduled it, so it stops when that person is deactivated,
+     * and nothing else would say so: the panel still shows it as scheduled. A digest that has
+     * never run is not reported; its first run is at most a day away.
+     */
+    private static HealthCheckService.Finding errorDigestFinding() {
+        if (ErrorDigestScheduler.nextRunAt() == null) {
+            return null;
+        }
+        Datetime lastRun = SettingsService.getSettings().Error_Digest_Last_Run__c;
+        if (lastRun == null || lastRun > System.now().addDays(-DIGEST_STALE_DAYS)) {
+            return null;
+        }
+        return new HealthCheckService.Finding(
+                'error_digest_stale',
+                System.Label.Core_HealthCheck_DigestStaleTitle,
+                String.format(
+                    System.Label.Core_HealthCheck_DigestStaleDetail,
+                    new List<Object>{ lastRun.format() }
+                ),
+                HealthCheckService.SEVERITY_WARNING,
+                HealthCheckService.CATEGORY_SETTINGS
+            )
+            .withFix(System.Label.Core_HealthCheck_DigestStaleFix, SettingSections.ERROR_LOG);
     }
 }

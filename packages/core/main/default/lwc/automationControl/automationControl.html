@@ -45,6 +45,12 @@
                             minute="2-digit"
                         ></lightning-formatted-date-time>
                     </p>
+                    <p data-id="paused-detail">
+                        <template lwc:if={pausedByText}>
+                            <span data-id="paused-by">{pausedByText}</span>
+                        </template>
+                        {labels.resumesItself}
+                    </p>
                 </div>
             </template>
 
