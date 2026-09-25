@@ -197,6 +197,7 @@ public with sharing class ImportRowProcessor {
         }
         Boolean personAccounts = ImportTemplateService.isPersonAccountMode(template);
         String rule = ImportTemplateService.normalizedRule(template.Matching_Rule__c);
+        noteFieldsWithoutAccess(mapping, personAccounts, outcome);
 
         List<Working> working = read(batch, rows, mapping, outcome);
         resolveOrganizations(working, rule, batch, dryRun, outcome);
@@ -1875,9 +1876,63 @@ public with sharing class ImportRowProcessor {
     // -------------------------------------------------------------------------------------
 
     /**
+     * Says in the run log, once per field and in the dry run as in the commit, which mapped
+     * fields the importing user may not write. `applyValues` skips such a field's values, and
+     * skipping them quietly is how a migration file's Email Opt Out and Do Not Call columns
+     * could read as loaded and not be, so an opted-out person was then emailed or called. The
+     * note names the field by the label the administrator knows it by.
+     */
+    private static void noteFieldsWithoutAccess(
+        ImportMapping mapping,
+        Boolean personAccounts,
+        Outcome outcome
+    ) {
+        Set<String> targets = new Set<String>(mapping.targetsBySourceKey().values());
+        for (ImportMapping.Assignment assignment : mapping.defaults) {
+            if (assignment != null && !ImportMapping.isIgnored(assignment.target)) {
+                targets.add(assignment.target.trim());
+            }
+        }
+        Schema.SObjectType personType = personAccounts ? Account.SObjectType : Contact.SObjectType;
+        for (String target : targets) {
+            String entity = ImportMapping.entityOf(target);
+            Schema.SObjectType type;
+            if (ImportMapping.ENTITY_ORGANIZATION.equals(entity)) {
+                type = Account.SObjectType;
+            } else if (
+                ImportMapping.ENTITY_CONTACT_1.equals(entity) ||
+                ImportMapping.ENTITY_CONTACT_2.equals(entity)
+            ) {
+                type = personType;
+            } else {
+                // A household takes only its name from a row, and the rest of a row is the
+                // entity processor's to report (R-IR6).
+                continue;
+            }
+            Schema.SObjectField field = type.getDescribe(SObjectDescribeOptions.DEFERRED)
+                .fields.getMap()
+                .get(ImportMapping.attributeOf(target).toLowerCase());
+            if (field == null) {
+                // An attribute the object does not have is reported by applyValues.
+                continue;
+            }
+            Schema.DescribeFieldResult describe = field.getDescribe();
+            if (!describe.isCreateable() && !describe.isUpdateable()) {
+                outcome.notes.add(
+                    String.format(
+                        Label.Core_Import_LogAttributeNoAccess,
+                        new List<String>{ describe.getLabel() }
+                    )
+                );
+            }
+        }
+    }
+
+    /**
      * Copies the mapped attributes onto a record, skipping any the object does not have or
-     * the user may not write. An unknown attribute is reported once in the run log rather
-     * than failing the row: a template written for another org should not stop this one.
+     * the user may not write. Both are reported once in the run log rather than failing the
+     * row: a template written for another org should not stop this one, and a field the user
+     * cannot write is named by `noteFieldsWithoutAccess`.
      */
     private static void applyValues(
         SObject record,
@@ -1911,6 +1966,7 @@ public with sharing class ImportRowProcessor {
             }
             Schema.DescribeFieldResult describe = field.getDescribe();
             if (!describe.isCreateable() && !describe.isUpdateable()) {
+                // Already in the run log, from noteFieldsWithoutAccess.
                 continue;
             }
             try {

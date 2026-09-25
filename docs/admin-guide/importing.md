@@ -218,6 +218,16 @@ a person resembling someone already here is not rejected. Afterwards run the dup
 **Block** still blocks: those rows are rejected with the rule's message, although the dry run
 counted them as would create, because a dry run saves nothing for the rule to check.
 
+**The run log says "Not loaded: you do not have access to" a field.** Your user may not
+edit that field, so its column was skipped on every row, in the dry run and in the commit, and
+the rest of each row loaded. The run log names each such field once. The Nonprofit Admin role
+lets you edit the fields the shipped mappings use (email, phone numbers, mailing address,
+title, birthdate, and the Email Opt Out, Fax Opt Out and Do Not Call flags), so this usually
+means a column mapped to some other field, or a user without that role. Ask your Salesforce
+administrator for edit access to the field and import the file again: the second import
+matches the people it already created and adds the missing values. Where people are person
+accounts, access to the person fields follows the contact fields of the same name.
+
 **Gift columns in the file were not loaded.** Gifts are loaded by the Giving module. Without
 it, gift columns are recognized and kept with the staged row, and the run log says so. With
 it installed, see [Importing gifts](gift-import.md).
