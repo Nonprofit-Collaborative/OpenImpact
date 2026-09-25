@@ -29,8 +29,9 @@
  *
  * `@NamespaceAccessible` on the members `HealthCheckGivingChecks` actually reaches (ADR-0017):
  * the class itself, `Finding` with its constructor, `withFix` and `withLinks`, `Link` with its
- * constructor, the two vocabulary constants Giving's one finding uses (`SEVERITY_WARNING`,
- * `CATEGORY_SETTINGS`), `canManageSettings()`, and `run()`, which `GivingHealthCheckExtensionTest`
+ * constructor, the vocabulary constants Giving's findings use (`SEVERITY_INFO`,
+ * `SEVERITY_WARNING`, `CATEGORY_ACCESS`, `CATEGORY_SETTINGS`, `FIX_CUSTOM_PERMISSIONS_URL`),
+ * `canManageSettings()`, and `run()`, which `GivingHealthCheckExtensionTest`
  * calls directly to prove Core reaches the installed extension. A severity, category or method a
  * future extension needs and this one does not gets annotated when that extension is built, not
  * ahead of it.
@@ -47,6 +48,7 @@
  */
 @NamespaceAccessible
 public with sharing class HealthCheckService {
+    @NamespaceAccessible
     public static final String SEVERITY_INFO = 'Info';
     @NamespaceAccessible
     public static final String SEVERITY_WARNING = 'Warning';
@@ -54,6 +56,7 @@ public with sharing class HealthCheckService {
 
     public static final String CATEGORY_ORG_SHAPE = 'OrgShape';
     public static final String CATEGORY_LICENSES = 'Licenses';
+    @NamespaceAccessible
     public static final String CATEGORY_ACCESS = 'Access';
     @NamespaceAccessible
     public static final String CATEGORY_SETTINGS = 'Settings';
@@ -157,6 +160,7 @@ public with sharing class HealthCheckService {
      * deliberately in Setup and not in the settings console, because ADR-0024 keeps lifting
      * the receipt lock out of the console on purpose.
      */
+    @NamespaceAccessible
     public static final String FIX_CUSTOM_PERMISSIONS_URL = '/lightning/setup/CustomPermissions/home';
 
     /**

@@ -52,7 +52,9 @@ Assistant flow and labels as before.
    without it there are seven steps and no notice about a missing module. An extension that
    cannot be built or throws is logged and left out, and the assistant still opens.
 3. **The two receipt checks move to Giving's Health Check extension** with their finding keys,
-   wording, severities and fixes unchanged. `ReceiptGapSelector` moves to Giving.
+   wording, severities and fixes unchanged. Core's `ReceiptGapSelector`, which reached
+   `Receipt__c` with dynamic SOQL, is replaced by Giving's `ReceiptGenerationFailureSelector`,
+   an ordinary user-mode query on Giving's own object.
    `GivingHealthCheckExtension` asks the receipt generation question of every viewer, as Core
    did, and the receipt lock override question only of a viewer who may manage settings.
 4. **Core's app is neutral and Giving's app is the nonprofit one.** Core's app keeps its API
