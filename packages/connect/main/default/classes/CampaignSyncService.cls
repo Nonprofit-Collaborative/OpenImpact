@@ -205,7 +205,7 @@ public with sharing class CampaignSyncService {
             QUERIES_NEEDED + SAFETY_MARGIN &&
             Limits.getLimitDmlStatements() - statementsUsed >=
             DML_STATEMENTS_NEEDED + SAFETY_MARGIN &&
-            rowsLeft >= 2 * appealCount + SAFETY_MARGIN;
+            rowsLeft >= 3 * appealCount + SAFETY_MARGIN;
     }
 
     /**
