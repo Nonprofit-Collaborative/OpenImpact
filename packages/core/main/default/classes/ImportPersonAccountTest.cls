@@ -177,9 +177,15 @@ private class ImportPersonAccountTest {
         run(true);
         Test.stopTest();
 
+        // Read in system mode: the key is the package's own bookkeeping, never shown, and
+        // the running user need not be granted it.
+        List<Import_Row__c> rows = Database.queryWithBinds(
+            'SELECT Person_1_Key__c FROM Import_Row__c WHERE Import_Batch__c = :batchId',
+            new Map<String, Object>{ 'batchId' => batch.Id },
+            AccessLevel.SYSTEM_MODE
+        );
         Assert.isNotNull(
-            [SELECT Person_1_Key__c FROM Import_Row__c WHERE Import_Batch__c = :batch.Id]
-            .Person_1_Key__c,
+            rows[0].Person_1_Key__c,
             'The row carries the key a later chunk finds her by.'
         );
     }
