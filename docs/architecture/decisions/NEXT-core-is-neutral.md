@@ -74,6 +74,11 @@ Assistant flow and labels as before.
    the `Nonprofit_*` permission sets, and the `Nonprofit_Hub_Home` and `Nonprofit_Settings`
    tabs and pages keep their API names. Only labels change. Renaming them is part of the name
    pass, before the first package version.
+7. **Core fields that hold a module's record identifier are labelled neutrally.**
+   `Import_Row__c.Gift_Id__c` and `Soft_Credit_Id__c` are on Core's Import Row layout, so a
+   Core-only org would see them. They stay on the layout, where an org with Giving still reads
+   them, and are relabelled Record Created and Second Record Created, with their API names
+   unchanged under decision 6.
 
 ## Alternatives considered
 
@@ -105,3 +110,13 @@ Assistant flow and labels as before.
 - Health Check lists the two receipt findings after Core's own findings of the same category.
 - A later module that wants a Setup Assistant step adds its class name to
   `SetupAssistantExtensions.EXTENSION_CLASSES` and implements the interface.
+- A step's field limits are data, so Core's save enforces a Text field's length and pattern
+  on the server, as the page does: a save that follows an upload sends the whole step without
+  the page's own validation.
+- Giving isolates each of its Health Check checks the way Core isolates its own: a check that
+  throws becomes its own `check_failed_<key>` finding, through `HealthCheckService.checkFailed`,
+  and the other Giving findings still stand. The failed-receipt count is capped, because a
+  `COUNT()` past 50,000 rows would fail with a limit exception nothing can catch.
+- Giving's other writers (`AccountingPeriodWriter`, `AcknowledgmentController`,
+  `CommitmentService`) still make a first save from `Giving_Settings__c.getOrgDefaults()`. That
+  predates C-29 and has its own follow-up task; C-29 adds no new writer of that kind.
