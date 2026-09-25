@@ -22,6 +22,7 @@ public with sharing class CommitmentService {
     @TestVisible
     private static final String STATUS_CANCELLED = 'Cancelled';
     private static final String GIFT_STATUS_RECEIVED = 'Received';
+    private static final String GIFT_STATUS_CANCELLED = 'Cancelled';
     @TestVisible
     private static final String INSTALLMENT_SCHEDULED = 'Scheduled';
     @TestVisible
@@ -294,6 +295,14 @@ public with sharing class CommitmentService {
      * pledge that is fully paid (R-CM4).
      */
     public static void applyGift(List<Gift__c> gifts) {
+        applyGift(gifts, new Set<Id>());
+    }
+
+    /**
+     * As above, but the gifts in `notAutoLinked` are not linked to an installment: a gift moved
+     * back from Cancelled to Pending waits for a person to pick one (R-G16).
+     */
+    public static void applyGift(List<Gift__c> gifts, Set<Id> notAutoLinked) {
         if (gifts == null || gifts.isEmpty()) {
             return;
         }
@@ -308,8 +317,13 @@ public with sharing class CommitmentService {
             if (gift.Installment__c != null) {
                 installmentIds.add(gift.Installment__c);
             } else if (
-                gift.Commitment__c != null && !giftsLinkedThisTransaction.contains(gift.Id)
+                gift.Commitment__c != null &&
+                !giftsLinkedThisTransaction.contains(gift.Id) &&
+                !notAutoLinked.contains(gift.Id) &&
+                gift.Status__c != GIFT_STATUS_CANCELLED
             ) {
+                // A Cancelled gift keeps its pledge as history but pays nothing, so it is not
+                // linked to the next open installment, nor when it goes back to Pending (R-G16).
                 awaitingInstallment.add(gift);
             }
         }

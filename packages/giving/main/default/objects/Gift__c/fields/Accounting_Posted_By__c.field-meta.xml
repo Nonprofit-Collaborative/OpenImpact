@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Accounting_Posted_By__c</fullName>
+  <deleteConstraint>SetNull</deleteConstraint>
+  <description>
+    Who marked this gift posted to accounting (G-20, R-G13). Written only by marking gifts posted
+    and cleared only by Unpost; read only in every permission set.
+  </description>
+  <inlineHelpText>Who marked this gift as entered in the accounting system.</inlineHelpText>
+  <label>Posted to Accounting By</label>
+  <referenceTo>User</referenceTo>
+  <relationshipName>Gifts_Posted_To_Accounting</relationshipName>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Lookup</type>
+</CustomField>

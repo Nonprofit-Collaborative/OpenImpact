@@ -320,6 +320,12 @@
   <flexiPageRegions>
     <itemInstances>
       <componentInstance>
+        <componentName>giftPosting</componentName>
+        <identifier>giftPostingPanel</identifier>
+      </componentInstance>
+    </itemInstances>
+    <itemInstances>
+      <componentInstance>
         <componentName>receiptActions</componentName>
         <identifier>giftReceiptActionsPanel</identifier>
       </componentInstance>
