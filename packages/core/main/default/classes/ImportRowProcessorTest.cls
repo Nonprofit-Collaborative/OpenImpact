@@ -150,7 +150,7 @@ private class ImportRowProcessorTest {
         );
         Test.startTest();
         run(false);
-        ImportBatchService.resetRows(batch.Id);
+        ImportBatchService.beginPass(batch.Id);
         run(false);
         Test.stopTest();
 

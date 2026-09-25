@@ -44,6 +44,68 @@ public with sharing class ImportRowProcessor {
 
     private static final String ORGANIZATION_RECORD_TYPE = 'Organization';
 
+    /** Prefixes a matching key before its digest, so a person and an organization never share one. */
+    private static final String PERSON_DIGEST = 'person:';
+    private static final String ORGANIZATION_DIGEST = 'organization:';
+
+    /**
+     * In a commit, the matching keys of the people this chunk has set out to create, the
+     * people created under each, and why any could not be, so a second row naming the same
+     * new person shares the first row's record rather than making another (R-IB4, R-IB12).
+     */
+    private static ChunkPeople keysBeingCreated = new ChunkPeople();
+
+    /**
+     * The new people of one chunk: how many are created under each key, and which people
+     * (by first-name key) hold each shared key, counting a couple not yet created as two, so
+     * a row naming one partner alone is never given the other (R-IB12).
+     */
+    private class ChunkPeople {
+        Map<String, Integer> created = new Map<String, Integer>();
+        Map<String, Set<String>> people = new Map<String, Set<String>>();
+        /** The first-name keys of couples' second people the chunk has yet to create. */
+        Set<String> waitingSeconds = new Set<String>();
+
+        void hold(String shared, String person) {
+            if (!people.containsKey(shared)) {
+                people.put(shared, new Set<String>());
+            }
+            people.get(shared).add(person);
+        }
+
+        Integer holding(String shared) {
+            return people.containsKey(shared) ? people.get(shared).size() : 0;
+        }
+    }
+
+    /** Counts the couples of the chunk, found by nobody yet, before anybody is created. */
+    private static ChunkPeople chunkPeople(List<Working> working) {
+        ChunkPeople chunk = new ChunkPeople();
+        for (Working item : working) {
+            for (Integer which = 1; which <= 2; which++) {
+                String key = which == 1 ? item.personKey1 : item.personKey2;
+                Id found = which == 1 ? item.person1Id : item.person2Id;
+                Boolean coming = which == 1 ? item.comingPerson1 : item.comingPerson2;
+                String shared = ImportMatcher.baseKey(key);
+                if (
+                    item.error == null &&
+                    key != null &&
+                    shared != key &&
+                    found == null &&
+                    !coming
+                ) {
+                    chunk.hold(shared, key);
+                    if (which == 2) {
+                        chunk.waitingSeconds.add(key);
+                    }
+                }
+            }
+        }
+        return chunk;
+    }
+    private static Map<String, Id> createdByKey = new Map<String, Id>();
+    private static Map<String, String> failedByKey = new Map<String, String>();
+
     /**
      * The attributes that can name or find a person. A full name column is not listed because
      * `splitFullNames` has already turned one into a first and last name by the time anything
@@ -83,6 +145,9 @@ public with sharing class ImportRowProcessor {
          */
         @NamespaceAccessible
         public Decimal fileAmount;
+        /** The settings the entity processor ran this chunk under, in a dry run (R-IB11). */
+        @NamespaceAccessible
+        public String processorSettings;
     }
 
     /** One row's working state while the chunk is resolved. */
@@ -102,6 +167,15 @@ public with sharing class ImportRowProcessor {
         Boolean createdPerson1 = false;
         /** True when this run created the row's second person, who is joined to a household. */
         Boolean createdPerson2 = false;
+        /** In a dry run, true when an earlier chunk would create the row's first person. */
+        Boolean comingPerson1 = false;
+        /** In a dry run, true when an earlier chunk would create the row's second person. */
+        Boolean comingPerson2 = false;
+        /** Whether a first name narrows the key, as it does under the Email and Name + Postal rules. */
+        Boolean byName = false;
+        /** How many records already hold each person's shared key: none, one, or several (2). */
+        Integer heldBefore1 = 0;
+        Integer heldBefore2 = 0;
         String error;
     }
 
@@ -124,7 +198,7 @@ public with sharing class ImportRowProcessor {
         Boolean personAccounts = ImportTemplateService.isPersonAccountMode(template);
         String rule = ImportTemplateService.normalizedRule(template.Matching_Rule__c);
 
-        List<Working> working = read(rows, mapping, outcome);
+        List<Working> working = read(batch, rows, mapping, outcome);
         resolveOrganizations(working, rule, batch, dryRun, outcome);
         resolvePeople(working, rule, batch, personAccounts, dryRun, outcome);
         tagAndNameHouseholds(working, batch, dryRun, outcome);
@@ -151,6 +225,7 @@ public with sharing class ImportRowProcessor {
 
     /** Parses every row's raw values into the entities they describe, and validates them. */
     private static List<Working> read(
+        Import_Batch__c batch,
         List<Import_Row__c> rows,
         ImportMapping mapping,
         Outcome outcome
@@ -158,6 +233,7 @@ public with sharing class ImportRowProcessor {
         Map<String, String> targets = mapping.targetsBySourceKey();
         List<Working> working = new List<Working>();
         for (Import_Row__c row : rows) {
+            startPass(row, ImportRowSelector.passOf(batch));
             Working item = new Working();
             item.row = row;
             item.values = rawValues(row);
@@ -349,15 +425,36 @@ public with sharing class ImportRowProcessor {
             return;
         }
         if (dryRun) {
+            Set<String> digests = new Set<String>();
+            for (String name : firstRowByName.keySet()) {
+                digests.add(digest(ORGANIZATION_DIGEST, name));
+            }
+            Set<String> earlier = ImportRowSelector.createdDigestsWrittenEarlier(batch, digests);
             for (Working item : working) {
-                if (item.organizationId == null && item.organizationKey != null) {
+                if (item.organizationId != null || item.organizationKey == null) {
+                    continue;
+                }
+                // An organization an earlier chunk would create is found by the commit here,
+                // so the row is not one that creates it (R-IB12).
+                if (!earlier.contains(digest(ORGANIZATION_DIGEST, item.organizationKey))) {
                     item.createdAnything = true;
+                }
+            }
+            // The first row naming each new organization carries its digest for later chunks.
+            for (String name : firstRowByName.keySet()) {
+                String digest = digest(ORGANIZATION_DIGEST, name);
+                if (!earlier.contains(digest)) {
+                    firstRowByName.get(name).row.Organization_Key__c = digest;
                 }
             }
             return;
         }
         Map<String, Id> newIds = new Map<String, Id>();
-        List<Database.SaveResult> results = Database.insert(toCreate, false, AccessLevel.USER_MODE);
+        List<Database.SaveResult> results = Database.insert(
+            toCreate,
+            saveOptions(),
+            AccessLevel.USER_MODE
+        );
         for (Integer i = 0; i < results.size(); i++) {
             Working owner = firstRowByName.get(createdNames[i]);
             if (results[i].isSuccess()) {
@@ -417,10 +514,25 @@ public with sharing class ImportRowProcessor {
                 rule,
                 externalIdField
             );
-            collect(item.personKey1, rule, emailKeys, namePostalKeys, externalIds);
-            collect(item.personKey2, rule, emailKeys, namePostalKeys, externalIds);
+            item.byName = !ImportTemplateService.RULE_EXTERNAL_ID.equals(rule);
+            tellApartByFirstName(item, rule);
+            collect(
+                ImportMatcher.baseKey(item.personKey1),
+                rule,
+                emailKeys,
+                namePostalKeys,
+                externalIds
+            );
+            collect(
+                ImportMatcher.baseKey(item.personKey2),
+                rule,
+                emailKeys,
+                namePostalKeys,
+                externalIds
+            );
         }
 
+        ImportMatcher.forgetHeldKeys();
         Map<String, Id> matches = matchPeople(
             rule,
             personAccounts,
@@ -430,18 +542,66 @@ public with sharing class ImportRowProcessor {
             outcome
         );
 
-        assignPerson(working, matches, ImportMapping.ENTITY_CONTACT_1, true);
-        assignPerson(working, matches, ImportMapping.ENTITY_CONTACT_2, false);
+        Map<String, Integer> earlier = dryRun
+            ? ImportRowSelector.createdDigestCounts(batch, digestsToAsk(working))
+            : new Map<String, Integer>();
+        findPerson(working, matches, earlier, true);
+        findPerson(working, matches, earlier, false);
         validate(working);
 
         if (dryRun) {
-            countUpdatesInPreview(working, personAccounts);
+            countUpdatesInPreview(working, personAccounts, rule);
             // Read, not written: an entity processor matching a gift to a household's pledge
             // needs the household a matched person is in, in the preview as in the commit.
             resolveHouseholds(working, personAccounts);
             return;
         }
         savePeople(working, batch, personAccounts, outcome);
+    }
+
+    /**
+     * A row's two people are two people, even when the rule gives them one key (a couple with
+     * one surname and postal code, or one email). Each is then matched, shared and remembered
+     * by the shared key narrowed to their own first name, so neither is taken for the other,
+     * in this file or when it is loaded again (R-IB12). Two with one first name as well cannot
+     * be told apart, and the row is refused rather than guessed at.
+     */
+    private static void tellApartByFirstName(Working item, String rule) {
+        if (
+            item.personKey1 == null ||
+            item.personKey1 != item.personKey2 ||
+            ImportTemplateService.RULE_EXTERNAL_ID.equals(rule)
+        ) {
+            return;
+        }
+        String first1 = ImportMatcher.nameKey(
+            attribute(item.byEntity, ImportMapping.ENTITY_CONTACT_1, 'FirstName')
+        );
+        String first2 = ImportMatcher.nameKey(
+            attribute(item.byEntity, ImportMapping.ENTITY_CONTACT_2, 'FirstName')
+        );
+        if (first1 == first2) {
+            item.error = Label.Core_Import_ErrorTwoPeopleOneKey;
+            return;
+        }
+        item.personKey1 = ImportMatcher.firstNameKey(item.personKey1, first1);
+        item.personKey2 = ImportMatcher.firstNameKey(item.personKey2, first2);
+    }
+
+    /**
+     * Every key that finds a person this row creates: the shared key, and the same narrowed
+     * to their first name, so a later row finds them by whichever it holds (R-IB12).
+     */
+    private static List<String> keysFinding(Working item, Boolean isFirst) {
+        String key = ImportMatcher.baseKey(isFirst ? item.personKey1 : item.personKey2);
+        if (key == null) {
+            return new List<String>();
+        }
+        String entity = isFirst ? ImportMapping.ENTITY_CONTACT_1 : ImportMapping.ENTITY_CONTACT_2;
+        return new List<String>{
+            key,
+            ImportMatcher.firstNameKey(key, attribute(item.byEntity, entity, 'FirstName'))
+        };
     }
 
     private static void collect(
@@ -520,10 +680,61 @@ public with sharing class ImportRowProcessor {
         return ImportMatcher.byExternalId(type, externalIds);
     }
 
-    private static void assignPerson(
+    /**
+     * The key that finds this person by their first name: their own key when the row's two
+     * people share one (it is narrowed already), else the shared key narrowed to the first
+     * name the row gives. Null when the row gives none, or the rule does not use names.
+     */
+    private static String namedKey(Working item, Boolean isFirst) {
+        String key = isFirst ? item.personKey1 : item.personKey2;
+        if (key == null || !item.byName) {
+            return null;
+        }
+        if (ImportMatcher.baseKey(key) != key) {
+            return key;
+        }
+        String entity = isFirst ? ImportMapping.ENTITY_CONTACT_1 : ImportMapping.ENTITY_CONTACT_2;
+        String first = ImportMatcher.nameKey(attribute(item.byEntity, entity, 'FirstName'));
+        return first == null ? null : ImportMatcher.firstNameKey(key, first);
+    }
+
+    /** In a dry run, the digests of every key this chunk's people could be found by. */
+    private static Set<String> digestsToAsk(List<Working> working) {
+        Set<String> digests = new Set<String>();
+        for (Working item : working) {
+            for (Integer which = 1; which <= 2; which++) {
+                String key = which == 1 ? item.personKey1 : item.personKey2;
+                String named = namedKey(item, which == 1);
+                if (key != null) {
+                    digests.add(digest(PERSON_DIGEST, ImportMatcher.baseKey(key)));
+                }
+                if (named != null) {
+                    digests.add(digest(PERSON_DIGEST, named));
+                }
+            }
+        }
+        return digests;
+    }
+
+    private static Integer count(Map<String, Integer> counts, String key) {
+        Integer found = key == null ? null : counts.get(key);
+        return found == null ? 0 : found;
+    }
+
+    /**
+     * Finds one person of each row among those already there: in the org, and in a dry run
+     * among the people earlier chunks would create, which the commit will have created by the
+     * time it reaches this chunk (R-IB12). The first name is asked first. The shared key alone
+     * finds a person only when one record holds it, or when the row gives no first name (the
+     * earliest then). A person the shared key cannot tell apart from another holding it, such
+     * as a partner, is not found here, and is created unless an earlier row of the chunk
+     * creates them. A row's two people sharing one key are found by first name only. In a
+     * dry run the earlier chunks' people are asked for by digest, for this chunk's keys only.
+     */
+    private static void findPerson(
         List<Working> working,
         Map<String, Id> matches,
-        String entity,
+        Map<String, Integer> earlier,
         Boolean isFirst
     ) {
         for (Working item : working) {
@@ -531,16 +742,131 @@ public with sharing class ImportRowProcessor {
             if (key == null) {
                 continue;
             }
-            Id found = matches.get(key);
-            if (found == null) {
-                continue;
+            String shared = ImportMatcher.baseKey(key);
+            String named = namedKey(item, isFirst);
+            Integer heldEarlier = count(earlier, digest(PERSON_DIGEST, shared));
+            Integer held =
+                (matches.containsKey(shared) ? (ImportMatcher.isHeldByMany(shared) ? 2 : 1) : 0) +
+                heldEarlier;
+            Id found = named == null ? null : matches.get(named);
+            Boolean coming =
+                found == null &&
+                named != null &&
+                count(earlier, digest(PERSON_DIGEST, named)) > 0;
+            // A key whose lookup stopped at the row cap may have a holder unseen: first name only.
+            if (
+                found == null &&
+                !coming &&
+                shared == key &&
+                !ImportMatcher.wasCutOff(shared) &&
+                (named == null ||
+                held == 1)
+            ) {
+                found = matches.get(shared);
+                coming = found == null && heldEarlier > 0;
             }
             if (isFirst) {
                 item.person1Id = found;
+                item.comingPerson1 = coming;
+                item.heldBefore1 = Math.min(held, 2);
             } else {
                 item.person2Id = found;
+                item.comingPerson2 = coming;
+                item.heldBefore2 = Math.min(held, 2);
             }
         }
+    }
+
+    /**
+     * Which person an earlier row of this chunk creates is this one, by the key to share, or
+     * null when this row creates them. By first name first; by the shared key alone only when
+     * nobody held it before the chunk and one person of the chunk holds it, or the row gives no
+     * first name. `created` counts the people of the chunk holding each key (R-IB12).
+     */
+    private static String keyToShare(Working item, Boolean isFirst, ChunkPeople chunk) {
+        String key = isFirst ? item.personKey1 : item.personKey2;
+        if (key == null) {
+            return null;
+        }
+        String named = namedKey(item, isFirst);
+        if (named != null && count(chunk.created, named) > 0) {
+            return named;
+        }
+        String shared = ImportMatcher.baseKey(key);
+        Integer heldBefore = isFirst ? item.heldBefore1 : item.heldBefore2;
+        Boolean alone = named == null
+            ? count(chunk.created, shared) > 0
+            : count(chunk.created, shared) == 1 && chunk.holding(shared) == 1;
+        return shared == key && heldBefore == 0 && alone ? shared : null;
+    }
+
+    /**
+     * Whether a row's first person is a couple's second person this chunk has yet to create,
+     * named alone. Every first person is saved before any second person, so such a row waits
+     * and shares the partner once the couple is saved, and so is in the couple's household
+     * rather than one of their own (R-IB12).
+     */
+    private static Boolean waitsForPartner(Working item, ChunkPeople chunk) {
+        String named = namedKey(item, true);
+        return named != null &&
+            ImportMatcher.baseKey(item.personKey1) == item.personKey1 &&
+            item.person1Id == null &&
+            !item.comingPerson1 &&
+            chunk.waitingSeconds.contains(named) &&
+            count(chunk.created, named) == 0;
+    }
+
+    /** First people waiting for a couple of the chunk to be saved, in a commit. */
+    private static List<Working> waitingFirst = new List<Working>();
+
+    /** Counts a person this chunk creates under every key that finds them. */
+    private static List<String> countCreated(Working item, Boolean isFirst, ChunkPeople chunk) {
+        List<String> finding = keysFinding(item, isFirst);
+        for (String key : finding) {
+            chunk.created.put(key, count(chunk.created, key) + 1);
+        }
+        if (!finding.isEmpty()) {
+            chunk.hold(finding[0], finding[1]);
+        }
+        return finding;
+    }
+
+    /**
+     * A matching key as sixteen hex digits: the first eight bytes of its MD5 digest, so 64
+     * bits keep two keys well clear of sharing one. It is kept on the row (Person 1 Key,
+     * Person 2 Key, Organization Key), compared only and never shown.
+     */
+    private static String digest(String kind, String key) {
+        return EncodingUtil.convertToHex(Crypto.generateDigest('MD5', Blob.valueOf(kind + key)))
+            .left(16);
+    }
+
+    /**
+     * Clears what an earlier pass left on a row and stamps it with this one (R-IB13). There is
+     * no reset of the rows before a pass, which for a large file would be more writes than one
+     * transaction allows, so each chunk does it for its own rows before working them out. What
+     * a pass resolved is its own answer: a commit never acts on a gift or a household a dry
+     * run only described, and a key is read only by the pass that wrote it (R-IB12).
+     */
+    @NamespaceAccessible
+    public static void startPass(Import_Row__c row, Decimal pass) {
+        row.Pass_Number__c = pass;
+        row.Status__c = STATUS_PENDING;
+        row.Error_Message__c = null;
+        row.Household__c = null;
+        row.Contact_1__c = null;
+        row.Contact_2__c = null;
+        row.Person_1_Account__c = null;
+        row.Person_2_Account__c = null;
+        row.Organization__c = null;
+        row.Gift_Id__c = null;
+        row.Soft_Credit_Id__c = null;
+        row.Person_1_Key__c = null;
+        row.Person_2_Key__c = null;
+        row.Person_1_Name_Key__c = null;
+        row.Person_2_Name_Key__c = null;
+        row.Organization_Key__c = null;
+        row.Processor_Key__c = null;
     }
 
     /** A row has to describe somebody. One that does not is rejected before anything is saved. */
@@ -567,12 +893,14 @@ public with sharing class ImportRowProcessor {
             if (
                 hasPerson1 &&
                 item.person1Id == null &&
+                !item.comingPerson1 &&
                 !hasLastName(item, ImportMapping.ENTITY_CONTACT_1)
             ) {
                 item.error = Label.Core_Import_ErrorLastNameMissing;
             } else if (
                 hasPerson2 &&
                 item.person2Id == null &&
+                !item.comingPerson2 &&
                 !hasLastName(item, ImportMapping.ENTITY_CONTACT_2)
             ) {
                 item.error = Label.Core_Import_ErrorLastNameMissing;
@@ -622,9 +950,15 @@ public with sharing class ImportRowProcessor {
     /**
      * On a dry run there is nothing to compare a matched person's stored values against
      * without reading them, so the preview reads them: the counts an administrator sees are
-     * the counts the commit will produce.
+     * the counts the commit will produce. A person an earlier chunk would create counts as
+     * matched, and a person this chunk would create is remembered for the chunks after it
+     * (R-IB12).
      */
-    private static void countUpdatesInPreview(List<Working> working, Boolean personAccounts) {
+    private static void countUpdatesInPreview(
+        List<Working> working,
+        Boolean personAccounts,
+        String rule
+    ) {
         Set<Id> matchedIds = new Set<Id>();
         for (Working item : working) {
             if (item.person1Id != null) {
@@ -635,30 +969,102 @@ public with sharing class ImportRowProcessor {
             }
         }
         Map<Id, SObject> stored = readStored(matchedIds, personAccounts, working);
+        // The commit saves every row's first person before any second person, and a second
+        // person whose row has a first person before one whose row has not; the first row it
+        // saves a new person for creates them and the rest share them. The preview walks the
+        // chunk in the same order so it names the same row as the one that creates (R-IB12).
+        ChunkPeople keysInChunk = chunkPeople(working);
+        List<Working> withFirst = new List<Working>();
+        List<Working> withoutFirst = new List<Working>();
+        List<Working> waiting = new List<Working>();
         for (Working item : working) {
             if (item.error != null) {
                 continue;
             }
-            if (item.person1Id == null && describesPerson(item, ImportMapping.ENTITY_CONTACT_1)) {
-                item.createdAnything = true;
-            } else if (
-                changes(
-                    stored.get(item.person1Id),
-                    item.byEntity.get(ImportMapping.ENTITY_CONTACT_1)
-                )
+            if (
+                describesPerson(item, ImportMapping.ENTITY_CONTACT_1) &&
+                waitsForPartner(item, keysInChunk)
             ) {
-                item.updatedAnything = true;
+                waiting.add(item);
+            } else {
+                previewPerson(item, true, stored, keysInChunk, rule, personAccounts);
             }
-            if (item.person2Id == null && describesPerson(item, ImportMapping.ENTITY_CONTACT_2)) {
-                item.createdAnything = true;
-            } else if (
-                changes(
-                    stored.get(item.person2Id),
-                    item.byEntity.get(ImportMapping.ENTITY_CONTACT_2)
-                )
-            ) {
-                item.updatedAnything = true;
+            Boolean hasFirst =
+                item.person1Id != null ||
+                item.comingPerson1 ||
+                describesPerson(item, ImportMapping.ENTITY_CONTACT_1);
+            (hasFirst ? withFirst : withoutFirst).add(item);
+        }
+        withFirst.addAll(withoutFirst);
+        for (Working item : withFirst) {
+            previewPerson(item, false, stored, keysInChunk, rule, personAccounts);
+        }
+        for (Working item : waiting) {
+            previewPerson(item, true, stored, keysInChunk, rule, personAccounts);
+        }
+    }
+
+    /**
+     * One person of a row in the preview: created, unless an earlier chunk or an earlier row of
+     * this chunk would create them; otherwise updated when the row changes their stored values.
+     */
+    private static void previewPerson(
+        Working item,
+        Boolean isFirst,
+        Map<Id, SObject> stored,
+        ChunkPeople keysInChunk,
+        String rule,
+        Boolean personAccounts
+    ) {
+        String entity = isFirst ? ImportMapping.ENTITY_CONTACT_1 : ImportMapping.ENTITY_CONTACT_2;
+        Id personId = isFirst ? item.person1Id : item.person2Id;
+        Boolean coming = isFirst ? item.comingPerson1 : item.comingPerson2;
+        if (personId == null && !coming && describesPerson(item, entity)) {
+            if (keyToShare(item, isFirst, keysInChunk) != null) {
+                return;
             }
+            item.createdAnything = true;
+            countCreated(item, isFirst, keysInChunk);
+            rememberCreated(item, entity, rule, personAccounts);
+        } else if (changes(stored.get(personId), item.byEntity.get(entity))) {
+            item.updatedAnything = true;
+        }
+    }
+
+    /**
+     * Remembers a person a dry run would create, for later chunks to match, but only when the
+     * commit could find them again by the same key: the record it creates must carry the value
+     * the matcher reads. An email is written to a contact but not to a person stored as an
+     * account, and a postal code only to a contact whose own column gave it; an external ID is
+     * written to either. A person the commit could not find again is created again, and the
+     * dry run says so too.
+     */
+    private static void rememberCreated(
+        Working item,
+        String entity,
+        String rule,
+        Boolean personAccounts
+    ) {
+        String key = entity == ImportMapping.ENTITY_CONTACT_1 ? item.personKey1 : item.personKey2;
+        Boolean findable =
+            ImportTemplateService.RULE_EXTERNAL_ID.equals(rule) ||
+            (!personAccounts &&
+            (ImportTemplateService.RULE_EMAIL.equals(rule) ||
+            String.isNotBlank(attribute(item.byEntity, entity, 'MailingPostalCode'))));
+        if (key == null || !findable) {
+            return;
+        }
+        // Under the shared key and under the same narrowed to the first name, so a later row
+        // finds them by whichever it holds (R-IB12).
+        List<String> finding = keysFinding(item, entity == ImportMapping.ENTITY_CONTACT_1);
+        String shared = digest(PERSON_DIGEST, finding[0]);
+        String named = digest(PERSON_DIGEST, finding[1]);
+        if (entity == ImportMapping.ENTITY_CONTACT_1) {
+            item.row.Person_1_Key__c = shared;
+            item.row.Person_1_Name_Key__c = named;
+        } else {
+            item.row.Person_2_Key__c = shared;
+            item.row.Person_2_Name_Key__c = named;
         }
     }
 
@@ -683,6 +1089,10 @@ public with sharing class ImportRowProcessor {
         Boolean personAccounts,
         Outcome outcome
     ) {
+        keysBeingCreated = chunkPeople(working);
+        createdByKey = new Map<String, Id>();
+        failedByKey = new Map<String, String>();
+        waitingFirst = new List<Working>();
         insertPeople(
             working,
             batch,
@@ -715,6 +1125,19 @@ public with sharing class ImportRowProcessor {
             ImportMapping.ENTITY_CONTACT_2,
             false,
             false,
+            outcome
+        );
+        // The first people who waited for a couple now share the partner it saved, or are
+        // created after all where the couple's row failed (R-IB12).
+        List<Working> waited = waitingFirst;
+        waitingFirst = null;
+        insertPeople(
+            waited,
+            batch,
+            personAccounts,
+            ImportMapping.ENTITY_CONTACT_1,
+            true,
+            null,
             outcome
         );
         resolveHouseholds(working, personAccounts);
@@ -770,6 +1193,11 @@ public with sharing class ImportRowProcessor {
      * `joiningAHousehold` selects which of them: true is the people whose row already knows
      * the household they belong to, false is the people whose row does not, and null is
      * everybody, which is what the first person of a row always is.
+     *
+     * A new person named on several rows of the chunk, by the same matching key in either
+     * person column, is created once, for the first of them; the others share that record, as
+     * a later chunk would find it, and are not joined to a household for it (R-IB12). When it
+     * cannot be saved, those rows are rejected with the reason.
      */
     private static void insertPeople(
         List<Working> working,
@@ -782,6 +1210,9 @@ public with sharing class ImportRowProcessor {
     ) {
         List<SObject> toCreate = new List<SObject>();
         List<Working> owners = new List<Working>();
+        List<List<String>> ownerKeys = new List<List<String>>();
+        List<Working> sharing = new List<Working>();
+        List<String> sharedKeys = new List<String>();
         Id personRecordTypeId = personAccounts ? anyPersonRecordTypeId() : null;
         if (personAccounts && personRecordTypeId == null) {
             outcome.notes.add(Label.Core_Import_LogPersonRecordTypeMissing);
@@ -798,6 +1229,17 @@ public with sharing class ImportRowProcessor {
             if (joiningAHousehold != null && joiningAHousehold != (item.row.Household__c != null)) {
                 continue;
             }
+            if (isFirst && waitingFirst != null && waitsForPartner(item, keysBeingCreated)) {
+                waitingFirst.add(item);
+                continue;
+            }
+            String shareKey = keyToShare(item, isFirst, keysBeingCreated);
+            if (shareKey != null) {
+                sharing.add(item);
+                sharedKeys.add(shareKey);
+                continue;
+            }
+            List<String> finding = countCreated(item, isFirst, keysBeingCreated);
             SObject person = personAccounts
                 ? (SObject) new Account(RecordTypeId = personRecordTypeId)
                 : (SObject) new Contact();
@@ -812,13 +1254,21 @@ public with sharing class ImportRowProcessor {
             // writes membership down.
             toCreate.add(person);
             owners.add(item);
+            ownerKeys.add(finding);
         }
-        if (toCreate.isEmpty()) {
-            return;
-        }
-        List<Database.SaveResult> results = Database.insert(toCreate, false, AccessLevel.USER_MODE);
+        List<Database.SaveResult> results = toCreate.isEmpty()
+            ? new List<Database.SaveResult>()
+            : Database.insert(toCreate, saveOptions(), AccessLevel.USER_MODE);
         for (Integer i = 0; i < results.size(); i++) {
             Working owner = owners[i];
+            for (String key : ownerKeys[i]) {
+                // The first person saved under a key is the one a later row shares.
+                if (results[i].isSuccess() && !createdByKey.containsKey(key)) {
+                    createdByKey.put(key, results[i].getId());
+                } else if (!results[i].isSuccess() && !failedByKey.containsKey(key)) {
+                    failedByKey.put(key, message(results[i]));
+                }
+            }
             if (results[i].isSuccess()) {
                 if (isFirst) {
                     owner.person1Id = results[i].getId();
@@ -830,6 +1280,29 @@ public with sharing class ImportRowProcessor {
                 owner.createdAnything = true;
             } else {
                 owner.error = message(results[i]);
+            }
+        }
+        shareCreatedPeople(sharing, sharedKeys, isFirst);
+    }
+
+    /** Gives rows naming a person an earlier row of the chunk created that person's record. */
+    private static void shareCreatedPeople(
+        List<Working> sharing,
+        List<String> sharedKeys,
+        Boolean isFirst
+    ) {
+        for (Integer i = 0; i < sharing.size(); i++) {
+            Id created = createdByKey.get(sharedKeys[i]);
+            if (created == null) {
+                String reason = failedByKey.get(sharedKeys[i]);
+                sharing[i].error = String.format(
+                    Label.Core_Import_ErrorSamePersonNotSaved,
+                    new List<String>{ reason == null ? Label.Core_Import_ErrorSaveFailed : reason }
+                );
+            } else if (isFirst) {
+                sharing[i].person1Id = created;
+            } else {
+                sharing[i].person2Id = created;
             }
         }
     }
@@ -880,6 +1353,10 @@ public with sharing class ImportRowProcessor {
             }
             for (Integer which = 1; which <= 2; which++) {
                 Id personId = which == 1 ? item.person1Id : item.person2Id;
+                if (which == 2 && personId == item.person1Id) {
+                    // Never write the second person's values over the first person (R-IB12).
+                    continue;
+                }
                 String entity = which == 1
                     ? ImportMapping.ENTITY_CONTACT_1
                     : ImportMapping.ENTITY_CONTACT_2;
@@ -904,7 +1381,11 @@ public with sharing class ImportRowProcessor {
             return;
         }
         List<SObject> records = toUpdate.values();
-        List<Database.SaveResult> results = Database.update(records, false, AccessLevel.USER_MODE);
+        List<Database.SaveResult> results = Database.update(
+            records,
+            saveOptions(),
+            AccessLevel.USER_MODE
+        );
         String objectName = personAccounts ? 'Account' : 'Contact';
         for (Integer i = 0; i < results.size(); i++) {
             List<Working> owners = ownersByRecord.get(records[i].Id);
@@ -1153,7 +1634,11 @@ public with sharing class ImportRowProcessor {
             byHousehold.put(householdId, household);
         }
         List<Account> records = byHousehold.values();
-        List<Database.SaveResult> results = Database.update(records, false, AccessLevel.USER_MODE);
+        List<Database.SaveResult> results = Database.update(
+            records,
+            saveOptions(),
+            AccessLevel.USER_MODE
+        );
         for (Integer i = 0; i < results.size(); i++) {
             Account household = records[i];
             if (results[i].isSuccess()) {
@@ -1303,6 +1788,9 @@ public with sharing class ImportRowProcessor {
             }
             if (result != null && result.fileAmount != null) {
                 outcome.fileAmount = result.fileAmount;
+            }
+            if (result != null && String.isNotBlank(result.settings)) {
+                outcome.processorSettings = result.settings;
             }
         } catch (Exception e) {
             ErrorLogger.log(e, 'ImportRowProcessor.offerToEntityProcessor');
@@ -1464,6 +1952,20 @@ public with sharing class ImportRowProcessor {
         }
         Integer length = describe.getLength();
         return length > 0 ? value.abbreviate(Math.max(length, 4)) : value;
+    }
+
+    /**
+     * Each record saved or refused on its own, and saved past a duplicate rule that only
+     * alerts, as an administrator's bulk load would be (R-IB12). An import is people the
+     * organization already decided to add, and an alert stopping them would fail every row
+     * that resembles someone; the pair is left for the duplicate scan to find (R-DP3). A rule
+     * the org set to block still blocks, and the row reports the rule's message.
+     */
+    private static Database.DMLOptions saveOptions() {
+        Database.DMLOptions options = new Database.DMLOptions();
+        options.OptAllOrNone = false;
+        options.DuplicateRuleHeader.AllowSave = true;
+        return options;
     }
 
     /** The failure of a save, in the words the platform used, so nothing is lost in paraphrase. */
