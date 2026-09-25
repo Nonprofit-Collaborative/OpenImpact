@@ -14,7 +14,9 @@
  * Every Campaign write is in user mode with partial success (R-CS4, R-CS5): Campaign is a
  * standard object the package does not own, so ADR-0021's elevated writers do not apply, and
  * a Campaign the platform refuses must never refuse the appeal. Each refusal is logged at
- * Warning with the appeal and the platform's own message.
+ * Warning with the appeal and the platform's own message, and all of one call's Warnings are
+ * written together in a single statement, so a refusal of every appeal in a 200-appeal save
+ * costs one log write (R-CS5).
  */
 public with sharing class CampaignSyncService {
     /** The registry name of the automation, used to bypass it while the batch stores links. */
@@ -24,6 +26,12 @@ public with sharing class CampaignSyncService {
     private static final String CAMPAIGN_OBJECT = 'Campaign';
     private static final String CONTEXT = 'Campaign sync';
     private static final Integer DESCRIPTION_LIMIT = 32000;
+
+    /** What one copy costs at most: two reads, and an insert, an update and a parent fix. */
+    private static final Integer QUERIES_NEEDED = 2;
+    private static final Integer DML_STATEMENTS_NEEDED = 3;
+    /** Left over for other automation on Appeal and Campaign in the same transaction. */
+    private static final Integer SAFETY_MARGIN = 10;
 
     /** The Campaign field each copied appeal attribute is written to (R-CS2). */
     private static final Map<Schema.SObjectField, String> COPIED = new Map<Schema.SObjectField, String>{
@@ -39,6 +47,20 @@ public with sharing class CampaignSyncService {
 
     private static Schema.SObjectType resolvedType;
     private static Boolean typeResolved = false;
+
+    /** Warnings collected during one call and written together by `flushLog`. */
+    private static List<String> pendingMessages = new List<String>();
+    private static List<Id> pendingRecordIds = new List<Id>();
+
+    /** Each once-per-transaction Warning, so a large save does not write it per chunk. */
+    private static Boolean noAccessLogged = false;
+    private static Boolean noHeadroomLogged = false;
+
+    /** Test seams standing in for `Limits`, to show what a nearly spent transaction does. */
+    @TestVisible
+    private static Integer simulatedQueriesUsed;
+    @TestVisible
+    private static Integer simulatedDmlStatementsUsed;
 
     /** What one call did, for the batch summary and the tests. */
     public class Result {
@@ -125,14 +147,32 @@ public with sharing class CampaignSyncService {
         }
         if (!canSync()) {
             result.skipped = scope.size();
-            ErrorLogger.logMessage(
-                String.format(
-                    Label.Connect_CampaignSync_LogNoAccess,
-                    new List<Object>{ scope.size() }
-                ),
-                CONTEXT,
-                ErrorLogger.SEVERITY_WARNING
-            );
+            // Logged when appeals are created, once per transaction: otherwise every edit by
+            // someone without Campaign access would add a Warning (R-CS4).
+            if (oldById == null && !noAccessLogged) {
+                noAccessLogged = true;
+                ErrorLogger.logMessage(
+                    String.format(
+                        Label.Connect_CampaignSync_LogNoAccess,
+                        new List<Object>{ scope.size() }
+                    ),
+                    CONTEXT,
+                    ErrorLogger.SEVERITY_WARNING
+                );
+            }
+            return result;
+        }
+        if (!hasHeadroom(scope.size())) {
+            // A save too large to copy is left to Sync all appeals rather than failed (R-CS5).
+            result.skipped = scope.size();
+            if (!noHeadroomLogged) {
+                noHeadroomLogged = true;
+                ErrorLogger.logMessage(
+                    Label.Connect_CampaignSync_LogNoHeadroom,
+                    CONTEXT,
+                    ErrorLogger.SEVERITY_WARNING
+                );
+            }
             return result;
         }
         try {
@@ -141,7 +181,31 @@ public with sharing class CampaignSyncService {
             ErrorLogger.log(unexpected, CONTEXT);
             result.failed = scope.size();
             return result;
+        } finally {
+            flushLog();
         }
+    }
+
+    /**
+     * Whether this transaction still has room for one copy of this many appeals, with a margin
+     * for the other automation on Appeal and Campaign. A single Apex insert of thousands of
+     * appeals runs this trigger once per 200, and without the check it would run out of queries
+     * and fail the whole save.
+     */
+    @TestVisible
+    private static Boolean hasHeadroom(Integer appealCount) {
+        Integer queriesUsed = simulatedQueriesUsed != null
+            ? simulatedQueriesUsed
+            : Limits.getQueries();
+        Integer statementsUsed = simulatedDmlStatementsUsed != null
+            ? simulatedDmlStatementsUsed
+            : Limits.getDmlStatements();
+        Integer rowsLeft = Limits.getLimitDmlRows() - Limits.getDmlRows();
+        return Limits.getLimitQueries() - queriesUsed >=
+            QUERIES_NEEDED + SAFETY_MARGIN &&
+            Limits.getLimitDmlStatements() - statementsUsed >=
+            DML_STATEMENTS_NEEDED + SAFETY_MARGIN &&
+            rowsLeft >= 2 * appealCount + SAFETY_MARGIN;
     }
 
     // ------------------------------------------------------------------------------ the copy
@@ -240,15 +304,17 @@ public with sharing class CampaignSyncService {
                 }
             }
         }
-        fixParentsCreatedHere(appeals, inScope, parentWritten, campaignObject);
+        result.failed += fixParentsCreatedHere(appeals, inScope, parentWritten, campaignObject);
         return result;
     }
 
     /**
      * A parent appeal in the same call may have had its Campaign created only now, after its
      * children's Campaigns were built without a parent. One more update puts them under it.
+     *
+     * @return how many of those updates the platform refused
      */
-    private static void fixParentsCreatedHere(
+    private static Integer fixParentsCreatedHere(
         List<Appeal__c> appeals,
         Map<Id, Appeal__c> inScope,
         Map<Integer, Id> parentWritten,
@@ -274,14 +340,17 @@ public with sharing class CampaignSyncService {
             fixedFor.add(appeal);
         }
         if (fixes.isEmpty()) {
-            return;
+            return 0;
         }
+        Integer refused = 0;
         List<Database.SaveResult> saved = Database.update(fixes, false, AccessLevel.USER_MODE);
         for (Integer i = 0; i < saved.size(); i++) {
             if (!saved[i].isSuccess()) {
+                refused++;
                 logRefusal(fixedFor[i], saved[i].getErrors());
             }
         }
+        return refused;
     }
 
     // ------------------------------------------------------------------------------- helpers
@@ -399,7 +468,21 @@ public with sharing class CampaignSyncService {
         );
     }
 
+    /** Queues a Warning about one appeal; `flushLog` writes the queue. */
     private static void log(String message, Appeal__c appeal) {
-        ErrorLogger.logMessage(message, CONTEXT, ErrorLogger.SEVERITY_WARNING, appeal.Id);
+        pendingMessages.add(message);
+        pendingRecordIds.add(appeal.Id);
+    }
+
+    /** Writes every queued Warning in one statement (R-CS5). */
+    private static void flushLog() {
+        if (pendingMessages.isEmpty()) {
+            return;
+        }
+        List<String> messages = pendingMessages;
+        List<Id> recordIds = pendingRecordIds;
+        pendingMessages = new List<String>();
+        pendingRecordIds = new List<Id>();
+        ErrorLogger.logMessages(messages, recordIds, CONTEXT, ErrorLogger.SEVERITY_WARNING);
     }
 }

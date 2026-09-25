@@ -47,6 +47,22 @@ private class CampaignSyncServiceTest {
         );
     }
 
+    private static Integer countCampaigns() {
+        return Database.countQuery(
+            'SELECT COUNT() FROM ' + CampaignSyncService.campaignType().getDescribe().getName(),
+            AccessLevel.SYSTEM_MODE
+        );
+    }
+
+    private static Integer countWarnings() {
+        return [
+            SELECT COUNT()
+            FROM Error_Log__c
+            WHERE Context__c = 'Campaign sync' AND Severity__c = 'Warning'
+            WITH SYSTEM_MODE
+        ];
+    }
+
     private static SObject campaign(String campaignId) {
         return campaigns(new Set<Id>{ Id.valueOf(campaignId) }).get(Id.valueOf(campaignId));
     }
@@ -191,6 +207,150 @@ private class CampaignSyncServiceTest {
         if (CampaignSyncService.isAvailable()) {
             Assert.areEqual(1, result.skipped, 'It is skipped and logged, not refused (R-CS4).');
         }
+    }
+
+    @IsTest
+    static void davidIsLoggedOnceWhenHeCreatesAppealsAndNotWhenHeEditsThem() {
+        User david = TestDataFactory.createUser('David', new List<String>{ 'Giving_Staff' });
+        switchOn(false);
+        Appeal__c existing = springAppeal();
+        insert existing;
+        switchOn(true);
+        Test.startTest();
+        System.runAs(david) {
+            insert new Appeal__c(Name = 'Autumn appeal', Active__c = true);
+            insert new Appeal__c(Name = 'Winter appeal', Active__c = true);
+            update new Appeal__c(Id = existing.Id, Goal__c = 26000);
+            update new Appeal__c(Id = existing.Id, Goal__c = 27000);
+        }
+        Test.stopTest();
+        Assert.areEqual(
+            CampaignSyncService.isAvailable() ? 1 : 0,
+            countWarnings(),
+            'One Warning when David creates appeals, none for his edits (R-CS4).'
+        );
+    }
+
+    @IsTest
+    static void twoHundredRefusedCampaignsCostOneLogWrite() {
+        User admin = maria();
+        if (!CampaignSyncService.isAvailable()) {
+            return;
+        }
+        // 200 appeals linked, while the sync was off, to Campaigns that are then deleted: each
+        // copy is refused, which is what a validation rule on Campaign does to a whole import.
+        switchOn(false);
+        List<SObject> gone = new List<SObject>();
+        for (Integer i = 0; i < 200; i++) {
+            SObject doomed = CampaignSyncService.campaignType().newSObject();
+            doomed.put('Name', 'Giving day ' + i);
+            gone.add(doomed);
+        }
+        System.runAs(admin) {
+            insert gone;
+        }
+        List<Appeal__c> appeals = new List<Appeal__c>();
+        for (Integer i = 0; i < 200; i++) {
+            appeals.add(
+                new Appeal__c(
+                    Name = 'Giving day ' + i,
+                    Active__c = true,
+                    Campaign_Id__c = String.valueOf(gone[i].Id)
+                )
+            );
+        }
+        insert appeals;
+        System.runAs(admin) {
+            delete gone;
+        }
+        switchOn(true);
+        for (Appeal__c appeal : appeals) {
+            appeal.Goal__c = 1000;
+        }
+
+        Test.startTest();
+        Integer logWritesBefore = Limits.getPublishImmediateDML();
+        System.runAs(admin) {
+            update appeals;
+        }
+        Integer logWrites = Limits.getPublishImmediateDML() - logWritesBefore;
+        Test.stopTest();
+
+        Assert.areEqual(1, logWrites, 'Two hundred refusals are logged in one statement (R-CS5).');
+        Assert.areEqual(200, countWarnings(), 'Each refused appeal still has its own Warning.');
+        Assert.areEqual(
+            200,
+            [SELECT COUNT() FROM Appeal__c WHERE Goal__c = 1000 WITH SYSTEM_MODE],
+            'Every appeal saved all the same.'
+        );
+    }
+
+    @IsTest
+    static void aSaveTooLargeToCopyIsSavedUncopiedAndLoggedOnce() {
+        User admin = maria();
+        Assert.isTrue(CampaignSyncService.hasHeadroom(200), 'A fresh transaction has room.');
+        CampaignSyncService.simulatedQueriesUsed = Limits.getLimitQueries() - 5;
+        List<Appeal__c> first = new List<Appeal__c>{ springAppeal() };
+        List<Appeal__c> second = new List<Appeal__c>{
+            new Appeal__c(Name = 'Autumn appeal', Active__c = true)
+        };
+        Test.startTest();
+        System.runAs(admin) {
+            insert first;
+            insert second;
+        }
+        Test.stopTest();
+        Assert.isNull(reread(first[0].Id).Campaign_Id__c, 'The appeal saves, uncopied.');
+        Assert.isNull(reread(second[0].Id).Campaign_Id__c, 'So does the next one.');
+        Assert.areEqual(
+            CampaignSyncService.isAvailable() ? 1 : 0,
+            countWarnings(),
+            'One Warning for the transaction, not one per save (R-CS5).'
+        );
+
+        CampaignSyncService.simulatedQueriesUsed = null;
+        CampaignSyncService.simulatedDmlStatementsUsed = Limits.getLimitDmlStatements() - 5;
+        Assert.isFalse(
+            CampaignSyncService.hasHeadroom(1),
+            'Running out of DML statements stops the copy too.'
+        );
+    }
+
+    @IsTest
+    static void aCampaignWrittenForAnAppealThatFailsIsRolledBackWithIt() {
+        User admin = maria();
+        Appeal__c spring = springAppeal();
+        System.runAs(admin) {
+            insert spring;
+        }
+        if (!CampaignSyncService.isAvailable()) {
+            return;
+        }
+        String taken = reread(spring.Id).Campaign_Id__c;
+        Integer campaignsBefore = countCampaigns();
+        // The second appeal pastes a Campaign ID the first already holds, so the database
+        // refuses it after the copy has run; the platform then retries the rest without it.
+        Appeal__c fresh = new Appeal__c(Name = 'Autumn appeal', Active__c = true);
+        Appeal__c duplicate = new Appeal__c(Name = 'Stolen name', Campaign_Id__c = taken);
+        List<Database.SaveResult> saved;
+        Test.startTest();
+        System.runAs(admin) {
+            saved = Database.insert(new List<Appeal__c>{ fresh, duplicate }, false);
+        }
+        Test.stopTest();
+        Assert.isTrue(saved[0].isSuccess(), 'The good appeal saves.');
+        Assert.isFalse(saved[1].isSuccess(), 'A Campaign ID can belong to one appeal (R-CS8).');
+        Assert.areEqual(
+            'Spring appeal',
+            campaign(taken).get('Name'),
+            'The failed appeal is not written onto the Campaign: its copy is rolled back with it.'
+        );
+        Assert.areEqual(
+            campaignsBefore + 1,
+            countCampaigns(),
+            'Only the saved appeal has a new Campaign; the first attempt\'s is rolled back.'
+        );
+        Assert.isNotNull(reread(fresh.Id).Campaign_Id__c, 'The saved appeal is linked.');
     }
 
     @IsTest

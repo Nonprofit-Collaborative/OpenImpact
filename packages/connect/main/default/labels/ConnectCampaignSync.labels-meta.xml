@@ -9,6 +9,14 @@
     <value>Campaign sync skipped {0} appeal(s): the person who saved them cannot create and edit Campaigns, or does not have the Campaign Sync permission set. Click Sync all appeals on the Campaign sync page to catch them up.</value>
   </labels>
   <labels>
+    <fullName>Connect_CampaignSync_LogNoHeadroom</fullName>
+    <categories>Connect, Campaign Sync</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Campaign sync log: save too large to copy</shortDescription>
+    <value>Campaign sync did not copy the appeals in a very large save, because copying them in the same transaction would have gone past Salesforce limits. The appeals are saved without their Campaigns. Click Sync all appeals on the Campaign sync page to give them their Campaigns.</value>
+  </labels>
+  <labels>
     <fullName>Connect_CampaignSync_LogFailed</fullName>
     <categories>Connect, Campaign Sync</categories>
     <language>en_US</language>
@@ -22,7 +30,7 @@
     <language>en_US</language>
     <protected>false</protected>
     <shortDescription>Campaign sync log: linked campaign not found</shortDescription>
-    <value>The Campaign linked to the appeal "{0}" was deleted, or you cannot see it. Clear Campaign ID on the appeal to have a new Campaign made.</value>
+    <value>The Campaign linked to the appeal "{0}" was deleted or is not visible to you. If it was deleted, clear Campaign ID on the appeal to have a new Campaign made; if it still exists, give the person saving the appeal access to it.</value>
   </labels>
   <labels>
     <fullName>Connect_CampaignSync_InvalidCampaignId</fullName>
