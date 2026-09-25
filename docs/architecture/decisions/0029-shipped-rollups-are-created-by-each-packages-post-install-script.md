@@ -2,6 +2,9 @@
 
 **Status:** Accepted
 **Date:** 2026-09-09
+**Amended by:** ADR-NEXT (Campaign sync keeps its link on the appeal), under which Connect also has a
+post-install script, `ConnectPostInstall`; the statement below that Core is the only package with one
+describes the state before this ADR (Giving gained `GivingPostInstall` here).
 **Source:** defect in C-13 and G-02; canonical model Section 13 and rule R-R6; ADR-0006, ADR-0003,
 ADR-0021
 

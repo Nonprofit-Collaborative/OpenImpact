@@ -28,8 +28,10 @@ Nothing else is written. A new Campaign takes your organization's usual Type and
 Campaign's own money totals come from Opportunities, not from gifts, so they stay empty
 unless your organization also mirrors gifts to Opportunities.
 
-Campaign sync never deletes a Campaign. Deleting an appeal leaves its Campaign, and its
-members, where they are.
+Campaign sync never deletes a Campaign you have. Deleting an appeal leaves its Campaign,
+and its members, where they are. The one exception is a Campaign that **Sync all appeals**
+created a moment earlier and then could not link to its appeal (see Common mistakes): it is
+removed again, so the next run does not leave a second one beside it.
 
 ## How to turn it on
 
@@ -58,6 +60,19 @@ appeals**. Choose one:
 Clicking **Sync all appeals** needs the Manage Nonprofit Settings permission (the Nonprofit
 Admin permission set has it) as well as Campaign access.
 
+**Two switches, one of them in charge.** **Copy appeals to Campaigns** in Nonprofit Settings
+is the switch that decides whether Campaign sync is on. The **Campaign sync** row on the
+Automation page is the pause every Open Impact automation has. It stops only the copy made
+when an appeal is saved, and it does nothing while **Copy appeals to Campaigns** is off. Leave
+it on, and use **Copy appeals to Campaigns** to turn the feature on or off. **Sync all
+appeals** follows **Copy appeals to Campaigns** alone.
+
+**Very large saves.** When one save holds so many appeals that copying them would push it
+past Salesforce's limits, for example a data load of thousands of appeals from Apex or a
+tool that sends them in one transaction, the appeals save without their Campaigns and one
+Warning says so. Click **Sync all appeals** afterwards. A load that sends 200 rows at a
+time, as Data Loader does by default, is copied as usual.
+
 ## A five-minute walkthrough
 
 Do this as Maria, in an org that has Campaigns, with the sample data loaded and Campaign
@@ -81,11 +96,24 @@ sync switched on as above.
 ## Common mistakes
 
 **An appeal has no Campaign.** The **Appeals and their Campaigns** list view on the
-Appeals tab shows which ones: their Campaign ID is empty. Most often the person who saved it cannot create Campaigns
-(see How to turn it on). The Error Log has a Warning for that save. Otherwise a rule on
-Campaign refused it: a validation rule or a required field your organization added to
-Campaign. The Error Log has a Warning naming the appeal and what Salesforce said. Fix the
-cause, then click **Sync all appeals**.
+Appeals tab shows which ones: their Campaign ID is empty. Most often the person who created
+it cannot create Campaigns (see How to turn it on). The Error Log has one Warning when such a
+person creates appeals; later edits by the same person are skipped without a new Warning, so
+the log does not fill up. Otherwise a rule on Campaign refused it: a validation rule or a
+required field your organization added to Campaign. The Error Log has a Warning naming the
+appeal and what Salesforce said. Fix the cause, then click **Sync all appeals**.
+
+**Sync all appeals made a Campaign but the appeal still has none.** The Campaign was made,
+but the appeal itself could not be saved with its Campaign ID: a rule on Appeal refused it,
+or the person running the sync cannot edit that appeal. Campaign sync deletes the Campaign it
+has just made, so the next run does not make a second one, and logs a Warning naming the
+appeal. If that person cannot delete Campaigns either, the Warning names the Campaign that was
+left behind: delete it, or paste its ID onto the appeal once the cause is fixed.
+
+**A child appeal's Campaign has no Parent Campaign.** When a parent appeal and its child are
+saved together and the parent's Campaign is refused, the child's Campaign is made without a
+parent. Fix what refused the parent's Campaign, then click **Sync all appeals**: it puts
+every child Campaign under its parent's.
 
 **Editing a copied field on the Campaign.** The next time the appeal changes, its values
 replace yours. Edit the appeal instead. Fields that are not copied, such as Type, Status or
@@ -94,15 +122,22 @@ your own custom fields, are never touched.
 **Linking an appeal to a Campaign you already had.** Open the **Appeals** tab and choose
 the **Appeals and their Campaigns** list view, which Campaign sync adds. It shows each
 appeal's **Campaign ID**. Double-click the appeal's Campaign ID cell, paste the existing
-Campaign's record ID (the 18-character code in its web address, starting `701`), and save. The appeal's name, dates, goal and cost are written onto that
-Campaign, replacing what it had. One Campaign can belong to only one appeal. A value that is
-not a Campaign's record ID is refused.
+Campaign's record ID (the 18-character code in its web address, starting `701`), and save.
 
-**A linked Campaign was deleted.** Campaign sync does not make a replacement, because it
-cannot tell a deleted Campaign from one you are not allowed to see, and a replacement for a
-Campaign that still exists would be a duplicate. Each change to the appeal logs a Warning.
-Clear the appeal's **Campaign ID** in the **Appeals and their Campaigns** list view and
-save: a new Campaign is created.
+Be sure it is the right Campaign. The moment you save, the appeal's name, description, dates,
+goal, cost, active flag and parent are written onto that Campaign, replacing what it had, and
+there is no undo. Paste the wrong Campaign's ID and that Campaign is renamed after your
+appeal. One Campaign can belong to only one appeal: pasting an ID another appeal already
+holds makes the save fail with a duplicate value error, and nothing is written. A value that
+is not a Campaign's record ID is refused.
+
+**A linked Campaign was deleted, or is not visible to you.** Campaign sync does not make a
+replacement, because it cannot tell a deleted Campaign from one the person saving is not
+allowed to see, and a replacement for a Campaign that still exists would be a duplicate. Each
+change to the appeal logs a Warning saying the Campaign was deleted or is not visible. First
+check, as someone who can see every Campaign, whether it still exists. If it does, give the
+person who saves the appeal access to it. If it was deleted, clear the appeal's **Campaign
+ID** in the **Appeals and their Campaigns** list view and save: a new Campaign is created.
 
 **Turning Campaign sync off and expecting the Campaigns to go.** They stay. Switching it off
 stops the copying and deletes nothing.

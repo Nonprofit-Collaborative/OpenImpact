@@ -2,7 +2,7 @@
 
 **Version:** v0.3
 **Status:** governing specification for the v0.1, v0.2, and v0.3 builds
-**Last updated:** 2026-09-24
+**Last updated:** 2026-09-25
 
 ## 1. Purpose
 
@@ -4773,8 +4773,9 @@ and plan Section 4.2 forbid.
 on in Nonprofit Settings. It also does nothing where the org has no Campaign object (a
 Platform-only org), and the Campaign sync page says so rather than offering a switch that
 cannot work. It is a registered automation on Appeal (`Campaign_Sync`), so it can also be
-paused or switched off like any other (ADR-0040); the setting says whether the feature is
-wanted, the switch says whether it runs now.
+paused or switched off like any other (ADR-0040). The setting is authoritative: it says
+whether the feature is wanted, and Sync all appeals follows it alone. The automation switch
+only pauses the copy made on save, and has no effect while the setting is off.
 
 **R-CS2 What is copied.** Name to Name, Description to Description, Start Date to Start
 Date, End Date to End Date, Goal to Expected Revenue, Cost to Actual Cost, Active to Active,
@@ -4794,13 +4795,17 @@ already match is not updated.
 of the person saving the appeal. Campaign is a standard object Open Impact does not own, so
 an elevated write (ADR-0021) is not available for it. Someone who cannot create or edit
 Campaigns (in Salesforce that needs the Marketing User box on their user record as well as
-Campaign permissions) still saves the appeal; the appeal simply stays without a Campaign,
-and one Warning is written to the Error Log for the save.
+Campaign permissions) still saves the appeal; the appeal simply stays without a Campaign.
+One Warning is written to the Error Log when such a person creates appeals, at most once per
+transaction; their later edits are skipped without one, so the log is not flooded.
 
 **R-CS5 A failure never refuses the appeal.** A Campaign the platform refuses (a validation
 rule on Campaign, a required field the org added, sharing) is written to the Error Log at
 Warning with the appeal and the platform's message. The appeal saves, and keeps no Campaign
-ID when none was created.
+ID when none was created. However many appeals are refused, their Warnings are written in one
+statement. A save too large to copy within the transaction's query and DML limits (thousands
+of appeals in one Apex transaction) saves its appeals uncopied, logs one Warning, and leaves
+them to Sync all appeals.
 
 **R-CS6 Catching up.** The Campaign sync page shows how many appeals have a Campaign and how
 many do not, and offers **Sync all appeals**, which runs R-CS2 over every appeal the person
@@ -4810,7 +4815,10 @@ access (R-CS4) are caught up. It needs the Manage Nonprofit Settings permission,
 runs at a time.
 
 **R-CS7 Never deleted.** Deleting an appeal leaves its Campaign in place, with its members
-and history; restoring the appeal restores the link. Open Impact never deletes a Campaign.
+and history; restoring the appeal restores the link. Open Impact never deletes a Campaign it
+did not just create. The one deletion is Sync all appeals undoing its own work: a Campaign it
+created for an appeal whose Campaign ID it then could not store is deleted in the same run, so
+the next run does not make a second one. A Campaign it cannot delete is named in a Warning.
 A linked Campaign that has been deleted, or that the person saving cannot see, is reported
 as R-CS5 describes and is not replaced: clearing the appeal's Campaign ID makes a new one.
 
@@ -4953,7 +4961,7 @@ None open. R-M3's Primary Contact mirror, the only entry, was closed on 2026-09-
 | v0.5 | 2026-09-23 | C-21 Health Check v2 (ADR-0048). No object, field, settings key or rollup row added. Health Check reads state the model already defines: shipped rollup definitions, automation switch rows and import templates not yet materialized from their shipped defaults (Section 13), the nightly rollup run when an active definition is in Scheduled or Both mode (Section 14). Recorded against R-A2: an `Automation_Setting__c` row whose registry entry is no longer shipped is left alone, because no fix deletes a record. `Automation_Setting__c` rows are now materialized by Core's and Giving's post-install scripts, one per shipped registry entry not yet present, never touching an existing row (before C-21 nothing created them). Recorded against R-R6: a shipped rollup default is not materialized when an active, administrator-made definition (`Is_Package_Default__c` false) already writes the same target entity and attribute; shipped defaults are not counted against each other, because household and organization pairs write one attribute for different accounts. Health Check detects orphans without changing them (cleanup is C-28): a person in no household, reported only while `Auto_Create_Households__c` is on (R-C1), which in contact mode is a Contact with no Account (a Contact whose Account is an Organization belongs to it, Section 7) and in junction mode a Contact or person account with no current Household Member row (R-M2, R-M4; a Contact whose Account is a Household is left to the membership check); and a Household with no current member (in contact mode no Contact on it, in junction mode no current row naming a person). Person accounts are recognised by the org's person record types, never by a person account field. |
 | v0.5 | 2026-09-23 | C-20 duplicate detection (ADR-0050). One object added, `Duplicate_Dismissal__c` (Section 29A) with `Pair_Key__c` and `Reason__c`, which holds a decision rather than a finding. Detection is the org's own active duplicate rules; Open Impact ships none, and the suggestions are the standard `DuplicateRecordSet` and `DuplicateRecordItem` records. A scan started from Nonprofit Settings evaluates those rules against the people and households already in the org. Rules R-DP1 to R-DP5 added. |
 | v0.6 | 2026-09-23 | X-03, X-04 and X-06, the Connect integration surface (ADR-0051). No object or field added. R-G7 is reworded: the inbound gift API answers a resend with the gift already recorded and never edits it, and refuses a resend whose amount differs. The accounting export reads `Gift__c`, `Gift_Allocation__c` and `Fund__c` and writes nothing: the posting flag plan Section 4.12 names belongs to G-20 in Giving, and no Connect object records export runs. Section 30 notes that X-03 and X-04 add no Connect entity. |
-| v0.6 | 2026-09-24 | X-02 Campaign sync (ADR-NEXT, Campaign sync keeps its link on the appeal). New Part F and Section 29B, rules R-CS1 to R-CS8. `Appeal__c` gains `Campaign_Id__c` (Text 18, unique, external ID), shipped by Connect rather than Giving, because Giving may not name Campaign and a lookup to Campaign would stop Connect installing where Campaign is absent. New custom setting `Connect_Settings__c` with `Campaign_Sync_Enabled__c` (default off). New automation `Campaign_Sync` on Appeal. No object added. R-AP4 points at Section 29B. |
+| v0.6 | 2026-09-24 | X-02 Campaign sync (ADR-NEXT, Campaign sync keeps its link on the appeal). New Part F and Section 29B, rules R-CS1 to R-CS8. `Appeal__c` gains `Campaign_Id__c` (Text 18, unique, external ID), shipped by Connect rather than Giving, because Giving may not name Campaign and a lookup to Campaign would stop Connect installing where Campaign is absent. New custom setting `Connect_Settings__c` with `Campaign_Sync_Enabled__c` (default off). New automation `Campaign_Sync` on Appeal. No object added. R-AP4 points at Section 29B. Review changes of 2026-09-25: R-CS1 names the setting as the authoritative switch; R-CS4 logs a saver without access once, on create; R-CS5 writes refusals in one statement and skips a save too large to copy; R-CS7 lets Sync all appeals delete a Campaign it created and could not link. |
 
 ---
 ## 32. Entity ownership by package

@@ -1,7 +1,8 @@
 # ADR-NEXT: Campaign sync keeps its link on the appeal, writes with the saver's access, and is off until switched on
 
 **Status:** Accepted (builder decision)
-**Date:** 2026-09-24
+**Date:** 2026-09-24 (amended 2026-09-25 after review)
+**Amends:** ADR-0029, which says Core is the only package with a post-install script
 **Source:** builder decision under plan Section 9.3, feature X-02 (plan Section 4.12, "Campaign
 sync: `Appeal__c` to Campaign one-way, so Campaign Members and marketing tools work"); refines
 ADR-0017 and ADR-0021 for Connect; canonical model Section 29B
@@ -58,19 +59,39 @@ Four constraints narrow the answer.
    off, shown in the Giving section of Nonprofit Settings. It is off because an org with
    Campaigns of its own (every NPSP org) must decide before Open Impact adds more. The
    automation switch is kept as well, because every packaged automation has one (ADR-0040):
-   the setting says whether the feature is wanted, and the switch pauses it.
-6. **Connect gains a post-install script.** `ConnectPostInstall` calls
+   the setting says whether the feature is wanted, and the switch pauses it. The setting is
+   the authoritative one: Sync all appeals follows it alone, and the automation switch only
+   pauses the copy made on save.
+6. **Connect gains a post-install script.** `ConnectPostInstall` does one thing: it calls
    `AutomationControl.ensureDefaultsDuringInstall`, as `GivingPostInstall` does, so the
-   `Campaign_Sync` switch row exists from install. Without it, a fresh Connect install would
-   show Health Check a missing switch. It is also where X-01 and X-07 will materialize their
-   own switches.
-7. **Nothing is deleted, and a stale link is reported, not replaced.** Deleting an appeal
-   leaves its Campaign. A linked Campaign that is gone or invisible to the saver is logged.
+   `Campaign_Sync` automation switch row (`Automation_Setting__c`) exists from install.
+   Without it, a fresh Connect install would show Health Check a missing switch. It does not
+   create or touch `Connect_Settings__c`: no org default record is needed, because the
+   field's default of false already reads as off (decision 5). It is also where X-01 and X-07
+   will materialize their own switches. This amends ADR-0029, whose context says Core is the
+   only package with a post-install script: Giving has had one since ADR-0029 itself, and
+   Connect now has one too. Each script must be named as its package's `postInstallScript`
+   when package versions are created.
+7. **Nothing the org had is deleted, and a stale link is reported, not replaced.** Deleting
+   an appeal leaves its Campaign. The one deletion is Sync all appeals undoing its own work:
+   the batch stores new links with partial success, so one appeal it cannot save (a rule on
+   Appeal, or no edit access) never rolls back its chunk, and the Campaign it created for that
+   appeal a moment earlier is deleted in user mode, so the next run does not make a second one.
+   A Campaign it cannot delete is named in a Warning for the administrator to remove. A linked
+   Campaign that is gone or invisible to the saver is logged as "deleted or not visible to
+   you".
    A missing Campaign and an invisible one look the same in user mode, and a replacement made
    for an invisible Campaign would be a duplicate. Clearing Campaign ID makes a new Campaign;
    typing an existing Campaign's identifier links to it, and the appeal's values then
    overwrite that Campaign's copied fields.
-8. **What is copied** is canonical model R-CS2: name, description, dates, goal to Expected
+8. **Bulk-safe by construction.** Every Warning a call produces is collected and written in
+   one statement, whatever the number of refused appeals, so a 200-appeal save refused by a
+   Campaign validation rule costs one log write, not 200. The save path checks the
+   transaction's remaining queries, DML statements and DML rows before copying; a save too
+   large to copy (thousands of appeals in one Apex transaction) is left uncopied with one
+   Warning per transaction, for Sync all appeals. A saver without Campaign access is logged
+   only when creating appeals, and once per transaction, so edits do not flood the log.
+9. **What is copied** is canonical model R-CS2: name, description, dates, goal to Expected
    Revenue, cost to Actual Cost, active, and the parent appeal's Campaign as Parent Campaign.
    Campaign Type and Status are left to the org's defaults. The Campaign's own Opportunity
    totals are the platform's.
@@ -94,13 +115,17 @@ Four constraints narrow the answer.
   If orgs find the manual Sync all appeals button a burden, a nightly job on the Nightly Jobs
   page (ADR-0038) can be added later without a model change.
 - **On at install.** Rejected for the NPSP reason in decision 5.
+- **Filter Sync all appeals to the appeals the runner can edit (`UserRecordAccess`) instead of
+  deleting a Campaign it could not link.** Not chosen: it covers missing edit access but not a
+  rule on Appeal refusing the save, so the delete is needed anyway, and Appeal is shared Read/Write
+  at install.
 
 ## Consequences
 
 - Connect ships its first field on another package's object, its first settings object, its
   first registry row and its first post-install script. `ConnectPostInstall` must be named as
   the Connect package's `postInstallScript` when package versions are created, as Core's and
-  Giving's must.
+  Giving's must. ADR-0029 carries an "Amended by" line pointing here.
 - Fundraising staff without the Marketing User box get no Campaign from their own saves. The
   admin guide tells the administrator to either give those users Campaign access and Marketing
   User in Setup, or run Sync all appeals after a batch of new appeals.
