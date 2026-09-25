@@ -176,6 +176,9 @@ private class OpportunityMirrorCopyTest {
         if (!OpportunityMirrorService.isAvailable() || !CampaignSyncService.isAvailable()) {
             return;
         }
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            update new User(Id = admin.Id, UserPermissionsMarketingUser = true);
+        }
         SObject spring = CampaignSyncService.campaignType().newSObject();
         spring.put('Name', 'Spring mailing');
         System.runAs(admin) {
