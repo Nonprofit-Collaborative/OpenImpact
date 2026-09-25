@@ -17,6 +17,12 @@ public with sharing class ImportMatcher {
 
     private static final String ACCOUNT_EMAIL_FIELD = 'PersonEmail';
     private static final String ACCOUNT_LAST_NAME_FIELD = 'LastName';
+    /**
+     * A person account's own postal code: the one the importer writes a row's mailing postal
+     * code to, and the one an address propagates to (R-AD3), so the key a person is created
+     * with is the key they are found by (R-IB12).
+     */
+    private static final String ACCOUNT_POSTAL_CODE_FIELD = 'PersonMailingPostalCode';
 
     /** How many keys one query will take. A chunk larger than this is queried in slices. */
     @NamespaceAccessible
@@ -316,8 +322,8 @@ public with sharing class ImportMatcher {
     }
 
     /**
-     * Person records held as accounts, matched on last name plus billing postal code, keyed as
-     * contactsByNameAndPostalCode keys contacts.
+     * Person records held as accounts, matched on last name plus their person mailing postal
+     * code, keyed as contactsByNameAndPostalCode keys contacts.
      */
     @NamespaceAccessible
     public static Map<String, Id> personAccountsByNameAndPostalCode(
@@ -329,6 +335,7 @@ public with sharing class ImportMatcher {
             keys == null ||
             keys.isEmpty() ||
             !accountHasField(ACCOUNT_LAST_NAME_FIELD) ||
+            !accountHasField(ACCOUNT_POSTAL_CODE_FIELD) ||
             recordTypeIds == null ||
             recordTypeIds.isEmpty()
         ) {
@@ -345,7 +352,7 @@ public with sharing class ImportMatcher {
             for (SObject record : found) {
                 String key = nameAndPostalKey(
                     (String) record.get(ACCOUNT_LAST_NAME_FIELD),
-                    (String) record.get('BillingPostalCode')
+                    (String) record.get(ACCOUNT_POSTAL_CODE_FIELD)
                 );
                 if (key != null && keys.contains(key)) {
                     put(result, key, firstNameOf(record), (Id) record.get('Id'));
@@ -365,9 +372,13 @@ public with sharing class ImportMatcher {
             'SELECT Id, ' +
             firstNameColumn() +
             ACCOUNT_LAST_NAME_FIELD +
-            ', BillingPostalCode FROM Account WHERE ' +
+            ', ' +
+            ACCOUNT_POSTAL_CODE_FIELD +
+            ' FROM Account WHERE ' +
             ACCOUNT_LAST_NAME_FIELD +
-            ' IN :slice AND BillingPostalCode IN :codes AND RecordTypeId IN :recordTypeIds' +
+            ' IN :slice AND ' +
+            ACCOUNT_POSTAL_CODE_FIELD +
+            ' IN :codes AND RecordTypeId IN :recordTypeIds' +
             ' ORDER BY CreatedDate ASC, Id ASC LIMIT :cap';
         return Database.queryWithBinds(
             query,

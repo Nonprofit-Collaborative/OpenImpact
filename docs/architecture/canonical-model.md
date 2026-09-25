@@ -1248,7 +1248,14 @@ share a name at one address. No rule is offered without that sentence (plan Sect
 **R-IT3 Person mode.** Person Mode is proposed from the org shape detected by the Setup
 Assistant: Person Accounts where the org uses them, Contacts otherwise. The admin can
 override it per template, and the processor resolves the person references in R-IR1
-accordingly.
+accordingly. A template names a person's attributes in contact terms whatever the mode. In
+Person Accounts mode each is written to, compared with and read from the account field the
+org has for it: the contact name prefixed with Person for a standard field (Email to
+PersonEmail, MailingStreet to PersonMailingStreet, HasOptedOutOfEmail to
+PersonHasOptedOutOfEmail, DoNotCall to PersonDoNotCall, Birthdate to PersonBirthdate), a
+contact custom field's `__pc` form, and otherwise the account field of the same name
+(FirstName, LastName, Salutation, Phone). The person fields are found in the org's describe
+and never named in the source (Section 4.2 of the plan, ADR-0013).
 
 **R-IT4 Upgrade safety.** Templates with Is Package Default true are materialized from
 `Import_Template_Default__mdt` on install and on "Restore defaults", matched by Template
@@ -1502,9 +1509,13 @@ holds and reads depends on the chunk, not on how many rows came before it, and a
 half a million rows needs no more heap for this than one of a thousand. A later row whose
 key is among them is counted as matching that record, not as creating it again, and is not
 refused for a missing last name, exactly as in the commit. A person is remembered only when
-the commit could find them again by the same key: an email is written to a contact but not to
-a person stored as an account, and a postal code only to a contact whose own column gave it,
-so under those rules the commit creates such a person again and the dry run counts it again.
+the commit could find them again by the same key, so what is written and what is matched are
+the same fields: an email is written to a contact's Email or a person account's PersonEmail,
+and matched there; a postal code is written to a contact's MailingPostalCode or a person
+account's PersonMailingPostalCode only when the person's own column gave it (a household's
+postal code alone is not written to the person), and matched there. Where the importing user
+may not write the field, the commit's new person does not carry it, so under that rule the
+commit creates such a person again and the dry run counts it again.
 Within one chunk the commit creates a new person once as well: rows naming the same new person
 by the same matching key, in either person column, share the record the first of them creates
 (first people are saved before second people, and a second person whose row has a first
@@ -4901,3 +4912,4 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.5 | 2026-09-24 | C-14 passes. `Import_Batch__c` and `Import_Row__c` gain `Pass_Number__c`, and `Import_Batch__c` gains `Job_Id__c`. R-IB13 added: a start is refused while the batch's job is running (a pass whose job was aborted reads Failed and can start again, and an aborted commit can be undone), the synchronous reset of every staged row is removed (it failed past 10,000 rows), and each chunk clears and stamps its own rows so keys are read only by the pass that wrote them. |
 | v0.5 | 2026-09-24 | C-14 dry run at scale. `Import_Row__c` gains `Person_1_Key__c`, `Person_2_Key__c`, `Person_1_Name_Key__c`, `Person_2_Name_Key__c`, `Organization_Key__c` and `Processor_Key__c`, indexed digests a dry run writes on the row that would create a record or load an external ID. R-IB12 and R-IR6: the digests are looked up per chunk instead of carried in the batch's state, so a dry run's heap no longer grows with the rows before the chunk. |
 | v0.5 | 2026-09-24 | C-14 dry run fix. No object or field added. R-IB12 added: a dry run carries, across chunks, digests of the people and organizations it would create, so a later chunk naming one counts it matched, as the commit does, rather than created again. |
+| v0.5 | 2026-09-24 | Import engine review fixes. No object or field added. R-IT3: in Person Accounts mode a person's contact attributes are written to the account's person fields (PersonEmail, PersonMailingStreet, PersonHasOptedOutOfEmail and the rest), found by describe, where before only the name, salutation and phone were written. R-IB12: a person account is matched on the fields it is written to, PersonEmail and PersonMailingPostalCode (it was matched on BillingPostalCode, which the import never wrote), and the dry run remembers a person it would create only where the commit writes the matched field, now including a person account and excluding a field the importing user may not write. |

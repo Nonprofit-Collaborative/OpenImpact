@@ -82,6 +82,12 @@ person's columns to **Contact 2** and Open Impact puts both people in the same h
 You get one household with two members, not two households, and it works the same way
 whether your org keeps people as contacts or as person accounts.
 
+Where your org keeps people as person accounts, map the columns exactly as you would for
+contacts (Email, Mailing Street, Email Opt Out and so on). Open Impact writes each to the
+person account's own field for it, and finds the person again by that field when you load
+the next file: by their email under **Email exact**, and by their last name and mailing
+postal code under **Name plus postal code**.
+
 Three things are worth knowing about it.
 
 - **The household is named from the file if you map a name for it.** Map a column to

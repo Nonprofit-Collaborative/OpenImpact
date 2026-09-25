@@ -44,6 +44,9 @@ public with sharing class ImportRowProcessor {
 
     private static final String ORGANIZATION_RECORD_TYPE = 'Organization';
 
+    /** What a person account puts before a contact field's name (see `storedName`). */
+    private static final String PERSON_FIELD_PREFIX = 'Person';
+
     /** Prefixes a matching key before its digest, so a person and an organization never share one. */
     private static final String PERSON_DIGEST = 'person:';
     private static final String ORGANIZATION_DIGEST = 'organization:';
@@ -1027,7 +1030,9 @@ public with sharing class ImportRowProcessor {
             item.createdAnything = true;
             countCreated(item, isFirst, keysInChunk);
             rememberCreated(item, entity, rule, personAccounts);
-        } else if (changes(stored.get(personId), item.byEntity.get(entity))) {
+        } else if (
+            changes(stored.get(personId), asStored(item.byEntity.get(entity), personAccounts))
+        ) {
             item.updatedAnything = true;
         }
     }
@@ -1035,10 +1040,11 @@ public with sharing class ImportRowProcessor {
     /**
      * Remembers a person a dry run would create, for later chunks to match, but only when the
      * commit could find them again by the same key: the record it creates must carry the value
-     * the matcher reads. An email is written to a contact but not to a person stored as an
-     * account, and a postal code only to a contact whose own column gave it; an external ID is
-     * written to either. A person the commit could not find again is created again, and the
-     * dry run says so too.
+     * the matcher reads. An email is written to a contact's Email and to a person account's
+     * PersonEmail, and a postal code only to a person whose own column gave it (MailingPostalCode
+     * or PersonMailingPostalCode), and each only where the importing user may write that field;
+     * an external ID is written to either. A person the commit could not find again is created
+     * again, and the dry run says so too.
      */
     private static void rememberCreated(
         Working item,
@@ -1049,9 +1055,10 @@ public with sharing class ImportRowProcessor {
         String key = entity == ImportMapping.ENTITY_CONTACT_1 ? item.personKey1 : item.personKey2;
         Boolean findable =
             ImportTemplateService.RULE_EXTERNAL_ID.equals(rule) ||
-            (!personAccounts &&
-            (ImportTemplateService.RULE_EMAIL.equals(rule) ||
-            String.isNotBlank(attribute(item.byEntity, entity, 'MailingPostalCode'))));
+            (ImportTemplateService.RULE_EMAIL.equals(rule)
+                ? writes('Email', personAccounts)
+                : String.isNotBlank(attribute(item.byEntity, entity, 'MailingPostalCode')) &&
+                  writes('MailingPostalCode', personAccounts));
         if (key == null || !findable) {
             return;
         }
@@ -1245,7 +1252,13 @@ public with sharing class ImportRowProcessor {
                 ? (SObject) new Account(RecordTypeId = personRecordTypeId)
                 : (SObject) new Contact();
             Schema.SObjectType type = personAccounts ? Account.SObjectType : Contact.SObjectType;
-            applyValues(person, type, item.byEntity.get(entity), notWrittenToPeople(type), outcome);
+            applyValues(
+                person,
+                type,
+                asStored(item.byEntity.get(entity), personAccounts),
+                notWrittenToPeople(type),
+                outcome
+            );
             person.put('Created_By_Import_Batch__c', batch.Id);
             // Nobody is saved into a household here. A person saved straight into a household
             // account is saying "contact mode", which is one of two ways an org can hold
@@ -1361,7 +1374,7 @@ public with sharing class ImportRowProcessor {
                 String entity = which == 1
                     ? ImportMapping.ENTITY_CONTACT_1
                     : ImportMapping.ENTITY_CONTACT_2;
-                Map<String, String> held = item.byEntity.get(entity);
+                Map<String, String> held = asStored(item.byEntity.get(entity), personAccounts);
                 SObject existing = stored.get(personId);
                 if (personId == null || existing == null || !changes(existing, held)) {
                     continue;
@@ -1477,7 +1490,9 @@ public with sharing class ImportRowProcessor {
                     continue;
                 }
                 for (String attributeName : held.keySet()) {
-                    Schema.SObjectField field = fields.get(attributeName.toLowerCase());
+                    Schema.SObjectField field = fields.get(
+                        storedName(attributeName, personAccounts).toLowerCase()
+                    );
                     if (field != null && field.getDescribe().isAccessible()) {
                         selected.add(field.getDescribe().getName());
                     }
@@ -1567,6 +1582,70 @@ public with sharing class ImportRowProcessor {
             skipped.add('Name');
         }
         return skipped;
+    }
+
+    /**
+     * A person's attributes under the names of the fields that hold them. A row describes a
+     * person in contact terms (Email, MailingPostalCode, HasOptedOutOfEmail), because a
+     * template is written once for every org (R-IT1). A person stored as an account holds
+     * those in its person fields (PersonEmail, PersonMailingPostalCode,
+     * PersonHasOptedOutOfEmail), so written under the contact names they were unknown to the
+     * account and only the name and phone stuck. The names are translated here, for the
+     * save, the comparison and the read alike; matching keys are still read from the row's
+     * contact names.
+     */
+    private static Map<String, String> asStored(Map<String, String> held, Boolean personAccounts) {
+        if (!personAccounts || held == null) {
+            return held;
+        }
+        Map<String, String> result = new Map<String, String>();
+        for (String attributeName : held.keySet()) {
+            result.put(storedName(attributeName, personAccounts), held.get(attributeName));
+        }
+        return result;
+    }
+
+    /**
+     * The field a person attribute is held in. For a person stored as an account that is the
+     * person field the org has for it: the contact name prefixed with Person for a standard
+     * field (PersonEmail, PersonMailingStreet, PersonDoNotCall, PersonBirthdate, PersonTitle),
+     * or a contact custom field's account form ending in __pc. An attribute with neither (the
+     * name parts, Phone) is the account's own field of that name. Only names read from the
+     * org's own describe are used, never a person field written into the source: Core runs on
+     * orgs that do not have them (ADR-0013, plan Section 4.2).
+     */
+    private static String storedName(String attributeName, Boolean personAccounts) {
+        if (!personAccounts || String.isBlank(attributeName)) {
+            return attributeName;
+        }
+        if (accountFields == null) {
+            accountFields = Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED)
+                .fields.getMap();
+        }
+        Map<String, Schema.SObjectField> fields = accountFields;
+        String person = PERSON_FIELD_PREFIX + attributeName;
+        if (fields.containsKey(person.toLowerCase())) {
+            return fields.get(person.toLowerCase()).getDescribe().getName();
+        }
+        if (attributeName.toLowerCase().endsWith('__c')) {
+            String custom = attributeName.left(attributeName.length() - 1) + 'pc';
+            if (fields.containsKey(custom.toLowerCase())) {
+                return fields.get(custom.toLowerCase()).getDescribe().getName();
+            }
+        }
+        return attributeName;
+    }
+
+    /** The account fields `storedName` reads, described once per transaction. */
+    private static Map<String, Schema.SObjectField> accountFields;
+
+    /** Whether a new person saved by this user carries this attribute (R-IB12). */
+    private static Boolean writes(String attributeName, Boolean personAccounts) {
+        Schema.SObjectType type = personAccounts ? Account.SObjectType : Contact.SObjectType;
+        Schema.SObjectField field = type.getDescribe(SObjectDescribeOptions.DEFERRED)
+            .fields.getMap()
+            .get(storedName(attributeName, personAccounts).toLowerCase());
+        return field != null && field.getDescribe().isCreateable();
     }
 
     // -------------------------------------------------------------------------------------
@@ -1909,9 +1988,13 @@ public with sharing class ImportRowProcessor {
                 // entity processor's to report (R-IR6).
                 continue;
             }
+            String attribute = ImportMapping.attributeOf(target);
+            if (type == personType) {
+                attribute = storedName(attribute, personAccounts);
+            }
             Schema.SObjectField field = type.getDescribe(SObjectDescribeOptions.DEFERRED)
                 .fields.getMap()
-                .get(ImportMapping.attributeOf(target).toLowerCase());
+                .get(attribute.toLowerCase());
             if (field == null) {
                 // An attribute the object does not have is reported by applyValues.
                 continue;
