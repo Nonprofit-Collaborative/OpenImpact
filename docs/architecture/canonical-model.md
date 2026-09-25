@@ -1273,10 +1273,29 @@ the mapping loads a gift; an empty value means the org's default (ADR-0052). A c
 read them: it runs under the values its dry run recorded on the batch (R-IB11, R-DM7), so a
 template edited after the dry run changes the next dry run, not the commit.
 
-**R-IT5 What v0.2 ships.** v0.2 ships a generic donor list template and a generic gift
-list template. The NPSP template set is v0.3 engineering work and the Agentforce
-Nonprofit set is v0.5 (plan Section 6); both are new shipped-default rows, not new
-attributes.
+**R-IT5 What ships.** Core ships a generic donor list template and a generic gift list
+template (v0.2). The migration templates (v0.5) are rows of the same type, placed by what
+they load: a template that loads only people and organizations ships from Core, so an org
+with only Core installed can use it, and a template that loads any gift target ships from
+Giving, the way Giving ships its rollup definition defaults. Each has a sample export in
+`docs/admin-guide/samples/` that `check-custom-metadata.py` compares with its headings.
+
+| Template Key | Package | Reads |
+|---|---|---|
+| `npc_person_accounts` | Core | An export of Nonprofit Cloud person accounts |
+| `npc_gift_transactions` | Giving | An export of gift transaction designations whose donor is a person, one row per designation |
+| `npc_organization_gifts` | Giving | The same export whose donor is not a person |
+| `npc_undesignated_gifts` | Giving | An export of gift transactions with no designation |
+| `npsp_contacts` | Core | An export of NPSP contacts |
+| `npsp_payments` | Giving | An export of paid NPSP payments whose opportunity's account is individual |
+| `npsp_organization_payments` | Giving | The same export whose account is not individual |
+
+A migration template is a mapping document and nothing else: its column headings are the
+other system's API names as a Data Loader export heads them, held as data, so no package
+gains a metadata or compile-time reference to the source objects (ADR-0013). They are new
+shipped-default rows, not new attributes. One template reads one export shape, because an
+import saves the file's own columns back to the template it used (admin guide, "Migrating
+from Nonprofit Cloud", section 5).
 
 ### Salesforce implementation
 

@@ -28,12 +28,26 @@ the xsd prefix fails the whole deployment with UNKNOWN_EXCEPTION and no componen
 error, which is what kept every org run red at the custom metadata stage until
 2026-09-22. A label longer than 40 characters, or one given as an attribute
 instead of a <label> element, fails only in an org.
+
+It also checks every shipped migration import template (Template_Key__c starting
+npc_ or npsp_) against its sample export in docs/admin-guide/samples/, named
+after the key (npc_gift_transactions reads npc-gift-transactions.csv). The Apex
+tests build their rows from the template's own headings, so a heading misspelt
+in the template would pass them and then match no column of a real export. The
+sample is written the way the export heads its columns: every sample heading has
+to be one of the template's source headings, and every template heading has to
+be in the sample, except the Fund 2 to Fund 5 and Amount 2 to Amount 5 columns
+an administrator adds by hand for a split gift. Headings compare ignoring
+capitals, as the importer compares them.
 """
 
+import csv
 import glob
+import json
 import os
 import re
 import sys
+from html import unescape
 
 LABEL = re.compile(r"<label>([^<]*)</label>")
 LABEL_LIMIT = 40
@@ -49,6 +63,10 @@ SECTIONS = "packages/core/main/default/classes/SettingSections.cls"
 SECTION_CONSTANT = re.compile(r"public static final String [A-Z_]+ = '([^']+)';")
 SETTING_DEFINITIONS = "packages/*/main/default/customMetadata/Setting_Definition.*.md-meta.xml"
 CORE_SETTINGS_OBJECT = "Nonprofit_Settings__c"
+IMPORT_TEMPLATES = "packages/*/main/default/customMetadata/Import_Template_Default.*.md-meta.xml"
+MIGRATION_KEY = re.compile(r"^(npc|npsp)_")
+SAMPLES = "docs/admin-guide/samples"
+ADDED_BY_HAND = re.compile(r"^(fund|amount) [2-5]$")
 
 
 def type_definitions():
@@ -157,6 +175,32 @@ def check_setting_rows(problems):
             )
 
 
+def check_migration_samples(problems):
+    """Each migration template's headings against the sample export the admin guide ships."""
+    for record in sorted(glob.glob(IMPORT_TEMPLATES)):
+        text = open(record, encoding="utf-8").read()
+        key = value_of(text, "Template_Key__c")
+        if not key or not MIGRATION_KEY.match(key):
+            continue
+        sample = os.path.join(SAMPLES, key.replace("_", "-") + ".csv")
+        if not os.path.exists(sample):
+            problems.append(f"{record}: migration template {key} has no sample export {sample}")
+            continue
+        try:
+            mapping = json.loads(unescape(value_of(text, "Column_Mapping_JSON__c") or ""))
+            sources = {column["source"].strip().lower() for column in mapping["columns"]}
+        except (ValueError, KeyError, TypeError):
+            problems.append(f"{record}: Column_Mapping_JSON__c cannot be read")
+            continue
+        with open(sample, encoding="utf-8", newline="") as handle:
+            header = {heading.strip().lower() for heading in next(csv.reader(handle), [])}
+        for heading in sorted(header - sources):
+            problems.append(f"{sample}: heading {heading!r} is not a column {key} reads")
+        for heading in sorted(sources - header):
+            if not ADDED_BY_HAND.match(heading):
+                problems.append(f"{record}: heading {heading!r} is not in the sample export {sample}")
+
+
 def main():
     types = type_definitions()
     problems = []
@@ -188,6 +232,7 @@ def main():
 
     check_console_components(problems)
     check_setting_rows(problems)
+    check_migration_samples(problems)
 
     for problem in problems:
         print(problem, file=sys.stderr)

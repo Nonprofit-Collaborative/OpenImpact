@@ -1,0 +1,5 @@
+GiftTransactionId,GiftTransaction.OriginalAmount,GiftTransaction.TransactionDate,GiftTransaction.PaymentMethod,GiftTransaction.PaymentIdentifier,GiftTransaction.Campaign.Name,GiftTransaction.Donor.FirstName,GiftTransaction.Donor.LastName,GiftTransaction.Donor.PersonEmail,GiftTransaction.Donor.PersonMailingPostalCode,GiftDesignation.Name,Amount
+6gt-1001,250.00,2025-03-15,Credit Card,ch_3PqR1001,Spring Appeal,Ana,Okafor,ana.okafor@example.org,97201,Scholarships,250.00
+6gt-1002,100.00,2025-04-01,Check,,,Ana,Okafor,ana.okafor@example.org,97201,General Fund,100.00
+6gt-1003,500.00,2025-05-20,Check,,,Ana,Okafor,ana.okafor@example.org,97201,Scholarships,300.00
+6gt-1003,500.00,2025-05-20,Check,,,Ana,Okafor,ana.okafor@example.org,97201,General Fund,200.00
