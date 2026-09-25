@@ -92,11 +92,9 @@ public with sharing class ErrorDigestService {
             return finish(outcome, runAt, coveredUntil);
         }
 
-        Integer cap = Math.min(
-            entryCap,
-            (Limits.getLimitQueryRows() - Limits.getQueryRows() - QUERY_ROW_MARGIN) / 2
-        );
-        if (cap < ENTRIES_LISTED) {
+        // Two reads spend up to the cap in query rows each; keep a margin for the rest.
+        Integer room = (Limits.getLimitQueryRows() - Limits.getQueryRows() - QUERY_ROW_MARGIN) / 2;
+        if (room < ENTRIES_LISTED) {
             return notSent(
                 outcome,
                 System.Label.Core_ErrorDigest_NoRoom,
@@ -105,6 +103,7 @@ public with sharing class ErrorDigestService {
                 coveredUntil
             );
         }
+        Integer cap = Math.min(entryCap, room);
 
         Datetime windowStart = coveredUntil == null ? runAt.addDays(-periodDays) : coveredUntil;
         ErrorDigestSelector.Window window = ErrorDigestSelector.newEntries(
