@@ -145,6 +145,22 @@
         <value>The mapping refers to {0}, which this org does not have. Those values were skipped.</value>
     </labels>
     <labels>
+        <fullName>Core_Import_LogAttributeNoAccess</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: a mapped field the importing user cannot edit</shortDescription>
+        <value>Not loaded: you do not have access to {0}. Those values were skipped. Ask your administrator for edit access to the field, then import the file again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogMatchFieldNoAccess</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: a matching field the importing user cannot read</shortDescription>
+        <value>Not matched on {0}: you do not have access to it, so nobody could be found by it, and a person your org holds only by that field counts as new. Ask your administrator for access to the field before you commit.</value>
+    </labels>
+    <labels>
         <fullName>Core_Import_LogValueNotAccepted</fullName>
         <categories>Import</categories>
         <language>en_US</language>

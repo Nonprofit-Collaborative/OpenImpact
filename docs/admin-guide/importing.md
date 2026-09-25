@@ -52,7 +52,9 @@ or six rows.
 3. Check the columns. Each column shows what Open Impact thinks it is, for example
    "Email" for a column headed `Donor Email`. Change anything that is wrong from the
    picker beside it. A column you do not want loaded is set to **Do not load**, and its
-   values are kept on the staged row but written nowhere.
+   values are kept on the staged row but written nowhere. The mapping remembers your
+   choices: the next file with the same headings opens with them, and a column you set to
+   **Do not load** stays that way even when Open Impact recognizes its heading.
 4. Choose how rows are matched. **Email exact** is the safe default. Read the sentence
    under each rule before you change it: **Name plus postal code** will treat two
    different people who share a name at one address as the same person.
@@ -82,6 +84,13 @@ Most donor lists give a couple one line: two names, one address, one gift. Map t
 person's columns to **Contact 2** and Open Impact puts both people in the same household.
 You get one household with two members, not two households, and it works the same way
 whether your org keeps people as contacts or as person accounts.
+
+Where your org keeps people as person accounts, map the columns exactly as you would for
+contacts (Email, Mailing Street, Email Opt Out and so on). Open Impact writes each to the
+person account's own field for it, and finds the person again by that field when you load
+the next file: by their email under **Email exact**, and by their last name and mailing
+postal code under **Name plus postal code**. A person account's billing postal code counts
+too, because people loaded by other tools often have their postal code only there.
 
 Three things are worth knowing about it.
 
@@ -221,6 +230,22 @@ a person resembling someone already here is not rejected. Afterwards run the dup
 **Block** still blocks: those rows are rejected with the rule's message, although the dry run
 counted them as would create, because a dry run saves nothing for the rule to check.
 
+**The run log says "Not loaded: you do not have access to" a field.** Your user may not
+edit that field, so its column was skipped on every row, in the dry run and in the commit, and
+the rest of each row loaded. The run log names each such field once. The Nonprofit Admin role
+lets you edit the standard fields import mappings use (see "Fields the Nonprofit Admin role
+can import" below), so this usually means a column mapped to some other field, or a user
+without that role. Ask your Salesforce administrator for edit access to the field and import
+the file again: the second import matches the people it already created and adds the
+missing values.
+
+**The run log says "Not matched on" a field.** Your user may not read the field your
+matching rule uses (for example Email under **Email exact**), so nobody in the file could be
+found by it, and a person your org holds only by that field counts as new. Where people
+are person accounts this can be one of the two postal codes (mailing or billing) while the
+other still matches. Do not commit: ask your Salesforce administrator
+for access to the field, then dry run again.
+
 **Gift columns in the file were not loaded.** Gifts are loaded by the Giving module. Without
 it, gift columns are recognized and kept with the staged row, and the run log says so. With
 it installed, see [Importing gifts](gift-import.md).
@@ -228,6 +253,27 @@ it installed, see [Importing gifts](gift-import.md).
 **"The control totals do not match."** The dry run counted a different number of rows, or a
 different total of gift amounts, from the control totals you typed. The run log gives both
 numbers. Fix the file or the totals and dry run again; the commit is refused until they agree.
+
+## Fields the Nonprofit Admin role can import
+
+Salesforce controls standard fields one by one, and a person with only a minimal profile
+could otherwise not write them. So the Nonprofit Admin permission set grants read and edit
+access to the standard fields the import mappings write:
+
+| Object | Fields |
+|---|---|
+| Contact | Email, Phone, Mobile Phone, Home Phone, Mailing Address, Title, Birthdate, Email Opt Out, Fax Opt Out, Do Not Call |
+| Account (households and organizations) | Billing Address, Phone, Website |
+
+Where people are person accounts, access to their person fields (Person Email, Person
+Mailing Address and the rest) follows the contact fields of the same name, and a person's
+phone is the account's Phone.
+
+**Birthdate is sensitive.** It is granted so a migration file's birthdates are not lost, but
+your organization may not want everyone with Nonprofit Admin to see it. To withhold it, give
+your administrators a permission set that does not include it, or ask your Salesforce
+administrator to remove Birthdate from a cloned role: the importer then skips the column and
+says so in the run log, and nothing else in Open Impact needs it.
 
 ## Field reference
 

@@ -182,8 +182,8 @@ public with sharing class ImportController {
 
     /**
      * The mapping Open Impact suggests for a file's header row, as a mapping document. The
-     * template's own mapping wins for any column it already names, so a template used every
-     * month keeps the corrections its administrator made to it.
+     * template's own mapping wins for any column it already names, Do not load included, so a
+     * template used every month keeps the corrections its administrator made to it.
      */
     @AuraEnabled
     public static String suggestMapping(String templateId, List<String> headers) {
@@ -192,12 +192,16 @@ public with sharing class ImportController {
             ImportMapping suggested = ImportColumnLibrary.suggestMapping(headers);
             Import_Template__c template = ImportTemplateSelector.selectById(templateId);
             if (template != null) {
-                Map<String, String> known = ImportMapping.parse(template.Column_Mapping_JSON__c)
-                    .targetsBySourceKey();
+                ImportMapping saved = ImportMapping.parse(template.Column_Mapping_JSON__c);
+                Map<String, String> known = saved.targetsBySourceKey();
+                Set<String> ignored = saved.ignoredSourceKeys();
                 for (ImportMapping.Column column : suggested.columns) {
-                    String fromTemplate = known.get(ImportMapping.key(column.source));
+                    String source = ImportMapping.key(column.source);
+                    String fromTemplate = known.get(source);
                     if (String.isNotBlank(fromTemplate)) {
                         column.target = fromTemplate;
+                    } else if (ignored.contains(source)) {
+                        column.target = ImportMapping.TARGET_IGNORE;
                     }
                 }
             }
