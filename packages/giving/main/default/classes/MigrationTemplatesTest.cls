@@ -110,8 +110,8 @@ private class MigrationTemplatesTest {
     }
 
     /**
-     * The dry run, then the commit, as the import batch runs them: every row back to pending
-     * and the processor's carried state cleared in between (ImportBatchService, R-IB1).
+     * The dry run, then the commit, as the import batch runs them: each pass clears and
+     * stamps the rows it processes (R-IB13), and the processor's carried state starts empty.
      */
     private static List<Import_Row__c> dryRunThenCommit() {
         List<Import_Row__c> preview;
@@ -120,7 +120,6 @@ private class MigrationTemplatesTest {
             Test.startTest();
             run(true);
             preview = ImportTestDataFactory.reload(batch.Id);
-            ImportBatchService.resetRows(batch.Id);
             ImportEntityProcessors.carriedState = null;
             run(false);
             Test.stopTest();
