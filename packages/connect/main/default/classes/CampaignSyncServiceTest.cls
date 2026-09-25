@@ -343,7 +343,7 @@ private class CampaignSyncServiceTest {
     static void aSaveTooLargeToCopyIsSavedUncopiedAndLoggedOnce() {
         User admin = maria();
         Assert.isTrue(CampaignSyncService.hasHeadroom(200), 'A fresh transaction has room.');
-        CampaignSyncService.simulatedQueriesUsed = Limits.getLimitQueries() - 5;
+        ConnectSync.simulatedQueriesUsed = Limits.getLimitQueries() - 5;
         List<Appeal__c> first = new List<Appeal__c>{ springAppeal() };
         List<Appeal__c> second = new List<Appeal__c>{
             new Appeal__c(Name = 'Autumn appeal', Active__c = true)
@@ -362,8 +362,8 @@ private class CampaignSyncServiceTest {
             'One Warning for the transaction, not one per save (R-CS5).'
         );
 
-        CampaignSyncService.simulatedQueriesUsed = null;
-        CampaignSyncService.simulatedDmlStatementsUsed = Limits.getLimitDmlStatements() - 5;
+        ConnectSync.simulatedQueriesUsed = null;
+        ConnectSync.simulatedDmlStatementsUsed = Limits.getLimitDmlStatements() - 5;
         Assert.isFalse(
             CampaignSyncService.hasHeadroom(1),
             'Running out of DML statements stops the copy too.'
@@ -517,9 +517,9 @@ private class CampaignSyncServiceTest {
 
     @IsTest
     static void comparisonsReadAsAPersonWould() {
-        Assert.isTrue(CampaignSyncService.same(100, 100.00), 'Amounts compare by value.');
-        Assert.isFalse(CampaignSyncService.same('Gala', 'gala'), 'Text compares with case.');
-        Assert.isTrue(CampaignSyncService.same(null, null), 'Two empties are the same.');
-        Assert.isFalse(CampaignSyncService.same(null, ''), 'Empty and blank text differ.');
+        Assert.isTrue(ConnectSync.same(100, 100.00), 'Amounts compare by value.');
+        Assert.isFalse(ConnectSync.same('Gala', 'gala'), 'Text compares with case.');
+        Assert.isTrue(ConnectSync.same(null, null), 'Two empties are the same.');
+        Assert.isFalse(ConnectSync.same(null, ''), 'Empty and blank text differ.');
     }
 }

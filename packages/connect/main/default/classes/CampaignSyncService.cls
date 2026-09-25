@@ -30,8 +30,6 @@ public with sharing class CampaignSyncService {
     /** What one copy costs at most: two reads, and an insert, an update and a parent fix. */
     private static final Integer QUERIES_NEEDED = 2;
     private static final Integer DML_STATEMENTS_NEEDED = 3;
-    /** Left over for other automation on Appeal and Campaign in the same transaction. */
-    private static final Integer SAFETY_MARGIN = 10;
 
     /** The Campaign field each copied appeal attribute is written to (R-CS2). */
     private static final Map<Schema.SObjectField, String> COPIED = new Map<Schema.SObjectField, String>{
@@ -55,12 +53,6 @@ public with sharing class CampaignSyncService {
     /** Each once-per-transaction Warning, so a large save does not write it per chunk. */
     private static Boolean noAccessLogged = false;
     private static Boolean noHeadroomLogged = false;
-
-    /** Test seams standing in for `Limits`, to show what a nearly spent transaction does. */
-    @TestVisible
-    private static Integer simulatedQueriesUsed;
-    @TestVisible
-    private static Integer simulatedDmlStatementsUsed;
 
     /** What one call did, for the batch summary and the tests. */
     public class Result {
@@ -194,18 +186,7 @@ public with sharing class CampaignSyncService {
      */
     @TestVisible
     private static Boolean hasHeadroom(Integer appealCount) {
-        Integer queriesUsed = simulatedQueriesUsed != null
-            ? simulatedQueriesUsed
-            : Limits.getQueries();
-        Integer statementsUsed = simulatedDmlStatementsUsed != null
-            ? simulatedDmlStatementsUsed
-            : Limits.getDmlStatements();
-        Integer rowsLeft = Limits.getLimitDmlRows() - Limits.getDmlRows();
-        return Limits.getLimitQueries() - queriesUsed >=
-            QUERIES_NEEDED + SAFETY_MARGIN &&
-            Limits.getLimitDmlStatements() - statementsUsed >=
-            DML_STATEMENTS_NEEDED + SAFETY_MARGIN &&
-            rowsLeft >= 3 * appealCount + SAFETY_MARGIN;
+        return ConnectSync.hasHeadroom(QUERIES_NEEDED, DML_STATEMENTS_NEEDED, 3 * appealCount);
     }
 
     /**
@@ -290,7 +271,7 @@ public with sharing class CampaignSyncService {
         List<Appeal__c> links = new List<Appeal__c>();
         List<Appeal__c> linkedFor = new List<Appeal__c>();
         for (Appeal__c appeal : appeals) {
-            if (!same(appeal.Campaign_Id__c, linkBefore.get(appeal.Id))) {
+            if (!ConnectSync.same(appeal.Campaign_Id__c, linkBefore.get(appeal.Id))) {
                 links.add(new Appeal__c(Id = appeal.Id, Campaign_Id__c = appeal.Campaign_Id__c));
                 linkedFor.add(appeal);
             }
@@ -514,13 +495,8 @@ public with sharing class CampaignSyncService {
             appeal.Campaign_Id__c = null;
             return true;
         }
-        Id typed;
-        try {
-            typed = Id.valueOf(appeal.Campaign_Id__c.trim());
-        } catch (Exception notAnId) {
-            typed = null;
-        }
-        if (typed == null || typed.getSObjectType() != campaignType()) {
+        Id typed = ConnectSync.idOf(appeal.Campaign_Id__c, campaignType());
+        if (typed == null) {
             appeal.Campaign_Id__c.addError(Label.Connect_CampaignSync_InvalidCampaignId);
             return false;
         }
@@ -530,12 +506,12 @@ public with sharing class CampaignSyncService {
 
     private static Boolean copiedValuesChanged(Appeal__c appeal, Appeal__c old) {
         for (Schema.SObjectField field : COPIED.keySet()) {
-            if (!same(appeal.get(field), old.get(field))) {
+            if (!ConnectSync.same(appeal.get(field), old.get(field))) {
                 return true;
             }
         }
         return appeal.Parent_Appeal__c != old.Parent_Appeal__c ||
-            !same(appeal.Campaign_Id__c, old.Campaign_Id__c);
+            !ConnectSync.same(appeal.Campaign_Id__c, old.Campaign_Id__c);
     }
 
     private static Id parentCampaignId(
@@ -575,30 +551,11 @@ public with sharing class CampaignSyncService {
         List<String> fields = new List<String>(COPIED.values());
         fields.add(PARENT_FIELD);
         for (String field : fields) {
-            if (!same(desired.get(field), existing.get(field))) {
+            if (!ConnectSync.same(desired.get(field), existing.get(field))) {
                 return true;
             }
         }
         return false;
-    }
-
-    /**
-     * Equality as a person means it: text compared with case (Apex's own == ignores it, so a
-     * renamed "spring appeal" to "Spring appeal" would never be copied), amounts by value and
-     * not by scale, so 100 and 100.00 are the same goal.
-     */
-    @TestVisible
-    private static Boolean same(Object left, Object right) {
-        if (left == null || right == null) {
-            return left == null && right == null;
-        }
-        if (left instanceof String && right instanceof String) {
-            return ((String) left).equals((String) right);
-        }
-        if (left instanceof Decimal && right instanceof Decimal) {
-            return ((Decimal) left - (Decimal) right) == 0;
-        }
-        return left == right;
     }
 
     private static void logRefusal(Appeal__c appeal, List<Database.Error> errors) {
