@@ -200,4 +200,140 @@
     <shortDescription>Opportunity mirror log: what an opportunities to gifts run did</shortDescription>
     <value>Opportunity mirror run, Opportunities to Gifts: {0} gifts made, {2} Opportunities already had a gift, {3} could not become gifts (see the Warnings), {4} left for the next run.</value>
   </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_DiffNoOpportunity</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: gift has no Opportunity</shortDescription>
+    <value>No Opportunity</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_DiffMissing</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: linked Opportunity not found</shortDescription>
+    <value>Opportunity deleted or not visible to you</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_DiffAmount</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: amounts disagree</shortDescription>
+    <value>Amount differs</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_DiffDate</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: dates disagree</shortDescription>
+    <value>Date differs</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_DiffNotWon</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: linked Opportunity not won</shortDescription>
+    <value>Opportunity is not won</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_DiffNoGift</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: won Opportunity with no gift</shortDescription>
+    <value>Won Opportunity without a gift</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_ErrorDatesRequired</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation refused: dates missing</shortDescription>
+    <value>Choose a start date and an end date.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_ErrorDateOrder</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation refused: dates reversed</shortDescription>
+    <value>The start date must be on or before the end date.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_ErrorTooMany</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation refused: range too large</shortDescription>
+    <value>This range holds more than 10,000 gifts or more than 10,000 won Opportunities. Choose a shorter range.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_Unavailable</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: org has no Opportunities</shortDescription>
+    <value>This org has no Opportunities, so there is nothing to mirror. The Opportunity mirror needs a Salesforce edition with Opportunities, such as Sales Cloud, Service Cloud, NPSP or Nonprofit Cloud.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_SwitchedOff</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page refusal: no direction chosen</shortDescription>
+    <value>The Opportunity mirror is off. Choose a direction in Nonprofit Settings, Giving, Opportunity mirror direction.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_NoManagePermission</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page refusal: cannot manage settings</shortDescription>
+    <value>Starting or scheduling the mirror needs the Manage Nonprofit Settings permission.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_NoOpportunityAccess</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page refusal: cannot write Opportunities</shortDescription>
+    <value>You cannot create and edit Opportunities, or you do not have the Opportunity Mirror permission set, so a run started by you would copy nothing.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_Running</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page refusal: a run is in progress</shortDescription>
+    <value>A run is already in progress. Wait for it to finish, then try again.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_CopyAgainGiftsOnly</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page refusal: copy again needs Gifts to Opportunities</shortDescription>
+    <value>Copy these gifts again works only in Gifts to Opportunities: a gift is never changed from its Opportunity.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_NoLinkAccess</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation refused: cannot read Opportunity ID</shortDescription>
+    <value>Comparing needs the Opportunity Mirror permission set, which lets you read the Opportunity ID on a gift.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_ErrorFailed</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: unexpected failure</shortDescription>
+    <value>Something went wrong. The Error Log has the details.</value>
+  </labels>
 </CustomLabels>

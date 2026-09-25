@@ -233,4 +233,50 @@ public with sharing class OpportunityMirrorSelector {
         }
         return byContact;
     }
+
+    /** How many gifts in the totals, dated in the range, the running user can see (R-OM11). */
+    public static Integer countGiftsInRange(Date fromDate, Date toDate) {
+        Set<String> statuses = OpportunityMirrorService.IN_TOTALS;
+        return [
+            SELECT COUNT()
+            FROM Gift__c
+            WHERE Status__c IN :statuses AND Gift_Date__c >= :fromDate AND Gift_Date__c <= :toDate
+            WITH USER_MODE
+        ];
+    }
+
+    /** The gifts in the totals dated in the range that the running user can see, oldest first. */
+    public static List<Gift__c> giftsInRange(Date fromDate, Date toDate) {
+        Set<String> statuses = OpportunityMirrorService.IN_TOTALS;
+        return [
+            SELECT Id, Name, Amount__c, Gift_Date__c, Opportunity_Id__c
+            FROM Gift__c
+            WHERE Status__c IN :statuses AND Gift_Date__c >= :fromDate AND Gift_Date__c <= :toDate
+            WITH USER_MODE
+            ORDER BY Gift_Date__c, Id
+        ];
+    }
+
+    /** How many won Opportunities closed in the range the running user can see (R-OM11). */
+    public static Integer countWonInRange(String opportunityObject, Date fromDate, Date toDate) {
+        return Database.countQueryWithBinds(
+            'SELECT COUNT() FROM ' +
+                String.escapeSingleQuotes(opportunityObject) +
+                ' WHERE IsWon = TRUE AND CloseDate >= :fromDate AND CloseDate <= :toDate',
+            new Map<String, Object>{ 'fromDate' => fromDate, 'toDate' => toDate },
+            AccessLevel.USER_MODE
+        );
+    }
+
+    /** The won Opportunities closed in the range the running user can see, oldest first. */
+    public static List<SObject> wonInRange(String opportunityObject, Date fromDate, Date toDate) {
+        return Database.queryWithBinds(
+            'SELECT Id, Name, Amount, CloseDate, IsWon FROM ' +
+                String.escapeSingleQuotes(opportunityObject) +
+                ' WHERE IsWon = TRUE AND CloseDate >= :fromDate AND CloseDate <= :toDate' +
+                ' ORDER BY CloseDate, Id',
+            new Map<String, Object>{ 'fromDate' => fromDate, 'toDate' => toDate },
+            AccessLevel.USER_MODE
+        );
+    }
 }
