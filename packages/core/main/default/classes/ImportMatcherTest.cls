@@ -167,7 +167,13 @@ private class ImportMatcherTest {
      */
     @IsTest
     static void aFieldTheUserCannotReadIsSkippedAndNamed() {
-        insert new Contact(LastName = 'Ramirez', Email = 'ana@example.org');
+        // Saved past a duplicate rule that only alerts: the org's own rules see its real data.
+        Database.DMLOptions options = new Database.DMLOptions();
+        options.DuplicateRuleHeader.AllowSave = true;
+        Database.insert(
+            new Contact(LastName = 'Noreadramirez', Email = 'noread.ana@example.org'),
+            options
+        );
         User reader = new User(
             ProfileId = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1]
             .Id,
@@ -188,9 +194,9 @@ private class ImportMatcherTest {
         Test.startTest();
         System.runAs(reader) {
             ImportMatcher.forgetHeldKeys();
-            byEmail = ImportMatcher.contactsByEmail(new Set<String>{ 'ana@example.org' });
+            byEmail = ImportMatcher.contactsByEmail(new Set<String>{ 'noread.ana@example.org' });
             byPostal = ImportMatcher.contactsByNameAndPostalCode(
-                new Set<String>{ ImportMatcher.nameAndPostalKey('Ramirez', '97201') }
+                new Set<String>{ ImportMatcher.nameAndPostalKey('Noreadramirez', '97201') }
             );
         }
         Test.stopTest();
