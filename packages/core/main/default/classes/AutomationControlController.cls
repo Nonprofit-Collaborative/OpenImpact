@@ -35,6 +35,9 @@ public with sharing class AutomationControlController {
         public Boolean paused { get; set; }
         @AuraEnabled
         public Datetime pausedUntil { get; set; }
+        /** Who started the pause in effect, from the audit trail; null when not known. */
+        @AuraEnabled
+        public String pausedBy { get; set; }
         @AuraEnabled
         public Boolean canManage { get; set; }
         @AuraEnabled
@@ -94,6 +97,7 @@ public with sharing class AutomationControlController {
         AutomationPageView page = new AutomationPageView();
         page.pausedUntil = AutomationControl.pausedUntil();
         page.paused = page.pausedUntil != null;
+        page.pausedBy = page.paused ? AutomationControl.pausedBy() : null;
         page.canManage = canManage();
         page.pauseHourOptions = new List<Integer>(AutomationControl.allowedPauseHours());
         page.pauseHourOptions.sort();

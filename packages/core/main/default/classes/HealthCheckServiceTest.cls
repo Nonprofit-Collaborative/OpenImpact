@@ -522,7 +522,9 @@ private class HealthCheckServiceTest {
         // The pause is not an editable setting with a shipped Setting Definition row: Maria sets
         // it from the Automation panel, and the settings service rightly refuses a key no row
         // names. The factory writes the same field the way the product does.
-        TestDataFactory.pausedSettings(2);
+        Nonprofit_Settings__c paused = TestDataFactory.pausedSettings(2);
+        // A pause set from the page has its resume scheduled with it (R-A5).
+        AutomationResumeJob.scheduleAt(paused.Automation_Paused_Until__c);
 
         HealthCheckService.Finding finding = find(HealthCheckService.run(), 'automation_paused');
 
@@ -536,6 +538,86 @@ private class HealthCheckServiceTest {
             null,
             find(HealthCheckService.run(), 'automation_running'),
             'Automation cannot be both paused and running.'
+        );
+    }
+
+    @IsTest
+    static void aPauseNothingWillEndIsAWarning() {
+        OrgShapeDetector.overrideShape = shape(false, false, false, false);
+        // Written straight to the setting with no resume job, as a pause from before C-23 was.
+        TestDataFactory.pausedSettings(2);
+
+        List<HealthCheckService.Finding> findings = HealthCheckService.run();
+        HealthCheckService.Finding finding = find(findings, 'automation_paused_no_resume');
+
+        Assert.isNotNull(finding, 'A pause with no automatic resume is reported.');
+        Assert.areEqual(
+            HealthCheckService.SEVERITY_WARNING,
+            finding.severity,
+            'Nothing will record its end, so it is a warning.'
+        );
+        Assert.areEqual(
+            HealthCheckService.SECTION_AUTOMATION,
+            finding.fixTarget,
+            'The fix is the Automation page, where Resume is.'
+        );
+        Assert.isNull(find(findings, 'automation_paused'), 'One finding about the pause, not two.');
+    }
+
+    @IsTest
+    static void aPauseEndingBeyondTheLongestOfferedIsAWarningEvenWithAJob() {
+        OrgShapeDetector.overrideShape = shape(false, false, false, false);
+        TestDataFactory.pausedSettings(AutomationControl.LONGEST_PAUSE_HOURS + 24);
+        AutomationResumeJob.scheduleAt(System.now().addHours(1));
+
+        HealthCheckService.Finding finding = find(
+            HealthCheckService.run(),
+            'automation_paused_no_resume'
+        );
+
+        Assert.isNotNull(finding, 'No page pause ends this late, so the job is not its end.');
+        Assert.areEqual(HealthCheckService.SEVERITY_WARNING, finding.severity, 'A warning.');
+    }
+
+    @IsTest
+    static void aScheduledDigestThatStoppedRunningIsAWarning() {
+        OrgShapeDetector.overrideShape = shape(false, false, false, false);
+        Nonprofit_Settings__c settings = TestDataFactory.defaultSettings();
+        settings.Error_Digest_Last_Run__c = System.now()
+            .addDays(-HealthCheckSettingsChecks.DIGEST_STALE_DAYS - 1);
+        TestDataFactory.saveSettings(settings);
+        ErrorDigestScheduler.start();
+
+        HealthCheckService.Finding finding = find(HealthCheckService.run(), 'error_digest_stale');
+
+        Assert.isNotNull(finding, 'Scheduled, but silent for three days.');
+        Assert.areEqual(HealthCheckService.SEVERITY_WARNING, finding.severity, 'A warning.');
+        Assert.areEqual(
+            SettingSections.ERROR_LOG,
+            finding.fixTarget,
+            'Fixed where it is scheduled.'
+        );
+    }
+
+    @IsTest
+    static void aDigestThatRanTodayOrIsNotScheduledIsNotReported() {
+        OrgShapeDetector.overrideShape = shape(false, false, false, false);
+        Nonprofit_Settings__c settings = TestDataFactory.defaultSettings();
+        settings.Error_Digest_Last_Run__c = System.now()
+            .addDays(-HealthCheckSettingsChecks.DIGEST_STALE_DAYS - 1);
+        TestDataFactory.saveSettings(settings);
+
+        Assert.isNull(
+            find(HealthCheckService.run(), 'error_digest_stale'),
+            'Not scheduled: an old last run means somebody stopped it.'
+        );
+
+        settings.Error_Digest_Last_Run__c = System.now().addHours(-3);
+        TestDataFactory.saveSettings(settings);
+        ErrorDigestScheduler.start();
+        Assert.isNull(
+            find(HealthCheckService.run(), 'error_digest_stale'),
+            'Scheduled and ran this morning.'
         );
     }
 
