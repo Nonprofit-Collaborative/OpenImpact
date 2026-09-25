@@ -8,7 +8,7 @@
  * which are for money received (R-G3).
  *
  * Run from `GiftTriggerHandler`, the switchable Gift core rules, so a data load with automation
- * paused may set any status. A gift may be created Cancelled.
+ * paused may set any status. A gift may be created Cancelled; it is then linked to no installment.
  */
 public with sharing class GiftStatusRules {
     public static final String STATUS_RECEIVED = 'Received';
@@ -48,6 +48,15 @@ public with sharing class GiftStatusRules {
                         new List<String>{ STATUS_PENDING }
                     )
                 );
+            }
+        }
+    }
+
+    /** Before insert: a gift created Cancelled pays no installment, so it holds none (R-G16). */
+    public static void unlinkCancelledOnInsert(List<Gift__c> gifts) {
+        for (Gift__c gift : gifts) {
+            if (statusOf(gift) == STATUS_CANCELLED) {
+                gift.Installment__c = null;
             }
         }
     }

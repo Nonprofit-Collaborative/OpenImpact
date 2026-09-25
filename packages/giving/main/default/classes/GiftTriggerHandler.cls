@@ -20,6 +20,7 @@ public with sharing class GiftTriggerHandler extends TriggerHandler {
         List<Gift__c> gifts = (List<Gift__c>) Trigger.new;
         GiftService.defaultGiftDates(gifts);
         GiftService.deriveHouseholds(gifts);
+        GiftStatusRules.unlinkCancelledOnInsert(gifts);
     }
 
     public override void beforeUpdate() {

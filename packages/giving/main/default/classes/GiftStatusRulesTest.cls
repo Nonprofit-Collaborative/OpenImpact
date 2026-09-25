@@ -124,8 +124,8 @@ private class GiftStatusRulesTest {
         Assert.areEqual(2, [SELECT COUNT() FROM Gift__c], 'No negative gift');
     }
 
-    @IsTest
-    static void cancellingFreesTheInstallmentAsADeleteWould() {
+    /** A three-month pledge from Ana, with its installments. */
+    private static Commitment__c pledge() {
         Contact ana = [SELECT Id FROM Contact LIMIT 1];
         Commitment__c pledge = new Commitment__c(
             Type__c = 'Pledge',
@@ -139,13 +139,23 @@ private class GiftStatusRulesTest {
         );
         insert pledge;
         CommitmentService.generateInstallments(new Set<Id>{ pledge.Id });
-        Installment__c first = [
+        return pledge;
+    }
+
+    private static Installment__c firstInstallment(Id pledgeId) {
+        return [
             SELECT Id
             FROM Installment__c
-            WHERE Commitment__c = :pledge.Id
+            WHERE Commitment__c = :pledgeId
             ORDER BY Sequence__c
             LIMIT 1
         ];
+    }
+
+    @IsTest
+    static void cancellingFreesTheInstallmentAsADeleteWould() {
+        Commitment__c pledge = pledge();
+        Installment__c first = firstInstallment(pledge.Id);
         Gift__c pending = giftOf(40);
         update new Gift__c(Id = pending.Id, Commitment__c = pledge.Id, Installment__c = first.Id);
 
@@ -186,5 +196,51 @@ private class GiftStatusRulesTest {
 
         Assert.areEqual(1, lines.size(), 'Only the received gift');
         Assert.areEqual(kept.Id, lines[0].Id);
+    }
+
+    @IsTest
+    static void goingBackToPendingDoesNotLinkAnInstallmentAgain() {
+        Commitment__c pledge = pledge();
+        Gift__c pending = giftOf(40);
+        update new Gift__c(
+            Id = pending.Id,
+            Commitment__c = pledge.Id,
+            Installment__c = firstInstallment(pledge.Id).Id
+        );
+        update new Gift__c(Id = pending.Id, Status__c = 'Cancelled');
+
+        Test.startTest();
+        update new Gift__c(Id = pending.Id, Status__c = 'Pending');
+        Test.stopTest();
+
+        Gift__c back = [SELECT Installment__c, Commitment__c FROM Gift__c WHERE Id = :pending.Id];
+        Assert.isNull(back.Installment__c, 'A person picks the installment, as for a new gift');
+        Assert.areEqual(pledge.Id, back.Commitment__c);
+    }
+
+    @IsTest
+    static void aGiftCreatedCancelledHoldsNoInstallment() {
+        Commitment__c pledge = pledge();
+        Installment__c first = firstInstallment(pledge.Id);
+        Gift__c cancelled = GivingTestDataFactory.buildGift(
+            [SELECT Id FROM Contact LIMIT 1].Id,
+            55
+        );
+        cancelled.Status__c = 'Cancelled';
+        cancelled.Commitment__c = pledge.Id;
+        cancelled.Installment__c = first.Id;
+
+        Test.startTest();
+        insert cancelled;
+        Test.stopTest();
+
+        Assert.isNull(
+            [SELECT Installment__c FROM Gift__c WHERE Id = :cancelled.Id].Installment__c,
+            'A cancelled gift pays no installment'
+        );
+        Assert.areEqual(
+            'Scheduled',
+            [SELECT Status__c FROM Installment__c WHERE Id = :first.Id].Status__c
+        );
     }
 }

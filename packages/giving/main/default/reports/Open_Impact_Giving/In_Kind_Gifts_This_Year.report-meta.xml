@@ -24,9 +24,14 @@
   </columns>
   <description>
     Goods and services received this year, with their fair market value. That value is the
-    organization's own reporting figure: never printed on a receipt, never added to giving totals.
+    organization's own reporting figure: never printed on a receipt, never added to giving totals. Pending and Cancelled gifts are left out.
   </description>
   <filter>
+    <criteriaItems>
+      <column>Gift__c$Status__c</column>
+      <operator>equals</operator>
+      <value>Received,Refunded,Written off</value>
+    </criteriaItems>
     <criteriaItems>
       <column>Gift__c$Type__c</column>
       <operator>equals</operator>

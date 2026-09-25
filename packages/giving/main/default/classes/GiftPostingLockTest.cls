@@ -490,6 +490,22 @@ private class GiftPostingLockTest {
     }
 
     @IsTest
+    static void aLockedReceivedGiftIsNotCancelledEvenWithAutomationPaused() {
+        GivingTestDataFactory.closeBooksThrough(lastClosedDay());
+        // Paused, so the switchable status rule that refuses Received to Cancelled is out of
+        // the way: the refusal left is the lock's.
+        TestDataFactory.pausedSettings(2);
+        AutomationControl.clearCache();
+
+        Test.startTest();
+        String refusal = refusalOf(new Gift__c(Id = giftOf(250).Id, Status__c = 'Cancelled'));
+        Test.stopTest();
+
+        Assert.areEqual(closedGiftMessage(), refusal, 'Cancelling would take it out of the books.');
+        Assert.areEqual('Received', giftOf(250).Status__c);
+    }
+
+    @IsTest
     static void aReceivedGiftInAClosedMonthCanBeWrittenOff() {
         GivingTestDataFactory.closeBooksThrough(lastClosedDay());
 
