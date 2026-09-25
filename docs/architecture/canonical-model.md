@@ -1771,7 +1771,7 @@ refund is another gift rather than an edit (ADR-0010).
 | Gift Date | date | yes | The date the gift was received, which is the date that appears on the receipt. |
 | Amount | decimal | yes | The money received, negative for a refund or a write-off, and zero on an in-kind gift, which is goods rather than money (R-G12). |
 | Type | picklist(Cash, Check, Card, ACH, Stock, In-kind, Grant, Other) | yes | How the gift arrived. |
-| Status | picklist(Received, Pending, Refunded, Written off, Cancelled) | yes | Where the gift stands; only Received gifts count in the packaged giving totals. Cancelled is a Pending gift that will never be paid (R-G16). |
+| Status | picklist(Received, Pending, Refunded, Written off, Cancelled) | yes | Where the gift stands; Received, Refunded and Written off count in the packaged giving totals, so a reversal nets against its original (ADR-0022), and Pending and Cancelled do not. Cancelled is a Pending gift that will never be paid (R-G16). |
 | Appeal | reference(Appeal) | no | The fundraising effort this gift responded to. |
 | Acknowledgment Status | picklist(Not required, To acknowledge, Acknowledged, Do not acknowledge) | yes (defaults To acknowledge) | Whether this gift still needs a thank you. |
 | Acknowledgment Date | date | no | The date the thank you was sent. |

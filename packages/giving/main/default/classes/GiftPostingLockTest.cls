@@ -344,6 +344,21 @@ private class GiftPostingLockTest {
     }
 
     @IsTest
+    static void theHouseholdOfALockedGiftsDonorIsNotDeleted() {
+        // Ana's gift names only her, not her household; deleting the household would delete her
+        // with no Contact trigger and blank the gift's donor.
+        Id household = [SELECT AccountId FROM Contact WHERE LastName = 'Nolan' LIMIT 1].AccountId;
+        GivingTestDataFactory.closeBooksThrough(lastClosedDay());
+
+        Test.startTest();
+        String refusal = deleteRefusal(new Account(Id = household));
+        Test.stopTest();
+
+        Assert.areEqual(Label.Giving_Posting_DonorLocked, refusal);
+        Assert.areEqual(ana().Id, giftOf(250).Donor_Contact__c, 'The books still name Ana.');
+    }
+
+    @IsTest
     static void theOriginalOfAPostedRefundIsNotDeleted() {
         Gift__c original = giftOf(40);
         Id refundId = GiftService.refund(original.Id, 10, 'Returned');

@@ -31,7 +31,9 @@ not a money event.
 - No negative gift is created, and the gift is not edited in any other way.
 - Every packaged total, the accounting export, receipts and statements, acknowledgments and the
   retention reports count only Received, Refunded and Written off, so Cancelled is outside all of
-  them by construction. No rollup definition or filter changes.
+  them by construction. No rollup definition changes. The packaged In-kind Gifts This Year
+  report had no status filter and summed Pending fair market value too; it gains the same
+  Received, Refunded and Written off filter.
 - Cancelled is not in the books (R-G14), so the posting lock and a closed period do not refuse
   cancelling a Pending gift dated in a closed month.
 
@@ -50,7 +52,8 @@ means for the Connect API and any flow that uses it.
 **Cancelling releases the installment, as a delete does (R-CM4).** The gift's Installment link is
 cleared in the same save, and the commitment handler recalculates the installment it left, so it
 is open for the next gift. The Commitment link stays, as history. Moving the gift back to Pending
-does not link it again: a person picks the installment, as for any new gift.
+does not link it again: a person picks the installment, as for any new gift. A gift created
+Cancelled holds no installment either; any Installment link on it is cleared in the save.
 
 **Every move into or out of Cancelled is logged** as an Error Log entry at Info naming the gift
 and the user, since Gift has no field history. These rules run from the Gift core rules

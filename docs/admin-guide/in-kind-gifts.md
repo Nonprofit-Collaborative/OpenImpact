@@ -46,7 +46,8 @@ Two things are worth doing once, so that the numbers are visible where people lo
 
 If you want in-kind gifts on paper, the report **In-kind Gifts This Year** is in the Giving
 reports folder. It lists each gift with its description, its fair market value and its donor,
-which is the list a finance team asks for at year end.
+which is the list a finance team asks for at year end. It counts gifts in the books only:
+Pending and Cancelled gifts are left out.
 
 ### Recording one
 
