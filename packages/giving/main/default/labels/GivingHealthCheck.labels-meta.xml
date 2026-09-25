@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Giving_HealthCheck_UnpostedClosedPeriodTitle</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check title: unposted gifts in a closed period. {0} count.</shortDescription>
+        <value>{0} gifts in a closed period are not posted to accounting</value>
+    </labels>
+    <labels>
+        <fullName>Giving_HealthCheck_UnpostedClosedPeriodDetail</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Health Check detail: gifts in a closed period that are not posted.</shortDescription>
+        <value>These gifts are dated on or before the day the books are closed through, so they are already locked from editing, but nothing has marked them posted to accounting. Either mark them posted from the Accounting Export page, once they are actually in the books you exported, or move Books Closed Through back to reopen the period (needs the Override Posting Lock permission).</value>
+    </labels>
+    <labels>
+        <fullName>Giving_HealthCheck_UnpostedClosedPeriodMoreThan</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Stands in for the count at the cap. {0} the cap.</shortDescription>
+        <value>More than {0}</value>
+    </labels>
+    <labels>
+        <fullName>Giving_HealthCheck_UnpostedClosedPeriodFirstListed</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Says how many example gifts are linked. {0} number linked.</shortDescription>
+        <value>The first {0} are linked below.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_HealthCheck_UnpostedClosedPeriodFix</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Fix button: open the Accounting Periods page.</shortDescription>
+        <value>Open Accounting Periods</value>
+    </labels>
+</CustomLabels>

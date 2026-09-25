@@ -16,9 +16,14 @@
  * - HealthCheckHouseholdChecks: whether everyone is in a household and every household has
  *   somebody in it. Detection only, with no fix button (C-21, ADR-0048).
  *
+ * A dependent package that owns data Core may not name (a gift, an accounting period) adds
+ * its own findings through `HealthCheckExtension`, found by `HealthCheckExtensions` with
+ * `Type.forName` (G-20 follow-up, ADR-0053, ADR-NEXT), never by Core learning what a gift is.
+ *
  * Every check is isolated. A check that throws becomes a finding of its own and is written
  * to the Error Log; the other checks still run, because a report that hides eight answers
- * because the ninth failed is worse than no report.
+ * because the ninth failed is worse than no report. A package extension's findings are
+ * isolated the same way.
  *
  * Every string an administrator reads comes from a Custom Label.
  */
@@ -339,7 +344,28 @@ public with sharing class HealthCheckService {
             }
         }
 
+        findings.addAll(extensionFindings());
+
         return findings;
+    }
+
+    /**
+     * Findings a dependent package adds through `HealthCheckExtension` (G-20 follow-up,
+     * ADR-NEXT), isolated the same way a check that throws is: the rest of the report still
+     * stands, and the failure is written to the Error Log rather than shown as this package's
+     * own answer.
+     */
+    private static List<Finding> extensionFindings() {
+        HealthCheckExtension extension = HealthCheckExtensions.find();
+        if (extension == null) {
+            return new List<Finding>();
+        }
+        try {
+            List<Finding> extra = extension.findings();
+            return extra == null ? new List<Finding>() : extra;
+        } catch (Exception e) {
+            return new List<Finding>{ checkFailed('giving_extension', e) };
+        }
     }
 
     /**

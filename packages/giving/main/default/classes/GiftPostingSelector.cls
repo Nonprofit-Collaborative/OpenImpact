@@ -13,6 +13,12 @@
  *
  * `selectSwitchableAutomationNames` reads the shipped automation registry, which is package
  * metadata holding no organization data, as `AutomationRegistrySelector` does.
+ *
+ * `countUnpostedInClosedPeriod` and `unpostedInClosedPeriod` back the Health Check finding
+ * (G-20 follow-up, ADR-0053): gifts the lock already treats as in the books (ADR-0022,
+ * `GiftPostingLock.BOOK_STATUSES` and `TYPE_IN_KIND`) and dated on or before the close date,
+ * that nothing has ever marked posted. They run in user mode, like `HouseholdOrphanSelector`
+ * in Core: a gift the viewer cannot see is neither counted nor linked.
  */
 public with sharing class GiftPostingSelector {
     /**
@@ -68,6 +74,43 @@ public with sharing class GiftPostingSelector {
             FROM Gift__c
             WHERE Id IN :giftIds
             WITH USER_MODE
+        ];
+    }
+
+    /** How many gifts are in the books, dated in a closed period, and not yet posted. Capped. */
+    public static Integer countUnpostedInClosedPeriod(Date closed, Integer cap) {
+        if (closed == null) {
+            return 0;
+        }
+        return [
+            SELECT COUNT()
+            FROM Gift__c
+            WHERE
+                Status__c IN :GiftPostingLock.BOOK_STATUSES
+                AND Type__c != :GiftPostingLock.TYPE_IN_KIND
+                AND Gift_Date__c <= :closed
+                AND Accounting_Posted_At__c = NULL
+            WITH USER_MODE
+            LIMIT :cap
+        ];
+    }
+
+    /** The earliest-dated of those gifts, to link a few examples. */
+    public static List<Gift__c> unpostedInClosedPeriod(Date closed, Integer howMany) {
+        if (closed == null) {
+            return new List<Gift__c>();
+        }
+        return [
+            SELECT Id, Name, Gift_Date__c
+            FROM Gift__c
+            WHERE
+                Status__c IN :GiftPostingLock.BOOK_STATUSES
+                AND Type__c != :GiftPostingLock.TYPE_IN_KIND
+                AND Gift_Date__c <= :closed
+                AND Accounting_Posted_At__c = NULL
+            WITH USER_MODE
+            ORDER BY Gift_Date__c ASC, Id ASC
+            LIMIT :howMany
         ];
     }
 
