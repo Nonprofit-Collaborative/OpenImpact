@@ -234,36 +234,44 @@ public with sharing class OpportunityMirrorSelector {
         return byContact;
     }
 
-    /** How many gifts in the totals, dated in the range, the running user can see (R-OM11). */
-    public static Integer countGiftsInRange(Date fromDate, Date toDate) {
+    /**
+     * How many gifts in the totals, dated in the range, the running user can see (R-OM11), counted
+     * no further than `cap`, so a range of a million gifts costs no more than one too many.
+     */
+    public static Integer countGiftsInRange(Date fromDate, Date toDate, Integer cap) {
         Set<String> statuses = OpportunityMirrorService.IN_TOTALS;
         return [
             SELECT COUNT()
             FROM Gift__c
             WHERE Status__c IN :statuses AND Gift_Date__c >= :fromDate AND Gift_Date__c <= :toDate
             WITH USER_MODE
+            LIMIT :cap
         ];
     }
 
-    /** The gifts in the totals dated in the range that the running user can see, oldest first. */
-    public static List<Gift__c> giftsInRange(Date fromDate, Date toDate) {
-        Set<String> statuses = OpportunityMirrorService.IN_TOTALS;
-        return [
-            SELECT Id, Name, Amount__c, Gift_Date__c, Opportunity_Id__c
-            FROM Gift__c
-            WHERE Status__c IN :statuses AND Gift_Date__c >= :fromDate AND Gift_Date__c <= :toDate
-            WITH USER_MODE
-            ORDER BY Gift_Date__c, Id
-        ];
-    }
+    /**
+     * The gifts in the totals dated in the range that the running user can see, oldest first, for
+     * a SOQL for loop through `Database.query`, which reads them 200 at a time. Binds `statuses`,
+     * `fromDate` and `toDate` from the caller's scope.
+     */
+    public static final String GIFTS_IN_RANGE_QUERY =
+        'SELECT Id, Name, Amount__c, Gift_Date__c, Opportunity_Id__c FROM Gift__c' +
+        ' WHERE Status__c IN :statuses AND Gift_Date__c >= :fromDate AND Gift_Date__c <= :toDate' +
+        ' WITH USER_MODE ORDER BY Gift_Date__c, Id';
 
-    /** How many won Opportunities closed in the range the running user can see (R-OM11). */
-    public static Integer countWonInRange(String opportunityObject, Date fromDate, Date toDate) {
+    /** How many won Opportunities closed in the range the running user can see, up to `cap`. */
+    public static Integer countWonInRange(
+        String opportunityObject,
+        Date fromDate,
+        Date toDate,
+        Integer cap
+    ) {
         return Database.countQueryWithBinds(
             'SELECT COUNT() FROM ' +
                 String.escapeSingleQuotes(opportunityObject) +
-                ' WHERE IsWon = TRUE AND CloseDate >= :fromDate AND CloseDate <= :toDate',
-            new Map<String, Object>{ 'fromDate' => fromDate, 'toDate' => toDate },
+                ' WHERE IsWon = TRUE AND CloseDate >= :fromDate AND CloseDate <= :toDate' +
+                ' LIMIT :cap',
+            new Map<String, Object>{ 'fromDate' => fromDate, 'toDate' => toDate, 'cap' => cap },
             AccessLevel.USER_MODE
         );
     }

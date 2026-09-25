@@ -5,7 +5,9 @@
  * A page rather than a report, because a packaged report type over Opportunity would stop Connect
  * installing where Opportunity does not exist (ADR-0013). It reads in user mode and writes
  * nothing, so each person sees the differences among the records they can see. A range too large
- * to compare in one transaction is refused rather than shown in part (ADR-0051).
+ * to compare in one transaction is refused rather than shown in part (ADR-0051): the counts stop
+ * one past the most it reads, the rows it will read must fit what the transaction has left, and
+ * the gifts are read 200 at a time, keeping only those whose Opportunity is looked up after.
  */
 public with sharing class OpportunityMirrorReconciliation {
     /** The most gifts, and separately the most won Opportunities, one comparison reads. */
@@ -88,13 +90,29 @@ public with sharing class OpportunityMirrorReconciliation {
         if (!Gift__c.Opportunity_Id__c.getDescribe().isAccessible()) {
             throw new ReconciliationException(Label.Connect_OpportunityMirror_NoLinkAccess);
         }
+        if (!canReadOpportunities()) {
+            throw new ReconciliationException(Label.Connect_OpportunityMirror_NoOpportunityRead);
+        }
         String opportunityObject = OpportunityMirrorService.opportunityType()
             .getDescribe()
             .getName();
+        Integer giftCount = OpportunityMirrorSelector.countGiftsInRange(
+            fromDate,
+            toDate,
+            maxRecords + 1
+        );
+        Integer wonCount = OpportunityMirrorSelector.countWonInRange(
+            opportunityObject,
+            fromDate,
+            toDate,
+            maxRecords + 1
+        );
+        // Each gift can cost a second row for its Opportunity, each won one a check for a gift.
+        Integer rowsLeft = Limits.getLimitQueryRows() - Limits.getQueryRows();
         if (
-            OpportunityMirrorSelector.countGiftsInRange(fromDate, toDate) > maxRecords ||
-            OpportunityMirrorSelector.countWonInRange(opportunityObject, fromDate, toDate) >
-            maxRecords
+            giftCount > maxRecords ||
+            wonCount > maxRecords ||
+            2 * (giftCount + wonCount) > rowsLeft
         ) {
             throw new ReconciliationException(Label.Connect_OpportunityMirror_ErrorTooMany);
         }
@@ -113,51 +131,34 @@ public with sharing class OpportunityMirrorReconciliation {
             result.opportunityTotal += amountOf(opportunity.get('Amount'));
         }
 
-        List<Gift__c> gifts = OpportunityMirrorSelector.giftsInRange(fromDate, toDate);
+        // Bound by name in the selector's query.
+        Set<String> statuses = OpportunityMirrorService.IN_TOTALS;
+        Set<String> named = new Set<String>();
         // A gift in the range may name an Opportunity closed outside it, or one not won.
-        Set<Id> elsewhere = new Set<Id>();
-        for (Gift__c gift : gifts) {
-            if (gift.Opportunity_Id__c != null && !wonById.containsKey(gift.Opportunity_Id__c)) {
-                elsewhere.add(Id.valueOf(gift.Opportunity_Id__c));
+        List<Gift__c> elsewhere = new List<Gift__c>();
+        Set<Id> elsewhereIds = new Set<Id>();
+        for (List<Gift__c> chunk : Database.query(OpportunityMirrorSelector.GIFTS_IN_RANGE_QUERY)) {
+            for (Gift__c gift : chunk) {
+                result.giftCount++;
+                result.giftTotal += amountOf(gift.Amount__c);
+                if (gift.Opportunity_Id__c == null) {
+                    result.add(pair(gift, null, Label.Connect_OpportunityMirror_DiffNoOpportunity));
+                } else if (wonById.containsKey(gift.Opportunity_Id__c)) {
+                    named.add(gift.Opportunity_Id__c);
+                    compareLinked(result, gift, wonById.get(gift.Opportunity_Id__c));
+                } else {
+                    elsewhere.add(gift);
+                    elsewhereIds.add(Id.valueOf(gift.Opportunity_Id__c));
+                }
             }
         }
         Map<Id, SObject> otherById = OpportunityMirrorSelector.opportunitiesById(
             opportunityObject,
             new List<String>{ 'Id', 'Name', 'Amount', 'CloseDate', 'IsWon' },
-            elsewhere
+            elsewhereIds
         );
-
-        Set<String> named = new Set<String>();
-        for (Gift__c gift : gifts) {
-            result.giftCount++;
-            result.giftTotal += amountOf(gift.Amount__c);
-            if (gift.Opportunity_Id__c == null) {
-                result.add(pair(gift, null, Label.Connect_OpportunityMirror_DiffNoOpportunity));
-                continue;
-            }
-            named.add(gift.Opportunity_Id__c);
-            SObject opportunity = wonById.containsKey(gift.Opportunity_Id__c)
-                ? wonById.get(gift.Opportunity_Id__c)
-                : otherById.get(Id.valueOf(gift.Opportunity_Id__c));
-            if (opportunity == null) {
-                Difference missing = pair(gift, null, Label.Connect_OpportunityMirror_DiffMissing);
-                missing.opportunityId = gift.Opportunity_Id__c;
-                result.add(missing);
-                continue;
-            }
-            List<String> reasons = new List<String>();
-            if (amountOf(gift.Amount__c) != amountOf(opportunity.get('Amount'))) {
-                reasons.add(Label.Connect_OpportunityMirror_DiffAmount);
-            }
-            if (gift.Gift_Date__c != (Date) opportunity.get('CloseDate')) {
-                reasons.add(Label.Connect_OpportunityMirror_DiffDate);
-            }
-            if (opportunity.get('IsWon') != true) {
-                reasons.add(Label.Connect_OpportunityMirror_DiffNotWon);
-            }
-            if (!reasons.isEmpty()) {
-                result.add(pair(gift, opportunity, String.join(reasons, ', ')));
-            }
+        for (Gift__c gift : elsewhere) {
+            compareLinked(result, gift, otherById.get(Id.valueOf(gift.Opportunity_Id__c)));
         }
 
         // A won Opportunity is without a gift only when no gift anywhere names it.
@@ -170,6 +171,45 @@ public with sharing class OpportunityMirrorReconciliation {
             }
         }
         return result;
+    }
+
+    /** Lists a linked gift whose Opportunity is gone or differs from it. */
+    private static void compareLinked(Comparison result, Gift__c gift, SObject opportunity) {
+        if (opportunity == null) {
+            Difference missing = pair(gift, null, Label.Connect_OpportunityMirror_DiffMissing);
+            missing.opportunityId = gift.Opportunity_Id__c;
+            result.add(missing);
+            return;
+        }
+        List<String> reasons = new List<String>();
+        if (amountOf(gift.Amount__c) != amountOf(opportunity.get('Amount'))) {
+            reasons.add(Label.Connect_OpportunityMirror_DiffAmount);
+        }
+        if (gift.Gift_Date__c != (Date) opportunity.get('CloseDate')) {
+            reasons.add(Label.Connect_OpportunityMirror_DiffDate);
+        }
+        if (opportunity.get('IsWon') != true) {
+            reasons.add(Label.Connect_OpportunityMirror_DiffNotWon);
+        }
+        if (!reasons.isEmpty()) {
+            result.add(pair(gift, opportunity, String.join(reasons, ', ')));
+        }
+    }
+
+    /** Whether the viewer can read Opportunities and each field the comparison shows. */
+    private static Boolean canReadOpportunities() {
+        Schema.DescribeSObjectResult opportunity = OpportunityMirrorService.opportunityType()
+            .getDescribe();
+        if (!opportunity.isAccessible()) {
+            return false;
+        }
+        Map<String, Schema.SObjectField> fields = opportunity.fields.getMap();
+        for (String name : new List<String>{ 'name', 'amount', 'closedate' }) {
+            if (!fields.get(name).getDescribe().isAccessible()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static Difference pair(Gift__c gift, SObject opportunity, String reason) {

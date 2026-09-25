@@ -5,6 +5,11 @@
  */
 public with sharing class OpportunityMirrorController {
     private static final String CONTEXT = 'OpportunityMirrorController';
+    /**
+     * Held through the Opportunity Mirror permission set. Reading the page's status and the
+     * reconciliation needs it, as the page's entry in the settings console does (ADR-0038).
+     */
+    private static final String USE_PERMISSION = 'Use_Opportunity_Mirror';
 
     /** What the page shows. */
     public class Status {
@@ -22,10 +27,16 @@ public with sharing class OpportunityMirrorController {
         public Boolean running;
         @AuraEnabled
         public Datetime nextRunAt;
+        /** When the last completed run started, and what it did (ADR-0038 point 4). */
+        @AuraEnabled
+        public Datetime lastRunAt;
+        @AuraEnabled
+        public String lastSummary;
     }
 
     @AuraEnabled
     public static Status getStatus() {
+        requireUse();
         try {
             return status();
         } catch (Exception unexpected) {
@@ -97,12 +108,19 @@ public with sharing class OpportunityMirrorController {
     /** The reconciliation for a range, as the person viewing can see it (R-OM11). */
     @AuraEnabled
     public static OpportunityMirrorReconciliation.Comparison compare(Date fromDate, Date toDate) {
+        requireUse();
         try {
             return OpportunityMirrorReconciliation.compare(fromDate, toDate);
         } catch (OpportunityMirrorReconciliation.ReconciliationException refused) {
             throw asAuraException(refused.getMessage());
         } catch (Exception unexpected) {
             throw failed(unexpected);
+        }
+    }
+
+    private static void requireUse() {
+        if (!FeatureManagement.checkPermission(USE_PERMISSION)) {
+            throw asAuraException(Label.Connect_OpportunityMirror_NoUsePermission);
         }
     }
 
@@ -150,13 +168,18 @@ public with sharing class OpportunityMirrorController {
         current.canRun = canRun(current.direction);
         current.running = OpportunityMirrorSchedulable.isRunning();
         current.nextRunAt = OpportunityMirrorSchedulable.nextRunAt();
+        Connect_Settings__c settings = Connect_Settings__c.getOrgDefaults();
+        current.lastRunAt = settings?.Opportunity_Mirror_Last_Run__c;
+        current.lastSummary = settings?.Opportunity_Mirror_Last_Summary__c;
         return current;
     }
 
     /** Whether a run started by this person could do its work in the chosen direction. */
     private static Boolean canRun(String direction) {
         if (direction != OpportunityMirrorService.OPPORTUNITIES_TO_GIFTS) {
-            return OpportunityMirrorService.canCopy();
+            // A run stores each new link on its gift in user mode.
+            return OpportunityMirrorService.canCopy() &&
+                Gift__c.Opportunity_Id__c.getDescribe().isUpdateable();
         }
         if (!OpportunityMirrorService.isAvailable()) {
             return false;

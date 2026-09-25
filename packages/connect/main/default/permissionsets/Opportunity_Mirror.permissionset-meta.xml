@@ -6,6 +6,14 @@
     For whoever saves gifts or runs the Opportunity mirror: edits a gift's Opportunity ID and
     opens the mirror page. Creating Opportunities also needs Opportunity access in Setup.
   </description>
+  <classAccesses>
+    <apexClass>OpportunityMirrorController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <customPermissions>
+    <enabled>true</enabled>
+    <name>Use_Opportunity_Mirror</name>
+  </customPermissions>
   <fieldPermissions>
     <editable>true</editable>
     <field>Gift__c.Opportunity_Id__c</field>
