@@ -171,7 +171,7 @@ public with sharing class OpportunityMirrorService {
             if (
                 gift.Opportunity_Id__c != null &&
                 (old == null ||
-                old.Opportunity_Id__c == null) &&
+                old.Opportunity_Id__c != gift.Opportunity_Id__c) &&
                 createdHere.contains(Id.valueOf(gift.Opportunity_Id__c))
             ) {
                 // A link this save wrote, now rolled back by a retry: made again, never left
