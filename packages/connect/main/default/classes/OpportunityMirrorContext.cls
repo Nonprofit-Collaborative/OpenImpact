@@ -7,9 +7,10 @@
  * It also resolves Opportunity and its contact roles through describe, so Connect installs and
  * compiles where they do not exist (plan Section 4.2, R-OM1).
  *
- * Campaign is written only when the saver may read Campaigns and edit the Opportunity's Campaign:
- * otherwise it is left out of the copy entirely, so a saver who can create Opportunities but not
- * see Campaigns still has gifts with an appeal copied, rather than every one refused.
+ * Campaign is written only when the saver may read Campaigns and the appeal's Campaign ID, and
+ * edit the Opportunity's Campaign: otherwise it is left out of the copy entirely, so the
+ * Opportunity's Campaign is never cleared for want of access, and a saver who cannot see either
+ * still has gifts with an appeal copied, rather than every one refused.
  */
 public with sharing class OpportunityMirrorContext {
     private static final String DONATION_RECORD_TYPE = 'Donation';
@@ -51,7 +52,8 @@ public with sharing class OpportunityMirrorContext {
             campaignType.getDescribe().isAccessible() &&
             campaignField.getDescribe().isAccessible() &&
             campaignField.getDescribe().isCreateable() &&
-            campaignField.getDescribe().isUpdateable();
+            campaignField.getDescribe().isUpdateable() &&
+            Appeal__c.Campaign_Id__c.getDescribe().isAccessible();
         Schema.RecordTypeInfo donation = describe.getRecordTypeInfosByDeveloperName()
             .get(DONATION_RECORD_TYPE);
         donationRecordTypeId = donation != null &&
@@ -88,11 +90,7 @@ public with sharing class OpportunityMirrorContext {
             read.add(CAMPAIGN_FIELD);
         }
         current = OpportunityMirrorSelector.opportunitiesById(describe.getName(), read, linkedIds);
-        if (
-            hasCampaign &&
-            !appealIds.isEmpty() &&
-            Appeal__c.Campaign_Id__c.getDescribe().isAccessible()
-        ) {
+        if (hasCampaign && !appealIds.isEmpty()) {
             campaignByAppeal.putAll(CampaignSyncSelector.campaignIdsByAppealId(appealIds));
         }
         names = OpportunityMirrorSelector.namesById(namedContactIds, namedAccountIds);
