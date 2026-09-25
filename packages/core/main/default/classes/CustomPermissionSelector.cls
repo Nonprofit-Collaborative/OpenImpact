@@ -71,10 +71,11 @@ public with sharing class CustomPermissionSelector {
                     result.names.add(holder.Name);
                 }
             }
+        } catch (System.SecurityException cannotSeeSetup) {
+            // A user-mode query the viewer may not run throws this rather than QueryException.
+            result = unreadable();
         } catch (QueryException cannotSeeSetup) {
-            result.readable = false;
-            result.total = 0;
-            result.names = new List<String>();
+            result = unreadable();
         }
 
         return result;
@@ -91,10 +92,20 @@ public with sharing class CustomPermissionSelector {
             for (User holder : activeHolders(developerName)) {
                 ids.add(holder.Id);
             }
+        } catch (System.SecurityException cannotSeeSetup) {
+            ids.clear();
         } catch (QueryException cannotSeeSetup) {
             ids.clear();
         }
         return ids;
+    }
+
+    private static Holders unreadable() {
+        Holders result = new Holders();
+        result.readable = false;
+        result.total = 0;
+        result.names = new List<String>();
+        return result;
     }
 
     /**

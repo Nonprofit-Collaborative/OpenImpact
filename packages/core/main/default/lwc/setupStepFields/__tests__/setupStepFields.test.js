@@ -20,17 +20,17 @@ jest.mock(
   { virtual: true }
 );
 
-// The organization step as it arrives with Giving installed: Core's two fields and the
-// receipt fields Giving adds (ADR-NEXT, C-29).
+// The organization step as it arrives with a module installed: Core's two fields and the
+// fields a stand-in module adds, matching SetupAssistantTestExtension (ADR-NEXT, C-29).
 const IDENTITY_FIELDS = [
   { fieldType: 'Text', key: 'Organization_Legal_Name__c', label: 'Legal name', maxLength: 255 },
   {
     fieldType: 'Text',
-    key: 'Organization_EIN__c',
-    label: 'Tax identification number',
+    key: 'Module_Code__c',
+    label: 'Module code',
     maxLength: 20,
-    pattern: '[0-9]{2}-[0-9]{7}',
-    patternMessage: 'Enter it as 12-3456789.'
+    pattern: '[A-Z]{2}-[0-9]{2}',
+    patternMessage: 'Two letters, a hyphen and two digits.'
   },
   {
     fieldType: 'Text',
@@ -41,9 +41,9 @@ const IDENTITY_FIELDS = [
   },
   {
     fieldType: 'File',
-    key: 'Receipt_Logo_Document_Id__c',
-    label: 'Logo',
-    previewAlt: 'Your logo'
+    key: 'Module_Image_Document_Id__c',
+    label: 'Image',
+    previewAlt: 'Your image'
   }
 ];
 
@@ -80,36 +80,34 @@ describe('c-setup-step-fields', () => {
     const saved = jest.fn();
     element.addEventListener('save', saved);
 
-    const input = element.shadowRoot.querySelector(
-      'lightning-input[data-key="Organization_EIN__c"]'
-    );
-    input.value = '12-3456789';
+    const input = element.shadowRoot.querySelector('lightning-input[data-key="Module_Code__c"]');
+    input.value = 'RC-01';
     input.dispatchEvent(new CustomEvent('change'));
     element.shadowRoot.querySelector('[data-id="save-fields"]').click();
 
     expect(saved.mock.calls[0][0].detail.values).toEqual({
       Organization_Legal_Name__c: null,
-      Organization_EIN__c: '12-3456789',
+      Module_Code__c: 'RC-01',
       Organization_Address__c: null,
-      Receipt_Logo_Document_Id__c: null
+      Module_Image_Document_Id__c: null
     });
   });
 
   it('applies the limits and wording the field declares', () => {
     const element = build(withValues({}));
 
-    const ein = element.shadowRoot.querySelector('lightning-input[data-key="Organization_EIN__c"]');
-    expect(ein.pattern).toBe('[0-9]{2}-[0-9]{7}');
-    expect(ein.maxLength).toBe(20);
-    expect(ein.messageWhenPatternMismatch).toBe('Enter it as 12-3456789.');
+    const code = element.shadowRoot.querySelector('lightning-input[data-key="Module_Code__c"]');
+    expect(code.pattern).toBe('[A-Z]{2}-[0-9]{2}');
+    expect(code.maxLength).toBe(20);
+    expect(code.messageWhenPatternMismatch).toBe('Two letters, a hyphen and two digits.');
   });
 
   it('shows an uploaded file rather than its record identifier', () => {
-    const element = build(withValues({ Receipt_Logo_Document_Id__c: '069000000000001' }));
+    const element = build(withValues({ Module_Image_Document_Id__c: '069000000000001' }));
 
     const preview = element.shadowRoot.querySelector('[data-id="file-preview"]');
     expect(preview.src).toContain('/sfc/servlet.shepherd/document/download/069000000000001');
-    expect(preview.alt).toBe('Your logo');
+    expect(preview.alt).toBe('Your image');
     expect(element.shadowRoot.textContent).not.toContain('069000000000001');
   });
 
@@ -124,29 +122,29 @@ describe('c-setup-step-fields', () => {
       new CustomEvent('uploadfinished', { detail: { files: [{ documentId: '069000000000001' }] } })
     );
 
-    expect(saved.mock.calls[0][0].detail.values.Receipt_Logo_Document_Id__c).toBe(
+    expect(saved.mock.calls[0][0].detail.values.Module_Image_Document_Id__c).toBe(
       '069000000000001'
     );
   });
 
   it('saves a chosen record by its identifier', () => {
     const element = build([
-      { fieldType: 'Record', key: 'Default_Fund__c', label: 'Fund', objectApiName: 'Fund__c' }
+      { fieldType: 'Record', key: 'Default_Contact__c', label: 'Contact', objectApiName: 'Contact' }
     ]);
     const saved = jest.fn();
     element.addEventListener('save', saved);
 
     const picker = element.shadowRoot.querySelector('lightning-record-picker');
-    expect(picker.objectApiName).toBe('Fund__c');
-    picker.dispatchEvent(new CustomEvent('change', { detail: { recordId: 'a01000000000001' } }));
+    expect(picker.objectApiName).toBe('Contact');
+    picker.dispatchEvent(new CustomEvent('change', { detail: { recordId: '003000000000001' } }));
     element.shadowRoot.querySelector('[data-id="save-fields"]').click();
 
-    expect(saved.mock.calls[0][0].detail.values).toEqual({ Default_Fund__c: 'a01000000000001' });
+    expect(saved.mock.calls[0][0].detail.values).toEqual({ Default_Contact__c: '003000000000001' });
   });
 
   it('opens the tab a navigation field names, with no save button', () => {
     const element = build([
-      { fieldType: 'Navigate', label: 'Enter your first gift', navigationTarget: 'Gift_Entry' }
+      { fieldType: 'Navigate', label: 'Open the module', navigationTarget: 'Module_Tab' }
     ]);
 
     expect(element.shadowRoot.querySelector('[data-id="save-fields"]')).toBeNull();
@@ -154,7 +152,7 @@ describe('c-setup-step-fields', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith({
       type: 'standard__navItemPage',
-      attributes: { apiName: 'Gift_Entry' }
+      attributes: { apiName: 'Module_Tab' }
     });
   });
 
