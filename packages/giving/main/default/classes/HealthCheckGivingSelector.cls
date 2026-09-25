@@ -1,6 +1,6 @@
 /**
  * The read behind the Health Check finding for unposted gifts in a closed period (G-20
- * follow-up, ADR-0053, ADR-0021 as amended by ADR-NEXT). Gifts the lock already treats as in
+ * follow-up, ADR-0053, ADR-0021 as amended by ADR-0057). Gifts the lock already treats as in
  * the books (ADR-0022, `GiftPostingLock.BOOK_STATUSES` and `TYPE_IN_KIND`, or a blank status,
  * which `GiftPostingLock.isInBooks` also reads as Received), dated on or before the close date,
  * that nothing has ever marked posted.
@@ -20,7 +20,7 @@
  * class itself has to give up sharing.
  *
  * ADR-0021 keeps reads that reach a user in user mode; this one reaches a user (the
- * administrator reading Health Check) and still runs without sharing, which ADR-NEXT records as
+ * administrator reading Health Check) and still runs without sharing, which ADR-0057 records as
  * an explicit exception to that rule, with what it exposes (a capped count, and for at most
  * five gifts, Id, Name and Gift_Date__c: never a donor, an amount or any other financial field)
  * and its gate. That gate, `HealthCheckService.canManageSettings()`, is asserted here as well as

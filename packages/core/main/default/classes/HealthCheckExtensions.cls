@@ -1,7 +1,7 @@
 /**
  * Finds the Health Check extension a dependent package installed, or answers that there is
  * none, which is the ordinary case in an org without Giving (G-20 follow-up, ADR-0053,
- * ADR-NEXT).
+ * ADR-0057).
  *
  * The class is found by namespace and name, the pattern `ImportEntityProcessors` uses for the
  * same reason (R-IR6): a class name is not an API name, so it takes no `__` prefix. A class

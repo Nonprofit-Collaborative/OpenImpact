@@ -1,6 +1,6 @@
 /**
  * The seam a dependent package uses to add its own findings to the one Health Check report,
- * without Core depending on it (G-20 follow-up, ADR-0053, ADR-NEXT; the same shape as
+ * without Core depending on it (G-20 follow-up, ADR-0053, ADR-0057; the same shape as
  * `ImportEntityProcessor`, R-IR6, under the cross-package mechanism ADR-0017 settled).
  *
  * Core is neutral (plan Section 4.1, C-29): it may not know what a gift is or what an

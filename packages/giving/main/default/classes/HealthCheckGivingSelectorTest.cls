@@ -1,6 +1,6 @@
 /**
  * Tests for HealthCheckGivingSelector (G-20 follow-up, ADR-0053, ADR-0021 as amended by
- * ADR-NEXT): the org-wide, without-sharing read behind the unposted-in-closed-period finding.
+ * ADR-0057): the org-wide, without-sharing read behind the unposted-in-closed-period finding.
  */
 @IsTest
 private class HealthCheckGivingSelectorTest {
@@ -122,7 +122,7 @@ private class HealthCheckGivingSelectorTest {
         addAnAlreadyPostedGift(jen);
         GivingTestDataFactory.closeBooksThrough(lastClosedDay());
 
-        // The selector's own query never selects Amount__c (the ADR-NEXT amendment promises
+        // The selector's own query never selects Amount__c (the ADR-0057 amendment promises
         // nothing but Id, Name and Gift_Date__c crosses the sharing boundary), so the three
         // qualifying gifts are identified here, as the running test user who owns them, before
         // entering Jen's context to call the selector.
@@ -145,7 +145,7 @@ private class HealthCheckGivingSelectorTest {
     }
 
     /**
-     * The selector asserts `HealthCheckService.canManageSettings()` itself (ADR-NEXT), not
+     * The selector asserts `HealthCheckService.canManageSettings()` itself (ADR-0057), not
      * only its caller, so a future caller that forgets the check still reaches nothing: called
      * directly, bypassing `HealthCheckGivingChecks.findings()` entirely, a viewer without the
      * permission gets an empty answer even though qualifying, unposted, closed-period gifts

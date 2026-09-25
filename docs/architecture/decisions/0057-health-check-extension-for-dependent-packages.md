@@ -1,4 +1,4 @@
-# ADR-NEXT: A Health Check extension seam lets a dependent package add findings without Core depending on it
+# ADR-0057: A Health Check extension seam lets a dependent package add findings without Core depending on it
 
 **Status:** Accepted (builder decision)
 **Date:** 2026-09-25

@@ -1,6 +1,6 @@
 /**
  * The Giving questions Health Check asks, added to Core's one report through
- * `GivingHealthCheckExtension` (G-20 follow-up, ADR-0053, ADR-NEXT). Grouped the way
+ * `GivingHealthCheckExtension` (G-20 follow-up, ADR-0053, ADR-0057). Grouped the way
  * ADR-0039 groups Core's own checks, in its own class, so a second Giving check reads next to
  * this one rather than inside Core.
  *

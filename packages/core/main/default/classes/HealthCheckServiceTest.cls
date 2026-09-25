@@ -1064,7 +1064,7 @@ private class HealthCheckServiceTest {
     }
 
     /**
-     * A dependent package's findings (G-20 follow-up, ADR-NEXT): Core resolves
+     * A dependent package's findings (G-20 follow-up, ADR-0057): Core resolves
      * `HealthCheckExtensions.find()` and folds its list in, isolated exactly like a check
      * that throws. Core has no Giving package to install a real one, so the extension itself
      * is the test double here, the same way `ImportEntityProcessors` tests stand in for a row

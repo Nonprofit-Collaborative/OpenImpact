@@ -18,7 +18,7 @@
  *
  * A dependent package that owns data Core may not name (a gift, an accounting period) adds
  * its own findings through `HealthCheckExtension`, found by `HealthCheckExtensions` with
- * `Type.forName` (G-20 follow-up, ADR-0053, ADR-NEXT), never by Core learning what a gift is.
+ * `Type.forName` (G-20 follow-up, ADR-0053, ADR-0057), never by Core learning what a gift is.
  *
  * Every check is isolated. A check that throws becomes a finding of its own and is written
  * to the Error Log; the other checks still run, because a report that hides eight answers
@@ -379,7 +379,7 @@ public with sharing class HealthCheckService {
 
     /**
      * Findings a dependent package adds through `HealthCheckExtension` (G-20 follow-up,
-     * ADR-NEXT), isolated the same way a check that throws is: the rest of the report still
+     * ADR-0057), isolated the same way a check that throws is: the rest of the report still
      * stands, and the failure is written to the Error Log rather than shown as this package's
      * own answer.
      */
