@@ -222,7 +222,8 @@ counted them as would create, because a dry run saves nothing for the rule to ch
 edit that field, so its column was skipped on every row, in the dry run and in the commit, and
 the rest of each row loaded. The run log names each such field once. The Nonprofit Admin role
 lets you edit the fields the shipped mappings use (email, phone numbers, mailing address,
-title, birthdate, and the Email Opt Out, Fax Opt Out and Do Not Call flags), so this usually
+title, birthdate, and the Email Opt Out, Fax Opt Out and Do Not Call flags, and the
+billing address of households and organizations), so this usually
 means a column mapped to some other field, or a user without that role. Ask your Salesforce
 administrator for edit access to the field and import the file again: the second import
 matches the people it already created and adds the missing values. Where people are person

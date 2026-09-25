@@ -323,6 +323,11 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
+    <field>Account.BillingAddress</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
     <field>Account.Created_By_Import_Batch__c</field>
     <readable>true</readable>
   </fieldPermissions>
