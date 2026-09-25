@@ -134,7 +134,7 @@
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Setup assistant: the legal name field on the identity step</shortDescription>
-        <value>Legal name, as on your tax filings</value>
+        <value>Legal name, as registered</value>
     </labels>
     <labels>
         <fullName>Core_SetupAssistant_LoadErrorMessage</fullName>
@@ -270,7 +270,7 @@
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Setup assistant: notice for someone who can read but not change it</shortDescription>
-        <value>You can read the setup steps but not change them. Ask whoever installed Open Impact to add you to the Nonprofit Admin role on the Access page.</value>
+        <value>You can read the setup steps but not change them. Ask whoever installed Open Impact to add you to the Open Impact Admin role on the Access page.</value>
     </labels>
     <labels>
         <fullName>Core_SetupAssistant_RecommendedLabel</fullName>
