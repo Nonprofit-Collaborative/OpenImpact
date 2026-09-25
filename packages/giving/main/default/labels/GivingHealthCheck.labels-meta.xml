@@ -91,6 +91,14 @@
         <value>One receipt is recorded as Void with the reason Generation failed. That is the record of a number that was handed out to a document which never generated, and a single one is ordinary rather than a problem. The Error Log says what went wrong, and the receipt can be run again once it is fixed.</value>
     </labels>
     <labels>
+        <fullName>Giving_HealthCheck_ReceiptFailedMoreThan</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>How many failed receipts, when there are more than the count cap.</shortDescription>
+        <value>More than {0}</value>
+    </labels>
+    <labels>
         <fullName>Giving_HealthCheck_ReceiptFailedManyTitle</fullName>
         <categories>Giving</categories>
         <language>en_US</language>
