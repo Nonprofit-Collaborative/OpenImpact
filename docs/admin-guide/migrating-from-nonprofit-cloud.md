@@ -66,9 +66,11 @@ in section 4 produce. Create a default fund called **General Fund**, a fund call
 
 ## 4. Moving everything, step by step
 
-Do it in this order. People come before gifts because a gift file that names a new donor on
-several rows creates that donor once per row; with the people already loaded, every row finds
-them by email.
+Do it in this order. People come before gifts because the people file carries each person's
+full details (address, phones, preferences), which a gift file does not. A donor the gift file
+names on several rows is created once either way, but only with the few details a gift row
+has. With the people already loaded, every gift row finds its donor by email. An export of up
+to 500,000 rows can be dry run as one file; split anything larger.
 
 1. **Funds and appeals.** Create them in Open Impact by hand, with the names they have in
    Nonprofit Cloud (gift designations and campaigns). There is no import for them yet.
@@ -204,11 +206,20 @@ that keeps people as person accounts:
 ...".** The gift has more than one designation. Combine its lines into one row (section 4, step
 7) and load the file again: the rows already loaded are matched, not duplicated.
 
-**The same person appears twice after a gift file.** The gift file was loaded before the people
-file, and the person was new, so each of their rows created them. Undo the gift import, load the
-people file, and load the gift file again. The same happens to a donor with no email address,
-because **Email exact** has nothing to match on: give such donors an email address before the
-export, or check the dry run's "would create" count.
+**The same person appears on several records after a gift file.** The donor had no email
+address, so **Email exact** had nothing to match or group their rows on, and each row created
+them. Give such donors an email address before the export, or check the dry run's "would
+create" count: a donor with an email is created once however many gifts they have.
+
+**A person's first name changed after a gift file.** Where only one person has the row's email,
+a row with a different first name is matched to them and their first name is updated (see
+[Importing](importing.md)). Check the dry run's Updated rows before you commit, and correct the
+file where a gift names the donor differently, for example "Bob" for "Robert".
+
+**Salesforce warned about duplicates and the import saved the people anyway.** A duplicate
+rule set to alert does not stop an import, as it would not stop a bulk load. Run the duplicate
+scan afterwards ([Duplicates](duplicates.md)). A rule set to **Block** still rejects the row
+with the rule's message.
 
 **Rows rejected with "No appeal is named ..." or "No fund is named ...".** The campaign or
 designation name is not an appeal or fund in Open Impact. Create it with exactly that name, or
