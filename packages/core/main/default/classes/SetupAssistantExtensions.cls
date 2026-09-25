@@ -40,6 +40,7 @@ public with sharing class SetupAssistantExtensions {
         return extensions;
     }
 
+    @TestVisible
     private static SetupAssistantExtension resolve(String className) {
         String prefix = NamespaceUtil.prefix();
         Type extensionType = Type.forName(

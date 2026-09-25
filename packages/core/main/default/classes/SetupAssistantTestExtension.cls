@@ -15,15 +15,27 @@ public class SetupAssistantTestExtension implements SetupAssistantExtension {
     // A Core text setting stands in for the module's own: Core's tests have no other settings
     // object to write, and a record identifier fits in any text setting.
     public static final String RECORD_KEY = 'Organization_Address__c';
+    // A setting on a settings object of the module's own, which Core's tests do not have: saving
+    // it fails, after Core's own settings object has been written in the same step.
+    public static final String MODULE_OBJECT = 'Module_Settings__c';
+    public static final String CODE_KEY = 'Module_Code__c';
+    public static final String CODE_PATTERN = '[A-Z]{2}-[0-9]{2}';
+    public static final String CODE_PATTERN_MESSAGE = 'Two letters, a hyphen and two digits.';
 
     private final Boolean fails;
+    private final Boolean spansTwoObjects;
 
     public SetupAssistantTestExtension() {
         this(false);
     }
 
     public SetupAssistantTestExtension(Boolean fails) {
+        this(fails, false);
+    }
+
+    private SetupAssistantTestExtension(Boolean fails, Boolean spansTwoObjects) {
         this.fails = fails;
+        this.spansTwoObjects = spansTwoObjects;
     }
 
     /** Runs the assistant with no module installed: Core alone. */
@@ -35,6 +47,16 @@ public class SetupAssistantTestExtension implements SetupAssistantExtension {
     public static void useThis() {
         SetupAssistantExtensions.overrides = new List<SetupAssistantExtension>{
             new SetupAssistantTestExtension()
+        };
+    }
+
+    /**
+     * Runs the assistant with this module installed, adding to the organization step a checked
+     * text field saved on the module's own settings object, so one save spans two objects.
+     */
+    public static void useSpanningTwoObjects() {
+        SetupAssistantExtensions.overrides = new List<SetupAssistantExtension>{
+            new SetupAssistantTestExtension(false, true)
         };
     }
 
@@ -76,6 +98,18 @@ public class SetupAssistantTestExtension implements SetupAssistantExtension {
                     )
                     .withNavigationTarget('Module_Tab')
             );
+        if (spansTwoObjects) {
+            identityAddition.withField(
+                new SetupAssistantService.StepField(
+                        SetupAssistantService.FIELD_TEXT,
+                        40,
+                        MODULE_OBJECT,
+                        CODE_KEY,
+                        'Module code'
+                    )
+                    .withLimits(5, CODE_PATTERN, CODE_PATTERN_MESSAGE)
+            );
+        }
         return new List<SetupAssistantService.Step>{ moduleStep, identityAddition };
     }
 }
