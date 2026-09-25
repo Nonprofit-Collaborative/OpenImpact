@@ -44,6 +44,10 @@ public with sharing class ReceiptGenerationFailureSelector {
                 WITH USER_MODE
             ];
             result.available = true;
+        } catch (System.SecurityException cannotRead) {
+            // A user-mode static query without object access throws this, not a QueryException.
+            result.available = false;
+            result.count = 0;
         } catch (QueryException cannotRead) {
             result.available = false;
             result.count = 0;
