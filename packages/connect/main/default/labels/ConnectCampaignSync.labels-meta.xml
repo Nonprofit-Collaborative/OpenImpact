@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+  <labels>
+    <fullName>Connect_CampaignSync_LogNoAccess</fullName>
+    <categories>Connect, Campaign Sync</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Campaign sync log: saver cannot write campaigns</shortDescription>
+    <value>Campaign sync skipped {0} appeal(s): the person who saved them cannot create and edit Campaigns, or does not have the Campaign Sync permission set. Click Sync all appeals on the Campaign sync page to catch them up.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_CampaignSync_LogFailed</fullName>
+    <categories>Connect, Campaign Sync</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Campaign sync log: platform refused the campaign</shortDescription>
+    <value>Campaign sync could not copy the appeal "{0}" to its Campaign: {1}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_CampaignSync_LogMissing</fullName>
+    <categories>Connect, Campaign Sync</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Campaign sync log: linked campaign not found</shortDescription>
+    <value>The Campaign linked to the appeal "{0}" was deleted, or you cannot see it. Clear Campaign ID on the appeal to have a new Campaign made.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_CampaignSync_InvalidCampaignId</fullName>
+    <categories>Connect, Campaign Sync</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Appeal save refused: Campaign ID is not one</shortDescription>
+    <value>Campaign ID must be the record ID of a Campaign (18 characters, starting 701), or empty.</value>
+  </labels>
+</CustomLabels>
