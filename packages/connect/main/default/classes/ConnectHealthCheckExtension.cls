@@ -1,5 +1,5 @@
 /**
- * The class Core finds by name (`HealthCheckExtensions.CONNECT_CLASS_NAME`) and calls to add
+ * The class Core finds by name (in `HealthCheckExtensions.EXTENSION_CLASSES`) and calls to add
  * Connect's findings to the one Health Check report (ADR-0057, as the ADR on the Opportunity
  * mirror amends it; X-01, R-OM8).
  *

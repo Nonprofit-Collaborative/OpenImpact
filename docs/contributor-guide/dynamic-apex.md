@@ -102,7 +102,7 @@ Rules:
   `check_failed_...` finding; the rest of the report stands.
 - **Only names the package owns reach `Type.forName`**: a constant, a registry row, or an
   allowlisted map (`ReceiptRendererFactory.PERMITTED_RENDERERS`). Never user input.
-- **Test seams:** `@TestVisible` overrides (`extensionOverride`, `processorOverride`,
+- **Test seams:** `@TestVisible` overrides (`overrides`, `processorOverride`,
   `moduleOverride`, `noneForTest`) let Core test installed, absent and throwing without the
   other package.
 
