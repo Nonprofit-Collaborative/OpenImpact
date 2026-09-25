@@ -210,6 +210,30 @@ public with sharing class ImportMapping {
         return result;
     }
 
+    /**
+     * The source columns the administrator set to Do not load, keyed as `targetsBySourceKey`
+     * keys them. Only the explicit ignore target counts: a blank or unreadable target is a
+     * column nobody decided about. `targetsBySourceKey` leaves these out, which is right for
+     * loading a row and wrong for suggesting a mapping, where a saved Do not load has to win
+     * over a heading the column library recognizes, or the column is mapped again on the next
+     * upload.
+     */
+    @NamespaceAccessible
+    public Set<String> ignoredSourceKeys() {
+        Set<String> result = new Set<String>();
+        for (Column column : columns) {
+            if (
+                column != null &&
+                String.isNotBlank(column.source) &&
+                column.target != null &&
+                TARGET_IGNORE.equalsIgnoreCase(column.target.trim())
+            ) {
+                result.add(key(column.source));
+            }
+        }
+        return result;
+    }
+
     /** Every entity this mapping names, in no particular order. */
     @NamespaceAccessible
     public Set<String> mappedEntities() {

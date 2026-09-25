@@ -159,6 +159,60 @@ private class ImportMatcherTest {
         Assert.areEqual(1, sharedKeys(found), 'Only the real key was looked up.');
     }
 
+    /**
+     * A user who may not read the field a rule matches on is not matched on it: a user-mode
+     * query naming it would fail the whole chunk. The lookup is skipped and the field is
+     * named for the run log. The user here holds no permission set, so the Minimum Access
+     * profile gives them no read access to a contact's email or postal code.
+     */
+    @IsTest
+    static void aFieldTheUserCannotReadIsSkippedAndNamed() {
+        // Saved past a duplicate rule that only alerts: the org's own rules see its real data.
+        Database.DMLOptions options = new Database.DMLOptions();
+        options.DuplicateRuleHeader.AllowSave = true;
+        Database.insert(
+            new Contact(LastName = 'Noreadramirez', Email = 'noread.ana@example.org'),
+            options
+        );
+        User reader = new User(
+            ProfileId = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1]
+            .Id,
+            LastName = 'Noread',
+            Email = 'noread@openimpact.test.invalid',
+            Username = 'noread' + DateTime.now().getTime() + '@openimpact.test.invalid',
+            Alias = 'noread',
+            TimeZoneSidKey = 'America/Los_Angeles',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert reader;
+        }
+        Map<String, Id> byEmail;
+        Map<String, Id> byPostal;
+        Test.startTest();
+        System.runAs(reader) {
+            ImportMatcher.forgetHeldKeys();
+            byEmail = ImportMatcher.contactsByEmail(new Set<String>{ 'noread.ana@example.org' });
+            byPostal = ImportMatcher.contactsByNameAndPostalCode(
+                new Set<String>{ ImportMatcher.nameAndPostalKey('Noreadramirez', '97201') }
+            );
+        }
+        Test.stopTest();
+        Assert.isTrue(byEmail.isEmpty(), 'Nothing is matched on a field the user cannot read.');
+        Assert.isTrue(byPostal.isEmpty(), 'Nor on a postal code they cannot read.');
+        Assert.isTrue(
+            ImportMatcher.unreadableFields().contains(Contact.Email.getDescribe().getLabel()),
+            'The email field is named for the run log: ' + ImportMatcher.unreadableFields()
+        );
+        Assert.isTrue(
+            ImportMatcher.unreadableFields()
+                .contains(Contact.MailingPostalCode.getDescribe().getLabel()),
+            'So is the postal code.'
+        );
+    }
+
     /** The keys a lookup was asked for, leaving out each one narrowed to a first name. */
     private static Integer sharedKeys(Map<String, Id> found) {
         Integer count = 0;

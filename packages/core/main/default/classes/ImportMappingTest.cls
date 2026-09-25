@@ -65,6 +65,23 @@ private class ImportMappingTest {
     }
 
     @IsTest
+    static void namesTheColumnsSetToDoNotLoad() {
+        ImportMapping mapping = new ImportMapping();
+        mapping.columns.add(new ImportMapping.Column(' Email ', 'Ignore'));
+        mapping.columns.add(new ImportMapping.Column('Notes', null));
+        mapping.columns.add(new ImportMapping.Column('Last Name', 'Contact1.LastName'));
+        Assert.areEqual(
+            new Set<String>{ 'email' },
+            mapping.ignoredSourceKeys(),
+            'Only a column explicitly set to Do not load, keyed as a header row is matched.'
+        );
+        Assert.isFalse(
+            mapping.targetsBySourceKey().containsKey('email'),
+            'Loading a row still leaves it out.'
+        );
+    }
+
+    @IsTest
     static void aMappingWithOnlyAnAddressIdentifiesNobody() {
         ImportMapping mapping = new ImportMapping();
         mapping.columns.add(new ImportMapping.Column('City', 'Contact1.MailingCity'));

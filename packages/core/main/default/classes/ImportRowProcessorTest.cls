@@ -98,6 +98,54 @@ private class ImportRowProcessorTest {
         );
     }
 
+    /**
+     * A checkbox the file gives as "Yes" is the true already stored, so re-importing an
+     * unchanged opt-out leaves the person unchanged, in the preview and the commit, and puts
+     * nothing in the undo journal.
+     */
+    @IsTest
+    static void reImportingAnUnchangedCheckboxChangesNothing() {
+        TestDataFactory.defaultSettings();
+        insert new Contact(
+            FirstName = 'Ana',
+            LastName = 'Ramirez',
+            Email = 'ana@example.org',
+            MailingCity = 'Portland',
+            HasOptedOutOfEmail = true,
+            DoNotCall = false
+        );
+        ImportMapping mapping = ImportMapping.parse(ImportTestDataFactory.donorMapping());
+        mapping.columns.add(
+            new ImportMapping.Column('Email Opt Out', 'Contact1.HasOptedOutOfEmail')
+        );
+        mapping.columns.add(new ImportMapping.Column('Do Not Call', 'Contact1.DoNotCall'));
+        template = ImportTestDataFactory.template(
+            mapping.serialize(),
+            ImportTemplateService.RULE_EMAIL
+        );
+        batch = ImportTestDataFactory.batch(template);
+        Map<String, String> row = ImportTestDataFactory.donorRow(
+            'Ana',
+            'Ramirez',
+            'ana@example.org',
+            null
+        );
+        row.put('Email Opt Out', 'Yes');
+        row.put('Do Not Call', 'No');
+        ImportTestDataFactory.rows(batch, new List<Map<String, String>>{ row });
+
+        Test.startTest();
+        ImportRowProcessor.Outcome preview = run(true);
+        ImportRowProcessor.Outcome outcome = run(false);
+        Test.stopTest();
+
+        Assert.areEqual(1, preview.matched, 'The preview says she is unchanged.');
+        Assert.areEqual(0, preview.updated, 'Not updated.');
+        Assert.areEqual(1, outcome.matched, 'So does the commit.');
+        Assert.areEqual(0, outcome.updated, 'Nothing was written to her.');
+        Assert.areEqual(0, [SELECT COUNT() FROM Import_Journal__c], 'And nothing journaled.');
+    }
+
     @IsTest
     static void dryRunWritesNothing() {
         given(
