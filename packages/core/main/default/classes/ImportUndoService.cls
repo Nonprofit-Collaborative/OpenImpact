@@ -127,7 +127,7 @@ public with sharing class ImportUndoService {
      */
     private static void latch(Id batchId) {
         Import_Batch__c batch = [
-            SELECT Id, Status__c, Is_Dry_Run__c, Undo_Deadline__c, Completed_At__c
+            SELECT Id, Status__c, Is_Dry_Run__c, Undo_Deadline__c, Completed_At__c, Job_Id__c
             FROM Import_Batch__c
             WHERE Id = :batchId
             WITH SYSTEM_MODE
@@ -215,7 +215,8 @@ public with sharing class ImportUndoService {
             ImportBatchService.STATUS_FAILED.equals(status) ||
             ImportBatchService.STATUS_UNDO_FAILED.equals(status)) ||
             batch.Undo_Deadline__c == null ||
-            batch.Completed_At__c == null
+            (batch.Completed_At__c == null &&
+            !ImportBatchService.STATUS_COMMITTING.equals(batch.Status__c))
         ) {
             return Label.Core_Import_UndoErrorNotCommitted;
         }
@@ -240,6 +241,15 @@ public with sharing class ImportUndoService {
         }
         if (ImportBatchService.STATUS_UNDOING.equals(batch.Status__c) && !isUndoJobRunning()) {
             return ImportBatchService.STATUS_UNDO_FAILED;
+        }
+        // A dry run or commit whose job the platform aborted, or whose finish failed, is
+        // Failed, and an aborted commit can be undone like any failed one (R-IB13).
+        if (
+            (ImportBatchService.STATUS_DRY_RUN.equals(batch.Status__c) ||
+            ImportBatchService.STATUS_COMMITTING.equals(batch.Status__c)) &&
+            !ImportBatchService.isRunning(batch)
+        ) {
+            return ImportBatchService.STATUS_FAILED;
         }
         return batch.Status__c;
     }
