@@ -177,6 +177,14 @@
         <value>Importing a spreadsheet arrives with the Import tab. Load the sample data for now, or skip this step.</value>
     </labels>
     <labels>
+        <fullName>Core_SetupAssistant_InvalidValueError</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: a typed value is not in the shape the field asks for</shortDescription>
+        <value>That value is not in the shape this field asks for, so nothing was saved.</value>
+    </labels>
+    <labels>
         <fullName>Core_SetupAssistant_LegalNameLabel</fullName>
         <categories>Core</categories>
         <language>en_US</language>
@@ -623,6 +631,14 @@
         <protected>true</protected>
         <shortDescription>Setup assistant: badge on a step that is not finished</shortDescription>
         <value>To do</value>
+    </labels>
+    <labels>
+        <fullName>Core_SetupAssistant_TooLongError</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: a typed value is longer than the field allows. {0} field label, {1} character limit</shortDescription>
+        <value>{0} can be at most {1} characters, so nothing was saved.</value>
     </labels>
     <labels>
         <fullName>Core_SetupAssistant_UnknownModeError</fullName>
