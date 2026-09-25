@@ -7,9 +7,17 @@
     and opens the Campaign sync page. Creating the Campaigns also needs Campaign access and the
     Marketing User box in Setup.
   </description>
+  <classAccesses>
+    <apexClass>CampaignSyncController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
   <fieldPermissions>
     <editable>true</editable>
     <field>Appeal__c.Campaign_Id__c</field>
     <readable>true</readable>
   </fieldPermissions>
+  <tabSettings>
+    <tab>Campaign_Sync</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
 </PermissionSet>
