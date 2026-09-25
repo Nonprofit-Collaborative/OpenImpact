@@ -104,6 +104,61 @@ private class CampaignSyncBatchTest {
     }
 
     @IsTest
+    static void anAppealThatCannotBeSavedDoesNotCostTheChunkItsLinks() {
+        if (!CampaignSyncService.isAvailable()) {
+            return;
+        }
+        // Two appeals that are each other's parent, made with Giving's hierarchy check and the
+        // sync bypassed: every later save of either is refused, as a rule on Appeal would do.
+        Appeal__c first = new Appeal__c(Name = 'Loop one', Active__c = true);
+        Appeal__c second = new Appeal__c(Name = 'Loop two', Active__c = true);
+        AutomationControl.bypass('Appeal_Hierarchy');
+        AutomationControl.bypass(CampaignSyncService.AUTOMATION_NAME);
+        insert new List<Appeal__c>{ first, second };
+        first.Parent_Appeal__c = second.Id;
+        second.Parent_Appeal__c = first.Id;
+        update new List<Appeal__c>{ first, second };
+        AutomationControl.clearAllBypasses();
+        Integer campaignsBefore = Database.countQuery(
+            'SELECT COUNT() FROM ' + CampaignSyncService.campaignType().getDescribe().getName(),
+            AccessLevel.SYSTEM_MODE
+        );
+
+        Set<Id> refused = new Set<Id>{ first.Id, second.Id };
+
+        CampaignSyncBatch.chainSecondPass = false;
+        Test.startTest();
+        System.runAs(maria()) {
+            CampaignSyncBatch.start();
+        }
+        Test.stopTest();
+
+        Assert.areEqual(
+            3,
+            [SELECT COUNT() FROM Appeal__c WHERE Campaign_Id__c != NULL WITH SYSTEM_MODE],
+            'The other appeals in the chunk keep their links.'
+        );
+        Assert.areEqual(
+            0,
+            [
+                SELECT COUNT()
+                FROM Appeal__c
+                WHERE Id IN :refused AND Campaign_Id__c != NULL
+                WITH SYSTEM_MODE
+            ],
+            'The refused appeals are not linked.'
+        );
+        Assert.areEqual(
+            campaignsBefore + 3,
+            Database.countQuery(
+                'SELECT COUNT() FROM ' + CampaignSyncService.campaignType().getDescribe().getName(),
+                AccessLevel.SYSTEM_MODE
+            ),
+            'The Campaigns made for the refused appeals are deleted again (R-CS7).'
+        );
+    }
+
+    @IsTest
     static void onlyOneRunAtATimeIsVisibleToThePage() {
         Assert.isFalse(
             CampaignSyncSelector.hasRunningJob(CampaignSyncBatch.CLASS_NAME),

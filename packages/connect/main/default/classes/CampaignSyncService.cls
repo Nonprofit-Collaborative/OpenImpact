@@ -210,15 +210,29 @@ public with sharing class CampaignSyncService {
 
     /**
      * Sync all appeals: appeals already saved. Copies them, then stores any new link on the
-     * appeal with this automation bypassed, since the copy has just been made. A chunk whose
-     * links cannot be stored is rolled back whole, Campaigns included, so a Campaign is never
-     * left without the appeal that points at it and made again by the next run.
+     * appeal with this automation bypassed, since the copy has just been made.
+     *
+     * The links are stored with partial success, so one appeal that cannot be saved (a rule on
+     * Appeal refuses it, or the runner cannot edit it) never costs the rest of the chunk their
+     * links. A Campaign made here for such an appeal is deleted again at once, so the next run
+     * does not make a second one (R-CS7); one that cannot be deleted is named in a Warning. Only
+     * a failure that throws rolls the whole chunk back, Campaigns included.
      */
     public static Result syncSaved(List<Appeal__c> appeals) {
         Result result = new Result();
         if (appeals == null || appeals.isEmpty() || !isAvailable()) {
             return result;
         }
+        try {
+            result = syncSavedChunk(appeals);
+        } finally {
+            flushLog();
+        }
+        return result;
+    }
+
+    private static Result syncSavedChunk(List<Appeal__c> appeals) {
+        Result result = new Result();
         Map<Id, String> linkBefore = new Map<Id, String>();
         List<Appeal__c> valid = new List<Appeal__c>();
         for (Appeal__c appeal : appeals) {
@@ -244,33 +258,101 @@ public with sharing class CampaignSyncService {
             return result;
         }
         Integer refused = result.failed;
+        Integer queuedBefore = pendingMessages.size();
         Savepoint beforeChunk = Database.setSavepoint();
         try {
             result = copy(valid);
             result.failed += refused;
-            List<Appeal__c> links = new List<Appeal__c>();
-            for (Appeal__c appeal : valid) {
-                if (!same(appeal.Campaign_Id__c, linkBefore.get(appeal.Id))) {
-                    links.add(
-                        new Appeal__c(Id = appeal.Id, Campaign_Id__c = appeal.Campaign_Id__c)
-                    );
-                }
-            }
-            if (!links.isEmpty()) {
-                AutomationControl.bypass(AUTOMATION_NAME);
-                try {
-                    Database.update(links, AccessLevel.USER_MODE);
-                } finally {
-                    AutomationControl.clearBypass(AUTOMATION_NAME);
-                }
-            }
+            storeLinks(valid, linkBefore, result);
         } catch (Exception unexpected) {
             Database.rollback(beforeChunk);
+            // What was queued after the savepoint describes writes that are now undone.
+            while (pendingMessages.size() > queuedBefore) {
+                pendingMessages.remove(pendingMessages.size() - 1);
+                pendingRecordIds.remove(pendingRecordIds.size() - 1);
+            }
             ErrorLogger.log(unexpected, CONTEXT);
             result = new Result();
             result.failed = appeals.size();
         }
         return result;
+    }
+
+    /**
+     * Saves each appeal whose link changed, with partial success. An appeal that is refused is
+     * counted as failed, and a Campaign created for it in this call is deleted again.
+     */
+    private static void storeLinks(
+        List<Appeal__c> appeals,
+        Map<Id, String> linkBefore,
+        Result result
+    ) {
+        List<Appeal__c> links = new List<Appeal__c>();
+        List<Appeal__c> linkedFor = new List<Appeal__c>();
+        for (Appeal__c appeal : appeals) {
+            if (!same(appeal.Campaign_Id__c, linkBefore.get(appeal.Id))) {
+                links.add(new Appeal__c(Id = appeal.Id, Campaign_Id__c = appeal.Campaign_Id__c));
+                linkedFor.add(appeal);
+            }
+        }
+        if (links.isEmpty()) {
+            return;
+        }
+        List<Database.SaveResult> saved;
+        AutomationControl.bypass(AUTOMATION_NAME);
+        try {
+            saved = Database.update(links, false, AccessLevel.USER_MODE);
+        } finally {
+            AutomationControl.clearBypass(AUTOMATION_NAME);
+        }
+        List<SObject> orphans = new List<SObject>();
+        List<Appeal__c> orphanedFor = new List<Appeal__c>();
+        for (Integer i = 0; i < saved.size(); i++) {
+            if (saved[i].isSuccess()) {
+                continue;
+            }
+            Appeal__c appeal = linkedFor[i];
+            result.failed++;
+            logRefusal(appeal, saved[i].getErrors());
+            if (linkBefore.get(appeal.Id) == null) {
+                // The Campaign was created in this call for an appeal that will not point at it.
+                result.created--;
+                orphans.add(campaignType().newSObject(Id.valueOf(appeal.Campaign_Id__c)));
+                orphanedFor.add(appeal);
+            }
+        }
+        deleteOrphans(orphans, orphanedFor);
+    }
+
+    private static void deleteOrphans(List<SObject> orphans, List<Appeal__c> orphanedFor) {
+        if (orphans.isEmpty()) {
+            return;
+        }
+        List<Database.DeleteResult> deleted = Database.delete(
+            orphans,
+            false,
+            AccessLevel.USER_MODE
+        );
+        for (Integer i = 0; i < deleted.size(); i++) {
+            if (deleted[i].isSuccess()) {
+                continue;
+            }
+            List<String> messages = new List<String>();
+            for (Database.Error error : deleted[i].getErrors()) {
+                messages.add(error.getMessage());
+            }
+            log(
+                String.format(
+                    Label.Connect_CampaignSync_LogOrphan,
+                    new List<Object>{
+                        String.valueOf(orphans[i].Id),
+                        orphanedFor[i].Name,
+                        String.join(messages, ' ')
+                    }
+                ),
+                orphanedFor[i]
+            );
+        }
     }
 
     // ------------------------------------------------------------------------------ the copy

@@ -41,6 +41,14 @@
     <value>Campaign ID must be the record ID of a Campaign (18 characters, starting 701), or empty.</value>
   </labels>
   <labels>
+    <fullName>Connect_CampaignSync_LogOrphan</fullName>
+    <categories>Connect, Campaign Sync</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Campaign sync log: new campaign left unlinked</shortDescription>
+    <value>Sync all appeals created the Campaign {0} for the appeal "{1}", could not store its Campaign ID on the appeal, and could not delete the Campaign again: {2} Delete that Campaign, or paste its ID onto the appeal once the appeal can be saved.</value>
+  </labels>
+  <labels>
     <fullName>Connect_CampaignSync_LogRunSummary</fullName>
     <categories>Connect, Campaign Sync</categories>
     <language>en_US</language>
