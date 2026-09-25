@@ -64,6 +64,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0053](0053-posted-gifts-and-closed-periods-are-locked.md) | Posted gifts and closed periods are locked by a rule that always runs | Accepted (builder decision) |
 | [0054](0054-a-pending-gift-that-will-never-be-paid-is-cancelled.md) | A Pending gift that will never be paid is cancelled, not written off | Accepted |
 | [0055](0055-automatic-resume-and-error-digest.md) | A pause ends through a one-time resume job, and the error digest counts and goes only to users | Accepted (builder decision) |
+| [0056](0056-campaign-sync-keeps-its-link-on-the-appeal.md) | Campaign sync keeps its link on the appeal, writes with the saver's access, and is off until switched on | Accepted (builder decision) |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions
@@ -121,6 +122,9 @@ ADR-0054 is the owner's decision that a Pending gift that will never be paid is
 cancelled rather than written off; it amends G-04, ADR-0022, ADR-0023 and ADR-0031.
 ADR-0055 is a builder decision for C-23 on how a pause records its own end, and on who
 receives the error digest and what it may say.
+ADR-0056 is a builder decision for X-02 on where the Campaign sync link lives, why it writes
+in the saver's user mode, and why it ships off until an administrator switches it on; it
+amends ADR-0029, under which Connect also gains a post-install script.
 
 ## Adding a new ADR
 

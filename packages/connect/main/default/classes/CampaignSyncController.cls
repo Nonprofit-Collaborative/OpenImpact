@@ -1,0 +1,102 @@
+/**
+ * The Campaign sync page (feature X-02, R-CS6): says whether the sync can work in this org and
+ * for this person, counts the appeals with and without a Campaign, and starts Sync all appeals.
+ * Every refusal is in words the page shows as they are.
+ */
+public with sharing class CampaignSyncController {
+    private static final String CONTEXT = 'CampaignSyncController';
+
+    /** What the page shows. The counts are empty when they cannot be read. */
+    public class Status {
+        @AuraEnabled
+        public Boolean available;
+        @AuraEnabled
+        public Boolean switchedOn;
+        @AuraEnabled
+        public Boolean canSync;
+        @AuraEnabled
+        public Boolean canManage;
+        @AuraEnabled
+        public Boolean running;
+        @AuraEnabled
+        public Integer appealCount;
+        @AuraEnabled
+        public Integer linkedCount;
+    }
+
+    @AuraEnabled
+    public static Status getStatus() {
+        try {
+            return status();
+        } catch (Exception unexpected) {
+            ErrorLogger.log(unexpected, CONTEXT);
+            throw asAuraException(Label.Connect_CampaignSync_ErrorFailed);
+        }
+    }
+
+    /** Starts Sync all appeals, or says in words why it cannot start. */
+    @AuraEnabled
+    public static Status syncAll() {
+        Status current;
+        try {
+            current = status();
+        } catch (Exception unexpected) {
+            ErrorLogger.log(unexpected, CONTEXT);
+            throw asAuraException(Label.Connect_CampaignSync_ErrorFailed);
+        }
+        String refusal = refusal(current);
+        if (refusal != null) {
+            throw asAuraException(refusal);
+        }
+        try {
+            CampaignSyncBatch.start();
+        } catch (Exception unexpected) {
+            ErrorLogger.log(unexpected, CONTEXT);
+            throw asAuraException(Label.Connect_CampaignSync_ErrorFailed);
+        }
+        current.running = true;
+        return current;
+    }
+
+    @TestVisible
+    private static String refusal(Status current) {
+        if (!current.available) {
+            return Label.Connect_CampaignSync_Unavailable;
+        }
+        if (!current.switchedOn) {
+            return Label.Connect_CampaignSync_SwitchedOff;
+        }
+        if (!current.canManage) {
+            return Label.Connect_CampaignSync_NoManagePermission;
+        }
+        if (!current.canSync) {
+            return Label.Connect_CampaignSync_NoCampaignAccess;
+        }
+        if (current.running) {
+            return Label.Connect_CampaignSync_Running;
+        }
+        return null;
+    }
+
+    private static Status status() {
+        Status current = new Status();
+        current.available = CampaignSyncService.isAvailable();
+        current.switchedOn = CampaignSyncService.isSwitchedOn();
+        current.canSync = CampaignSyncService.canSync();
+        current.canManage = AutomationControl.canManage();
+        current.running = CampaignSyncSelector.hasRunningJob(CampaignSyncBatch.CLASS_NAME);
+        if (Schema.SObjectType.Appeal__c.isAccessible()) {
+            current.appealCount = CampaignSyncSelector.countAppeals(false);
+            if (Appeal__c.Campaign_Id__c.getDescribe().isAccessible()) {
+                current.linkedCount = CampaignSyncSelector.countAppeals(true);
+            }
+        }
+        return current;
+    }
+
+    private static AuraHandledException asAuraException(String message) {
+        AuraHandledException error = new AuraHandledException(message);
+        error.setMessage(message);
+        return error;
+    }
+}
