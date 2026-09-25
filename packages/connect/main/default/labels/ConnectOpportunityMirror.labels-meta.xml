@@ -1,6 +1,38 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
   <labels>
+    <fullName>Connect_OpportunityMirror_DifferenceCountAll</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: difference count, all listed</shortDescription>
+    <value>Differences found: {0}. All are listed.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_LastRun</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: last completed run</shortDescription>
+    <value>Last completed run: started {0}. {1}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_NoLastRun</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: no completed run yet</shortDescription>
+    <value>No run has completed yet.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_Loading</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: loading</shortDescription>
+    <value>Loading</value>
+  </labels>
+  <labels>
     <fullName>Connect_OpportunityMirror_NoOpportunityRead</fullName>
     <categories>Connect, Opportunity Mirror</categories>
     <language>en_US</language>
@@ -518,7 +550,7 @@
     <language>en_US</language>
     <protected>false</protected>
     <shortDescription>Reconciliation: how many differences are listed</shortDescription>
-    <value>{0} differences. The first {1} are listed.</value>
+    <value>Differences found: {0}. The first {1} are listed.</value>
   </labels>
   <labels>
     <fullName>Connect_OpportunityMirror_ColumnGift</fullName>

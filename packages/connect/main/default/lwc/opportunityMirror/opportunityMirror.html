@@ -1,6 +1,9 @@
 <template>
     <lightning-card title={labels.title} icon-name="standard:opportunity">
-        <div class="slds-var-p-horizontal_medium">
+        <div class="slds-var-p-horizontal_medium slds-is-relative">
+            <template lwc:if={spinnerShown}>
+                <lightning-spinner alternative-text={labels.loading} size="small" data-id="spinner"></lightning-spinner>
+            </template>
             <p class="slds-var-m-bottom_medium" data-id="intro">{labels.intro}</p>
             <template lwc:if={unavailableShown}>
                 <p class="slds-var-m-bottom_medium" role="status" data-id="unavailable">
@@ -17,6 +20,7 @@
                     {directionText}
                 </p>
                 <p class="slds-var-m-bottom_small" data-id="schedule">{scheduleText}</p>
+                <p class="slds-var-m-bottom_small" data-id="last-run">{lastRunText}</p>
                 <template lwc:if={noManageShown}>
                     <p class="slds-text-color_weak slds-var-m-bottom_small" data-id="no-manage">
                         {labels.noManagePermission}
