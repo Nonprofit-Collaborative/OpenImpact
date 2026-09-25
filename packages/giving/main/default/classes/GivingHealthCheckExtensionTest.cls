@@ -29,10 +29,13 @@ private class GivingHealthCheckExtensionTest {
 
     @IsTest
     static void delegatesStraightToTheGivingChecks() {
+        // Closing the books is Maria's own act on the Accounting Periods page, done here as
+        // the test-running admin: GivingTestDataFactory writes the protected custom setting
+        // directly, which is a test-only shortcut around AccountingPeriodWriter's system-mode
+        // door (ADR-0021) and needs more than Jen's packaged permission sets grant.
+        GivingTestDataFactory.closeBooksThrough(Date.today().toStartOfMonth().addDays(-1));
         User jen = jen();
         System.runAs(jen) {
-            GivingTestDataFactory.closeBooksThrough(Date.today().toStartOfMonth().addDays(-1));
-
             List<HealthCheckService.Finding> findings = new GivingHealthCheckExtension().findings();
 
             System.assertEquals(1, findings.size());
@@ -42,10 +45,9 @@ private class GivingHealthCheckExtensionTest {
 
     @IsTest
     static void coresOneReportCarriesTheGivingFindingWhenBothPackagesAreInstalled() {
+        GivingTestDataFactory.closeBooksThrough(Date.today().toStartOfMonth().addDays(-1));
         User jen = jen();
         System.runAs(jen) {
-            GivingTestDataFactory.closeBooksThrough(Date.today().toStartOfMonth().addDays(-1));
-
             List<HealthCheckService.Finding> findings = HealthCheckService.run();
 
             HealthCheckService.Finding giving = null;

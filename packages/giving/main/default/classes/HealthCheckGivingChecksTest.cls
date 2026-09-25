@@ -71,8 +71,20 @@ private class HealthCheckGivingChecksTest {
     @IsTest
     static void noUnpostedGiftsInClosedPeriodFindsNothing() {
         User jen = jen();
+        // Jen must own a gift to mark it posted (ADR-0053: `GiftPostingService.markPosted`
+        // reads in user mode, so a gift she cannot see is never touched), but the finding
+        // itself reads the whole org without sharing (`HealthCheckGivingSelector`), so every
+        // gift anywhere has to actually be posted for this test to see no finding, not only the
+        // ones a narrower setup would have given her. Reassigning them to her first is simpler
+        // than building a second owner-scoped dataset just to post it.
+        Set<Id> giftIds = new Map<Id, Gift__c>([SELECT Id FROM Gift__c]).keySet();
+        List<Gift__c> reowned = new List<Gift__c>();
+        for (Id giftId : giftIds) {
+            reowned.add(new Gift__c(Id = giftId, OwnerId = jen.Id));
+        }
+        update reowned;
         System.runAs(jen) {
-            GiftPostingService.markPosted(postedGiftIds());
+            GiftPostingService.markPosted(giftIds);
         }
         GivingTestDataFactory.closeBooksThrough(lastClosedDay());
 
@@ -151,13 +163,5 @@ private class HealthCheckGivingChecksTest {
                 'Links stop at the five shown, independent of the (lower) count cap.'
             );
         }
-    }
-
-    private static Set<Id> postedGiftIds() {
-        Set<Id> ids = new Set<Id>();
-        for (Gift__c gift : [SELECT Id FROM Gift__c]) {
-            ids.add(gift.Id);
-        }
-        return ids;
     }
 }

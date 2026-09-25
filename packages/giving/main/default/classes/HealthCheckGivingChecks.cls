@@ -11,8 +11,14 @@
  * `HealthCheckHouseholdChecks` reports orphan records in Core.
  *
  * Only asked of a viewer who may manage settings (`HealthCheckService.canManageSettings()`):
- * posting and the close date are an administrator's business, and a count taken from a query
- * the viewer's own sharing narrows would be confidently wrong for anyone else.
+ * posting and the close date are an administrator's business. `HealthCheckGivingSelector` reads
+ * `without sharing`, unlike `HouseholdOrphanSelector`'s shared orphan reads in Core: Gift__c
+ * ships with Private sharing (R-G14), so a viewer's own record sharing narrows which gifts they
+ * own or share, not which gifts are actually locked and unposted, and a Health Check finding
+ * that silently under-counts because the administrator does not happen to share every gift is a
+ * wrong answer, not a narrower one. The permission check above is the access control that
+ * matters here, the same as it is for every other Settings-category check that reads org-wide
+ * state.
  */
 public with sharing class HealthCheckGivingChecks {
     /** Counts stop here, and the finding says "more than" this many. A test lowers it. */
@@ -46,11 +52,11 @@ public with sharing class HealthCheckGivingChecks {
         if (closed == null) {
             return null;
         }
-        Integer count = GiftPostingSelector.countUnpostedInClosedPeriod(closed, countCap + 1);
+        Integer count = HealthCheckGivingSelector.countUnpostedInClosedPeriod(closed, countCap + 1);
         if (count == null || count <= 0) {
             return null;
         }
-        List<Gift__c> first = GiftPostingSelector.unpostedInClosedPeriod(closed, LINKS_SHOWN);
+        List<Gift__c> first = HealthCheckGivingSelector.unpostedInClosedPeriod(closed, LINKS_SHOWN);
 
         String counted = count > countCap
             ? String.format(
