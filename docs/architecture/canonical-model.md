@@ -931,7 +931,7 @@ settings to the console by shipping rows rather than by editing the console.
 | `Navigation_Target__c` | text (80) | The Lightning tab a module's own settings page lives on, used when the data type is Component and no component is named, because Core cannot import a component from a package that depends on it (Decision ADR-0020). |
 | `Description__c` | long text | The plain-language help shown under the control. |
 | `Help_Path__c` | text (255) | The admin guide path, relative to `docs/admin-guide/`, behind the row's Learn more link. |
-| `Required_Permission__c` | text (80) | Optional. The API name of a custom permission; when set, the console shows the row only to someone who has it. For a module page whose controller only a module permission set opens (X-01, ADR-NEXT on the Opportunity mirror). |
+| `Required_Permission__c` | text (80) | Optional. The API name of a custom permission, without a namespace prefix; when set, the console shows the row only to someone who has it (the name as given, else with the package namespace). For a module page whose controller only a module permission set opens (X-01, ADR-NEXT on the Opportunity mirror). |
 | `Sort_Order__c` | number | The order of this row inside its section. |
 
 ### Automation Registry
@@ -5066,7 +5066,8 @@ own stage left as it is for a Pending gift, so linking an open Opportunity to a 
 closes it; Donor Account to Account, or Household when the donor is a person stored as a
 contact (the Open Impact household, which in an org running NPSP alongside is not the NPSP
 household); the appeal's Campaign ID (Section 29B) to Campaign, when it names a Campaign and the
-saver may read Campaigns (otherwise Campaign is left as it is); and the donor person as the primary Contact Role (Donor
+saver may read Campaigns and the appeal's Campaign ID (otherwise Campaign is left as it is,
+never cleared); and the donor person as the primary Contact Role (Donor
 Contact, or the person contact of a person account), with Role `Donor` when the org's role list
 has it. The won stage is the org's active stage named `Closed Won` when it is a won stage, and
 otherwise its first active won stage by order; the lost stage is found the same way from
@@ -5162,7 +5163,7 @@ viewer. It reads in user mode and writes nothing, and a viewer who cannot read O
 Name, Amount and Close Date, or the gift's Opportunity ID is refused in words. A range holding
 more than 10,000 gifts or 10,000 won Opportunities, or more than the transaction can read in
 one go, is refused rather than shown in part, as the accounting export is (ADR-0051); the
-counts themselves stop at 10,001, so a very large range is refused rather than failing. In Gifts to
+reads stop at 10,001 records a side, so a very large range is refused rather than failing. In Gifts to
 Opportunities it offers **Copy these gifts again**, a run over every gift in the range, linked
 or not, which puts right what R-OM3 copies. In Opportunities to Gifts the differences are shown
 only, because a gift is never edited from its Opportunity.

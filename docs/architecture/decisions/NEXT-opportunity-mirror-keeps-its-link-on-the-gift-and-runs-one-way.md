@@ -56,7 +56,13 @@ new here.
    half of the transaction's queries and DML statements, and 40 percent of its CPU time, still
    unspent, besides what one copy costs (seven queries, four DML statements). A fixed margin is
    not enough: NPSP's own Opportunity triggers can spend twenty queries or more per chunk inside
-   the same save, and a limit reached there cannot be caught, so the gift's save would fail. A
+   the same save, and a limit reached there cannot be caught, so the gift's save would fail. When
+   the platform retries a partial-success save, it rolls back the Opportunities the first attempt
+   made, but not the static state: a link that this save wrote, and that the gift did not have
+   before, is cleared and the Opportunity made again. The once-per-transaction Warnings (no
+   access, no headroom) are flags of the same kind, so if the retry rolled back the first
+   attempt's Warning the retry writes none; accepted, because the next run copies those gifts
+   either way and says so in its summary. A
    save without room is left uncopied with one Warning. The copy needs Opportunity create and
    edit and nothing more: the link is written onto the record being saved, which is not checked
    against the saver's field access, so a gift-entry user without the Opportunity Mirror
@@ -73,9 +79,11 @@ new here.
    first active won stage), because stage names are the org's to change. The Opportunity's
    Account is the Donor Account or the Household; the record type `Donation` is used when present
    and available to the saver; the name is written only at creation, so NPSP's own naming is not
-   fought. Campaign is written only when the saver may read Campaigns; otherwise it is left out
-   of the copy entirely, so a saver who can create Opportunities but not see Campaigns still has
-   gifts with an appeal copied.
+   fought. Campaign is written only when the saver may read Campaigns and the appeal's Campaign
+   ID; otherwise it is left out of the copy entirely, so the Opportunity's Campaign is never
+   cleared and a saver who cannot see either still has gifts with an appeal copied. The appeal's
+   link is read in the saver's user mode, not in system mode as package-owned data would allow
+   (ADR-0021): a copy never writes a value its saver could not read.
 5. **Opportunities to Gifts is a run, not a trigger.** Connect cannot hold a trigger on
    Opportunity (constraint 1), so the mirror page schedules a nightly run and offers Run now,
    the shape of ADR-0038, and each run turns every won Opportunity closed on or after
@@ -85,12 +93,17 @@ new here.
    a gift: an NPSP org choosing this direction would otherwise get a gift, and a thank you, for
    every donation it has ever recorded. The start date is read as a date in the org's default
    time zone, so it does not move with the time zone of whoever scheduled the run. An optional
-   list of record type API names narrows the Opportunities that become gifts; empty means all. The gift is never edited afterwards (constraint 4); a
-   later change on the Opportunity is shown by the reconciliation page.
+   list of record type API names narrows the Opportunities that become gifts; empty means all,
+   and a name the org does not have matches nothing and is named in one Warning per run. The
+   gift is never edited afterwards (constraint 4); a later change on the Opportunity is shown by
+   the reconciliation page.
 6. **The same run catches up Gifts to Opportunities.** In that direction a run copies every gift
    in the totals that has no Opportunity yet, and every linked gift changed since the last
    completed run started, so a change whose copy was skipped (no Opportunity access, no headroom)
-   is put right by the next run rather than never. It stores new links with partial success and
+   is put right by the next run rather than never. That catch-up is one query with an OR across
+   the unlinked gifts and the recently changed linked ones, which no single index serves, so at
+   hundreds of thousands of gifts the run's start is slower; a nightly run tolerates that, and it
+   is not repeated per chunk. It stores new links with partial success and
    deletes, in user mode, an Opportunity it created for a gift it could not save, naming in a
    Warning any it cannot delete (ADR-0056 decision 7).
 6a. **Runs respect the pause and the switch, and say when they last completed.** While
@@ -123,16 +136,20 @@ new here.
    Opportunity would stop Connect installing on a Platform-only org (constraint 1). The page reads
    a date range in user mode, refuses a range over 10,000 gifts or 10,000 won Opportunities
    rather than showing part of it (ADR-0051), and shows each side's count and total and the
-   differences. The counts stop at 10,001 and the remaining query rows are checked before the
-   reads, so a range too large is refused in words instead of failing on a limit; gifts are read
-   in a SOQL for loop to keep the heap small. A viewer without read access to Opportunity, its
+   differences. Each side's read stops at 10,001 records, and the query rows it can need (twice
+   that per side, for the linked lookups) are checked before it starts, so a range too large is
+   refused in words instead of failing on a limit; gifts are read in a SOQL for loop to keep the
+   heap small. A viewer without read access to Opportunity, its
    Name, Amount and Close Date, or the Opportunity ID is refused in words, and a won Opportunity
    is reported as having "no gift visible to you", which is all a user mode read can say.
    The page's reads require the custom permission `Use_Opportunity_Mirror`, carried by the
    Opportunity Mirror permission set, rather than relying on class access alone; the console
    shows the page's row only to someone who has it, through a new optional Setting Definition
    attribute, `Required_Permission__c`, since a console user without the set could not open the
-   page anyway (ADR-0038 point 3 read for a module page gated by its own permission set). In Gifts to Opportunities it offers a run over the range to put them right.
+   page anyway (ADR-0038 point 3 read for a module page gated by its own permission set). The
+   attribute holds the permission's name without a namespace prefix; the console tries the name
+   as given, then with the package namespace, so no prefix is ever written into metadata. In
+   Gifts to Opportunities the page offers a run over the range to put the differences right.
 10. **Shared seams with Campaign sync.** The value comparison, the limit headroom check and the
     identifier check move from Campaign sync into one Connect class, `ConnectSync`, which both
     copies use, so they cannot drift apart. The grouped Warnings live there too. Campaign sync

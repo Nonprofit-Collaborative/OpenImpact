@@ -24,7 +24,7 @@ remembers its Opportunity in its **Opportunity ID**, whichever side came first.
 | Gift Date | Close Date |
 | Status | Stage: your won stage (`Closed Won`) for a Received, Refunded or Written off gift; your lost stage (`Closed Lost`) for a Cancelled gift; left as it is for a Pending gift, so linking a pledge to an open Opportunity never closes it |
 | Donor Account, or the donor's Household | Account |
-| Appeal (its Campaign, when Campaign sync gave it one and you can see Campaigns) | Campaign |
+| Appeal (its Campaign, when Campaign sync gave it one and you can see Campaigns and the appeal's Campaign ID; otherwise the Opportunity's Campaign is left as it is) | Campaign |
 | Donor | Primary Contact Role, with Role Donor |
 
 A new Opportunity is named after the donor and the date, and uses the Donation record type
@@ -44,7 +44,8 @@ the amount and date are the Opportunity's, the type is Other, the status Receive
 appeal is the one whose Campaign is the Opportunity's Campaign. To make gifts from some kinds of
 Opportunity only, list their record types' API names, separated by commas, in **Opportunity
 mirror record types** (for example `Donation,Major_Gift`); left empty, every won Opportunity
-after the start date counts. The start date is read in your organization's default time zone. The gift then gets its fund,
+after the start date counts, and a name your org does not have is named in a Warning in the
+Error Log. The start date is read in your organization's default time zone. The gift then gets its fund,
 household and thank-you status from your Giving settings, like any gift. A gift is never
 changed afterwards, even if its Opportunity is: the reconciliation shows the difference.
 
@@ -78,7 +79,9 @@ seeing Opportunity ID and opening the page. Someone who cannot create and edit O
 still saves gifts; the next run copies them, including a change to a gift that already has an
 Opportunity. Give fundraising staff Opportunity create and edit access in Setup if you want the
 Opportunity at once. The Error Log has one Warning when such a person creates or changes gifts;
-imports add none, and the nightly run catches them up.
+imports add none, and the nightly run catches them up. That catch-up looks at every gift without
+an Opportunity and every linked gift changed since the last run; with hundreds of thousands of
+gifts the run takes longer to start, which does not matter at 01:30.
 
 **Two switches, one of them in charge.** **Opportunity mirror direction** decides what the
 mirror does. The **Opportunity mirror** row on the Automation page is the switch every Open
