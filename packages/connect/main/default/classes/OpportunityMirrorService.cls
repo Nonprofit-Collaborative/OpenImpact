@@ -67,6 +67,11 @@ public with sharing class OpportunityMirrorService {
     };
 
     private static Map<Boolean, String> stageByWon;
+    /**
+     * The Opportunities this transaction created. A save with partial success that the platform
+     * retries has rolled them back, while the gifts it retries can still carry their identifiers.
+     */
+    private static Set<Id> createdHere = new Set<Id>();
 
     /** Each once-per-transaction Warning, so a large save does not write it per chunk. */
     private static Boolean noAccessLogged = false;
@@ -366,7 +371,16 @@ public with sharing class OpportunityMirrorService {
                 insertedFor.add(gift);
                 continue;
             }
-            SObject existing = context.current.get(Id.valueOf(gift.Opportunity_Id__c));
+            Id linkedId = Id.valueOf(gift.Opportunity_Id__c);
+            SObject existing = context.current.get(linkedId);
+            if (existing == null && createdHere.contains(linkedId)) {
+                // Rolled back by a retried save: made again, never left pointing at nothing.
+                gift.Opportunity_Id__c = null;
+                context.prepareNew(desired, gift);
+                inserts.add(desired);
+                insertedFor.add(gift);
+                continue;
+            }
             if (existing == null) {
                 result.failed++;
                 result.refusals.add(Label.Connect_OpportunityMirror_Missing, nameOf(gift), gift.Id);
@@ -394,6 +408,7 @@ public with sharing class OpportunityMirrorService {
             for (Integer i = 0; i < saved.size(); i++) {
                 if (saved[i].isSuccess()) {
                     insertedFor[i].Opportunity_Id__c = saved[i].getId();
+                    createdHere.add(saved[i].getId());
                     linked.add(insertedFor[i]);
                     result.created++;
                 } else {
