@@ -22,25 +22,37 @@ remembers its Opportunity in its **Opportunity ID**, whichever side came first.
 |---|---|
 | Amount | Amount |
 | Gift Date | Close Date |
-| Status | Stage: your won stage (`Closed Won`) for a Received, Refunded or Written off gift; your lost stage (`Closed Lost`) for a gift moved back to Pending or Cancelled |
+| Status | Stage: your won stage (`Closed Won`) for a Received, Refunded or Written off gift; your lost stage (`Closed Lost`) for a Cancelled gift; left as it is for a Pending gift, so linking a pledge to an open Opportunity never closes it |
 | Donor Account, or the donor's Household | Account |
-| Appeal (its Campaign, when Campaign sync gave it one) | Campaign |
+| Appeal (its Campaign, when Campaign sync gave it one and you can see Campaigns) | Campaign |
 | Donor | Primary Contact Role, with Role Donor |
 
 A new Opportunity is named after the donor and the date, and uses the Donation record type
-when your org has one. Pending and Cancelled gifts get no Opportunity. A refund or write-off,
+when your org has one. If that record type's sales process does not include your won or lost
+stage, Salesforce refuses the Opportunity and the Error Log says so: add the stage to the sales
+process. For a donor who is a contact, the Account is the Open Impact household; in an org
+running NPSP alongside, that is not the NPSP household account, so NPSP's household totals do
+not include these Opportunities. Pending and Cancelled gifts get no Opportunity. A refund or write-off,
 which is its own gift with a negative amount, gets its own Opportunity with that negative
-amount, so an NPSP total goes down exactly as the Open Impact total does.
+amount, so an NPSP total goes down exactly as the Open Impact total does. NPSP still counts that
+Opportunity as one more gift, and counts an in-kind gift's Opportunity, whose amount is zero:
+the totals agree, the counts are NPSP's own.
 
 **Opportunities to Gifts** makes one gift from each won Opportunity closed on or after the start
 date you set: the donor is the Opportunity's primary contact (or its Account when it has none),
 the amount and date are the Opportunity's, the type is Other, the status Received, and the
-appeal is the one whose Campaign is the Opportunity's Campaign. The gift then gets its fund,
+appeal is the one whose Campaign is the Opportunity's Campaign. To make gifts from some kinds of
+Opportunity only, list their record types' API names, separated by commas, in **Opportunity
+mirror record types** (for example `Donation,Major_Gift`); left empty, every won Opportunity
+after the start date counts. The start date is read in your organization's default time zone. The gift then gets its fund,
 household and thank-you status from your Giving settings, like any gift. A gift is never
 changed afterwards, even if its Opportunity is: the reconciliation shows the difference.
 
-Nothing is ever deleted. Deleting a gift leaves its Opportunity, and turning the mirror off
-leaves every Opportunity and gift where it is.
+Nothing is ever deleted. Deleting a gift leaves its Opportunity, and the Error Log gets one
+Warning naming the gifts deleted and their Opportunities, for you to delete or close yourself.
+In Opportunities to Gifts, the next run makes a new gift from an Opportunity that is still won,
+so close it as lost or delete it if the gift should stay gone. Turning the mirror off leaves
+every Opportunity and gift where it is.
 
 ## How to turn it on
 
@@ -54,24 +66,30 @@ Opportunity mirror page says so.
    For **Opportunities to Gifts**, also set **Opportunity mirror start date**: only won Opportunities closed on or after it become gifts.
    Until it is set, no Opportunity becomes a gift, so that a switch in an org with years of
    Opportunities does not create, and thank donors for, a gift for every one of them.
-3. Still in **Giving**, open **Opportunity mirror**. Click **Run now** once, to copy what you
-   already have, and **Schedule nightly**, so the mirror catches up every night at 01:30.
+3. Still in **Giving**, open **Opportunity mirror** (the row shows only to someone with the
+   permission set). Click **Run now** once, to copy what you already have, and **Schedule
+   nightly**, so the mirror catches up every night at 01:30. The page shows when the last run
+   completed and what it did, and Health Check warns if two days pass without one.
 
 **Whose access the copy uses.** Opportunities are written with the access of the person saving
-the gift, and the nightly run with the access of the person who scheduled it. Someone who
-cannot create and edit Opportunities still saves gifts; they get their Opportunities in the
-next run. Give fundraising staff Opportunity create and edit access in Setup if you want the
-Opportunity at once. The Error Log has one Warning when such a person creates gifts; imports
-add none, and the nightly run catches them up.
+the gift, and the nightly run with the access of the person who scheduled it. Saving a gift
+needs Opportunity create and edit access, not the permission set: the permission set is for
+seeing Opportunity ID and opening the page. Someone who cannot create and edit Opportunities
+still saves gifts; the next run copies them, including a change to a gift that already has an
+Opportunity. Give fundraising staff Opportunity create and edit access in Setup if you want the
+Opportunity at once. The Error Log has one Warning when such a person creates or changes gifts;
+imports add none, and the nightly run catches them up.
 
 **Two switches, one of them in charge.** **Opportunity mirror direction** decides what the
-mirror does. The **Opportunity mirror** row on the Automation page is the pause every Open
-Impact automation has: it stops only the copy made when a gift is saved, and the runs follow
-the direction alone.
+mirror does. The **Opportunity mirror** row on the Automation page is the switch every Open
+Impact automation has: switched off, it stops the copy made when a gift is saved and the runs.
+While automation is paused, or the switch is off, a run does nothing and the Error Log says so
+once: Giving's own rules are paused too, and a gift made then would never get its household or
+fund.
 
-**Very large saves.** When one save holds so many gifts that copying them would push it past
-Salesforce's limits, the gifts save without their Opportunities and one Warning says so. The
-next run copies them. A load of 200 rows at a time, as Data Loader and the importer send, is
+**Very large saves.** The copy starts only while half of the save's Salesforce limits are still
+unspent, because your own Opportunity automation runs inside the same save. When it does not,
+the gifts save without their Opportunities and one Warning says so. The next run copies them. A load of 200 rows at a time, as Data Loader and the importer send, is
 copied as usual.
 
 ## A five-minute walkthrough
@@ -106,8 +124,9 @@ cause, then click **Run now**.
 yours. Edit the gift instead. Fields that are not copied, such as Description, Next Step or your
 own fields, are never touched.
 
-**A won Opportunity without a gift, in Gifts to Opportunities.** It was not made by the mirror:
-it was entered directly, came from another tool, or its gift was deleted. The mirror never
+**A won Opportunity with no gift visible to you, in Gifts to Opportunities.** It was not made by
+the mirror: it was entered directly, came from another tool, or its gift was deleted. Or its gift
+exists and you cannot see it: the reconciliation shows what your own access shows. The mirror never
 deletes an Opportunity. Decide whether it should stay, and delete it yourself if not.
 
 **A linked Opportunity was deleted, or is not visible to you.** The mirror does not make a

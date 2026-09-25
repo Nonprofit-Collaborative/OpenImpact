@@ -931,6 +931,7 @@ settings to the console by shipping rows rather than by editing the console.
 | `Navigation_Target__c` | text (80) | The Lightning tab a module's own settings page lives on, used when the data type is Component and no component is named, because Core cannot import a component from a package that depends on it (Decision ADR-0020). |
 | `Description__c` | long text | The plain-language help shown under the control. |
 | `Help_Path__c` | text (255) | The admin guide path, relative to `docs/admin-guide/`, behind the row's Learn more link. |
+| `Required_Permission__c` | text (80) | Optional. The API name of a custom permission; when set, the console shows the row only to someone who has it. For a module page whose controller only a module permission set opens (X-01, ADR-NEXT on the Opportunity mirror). |
 | `Sort_Order__c` | number | The order of this row inside its section. |
 
 ### Automation Registry
@@ -5037,7 +5038,10 @@ stop Connect installing on an org without Opportunity (ADR-0013).
 | Key | Type | Default | Definition |
 |---|---|---|---|
 | `Opportunity_Mirror_Direction__c` | text | empty | `GiftsToOpportunities`, `OpportunitiesToGifts` or `Off`, shown as Gifts to Opportunities, Opportunities to Gifts and Off. Empty reads as Off (R-OM1). |
-| `Opportunity_Mirror_Start__c` | datetime | empty | Opportunities to Gifts only: an Opportunity becomes a gift only when its Close Date is on or after this date. Empty means no Opportunity becomes a gift (R-OM7). |
+| `Opportunity_Mirror_Start__c` | datetime | empty | Opportunities to Gifts only: an Opportunity becomes a gift only when its Close Date is on or after this date, read as a date in the org's default time zone. Empty means no Opportunity becomes a gift (R-OM7). |
+| `Opportunity_Mirror_Record_Types__c` | text | empty | Opportunities to Gifts only: the record types, by API name and separated by commas, whose won Opportunities become gifts. Empty means every record type (R-OM7). |
+| `Opportunity_Mirror_Last_Run__c` | datetime | empty | Written by the runs, not by an administrator: when the last completed run started (R-OM8). |
+| `Opportunity_Mirror_Last_Summary__c` | text | empty | Written by the runs: one sentence saying what the last completed run did (R-OM8). |
 
 ### Rules
 
@@ -5053,18 +5057,23 @@ counts in the giving totals: Status Received, Refunded or Written off (ADR-0022)
 the negative gift recording a refund or a write-off, whose Opportunity has a negative Amount,
 so an NPSP total nets exactly as the Open Impact total does, and an in-kind gift, whose Amount
 is zero (R-G12). A Pending or Cancelled gift gets no Opportunity. A copied gift that moves to
-Pending or Cancelled keeps its Opportunity, moved to the lost stage (R-OM3); it is never
-deleted.
+Cancelled keeps its Opportunity, moved to the lost stage; one that moves back to Pending keeps
+its Opportunity at the stage it has (R-OM3). Neither is ever deleted.
 
 **R-OM3 What is copied.** Amount to Amount; Gift Date to Close Date; Status to Stage, as the
-won stage for a gift in the totals and the lost stage otherwise; Donor Account to Account, or
-Household when the donor is a person stored as a contact; the appeal's Campaign ID (Section 29B)
-to Campaign, when it names a Campaign; and the donor person as the primary Contact Role (Donor
+won stage for a gift in the totals, the lost stage for a Cancelled gift, and the Opportunity's
+own stage left as it is for a Pending gift, so linking an open Opportunity to a pledge never
+closes it; Donor Account to Account, or Household when the donor is a person stored as a
+contact (the Open Impact household, which in an org running NPSP alongside is not the NPSP
+household); the appeal's Campaign ID (Section 29B) to Campaign, when it names a Campaign and the
+saver may read Campaigns (otherwise Campaign is left as it is); and the donor person as the primary Contact Role (Donor
 Contact, or the person contact of a person account), with Role `Donor` when the org's role list
 has it. The won stage is the org's active stage named `Closed Won` when it is a won stage, and
 otherwise its first active won stage by order; the lost stage is found the same way from
 `Closed Lost`. On creation only, the Opportunity is named from the donor and the gift date, and
-takes the record type `Donation` when the org has one the saver may use. Nothing else is written.
+takes the record type `Donation` when the org has one the saver may use; a Donation record type
+whose sales process lacks the chosen stage makes the insert fail, which is logged as R-OM6
+describes. Nothing else is written.
 A copied field changed by hand on the Opportunity is overwritten the next time its gift changes
 in one of these attributes.
 
@@ -5076,23 +5085,29 @@ whose values already match is not updated.
 
 **R-OM5 In the saver's own access.** Opportunities and Contact Roles are written in user mode,
 with the access of the person saving the gift. Opportunity is a standard object Open Impact does
-not own, so an elevated write (ADR-0021) is not available for it. Someone who cannot create and
-edit Opportunities still saves the gift, which stays without an Opportunity until a run of
-R-OM8 copies it. One Warning says so, written when such a person creates gifts in a save they
-made themselves, at most once per transaction; none is written from a background job, since an
-import of many chunks would repeat it for every chunk.
+not own, so an elevated write (ADR-0021) is not available for it. The copy needs Opportunity
+create and edit, and nothing else: the Opportunity ID is written onto the gift being saved by
+the automation itself, so a person without the Opportunity Mirror permission set, who cannot
+see that attribute, still has their gifts copied. Someone who cannot create and edit
+Opportunities still saves the gift, which stays uncopied until a run of R-OM8 copies it. One
+Warning says so, written when such a person creates or changes gifts in a save they made
+themselves, at most once per transaction; none is written from a background job, since an import
+of many chunks would repeat it for every chunk.
 
 **R-OM6 A failure never refuses the gift.** An Opportunity the platform refuses (a validation
 rule on Opportunity, a required field the org added, a closed stage the org's rules forbid) is
 logged and the gift saves. Refusals are grouped: one Warning per distinct platform message per
 transaction, or per run, giving the count and naming up to ten gifts, so a rule that refuses
-every gift of a large import writes a handful of entries rather than one per gift. A save too
-large to copy within the transaction's remaining queries, DML statements, rows and CPU time
-(thousands of gifts in one Apex transaction, or an org whose own Opportunity automation is
-heavy) saves its gifts uncopied, logs one Warning, and leaves them to the next run.
+every gift of a large import writes a handful of entries rather than one per gift; at most 50
+distinct messages are kept, and any further ones are counted together. A copy starts only while
+half of the transaction's queries and DML statements, and 40 percent of its CPU time, are still
+unspent, since the org's own Opportunity automation (NPSP's rollups, say) runs inside the same
+save and its cost cannot be measured in advance. A save that does not leave that room saves its
+gifts uncopied, logs one Warning, and leaves them to the next run.
 
 **R-OM7 Opportunities to Gifts.** Each won Opportunity whose Close Date is on or after the start
-date, and that no gift names, becomes a gift: the donor is the primary Contact Role's contact (a
+date (a date in the org's default time zone), whose record type is one of those listed when any
+are, and that no gift names, becomes a gift: the donor is the primary Contact Role's contact (a
 person account's account where people are accounts, R-G1), or else the Opportunity's Account;
 Amount is the Opportunity's Amount, which must be above zero; Gift Date is its Close Date; Type
 Other; Status Received; Appeal is the appeal whose Campaign ID is the Opportunity's Campaign;
@@ -5102,19 +5117,30 @@ as for any gift. A gift made this way is never edited by the mirror afterwards, 
 or posted gift is never touched (R-G4, R-G14); a later change to its Opportunity shows on the
 reconciliation page instead. An Opportunity that cannot become a gift (no donor, an amount not
 above zero, a gift rule such as a closed period) is logged as R-OM6 describes and tried again
-by the next run. Gifts are created in user mode, as the person who started the run.
+by the next run; an Opportunity another run has just made a gift of is counted as unchanged.
+Gifts are created in user mode, as the person who started the run.
 
 **R-OM8 Runs.** The Opportunity mirror page offers **Run now** and a nightly schedule
 (Schedule and Stop, the shape of ADR-0038, at 01:30). A run follows the chosen direction: in
 Gifts to Opportunities it copies every gift in the totals that has no Opportunity yet, which is
 how the gifts that existed before the mirror was turned on, and those saved by someone without
-Opportunity access, are caught up; in Opportunities to Gifts it applies R-OM7. Starting a run or
-the schedule needs the Manage Nonprofit Settings permission, and only one run is in progress at
-a time. A run executes as the person who started or scheduled it, in user mode, and writes a
-summary at Info to the Error Log when it ends.
+Opportunity access, are caught up, and every linked gift changed since the last completed run
+started, which puts right a change whose copy was skipped; in Opportunities to Gifts it applies
+R-OM7. Starting a run or the schedule needs the Manage Nonprofit Settings permission, and only
+one run is in progress at a time. A run executes as the person who started or scheduled it, in
+user mode. While automation is paused (ADR-0055) or the `Opportunity_Mirror` switch is off, a
+run does nothing and writes one Info entry saying so, checked when it starts and before each
+chunk, because Giving's own rules are paused too and a gift made then would never get its
+household or allocation. A run that completes writes a summary at Info to the Error Log and
+records its start time and summary on Connect Settings, which the page shows. Health Check
+warns when the nightly run is scheduled, the direction is chosen, and no run has completed for
+more than two days (ADR-0055 point 7).
 
-**R-OM9 Never deleted.** Deleting a gift leaves its Opportunity in place; the reconciliation
-page then shows it as a won Opportunity without a gift, for the administrator to decide. Open
+**R-OM9 Never deleted.** Deleting a gift leaves its Opportunity in place, and one Warning per
+delete names the gifts and their Opportunities; the reconciliation page then shows each as a
+won Opportunity without a gift, for the administrator to decide. In Opportunities to Gifts the
+next run makes a new gift from such an Opportunity while it is still won, and the Warning says
+so. Open
 Impact never deletes an Opportunity it did not just create. The one deletion is a run undoing
 its own work: an Opportunity it created for a gift whose Opportunity ID it then could not store
 is deleted in the same run, so the next run does not make a second one, and one it cannot delete
@@ -5131,9 +5157,12 @@ identifier links to it, and the gift's values then overwrite that Opportunity's 
 totals dated in the range with the won Opportunities closed in the range, both as the person
 viewing can see them, and shows each side's count and total and the differences: a gift with no
 Opportunity; a gift whose Opportunity is deleted or not visible; a linked gift and Opportunity
-whose amount, date or won state disagree; and a won Opportunity that no gift names. It reads in
-user mode and writes nothing. A range holding more than 10,000 gifts or 10,000 won Opportunities
-is refused rather than shown in part, as the accounting export is (ADR-0051). In Gifts to
+whose amount, date or won state disagree; and a won Opportunity with no gift visible to the
+viewer. It reads in user mode and writes nothing, and a viewer who cannot read Opportunity, its
+Name, Amount and Close Date, or the gift's Opportunity ID is refused in words. A range holding
+more than 10,000 gifts or 10,000 won Opportunities, or more than the transaction can read in
+one go, is refused rather than shown in part, as the accounting export is (ADR-0051); the
+counts themselves stop at 10,001, so a very large range is refused rather than failing. In Gifts to
 Opportunities it offers **Copy these gifts again**, a run over every gift in the range, linked
 or not, which puts right what R-OM3 copies. In Opportunities to Gifts the differences are shown
 only, because a gift is never edited from its Opportunity.
@@ -5152,18 +5181,25 @@ only, because a gift is never edited from its Opportunity.
 |---|---|---|
 | Opportunity Mirror Direction | `Opportunity_Mirror_Direction__c` | Text(40) |
 | Opportunity Mirror Start | `Opportunity_Mirror_Start__c` | Date/Time |
+| Opportunity Mirror Record Types | `Opportunity_Mirror_Record_Types__c` | Text(255) |
+| Opportunity Mirror Last Run | `Opportunity_Mirror_Last_Run__c` | Date/Time |
+| Opportunity Mirror Last Summary | `Opportunity_Mirror_Last_Summary__c` | Text(255) |
 
 - **Automation:** `Automation_Registry__mdt` row `Opportunity_Mirror` on `Gift__c`, order 50,
   after `Gift_Core_Rules` derives the household, enabled by default, handler
-  `OpportunityMirrorTriggerHandler`, running before insert and before update. Its switch row is
-  created by `ConnectPostInstall`.
+  `OpportunityMirrorTriggerHandler`, running before insert, before update and after delete. Its
+  switch row is created by `ConnectPostInstall`.
 - **Service:** `ConnectSync` (the comparisons, limit headroom, identifier checks and grouped
   Warnings shared with Campaign sync), `OpportunityMirrorService` (Gifts to Opportunities),
   `OpportunityGiftService` (Opportunities to Gifts), `OpportunityMirrorSelector` (gift and
   Opportunity reads, Opportunity by dynamic query only), `OpportunityMirrorBatch` and
   `OpportunityMirrorSchedulable` (R-OM8), `OpportunityMirrorReconciliation` (R-OM11),
   `OpportunityMirrorController` and the `opportunityMirror` page reached from the Giving section
-  of Nonprofit Settings. Permission set: `Opportunity_Mirror`.
+  of Nonprofit Settings, `ConnectSettingsWriter` (the runs' record of their last completed run)
+  and `ConnectHealthCheckExtension` (the stale run finding, through the ADR-0057 seam).
+  Permission set: `Opportunity_Mirror`, which also carries the custom permission
+  `Use_Opportunity_Mirror`: the page's reads require it, and the console shows the page's row
+  only to someone who has it (the Setting Definition's `Required_Permission__c`).
 - **List view** `Gifts_And_Opportunities` on Gift, shipped by Connect, where Opportunity ID is
   typed or cleared (R-OM10).
 
@@ -5283,7 +5319,7 @@ None open. R-M3's Primary Contact mirror, the only entry, was closed on 2026-09-
 | v0.5 | 2026-09-23 | C-20 duplicate detection (ADR-0050). One object added, `Duplicate_Dismissal__c` (Section 29A) with `Pair_Key__c` and `Reason__c`, which holds a decision rather than a finding. Detection is the org's own active duplicate rules; Open Impact ships none, and the suggestions are the standard `DuplicateRecordSet` and `DuplicateRecordItem` records. A scan started from Nonprofit Settings evaluates those rules against the people and households already in the org. Rules R-DP1 to R-DP5 added. |
 | v0.6 | 2026-09-23 | X-03, X-04 and X-06, the Connect integration surface (ADR-0051). No object or field added. R-G7 is reworded: the inbound gift API answers a resend with the gift already recorded and never edits it, and refuses a resend whose amount differs. The accounting export reads `Gift__c`, `Gift_Allocation__c` and `Fund__c` and writes nothing: the posting flag plan Section 4.12 names belongs to G-20 in Giving, and no Connect object records export runs. Section 30 notes that X-03 and X-04 add no Connect entity. |
 | v0.6 | 2026-09-24 | X-02 Campaign sync (ADR-0056, Campaign sync keeps its link on the appeal). New Part F and Section 29B, rules R-CS1 to R-CS8. `Appeal__c` gains `Campaign_Id__c` (Text 18, unique, external ID), shipped by Connect rather than Giving, because Giving may not name Campaign and a lookup to Campaign would stop Connect installing where Campaign is absent. New custom setting `Connect_Settings__c` with `Campaign_Sync_Enabled__c` (default off). New automation `Campaign_Sync` on Appeal. No object added. R-AP4 points at Section 29B. Review changes of 2026-09-25: R-CS1 names the setting as the authoritative switch; R-CS4 logs a saver without access once, on create; R-CS5 writes refusals in one statement and skips a save too large to copy; R-CS7 lets Sync all appeals delete a Campaign it created and could not link. |
-| v0.6 | 2026-09-25 | X-01 Opportunity mirror (ADR-NEXT on the Opportunity mirror). New Section 29C, rules R-OM1 to R-OM11. `Gift__c` gains `Opportunity_Id__c` (Text 18, unique, external ID), shipped by Connect for the reason Section 29B gives. `Connect_Settings__c` gains `Opportunity_Mirror_Direction__c` (one direction or Off, empty reads as Off) and `Opportunity_Mirror_Start__c`. New automation `Opportunity_Mirror` on Gift. No object added. R-G10 names the attribute. |
+| v0.6 | 2026-09-25 | X-01 Opportunity mirror (ADR-NEXT on the Opportunity mirror). New Section 29C, rules R-OM1 to R-OM11. `Gift__c` gains `Opportunity_Id__c` (Text 18, unique, external ID), shipped by Connect for the reason Section 29B gives. `Connect_Settings__c` gains `Opportunity_Mirror_Direction__c` (one direction or Off, empty reads as Off) and `Opportunity_Mirror_Start__c`. New automation `Opportunity_Mirror` on Gift. No object added. R-G10 names the attribute. Review changes of 2026-09-25: R-OM3 leaves a Pending gift's stage alone and omits Campaign where the saver cannot read it; R-OM5 needs only Opportunity create and edit; R-OM6 requires half the query and DML limits unspent and caps the distinct messages; R-OM7 gains an optional record type list (`Opportunity_Mirror_Record_Types__c`) and reads the start date in the org's time zone; R-OM8 rechecks linked gifts changed since the last completed run, skips a run while automation is paused or the switch is off, records the last completed run (`Opportunity_Mirror_Last_Run__c`, `Opportunity_Mirror_Last_Summary__c`) and has a Health Check finding; R-OM9 warns when a linked gift is deleted; R-OM11 caps its counts and refuses a viewer without read access. Setting Definition gains `Required_Permission__c`, and `HealthCheckExtensions` looks up Connect's extension as well as Giving's (ADR-0057 amended). |
 | v0.6 | 2026-09-24 | G-20 posting flag and period lock (ADR-0053). No object added. `Gift__c` gains `Accounting_Posted_At__c` (Date/Time) and `Accounting_Posted_By__c` (Lookup to User), both package written and read only in every permission set (R-G13). `Giving_Settings__c` gains `Books_Closed_Through__c` (Date), set on the Accounting Periods page and named by no Setting Definition row. New rules R-G13 (posting and unposting), R-G14 (a gift in the books that is posted or dated in a closed period is locked; nothing enters the books in a closed period) and R-GA5 (a locked gift's allocations are fixed). Two Always Runs automations, `Gift_Posting_Lock` and `Gift_Allocation_Posting_Lock`, and two custom permissions, `Post_Gifts` and `Override_Posting_Lock`, the second on no permission set. |
 | v0.6 | 2026-09-24 | Cancelled gift status, by the owner's decision (ADR-0054, amending G-04, ADR-0022, ADR-0023 and ADR-0031). No object added. `Gift__c.Status__c` gains Cancelled. New R-G16: a Pending gift that will never be paid is cancelled, with no negative gift, outside every total, the export and receipts, and allowed in a closed period; it moves only between Pending and Cancelled and unlinks its installment. R-G3: only a Received gift is refunded or written off. R-G14, R-AK8, R-RC8 and Section 26 name Cancelled. |
 | v0.6 | 2026-09-24 | C-23 automation pause with automatic resume, and the error digest (ADR-0055). No object added. `Nonprofit_Settings__c` gains five keys (Section 12, v0.6 keys): `Error_Digest_Recipients__c`, `Error_Digest_Frequency__c`, `Error_Digest_Covered_Until__c`, `Error_Digest_Last_Run__c` and `Error_Digest_Last_Run_Summary__c`. New rules R-A5 (a pause ends by itself through a one-time job that records the resume) and R-E5 (the digest counts and links, never quotes, and goes only to active users); R-E3 reworded to point at R-E5. |
