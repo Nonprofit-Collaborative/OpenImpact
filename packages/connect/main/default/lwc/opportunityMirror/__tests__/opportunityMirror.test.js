@@ -41,7 +41,17 @@ jest.mock(
 );
 jest.mock(
   '@salesforce/label/c.Connect_OpportunityMirror_DifferenceCount',
-  () => ({ default: '{0} differences. The first {1} are listed.' }),
+  () => ({ default: 'Differences found: {0}. The first {1} are listed.' }),
+  { virtual: true }
+);
+jest.mock(
+  '@salesforce/label/c.Connect_OpportunityMirror_DifferenceCountAll',
+  () => ({ default: 'Differences found: {0}. All are listed.' }),
+  { virtual: true }
+);
+jest.mock(
+  '@salesforce/label/c.Connect_OpportunityMirror_LastRun',
+  () => ({ default: 'Last completed run: started {0}. {1}' }),
   { virtual: true }
 );
 jest.mock(
@@ -140,7 +150,7 @@ describe('c-opportunity-mirror', () => {
       startDate: '2026-01-01'
     });
     expect(find(element, 'direction').textContent).toBe(
-      'Won Opportunities closed on or after 2026-01-01 become gifts.'
+      'Won Opportunities closed on or after Jan 1, 2026 become gifts.'
     );
   });
 
@@ -184,14 +194,61 @@ describe('c-opportunity-mirror', () => {
     expect(compare).toHaveBeenCalledWith(
       expect.objectContaining({ fromDate: expect.any(String), toDate: expect.any(String) })
     );
-    expect(find(element, 'gift-side').textContent).toBe('Gifts: 4, total 175');
+    expect(find(element, 'gift-side').textContent).toBe('Gifts: 4, total $175.00');
     expect(find(element, 'difference-count').textContent).toBe(
-      '1 differences. The first 1 are listed.'
+      'Differences found: 1. All are listed.'
     );
     expect(find(element, 'differences').data[0].giftUrl).toBe('/a01');
+    const compared = compare.mock.calls[0][0];
+    const from = find(element, 'from');
+    from.value = '2020-01-01';
+    from.dispatchEvent(new CustomEvent('change'));
+    await flush();
     find(element, 'copy-again').click();
     await flush();
-    expect(copyRangeAgain).toHaveBeenCalled();
+    expect(copyRangeAgain).toHaveBeenCalledWith(compared);
+  });
+
+  it('says when only the first differences are listed', async () => {
+    compare.mockResolvedValue({ ...COMPARISON, differenceCount: 3 });
+    const element = await mount(READY);
+    find(element, 'compare').click();
+    await flush();
+    expect(find(element, 'difference-count').textContent).toBe(
+      'Differences found: 3. The first 1 are listed.'
+    );
+  });
+
+  it('shows the last completed run and its summary', async () => {
+    const element = await mount({
+      ...READY,
+      lastRunAt: '2026-09-24T08:30:00.000Z',
+      lastSummary: '3 Opportunities created.'
+    });
+    expect(find(element, 'last-run').textContent).toContain('3 Opportunities created.');
+  });
+
+  it('shows a spinner until the status arrives', async () => {
+    getStatus.mockReturnValue(new Promise(() => {}));
+    const element = createElement('c-opportunity-mirror', { is: OpportunityMirror });
+    document.body.appendChild(element);
+    await flush();
+    expect(find(element, 'spinner')).not.toBeNull();
+  });
+
+  it('checks again until a running run has finished', async () => {
+    jest.useFakeTimers();
+    try {
+      const element = await mount({ ...READY, running: true });
+      expect(find(element, 'running')).not.toBeNull();
+      getStatus.mockResolvedValue(READY);
+      jest.advanceTimersByTime(10000);
+      await flush();
+      expect(getStatus).toHaveBeenCalledTimes(2);
+      expect(find(element, 'running')).toBeNull();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('does not offer to copy again in Opportunities to Gifts', async () => {

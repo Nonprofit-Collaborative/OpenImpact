@@ -86,6 +86,15 @@ private class OpportunityMirrorControllerTest {
                 when 'compareReversed' {
                     return OpportunityMirrorController.compare(TO_DATE, FROM_DATE);
                 }
+                when 'schedule' {
+                    return OpportunityMirrorController.schedule();
+                }
+                when 'stop' {
+                    return OpportunityMirrorController.stop();
+                }
+                when 'status' {
+                    return OpportunityMirrorController.getStatus();
+                }
                 when else {
                     return OpportunityMirrorController.compare(FROM_DATE, TO_DATE);
                 }
@@ -200,20 +209,90 @@ private class OpportunityMirrorControllerTest {
     }
 
     @IsTest
-    static void comparingNeedsTheOpportunityMirrorPermissionSet() {
-        if (!OpportunityMirrorService.isAvailable()) {
-            return;
-        }
+    static void thePageNeedsTheOpportunityMirrorPermissionSet() {
         User david = TestDataFactory.createUser('David', new List<String>{ 'Giving_Admin' });
         Test.startTest();
         System.runAs(david) {
             Assert.areEqual(
-                Label.Connect_OpportunityMirror_NoLinkAccess,
+                Label.Connect_OpportunityMirror_NoUsePermission,
+                refusalOf(new Action('status')),
+                'The page says what he needs (ADR-0038 point 3).'
+            );
+            Assert.areEqual(
+                Label.Connect_OpportunityMirror_NoUsePermission,
                 refusalOf(new Action('compare')),
                 'Refused in words, not with the platform error a user mode read gives.'
             );
         }
         Test.stopTest();
+    }
+
+    @IsTest
+    static void comparingNeedsReadAccessToOpportunities() {
+        List<Profile> minimum = [
+            SELECT Id
+            FROM Profile
+            WHERE Name = 'Minimum Access - Salesforce'
+            LIMIT 1
+        ];
+        if (!OpportunityMirrorService.isAvailable() || minimum.isEmpty()) {
+            return;
+        }
+        User rosa = TestDataFactory.createUser(
+            'Rosa',
+            new List<String>{ 'Giving_Admin', 'Opportunity_Mirror' }
+        );
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            update new User(Id = rosa.Id, ProfileId = minimum[0].Id);
+        }
+        Test.startTest();
+        System.runAs(rosa) {
+            Assert.areEqual(
+                Label.Connect_OpportunityMirror_NoOpportunityRead,
+                refusalOf(new Action('compare')),
+                'Refused plainly (R-OM11).'
+            );
+        }
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void someoneWhoCannotManageSettingsCannotRunScheduleOrStop() {
+        if (!OpportunityMirrorService.isAvailable()) {
+            return;
+        }
+        choose(OpportunityMirrorService.GIFTS_TO_OPPORTUNITIES);
+        User fundraiser = TestDataFactory.createUserOnTheRunningUsersProfile(
+            'Ana',
+            new List<String>{ 'Giving_Admin', 'Opportunity_Mirror' }
+        );
+        Test.startTest();
+        System.runAs(fundraiser) {
+            Assert.isFalse(OpportunityMirrorController.getStatus().canManage, 'She may look.');
+            for (String action : new List<String>{ 'runNow', 'schedule', 'stop' }) {
+                Assert.areEqual(
+                    Label.Connect_OpportunityMirror_NoManagePermission,
+                    refusalOf(new Action(action)),
+                    action + ' is refused (ADR-0038).'
+                );
+            }
+        }
+        Test.stopTest();
+        Assert.isNull(OpportunityMirrorSchedulable.nextRunAt(), 'Nothing was scheduled.');
+    }
+
+    @IsTest
+    static void theStatusCarriesTheLastCompletedRun() {
+        Datetime ranAt = Datetime.newInstanceGmt(2026, 9, 24, 8, 30, 0);
+        ConnectSettingsWriter.recordOpportunityMirrorRun(ranAt, '3 Opportunities created.');
+        OpportunityMirrorController.Status status;
+        Test.startTest();
+        System.runAs(maria()) {
+            status = OpportunityMirrorController.getStatus();
+        }
+        Test.stopTest();
+        Assert.areEqual(ranAt, status.lastRunAt, 'When it started.');
+        Assert.areEqual('3 Opportunities created.', status.lastSummary, 'What it did.');
     }
 
     @IsTest
