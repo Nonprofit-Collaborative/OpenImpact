@@ -1,6 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
   <labels>
+    <fullName>Connect_OpportunityMirror_RunPaused</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run skipped: automation paused</shortDescription>
+    <value>The Opportunity mirror run did nothing, because automation is paused on the Automation page. The next run after it resumes catches up.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_OpportunityMirror_RunSwitchedOff</fullName>
+    <categories>Connect, Opportunity Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run skipped: automation switched off</shortDescription>
+    <value>The Opportunity mirror run did nothing, because the Opportunity mirror is switched off on the Automation page. Switch it on for its runs to work again.</value>
+  </labels>
+  <labels>
     <fullName>Connect_OpportunityMirror_DeletedKept</fullName>
     <categories>Connect, Opportunity Mirror</categories>
     <language>en_US</language>
@@ -166,7 +182,7 @@
     <language>en_US</language>
     <protected>false</protected>
     <shortDescription>Opportunity mirror log: what a gifts to opportunities run did</shortDescription>
-    <value>Opportunity mirror run, Gifts to Opportunities: {0} Opportunities created, {1} updated, {2} already up to date, {3} could not be copied (see the Warnings), {4} left because the direction changed during the run.</value>
+    <value>Opportunity mirror run, Gifts to Opportunities: {0} Opportunities created, {1} updated, {2} already up to date, {3} could not be copied (see the Warnings), {4} left for the next run.</value>
   </labels>
   <labels>
     <fullName>Connect_OpportunityMirror_LogRunGifts</fullName>
@@ -174,6 +190,6 @@
     <language>en_US</language>
     <protected>false</protected>
     <shortDescription>Opportunity mirror log: what an opportunities to gifts run did</shortDescription>
-    <value>Opportunity mirror run, Opportunities to Gifts: {0} gifts made, {2} Opportunities already had a gift, {3} could not become gifts (see the Warnings), {4} left because the direction changed during the run.</value>
+    <value>Opportunity mirror run, Opportunities to Gifts: {0} gifts made, {2} Opportunities already had a gift, {3} could not become gifts (see the Warnings), {4} left for the next run.</value>
   </labels>
 </CustomLabels>

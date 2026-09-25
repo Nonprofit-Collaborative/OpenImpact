@@ -10,6 +10,12 @@
  * Refusals are gathered across the chunks and written when the run ends, one Warning per distinct
  * reason, with a summary at Info (R-OM6), so a nightly run over a refused rule writes one entry
  * rather than one per gift, and none per chunk.
+ *
+ * While automation is paused, or the Opportunity mirror is switched off on the Automation page, a
+ * run does nothing and says so in one Info entry; the check is made when it starts and again for
+ * each chunk (R-OM8). A run that is not a range records when it started and its summary on
+ * Connect Settings, for the page, for Health Check, and as the point from which the next run
+ * rechecks linked gifts changed since.
  */
 public with sharing class OpportunityMirrorBatch implements Database.Batchable<SObject>, Database.Stateful {
     public static final String CLASS_NAME = 'OpportunityMirrorBatch';
@@ -24,6 +30,10 @@ public with sharing class OpportunityMirrorBatch implements Database.Batchable<S
     private final Date fromDate;
     private final Date toDate;
     private final OpportunityMirrorService.Result totals = new OpportunityMirrorService.Result();
+    private Datetime startedAt;
+    /** Why chunks were left, when automation was paused or switched off during the run. */
+    private String skipReason;
+    private Boolean skippedAtStart = false;
 
     @TestVisible
     private OpportunityMirrorBatch(String direction, Date fromDate, Date toDate) {
@@ -53,27 +63,51 @@ public with sharing class OpportunityMirrorBatch implements Database.Batchable<S
         );
     }
 
+    /** Why a run must not work now, or null when it may. */
+    private static String skipReason() {
+        if (AutomationControl.isPaused()) {
+            return Label.Connect_OpportunityMirror_RunPaused;
+        }
+        if (!AutomationControl.isEnabled(OpportunityMirrorService.AUTOMATION_NAME)) {
+            return Label.Connect_OpportunityMirror_RunSwitchedOff;
+        }
+        return null;
+    }
+
     public Database.QueryLocator start(Database.BatchableContext context) {
+        startedAt = System.now();
+        skipReason = skipReason();
+        if (skipReason != null) {
+            skippedAtStart = true;
+            return Database.getQueryLocator(
+                [SELECT Id FROM Gift__c WHERE Id = NULL WITH USER_MODE]
+            );
+        }
         if (direction == OpportunityMirrorService.OPPORTUNITIES_TO_GIFTS) {
             Date startDate = OpportunityGiftService.startDate();
+            Set<Id> recordTypeIds = OpportunityGiftService.recordTypeIds();
             return Database.getQueryLocatorWithBinds(
                 OpportunityMirrorSelector.wonOpportunitiesQuery(
                     OpportunityMirrorService.opportunityType().getDescribe().getName(),
-                    OpportunityGiftService.opportunityFields()
+                    OpportunityGiftService.opportunityFields(),
+                    recordTypeIds != null
                 ),
                 // No start date, no Opportunity: a date no Opportunity closes on or after.
                 new Map<String, Object>{
-                    'startDate' => startDate == null ? Date.newInstance(4000, 12, 31) : startDate
+                    'startDate' => startDate == null ? Date.newInstance(4000, 12, 31) : startDate,
+                    'recordTypeIds' => recordTypeIds
                 },
                 AccessLevel.USER_MODE
             );
         }
+        Datetime lastRun = Connect_Settings__c.getOrgDefaults()?.Opportunity_Mirror_Last_Run__c;
         return Database.getQueryLocatorWithBinds(
-            OpportunityMirrorSelector.giftsToCopyQuery(fromDate != null),
+            OpportunityMirrorSelector.giftsToCopyQuery(fromDate != null, lastRun != null),
             new Map<String, Object>{
                 'statuses' => OpportunityMirrorService.IN_TOTALS,
                 'fromDate' => fromDate,
-                'toDate' => toDate
+                'toDate' => toDate,
+                'since' => lastRun
             },
             AccessLevel.USER_MODE
         );
@@ -81,8 +115,10 @@ public with sharing class OpportunityMirrorBatch implements Database.Batchable<S
 
     public void execute(Database.BatchableContext context, List<SObject> scope) {
         // The direction may have changed since the run started; a run never works against it.
-        if (OpportunityMirrorService.direction() != direction) {
+        String reason = skipReason();
+        if (reason != null || OpportunityMirrorService.direction() != direction) {
             totals.skipped += scope.size();
+            skipReason = skipReason == null ? reason : skipReason;
             return;
         }
         totals.add(
@@ -93,26 +129,34 @@ public with sharing class OpportunityMirrorBatch implements Database.Batchable<S
     }
 
     public void finish(Database.BatchableContext context) {
+        if (skippedAtStart) {
+            ErrorLogger.logMessage(skipReason, LOG_CONTEXT, SEVERITY_INFO);
+            return;
+        }
         if (direction == OpportunityMirrorService.OPPORTUNITIES_TO_GIFTS) {
             totals.writeOpportunityRefusals();
         } else {
             totals.writeRefusals();
         }
+        String summary = String.format(
+            direction == OpportunityMirrorService.OPPORTUNITIES_TO_GIFTS
+                ? Label.Connect_OpportunityMirror_LogRunGifts
+                : Label.Connect_OpportunityMirror_LogRunOpportunities,
+            new List<Object>{
+                totals.created,
+                totals.updated,
+                totals.unchanged,
+                totals.failed,
+                totals.skipped
+            }
+        );
         ErrorLogger.logMessage(
-            String.format(
-                direction == OpportunityMirrorService.OPPORTUNITIES_TO_GIFTS
-                    ? Label.Connect_OpportunityMirror_LogRunGifts
-                    : Label.Connect_OpportunityMirror_LogRunOpportunities,
-                new List<Object>{
-                    totals.created,
-                    totals.updated,
-                    totals.unchanged,
-                    totals.failed,
-                    totals.skipped
-                }
-            ),
+            skipReason == null ? summary : summary + ' ' + skipReason,
             LOG_CONTEXT,
             SEVERITY_INFO
         );
+        if (fromDate == null && skipReason == null) {
+            ConnectSettingsWriter.recordOpportunityMirrorRun(startedAt, summary);
+        }
     }
 }

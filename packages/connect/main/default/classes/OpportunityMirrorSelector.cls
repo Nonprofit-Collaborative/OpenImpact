@@ -156,14 +156,21 @@ public with sharing class OpportunityMirrorSelector {
 
     /**
      * The won Opportunities an Opportunities to Gifts run turns into gifts: closed on or after the
-     * start date, oldest first (R-OM7). Those already named by a gift are left out per chunk.
+     * start date, oldest first (R-OM7), and when `byRecordType` of the record types bound as
+     * `recordTypeIds`. Those already named by a gift are left out per chunk.
      */
-    public static String wonOpportunitiesQuery(String opportunityObject, List<String> fields) {
+    public static String wonOpportunitiesQuery(
+        String opportunityObject,
+        List<String> fields,
+        Boolean byRecordType
+    ) {
         return 'SELECT ' +
             String.escapeSingleQuotes(String.join(fields, ', ')) +
             ' FROM ' +
             String.escapeSingleQuotes(opportunityObject) +
-            ' WHERE IsWon = TRUE AND CloseDate >= :startDate ORDER BY CloseDate, Id';
+            ' WHERE IsWon = TRUE AND CloseDate >= :startDate' +
+            (byRecordType == true ? ' AND RecordTypeId IN :recordTypeIds' : '') +
+            ' ORDER BY CloseDate, Id';
     }
 
     /** The Opportunity ID of every gift that names one of these, the running user can see. */

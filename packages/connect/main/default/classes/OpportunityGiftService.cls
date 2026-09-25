@@ -29,13 +29,42 @@ public with sharing class OpportunityGiftService {
         return fields;
     }
 
-    /** The start date, or null while none is set, in which case no Opportunity becomes a gift. */
+    /**
+     * The start date, or null while none is set, in which case no Opportunity becomes a gift. Read
+     * in the org's default time zone, so a nightly run started by anyone uses the same day.
+     */
     public static Date startDate() {
         Connect_Settings__c settings = Connect_Settings__c.getOrgDefaults();
-        return settings == null ||
-            settings.Opportunity_Mirror_Start__c == null
-            ? null
-            : settings.Opportunity_Mirror_Start__c.date();
+        Datetime start = settings?.Opportunity_Mirror_Start__c;
+        if (start == null) {
+            return null;
+        }
+        String zone = [SELECT TimeZoneSidKey FROM Organization WITH SYSTEM_MODE LIMIT 1]
+        .TimeZoneSidKey;
+        return Date.valueOf(start.format('yyyy-MM-dd', zone));
+    }
+
+    /**
+     * The record types whose won Opportunities become gifts (R-OM7), or null for every record
+     * type. A name the org does not have matches nothing, so a mistyped list makes no gifts
+     * rather than gifts from every Opportunity.
+     */
+    public static Set<Id> recordTypeIds() {
+        String listed = Connect_Settings__c.getOrgDefaults()?.Opportunity_Mirror_Record_Types__c;
+        if (String.isBlank(listed)) {
+            return null;
+        }
+        Map<String, Schema.RecordTypeInfo> byName = OpportunityMirrorService.opportunityType()
+            .getDescribe()
+            .getRecordTypeInfosByDeveloperName();
+        Set<Id> ids = new Set<Id>();
+        for (String name : listed.split(',')) {
+            Schema.RecordTypeInfo info = byName.get(name.trim());
+            if (info != null) {
+                ids.add(info.getRecordTypeId());
+            }
+        }
+        return ids;
     }
 
     /**
@@ -127,11 +156,18 @@ public with sharing class OpportunityGiftService {
                 result.created++;
                 continue;
             }
-            result.failed++;
             List<String> messages = new List<String>();
+            Boolean duplicate = false;
             for (Database.Error error : saved[i].getErrors()) {
                 messages.add(error.getMessage());
+                duplicate |= error.getStatusCode() == StatusCode.DUPLICATE_VALUE;
             }
+            if (duplicate) {
+                // Another run made its gift first: the Opportunity already has one.
+                result.unchanged++;
+                continue;
+            }
+            result.failed++;
             result.refusals.add(
                 String.join(messages, ' '),
                 (String) madeFrom[i].get('Name'),
