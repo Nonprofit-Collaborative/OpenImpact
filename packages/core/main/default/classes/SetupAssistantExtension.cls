@@ -1,6 +1,6 @@
 /**
  * The seam a dependent package uses to add its own steps, fields and wording to the Setup
- * Assistant without Core depending on it (C-29, ADR-NEXT; the shape of `HealthCheckExtension`,
+ * Assistant without Core depending on it (C-29, ADR-0059; the shape of `HealthCheckExtension`,
  * ADR-0057, under the cross-package mechanism ADR-0017 settled).
  *
  * Core is neutral: it asks only what every organization answers. Giving adds the fund and

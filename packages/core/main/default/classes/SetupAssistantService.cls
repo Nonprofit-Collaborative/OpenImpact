@@ -4,7 +4,7 @@
  * browser in the middle of step four opens on step four tomorrow.
  *
  * Core ships seven neutral steps. A dependent package adds its own steps, fields and wording
- * through `SetupAssistantExtension` (C-29, ADR-NEXT): Giving adds the fund and appeal step and
+ * through `SetupAssistantExtension` (C-29, ADR-0059): Giving adds the fund and appeal step and
  * the receipt fields, which makes eight. A step's fields are data, rendered by one Core panel
  * and saved through `SettingsService` on the settings object each field names.
  *

@@ -1,5 +1,5 @@
 /**
- * How Core finds a module's Setup Assistant contributions by class name (C-29, ADR-NEXT). A
+ * How Core finds a module's Setup Assistant contributions by class name (C-29, ADR-0059). A
  * name that is not in the org, or a class that is not an extension, is treated as no module
  * at all, so the assistant still opens.
  */

@@ -1,6 +1,6 @@
 /**
  * How many receipt numbers were consumed by a run that failed (feature C-11, ADR-0016), for
- * the Health Check finding Giving adds to Core's report (ADR-NEXT).
+ * the Health Check finding Giving adds to Core's report (ADR-0059).
  *
  * Rule R-RC3: a number whose document never generated is reconciled into a receipt with
  * Status `Void` and Void Reason `Generation failed`, so an auditor asking what happened to

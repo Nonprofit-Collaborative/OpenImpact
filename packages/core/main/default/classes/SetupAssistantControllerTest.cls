@@ -4,7 +4,7 @@
  * skips a step, and starts again when she wants to.
  *
  * Each test says which modules it runs with (`SetupAssistantTestExtension`), because Core is
- * tested both on its own and with Giving beside it (ADR-0013, ADR-NEXT).
+ * tested both on its own and with Giving beside it (ADR-0013, ADR-0059).
  *
  * The permission the assistant checks is granted in setup, so the saving tests assert the
  * saving path itself, and David's refusal is asserted once, under `System.runAs`.

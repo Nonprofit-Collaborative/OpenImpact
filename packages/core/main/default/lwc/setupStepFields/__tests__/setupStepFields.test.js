@@ -21,7 +21,7 @@ jest.mock(
 );
 
 // The organization step as it arrives with a module installed: Core's two fields and the
-// fields a stand-in module adds, matching SetupAssistantTestExtension (ADR-NEXT, C-29).
+// fields a stand-in module adds, matching SetupAssistantTestExtension (ADR-0059, C-29).
 const IDENTITY_FIELDS = [
   { fieldType: 'Text', key: 'Organization_Legal_Name__c', label: 'Legal name', maxLength: 255 },
   {

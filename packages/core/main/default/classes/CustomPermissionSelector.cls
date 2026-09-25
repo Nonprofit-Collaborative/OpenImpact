@@ -4,7 +4,7 @@
  * A module's Health Check asks it who holds a permission the module ships, and has to name
  * the people holding it, because "somebody has it" is not something an administrator can act
  * on. Giving asks it about `Override_Receipt_Lock` (ADR-0024), through
- * `HealthCheckGivingChecks` since C-29 (ADR-NEXT); Core's Error Log digest asks it too.
+ * `HealthCheckGivingChecks` since C-29 (ADR-0059); Core's Error Log digest asks it too.
  *
  * `CustomPermission`, `SetupEntityAccess`, `PermissionSet` and `PermissionSetAssignment` are
  * platform setup objects present in every Salesforce org, and the permission is matched on

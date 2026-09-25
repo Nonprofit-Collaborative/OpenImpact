@@ -1,7 +1,7 @@
 /**
  * The Health Check questions about people: who administers Open Impact and who cannot see
  * it at all (plan Section 4.8, feature C-11). Who holds Giving's receipt lock override is
- * Giving's question, asked through its Health Check extension (ADR-NEXT).
+ * Giving's question, asked through its Health Check extension (ADR-0059).
  *
  * Every question here is a question about the whole org, and Salesforce shows an ordinary
  * user only their own access, so a count taken without the administrator permission is

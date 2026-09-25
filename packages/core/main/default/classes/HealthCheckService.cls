@@ -564,7 +564,7 @@ public with sharing class HealthCheckService {
     /**
      * The finding that stands in for a check that threw, after writing the failure to the Error
      * Log. Public so a dependent package's extension can isolate each of its own checks the same
-     * way (C-29, ADR-NEXT), rather than losing every one of its findings to one failure.
+     * way (C-29, ADR-0059), rather than losing every one of its findings to one failure.
      */
     @NamespaceAccessible
     public static Finding checkFailed(String checkKey, Exception e) {

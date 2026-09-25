@@ -1,7 +1,7 @@
 /**
  * Proves, in an org with both packages installed, that Core's Setup Assistant finds
  * `GivingSetupAssistantExtension` by name and reads as it did before Core was made neutral
- * (C-29, ADR-NEXT): eight steps, the fund and appeal step third, the receipt fields on the
+ * (C-29, ADR-0059): eight steps, the fund and appeal step third, the receipt fields on the
  * organization step, and the first gift button last.
  *
  * `SetupAssistantService.Step` and `StepField` fields are `@AuraEnabled` only, not

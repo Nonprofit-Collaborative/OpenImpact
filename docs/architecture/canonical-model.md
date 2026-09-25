@@ -777,10 +777,10 @@ naming pattern choices. Stored as a protected hierarchy custom setting so that t
 settings console can write them synchronously and so that they are cacheable (Decision
 D-06).
 
-Core is neutral (plan Section 4.1, C-29, ADR-NEXT): a key lives here only if Core reads it or
+Core is neutral (plan Section 4.1, C-29, ADR-0059): a key lives here only if Core reads it or
 it means the same thing to any organization. The console and the object are labelled **Open
 Impact Settings**; the API name `Nonprofit_Settings__c` is unchanged until the product name
-pass (ADR-NEXT decision 6). Seven keys this section listed before v0.6, the tax
+pass (ADR-0059 decision 6). Seven keys this section listed before v0.6, the tax
 identification number, the four receipt signer and file keys, and the default fund and
 appeal, are read only by Giving and moved to `Giving_Settings__c` (Section 21A) in C-29, with
 their API names and definitions unchanged.
@@ -835,7 +835,7 @@ own settings object, so `Automatic_Household_Soft_Credits__c`,
 `Installment_Generation_Horizon_Months__c` and `Installment_Overdue_Grace_Days__c` live on
 the Giving package's own `Giving_Settings__c` and are specified in Section 21A. Core kept
 `Default_Fund__c` and `Default_Appeal__c` until v0.6, when C-29 moved them to Giving as well:
-the Setup Assistant now writes them through Giving's step (ADR-NEXT).
+the Setup Assistant now writes them through Giving's step (ADR-0059).
 
 | Key | Type | Default | Definition |
 |---|---|---|---|
@@ -2454,7 +2454,7 @@ installed (Principle 3).
 
 Core keeps the settings that Core itself reads. Everything that only the Giving package reads
 lives here, including, from v0.6, the default fund and appeal and the receipt identity keys
-that C-29 moved out of Core (ADR-NEXT).
+that C-29 moved out of Core (ADR-0059).
 
 ### v0.3 keys
 
@@ -2521,7 +2521,7 @@ Definition row, so the console's generic save cannot write it past the page's ch
 |---|---|---|---|
 | `Books_Closed_Through__c` | date | empty | The last day of the latest closed accounting period; empty means no period is closed. Gifts in the books dated on or before it are locked (R-G14). It is at least two days before today (so today is open in every time zone) and moves only forward; moving it back or clearing it needs `Override_Posting_Lock` and writes an Error Log entry at Warning. Every change is a Setting Change. |
 
-Moved from `Nonprofit_Settings__c` by C-29 (ADR-NEXT), API names unchanged. The Setup Assistant
+Moved from `Nonprofit_Settings__c` by C-29 (ADR-0059), API names unchanged. The Setup Assistant
 writes them through the steps Giving contributes, and the console shows them in the sections
 it showed them in before.
 
@@ -5414,7 +5414,7 @@ included; standard objects the packages extend are named by the entity that gove
 | Organization legal name and address keys | Core | v0.2 | 12 |
 | Default fund and appeal, tax identification number, receipt signer and file keys | Giving (Core until v0.6) | v0.2, moved v0.6 | 21A |
 
-**Components that are not entities (C-29, ADR-NEXT).** Core is the Community Suite on its own,
+**Components that are not entities (C-29, ADR-0059).** Core is the Community Suite on its own,
 so nothing below that is nonprofit-specific ships in Core.
 
 | Component | Package | Mechanism |
@@ -5456,4 +5456,4 @@ is the place that reprioritization is recorded permanently; this table follows i
 | v0.5 | 2026-09-24 | C-14 dry run at scale. `Import_Row__c` gains `Person_1_Key__c`, `Person_2_Key__c`, `Person_1_Name_Key__c`, `Person_2_Name_Key__c`, `Organization_Key__c` and `Processor_Key__c`, indexed digests a dry run writes on the row that would create a record or load an external ID. R-IB12 and R-IR6: the digests are looked up per chunk instead of carried in the batch's state, so a dry run's heap no longer grows with the rows before the chunk. |
 | v0.5 | 2026-09-24 | C-14 dry run fix. No object or field added. R-IB12 added: a dry run carries, across chunks, digests of the people and organizations it would create, so a later chunk naming one counts it matched, as the commit does, rather than created again. |
 | v0.5 | 2026-09-24 | Import engine review fixes. No object or field added. R-IT3: in Person Accounts mode a person's contact attributes are written to the account's person fields (PersonEmail, PersonMailingStreet, PersonHasOptedOutOfEmail and the rest), found by describe, where before only the name, salutation and phone were written. R-IB12: a person account is matched on the fields it is written to, PersonEmail and PersonMailingPostalCode, and also on BillingPostalCode, where another tool often put it; a matching field the user may not read is skipped and named in the run log, and the dry run remembers a person it would create only where the commit writes the matched field, now including a person account and excluding a field the importing user may not write. |
-| v0.6 | 2026-09-25 | C-29 neutral Core (ADR-NEXT). No object added. Seven keys move from `Nonprofit_Settings__c` (Section 12) to `Giving_Settings__c` (Section 21A) with their API names and definitions unchanged: `Default_Fund__c`, `Default_Appeal__c`, `Organization_EIN__c`, `Receipt_Signer_Name__c`, `Receipt_Signer_Title__c`, `Receipt_Logo_Document_Id__c` and `Receipt_Signature_Document_Id__c`. `Organization_Legal_Name__c` and `Organization_Address__c` stay in Core with neutral definitions. Nothing is migrated: no package version exists, so no org holds values on the old fields. Section 12 is labelled Open Impact Settings, its API name unchanged. Section 32 gains the ownership of components that are not entities: the app, the Setup Assistant steps, the Health Check findings, the roles and the custom permissions. |
+| v0.6 | 2026-09-25 | C-29 neutral Core (ADR-0059). No object added. Seven keys move from `Nonprofit_Settings__c` (Section 12) to `Giving_Settings__c` (Section 21A) with their API names and definitions unchanged: `Default_Fund__c`, `Default_Appeal__c`, `Organization_EIN__c`, `Receipt_Signer_Name__c`, `Receipt_Signer_Title__c`, `Receipt_Logo_Document_Id__c` and `Receipt_Signature_Document_Id__c`. `Organization_Legal_Name__c` and `Organization_Address__c` stay in Core with neutral definitions. Nothing is migrated: no package version exists, so no org holds values on the old fields. Section 12 is labelled Open Impact Settings, its API name unchanged. Section 32 gains the ownership of components that are not entities: the app, the Setup Assistant steps, the Health Check findings, the roles and the custom permissions. |

@@ -9,7 +9,7 @@
  * The fiscal year check reads Setup's fiscal year dynamically through FiscalYearSelector, so a
  * Platform-only org is told nothing rather than told zero (ADR-0009, ADR-0013). Whether
  * receipt generation has been failing is Giving's question, asked through its Health Check
- * extension (ADR-NEXT).
+ * extension (ADR-0059).
  *
  * Every finding is created exactly as HealthCheckService created it before ADR-0039 moved
  * it here: same keys, same severities, same categories, same labels, same fix targets.

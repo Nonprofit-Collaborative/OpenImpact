@@ -15,7 +15,7 @@ at runtime.
 | --- | --- | --- | --- |
 | Connect | Campaign (and later Opportunity, Gift Transaction) | `CampaignSyncService`, `CampaignSyncSelector` | ADR-0056 |
 | Core | Person Account fields (`PersonEmail`, `PersonMailingPostalCode`, `...__pc`) | `ImportMatcher`, `ImportRowProcessor.storedName` | ADR-0013 |
-| Core | Giving behaviour (classes) | `ImportEntityProcessors`, `SampleDataModules`, `HealthCheckExtensions`, `SetupAssistantExtensions` | ADR-0017, ADR-0057, ADR-NEXT |
+| Core | Giving behaviour (classes) | `ImportEntityProcessors`, `SampleDataModules`, `HealthCheckExtensions`, `SetupAssistantExtensions` | ADR-0017, ADR-0057, ADR-0059 |
 | Core | Industries, NPSP, Sales Cloud detection | `OrgShapeDetector` | ADR-0013 |
 
 The shape, from `CampaignSyncService`:
@@ -186,7 +186,7 @@ A user-mode query naming a field the user cannot read throws, and fails the whol
 check. So check the object **and every field the query names** first:
 
 ```apex
-// The Receipt__c count Core took before C-29 moved it to Giving (ADR-NEXT)
+// The Receipt__c count Core took before C-29 moved it to Giving (ADR-0059)
 DescribeSObjectResult receipt = receiptType.getDescribe(SObjectDescribeOptions.DEFERRED);
 if (!receipt.isAccessible()) {
     return result;

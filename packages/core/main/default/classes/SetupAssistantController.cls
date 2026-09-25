@@ -2,7 +2,7 @@
  * The guided Setup Assistant's Apex surface: what the panels show, and what they save.
  * Everything a panel needs to render is in one call, so the assistant opens on the step Maria
  * stopped at without a chain of round trips. A step's fields, Core's or a module's, are saved
- * by one method that accepts only the keys that step declares (C-29, ADR-NEXT).
+ * by one method that accepts only the keys that step declares (C-29, ADR-0059).
  *
  * Every method that changes something checks the `Manage_Nonprofit_Settings` custom
  * permission first, logs what went wrong, and returns a message Maria can act on.

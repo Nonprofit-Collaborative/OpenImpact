@@ -1,6 +1,6 @@
 /**
  * Finds the Setup Assistant extensions dependent packages installed, or answers that there are
- * none, which is the ordinary case in an org with Core alone (C-29, ADR-NEXT).
+ * none, which is the ordinary case in an org with Core alone (C-29, ADR-0059).
  *
  * The same resolver shape as `HealthCheckExtensions` (ADR-0057, ADR-0058): each class is found
  * by namespace and then by name alone, looked up once per transaction, and a class that cannot

@@ -1,7 +1,7 @@
 /**
  * Tests for HealthCheckGivingChecks (G-20 follow-up, ADR-0053): the Health Check finding for
  * gifts already locked by a closed period that nothing has marked posted, and the two receipt
- * findings that moved here from Core with C-29 (ADR-NEXT) with the assertions they had there.
+ * findings that moved here from Core with C-29 (ADR-0059) with the assertions they had there.
  */
 @IsTest
 private class HealthCheckGivingChecksTest {

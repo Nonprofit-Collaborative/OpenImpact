@@ -16,7 +16,7 @@ private class SetupAssistantServiceTest {
         List<SetupAssistantService.Step> steps = SetupAssistantService.getSteps();
         Test.stopTest();
 
-        Assert.areEqual(7, steps.size(), 'Core alone ships seven setup steps (ADR-NEXT)');
+        Assert.areEqual(7, steps.size(), 'Core alone ships seven setup steps (ADR-0059)');
         for (Integer i = 0; i < steps.size(); i++) {
             Assert.areEqual(
                 i + 1,
