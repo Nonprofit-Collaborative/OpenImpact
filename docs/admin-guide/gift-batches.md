@@ -84,6 +84,11 @@ default corrects them all. A line where you chose something else keeps its own c
 **Posting the wrong batch, or a wrong amount slipping through.** A posted batch cannot be
 reopened. Correct the gift itself, by refund or write-off, as with any gift.
 
+**A line dated in a closed period.** Posting fails and names the line: `The books are closed
+through...`. Date it after the close date and post again; nothing was created by the failed
+attempt. A batch's **Posted** status is not the same as a gift posted to accounting (see
+[Posting and Closed Periods](posting-and-closed-periods.md)).
+
 **No default fund anywhere.** Posting fails and names every line: the gifts have nowhere
 to be designated. Set the default fund in Nonprofit Settings and post again; nothing was
 created by the failed attempt.

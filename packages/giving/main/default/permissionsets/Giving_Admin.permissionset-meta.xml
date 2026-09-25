@@ -11,6 +11,10 @@
     <visible>true</visible>
   </applicationVisibilities>
   <classAccesses>
+    <apexClass>AccountingPeriodController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>AcknowledgmentBatch</apexClass>
     <enabled>true</enabled>
   </classAccesses>
@@ -123,6 +127,10 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>GiftAllocationPostingLockHandler</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>GiftAllocationSelector</apexClass>
     <enabled>true</enabled>
   </classAccesses>
@@ -143,6 +151,18 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>GiftDonorDeleteGuardHandler</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>GiftPostingController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>GiftPostingLockHandler</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>GiftReceiptLockHandler</apexClass>
     <enabled>true</enabled>
   </classAccesses>
@@ -152,6 +172,10 @@
   </classAccesses>
   <classAccesses>
     <apexClass>GiftService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
+    <apexClass>GiftStatusRules</apexClass>
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
@@ -253,6 +277,10 @@
   <customPermissions>
     <enabled>true</enabled>
     <name>Issue_Receipts</name>
+  </customPermissions>
+  <customPermissions>
+    <enabled>true</enabled>
+    <name>Post_Gifts</name>
   </customPermissions>
   <customPermissions>
     <enabled>true</enabled>
@@ -854,6 +882,16 @@
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
+    <editable>false</editable>
+    <field>Gift__c.Accounting_Posted_At__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Gift__c.Accounting_Posted_By__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
     <editable>true</editable>
     <field>Gift__c.Acknowledgment_Date__c</field>
     <readable>true</readable>
@@ -1422,6 +1460,10 @@
     <object>Tribute__c</object>
     <viewAllRecords>false</viewAllRecords>
   </objectPermissions>
+  <tabSettings>
+    <tab>Giving_Accounting_Periods</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
   <tabSettings>
     <tab>Acknowledgment_Rule__c</tab>
     <visibility>Visible</visibility>

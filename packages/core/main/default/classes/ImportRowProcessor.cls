@@ -1462,8 +1462,7 @@ public with sharing class ImportRowProcessor {
             return result;
         }
         Schema.SObjectType type = personAccounts ? Account.SObjectType : Contact.SObjectType;
-        Map<String, Schema.SObjectField> fields = type.getDescribe(SObjectDescribeOptions.DEFERRED)
-            .fields.getMap();
+        Map<String, Schema.SObjectField> fields = fieldsOf(type);
         Set<String> selected = new Set<String>{ 'Id' };
         for (Working item : working) {
             for (
@@ -1558,12 +1557,7 @@ public with sharing class ImportRowProcessor {
      */
     private static Set<String> notWrittenToPeople(Schema.SObjectType type) {
         Set<String> skipped = new Set<String>();
-        if (
-            type == Account.SObjectType &&
-            type.getDescribe(SObjectDescribeOptions.DEFERRED)
-                .fields.getMap()
-                .containsKey('lastname')
-        ) {
+        if (type == Account.SObjectType && fieldsOf(type).containsKey('lastname')) {
             skipped.add('Name');
         }
         return skipped;
@@ -1909,8 +1903,7 @@ public with sharing class ImportRowProcessor {
                 // entity processor's to report (R-IR6).
                 continue;
             }
-            Schema.SObjectField field = type.getDescribe(SObjectDescribeOptions.DEFERRED)
-                .fields.getMap()
+            Schema.SObjectField field = fieldsOf(type)
                 .get(ImportMapping.attributeOf(target).toLowerCase());
             if (field == null) {
                 // An attribute the object does not have is reported by applyValues.
@@ -1918,12 +1911,7 @@ public with sharing class ImportRowProcessor {
             }
             Schema.DescribeFieldResult describe = field.getDescribe();
             if (!describe.isCreateable() && !describe.isUpdateable()) {
-                outcome.notes.add(
-                    String.format(
-                        Label.Core_Import_LogAttributeNoAccess,
-                        new List<String>{ describe.getLabel() }
-                    )
-                );
+                outcome.notes.add(noAccessNote(describe));
             }
         }
     }
@@ -1944,8 +1932,7 @@ public with sharing class ImportRowProcessor {
         if (held == null || held.isEmpty()) {
             return;
         }
-        Map<String, Schema.SObjectField> fields = type.getDescribe(SObjectDescribeOptions.DEFERRED)
-            .fields.getMap();
+        Map<String, Schema.SObjectField> fields = fieldsOf(type);
         for (String attributeName : held.keySet()) {
             if (alreadySet.contains(attributeName)) {
                 continue;
@@ -1965,8 +1952,11 @@ public with sharing class ImportRowProcessor {
                 continue;
             }
             Schema.DescribeFieldResult describe = field.getDescribe();
-            if (!describe.isCreateable() && !describe.isUpdateable()) {
-                // Already in the run log, from noteFieldsWithoutAccess.
+            // A new record needs the field creatable and a saved one needs it updatable: a
+            // field the user may set on a new person but not change on a matched one is
+            // skipped on the update, and said so, as much as one they may not touch at all.
+            if (record.Id == null ? !describe.isCreateable() : !describe.isUpdateable()) {
+                outcome.notes.add(noAccessNote(describe));
                 continue;
             }
             try {
@@ -1980,6 +1970,24 @@ public with sharing class ImportRowProcessor {
                 );
             }
         }
+    }
+
+    /** The run log line for a field the importing user may not write. */
+    private static String noAccessNote(Schema.DescribeFieldResult describe) {
+        return String.format(
+            Label.Core_Import_LogAttributeNoAccess,
+            new List<String>{ describe.getLabel() }
+        );
+    }
+
+    /** Each object's fields, described once per transaction however many rows ask. */
+    private static Map<Schema.SObjectType, Map<String, Schema.SObjectField>> fieldMaps = new Map<Schema.SObjectType, Map<String, Schema.SObjectField>>();
+
+    private static Map<String, Schema.SObjectField> fieldsOf(Schema.SObjectType type) {
+        if (!fieldMaps.containsKey(type)) {
+            fieldMaps.put(type, type.getDescribe(SObjectDescribeOptions.DEFERRED).fields.getMap());
+        }
+        return fieldMaps.get(type);
     }
 
     /** A column value as the field's type, for the few types a spreadsheet carries. */

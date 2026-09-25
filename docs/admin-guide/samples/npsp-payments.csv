@@ -1,0 +1,4 @@
+Id,npe01__Payment_Amount__c,npe01__Payment_Date__c,npe01__Payment_Method__c,npe01__Check_Reference_Number__c,npe01__Opportunity__r.Campaign.Name,npe01__Opportunity__r.npsp__Primary_Contact__r.FirstName,npe01__Opportunity__r.npsp__Primary_Contact__r.LastName,npe01__Opportunity__r.npsp__Primary_Contact__r.Email,npe01__Opportunity__r.npsp__Primary_Contact__r.MailingPostalCode,npe01__Opportunity__r.npsp__Tribute_Type__c,npe01__Opportunity__r.npsp__Honoree_Name__c,npe01__Opportunity__r.npsp__Notification_Recipient_Name__c,npe01__Opportunity__r.npsp__Notification_Message__c
+a0B-0001,150.00,2024-12-10,Credit Card,,Year End 2024,Ana,Okafor,ana.okafor@example.org,97201,,,,
+a0B-0002,50.00,2025-01-15,Check,3312,,Ana,Okafor,ana.okafor@example.org,97201,In memory of,Grace Okafor,Ben Okafor,With love from Ana
+a0B-0003,25.00,2025-02-01,Cash,,,Ana,Okafor,ana.okafor@example.org,97201,Honor,Grace Okafor,,

@@ -1,0 +1,3 @@
+Salutation,FirstName,LastName,PersonEmail,Phone,PersonMobilePhone,PersonHomePhone,PersonBirthdate,PersonMailingStreet,PersonMailingCity,PersonMailingState,PersonMailingPostalCode,PersonMailingCountry,PersonHasOptedOutOfEmail,PersonDoNotCall
+Ms.,Ana,Okafor,ana.okafor@example.org,503-555-0101,503-555-0102,503-555-0103,1980-06-01,12 Alder St,Portland,OR,97201,United States,true,false
+,Wei,Lee,wei.lee@example.org,,,,,,,,,,false,true

@@ -3,13 +3,17 @@
 ## What it does
 
 Sometimes money goes back: a card is charged twice, a donor asks for a gift to be returned,
-or a pledged gift is never going to arrive and finance writes it off. Open Impact never
+or a check recorded as received bounces and finance writes it off. Open Impact never
 edits or deletes the original gift, because it really happened and Jen reconciles against
 it. Instead it records a second gift for a negative amount, linked to the original, with
 the reason on it.
 
 That keeps three things true at once: the bank reconciles, fund and donor totals correct
 themselves automatically, and anyone looking at the original gift can see what became of it.
+
+Refunds and write-offs are for money you received. A **Pending** gift that will never be paid,
+such as a pledge payment that never came, is not written off: you set its **Status** to
+**Cancelled** (see [Cancelling a Pending gift](#cancelling-a-pending-gift) below).
 
 ## What a refund does to the donor's totals
 
@@ -76,10 +80,25 @@ was meant for another organization, and the donor has asked for it back.
    at 150, which is what is left. Give a reason and click **Record it**. This time the
    original's **Status** changes to `Refunded`, because the whole gift has now gone back.
 8. To see a write-off instead, enter a new gift for 500, open it, click **Refund or Write
-   Off**, and choose **Write off what is left of this gift** with the reason "Pledged at the
-   gala, never paid". There is no amount to type: a write-off is always what is left. Open
+   Off**, and choose **Write off what is left of this gift** with the reason "Check returned
+   unpaid by the bank". There is no amount to type: a write-off is always what is left. Open
    Impact creates a linked gift for minus 500 and sets the original's **Status** to
    `Written off`.
+9. To see a cancellation, enter a gift for 75 with **Status** `Pending`, dated last month, then
+   edit it and set **Status** to `Cancelled`. It saves, and no negative gift is created. Your
+   donor's totals and the accounting export never counted it, and still do not.
+
+## Cancelling a Pending gift
+
+A Pending gift is money you expect. If it will never arrive, edit the gift and set **Status**
+to **Cancelled**. Nothing else changes: no negative gift is created, and a Cancelled gift is in
+no total, no export, no receipt and no acknowledgment, exactly as it was while Pending. It works
+even when the gift is dated in a month whose books are closed, because a Pending gift was never
+in the books. If the gift was expected to pay a pledge installment, cancelling it frees the
+installment for the next gift. If the money turns up after all, set the gift back to
+**Pending**, then to **Received** when it arrives. Only Pending moves to Cancelled, and a
+Cancelled gift moves only back to Pending. Each change is written to the Error Log, with who
+made it.
 
 ## Common mistakes
 
@@ -92,6 +111,12 @@ was meant for another organization, and the donor has asked for it back.
   Lock permission in Setup for the length of the correction, and every change made that way
   is written to the Error Log. The procedure is on the [Gifts page](gifts.md), under
   "Lifting the receipt lock".
+- **Refunding a gift that is posted to accounting or in a closed period.** That works: the
+  refund is a new gift dated today, so it lands in an open period and in Jen's next export.
+  See [Posting and Closed Periods](posting-and-closed-periods.md).
+- **Writing off or refunding a Pending gift.** The action is refused with "Only a received gift
+  can be refunded or written off": nothing was received. Set its **Status** to **Cancelled**
+  instead.
 - **Refunding more than is left.** The action is refused with "This refund is larger than
   the amount left on the gift." Check the gift's **Refunds** related list: part of it may
   have gone back already.
