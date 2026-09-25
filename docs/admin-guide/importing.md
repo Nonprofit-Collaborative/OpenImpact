@@ -89,7 +89,8 @@ Where your org keeps people as person accounts, map the columns exactly as you w
 contacts (Email, Mailing Street, Email Opt Out and so on). Open Impact writes each to the
 person account's own field for it, and finds the person again by that field when you load
 the next file: by their email under **Email exact**, and by their last name and mailing
-postal code under **Name plus postal code**.
+postal code under **Name plus postal code**. A person account's billing postal code counts
+too, because people loaded by other tools often have their postal code only there.
 
 Three things are worth knowing about it.
 
@@ -237,6 +238,11 @@ can import" below), so this usually means a column mapped to some other field, o
 without that role. Ask your Salesforce administrator for edit access to the field and import
 the file again: the second import matches the people it already created and adds the
 missing values.
+
+**The run log says "Not matched on" a field.** Your user may not read the field your
+matching rule uses (for example Email under **Email exact**), so nobody in the file could be
+found by it and every person counts as new. Do not commit: ask your Salesforce administrator
+for access to the field, then dry run again.
 
 **Gift columns in the file were not loaded.** Gifts are loaded by the Giving module. Without
 it, gift columns are recognized and kept with the staged row, and the run log says so. With

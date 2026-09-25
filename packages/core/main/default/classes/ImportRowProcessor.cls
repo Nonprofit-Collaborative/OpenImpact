@@ -545,6 +545,16 @@ public with sharing class ImportRowProcessor {
             externalIds,
             outcome
         );
+        // A matching field the user may not read would fail the chunk's query, so it was not
+        // matched on; the run log says so, because everybody then counts as new (R-IB5).
+        for (String fieldLabel : ImportMatcher.unreadableFields()) {
+            outcome.notes.add(
+                String.format(
+                    Label.Core_Import_LogMatchFieldNoAccess,
+                    new List<String>{ fieldLabel }
+                )
+            );
+        }
 
         Map<String, Integer> earlier = dryRun
             ? ImportRowSelector.createdDigestCounts(batch, digestsToAsk(working))

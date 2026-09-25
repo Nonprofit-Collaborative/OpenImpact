@@ -189,4 +189,93 @@ private class ImportPersonAccountTest {
             'The row carries the key a later chunk finds her by.'
         );
     }
+
+    /**
+     * A person account another tool loaded often holds its postal code only in the billing
+     * address. Name plus postal code still finds them there rather than creating them again.
+     */
+    @IsTest
+    static void aPersonAccountWithOnlyABillingPostalCodeIsFound() {
+        if (!orgHasPersonAccounts()) {
+            // Platform-only shape (ADR-0013): no person accounts to match.
+            return;
+        }
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        Account existing = new Account(
+            RecordTypeId = new List<Id>(OrgShapeDetector.detect().personAccountRecordTypeIds)[0],
+            BillingPostalCode = '97201'
+        );
+        existing.put('FirstName', 'Ana');
+        existing.put('LastName', 'Ramirez');
+        insert existing;
+        Map<String, String> row = anasRow('Treasurer');
+        row.remove('Street');
+        given(ImportTemplateService.RULE_NAME_POSTAL, row);
+
+        Test.startTest();
+        ImportRowProcessor.Outcome outcome = run(false);
+        Test.stopTest();
+
+        Assert.areEqual(0, outcome.created, 'She is found, not created again: ' + outcome.notes);
+        Assert.areEqual(1, people().size(), 'Still one person account.');
+        Assert.areEqual(
+            existing.Id,
+            ImportTestDataFactory.reload(batch.Id)[0].Person_1_Account__c,
+            'The row points at the person another tool loaded.'
+        );
+    }
+
+    /**
+     * A full chunk of 200 person accounts: every one carries its own email and opt-outs, none
+     * is made twice, and a dry run of the same file afterwards finds all 200 by email, which is
+     * the promise a person accounts org's second monthly import depends on.
+     */
+    @IsTest
+    static void aChunkOfTwoHundredPersonAccountsLoadsAndIsFoundAgain() {
+        if (!orgHasPersonAccounts()) {
+            // Platform-only shape (ADR-0013): no person accounts to create.
+            return;
+        }
+        HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);
+        List<Map<String, String>> values = new List<Map<String, String>>();
+        for (Integer i = 0; i < 200; i++) {
+            Map<String, String> row = anasRow('Treasurer');
+            row.put('First Name', 'Donor' + i);
+            row.put('Last Name', 'Surname' + i);
+            row.put('Email', 'donor' + i + '@example.org');
+            row.put('Do Not Call', Math.mod(i, 2) == 0 ? 'Yes' : 'No');
+            values.add(row);
+        }
+        template = ImportTestDataFactory.template(mapping(), ImportTemplateService.RULE_EMAIL);
+        template.Person_Mode__c = ImportTemplateService.PERSON_MODE_PERSON_ACCOUNTS;
+        update template;
+        batch = ImportTestDataFactory.batch(template);
+        ImportTestDataFactory.rows(batch, values);
+
+        Test.startTest();
+        ImportRowProcessor.Outcome outcome = run(false);
+        Test.stopTest();
+
+        Assert.areEqual(200, outcome.created, 'Every row created its person: ' + outcome.notes);
+        Assert.areEqual(0, outcome.rejected, 'None was rejected.');
+        Map<String, SObject> byEmail = new Map<String, SObject>();
+        for (SObject person : people()) {
+            byEmail.put((String) person.get('PersonEmail'), person);
+        }
+        Assert.areEqual(200, byEmail.size(), 'Two hundred people, each with their own email.');
+        for (Integer i = 0; i < 200; i++) {
+            SObject person = byEmail.get('donor' + i + '@example.org');
+            Assert.isNotNull(person, 'Donor ' + i + ' is there under their own email.');
+            Assert.areEqual(true, person.get('PersonHasOptedOutOfEmail'), 'With the opt-out.');
+            Assert.areEqual(
+                Math.mod(i, 2) == 0,
+                person.get('PersonDoNotCall'),
+                'And their own Do Not Call, not a neighbour\'s.'
+            );
+        }
+
+        ImportRowProcessor.Outcome again = run(true);
+        Assert.areEqual(0, again.created, 'A dry run of the same file creates nobody.');
+        Assert.areEqual(200, again.matched + again.updated, 'It finds all 200.');
+    }
 }

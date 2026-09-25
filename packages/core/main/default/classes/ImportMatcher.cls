@@ -23,6 +23,50 @@ public with sharing class ImportMatcher {
      * with is the key they are found by (R-IB12).
      */
     private static final String ACCOUNT_POSTAL_CODE_FIELD = 'PersonMailingPostalCode';
+    /**
+     * The billing postal code, also read: a person account loaded by another tool (NPSP, Data
+     * Loader, by hand) often holds its postal code only there, and missing it would create
+     * that person again.
+     */
+    private static final String ACCOUNT_BILLING_POSTAL_CODE_FIELD = 'BillingPostalCode';
+
+    /**
+     * The labels of the fields the last lookup could not match on because the user may not
+     * read them. A user-mode query naming such a field fails the whole chunk, so the lookup
+     * is skipped instead and the processor says so in the run log.
+     */
+    private static Set<String> unreadable = new Set<String>();
+
+    /** The fields the last lookups skipped because the user may not read them. */
+    @NamespaceAccessible
+    public static Set<String> unreadableFields() {
+        return unreadable;
+    }
+
+    /**
+     * Whether the user may read this field. A field the object has but the user may not read
+     * is remembered for the run log; a field the object does not have is not, because an org
+     * without it has nothing to say about it (ADR-0013).
+     */
+    private static Boolean readable(Schema.SObjectType type, String fieldName) {
+        Schema.SObjectField field = type.getDescribe(SObjectDescribeOptions.DEFERRED)
+            .fields.getMap()
+            .get(fieldName.toLowerCase());
+        if (field == null) {
+            return false;
+        }
+        return field.getDescribe().isAccessible();
+    }
+
+    /** Remembers a field a lookup was skipped for, by its label. */
+    private static void skippedFor(Schema.SObjectType type, String fieldName) {
+        Schema.SObjectField field = type.getDescribe(SObjectDescribeOptions.DEFERRED)
+            .fields.getMap()
+            .get(fieldName.toLowerCase());
+        if (field != null) {
+            unreadable.add(field.getDescribe().getLabel());
+        }
+    }
 
     /** How many keys one query will take. A chunk larger than this is queried in slices. */
     @NamespaceAccessible
@@ -96,6 +140,7 @@ public with sharing class ImportMatcher {
     public static void forgetHeldKeys() {
         heldByMany = new Set<String>();
         cutOff = new Set<String>();
+        unreadable = new Set<String>();
     }
 
     /** The last names and postal codes of name plus postal code keys, to query on both. */
@@ -197,6 +242,13 @@ public with sharing class ImportMatcher {
     @NamespaceAccessible
     public static Map<String, Id> contactsByEmail(Set<String> emails) {
         Map<String, Id> result = new Map<String, Id>();
+        if (emails == null || emails.isEmpty()) {
+            return result;
+        }
+        if (!readable(Contact.SObjectType, 'Email')) {
+            skippedFor(Contact.SObjectType, 'Email');
+            return result;
+        }
         for (List<String> slice : slices(emails)) {
             List<Contact> found = contactsByEmailSlice(slice);
             for (Contact record : found) {
@@ -215,6 +267,10 @@ public with sharing class ImportMatcher {
     public static Map<String, Id> contactsByNameAndPostalCode(Set<String> keys) {
         Map<String, Id> result = new Map<String, Id>();
         if (keys == null || keys.isEmpty()) {
+            return result;
+        }
+        if (!readable(Contact.SObjectType, 'MailingPostalCode')) {
+            skippedFor(Contact.SObjectType, 'MailingPostalCode');
             return result;
         }
         Map<String, Set<String>> byName = postalCodesByLastName(keys);
@@ -284,8 +340,14 @@ public with sharing class ImportMatcher {
         if (
             !accountHasField(ACCOUNT_EMAIL_FIELD) ||
             recordTypeIds == null ||
-            recordTypeIds.isEmpty()
+            recordTypeIds.isEmpty() ||
+            emails == null ||
+            emails.isEmpty()
         ) {
+            return result;
+        }
+        if (!readable(Account.SObjectType, ACCOUNT_EMAIL_FIELD)) {
+            skippedFor(Account.SObjectType, ACCOUNT_EMAIL_FIELD);
             return result;
         }
         for (List<String> slice : slices(emails)) {
@@ -322,8 +384,10 @@ public with sharing class ImportMatcher {
     }
 
     /**
-     * Person records held as accounts, matched on last name plus their person mailing postal
-     * code, keyed as contactsByNameAndPostalCode keys contacts.
+     * Person records held as accounts, matched on last name plus a postal code, keyed as
+     * contactsByNameAndPostalCode keys contacts. Both the person mailing postal code (what the
+     * importer and address propagation write) and the billing postal code (what other tools
+     * often wrote) are read, and a record is found under the key each one makes.
      */
     @NamespaceAccessible
     public static Map<String, Id> personAccountsByNameAndPostalCode(
@@ -335,10 +399,24 @@ public with sharing class ImportMatcher {
             keys == null ||
             keys.isEmpty() ||
             !accountHasField(ACCOUNT_LAST_NAME_FIELD) ||
-            !accountHasField(ACCOUNT_POSTAL_CODE_FIELD) ||
             recordTypeIds == null ||
             recordTypeIds.isEmpty()
         ) {
+            return result;
+        }
+        List<String> postalFields = new List<String>();
+        for (
+            String field : new List<String>{
+                ACCOUNT_POSTAL_CODE_FIELD,
+                ACCOUNT_BILLING_POSTAL_CODE_FIELD
+            }
+        ) {
+            if (readable(Account.SObjectType, field)) {
+                postalFields.add(field);
+            }
+        }
+        if (postalFields.isEmpty()) {
+            skippedFor(Account.SObjectType, ACCOUNT_POSTAL_CODE_FIELD);
             return result;
         }
         Map<String, Set<String>> byName = postalCodesByLastName(keys);
@@ -346,16 +424,24 @@ public with sharing class ImportMatcher {
             List<SObject> found = personAccountsByNameSlice(
                 slice,
                 postalCodesOf(slice, byName),
-                recordTypeIds
+                recordTypeIds,
+                postalFields
             );
             noteCutOff(found.size(), slice, keys);
             for (SObject record : found) {
-                String key = nameAndPostalKey(
-                    (String) record.get(ACCOUNT_LAST_NAME_FIELD),
-                    (String) record.get(ACCOUNT_POSTAL_CODE_FIELD)
-                );
-                if (key != null && keys.contains(key)) {
-                    put(result, key, firstNameOf(record), (Id) record.get('Id'));
+                Set<String> recordKeys = new Set<String>();
+                for (String field : postalFields) {
+                    recordKeys.add(
+                        nameAndPostalKey(
+                            (String) record.get(ACCOUNT_LAST_NAME_FIELD),
+                            (String) record.get(field)
+                        )
+                    );
+                }
+                for (String key : recordKeys) {
+                    if (key != null && keys.contains(key)) {
+                        put(result, key, firstNameOf(record), (Id) record.get('Id'));
+                    }
                 }
             }
         }
@@ -366,19 +452,24 @@ public with sharing class ImportMatcher {
     private static List<SObject> personAccountsByNameSlice(
         List<String> slice,
         List<String> codes,
-        Set<Id> recordTypeIds
+        Set<Id> recordTypeIds,
+        List<String> postalFields
     ) {
+        List<String> postalFilters = new List<String>();
+        for (String field : postalFields) {
+            postalFilters.add(field + ' IN :codes');
+        }
         String query =
             'SELECT Id, ' +
             firstNameColumn() +
             ACCOUNT_LAST_NAME_FIELD +
             ', ' +
-            ACCOUNT_POSTAL_CODE_FIELD +
+            String.join(postalFields, ', ') +
             ' FROM Account WHERE ' +
             ACCOUNT_LAST_NAME_FIELD +
-            ' IN :slice AND ' +
-            ACCOUNT_POSTAL_CODE_FIELD +
-            ' IN :codes AND RecordTypeId IN :recordTypeIds' +
+            ' IN :slice AND (' +
+            String.join(postalFilters, ' OR ') +
+            ') AND RecordTypeId IN :recordTypeIds' +
             ' ORDER BY CreatedDate ASC, Id ASC LIMIT :cap';
         return Database.queryWithBinds(
             query,
