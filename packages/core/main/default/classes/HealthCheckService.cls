@@ -9,15 +9,15 @@
  * (ADR-0039):
  *
  * - HealthCheckOrgShapeChecks: what is installed, and whether the mode matches it.
- * - HealthCheckAccessChecks: who administers the app, who cannot see it, who holds the
- *   receipt lock override. Only asked of a viewer who may manage settings.
- * - HealthCheckSettingsChecks: automation, fiscal year, receipt generation, Error Log, and
+ * - HealthCheckAccessChecks: who administers the app and who cannot see it. Only asked of a
+ *   viewer who may manage settings.
+ * - HealthCheckSettingsChecks: automation, fiscal year, Error Log, and
  *   the package defaults and nightly run a fix button can restore (C-21, ADR-0048).
  * - HealthCheckHouseholdChecks: whether everyone is in a household and every household has
  *   somebody in it. Detection only, with no fix button (C-21, ADR-0048).
  *
- * A dependent package that owns data Core may not name (a gift, an accounting period) adds
- * its own findings through `HealthCheckExtension`, found by `HealthCheckExtensions` with
+ * A dependent package that owns data Core may not name (a gift, a receipt, an accounting
+ * period) adds its own findings through `HealthCheckExtension`, found by `HealthCheckExtensions` with
  * `Type.forName` (G-20 follow-up, ADR-0053, ADR-0057), never by Core learning what a gift is.
  *
  * Every check is isolated. A check that throws becomes a finding of its own and is written
@@ -147,18 +147,8 @@ public with sharing class HealthCheckService {
     };
 
     /**
-     * The custom permission that lifts the receipt lock (ADR-0024). It ships in the Giving
-     * package, assigned to nobody, and is meant to be granted in Setup for one correction and
-     * removed again. Core never compiles against Giving: this is a String handed to
-     * CustomPermissionSelector, which asks the platform's own setup objects who holds it, so
-     * an org without Giving answers "nobody" rather than failing.
-     */
-    public static final String OVERRIDE_RECEIPT_LOCK = 'Override_Receipt_Lock';
-
-    /**
-     * Where Setup lists custom permissions. The fix for a standing override assignment is
-     * deliberately in Setup and not in the settings console, because ADR-0024 keeps lifting
-     * the receipt lock out of the console on purpose.
+     * Where Setup lists custom permissions: the fix for a custom permission a module reports
+     * as held (Giving's receipt lock override, ADR-0024, is kept out of the console on purpose).
      */
     @NamespaceAccessible
     public static final String FIX_CUSTOM_PERMISSIONS_URL = '/lightning/setup/CustomPermissions/home';
@@ -465,12 +455,6 @@ public with sharing class HealthCheckService {
                     new HealthCheckAccessChecks.UsersWithoutAccessCheck(accessCounts())
                 )
             );
-            steps.add(
-                new CheckStep(
-                    'override_receipt_lock',
-                    new HealthCheckAccessChecks.OverrideReceiptLockCheck()
-                )
-            );
         } else {
             steps.add(
                 new CheckStep(
@@ -482,12 +466,6 @@ public with sharing class HealthCheckService {
 
         steps.add(new CheckStep('automation', new HealthCheckSettingsChecks.AutomationCheck()));
         steps.add(new CheckStep('fiscal_year', new HealthCheckSettingsChecks.FiscalYearCheck()));
-        steps.add(
-            new CheckStep(
-                'receipt_generation',
-                new HealthCheckSettingsChecks.ReceiptGenerationCheck()
-            )
-        );
 
         if (canManageSettings()) {
             steps.add(new CheckStep('error_log', new HealthCheckSettingsChecks.ErrorLogCheck()));
