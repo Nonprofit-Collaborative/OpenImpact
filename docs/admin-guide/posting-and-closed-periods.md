@@ -103,7 +103,8 @@ across two funds would be locked with only half of it in the file.
 **`...the books name it as their donor, so it cannot be deleted`.** A person or organization
 whose gifts are in the books stays, and so does a gift whose refund is in the books: deleting
 them would blank the donor or the original on gifts Jen already holds. Merge a duplicate person
-into the right one instead; a merge moves the gifts and is allowed.
+into the right one instead; a merge moves the gifts and is allowed. A household whose member
+gave a gift in the books stays too, because deleting a household deletes its members.
 
 **Sample data after closing a period.** Sample gifts dated in a closed period cannot be loaded or
 removed. Load and remove sample data before you close your first period.
