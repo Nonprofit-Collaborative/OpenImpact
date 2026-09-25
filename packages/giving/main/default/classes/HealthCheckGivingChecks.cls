@@ -48,16 +48,42 @@ public with sharing class HealthCheckGivingChecks {
     @TestVisible
     private static CustomPermissionSelector.Holders holdersOverride;
 
-    /** Every finding Giving adds to the Health Check report, for this viewer. */
+    /** The check keys, which name a check that threw in its `check_failed_<key>` finding. */
+    private static final String CHECK_RECEIPT_GENERATION = 'receipt_generation';
+    private static final String CHECK_OVERRIDE_RECEIPT_LOCK = 'override_receipt_lock';
+    private static final String CHECK_UNPOSTED_CLOSED_PERIOD = 'unposted_gifts_closed_period';
+
+    /**
+     * Every finding Giving adds to the Health Check report, for this viewer. Each check is
+     * isolated the way Core isolates its own: one that throws becomes its own
+     * `check_failed_<key>` finding, and the other Giving findings still stand.
+     */
     public static List<HealthCheckService.Finding> findings() {
-        List<HealthCheckService.Finding> findings = new List<HealthCheckService.Finding>();
-        addIfAny(findings, receiptGenerationFinding());
-        if (!HealthCheckService.canManageSettings()) {
-            return findings;
+        List<String> checks = new List<String>{ CHECK_RECEIPT_GENERATION };
+        if (HealthCheckService.canManageSettings()) {
+            checks.add(CHECK_OVERRIDE_RECEIPT_LOCK);
+            checks.add(CHECK_UNPOSTED_CLOSED_PERIOD);
         }
-        addIfAny(findings, overrideReceiptLockFinding());
-        addIfAny(findings, unpostedClosedPeriodFinding());
+
+        List<HealthCheckService.Finding> findings = new List<HealthCheckService.Finding>();
+        for (String check : checks) {
+            try {
+                addIfAny(findings, run(check));
+            } catch (Exception e) {
+                findings.add(HealthCheckService.checkFailed(check, e));
+            }
+        }
         return findings;
+    }
+
+    private static HealthCheckService.Finding run(String check) {
+        if (check == CHECK_OVERRIDE_RECEIPT_LOCK) {
+            return overrideReceiptLockFinding();
+        }
+        if (check == CHECK_UNPOSTED_CLOSED_PERIOD) {
+            return unpostedClosedPeriodFinding();
+        }
+        return receiptGenerationFinding();
     }
 
     private static void addIfAny(
@@ -92,7 +118,13 @@ public with sharing class HealthCheckGivingChecks {
                 .withFix(Label.Giving_HealthCheck_ErrorLogFix, ErrorLogCountSelector.listViewUrl());
         }
 
-        List<Object> count = new List<Object>{ String.valueOf(failures.count) };
+        String counted = failures.capped == true
+            ? String.format(
+                  Label.Giving_HealthCheck_ReceiptFailedMoreThan,
+                  new List<Object>{ failures.count.format() }
+              )
+            : String.valueOf(failures.count);
+        List<Object> count = new List<Object>{ counted };
         return new HealthCheckService.Finding(
                 'receipt_generation_failed',
                 String.format(Label.Giving_HealthCheck_ReceiptFailedManyTitle, count),

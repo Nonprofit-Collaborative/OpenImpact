@@ -155,6 +155,8 @@ public with sharing class SetupAssistantController {
             Object value = values.get(field.key);
             if (field.fieldType == SetupAssistantService.FIELD_RECORD) {
                 value = requireType(value, field.objectApiName);
+            } else if (field.fieldType == SetupAssistantService.FIELD_TEXT) {
+                requireWithinLimits(value, field);
             }
             String settingsObject = String.isBlank(field.settingsObject)
                 ? SettingsService.CORE_SETTINGS_OBJECT
@@ -229,6 +231,33 @@ public with sharing class SetupAssistantController {
         } catch (Exception e) {
             ErrorLogger.log(e, ERROR_CONTEXT);
             return new List<AccessService.Role>();
+        }
+    }
+
+    /**
+     * Refuses text longer than the field allows or not in the shape it asks for. The page checks
+     * both as Maria types, but a save that follows an upload sends the whole step without the
+     * page's own validation, so the server holds the same line. A blank value clears the setting.
+     */
+    private static void requireWithinLimits(Object value, SetupAssistantService.StepField field) {
+        String text = value == null ? '' : String.valueOf(value);
+        if (String.isBlank(text)) {
+            return;
+        }
+        if (field.maxLength != null && text.length() > field.maxLength) {
+            throw asAuraException(
+                String.format(
+                    System.Label.Core_SetupAssistant_TooLongError,
+                    new List<Object>{ field.label, String.valueOf(field.maxLength) }
+                )
+            );
+        }
+        if (String.isNotBlank(field.pattern) && !Pattern.matches(field.pattern, text)) {
+            throw asAuraException(
+                String.isBlank(field.patternMessage)
+                    ? System.Label.Core_SetupAssistant_InvalidValueError
+                    : field.patternMessage
+            );
         }
     }
 
