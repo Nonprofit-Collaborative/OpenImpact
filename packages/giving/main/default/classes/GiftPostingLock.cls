@@ -284,7 +284,11 @@ public with sharing class GiftPostingLock {
         ErrorLogger.logMessages(overrides, LOG_CONTEXT, ErrorLogger.SEVERITY_WARNING);
     }
 
-    /** Which of these records a locked gift names as donor or as its original. */
+    /**
+     * Which of these records a locked gift names as donor or as its original. A person's
+     * household Account counts too: deleting it deletes the person with no Contact trigger, and
+     * would blank the gift's Donor Contact.
+     */
     private static Set<Id> namedByLockedGifts(Set<Id> recordIds, Date closed) {
         Set<Id> named = new Set<Id>();
         for (Gift__c gift : GiftPostingSelector.selectPossiblyLockedNaming(recordIds, closed)) {
@@ -294,6 +298,7 @@ public with sharing class GiftPostingLock {
             for (
                 Id reference : new List<Id>{
                     gift.Donor_Contact__c,
+                    gift.Donor_Contact__r?.AccountId,
                     gift.Donor_Account__c,
                     gift.Original_Gift__c
                 }
