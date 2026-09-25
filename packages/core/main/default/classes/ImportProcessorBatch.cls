@@ -25,6 +25,10 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
     private Decimal fileAmount;
     /** The entity processor's own state, handed from chunk to chunk (R-IR6). */
     private String processorState;
+    /** The settings the entity processor ran a dry run under, for the commit (R-IB11). */
+    private String processorSettings;
+    /** The pass this run is (R-IB13), stamped on a chunk's rows even when the chunk dies. */
+    private Decimal pass;
 
     public ImportProcessorBatch(Id batchId, Boolean dryRun) {
         this.batchId = batchId;
@@ -32,7 +36,6 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
     }
 
     public Database.QueryLocator start(Database.BatchableContext context) {
-        String pending = ImportRowProcessor.STATUS_PENDING;
         Id owner = batchId;
         return Database.getQueryLocator(
             [
@@ -52,7 +55,7 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
                     Gift_Id__c,
                     Soft_Credit_Id__c
                 FROM Import_Row__c
-                WHERE Import_Batch__c = :owner AND Status__c = :pending
+                WHERE Import_Batch__c = :owner
                 ORDER BY Row_Number__c ASC
             ]
         );
@@ -73,6 +76,7 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
             Import_Template__c template = ImportTemplateSelector.selectById(
                 batch == null ? null : batch.Import_Template__c
             );
+            pass = batch == null ? null : batch.Pass_Number__c;
             if (batch == null || template == null) {
                 throw new ImportException(Label.Core_Import_ErrorTemplateGone);
             }
@@ -96,6 +100,9 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
             notes.addAll(outcome.notes);
             if (outcome.fileAmount != null) {
                 fileAmount = (fileAmount == null ? 0 : fileAmount) + outcome.fileAmount;
+            }
+            if (String.isNotBlank(outcome.processorSettings)) {
+                processorSettings = outcome.processorSettings;
             }
         } catch (Exception e) {
             // The chunk is lost, not the run. Every row in it is marked with the reason so
@@ -121,7 +128,14 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
             );
             lines.addAll(new List<String>(notes));
             lines.addAll(log);
-            ImportBatchService.finish(batchId, dryRun, failed, lines, fileAmount);
+            ImportBatchService.finish(
+                batchId,
+                dryRun,
+                failed,
+                lines,
+                fileAmount,
+                processorSettings
+            );
         } catch (Exception e) {
             ErrorLogger.log(e, 'ImportProcessorBatch.finish');
         }
@@ -135,15 +149,13 @@ public with sharing class ImportProcessorBatch implements Database.Batchable<SOb
     private void rejectChunk(List<Import_Row__c> scope, String reason) {
         List<Import_Row__c> rows = new List<Import_Row__c>();
         for (Import_Row__c row : scope) {
-            rows.add(
-                new Import_Row__c(
-                    Id = row.Id,
-                    Status__c = ImportRowProcessor.STATUS_REJECTED,
-                    Error_Message__c = String.isBlank(reason)
-                        ? Label.Core_Import_ErrorSaveFailed
-                        : reason.abbreviate(4000)
-                )
-            );
+            Import_Row__c rejected = new Import_Row__c(Id = row.Id);
+            ImportRowProcessor.startPass(rejected, pass);
+            rejected.Status__c = ImportRowProcessor.STATUS_REJECTED;
+            rejected.Error_Message__c = String.isBlank(reason)
+                ? Label.Core_Import_ErrorSaveFailed
+                : reason.abbreviate(4000);
+            rows.add(rejected);
         }
         if (!rows.isEmpty()) {
             Database.update(rows, false, AccessLevel.SYSTEM_MODE);

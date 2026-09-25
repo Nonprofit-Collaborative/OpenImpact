@@ -352,4 +352,180 @@ private class DonationMatcherTest {
             'And the pledge is open again.'
         );
     }
+
+    @IsTest
+    static void aCommitMatchesUnderTheValuesItsDryRunRecorded() {
+        Contact ana = GivingTestDataFactory.insertHouseholdContact('Ramirez', 'Ana', 'Ramirez');
+        pledge(ana.Id, new Map<Integer, Decimal>{ 15 => 100 });
+        Import_Batch__c recorded = new Import_Batch__c(
+            Processor_Settings_JSON__c = new DonationMatcher(
+                    template(DonationMatcher.MATCH_OR_CREATE, 3, 0)
+                )
+                .record()
+        );
+        List<GiftImportRow> heldToTheRecord = new List<GiftImportRow>{
+            gift(ana.Id, ana.AccountId, 100)
+        };
+        List<GiftImportRow> noRecord = new List<GiftImportRow>{ gift(ana.Id, ana.AccountId, 100) };
+        List<GiftImportRow> unreadable = new List<GiftImportRow>{
+            gift(ana.Id, ana.AccountId, 100)
+        };
+        // The template was changed to Always create after the dry run.
+        Import_Template__c now = template(DonationMatcher.ALWAYS_CREATE, null, null);
+
+        System.runAs(maria()) {
+            DonationMatcher.forRun(recorded, now, false).match(heldToTheRecord);
+            DonationMatcher.forRun(new Import_Batch__c(), now, false).match(noRecord);
+            DonationMatcher.forRun(
+                    new Import_Batch__c(Processor_Settings_JSON__c = 'not a record'),
+                    now,
+                    false
+                )
+                .match(unreadable);
+        }
+
+        Assert.isNotNull(heldToTheRecord[0].installmentId, 'The commit does what was shown.');
+        Assert.isNull(
+            noRecord[0].installmentId,
+            'A batch dry run before records follows the template.'
+        );
+        Assert.isNull(unreadable[0].installmentId, 'And so does one whose record cannot be read.');
+    }
+
+    /** Runs one pass of an import the way the platform drives the batch, a chunk per row. */
+    private static void runPass(Id batchId, Boolean dryRun) {
+        ImportBatchService.beginPass(batchId);
+        ImportProcessorBatch job = new ImportProcessorBatch(batchId, dryRun);
+        List<Import_Row__c> rows = new List<Import_Row__c>();
+        Database.QueryLocatorIterator staged = job.start(null).iterator();
+        while (staged.hasNext()) {
+            rows.add((Import_Row__c) staged.next());
+        }
+        for (Import_Row__c row : rows) {
+            job.execute(null, new List<Import_Row__c>{ row });
+        }
+        job.finish(null);
+    }
+
+    @IsTest
+    static void aTemplateEditedAfterTheDryRunDoesNotChangeTheCommit() {
+        TestDataFactory.defaultSettings();
+        GivingTestDataFactory.insertDefaultFund();
+        Contact ana = new Contact(
+            FirstName = 'Ana',
+            LastName = 'Ramirez',
+            Email = 'ana@example.org'
+        );
+        insert ana;
+        List<Installment__c> payments = pledge(ana.Id, new Map<Integer, Decimal>{ 14 => 100 });
+        User importer = maria();
+        update new Commitment__c(Id = payments[0].Commitment__c, OwnerId = importer.Id);
+        ImportMapping mapping = new ImportMapping();
+        Map<String, String> row = new Map<String, String>{
+            'Contact1.Email' => 'ana@example.org',
+            'Contact1.LastName' => 'Ramirez',
+            'Gift.Amount__c' => '100',
+            'Gift.Gift_Date__c' => '2026-03-15',
+            'Gift.Type__c' => 'Card'
+        };
+        for (String target : row.keySet()) {
+            mapping.columns.add(new ImportMapping.Column(target, target));
+        }
+        Import_Template__c template = ImportTestDataFactory.template(
+            mapping.serialize(),
+            ImportTemplateService.RULE_EMAIL
+        );
+        Import_Batch__c batch = ImportTestDataFactory.batch(template);
+        ImportTestDataFactory.rows(batch, new List<Map<String, String>>{ row });
+        Import_Batch__c afterDryRun;
+
+        System.runAs(importer) {
+            Test.startTest();
+            runPass(batch.Id, true);
+            afterDryRun = ImportBatchSelector.selectById(batch.Id);
+            // Between the preview and the commit, somebody says nothing may match.
+            update new Import_Template__c(
+                Id = template.Id,
+                Donation_Matching__c = DonationMatcher.NEVER_MATCH
+            );
+            runPass(batch.Id, false);
+            Test.stopTest();
+        }
+
+        Assert.isNotNull(
+            afterDryRun.Processor_Settings_JSON__c,
+            'The dry run recorded its values.'
+        );
+        Assert.areEqual(1, afterDryRun.Rows_Created__c, 'It showed the gift paying the payment.');
+        Import_Row__c after = [
+            SELECT Status__c, Error_Message__c, Gift_Id__c
+            FROM Import_Row__c
+            WHERE Import_Batch__c = :batch.Id
+        ];
+        Assert.areEqual(
+            ImportRowProcessor.STATUS_CREATED,
+            after.Status__c,
+            'Never match would have refused it: ' + after.Error_Message__c
+        );
+        Assert.areEqual(
+            payments[0].Id,
+            [SELECT Installment__c FROM Gift__c WHERE Id = :after.Gift_Id__c].Installment__c,
+            'The commit matched as the dry run showed.'
+        );
+    }
+
+    @IsTest
+    static void aSecondDryRunAfterATemplateEditReplacesTheRecordedValues() {
+        TestDataFactory.defaultSettings();
+        GivingTestDataFactory.insertDefaultFund();
+        insert new Contact(FirstName = 'Ana', LastName = 'Ramirez', Email = 'ana@example.org');
+        ImportMapping mapping = new ImportMapping();
+        Map<String, String> row = new Map<String, String>{
+            'Contact1.Email' => 'ana@example.org',
+            'Contact1.LastName' => 'Ramirez',
+            'Gift.Amount__c' => '100',
+            'Gift.Gift_Date__c' => '2026-03-15',
+            'Gift.Type__c' => 'Card'
+        };
+        for (String target : row.keySet()) {
+            mapping.columns.add(new ImportMapping.Column(target, target));
+        }
+        Import_Template__c template = ImportTestDataFactory.template(
+            mapping.serialize(),
+            ImportTemplateService.RULE_EMAIL
+        );
+        Import_Batch__c batch = ImportTestDataFactory.batch(template);
+        ImportTestDataFactory.rows(batch, new List<Map<String, String>>{ row });
+        String first;
+        String second;
+
+        System.runAs(maria()) {
+            Test.startTest();
+            runPass(batch.Id, true);
+            first = ImportBatchSelector.selectById(batch.Id).Processor_Settings_JSON__c;
+            update new Import_Template__c(
+                Id = template.Id,
+                Donation_Matching__c = DonationMatcher.MATCH_ONLY,
+                Match_Date_Window_Days__c = 3
+            );
+            runPass(batch.Id, true);
+            second = ImportBatchSelector.selectById(batch.Id).Processor_Settings_JSON__c;
+            Test.stopTest();
+        }
+
+        Assert.isTrue(
+            first.contains(DonationMatcher.MATCH_OR_CREATE),
+            'The first dry run: ' + first
+        );
+        Assert.isTrue(
+            second.contains(DonationMatcher.MATCH_ONLY),
+            'The second replaced it: ' + second
+        );
+        Assert.isTrue(second.contains('"matchDateWindowDays":3'), 'Window and all: ' + second);
+        Assert.areEqual(
+            ImportRowProcessor.STATUS_REJECTED,
+            [SELECT Status__c FROM Import_Row__c WHERE Import_Batch__c = :batch.Id].Status__c,
+            'And the second dry run showed Match only refusing the gift with no payment.'
+        );
+    }
 }
