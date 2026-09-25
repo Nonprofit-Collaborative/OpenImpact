@@ -22,7 +22,7 @@
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>Title of the finding shown when the viewer cannot run the access checks.</shortDescription>
-        <value>Sign in as a Open Impact Admin to see the access checks</value>
+        <value>Sign in as an Open Impact Admin to see the access checks</value>
     </labels>
     <labels>
         <fullName>Core_HealthCheck_AutomationFix</fullName>
