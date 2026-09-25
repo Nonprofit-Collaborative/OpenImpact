@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Error_Digest_Last_Run__c</fullName>
+  <description>When the error digest job last ran, whether or not it sent anything. Shown on the Error Log page of the settings console (C-23, R-E5).</description>
+  <externalId>false</externalId>
+  <label>Error Digest Last Run</label>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>DateTime</type>
+</CustomField>

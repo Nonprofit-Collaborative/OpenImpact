@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_ErrorDigest_SummaryNotDue</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest run summary: not due yet; {0} is a time.</shortDescription>
+        <value>Not due yet: the next digest can go out after {0}. No email sent.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_SummaryNothingNew</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest run summary: nothing new; {0} is a time.</shortDescription>
+        <value>Nothing new since {0}: no email sent.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_SummaryNoRecipients</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest run summary: nobody to send to.</shortDescription>
+        <value>Nobody to send the digest to: no active user holds the Manage Nonprofit Settings permission and no addresses are listed. No email sent.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_SummaryNotSent</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest run summary: sending failed; {0} is the reason.</shortDescription>
+        <value>The digest could not be sent: {0}</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_SummarySent</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest run summary: sent; {0} entries, {1} people.</shortDescription>
+        <value>Sent {0} new entries to {1} people.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_UnknownRecipients</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest recipients refused; {0} lists the addresses.</shortDescription>
+        <value>The error digest goes only to active users of this Salesforce org. These addresses do not belong to one: {0}.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_Subject</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest email subject; {0} is a count.</shortDescription>
+        <value>Open Impact: {0} new Error Log entries</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_SenderName</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest email sender display name.</shortDescription>
+        <value>Open Impact</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_Intro</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest email first line; {0} count, {1} time.</shortDescription>
+        <value>{0} new Error Log entries since {1} are waiting for someone to look at them.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_BySource</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest email heading: counts by source.</shortDescription>
+        <value>By source:</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_BySeverity</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest email heading: counts by severity.</shortDescription>
+        <value>By severity:</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_Newest</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest email heading: newest entries with links.</shortDescription>
+        <value>Newest entries:</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_More</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest email: entries not listed; {0} is a count.</shortDescription>
+        <value>{0} more are in the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_ListLink</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest email: link to the list; {0} is the address.</shortDescription>
+        <value>Open the Error Log: {0}</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_StillNew</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest email: all entries still New; {0} is a count.</shortDescription>
+        <value>Entries still marked New, in all: {0}.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_Footer</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest email footer: why you get it and where to stop it.</shortDescription>
+        <value>You receive this because you look after Open Impact in this Salesforce org. Change who receives it, or stop it, in Nonprofit Settings under Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_NoSource</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest email: an entry with no source.</shortDescription>
+        <value>No source recorded</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_UnknownFailure</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest: sending failed with no reason given.</shortDescription>
+        <value>the platform gave no reason</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_PermissionRequired</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: the permission a change needs.</shortDescription>
+        <value>Scheduling or sending the error digest needs the Manage Nonprofit Settings permission, which comes with the Nonprofit Admin role.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_UnexpectedError</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: unexpected failure.</shortDescription>
+        <value>Something went wrong with the error digest. The details are in the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_PageTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel title.</shortDescription>
+        <value>Error digest</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_PageIntro</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel introduction.</shortDescription>
+        <value>One short email a day or a week to the people who look after Open Impact, counting the new Error Log entries by source and severity with a link to each. Nothing is sent when nothing is new.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_LastRunTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: last run heading.</shortDescription>
+        <value>Last run</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_NeverRun</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: the job has never run.</shortDescription>
+        <value>Never</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_NotScheduled</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: the job is not scheduled.</shortDescription>
+        <value>Not scheduled: no digest is sent.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_ScheduleActive</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: the job is scheduled; the next run follows.</shortDescription>
+        <value>Scheduled every morning at 7:00. Next run:</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_ScheduleButton</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: schedule button.</shortDescription>
+        <value>Schedule</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_StopButton</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: stop button.</shortDescription>
+        <value>Stop</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_SendNow</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: send now button.</shortDescription>
+        <value>Send now</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_RecipientsTitle</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: who receives it.</shortDescription>
+        <value>Goes to</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_ToAdministrators</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: the default recipients.</shortDescription>
+        <value>everyone with the Manage Nonprofit Settings permission:</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_NoRecipients</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: nobody would receive it.</shortDescription>
+        <value>nobody yet. List your users' email addresses below, or give someone the Nonprofit Admin role.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_ReadOnly</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest panel: read only notice.</shortDescription>
+        <value>You can see the error digest but not change it. Ask for the Manage Nonprofit Settings permission.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_Capped</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest: more new entries than it counts; {0} is the number counted.</shortDescription>
+        <value>There are more new entries than one digest counts. The numbers below cover the newest {0}.</value>
+    </labels>
+    <labels>
+        <fullName>Core_ErrorDigest_NoRoom</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error digest reason: no query allowance left to count entries.</shortDescription>
+        <value>too little of this run's allowance for reading records was left to count the entries</value>
+    </labels>
+</CustomLabels>

@@ -23,4 +23,20 @@ public with sharing class SettingChangeSelector {
             LIMIT :size
         ];
     }
+
+    /** The newest change to the named setting, or null when it has never changed. */
+    public static Setting_Change__c latestFor(String settingName) {
+        if (String.isBlank(settingName)) {
+            return null;
+        }
+        List<Setting_Change__c> changes = [
+            SELECT Id, New_Value__c, Changed_By__c, Changed_By__r.Name, Changed_At__c
+            FROM Setting_Change__c
+            WHERE Setting_Name__c = :settingName
+            WITH USER_MODE
+            ORDER BY Changed_At__c DESC, CreatedDate DESC, Id DESC
+            LIMIT 1
+        ];
+        return changes.isEmpty() ? null : changes[0];
+    }
 }
