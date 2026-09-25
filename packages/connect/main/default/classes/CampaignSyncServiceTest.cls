@@ -259,8 +259,9 @@ private class CampaignSyncServiceTest {
                 )
             );
         }
-        insert appeals;
         System.runAs(admin) {
+            // As Maria, who holds the Campaign ID field; the sync is off, so nothing is copied.
+            insert appeals;
             delete gone;
         }
         switchOn(true);
