@@ -79,9 +79,7 @@ public with sharing class OpportunityMirrorBatch implements Database.Batchable<S
         skipReason = skipReason();
         if (skipReason != null) {
             skippedAtStart = true;
-            return Database.getQueryLocator(
-                [SELECT Id FROM Gift__c WHERE Id = NULL WITH USER_MODE]
-            );
+            return nothing();
         }
         if (direction == OpportunityMirrorService.OPPORTUNITIES_TO_GIFTS) {
             Date startDate = OpportunityGiftService.startDate();
@@ -97,6 +95,10 @@ public with sharing class OpportunityMirrorBatch implements Database.Batchable<S
                     LOG_CONTEXT,
                     ErrorLogger.SEVERITY_WARNING
                 );
+            }
+            if (recordTypeIds != null && recordTypeIds.isEmpty()) {
+                // Nothing listed exists, and an org without record types has no field to filter.
+                return nothing();
             }
             return Database.getQueryLocatorWithBinds(
                 OpportunityMirrorSelector.wonOpportunitiesQuery(
@@ -123,6 +125,10 @@ public with sharing class OpportunityMirrorBatch implements Database.Batchable<S
             },
             AccessLevel.USER_MODE
         );
+    }
+
+    private static Database.QueryLocator nothing() {
+        return Database.getQueryLocator([SELECT Id FROM Gift__c WHERE Id = NULL WITH USER_MODE]);
     }
 
     public void execute(Database.BatchableContext context, List<SObject> scope) {

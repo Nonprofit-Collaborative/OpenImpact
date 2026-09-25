@@ -131,7 +131,8 @@ public with sharing class OpportunityGiftService {
         List<Gift__c> gifts = new List<Gift__c>();
         List<SObject> madeFrom = new List<SObject>();
         for (SObject opportunity : opportunities) {
-            if (linked.contains(String.valueOf(opportunity.Id))) {
+            // Already named by a gift, or listed twice here: one gift each.
+            if (!linked.add(String.valueOf(opportunity.Id))) {
                 result.unchanged++;
                 continue;
             }
