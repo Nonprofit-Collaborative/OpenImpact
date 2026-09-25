@@ -172,7 +172,11 @@ private class OpportunityMirrorCopyTest {
 
     @IsTest
     static void theAppealsCampaignIsTheOpportunitysCampaign() {
-        User admin = maria();
+        // Maria here also links appeals to Campaigns, which the Campaign Sync set grants.
+        User admin = TestDataFactory.createUserOnTheRunningUsersProfile(
+            'Maria',
+            new List<String>{ 'Giving_Admin', 'Opportunity_Mirror', 'Campaign_Sync' }
+        );
         if (!OpportunityMirrorService.isAvailable() || !CampaignSyncService.isAvailable()) {
             return;
         }
@@ -186,7 +190,9 @@ private class OpportunityMirrorCopyTest {
         }
         Appeal__c appeal = GivingTestDataFactory.buildAppeal('Spring appeal');
         appeal.Campaign_Id__c = spring.Id;
-        insert appeal;
+        System.runAs(admin) {
+            insert appeal;
+        }
         Gift__c given = gift(60);
         given.Appeal__c = appeal.Id;
         Test.startTest();
