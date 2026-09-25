@@ -1,0 +1,313 @@
+/**
+ * The Opportunity mirror page (X-01, R-OM8, R-OM11): what the reconciliation shows Maria, the
+ * refusals given before anything starts, and the nightly schedule.
+ */
+@IsTest
+private class OpportunityMirrorControllerTest {
+    private static final Date FROM_DATE = Date.newInstance(2026, 9, 1);
+    private static final Date TO_DATE = Date.newInstance(2026, 9, 30);
+
+    @TestSetup
+    static void setup() {
+        GivingTestDataFactory.ensureDefaultFund();
+        GivingTestDataFactory.insertHouseholdContact('The Garcia Household', 'Luis', 'Garcia');
+    }
+
+    private static void choose(String direction) {
+        Connect_Settings__c settings = Connect_Settings__c.getOrgDefaults();
+        settings.Opportunity_Mirror_Direction__c = direction;
+        upsert settings;
+    }
+
+    /** Maria: Nonprofit Admin, so she can manage settings, and the Opportunity Mirror set. */
+    private static User maria() {
+        return TestDataFactory.createUserOnTheRunningUsersProfile(
+            'Maria',
+            new List<String>{ 'Nonprofit_Admin', 'Giving_Admin', 'Opportunity_Mirror' }
+        );
+    }
+
+    private static Gift__c gift(Decimal amount, Integer day) {
+        Id luis = [SELECT Id FROM Contact WHERE LastName = 'Garcia' LIMIT 1].Id;
+        Gift__c gift = GivingTestDataFactory.buildGift(luis, amount);
+        gift.Gift_Date__c = Date.newInstance(2026, 9, day);
+        return gift;
+    }
+
+    private static Id linkOf(Gift__c gift) {
+        return [
+            SELECT Opportunity_Id__c
+            FROM Gift__c
+            WHERE Id = :gift.Id
+            WITH SYSTEM_MODE
+        ]
+        .Opportunity_Id__c;
+    }
+
+    private static OpportunityMirrorController.Status ready() {
+        OpportunityMirrorController.Status status = new OpportunityMirrorController.Status();
+        status.available = true;
+        status.direction = OpportunityMirrorService.GIFTS_TO_OPPORTUNITIES;
+        status.canRun = true;
+        status.canManage = true;
+        status.running = false;
+        return status;
+    }
+
+    private static String refusalOf(Callable action) {
+        try {
+            action.call(null, null);
+        } catch (AuraHandledException refused) {
+            return refused.getMessage();
+        }
+        return null;
+    }
+
+    /** The page actions, so each refusal test reads as one line. */
+    private class Action implements Callable {
+        private final String name;
+        Action(String name) {
+            this.name = name;
+        }
+        public Object call(String unused, Map<String, Object> args) {
+            switch on name {
+                when 'runNow' {
+                    return OpportunityMirrorController.runNow();
+                }
+                when 'copyAgain' {
+                    return OpportunityMirrorController.copyRangeAgain(FROM_DATE, TO_DATE);
+                }
+                when 'copyReversed' {
+                    return OpportunityMirrorController.copyRangeAgain(TO_DATE, FROM_DATE);
+                }
+                when 'compareEmpty' {
+                    return OpportunityMirrorController.compare(null, TO_DATE);
+                }
+                when 'compareReversed' {
+                    return OpportunityMirrorController.compare(TO_DATE, FROM_DATE);
+                }
+                when else {
+                    return OpportunityMirrorController.compare(FROM_DATE, TO_DATE);
+                }
+            }
+        }
+    }
+
+    @IsTest
+    static void theReconciliationListsEachKindOfDifference() {
+        if (!OpportunityMirrorService.isAvailable()) {
+            return;
+        }
+        User admin = maria();
+        choose(OpportunityMirrorService.GIFTS_TO_OPPORTUNITIES);
+        Gift__c matched = gift(40, 5);
+        Gift__c edited = gift(100, 6);
+        Gift__c orphaned = gift(25, 7);
+        System.runAs(admin) {
+            insert new List<Gift__c>{ matched, edited, orphaned };
+        }
+        choose(OpportunityMirrorService.OFF);
+        Gift__c unlinked = gift(10, 8);
+        insert unlinked;
+
+        Schema.SObjectType opportunityType = OpportunityMirrorService.opportunityType();
+        SObject handEdit = opportunityType.newSObject(linkOf(edited));
+        handEdit.put('Amount', 175);
+        update handEdit;
+        delete opportunityType.newSObject(linkOf(orphaned));
+        SObject direct = opportunityType.newSObject();
+        direct.put('Name', 'Entered by hand');
+        direct.put('Amount', 60);
+        direct.put('CloseDate', Date.newInstance(2026, 9, 9));
+        direct.put('StageName', stageOf(linkOf(matched)));
+        insert direct;
+
+        OpportunityMirrorReconciliation.Comparison result;
+        Test.startTest();
+        System.runAs(admin) {
+            result = OpportunityMirrorController.compare(FROM_DATE, TO_DATE);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(4, result.giftCount, 'Every gift in the totals dated in the range.');
+        Assert.areEqual(175, result.giftTotal, 'Their total.');
+        Assert.areEqual(3, result.opportunityCount, 'Matched, hand edited, and entered by hand.');
+        Assert.areEqual(275, result.opportunityTotal, 'Their total.');
+        Assert.areEqual(4, result.differenceCount, 'One row for each difference.');
+        Map<String, String> reasonByName = new Map<String, String>();
+        for (OpportunityMirrorReconciliation.Difference row : result.differences) {
+            reasonByName.put(
+                row.giftId != null ? String.valueOf(row.giftId) : row.opportunityName,
+                row.reason
+            );
+        }
+        Assert.areEqual(
+            Label.Connect_OpportunityMirror_DiffAmount,
+            reasonByName.get(edited.Id),
+            'Hand edit.'
+        );
+        Assert.areEqual(
+            Label.Connect_OpportunityMirror_DiffMissing,
+            reasonByName.get(orphaned.Id),
+            'Deleted.'
+        );
+        Assert.areEqual(
+            Label.Connect_OpportunityMirror_DiffNoOpportunity,
+            reasonByName.get(unlinked.Id),
+            'Saved while the mirror was off.'
+        );
+        Assert.areEqual(
+            Label.Connect_OpportunityMirror_DiffNoGift,
+            reasonByName.get('Entered by hand'),
+            'Nobody made a gift of it.'
+        );
+    }
+
+    private static String stageOf(Id opportunityId) {
+        return (String) Database.queryWithBinds(
+                'SELECT StageName FROM ' +
+                    OpportunityMirrorService.opportunityType().getDescribe().getName() +
+                    ' WHERE Id = :opportunityId',
+                new Map<String, Object>{ 'opportunityId' => opportunityId },
+                AccessLevel.SYSTEM_MODE
+            )[0]
+            .get('StageName');
+    }
+
+    @IsTest
+    static void aRangeTooLargeOrMalformedIsRefusedInWords() {
+        insert gift(40, 5);
+        OpportunityMirrorReconciliation.maxRecords = 0;
+        Test.startTest();
+        System.runAs(maria()) {
+            Assert.areEqual(
+                Label.Connect_OpportunityMirror_ErrorDatesRequired,
+                refusalOf(new Action('compareEmpty'))
+            );
+            Assert.areEqual(
+                Label.Connect_OpportunityMirror_ErrorDateOrder,
+                refusalOf(new Action('compareReversed'))
+            );
+            Assert.areEqual(
+                OpportunityMirrorService.isAvailable()
+                    ? Label.Connect_OpportunityMirror_ErrorTooMany
+                    : Label.Connect_OpportunityMirror_Unavailable,
+                refusalOf(new Action('compare')),
+                'Refused rather than shown in part (ADR-0051).'
+            );
+        }
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void comparingNeedsTheOpportunityMirrorPermissionSet() {
+        if (!OpportunityMirrorService.isAvailable()) {
+            return;
+        }
+        User david = TestDataFactory.createUser('David', new List<String>{ 'Giving_Admin' });
+        Test.startTest();
+        System.runAs(david) {
+            Assert.areEqual(
+                Label.Connect_OpportunityMirror_NoLinkAccess,
+                refusalOf(new Action('compare')),
+                'Refused in words, not with the platform error a user mode read gives.'
+            );
+        }
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void runNowStartsARunForMariaAndIsRefusedWhileOff() {
+        User admin = maria();
+        choose(OpportunityMirrorService.OFF);
+        Test.startTest();
+        System.runAs(admin) {
+            Assert.areEqual(
+                OpportunityMirrorService.isAvailable()
+                    ? Label.Connect_OpportunityMirror_SwitchedOff
+                    : Label.Connect_OpportunityMirror_Unavailable,
+                refusalOf(new Action('runNow')),
+                'Nothing starts, and the page says why.'
+            );
+            if (OpportunityMirrorService.isAvailable()) {
+                choose(OpportunityMirrorService.GIFTS_TO_OPPORTUNITIES);
+                Assert.isTrue(OpportunityMirrorController.runNow().running, 'Started.');
+            }
+        }
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void copyingAgainNeedsGiftsToOpportunitiesAndARange() {
+        if (!OpportunityMirrorService.isAvailable()) {
+            return;
+        }
+        User admin = maria();
+        choose(OpportunityMirrorService.OPPORTUNITIES_TO_GIFTS);
+        Test.startTest();
+        System.runAs(admin) {
+            Assert.areEqual(
+                Label.Connect_OpportunityMirror_CopyAgainGiftsOnly,
+                refusalOf(new Action('copyAgain')),
+                'A gift is never changed from its Opportunity.'
+            );
+            choose(OpportunityMirrorService.GIFTS_TO_OPPORTUNITIES);
+            Assert.areEqual(
+                Label.Connect_OpportunityMirror_ErrorDateOrder,
+                refusalOf(new Action('copyReversed'))
+            );
+            Assert.isTrue(
+                OpportunityMirrorController.copyRangeAgain(FROM_DATE, TO_DATE).running,
+                'Started.'
+            );
+        }
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void mariaSchedulesAndStopsTheNightlyRun() {
+        if (!OpportunityMirrorService.isAvailable()) {
+            return;
+        }
+        User admin = maria();
+        choose(OpportunityMirrorService.GIFTS_TO_OPPORTUNITIES);
+        Test.startTest();
+        System.runAs(admin) {
+            Assert.isNotNull(OpportunityMirrorController.schedule().nextRunAt, 'Scheduled.');
+            Assert.isNull(OpportunityMirrorController.stop().nextRunAt, 'Stopped.');
+        }
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void eachRefusalNamesItsOwnReason() {
+        OpportunityMirrorController.Status status = ready();
+        Assert.isNull(OpportunityMirrorController.refusal(status, false), 'Everything allows it.');
+        status.running = true;
+        Assert.isNull(OpportunityMirrorController.refusal(status, true), 'Scheduling may.');
+        Assert.areEqual(
+            Label.Connect_OpportunityMirror_Running,
+            OpportunityMirrorController.refusal(status, false)
+        );
+        status.canRun = false;
+        Assert.areEqual(
+            Label.Connect_OpportunityMirror_NoOpportunityAccess,
+            OpportunityMirrorController.refusal(status, false)
+        );
+        status.canManage = false;
+        Assert.areEqual(
+            Label.Connect_OpportunityMirror_NoManagePermission,
+            OpportunityMirrorController.refusal(status, false)
+        );
+        status.direction = OpportunityMirrorService.OFF;
+        Assert.areEqual(
+            Label.Connect_OpportunityMirror_SwitchedOff,
+            OpportunityMirrorController.refusal(status, false)
+        );
+        status.available = false;
+        Assert.areEqual(
+            Label.Connect_OpportunityMirror_Unavailable,
+            OpportunityMirrorController.refusal(status, false)
+        );
+    }
+}
