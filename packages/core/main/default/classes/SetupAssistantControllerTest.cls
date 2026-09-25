@@ -180,6 +180,83 @@ private class SetupAssistantControllerTest {
     }
 
     @IsTest
+    static void refusesTextLongerThanTheFieldAllows() {
+        SettingDefinitionSelector.stubbedRows = identityRows();
+        SetupAssistantTestExtension.useNone();
+        String message;
+
+        Test.startTest();
+        try {
+            SetupAssistantController.saveStepValues(
+                'identity',
+                new Map<String, Object>{ 'Organization_Legal_Name__c' => 'x'.repeat(256) }
+            );
+        } catch (AuraHandledException e) {
+            message = e.getMessage();
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(message, 'A name longer than the field allows is refused');
+        Assert.isTrue(message.contains('255'), 'The message says how long it may be');
+        Assert.isNull(savedLegalName(), 'Nothing was saved');
+    }
+
+    @IsTest
+    static void refusesTextNotInTheShapeTheFieldAsksFor() {
+        SettingDefinitionSelector.stubbedRows = identityRows();
+        SetupAssistantTestExtension.useSpanningTwoObjects();
+        String message;
+
+        Test.startTest();
+        try {
+            SetupAssistantController.saveStepValues(
+                'identity',
+                new Map<String, Object>{
+                    'Organization_Legal_Name__c' => 'Riverside Community Aid',
+                    SetupAssistantTestExtension.CODE_KEY => 'abc'
+                }
+            );
+        } catch (AuraHandledException e) {
+            message = e.getMessage();
+        }
+        Test.stopTest();
+
+        Assert.areEqual(
+            SetupAssistantTestExtension.CODE_PATTERN_MESSAGE,
+            message,
+            'A value saved without the page, as after an upload, is checked on the server too'
+        );
+        Assert.isNull(savedLegalName(), 'Nothing in the step was saved');
+    }
+
+    @IsTest
+    static void aStepSpanningTwoSettingsObjectsSavesAllOrNothing() {
+        SettingDefinitionSelector.stubbedRows = identityRows();
+        SetupAssistantTestExtension.useSpanningTwoObjects();
+        Boolean refused = false;
+
+        Test.startTest();
+        try {
+            SetupAssistantController.saveStepValues(
+                'identity',
+                new Map<String, Object>{
+                    'Organization_Legal_Name__c' => 'Riverside Community Aid',
+                    SetupAssistantTestExtension.CODE_KEY => 'RC-01'
+                }
+            );
+        } catch (AuraHandledException e) {
+            refused = true;
+        }
+        Test.stopTest();
+
+        Assert.isTrue(refused, 'The module settings object cannot be written here');
+        Assert.isNull(
+            savedLegalName(),
+            'The legal name, saved first, was rolled back with the failed half'
+        );
+    }
+
+    @IsTest
     static void refusesAStepOnlyAnAbsentModuleShips() {
         SetupAssistantTestExtension.useNone();
         Boolean refused = false;
@@ -398,6 +475,16 @@ private class SetupAssistantControllerTest {
             );
         }
         return rows;
+    }
+
+    /** What is actually stored, read past any cached org default. */
+    private static String savedLegalName() {
+        List<Nonprofit_Settings__c> rows = [
+            SELECT Organization_Legal_Name__c
+            FROM Nonprofit_Settings__c
+            WHERE SetupOwnerId = :UserInfo.getOrganizationId()
+        ];
+        return rows.isEmpty() ? null : rows[0].Organization_Legal_Name__c;
     }
 
     private static SetupAssistantService.Step stepByKey(
