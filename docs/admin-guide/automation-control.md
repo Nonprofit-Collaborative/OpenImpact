@@ -112,10 +112,15 @@ the line "This automation enforces a rule, so it always runs. It cannot be switc
 here and a pause does not suspend it." Clicking the switch does nothing, and if a change
 somehow reaches the server it is refused with the same explanation.
 
-The one shipped today is **Gift: receipt lock**. It refuses a change to the amount, the
-date, the donor or the receipt number of a gift that carries a receipt number, and it
-refuses to delete such a gift. That rule is what a receipt in a donor's hands means: see
-the [Gifts page](gifts.md).
+Three ship today:
+
+- **Gift: receipt lock** refuses a change to the amount, the date, the donor or the receipt
+  number of a gift that carries a receipt number, and refuses to delete such a gift. That
+  rule is what a receipt in a donor's hands means: see the [Gifts page](gifts.md).
+- **Gift: posting lock** and **Gift Allocation: posting lock** refuse a change to a gift that
+  is posted to accounting or dated in a closed period, and to its funds, and refuse a new gift
+  in a closed period. See [Posting and Closed Periods](posting-and-closed-periods.md); that
+  lock has its own override, Override Posting Lock.
 
 If you genuinely have to change a receipted gift, there is a way, and it is deliberately
 not on this page. It is the Override Receipt Lock permission, described under "Lifting the

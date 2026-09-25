@@ -144,4 +144,52 @@
     <shortDescription>Accounting export: unexpected failure</shortDescription>
     <value>The export could not be produced. The Error Log has the details.</value>
   </labels>
+    <labels>
+        <fullName>Connect_AccountingExport_OnlyUnposted</fullName>
+        <categories>Connect, Accounting Export</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Only unposted gifts checkbox</shortDescription>
+        <value>Only gifts not yet posted</value>
+    </labels>
+    <labels>
+        <fullName>Connect_AccountingExport_MarkPosted</fullName>
+        <categories>Connect, Accounting Export</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Mark posted button</shortDescription>
+        <value>Mark these gifts posted</value>
+    </labels>
+    <labels>
+        <fullName>Connect_AccountingExport_MarkPostedHelp</fullName>
+        <categories>Connect, Accounting Export</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Mark posted help</shortDescription>
+        <value>Once this file is in your accounting system, mark its gifts posted. A posted gift cannot be changed or deleted.</value>
+    </labels>
+    <labels>
+        <fullName>Connect_AccountingExport_Marked</fullName>
+        <categories>Connect, Accounting Export</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gifts marked posted</shortDescription>
+        <value>Marked {0} gifts posted. Gifts already posted were left as they were.</value>
+    </labels>
+    <labels>
+        <fullName>Connect_AccountingExport_MarkNeedsAllFunds</fullName>
+        <categories>Connect, Accounting Export</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Marking needs all funds</shortDescription>
+        <value>To mark gifts posted, download the export for all funds: a gift split across funds would be locked when only part of it is in this file.</value>
+    </labels>
+    <labels>
+        <fullName>Connect_AccountingExport_ChangedSinceDownload</fullName>
+        <categories>Connect, Accounting Export</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Gifts changed since download</shortDescription>
+        <value>Gifts in this range changed since you downloaded the file, so nothing was marked. Download the file again, import it, and then mark.</value>
+    </labels>
 </CustomLabels>

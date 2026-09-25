@@ -1,0 +1,3 @@
+Id,OriginalAmount,TransactionDate,PaymentMethod,PaymentIdentifier,Campaign.Name,Donor.FirstName,Donor.LastName,Donor.PersonEmail,Donor.PersonMailingPostalCode
+6gt-2001,75.00,2025-06-02,Cash,,,Ana,Okafor,ana.okafor@example.org,97201
+6gt-2002,40.00,2025-06-09,Credit Card,ch_3PqR2002,,Wei,Lee,wei.lee@example.org,97202

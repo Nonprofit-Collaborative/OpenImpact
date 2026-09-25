@@ -20,12 +20,14 @@ public with sharing class GiftTriggerHandler extends TriggerHandler {
         List<Gift__c> gifts = (List<Gift__c>) Trigger.new;
         GiftService.defaultGiftDates(gifts);
         GiftService.deriveHouseholds(gifts);
+        GiftStatusRules.unlinkCancelledOnInsert(gifts);
     }
 
     public override void beforeUpdate() {
         List<Gift__c> gifts = (List<Gift__c>) Trigger.new;
         Map<Id, Gift__c> oldGifts = (Map<Id, Gift__c>) Trigger.oldMap;
         GiftService.defaultGiftDates(gifts);
+        GiftStatusRules.enforceTransitions(gifts, oldGifts);
 
         List<Gift__c> donorChanged = new List<Gift__c>();
         for (Gift__c gift : gifts) {
@@ -48,6 +50,10 @@ public with sharing class GiftTriggerHandler extends TriggerHandler {
 
     public override void afterUpdate() {
         GiftService.synchronizeAllocationsToAmount(
+            (List<Gift__c>) Trigger.new,
+            (Map<Id, Gift__c>) Trigger.oldMap
+        );
+        GiftStatusRules.logCancellations(
             (List<Gift__c>) Trigger.new,
             (Map<Id, Gift__c>) Trigger.oldMap
         );

@@ -4,6 +4,10 @@ import LOCALE from '@salesforce/i18n/locale';
 import CURRENCY from '@salesforce/i18n/currency';
 import getPaymentMethods from '@salesforce/apex/AccountingExportController.getPaymentMethods';
 import exportGifts from '@salesforce/apex/AccountingExportController.exportGifts';
+import markPosted from '@salesforce/apex/AccountingExportController.markPosted';
+// Bare, and correctly so: a custom permission defined in Giving resolves without a namespace
+// prefix while the namespace is deferred.
+import canPostGifts from '@salesforce/customPermission/Post_Gifts';
 import title from '@salesforce/label/c.Connect_AccountingExport_Title';
 import intro from '@salesforce/label/c.Connect_AccountingExport_Intro';
 import visibility from '@salesforce/label/c.Connect_AccountingExport_Visibility';
@@ -18,6 +22,11 @@ import summary from '@salesforce/label/c.Connect_AccountingExport_Summary';
 import noGifts from '@salesforce/label/c.Connect_AccountingExport_NoGifts';
 import errorDatesRequired from '@salesforce/label/c.Connect_AccountingExport_ErrorDatesRequired';
 import errorFailed from '@salesforce/label/c.Connect_AccountingExport_ErrorFailed';
+import onlyUnposted from '@salesforce/label/c.Connect_AccountingExport_OnlyUnposted';
+import markPostedLabel from '@salesforce/label/c.Connect_AccountingExport_MarkPosted';
+import markPostedHelp from '@salesforce/label/c.Connect_AccountingExport_MarkPostedHelp';
+import marked from '@salesforce/label/c.Connect_AccountingExport_Marked';
+import markNeedsAllFunds from '@salesforce/label/c.Connect_AccountingExport_MarkNeedsAllFunds';
 
 const BYTE_ORDER_MARK = '\uFEFF';
 const REVOKE_DELAY_MS = 1000;
@@ -26,6 +35,10 @@ const REVOKE_DELAY_MS = 1000;
  * The Accounting Export page (feature X-04). The service decides what is in the file and
  * refuses a bad range in words; the page only collects the choices, saves the file and says
  * what it held.
+ *
+ * After a download, someone holding Post Gifts can mark the gifts in that file posted (G-20).
+ * The page remembers what it downloaded and forgets it when any choice changes, so the button
+ * always marks the file on screen, and the server builds it again and compares its digest.
  */
 export default class AccountingExport extends LightningElement {
   labels = {
@@ -38,13 +51,19 @@ export default class AccountingExport extends LightningElement {
     allFunds,
     paymentMethod,
     allMethods,
-    download
+    download,
+    onlyUnposted,
+    markPosted: markPostedLabel,
+    markPostedHelp,
+    markNeedsAllFunds
   };
 
   fromDate;
   toDate;
   fundId;
   paymentMethod = '';
+  onlyUnposted = false;
+  downloaded;
   methods = [];
   working = false;
   error;
@@ -67,46 +86,93 @@ export default class AccountingExport extends LightningElement {
     }
   }
 
+  get canPost() {
+    return canPostGifts === true;
+  }
+
+  get showMarkPosted() {
+    return this.canPost && !!this.downloaded && !this.downloaded.choices.fundId;
+  }
+
+  get showNeedsAllFunds() {
+    return this.canPost && !!this.downloaded && !!this.downloaded.choices.fundId;
+  }
+
   handleFromChange(event) {
     this.fromDate = event.detail.value;
+    this.downloaded = undefined;
   }
 
   handleToChange(event) {
     this.toDate = event.detail.value;
+    this.downloaded = undefined;
   }
 
   handleFundChange(event) {
     this.fundId = event.detail.recordId || undefined;
+    this.downloaded = undefined;
   }
 
   handleMethodChange(event) {
     this.paymentMethod = event.detail.value;
+    this.downloaded = undefined;
+  }
+
+  handleOnlyUnpostedChange(event) {
+    this.onlyUnposted = event.detail.checked;
+    this.downloaded = undefined;
+  }
+
+  get choices() {
+    return {
+      fromDate: this.fromDate,
+      toDate: this.toDate,
+      fundId: this.fundId || null,
+      paymentMethod: this.paymentMethod || null,
+      onlyUnposted: this.onlyUnposted
+    };
   }
 
   async handleDownload() {
     this.error = undefined;
     this.message = undefined;
+    this.downloaded = undefined;
     if (!this.fromDate || !this.toDate) {
       this.error = errorDatesRequired;
       return;
     }
     this.working = true;
     try {
-      const view = await exportGifts({
-        fromDate: this.fromDate,
-        toDate: this.toDate,
-        fundId: this.fundId || null,
-        paymentMethod: this.paymentMethod || null
-      });
+      const choices = this.choices;
+      const view = await exportGifts(choices);
       if (!view || !view.rowCount) {
         this.message = noGifts;
         return;
       }
       this.save(view.fileName, view.csv);
+      this.downloaded = { choices, digest: view.digest };
       this.message = summary
         .replace('{0}', view.rowCount)
         .replace('{1}', view.giftCount)
         .replace('{2}', this.money(view.total));
+    } catch (failure) {
+      this.error = (failure && failure.body && failure.body.message) || errorFailed;
+    } finally {
+      this.working = false;
+    }
+  }
+
+  async handleMarkPosted() {
+    this.error = undefined;
+    this.message = undefined;
+    this.working = true;
+    try {
+      const count = await markPosted({
+        ...this.downloaded.choices,
+        digest: this.downloaded.digest
+      });
+      this.downloaded = undefined;
+      this.message = marked.replace('{0}', count);
     } catch (failure) {
       this.error = (failure && failure.body && failure.body.message) || errorFailed;
     } finally {

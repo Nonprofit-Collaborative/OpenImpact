@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Giving_Posting_PostedGiftLocked</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Posted gift is locked</shortDescription>
+        <value>This gift has been posted to accounting, so its date, amount, donor, payment method, reference and funds cannot change and it cannot be deleted. Record a refund instead, or ask your bookkeeper to unpost it first.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_ClosedGiftLocked</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Gift in a closed period is locked</shortDescription>
+        <value>This gift is dated in a closed accounting period (the books are closed through {0}), so its date, amount, donor, payment method, reference and funds cannot change and it cannot be deleted. Record a refund instead: it is dated today.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_ClosedPeriodNewGift</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>No new gift in a closed period</shortDescription>
+        <value>The books are closed through {0}, so a gift dated on or before that day cannot be added to them. Date the gift after {0}, or ask your administrator.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_FieldsWrittenByPosting</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Posted to Accounting is written by posting</shortDescription>
+        <value>Posted to Accounting is filled in only by marking gifts posted on the Accounting Export page, and cleared only by Unpost on the gift.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_AllocationLocked</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Funds of a gift in the books are locked</shortDescription>
+        <value>This gift is in the books (posted to accounting, or dated in a closed accounting period), so its funds and the amount to each cannot change. Record a refund instead.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_OverrideLogged</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Error Log line for a posting lock override</shortDescription>
+        <value>Posting lock override on gift {0}: {1}.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_DonorLocked</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Donor of a locked gift not deleted</shortDescription>
+        <value>Gifts from this record are posted to accounting or dated in a closed period, and the books name it as their donor, so it cannot be deleted. Merge it into the right record instead.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_OriginalLocked</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Original of a locked gift not deleted</shortDescription>
+        <value>A refund or write-off of this gift is posted to accounting or dated in a closed period, and the books name this gift as its original, so it cannot be deleted.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_NoPermission</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>No permission to post gifts</shortDescription>
+        <value>You need the Post Gifts permission to mark gifts posted to accounting or to unpost them.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_TooMany</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Too many gifts to mark posted</shortDescription>
+        <value>Marking posted takes up to {0} gifts at a time. Choose a shorter date range, or one fund at a time.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_ReasonRequired</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Unpost reason required</shortDescription>
+        <value>Say why this gift is being unposted. The reason is kept in the Error Log.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_NotPosted</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Gift is not posted</shortDescription>
+        <value>This gift is not posted to accounting, or you cannot see it.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_Posting_UnpostLogged</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Unposted gift log entry</shortDescription>
+        <value>Gift {0}, posted to accounting by {2} on {3}, unposted: {1}</value>
+    </labels>
+    <labels>
+        <fullName>Giving_PostingCard_Title</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Posting card title</shortDescription>
+        <value>Posting</value>
+    </labels>
+    <labels>
+        <fullName>Giving_PostingCard_PostedBy</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Posted by prefix</shortDescription>
+        <value>Posted to accounting by</value>
+    </labels>
+    <labels>
+        <fullName>Giving_PostingCard_NotPosted</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Gift not posted</shortDescription>
+        <value>Not posted to accounting.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_PostingCard_NotInBooks</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Gift not in the books</shortDescription>
+        <value>Not in the books: Pending and in-kind gifts are in no accounting export, so this gift stays editable.</value>
+    </labels>
+    <labels>
+        <fullName>Giving_PostingCard_ClosedPeriod</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Gift in a closed period</shortDescription>
+        <value>Dated in a closed period, so its date, amount, donor, payment method, reference and funds stay locked. The books are closed through</value>
+    </labels>
+    <labels>
+        <fullName>Giving_PostingCard_ReasonLabel</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Unpost reason label</shortDescription>
+        <value>Why is this gift being unposted?</value>
+    </labels>
+    <labels>
+        <fullName>Giving_PostingCard_UnpostButton</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Unpost button</shortDescription>
+        <value>Unpost</value>
+    </labels>
+    <labels>
+        <fullName>Giving_PostingCard_Unposted</fullName>
+        <categories>Giving</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Gift unposted notice</shortDescription>
+        <value>Unposted. The reason is in the Error Log. Mark it posted again after your next export.</value>
+    </labels>
+</CustomLabels>

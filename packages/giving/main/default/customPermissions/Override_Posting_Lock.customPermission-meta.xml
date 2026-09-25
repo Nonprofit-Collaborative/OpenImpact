@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>
+    Change, delete or create a gift that a posting or a closed period locks, and move the books
+    closed date back (G-20). Granted to nobody by the package: assign it for one correction, then
+    remove it. Every use is logged at Warning.
+  </description>
+  <isLicensed>false</isLicensed>
+  <label>Override Posting Lock</label>
+</CustomPermission>

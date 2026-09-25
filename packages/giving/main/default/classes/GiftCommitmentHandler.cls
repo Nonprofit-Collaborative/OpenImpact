@@ -40,10 +40,14 @@ public with sharing class GiftCommitmentHandler extends TriggerHandler {
     private void onAfterUpdate(List<Gift__c> gifts, Map<Id, Gift__c> oldMap) {
         List<Gift__c> relevant = new List<Gift__c>();
         Set<Id> releasedInstallments = new Set<Id>();
+        Set<Id> uncancelled = new Set<Id>();
         for (Gift__c gift : gifts) {
             Gift__c previous = oldMap.get(gift.Id);
             if (previous == null) {
                 continue;
+            }
+            if (previous.Status__c == 'Cancelled') {
+                uncancelled.add(gift.Id);
             }
             Boolean changed =
                 previous.Amount__c != gift.Amount__c ||
@@ -62,7 +66,7 @@ public with sharing class GiftCommitmentHandler extends TriggerHandler {
         }
         // An installment a gift has just left has to be recalculated too.
         CommitmentService.refreshInstallmentStatuses(releasedInstallments);
-        CommitmentService.applyGift(relevant);
+        CommitmentService.applyGift(relevant, uncancelled);
     }
 
     /**
