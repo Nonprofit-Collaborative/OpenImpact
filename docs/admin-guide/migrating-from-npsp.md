@@ -1,6 +1,6 @@
 # Migrating from NPSP
 
-**Package:** Giving | **Iteration:** v0.5
+**Package:** Core and Giving | **Iteration:** v0.5
 
 ## 1. What it does
 
@@ -14,9 +14,9 @@ The mappings only name columns. Nothing in Open Impact depends on NPSP being ins
 
 ## 2. How to turn it on
 
-The Giving module brings the three mappings. In an org that has never opened the **Import** tab
-they appear the first time it opens. In an org that already had the generic mappings, add them
-once from Health Check:
+Open Impact brings the contacts mapping, and the Giving module brings the two payment mappings.
+In an org that has never opened the **Import** tab they appear the first time it opens. In an
+org that already had the generic mappings, add them once from Health Check:
 
 1. Open the **Nonprofit Hub** app, click **Nonprofit Settings** and choose **Health**.
 2. The report opens (click **Re-run** if it is from earlier). A finding reads "3 shipped
@@ -135,6 +135,14 @@ Check that every closed won gift has a payment:
 the count is not 0, those gifts were made while payments were switched off in NPSP and are not
 in the payment export. Load them with the **Generic gift list**.
 
+Check that every paid payment has an account: the two payment queries select on the
+opportunity's account, so a payment whose opportunity has none is in neither file.
+`SELECT COUNT() FROM npe01__OppPayment__c WHERE npe01__Paid__c = true AND npe01__Opportunity__r.AccountId = null`.
+If the count is not 0, give those opportunities an account in NPSP before the export, or export
+them with the people query, its last line changed to
+`AND npe01__Opportunity__r.AccountId = null`, and load that file with **NPSP: opportunities
+and payments** as well.
+
 ## 5. Why three mappings and not one
 
 A mapping remembers the columns of the last file loaded with it, so one mapping serves one
@@ -173,8 +181,11 @@ already loaded are matched, not duplicated.
 
 **The same person appears on several records after a payment file.** The donor had no email
 address, so **Email exact** had nothing to match or group their payments on, and each payment
-created them. Give such donors an email address before the export, or check the dry run's
-"would create" count: a donor with an email is created once however many payments they made.
+created them. Give such donors an email address before the export, or choose **Name plus
+postal code**, which the payment file also carries (read its warning on the matching step
+first). Either way, check the dry run's "would create" count: a donor who can be matched is
+created once however many payments they made, and a couple at one address are told apart by
+first name.
 
 **A person's first name changed after a payment file.** Where only one person has the row's
 email, a row with a different first name is matched to them and their first name is updated

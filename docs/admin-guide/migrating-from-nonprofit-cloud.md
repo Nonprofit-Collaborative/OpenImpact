@@ -208,8 +208,10 @@ that keeps people as person accounts:
 
 **The same person appears on several records after a gift file.** The donor had no email
 address, so **Email exact** had nothing to match or group their rows on, and each row created
-them. Give such donors an email address before the export, or check the dry run's "would
-create" count: a donor with an email is created once however many gifts they have.
+them. Give such donors an email address before the export, or choose **Name plus postal
+code**, which the gift files also carry (read its warning on the matching step first). Either
+way, check the dry run's "would create" count: a donor who can be matched is created once
+however many gifts they have, and a couple at one address are told apart by first name.
 
 **A person's first name changed after a gift file.** Where only one person has the row's email,
 a row with a different first name is matched to them and their first name is updated (see

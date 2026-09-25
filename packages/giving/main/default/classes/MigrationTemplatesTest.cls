@@ -716,9 +716,11 @@ private class MigrationTemplatesTest {
         Assert.areEqual('ana.okafor@example.org', ana.Email, 'And the email to use.');
         Contact robert = [SELECT Deceased__c, DoNotCall FROM Contact WHERE LastName = 'Hale'];
         Assert.isTrue(robert.Deceased__c, 'Deceased comes across.');
-        if (importerMayEdit(Contact.DoNotCall)) {
-            Assert.isTrue(robert.DoNotCall, 'So does do not call.');
-        }
+        Assert.areEqual(
+            importerMayEdit(Contact.DoNotCall),
+            robert.DoNotCall,
+            'So does do not call, exactly when the importer may write it.'
+        );
     }
 
     private static Map<String, String> payment(
