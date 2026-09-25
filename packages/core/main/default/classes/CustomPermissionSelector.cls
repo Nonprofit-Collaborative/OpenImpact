@@ -60,35 +60,8 @@ public with sharing class CustomPermissionSelector {
         }
 
         Holders result = new Holders();
-        if (String.isBlank(developerName)) {
-            return result;
-        }
-
         try {
-            Set<Id> permissionIds = customPermissionIds(developerName);
-            if (permissionIds.isEmpty()) {
-                return result;
-            }
-
-            Set<Id> permissionSetIds = grantingPermissionSetIds(permissionIds);
-            if (permissionSetIds.isEmpty()) {
-                return result;
-            }
-
-            Set<Id> profileIds = owningProfileIds(permissionSetIds);
-            Set<Id> assignedUserIds = assigneeIds(permissionSetIds);
-            if (profileIds.isEmpty() && assignedUserIds.isEmpty()) {
-                return result;
-            }
-
-            for (User holder : [
-                SELECT Name
-                FROM User
-                WHERE IsActive = TRUE AND (Id IN :assignedUserIds OR ProfileId IN :profileIds)
-                WITH USER_MODE
-                ORDER BY Name
-                LIMIT :HOLDER_LIMIT
-            ]) {
+            for (User holder : activeHolders(developerName)) {
                 result.total++;
                 if (result.names.size() < NAMES_SHOWN) {
                     result.names.add(holder.Name);
@@ -101,6 +74,58 @@ public with sharing class CustomPermissionSelector {
         }
 
         return result;
+    }
+
+    /**
+     * The Ids of the active users holding the named custom permission, in name order: the
+     * people the error digest goes to when nobody has named its recipients (C-23, R-E5). A user
+     * who cannot see setup entities gets an empty list, as `holders` reports them unreadable.
+     */
+    public static List<Id> holderIds(String developerName) {
+        List<Id> ids = new List<Id>();
+        try {
+            for (User holder : activeHolders(developerName)) {
+                ids.add(holder.Id);
+            }
+        } catch (QueryException cannotSeeSetup) {
+            ids.clear();
+        }
+        return ids;
+    }
+
+    /**
+     * The active users holding the named custom permission, through a permission set, a
+     * permission set group, or the profile that owns one. Throws QueryException for a reader
+     * who cannot see setup entities; each caller decides what that means.
+     */
+    private static List<User> activeHolders(String developerName) {
+        if (String.isBlank(developerName)) {
+            return new List<User>();
+        }
+        Set<Id> permissionIds = customPermissionIds(developerName);
+        if (permissionIds.isEmpty()) {
+            return new List<User>();
+        }
+
+        Set<Id> permissionSetIds = grantingPermissionSetIds(permissionIds);
+        if (permissionSetIds.isEmpty()) {
+            return new List<User>();
+        }
+
+        Set<Id> profileIds = owningProfileIds(permissionSetIds);
+        Set<Id> assignedUserIds = assigneeIds(permissionSetIds);
+        if (profileIds.isEmpty() && assignedUserIds.isEmpty()) {
+            return new List<User>();
+        }
+
+        return [
+            SELECT Id, Name
+            FROM User
+            WHERE IsActive = TRUE AND (Id IN :assignedUserIds OR ProfileId IN :profileIds)
+            WITH USER_MODE
+            ORDER BY Name
+            LIMIT :HOLDER_LIMIT
+        ];
     }
 
     /** The named custom permission, or nothing at all in an org without the package. */

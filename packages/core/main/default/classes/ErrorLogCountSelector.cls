@@ -19,6 +19,24 @@ public with sharing class ErrorLogCountSelector {
     }
 
     /**
+     * The same count, stopping at `cap + 1`, so a count over a flooded Error Log spends at most
+     * that many query rows. A result above `cap` means "more than `cap`".
+     */
+    public static Integer countNewUpTo(Integer cap) {
+        if (!isReadable()) {
+            return 0;
+        }
+        Integer readUpTo = cap + 1;
+        return [
+            SELECT COUNT()
+            FROM Error_Log__c
+            WHERE Status__c = :STATUS_NEW
+            WITH USER_MODE
+            LIMIT :readUpTo
+        ];
+    }
+
+    /**
      * Whether the running user can read the Error Log at all.
      *
      * The status is part of the question, not a detail of it: the count filters on it, and a

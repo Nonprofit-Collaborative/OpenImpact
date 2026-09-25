@@ -7,7 +7,7 @@ private class SettingSectionsTest {
         List<String> sections = SettingSections.all();
         Test.stopTest();
 
-        Assert.areEqual(12, sections.size(), 'Twelve section names are agreed across the suite');
+        Assert.areEqual(13, sections.size(), 'Thirteen section names are agreed across the suite');
         Assert.areEqual(
             SettingSections.GENERAL,
             sections[0],
