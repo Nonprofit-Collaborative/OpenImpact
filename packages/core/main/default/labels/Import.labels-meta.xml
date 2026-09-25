@@ -73,6 +73,22 @@
         <value>This row could not be read. Check the file for stray quotation marks or line breaks inside a value.</value>
     </labels>
     <labels>
+        <fullName>Core_Import_ErrorTwoPeopleOneKey</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import error: a row's two people cannot be told apart</shortDescription>
+        <value>The two people on this row have the same matching details and the same first name, so they cannot be told apart. Give each their own first name.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorSamePersonNotSaved</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import row: its new person is on an earlier row that did not save</shortDescription>
+        <value>An earlier row of this file names the same new person, and they could not be saved: {0}</value>
+    </labels>
+    <labels>
         <fullName>Core_Import_ErrorOrganizationNotSaved</fullName>
         <categories>Import</categories>
         <language>en_US</language>
@@ -615,6 +631,14 @@
         <protected>false</protected>
         <shortDescription>Import undo journal: kept, no access to delete</shortDescription>
         <value>Kept: you do not have access to delete this record, so the undo left it in place.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorRunInProgress</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import error: a run is already in progress</shortDescription>
+        <value>This import is already running a dry run or a commit. Wait for it to finish, then try again.</value>
     </labels>
     <labels>
         <fullName>Core_Import_ErrorDryRunAfterCommit</fullName>
