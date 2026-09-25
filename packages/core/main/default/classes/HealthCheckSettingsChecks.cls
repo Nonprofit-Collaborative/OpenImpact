@@ -348,7 +348,7 @@ public with sharing class HealthCheckSettingsChecks {
     private static final Integer DIGEST_STALE_DAYS = 2;
 
     /**
-     * Whether the error digest is scheduled but has not run for more than two days (ADR-NEXT).
+     * Whether the error digest is scheduled but has not run for more than two days (ADR-0055).
      * The job runs as the person who scheduled it, so it stops when that person is deactivated,
      * and nothing else would say so: the panel still shows it as scheduled. A digest that has
      * never run is not reported; its first run is at most a day away.

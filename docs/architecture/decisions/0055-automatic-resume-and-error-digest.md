@@ -1,4 +1,4 @@
-# ADR-NEXT: A pause ends through a one-time resume job, and the error digest counts and goes only to users
+# ADR-0055: A pause ends through a one-time resume job, and the error digest counts and goes only to users
 
 **Status:** Accepted (builder decision)
 **Date:** 2026-09-24

@@ -1,5 +1,5 @@
 /**
- * The error digest (C-23, canonical model R-E5, ADR-NEXT): one short email to each of the
+ * The error digest (C-23, canonical model R-E5, ADR-0055): one short email to each of the
  * people who look after Open Impact, counting the Error Log entries that arrived since the last
  * digest and are still New.
  *
@@ -206,7 +206,7 @@ public with sharing class ErrorDigestService {
         for (User recipient : recipients) {
             Messaging.SingleEmailMessage message = new Messaging.SingleEmailMessage();
             // Addressed to the user record: internal users only, and not counted against the
-            // org's daily limit on email sent to addresses (ADR-NEXT).
+            // org's daily limit on email sent to addresses (ADR-0055).
             message.setTargetObjectId(recipient.Id);
             message.setSaveAsActivity(false);
             message.setSenderDisplayName(System.Label.Core_ErrorDigest_SenderName);

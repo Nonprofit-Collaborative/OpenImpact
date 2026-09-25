@@ -1,5 +1,5 @@
 /**
- * Who receives the error digest (C-23, R-E5, ADR-NEXT): active users of this org only.
+ * Who receives the error digest (C-23, R-E5, ADR-0055): active users of this org only.
  *
  * The recipients setting lists email addresses, because that is what an administrator knows,
  * but every address has to belong to an active internal user, and the digest is addressed to

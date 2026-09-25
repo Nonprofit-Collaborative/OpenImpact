@@ -1,5 +1,5 @@
 /**
- * The one-time job that ends a pause on the record (C-23, R-A5, ADR-NEXT).
+ * The one-time job that ends a pause on the record (C-23, R-A5, ADR-0055).
  *
  * The comparison with the clock in `AutomationControl.pausedUntil` is what decides whether
  * automation runs, so automation starts again on time whether or not this job runs. What the

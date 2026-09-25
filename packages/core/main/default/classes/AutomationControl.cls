@@ -6,7 +6,7 @@
  *   1. a per transaction bypass, for tests and for internal bulk operations that deliberately
  *      run without a handler;
  *   2. the org wide pause, held as a datetime on Nonprofit Settings, so it expires by itself,
- *      with a one-time `AutomationResumeJob` that records the end (R-A5, ADR-NEXT);
+ *      with a one-time `AutomationResumeJob` that records the end (R-A5, ADR-0055);
  *   3. the per automation switch, held as a row per automation on Automation Setting.
  *
  * An automation whose shipped registry row carries `Always_Runs__c` is none of these three
