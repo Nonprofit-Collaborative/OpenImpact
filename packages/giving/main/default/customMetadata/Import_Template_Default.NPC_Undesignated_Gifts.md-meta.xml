@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <label>Nonprofit Cloud: undesignated gifts</label>
+  <protected>true</protected>
+  <values>
+    <field>Template_Key__c</field>
+    <value xsi:type="xsd:string">npc_undesignated_gifts</value>
+  </values>
+  <values>
+    <field>Description__c</field>
+    <value xsi:type="xsd:string">Gifts from people, exported from Nonprofit Cloud, that have no fund designation: one line for each paid gift. The donor is found by email and each gift goes to your default fund. Use the export on the "Migrating from Nonprofit Cloud" page of the admin guide.</value>
+  </values>
+  <values>
+    <field>Column_Mapping_JSON__c</field>
+    <value
+      xsi:type="xsd:string"
+    >{"version": 1, "columns": [{"source": "Id", "target": "Gift.External_Id__c"}, {"source": "OriginalAmount", "target": "Gift.Amount__c"}, {"source": "TransactionDate", "target": "Gift.Gift_Date__c"}, {"source": "PaymentMethod", "target": "Gift.Type__c"}, {"source": "PaymentIdentifier", "target": "Gift.Payment_Reference__c"}, {"source": "Campaign.Name", "target": "Gift.Appeal"}, {"source": "Donor.FirstName", "target": "Contact1.FirstName"}, {"source": "Donor.LastName", "target": "Contact1.LastName"}, {"source": "Donor.PersonEmail", "target": "Contact1.Email"}, {"source": "Donor.PersonMailingPostalCode", "target": "Contact1.MailingPostalCode"}]}</value>
+  </values>
+  <values>
+    <field>Default_Values_JSON__c</field>
+    <value xsi:type="xsd:string">{"version": 1, "defaults": []}</value>
+  </values>
+  <values>
+    <field>Matching_Rule__c</field>
+    <value xsi:type="xsd:string">Email exact</value>
+  </values>
+  <values>
+    <field>Person_Mode__c</field>
+    <value xsi:type="xsd:string">Contacts</value>
+  </values>
+  <values>
+    <field>Default_Active__c</field>
+    <value xsi:type="xsd:boolean">true</value>
+  </values>
+</CustomMetadata>

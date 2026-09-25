@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <label>Nonprofit Cloud: organization gifts</label>
+  <protected>true</protected>
+  <values>
+    <field>Template_Key__c</field>
+    <value xsi:type="xsd:string">npc_organization_gifts</value>
+  </values>
+  <values>
+    <field>Description__c</field>
+    <value xsi:type="xsd:string">Gifts from organizations, exported from Nonprofit Cloud with their fund designations: one line for each designation of each paid gift. The organization is found by its name, or created. Use the export on the "Migrating from Nonprofit Cloud" page of the admin guide.</value>
+  </values>
+  <values>
+    <field>Column_Mapping_JSON__c</field>
+    <value
+      xsi:type="xsd:string"
+    >{"version": 1, "columns": [{"source": "GiftTransactionId", "target": "Gift.External_Id__c"}, {"source": "GiftTransaction.OriginalAmount", "target": "Gift.Amount__c"}, {"source": "GiftTransaction.TransactionDate", "target": "Gift.Gift_Date__c"}, {"source": "GiftTransaction.PaymentMethod", "target": "Gift.Type__c"}, {"source": "GiftTransaction.PaymentIdentifier", "target": "Gift.Payment_Reference__c"}, {"source": "GiftTransaction.Campaign.Name", "target": "Gift.Appeal"}, {"source": "GiftTransaction.Donor.Name", "target": "Organization.Name"}, {"source": "GiftDesignation.Name", "target": "Allocation.Fund1"}, {"source": "Amount", "target": "Allocation.Amount1"}, {"source": "Fund 2", "target": "Allocation.Fund2"}, {"source": "Amount 2", "target": "Allocation.Amount2"}, {"source": "Fund 3", "target": "Allocation.Fund3"}, {"source": "Amount 3", "target": "Allocation.Amount3"}, {"source": "Fund 4", "target": "Allocation.Fund4"}, {"source": "Amount 4", "target": "Allocation.Amount4"}, {"source": "Fund 5", "target": "Allocation.Fund5"}, {"source": "Amount 5", "target": "Allocation.Amount5"}]}</value>
+  </values>
+  <values>
+    <field>Default_Values_JSON__c</field>
+    <value xsi:type="xsd:string">{"version": 1, "defaults": []}</value>
+  </values>
+  <values>
+    <field>Matching_Rule__c</field>
+    <value xsi:type="xsd:string">Email exact</value>
+  </values>
+  <values>
+    <field>Person_Mode__c</field>
+    <value xsi:type="xsd:string">Contacts</value>
+  </values>
+  <values>
+    <field>Default_Active__c</field>
+    <value xsi:type="xsd:boolean">true</value>
+  </values>
+</CustomMetadata>

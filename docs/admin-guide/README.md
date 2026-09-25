@@ -125,6 +125,8 @@ Each feature adds its row here when its page is written.
 | G-17 Gift batches | [gift-batches.md](gift-batches.md) | Giving | v0.5 |
 | C-20 Duplicates | [duplicates.md](duplicates.md) | Core | v0.5 |
 | G-23 and G-24 Importing gifts and donation matching | [gift-import.md](gift-import.md) | Giving | v0.5 |
+| NPC import templates | [migrating-from-nonprofit-cloud.md](migrating-from-nonprofit-cloud.md) | Giving | v0.5 |
+| NPSP import templates | [migrating-from-npsp.md](migrating-from-npsp.md) | Giving | v0.5 |
 | C-01 Household members | [household-members.md](household-members.md) | Core | v0.1 |
 | X-09 Nonprofit Cloud households | [nonprofit-cloud-households.md](nonprofit-cloud-households.md) | Core | v0.6 |
 | X-03 Inbound gift API | [inbound-gift-api.md](inbound-gift-api.md) | Connect | v0.6 |
