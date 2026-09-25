@@ -5,9 +5,11 @@
  * A page rather than a report, because a packaged report type over Opportunity would stop Connect
  * installing where Opportunity does not exist (ADR-0013). It reads in user mode and writes
  * nothing, so each person sees the differences among the records they can see. A range too large
- * to compare in one transaction is refused rather than shown in part (ADR-0051): the counts stop
- * one past the most it reads, the rows it will read must fit what the transaction has left, and
- * the gifts are read 200 at a time, keeping only those whose Opportunity is looked up after.
+ * to compare in one transaction is refused rather than shown in part (ADR-0051): each side's read
+ * stops one past the most it compares, the four reads' rows at that most (both sides, the
+ * Opportunities gifts name outside the range, the gifts naming the won ones) must fit what the
+ * transaction has left, and the gifts are read 200 at a time, keeping only those whose
+ * Opportunity is looked up after.
  */
 public with sharing class OpportunityMirrorReconciliation {
     /** The most gifts, and separately the most won Opportunities, one comparison reads. */
@@ -96,48 +98,39 @@ public with sharing class OpportunityMirrorReconciliation {
         String opportunityObject = OpportunityMirrorService.opportunityType()
             .getDescribe()
             .getName();
-        Integer giftCount = OpportunityMirrorSelector.countGiftsInRange(
-            fromDate,
-            toDate,
-            maxRecords + 1
-        );
-        Integer wonCount = OpportunityMirrorSelector.countWonInRange(
+        // Bound by name in the selector's gift query, as are the dates and statuses.
+        Integer cap = maxRecords + 1;
+        // Each gift can cost a second row for its Opportunity, each won one a check for a gift.
+        if (4 * cap > Limits.getLimitQueryRows() - Limits.getQueryRows()) {
+            throw new ReconciliationException(Label.Connect_OpportunityMirror_ErrorTooMany);
+        }
+        List<SObject> won = OpportunityMirrorSelector.wonInRange(
             opportunityObject,
             fromDate,
             toDate,
-            maxRecords + 1
+            cap
         );
-        // Each gift can cost a second row for its Opportunity, each won one a check for a gift.
-        Integer rowsLeft = Limits.getLimitQueryRows() - Limits.getQueryRows();
-        if (
-            giftCount > maxRecords ||
-            wonCount > maxRecords ||
-            2 * (giftCount + wonCount) > rowsLeft
-        ) {
+        if (won.size() > maxRecords) {
             throw new ReconciliationException(Label.Connect_OpportunityMirror_ErrorTooMany);
         }
 
         Comparison result = new Comparison();
         Map<String, SObject> wonById = new Map<String, SObject>();
-        for (
-            SObject opportunity : OpportunityMirrorSelector.wonInRange(
-                opportunityObject,
-                fromDate,
-                toDate
-            )
-        ) {
+        for (SObject opportunity : won) {
             wonById.put(String.valueOf(opportunity.Id), opportunity);
             result.opportunityCount++;
             result.opportunityTotal += amountOf(opportunity.get('Amount'));
         }
 
-        // Bound by name in the selector's query.
         Set<String> statuses = OpportunityMirrorService.IN_TOTALS;
         Set<String> named = new Set<String>();
         // A gift in the range may name an Opportunity closed outside it, or one not won.
         List<Gift__c> elsewhere = new List<Gift__c>();
         Set<Id> elsewhereIds = new Set<Id>();
         for (List<Gift__c> chunk : Database.query(OpportunityMirrorSelector.GIFTS_IN_RANGE_QUERY)) {
+            if (result.giftCount + chunk.size() > maxRecords) {
+                throw new ReconciliationException(Label.Connect_OpportunityMirror_ErrorTooMany);
+            }
             for (Gift__c gift : chunk) {
                 result.giftCount++;
                 result.giftTotal += amountOf(gift.Amount__c);

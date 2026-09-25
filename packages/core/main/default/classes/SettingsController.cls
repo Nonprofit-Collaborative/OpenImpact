@@ -243,10 +243,23 @@ public with sharing class SettingsController {
         return model;
     }
 
-    /** A row naming a custom permission is only for those who hold it (ADR-0038 point 3). */
+    /**
+     * A row naming a custom permission is only for those who hold it (ADR-0038 point 3). The name
+     * is stored without a prefix: tried as given, then with this package's namespace, and a name
+     * found neither way hides the row.
+     */
     private static Boolean isVisible(Setting_Definition__mdt definition) {
-        return String.isBlank(definition.Required_Permission__c) ||
-            FeatureManagement.checkPermission(definition.Required_Permission__c.trim());
+        if (String.isBlank(definition.Required_Permission__c)) {
+            return true;
+        }
+        String name = definition.Required_Permission__c.trim();
+        if (FeatureManagement.checkPermission(name)) {
+            return true;
+        }
+        String prefix = NamespaceUtil.prefix();
+        return !name.contains('__') &&
+            String.isNotBlank(prefix) &&
+            FeatureManagement.checkPermission(prefix + name);
     }
 
     private static SettingModel toSetting(Setting_Definition__mdt definition) {
