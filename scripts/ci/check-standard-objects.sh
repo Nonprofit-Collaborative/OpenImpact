@@ -47,7 +47,14 @@
 # header row; nothing resolves them against this org's schema, so they are not a reference to
 # the object and cannot refuse a deployment. Such files are listed on each run, like the
 # detection-only lines, and are not failures. Every other file type, and every other custom
-# metadata type, is still checked.
+# metadata type, is still checked. The test is on the file's path (the part of grep's output
+# before the first colon), never on its content, so an Apex comment naming such a path is not
+# exempted.
+#
+# The exemption covers whole files. That is safe only while Import_Template_Default has no
+# MetadataRelationship field: such a field is resolved against the org at deploy time, so a
+# value naming another system's object would be a real reference. If the type ever gains one,
+# revisit this exemption.
 
 set -euo pipefail
 

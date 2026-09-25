@@ -15,7 +15,7 @@
  */
 @IsTest
 private class MigrationTemplatesTest {
-    /** The templates this package ships for moving from another system. */
+    /** The shipped migration templates: the people ones ship from Core, the gift ones from Giving. */
     private static final List<String> MIGRATION_KEYS = new List<String>{
         'npc_gift_transactions',
         'npc_undesignated_gifts',
@@ -131,7 +131,7 @@ private class MigrationTemplatesTest {
      * Whether the user who ran the import may edit this field. The importer skips a field its
      * user cannot write, and the packaged permission sets grant no standard contact field, so
      * on a minimal profile the email opt out and do not call flags are not Maria's to write.
-     * They are asserted where she can write them.
+     * The tests assert the value written where she may, and the skip where she may not.
      */
     private static Boolean importerMayEdit(Schema.SObjectField field) {
         Boolean result;
@@ -579,28 +579,35 @@ private class MigrationTemplatesTest {
         Assert.areEqual('503-555-0103', ana.HomePhone, 'Home phone.');
         Assert.areEqual(Date.newInstance(1980, 6, 1), ana.Birthdate, 'Birthdate.');
         Assert.areEqual('Portland', ana.MailingCity, 'Mailing address.');
-        if (importerMayEdit(Contact.HasOptedOutOfEmail)) {
-            Assert.isTrue(ana.HasOptedOutOfEmail, 'Her email opt-out comes with her.');
-        }
+        // Written where the importer may edit the field, and skipped (left false) where it may
+        // not: either way the outcome is asserted, never passed over.
+        Assert.areEqual(
+            importerMayEdit(Contact.HasOptedOutOfEmail),
+            ana.HasOptedOutOfEmail,
+            'Her email opt-out comes with her exactly when the importer may write it.'
+        );
         Assert.isFalse(ana.DoNotCall, 'And her phone preference.');
-        if (importerMayEdit(Contact.DoNotCall)) {
-            Assert.isTrue(
-                [SELECT DoNotCall FROM Contact WHERE LastName = 'Lee'].DoNotCall,
-                'His too.'
-            );
-        }
+        Assert.areEqual(
+            importerMayEdit(Contact.DoNotCall),
+            [SELECT DoNotCall FROM Contact WHERE LastName = 'Lee'].DoNotCall,
+            'His do not call comes with him exactly when the importer may write it.'
+        );
     }
 
     /**
      * Gifts loaded into the Nonprofit Cloud org itself, where the donors are already there as
      * person accounts: the gift file finds the donor by email and the gift is given by that
-     * person account. Runs only in an org with person accounts (oi-pa); a Platform only org
-     * has none to make (ADR-0013), and the contact shape is covered above.
+     * person account.
+     *
+     * ONLY IN A PERSON ACCOUNTS ORG (oi-pa). In an org without person accounts this test
+     * returns at once and asserts nothing, on purpose: a Platform only org has no person
+     * account to make (ADR-0013), and the contact shape is covered by the tests above.
      */
     @IsTest
     static void giftTransactionsFindDonorsAlreadyHeldAsPersonAccounts() {
         OrgShapeDetector.OrgShape shape = OrgShapeDetector.detect();
         if (shape.hasPersonAccounts != true || shape.personAccountRecordTypeIds.isEmpty()) {
+            // Not a person accounts org: nothing to test here (see the comment above).
             return;
         }
         HouseholdTestDataFactory.settings(HouseholdTestDataFactory.MODE_JUNCTION);

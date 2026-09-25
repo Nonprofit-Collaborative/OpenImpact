@@ -64,7 +64,9 @@ Salesforce org is needed for this job. Steps:
    deployment, and nothing else in the suite sees it: the offline Apex compiler does not
    read custom metadata records. It also fails a record that uses the `xsd:` prefix
    without declaring `xmlns:xsd`, a label over 40 characters, and a missing label (see
-   "Resolved 2026-09-22" below).
+   "Resolved 2026-09-22" below). And it compares each migration import template (key
+   `npc_` or `npsp_`) with its sample export in `docs/admin-guide/samples/`: the Apex tests
+   build rows from the template's own headings, so only this sees a misspelt heading.
    `scripts/ci/check-labels.py` does the same for custom labels: a name or short
    description over 80 characters, a value over 1000, or any of them missing, each of
    which only an org would otherwise report.
@@ -570,9 +572,16 @@ file under "Import template column headings, not references" on every run. Test 
 no such exemption: a test of a migration template reads the headings from the shipped
 mapping rather than spelling them out.
 
+The exemption is decided on the file's path, never on a line's content, so an Apex comment that
+names such a path is still checked. It covers whole files, which is safe only while the type
+has no MetadataRelationship field: a value in such a field is resolved against the org at
+deploy time, so if the type ever gains one, revisit the exemption.
+
 `check-namespace.sh` treats the same files the same way in its prefixed-component check,
 because an NPSP export heads its columns with NPSP's own prefixed names (`npe01__`, `npsp__`).
-It lists them and does not fail on them. Its literal `openimpact__` check still covers them.
+It lists them and does not fail on them. Its pattern is anchored to the path part of each
+`grep -rn` line, so a line in any other file that names such a path is still checked. Its
+literal `openimpact__` check still covers them.
 
 ## What happens when the secrets are missing
 
