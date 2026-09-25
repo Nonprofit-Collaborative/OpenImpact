@@ -241,7 +241,9 @@ missing values.
 
 **The run log says "Not matched on" a field.** Your user may not read the field your
 matching rule uses (for example Email under **Email exact**), so nobody in the file could be
-found by it and every person counts as new. Do not commit: ask your Salesforce administrator
+found by it, and a person your org holds only by that field counts as new. Where people
+are person accounts this can be one of the two postal codes (mailing or billing) while the
+other still matches. Do not commit: ask your Salesforce administrator
 for access to the field, then dry run again.
 
 **Gift columns in the file were not loaded.** Gifts are loaded by the Giving module. Without

@@ -278,4 +278,73 @@ private class ImportPersonAccountTest {
         Assert.areEqual(0, again.created, 'A dry run of the same file creates nobody.');
         Assert.areEqual(200, again.matched + again.updated, 'It finds all 200.');
     }
+
+    /**
+     * A user who may read a person's mailing postal code but not the billing one is still
+     * matched on the mailing one, and the run log names the billing one it could not use.
+     * The user holds only a permission set made here: read on accounts and contacts, and on
+     * the contact mailing address, which person account mailing fields follow.
+     */
+    @IsTest
+    static void aPostalCodeTheUserCannotReadIsNamedWhileTheOtherStillMatches() {
+        if (!orgHasPersonAccounts()) {
+            // Platform-only shape (ADR-0013): no person accounts to match.
+            return;
+        }
+        User reader = new User(
+            ProfileId = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1]
+            .Id,
+            LastName = 'Mailonly',
+            Email = 'mailonly@openimpact.test.invalid',
+            Username = 'mailonly' + DateTime.now().getTime() + '@openimpact.test.invalid',
+            Alias = 'mailonly',
+            TimeZoneSidKey = 'America/Los_Angeles',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert reader;
+            PermissionSet access = new PermissionSet(
+                Name = 'Import_Mail_Only_' + String.valueOf(Math.abs(Crypto.getRandomInteger())),
+                Label = 'Import mail only'
+            );
+            insert access;
+            insert new List<ObjectPermissions>{
+                new ObjectPermissions(
+                    ParentId = access.Id,
+                    SobjectType = 'Account',
+                    PermissionsRead = true
+                ),
+                new ObjectPermissions(
+                    ParentId = access.Id,
+                    SobjectType = 'Contact',
+                    PermissionsRead = true
+                )
+            };
+            insert new FieldPermissions(
+                ParentId = access.Id,
+                SobjectType = 'Contact',
+                Field = 'Contact.MailingAddress',
+                PermissionsRead = true
+            );
+            insert new PermissionSetAssignment(AssigneeId = reader.Id, PermissionSetId = access.Id);
+        }
+
+        Test.startTest();
+        System.runAs(reader) {
+            ImportMatcher.forgetHeldKeys();
+            ImportMatcher.personAccountsByNameAndPostalCode(
+                new Set<String>{ ImportMatcher.nameAndPostalKey('Ramirez', '97201') },
+                OrgShapeDetector.detect().personAccountRecordTypeIds
+            );
+        }
+        Test.stopTest();
+
+        Assert.areEqual(
+            new Set<String>{ Account.BillingPostalCode.getDescribe().getLabel() },
+            ImportMatcher.unreadableFields(),
+            'Only the billing postal code is named: the mailing one was readable and used.'
+        );
+    }
 }

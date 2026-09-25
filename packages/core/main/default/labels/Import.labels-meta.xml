@@ -158,7 +158,7 @@
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>Import run log: a matching field the importing user cannot read</shortDescription>
-        <value>Not matched on {0}: you do not have access to it, so nobody in this file could be found by it and each person counts as new. Ask your administrator for access to the field before you commit.</value>
+        <value>Not matched on {0}: you do not have access to it, so nobody could be found by it, and a person your org holds only by that field counts as new. Ask your administrator for access to the field before you commit.</value>
     </labels>
     <labels>
         <fullName>Core_Import_LogValueNotAccepted</fullName>
