@@ -1,6 +1,6 @@
 # Migrating from Nonprofit Cloud
 
-**Package:** Giving | **Iteration:** v0.5
+**Package:** Core and Giving | **Iteration:** v0.5
 
 ## 1. What it does
 
@@ -16,9 +16,9 @@ Nonprofit Cloud is in.
 
 ## 2. How to turn it on
 
-The Giving module brings the four mappings. In an org that has never opened the **Import** tab
-they appear the first time it opens. In an org that already had the generic mappings, add them
-once from Health Check:
+Open Impact brings the person accounts mapping, and the Giving module brings the three gift
+mappings. In an org that has never opened the **Import** tab they appear the first time it
+opens. In an org that already had the generic mappings, add them once from Health Check:
 
 1. Open the **Nonprofit Hub** app, click **Nonprofit Settings** and choose **Health**.
 2. The report opens (click **Re-run** if it is from earlier). A finding reads "4 shipped

@@ -1274,15 +1274,18 @@ read them: it runs under the values its dry run recorded on the batch (R-IB11, R
 template edited after the dry run changes the next dry run, not the commit.
 
 **R-IT5 What ships.** Core ships a generic donor list template and a generic gift list
-template (v0.2). Giving ships the migration templates (v0.5), as rows of Core's
-`Import_Template_Default__mdt`, the way it ships its rollup definition defaults:
+template (v0.2). The migration templates (v0.5) are rows of the same type, placed by what
+they load: a template that loads only people and organizations ships from Core, so an org
+with only Core installed can use it, and a template that loads any gift target ships from
+Giving, the way Giving ships its rollup definition defaults. Each has a sample export in
+`docs/admin-guide/samples/` that `check-custom-metadata.py` compares with its headings.
 
-| Template Key | Reads |
-|---|---|
-| `npc_person_accounts` | An export of Nonprofit Cloud person accounts |
-| `npc_gift_transactions` | An export of gift transaction designations whose donor is a person, one row per designation |
-| `npc_organization_gifts` | The same export whose donor is not a person |
-| `npc_undesignated_gifts` | An export of gift transactions with no designation |
+| Template Key | Package | Reads |
+|---|---|---|
+| `npc_person_accounts` | Core | An export of Nonprofit Cloud person accounts |
+| `npc_gift_transactions` | Giving | An export of gift transaction designations whose donor is a person, one row per designation |
+| `npc_organization_gifts` | Giving | The same export whose donor is not a person |
+| `npc_undesignated_gifts` | Giving | An export of gift transactions with no designation |
 
 A migration template is a mapping document and nothing else: its column headings are the
 other system's API names as a Data Loader export heads them, held as data, so no package

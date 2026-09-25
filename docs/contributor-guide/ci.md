@@ -64,7 +64,9 @@ Salesforce org is needed for this job. Steps:
    deployment, and nothing else in the suite sees it: the offline Apex compiler does not
    read custom metadata records. It also fails a record that uses the `xsd:` prefix
    without declaring `xmlns:xsd`, a label over 40 characters, and a missing label (see
-   "Resolved 2026-09-22" below).
+   "Resolved 2026-09-22" below). And it compares each migration import template (key
+   `npc_` or `npsp_`) with its sample export in `docs/admin-guide/samples/`: the Apex tests
+   build rows from the template's own headings, so only this sees a misspelt heading.
    `scripts/ci/check-labels.py` does the same for custom labels: a name or short
    description over 80 characters, a value over 1000, or any of them missing, each of
    which only an org would otherwise report.
