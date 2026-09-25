@@ -16,7 +16,7 @@ at runtime.
 | Connect | Campaign (and later Opportunity, Gift Transaction) | `CampaignSyncService`, `CampaignSyncSelector` | ADR-0056 |
 | Core | Person Account fields (`PersonEmail`, `PersonMailingPostalCode`, `...__pc`) | `ImportMatcher`, `ImportRowProcessor.storedName` | ADR-0013 |
 | Core | Giving objects (`Receipt__c`) | `ReceiptGapSelector` | ADR-0017 |
-| Core | Giving behaviour (classes) | `ImportEntityProcessors`, `SampleDataModules`, `HealthCheckExtensions` | ADR-0017, ADR-0057 |
+| Core | Giving behaviour (classes) | `ImportEntityProcessors`, `SampleDataModules`, `HealthCheckExtensions`, `SetupAssistantExtensions` | ADR-0017, ADR-0057, ADR-NEXT |
 | Core | Industries, NPSP, Sales Cloud detection | `OrgShapeDetector` | ADR-0013 |
 
 The shape, from `CampaignSyncService`:
@@ -66,9 +66,9 @@ is the only guard: hold those names as strings, as `ImportMatcher` does.
 ## 3. Discovering a class in another package (`Type.forName`)
 
 Core defines an interface; a dependent package implements it under a known class name; Core
-looks the class up at runtime. Three resolvers share one shape (`ImportEntityProcessors`,
-`HealthCheckExtensions`, `SampleDataModules`), and `TriggerDispatcher` uses it for registry
-handlers.
+looks the class up at runtime. Four resolvers share one shape (`ImportEntityProcessors`,
+`HealthCheckExtensions`, `SampleDataModules`, `SetupAssistantExtensions`), and
+`TriggerDispatcher` uses it for registry handlers.
 
 ```apex
 private static HealthCheckExtension resolve() {
