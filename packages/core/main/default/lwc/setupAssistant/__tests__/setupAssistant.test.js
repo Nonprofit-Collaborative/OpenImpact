@@ -41,7 +41,7 @@ jest.mock(
 const STEP_DEFINITIONS = [
   ['coexistence', 'Confirm how Open Impact fits your existing org', 'Setting'],
   ['naming', 'Confirm how households are named', 'Setting'],
-  ['funddefaults', 'Choose your default fund and appeal', 'Setting'],
+  ['moduledefaults', 'Choose a default contact', 'Setting'],
   ['access', 'Give your colleagues access', 'Action'],
   ['identity', "Set your organization's identity", 'Setting'],
   ['modules', 'Choose which modules to turn on', 'Action'],
@@ -51,26 +51,24 @@ const STEP_DEFINITIONS = [
 
 // The fields each step declares, as Apex sends them: Core's own and those a module adds.
 const STEP_FIELDS = {
-  funddefaults: [
+  moduledefaults: [
     {
       fieldType: 'Record',
-      key: 'Default_Fund__c',
-      label: 'Default fund',
-      objectApiName: 'Fund__c'
+      key: 'Default_Contact__c',
+      label: 'Default contact',
+      objectApiName: 'Contact'
     },
     {
       fieldType: 'Record',
-      key: 'Default_Appeal__c',
-      label: 'Default appeal',
-      objectApiName: 'Appeal__c'
+      key: 'Default_Account__c',
+      label: 'Default account',
+      objectApiName: 'Account'
     }
   ],
   identity: [
     { fieldType: 'Text', key: 'Organization_Legal_Name__c', label: 'Legal name', value: null }
   ],
-  verify: [
-    { fieldType: 'Navigate', label: 'Enter your first gift', navigationTarget: 'Gift_Entry' }
-  ]
+  verify: [{ fieldType: 'Navigate', label: 'Open the module', navigationTarget: 'Module_Tab' }]
 };
 
 function steps(completedKeys = [], skippedKeys = []) {
@@ -85,7 +83,7 @@ function steps(completedKeys = [], skippedKeys = []) {
     completionRule: rule,
     isAvailable: true,
     fields: STEP_FIELDS[key] || [],
-    advanceOnSave: key === 'funddefaults',
+    advanceOnSave: key === 'moduledefaults',
     skipped: skippedKeys.includes(key),
     completed: completedKeys.includes(key)
   }));
@@ -108,8 +106,8 @@ function state(overrides = {}) {
     },
     modules: [{ name: 'Core', present: true, docsUrl: 'https://example.invalid/core' }],
     roles: [
-      { developerName: 'Nonprofit_Admin', label: 'Nonprofit Admin' },
-      { developerName: 'Fundraising_Staff', label: 'Fundraising Staff' }
+      { developerName: 'Nonprofit_Admin', label: 'Open Impact Admin' },
+      { developerName: 'Program_Staff', label: 'Program Staff' }
     ],
     importAvailable: false,
     ...overrides
@@ -136,10 +134,10 @@ describe('c-setup-assistant', () => {
   beforeEach(() => {
     getState.mockResolvedValue(state());
     completeStep.mockResolvedValue(state({ completedKeys: ['modules'] }));
-    skipStep.mockResolvedValue(state({ skippedKeys: ['funddefaults'] }));
+    skipStep.mockResolvedValue(state({ skippedKeys: ['moduledefaults'] }));
     applyCoexistence.mockResolvedValue(state({ completedKeys: ['coexistence'] }));
     saveStepValues.mockResolvedValue(
-      state({ completedKeys: ['coexistence', 'naming', 'funddefaults'] })
+      state({ completedKeys: ['coexistence', 'naming', 'moduledefaults'] })
     );
     assignAccess.mockResolvedValue(state({ completedKeys: ['access'] }));
     resetSetup.mockResolvedValue(state());
@@ -158,7 +156,7 @@ describe('c-setup-assistant', () => {
     await settle();
 
     const label = element.shadowRoot.querySelector('[data-id="step-label"]');
-    expect(label.textContent).toContain('Choose your default fund and appeal');
+    expect(label.textContent).toContain('Choose a default contact');
     expect(element.shadowRoot.querySelectorAll('[data-id="step-label"]')).toHaveLength(1);
   });
 
@@ -203,7 +201,9 @@ describe('c-setup-assistant', () => {
   });
 
   it('marks a step with no setting behind it done when Maria moves on', async () => {
-    getState.mockResolvedValue(state({ completedKeys: ['coexistence', 'naming', 'funddefaults'] }));
+    getState.mockResolvedValue(
+      state({ completedKeys: ['coexistence', 'naming', 'moduledefaults'] })
+    );
     const element = build();
     await settle();
 
@@ -220,21 +220,21 @@ describe('c-setup-assistant', () => {
 
     const panel = element.shadowRoot.querySelector('c-setup-step-fields');
     expect(panel.fields.map((field) => field.key)).toEqual([
-      'Default_Fund__c',
-      'Default_Appeal__c'
+      'Default_Contact__c',
+      'Default_Account__c'
     ]);
     panel.dispatchEvent(
       new CustomEvent('save', {
-        detail: { values: { Default_Fund__c: 'a01000000000001', Default_Appeal__c: null } }
+        detail: { values: { Default_Contact__c: '003000000000001', Default_Account__c: null } }
       })
     );
     await settle();
 
     expect(saveStepValues).toHaveBeenCalledWith({
-      stepKey: 'funddefaults',
-      values: { Default_Fund__c: 'a01000000000001', Default_Appeal__c: null }
+      stepKey: 'moduledefaults',
+      values: { Default_Contact__c: '003000000000001', Default_Account__c: null }
     });
-    // The fund and appeal step asks one question, so answering it moves on.
+    // The module step asks one question, so answering it moves on.
     expect(element.shadowRoot.querySelector('[data-id="step-label"]').textContent).toContain(
       'Give your colleagues access'
     );
@@ -249,7 +249,9 @@ describe('c-setup-assistant', () => {
   });
 
   it('gives a colleague a role from inside the assistant', async () => {
-    getState.mockResolvedValue(state({ completedKeys: ['coexistence', 'naming', 'funddefaults'] }));
+    getState.mockResolvedValue(
+      state({ completedKeys: ['coexistence', 'naming', 'moduledefaults'] })
+    );
     const element = build();
     await settle();
 
@@ -258,26 +260,28 @@ describe('c-setup-assistant', () => {
       .dispatchEvent(new CustomEvent('change', { detail: { recordId: '005000000000001' } }));
     element.shadowRoot
       .querySelector('lightning-combobox')
-      .dispatchEvent(new CustomEvent('change', { detail: { value: 'Fundraising_Staff' } }));
+      .dispatchEvent(new CustomEvent('change', { detail: { value: 'Program_Staff' } }));
     click(element, 'give-access');
     await settle();
 
     expect(assignAccess).toHaveBeenCalledWith({
       userId: '005000000000001',
-      roleDeveloperName: 'Fundraising_Staff'
+      roleDeveloperName: 'Program_Staff'
     });
     expect(completeStep).toHaveBeenCalledWith({ stepKey: 'access' });
   });
 
   it('offers each role by its label, not its developer name', async () => {
-    getState.mockResolvedValue(state({ completedKeys: ['coexistence', 'naming', 'funddefaults'] }));
+    getState.mockResolvedValue(
+      state({ completedKeys: ['coexistence', 'naming', 'moduledefaults'] })
+    );
     const element = build();
     await settle();
 
     const options = element.shadowRoot.querySelector('lightning-combobox').options;
     expect(options).toEqual([
-      { label: 'Nonprofit Admin', value: 'Nonprofit_Admin' },
-      { label: 'Fundraising Staff', value: 'Fundraising_Staff' }
+      { label: 'Open Impact Admin', value: 'Nonprofit_Admin' },
+      { label: 'Program Staff', value: 'Program_Staff' }
     ]);
   });
 
@@ -307,10 +311,10 @@ describe('c-setup-assistant', () => {
 
   it('saves the organization step and stays on it for the remaining answers', async () => {
     getState.mockResolvedValue(
-      state({ completedKeys: ['coexistence', 'naming', 'funddefaults', 'access'] })
+      state({ completedKeys: ['coexistence', 'naming', 'moduledefaults', 'access'] })
     );
     saveStepValues.mockResolvedValue(
-      state({ completedKeys: ['coexistence', 'naming', 'funddefaults', 'access', 'identity'] })
+      state({ completedKeys: ['coexistence', 'naming', 'moduledefaults', 'access', 'identity'] })
     );
     const element = build();
     await settle();
@@ -333,18 +337,18 @@ describe('c-setup-assistant', () => {
 
   it('shows a save error on the step and stays there', async () => {
     getState.mockResolvedValue(state({ completedKeys: ['coexistence', 'naming'] }));
-    saveStepValues.mockRejectedValue({ body: { message: 'That record is not a fund.' } });
+    saveStepValues.mockRejectedValue({ body: { message: 'That record is not a contact.' } });
     const element = build();
     await settle();
 
     element.shadowRoot
       .querySelector('c-setup-step-fields')
-      .dispatchEvent(new CustomEvent('save', { detail: { values: { Default_Fund__c: 'x' } } }));
+      .dispatchEvent(new CustomEvent('save', { detail: { values: { Default_Contact__c: 'x' } } }));
     await settle();
 
-    expect(element.shadowRoot.textContent).toContain('That record is not a fund.');
+    expect(element.shadowRoot.textContent).toContain('That record is not a contact.');
     expect(element.shadowRoot.querySelector('[data-id="step-label"]').textContent).toContain(
-      'Choose your default fund and appeal'
+      'Choose a default contact'
     );
   });
 
@@ -362,7 +366,7 @@ describe('c-setup-assistant', () => {
   it('shows the sample data panel now that C-10 ships it', async () => {
     getState.mockResolvedValue(
       state({
-        completedKeys: ['coexistence', 'naming', 'funddefaults', 'access', 'identity', 'modules']
+        completedKeys: ['coexistence', 'naming', 'moduledefaults', 'access', 'identity', 'modules']
       })
     );
     const element = build();
@@ -381,7 +385,7 @@ describe('c-setup-assistant', () => {
         completedKeys: [
           'coexistence',
           'naming',
-          'funddefaults',
+          'moduledefaults',
           'access',
           'identity',
           'modules',
@@ -393,18 +397,18 @@ describe('c-setup-assistant', () => {
     await settle();
 
     const panel = element.shadowRoot.querySelector('c-setup-step-fields');
-    expect(panel.fields[0].navigationTarget).toBe('Gift_Entry');
+    expect(panel.fields[0].navigationTarget).toBe('Module_Tab');
   });
 
   it('opens on a step Maria skipped the next time she comes back', async () => {
     getState.mockResolvedValue(
-      state({ completedKeys: ['coexistence', 'naming'], skippedKeys: ['funddefaults'] })
+      state({ completedKeys: ['coexistence', 'naming'], skippedKeys: ['moduledefaults'] })
     );
     const element = build();
     await settle();
 
     expect(element.shadowRoot.querySelector('[data-id="step-label"]').textContent).toContain(
-      'Choose your default fund and appeal'
+      'Choose a default contact'
     );
   });
 
@@ -420,7 +424,9 @@ describe('c-setup-assistant', () => {
   });
 
   it('confirms that a colleague was given a role', async () => {
-    getState.mockResolvedValue(state({ completedKeys: ['coexistence', 'naming', 'funddefaults'] }));
+    getState.mockResolvedValue(
+      state({ completedKeys: ['coexistence', 'naming', 'moduledefaults'] })
+    );
     const element = build();
     await settle();
 
@@ -429,7 +435,7 @@ describe('c-setup-assistant', () => {
       .dispatchEvent(new CustomEvent('change', { detail: { recordId: '005000000000001' } }));
     element.shadowRoot
       .querySelector('lightning-combobox')
-      .dispatchEvent(new CustomEvent('change', { detail: { value: 'Fundraising_Staff' } }));
+      .dispatchEvent(new CustomEvent('change', { detail: { value: 'Program_Staff' } }));
     const picker = element.shadowRoot.querySelector('[data-id="user-picker"]');
     picker.clearSelection = jest.fn();
     click(element, 'give-access');
