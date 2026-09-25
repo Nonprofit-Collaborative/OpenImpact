@@ -65,6 +65,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0054](0054-a-pending-gift-that-will-never-be-paid-is-cancelled.md) | A Pending gift that will never be paid is cancelled, not written off | Accepted |
 | [0055](0055-automatic-resume-and-error-digest.md) | A pause ends through a one-time resume job, and the error digest counts and goes only to users | Accepted (builder decision) |
 | [0056](0056-campaign-sync-keeps-its-link-on-the-appeal.md) | Campaign sync keeps its link on the appeal, writes with the saver's access, and is off until switched on | Accepted (builder decision) |
+| [0057](0057-health-check-extension-for-dependent-packages.md) | A Health Check extension seam lets a dependent package add findings without Core depending on it | Accepted (builder decision) |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
 (Section 12). ADR-0013, ADR-0014, ADR-0018, ADR-0019, ADR-0020 and ADR-0021 are builder decisions
@@ -125,6 +126,10 @@ receives the error digest and what it may say.
 ADR-0056 is a builder decision for X-02 on where the Campaign sync link lives, why it writes
 in the saver's user mode, and why it ships off until an administrator switches it on; it
 amends ADR-0029, under which Connect also gains a post-install script.
+ADR-0057 is a builder decision for G-20's follow-up on a Health Check extension seam:
+`HealthCheckExtension` and a `Type.forName` resolver let a dependent package fold its own
+findings into Core's one report without Core naming that package; it amends ADR-0021 with the
+sharing exception `HealthCheckGivingSelector` needs to read gifts in a closed period org-wide.
 
 ## Adding a new ADR
 

@@ -13,6 +13,14 @@
  *
  * `selectSwitchableAutomationNames` reads the shipped automation registry, which is package
  * metadata holding no organization data, as `AutomationRegistrySelector` does.
+ *
+ * The Health Check finding for unposted gifts in a closed period (G-20 follow-up) reads through
+ * `HealthCheckGivingSelector` instead, `without sharing`: `WITH SYSTEM_MODE` here only lifts
+ * field and object security, not sharing (the class keyword is what decides that), and every
+ * method in this class deliberately keeps the running user's sharing (`with sharing`) because
+ * each one answers a question about what that user may lock, save or post. A report on the
+ * whole org's posting state is a different question, so it lives in its own selector rather
+ * than bending this one's sharing for a single pair of methods.
  */
 public with sharing class GiftPostingSelector {
     /**

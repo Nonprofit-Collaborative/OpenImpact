@@ -3,6 +3,11 @@
 **Status:** Accepted
 **Date:** 2026-09-08
 **Source:** builder decision under plan Section 9.3 (platform limitation); refines plan Section 4.13 and ADR-0006
+**Amended by:** ADR-0057 (a Health Check extension seam lets a dependent package add findings
+  without Core depending on it), under which one read that reaches a user, the count behind the
+  unposted-in-closed-period finding, is an explicit exception to the "reads that reach a user
+  stay in user mode" line below, because Gift__c ships Private and the count must be an
+  organization-wide fact, not narrowed by which gifts the viewer happens to own or share.
 
 ## Context
 

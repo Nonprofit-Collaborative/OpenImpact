@@ -16,20 +16,46 @@
  * - HealthCheckHouseholdChecks: whether everyone is in a household and every household has
  *   somebody in it. Detection only, with no fix button (C-21, ADR-0048).
  *
+ * A dependent package that owns data Core may not name (a gift, an accounting period) adds
+ * its own findings through `HealthCheckExtension`, found by `HealthCheckExtensions` with
+ * `Type.forName` (G-20 follow-up, ADR-0053, ADR-0057), never by Core learning what a gift is.
+ *
  * Every check is isolated. A check that throws becomes a finding of its own and is written
  * to the Error Log; the other checks still run, because a report that hides eight answers
- * because the ninth failed is worse than no report.
+ * because the ninth failed is worse than no report. A package extension's findings are
+ * isolated the same way.
  *
  * Every string an administrator reads comes from a Custom Label.
+ *
+ * `@NamespaceAccessible` on the members `HealthCheckGivingChecks` actually reaches (ADR-0017):
+ * the class itself, `Finding` with its constructor, `withFix` and `withLinks`, `Link` with its
+ * constructor, the two vocabulary constants Giving's one finding uses (`SEVERITY_WARNING`,
+ * `CATEGORY_SETTINGS`), `canManageSettings()`, and `run()`, which `GivingHealthCheckExtensionTest`
+ * calls directly to prove Core reaches the installed extension. A severity, category or method a
+ * future extension needs and this one does not gets annotated when that extension is built, not
+ * ahead of it.
+ *
+ * `Finding`'s own fields (`key`, `title`, `severity`, `category`, `fixLabel`, `fixTarget`,
+ * `links`) carry `@AuraEnabled` and nothing else: the platform rejects `@NamespaceAccessible` on
+ * a field that is already `@AuraEnabled` (a compile error, not a style choice). Giving reads
+ * them today as ordinary public fields on a `Finding` instance it only ever gets back from an
+ * already-`@NamespaceAccessible` constructor or method (the constructor, `withFix`,
+ * `withLinks`), the same way `HealthCheckGivingChecksTest` and `GivingHealthCheckExtensionTest`
+ * read them now. If a namespace is registered and a future compile shows these fields are not
+ * actually reachable from Giving, the fix is a `@NamespaceAccessible` getter for the one field
+ * that fails, not re-attempting this annotation on the field itself.
  */
+@NamespaceAccessible
 public with sharing class HealthCheckService {
     public static final String SEVERITY_INFO = 'Info';
+    @NamespaceAccessible
     public static final String SEVERITY_WARNING = 'Warning';
     public static final String SEVERITY_ERROR = 'Error';
 
     public static final String CATEGORY_ORG_SHAPE = 'OrgShape';
     public static final String CATEGORY_LICENSES = 'Licenses';
     public static final String CATEGORY_ACCESS = 'Access';
+    @NamespaceAccessible
     public static final String CATEGORY_SETTINGS = 'Settings';
 
     /**
@@ -159,6 +185,7 @@ public with sharing class HealthCheckService {
     private static AccessCounts accessCountsOverride;
 
     /** One thing Health Check has to say about this org. */
+    @NamespaceAccessible
     public class Finding {
         @AuraEnabled
         public String key;
@@ -181,6 +208,7 @@ public with sharing class HealthCheckService {
         @AuraEnabled
         public List<Link> links;
 
+        @NamespaceAccessible
         public Finding(String key, String title, String detail, String severity, String category) {
             this.key = key;
             this.title = title;
@@ -189,6 +217,7 @@ public with sharing class HealthCheckService {
             this.category = category;
         }
 
+        @NamespaceAccessible
         public Finding withFix(String fixLabel, String fixTarget) {
             this.fixLabel = fixLabel;
             this.fixTarget = fixTarget;
@@ -200,6 +229,7 @@ public with sharing class HealthCheckService {
             return this;
         }
 
+        @NamespaceAccessible
         public Finding withLinks(List<Link> links) {
             this.links = links;
             return this;
@@ -207,12 +237,14 @@ public with sharing class HealthCheckService {
     }
 
     /** One record a finding names, with where to open it. */
+    @NamespaceAccessible
     public class Link {
         @AuraEnabled
         public String label;
         @AuraEnabled
         public String url;
 
+        @NamespaceAccessible
         public Link(SObject record) {
             this.label = String.valueOf(record.get('Name'));
             this.url =
@@ -325,6 +357,7 @@ public with sharing class HealthCheckService {
      * A check that throws becomes one finding of its own; the rest still run, because a
      * report that hides eight answers because the ninth failed is worse than no report.
      */
+    @NamespaceAccessible
     public static List<Finding> run() {
         List<Finding> findings = new List<Finding>();
 
@@ -339,7 +372,28 @@ public with sharing class HealthCheckService {
             }
         }
 
+        findings.addAll(extensionFindings());
+
         return findings;
+    }
+
+    /**
+     * Findings a dependent package adds through `HealthCheckExtension` (G-20 follow-up,
+     * ADR-0057), isolated the same way a check that throws is: the rest of the report still
+     * stands, and the failure is written to the Error Log rather than shown as this package's
+     * own answer.
+     */
+    private static List<Finding> extensionFindings() {
+        HealthCheckExtension extension = HealthCheckExtensions.find();
+        if (extension == null) {
+            return new List<Finding>();
+        }
+        try {
+            List<Finding> extra = extension.findings();
+            return extra == null ? new List<Finding>() : extra;
+        } catch (Exception e) {
+            return new List<Finding>{ checkFailed('giving_extension', e) };
+        }
     }
 
     /**
@@ -478,6 +532,7 @@ public with sharing class HealthCheckService {
      * Whether the viewer may change settings, which is also the permission that lets them
      * see who else is in the org.
      */
+    @NamespaceAccessible
     public static Boolean canManageSettings() {
         return FeatureManagement.checkPermission(MANAGE_SETTINGS);
     }
