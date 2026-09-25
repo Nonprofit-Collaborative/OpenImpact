@@ -79,8 +79,9 @@ Assistant flow and labels as before.
 7. **Core fields that hold a module's record identifier are labelled neutrally.**
    `Import_Row__c.Gift_Id__c` and `Soft_Credit_Id__c` are on Core's Import Row layout, so a
    Core-only org would see them. They stay on the layout, where an org with Giving still reads
-   them, and are relabelled Record Created and Second Record Created, with their API names
-   unchanged under decision 6.
+   them, and are relabelled Resulting Record and Second Resulting Record, since a module's
+   import can also match a row to an existing record rather than creating one, with their API
+   names unchanged under decision 6.
 
 ## Alternatives considered
 

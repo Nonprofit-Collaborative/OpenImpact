@@ -1846,8 +1846,8 @@ when the corrected row is loaded again.
 | Contact 2 | `Contact_2__c` | Lookup to Contact |
 | Person 2 Account | `Person_2_Account__c` | Lookup to Account |
 | Organization | `Organization__c` | Lookup to Account |
-| Record Created | `Gift_Id__c` | Text (18) |
-| Second Record Created | `Soft_Credit_Id__c` | Text (18) |
+| Resulting Record | `Gift_Id__c` | Text (18) |
+| Second Resulting Record | `Soft_Credit_Id__c` | Text (18) |
 | Person 1 Key | `Person_1_Key__c` | Text (16), External ID (indexed) |
 | Person 2 Key | `Person_2_Key__c` | Text (16), External ID (indexed) |
 | Person 1 Name Key | `Person_1_Name_Key__c` | Text (16), External ID (indexed) |
