@@ -40,6 +40,7 @@ public with sharing class SettingDefinitionSelector {
                 Navigation_Target__c,
                 Description__c,
                 Help_Path__c,
+                Required_Permission__c,
                 Sort_Order__c
             FROM Setting_Definition__mdt
             WITH SYSTEM_MODE

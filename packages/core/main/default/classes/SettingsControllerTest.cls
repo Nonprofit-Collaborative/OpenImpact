@@ -165,6 +165,35 @@ private class SettingsControllerTest {
     }
 
     @IsTest
+    static void aRowForAModulePermissionIsHiddenFromThoseWithoutIt() {
+        stubDefinitions();
+        SettingDefinitionSelector.stubbedRows.add(
+            new Setting_Definition__mdt(
+                DeveloperName = 'Module_Page',
+                MasterLabel = 'Mirror page',
+                Section__c = SettingSections.AUTOMATION,
+                Module__c = 'Connect',
+                Data_Type__c = 'Component',
+                Component__c = 'modulePage',
+                Required_Permission__c = 'Permission_Nobody_Holds',
+                Sort_Order__c = 2
+            )
+        );
+
+        Test.startTest();
+        SettingsController.ConsoleModel model = SettingsController.getConsoleModel();
+        List<SettingsController.SearchHit> hits = SettingsController.search('mirror page');
+        Test.stopTest();
+
+        for (SettingsController.SectionModel section : model.sections) {
+            for (SettingsController.SettingModel setting : section.settings) {
+                Assert.areNotEqual('Module_Page', setting.key, 'Not shown without the permission.');
+            }
+        }
+        Assert.isTrue(hits.isEmpty(), 'Nor found by search.');
+    }
+
+    @IsTest
     static void savesWhatMariaChanged() {
         stubDefinitions();
         Assert.isTrue(
