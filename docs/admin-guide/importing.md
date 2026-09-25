@@ -49,7 +49,9 @@ or six rows.
 3. Check the columns. Each column shows what Open Impact thinks it is, for example
    "Email" for a column headed `Donor Email`. Change anything that is wrong from the
    picker beside it. A column you do not want loaded is set to **Do not load**, and its
-   values are kept on the staged row but written nowhere.
+   values are kept on the staged row but written nowhere. The mapping remembers your
+   choices: the next file with the same headings opens with them, and a column you set to
+   **Do not load** stays that way even when Open Impact recognizes its heading.
 4. Choose how rows are matched. **Email exact** is the safe default. Read the sentence
    under each rule before you change it: **Name plus postal code** will treat two
    different people who share a name at one address as the same person.

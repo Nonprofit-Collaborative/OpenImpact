@@ -82,6 +82,49 @@ private class ImportControllerTest {
         );
     }
 
+    /**
+     * Do not load is a choice, and a saved choice wins over the column library: a heading the
+     * library recognizes, set to Do not load and saved, is still Do not load when the next
+     * file with that heading is uploaded, rather than silently mapped again.
+     */
+    @IsTest
+    static void aSavedDoNotLoadWinsOverARecognizedHeading() {
+        Import_Template__c template = permittedTemplate();
+        ImportMapping mapping = new ImportMapping();
+        mapping.columns.add(new ImportMapping.Column('Last Name', 'Contact1.LastName'));
+        mapping.columns.add(new ImportMapping.Column('Email', ImportMapping.TARGET_IGNORE));
+        ImportController.createBatch(
+            template.Id,
+            null,
+            'donors.csv',
+            mapping.serialize(),
+            ImportTemplateService.RULE_EMAIL,
+            null
+        );
+
+        Test.startTest();
+        String document = ImportController.suggestMapping(
+            template.Id,
+            new List<String>{ 'Last Name', 'Email' }
+        );
+        Test.stopTest();
+
+        Map<String, String> bySource = new Map<String, String>();
+        for (ImportMapping.Column column : ImportMapping.parse(document).columns) {
+            bySource.put(column.source, column.target);
+        }
+        Assert.areEqual(
+            ImportMapping.TARGET_IGNORE,
+            bySource.get('Email'),
+            'The column set to Do not load is still Do not load when the mapping is reopened.'
+        );
+        Assert.areEqual(
+            'Contact1.LastName',
+            bySource.get('Last Name'),
+            'And the columns the template maps keep their targets.'
+        );
+    }
+
     @IsTest
     static void createsABatchAndSavesTheMappingWithIt() {
         Import_Template__c template = permittedTemplate();
