@@ -25,11 +25,13 @@ public with sharing class GiftPostingSelector {
                 Gift_Date__c,
                 Accounting_Posted_At__c,
                 Donor_Contact__c,
+                Donor_Contact__r.AccountId,
                 Donor_Account__c,
                 Original_Gift__c
             FROM Gift__c
             WHERE
                 (Donor_Contact__c IN :recordIds
+                OR Donor_Contact__r.AccountId IN :recordIds
                 OR Donor_Account__c IN :recordIds
                 OR Original_Gift__c IN :recordIds)
                 AND (Accounting_Posted_At__c != NULL
