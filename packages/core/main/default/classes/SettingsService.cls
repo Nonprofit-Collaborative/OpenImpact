@@ -189,6 +189,7 @@ public with sharing class SettingsService {
                 continue;
             }
             refuseIfMembershipDataWouldBeStranded(token, oldText, newText);
+            refuseIfDigestRecipientsAreNotUsers(token, newText);
             record.put(token, newValue);
             changes.add(
                 new Setting_Change__c(
@@ -230,6 +231,23 @@ public with sharing class SettingsService {
             return;
         }
         String refusal = CoexistenceService.membershipChangeRefusal(oldText, newText);
+        if (refusal != null) {
+            throw new SettingsException(refusal);
+        }
+    }
+
+    /**
+     * The error digest goes only to active users of the org (R-E5), so an address that is not
+     * one is refused here, where every write of the setting passes, with the addresses named.
+     */
+    private static void refuseIfDigestRecipientsAreNotUsers(
+        Schema.SObjectField token,
+        String newText
+    ) {
+        if (token != Nonprofit_Settings__c.Error_Digest_Recipients__c) {
+            return;
+        }
+        String refusal = ErrorDigestRecipients.refusal(newText);
         if (refusal != null) {
             throw new SettingsException(refusal);
         }
@@ -308,6 +326,29 @@ public with sharing class SettingsService {
             }
         }
         return blanks;
+    }
+
+    /**
+     * The record a system mode writer creates when the org has never saved its settings: owned
+     * by the org, with the shipped checkbox defaults on it (ADR-0035). Starting from a raw
+     * `getOrgDefaults()` instead would store every shipped-on feature as switched off.
+     */
+    @NamespaceAccessible
+    public static Nonprofit_Settings__c firstSaveRecord() {
+        return withShippedDefaults(
+            new Nonprofit_Settings__c(SetupOwnerId = UserInfo.getOrganizationId())
+        );
+    }
+
+    /**
+     * The same correction as `blanksKeptBlank` for a writer outside this class that saves the
+     * org's settings for the first time: the record to save next, putting back to blank every
+     * field that was blank on `saved` before the platform filled its default
+     * (OrgSettingsSystemWriter).
+     */
+    @NamespaceAccessible
+    public static SObject blanksAfterFirstSave(SObject saved) {
+        return blanksKeptBlank(saved.getSObjectType(), saved);
     }
 
     private static String localName(Schema.SObjectType type) {

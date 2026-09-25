@@ -50,6 +50,8 @@ function importCoreComponent(name) {
       return import('c/seasonalAddressJob');
     case 'duplicateReview':
       return import('c/duplicateReview');
+    case 'errorDigestJob':
+      return import('c/errorDigestJob');
     default:
       return null;
   }

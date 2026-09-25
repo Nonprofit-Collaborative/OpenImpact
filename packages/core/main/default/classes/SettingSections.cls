@@ -13,6 +13,9 @@ public with sharing class SettingSections {
     public static final String HOUSEHOLDS = 'Households';
     @NamespaceAccessible
     public static final String AUTOMATION = 'Automation';
+    /** The error digest (C-23): its own section because it is a job, not an automation. */
+    @NamespaceAccessible
+    public static final String ERROR_LOG = 'Error Log';
     @NamespaceAccessible
     public static final String ACCESS = 'Access';
     @NamespaceAccessible
@@ -46,6 +49,7 @@ public with sharing class SettingSections {
             RECEIPTS,
             ROLLUPS,
             AUTOMATION,
+            ERROR_LOG,
             ACCESS,
             IMPORTING,
             HEALTH
