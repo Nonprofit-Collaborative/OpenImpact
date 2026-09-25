@@ -29,13 +29,18 @@ public interface ImportEntityProcessor {
      * must honor `dryRun` by writing nothing, and must not throw: a failure belongs on the row
      * it came from.
      *
-     * @param batch the import being run, for the batch tag
+     * A commit is held to what its dry run showed (R-IB11): whatever settings the processor
+     * returned from the dry run arrive on the batch as Processor Settings, and the commit reads
+     * them there rather than from the template, which may have been edited since.
+     *
+     * @param batch the import being run, for the batch tag and the dry run's settings
      * @param template the template the batch runs with
      * @param rows the staged rows of this chunk, carrying Core's resolved references
      * @param entitiesByRowId each row's values, entity to attribute to value, with the
      *        template's defaults applied
      * @param dryRun true when nothing may be written
-     * @return the run log note and the total of the gift amounts read, never null
+     * @return the run log note, the total of the gift amounts read and, in a dry run, the
+     *         settings it ran under; never null
      */
     ImportEntityResult resolve(
         Import_Batch__c batch,
