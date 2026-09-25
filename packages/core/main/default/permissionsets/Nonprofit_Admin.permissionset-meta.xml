@@ -224,10 +224,6 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
-    <apexClass>ReceiptGapSelector</apexClass>
-    <enabled>true</enabled>
-  </classAccesses>
-  <classAccesses>
     <apexClass>RelationshipController</apexClass>
     <enabled>true</enabled>
   </classAccesses>
