@@ -169,13 +169,21 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
     public Database.QueryLocator start(Database.BatchableContext context) {
         Id owner = batchId;
         Import_Batch__c batch = [
-            SELECT Completed_At__c, Started_At__c, Committed_By__c
+            SELECT Completed_At__c, Started_At__c, Committed_By__c, Status__c, Job_Id__c
             FROM Import_Batch__c
             WHERE Id = :owner
             WITH SYSTEM_MODE
             LIMIT 1
         ];
-        completedAt = batch.Completed_At__c;
+        // A commit the platform aborted never finished: it ended when its job did, or, where
+        // that is no longer known, is taken to have ended when it started, so every change
+        // since, the committer's own included, is kept (R-IB9, R-IB13).
+        completedAt = batch.Completed_At__c == null
+            ? ImportBatchService.jobEndedAt(batch)
+            : batch.Completed_At__c;
+        if (completedAt == null) {
+            completedAt = batch.Started_At__c;
+        }
         startedAt = batch.Started_At__c;
         committedBy = batch.Committed_By__c;
         // Every query below is in system mode, so a tagged record the person cannot see is
