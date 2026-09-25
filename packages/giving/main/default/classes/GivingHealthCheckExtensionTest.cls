@@ -14,6 +14,15 @@ private class GivingHealthCheckExtensionTest {
         );
     }
 
+    /**
+     * `HealthCheckService.Finding.key` is `@AuraEnabled` only, not `@NamespaceAccessible`, so
+     * under a future namespace prefix this package cannot read it directly. A JSON round trip
+     * reaches it the same way the real Lightning wire path does.
+     */
+    private static Map<String, Object> asMap(HealthCheckService.Finding finding) {
+        return (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(finding));
+    }
+
     @TestSetup
     static void makeData() {
         GivingTestDataFactory.insertDefaultFund();
@@ -39,7 +48,7 @@ private class GivingHealthCheckExtensionTest {
             List<HealthCheckService.Finding> findings = new GivingHealthCheckExtension().findings();
 
             System.assertEquals(1, findings.size());
-            System.assertEquals('unposted_gifts_closed_period', findings[0].key);
+            System.assertEquals('unposted_gifts_closed_period', asMap(findings[0]).get('key'));
         }
     }
 
@@ -52,7 +61,7 @@ private class GivingHealthCheckExtensionTest {
 
             HealthCheckService.Finding giving = null;
             for (HealthCheckService.Finding finding : findings) {
-                if ('unposted_gifts_closed_period'.equals(finding.key)) {
+                if ('unposted_gifts_closed_period'.equals(asMap(finding).get('key'))) {
                     giving = finding;
                 }
             }

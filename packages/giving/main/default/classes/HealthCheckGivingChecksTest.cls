@@ -37,6 +37,16 @@ private class HealthCheckGivingChecksTest {
         return Date.today().toStartOfMonth().addDays(-1);
     }
 
+    /**
+     * `HealthCheckService.Finding`'s fields are `@AuraEnabled` only, not
+     * `@NamespaceAccessible`, so under a future namespace prefix this package cannot read them
+     * directly. Reading through a JSON round trip is how the real Lightning wire path reaches
+     * them too, so it proves the same thing the direct field reads used to.
+     */
+    private static Map<String, Object> asMap(HealthCheckService.Finding finding) {
+        return (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(finding));
+    }
+
     @IsTest
     static void noClosedPeriodFindsNothing() {
         User jen = jen();
@@ -108,25 +118,23 @@ private class HealthCheckGivingChecksTest {
             List<HealthCheckService.Finding> findings = HealthCheckGivingChecks.findings();
 
             System.assertEquals(1, findings.size(), 'One finding for the three unposted gifts.');
-            HealthCheckService.Finding finding = findings[0];
-            System.assertEquals('unposted_gifts_closed_period', finding.key);
-            System.assertEquals(HealthCheckService.SEVERITY_WARNING, finding.severity);
-            System.assertEquals(HealthCheckService.CATEGORY_SETTINGS, finding.category);
-            System.assert(
-                finding.title.contains('3'),
-                'The title names the count: ' + finding.title
-            );
+            Map<String, Object> finding = asMap(findings[0]);
+            System.assertEquals('unposted_gifts_closed_period', finding.get('key'));
+            System.assertEquals(HealthCheckService.SEVERITY_WARNING, finding.get('severity'));
+            System.assertEquals(HealthCheckService.CATEGORY_SETTINGS, finding.get('category'));
+            String title = (String) finding.get('title');
+            System.assert(title.contains('3'), 'The title names the count: ' + title);
             System.assertEquals(
                 3,
-                finding.links.size(),
+                ((List<Object>) finding.get('links')).size(),
                 'All three unposted gifts are linked, well under the cap.'
             );
             System.assertEquals(
                 SettingSections.GIVING,
-                finding.fixTarget,
+                finding.get('fixTarget'),
                 'The fix opens the Accounting Periods page, in the Giving settings section.'
             );
-            System.assertNotEquals(null, finding.fixLabel);
+            System.assertNotEquals(null, finding.get('fixLabel'));
         }
     }
 
@@ -151,15 +159,16 @@ private class HealthCheckGivingChecksTest {
             List<HealthCheckService.Finding> findings = HealthCheckGivingChecks.findings();
 
             System.assertEquals(1, findings.size());
-            HealthCheckService.Finding finding = findings[0];
+            Map<String, Object> finding = asMap(findings[0]);
+            String title = (String) finding.get('title');
             System.assert(
-                finding.title.contains('More than 2'),
+                title.contains('More than 2'),
                 'The count stops at the cap of 2 and says so rather than counting every row: ' +
-                finding.title
+                title
             );
             System.assertEquals(
                 5,
-                finding.links.size(),
+                ((List<Object>) finding.get('links')).size(),
                 'Links stop at the five shown, independent of the (lower) count cap.'
             );
         }

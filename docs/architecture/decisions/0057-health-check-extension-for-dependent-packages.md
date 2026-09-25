@@ -130,5 +130,6 @@ violation.
 - ADR-0021 carries an "Amended by" line pointing here: its own reads-that-reach-a-user
   restriction has one named exception, this finding's selector, which is why the exception is
   written up above rather than folded quietly into ADR-0021's own text.
-- Any future Health Check extension whose read also has to cross a sharing boundary to reach a
-  user cites this amendment directly rather than reopening ADR-0021 for a second exception.
+- The exception is scoped to `HealthCheckGivingSelector` only. Any other read that bypasses
+  sharing to reach a user, including a future Health Check extension, needs its own ADR; it
+  cannot cite this amendment in place of one.
