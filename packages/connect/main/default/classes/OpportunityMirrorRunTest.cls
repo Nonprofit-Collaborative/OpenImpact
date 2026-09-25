@@ -42,7 +42,8 @@ private class OpportunityMirrorRunTest {
         insert gifts;
         choose(OpportunityMirrorService.GIFTS_TO_OPPORTUNITIES);
         return (List<Gift__c>) Database.query(
-            'SELECT ' + OpportunityMirrorSelector.GIFT_FIELDS + ' FROM Gift__c'
+            'SELECT ' + OpportunityMirrorSelector.GIFT_FIELDS + ' FROM Gift__c',
+            AccessLevel.SYSTEM_MODE
         );
     }
 
