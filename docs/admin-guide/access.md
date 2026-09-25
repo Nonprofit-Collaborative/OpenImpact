@@ -80,8 +80,8 @@ Maria has just hired David as Development Director. His Salesforce user already 
 Here is how she gives him access, checks it, and takes it away again.
 
 1. Open the Open Impact app and click the **Open Impact Settings** tab.
-2. In the left navigation, choose **Access**. You see five role cards, each with a short
-   description and the people who currently hold that role. On a fresh install only your
+2. In the left navigation, choose **Access**. You see a card for each role (five with Giving,
+   four without), each with a short description and the people who currently hold that role. On a fresh install only your
    own name appears, under Open Impact Admin.
 3. In the **Find a person** box, type `David`. Matching active users appear as you type,
    each with their name and email address so you can tell two Davids apart.
@@ -140,8 +140,8 @@ after ten minutes, open the Error Log tile on the Hub home page and send what it
 your support request.
 
 **You edited one of the shipped roles in Setup and now an upgrade has undone your change.**
-The five roles ship with the package and are replaced on every upgrade, so any change you
-make to them is lost. That is deliberate: it is what keeps the roles correct for you. If
+The shipped roles (four with Open Impact Core, and Fundraising Staff with the Giving module)
+are replaced on every upgrade, so any change you make to them is lost. That is deliberate: it is what keeps the roles correct for you. If
 your organization needs something extra, create your own permission set in Setup for just
 that extra piece and assign it alongside the role. Your own permission sets are never
 touched by an upgrade.
