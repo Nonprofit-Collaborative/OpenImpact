@@ -65,7 +65,7 @@ Start with [docs/contributor-guide/environment.md](docs/contributor-guide/enviro
 - [docs/product-plan.md](docs/product-plan.md): the full product plan, roadmap, and engineering standards.
 - [docs/architecture/](docs/architecture/): the canonical data model and architecture decision records (`docs/architecture/decisions/`).
 - [docs/admin-guide/](docs/admin-guide/): one page per feature, written for nonprofit administrators.
-- [docs/contributor-guide/](docs/contributor-guide/): environment setup, scratch orgs, CI.
+- [docs/contributor-guide/](docs/contributor-guide/): environment setup, scratch orgs, CI, and the [dynamic Apex conventions](docs/contributor-guide/dynamic-apex.md) for reaching objects and classes an org may not have.
 - [docs/release-notes/](docs/release-notes/): what shipped in each iteration.
 
 ## Governance and license
