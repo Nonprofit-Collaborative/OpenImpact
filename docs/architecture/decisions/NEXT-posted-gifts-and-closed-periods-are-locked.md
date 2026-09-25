@@ -43,7 +43,10 @@ dated on or before the Books Closed Through date. A locked gift:
   its original, are not deleted either, because the platform clears those lookups on delete
   without running any gift trigger. A merge still works: before delete records who names the
   record, and the refusal is made after delete only when the record was not merged
-  (MasterRecordId empty), because a merge moves the gifts to the surviving record. The guard on
+  (MasterRecordId empty), because a merge moves the gifts to the surviving record. A person's
+  household Account is guarded the same way: deleting it deletes the person with it, and a
+  cascade delete fires no Contact trigger, so the Account guard also refuses when a locked
+  gift's Donor Contact belongs to the Account being deleted. The guard on
   Contact and Account runs from Core's triggers through two Always Runs registry rows in Giving;
   the guard on an original is part of the gift lock's delete rule. Original Gift is not made
   Restrict: that would refuse deleting any refunded gift, locked or not, with the platform's
