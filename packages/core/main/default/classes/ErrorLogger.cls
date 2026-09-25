@@ -113,6 +113,32 @@ public with sharing class ErrorLogger {
         ErrorLogWriter.write(entries);
     }
 
+    /**
+     * Many messages, each about its own record, in one statement. `recordIds` runs alongside
+     * `messages`: entry i is about record i, and a null, or a list shorter than the messages,
+     * leaves that entry without a record.
+     */
+    @NamespaceAccessible
+    public static void logMessages(
+        List<String> messages,
+        List<Id> recordIds,
+        String context,
+        String severity
+    ) {
+        if (messages == null || messages.isEmpty()) {
+            return;
+        }
+        List<Error_Log__c> entries = new List<Error_Log__c>();
+        for (Integer i = 0; i < messages.size(); i++) {
+            if (String.isBlank(messages[i])) {
+                continue;
+            }
+            Id recordId = recordIds == null || i >= recordIds.size() ? null : recordIds[i];
+            entries.add(buildEntry(messages[i], null, context, severity, recordId));
+        }
+        ErrorLogWriter.write(entries);
+    }
+
     private static Error_Log__c buildEntry(
         String message,
         String detail,

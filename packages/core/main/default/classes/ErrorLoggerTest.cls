@@ -115,6 +115,37 @@ private class ErrorLoggerTest {
     }
 
     @IsTest
+    static void twoHundredMessagesAboutTheirOwnRecordsCostOneStatement() {
+        Id aboutMe = UserInfo.getUserId();
+        List<String> messages = new List<String>();
+        List<Id> recordIds = new List<Id>();
+        for (Integer i = 0; i < 200; i++) {
+            messages.add('Appeal ' + i + ' could not be copied.');
+            recordIds.add(Math.mod(i, 2) == 0 ? aboutMe : null);
+        }
+        messages.add('A message with no record beside it.');
+        messages.add('  ');
+
+        Test.startTest();
+        Integer statementsBefore = Limits.getPublishImmediateDML();
+        ErrorLogger.logMessages(messages, recordIds, 'Appeal copy', ErrorLogger.SEVERITY_WARNING);
+        Integer statementsAfter = Limits.getPublishImmediateDML();
+        Test.stopTest();
+
+        Assert.areEqual(1, statementsAfter - statementsBefore, 'Logging is done in one statement.');
+        Assert.areEqual(
+            201,
+            [SELECT COUNT() FROM Error_Log__c WHERE Severity__c = 'Warning'],
+            'Every message is recorded, and a blank one is not.'
+        );
+        Assert.areEqual(
+            100,
+            [SELECT COUNT() FROM Error_Log__c WHERE Record_Reference__c = :String.valueOf(aboutMe)],
+            'Each entry names its own record, and one given none names none.'
+        );
+    }
+
+    @IsTest
     static void aListOfExceptionsIsLoggedTogether() {
         List<Exception> failures = new List<Exception>{
             thrownException(),
