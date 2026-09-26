@@ -248,6 +248,25 @@ step 2 with the new auth URL. Anything typed into the org by hand is lost at tha
 point, which is the discipline the package needs anyway: what matters belongs in this
 repository.
 
+### The second test org (`oi-pa`)
+
+The maintainer approved a second scratch org on 2026-09-24, alias `oi-pa`, created from
+`person-accounts.json` on the `devhub` Dev Hub. It expires 2026-10-24 and is recreated from the
+same definition when it does. `oi-test` expires 2026-10-23. Neither is the Platform-only
+shape: both have Person Accounts, and ADR-0013 notes that even a Platform-only scratch org
+keeps the standard objects, so no org run proves Core without them. The static checks and
+review do that.
+
+`oi-pa` is not named by any secret, so the `org-tests` workflow never uses it. It exists so
+local gate runs and Person Account testing can go on while `oi-test` is busy or stuck. The
+gate script works against either: `scripts/org/run-org-tests.sh oi-pa` posts the same
+`Org tests (local)` status. No other org is used for testing without the maintainer's
+approval.
+
+When several people or agents share these orgs, take turns: one deploy or test run per org at
+a time. A deploy from one branch while another branch's tests run leaves the org holding a
+mix of the two.
+
 ### The org test gate
 
 A pull request that changes deployable source cannot merge into `main` until its Apex tests
@@ -299,6 +318,19 @@ with no test results and its output names `UNKNOWN_EXCEPTION` or a platform or n
 (or is empty), the script waits `TEST_RETRY_WAIT_SECONDS` (300 by default) and runs the tests
 once more. A run with any result, including real failures, is never retried. Deploy stages
 that stall are resubmitted too: see "Stalled deploys" under `org-tests`.
+
+**At about 2,200 tests the sf CLI can run out of memory reading the results.** The Node
+process aborts with `JavaScript heap out of memory` after every stage has deployed, the retry
+hits the same wall, and the script posts a failure reading `0 of 0 failed`: no test failed.
+Run the gate with a larger heap:
+`NODE_OPTIONS=--max-old-space-size=8192 scripts/org/run-org-tests.sh <org alias>`.
+
+**One test depends on Salesforce's own duplicate matching.**
+`DuplicateServiceTest.theStandardRuleForPeopleFindsIdenticalTwinsOnce` asks the platform's
+matching service about two identical contacts inserted in the same test. In a full parallel
+run it has failed once with no pair found, and passed when its class was rerun alone. A
+failure of that test alone, on a change that does not touch duplicates, is a reason to rerun
+the gate, not to change the code.
 
 **The org allows a fixed number of test classes per rolling 24 hours** (`DailyAsyncApexTests`
 in `sf org list limits`). Several gate runs in a day can use it up, and then every run,
