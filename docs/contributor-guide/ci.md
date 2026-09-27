@@ -526,7 +526,14 @@ a `Signed-off-by:` trailer. Merge commits are exempt. See "Signing off commits" 
 ## Offline Apex checking
 
 `scripts/ci/check-apex-offline.sh` gives feature agents compile-level feedback on Apex
-without needing a scratch org or Dev Hub. It is not yet wired into `.github/workflows/ci.yml`.
+without needing a scratch org or Dev Hub. The `static` job runs it on every pull request.
+
+It runs two passes. The first checks every package together, as they deploy. The second checks
+Core alone, in a temporary workspace whose `sfdx-project.json` lists only `packages/core`, as
+the Community Suite installs it (ADR-0046, ADR-0059). A Core class that names a Giving, Connect
+or other module class compiles in the first pass, because that class is present, and fails in
+the second. Core reaches module classes only through `Type.forName` and the resolvers in
+`dynamic-apex.md`.
 
 It runs `CheckForIssues` from `apex-ls` (the nawforce/apex-dev-tools Apex language
 server, `io.github.apex-dev-tools:apex-ls` on Maven Central) against the whole
@@ -796,7 +803,8 @@ in `SettingsController` and `ModuleDetectionService`) once the new repository ex
 
 ### Never tested
 
-- Core installed without Giving, in any org. Every gate run deploys all three packages.
+- Core installed without Giving, in any org. Every gate run deploys all three packages. The
+  offline Apex check compiles Core alone, which proves compile-time independence only.
 - The Platform-only shape. Both test orgs (`oi-test`, `oi-pa`) have Person Accounts, and
   ADR-0013 notes that even a Platform-only scratch org keeps the standard objects. Only the
   static checks (`check-standard-objects.sh`) and review cover it.
