@@ -761,11 +761,8 @@ Remove each item from this list in the PR that finishes it.
 
 ### Work items
 
-Pending plan update: the maintainer asked (2026-09-27) for every item below to be added to plan
-Section 11.3 (parking lot) in BMemory, with the same detail as here: the classes, fields, rules
-and tests named in each item, not a one-line summary. The BMemory gateway was unreachable, so
-this is not done yet. Whoever next has BMemory access does it, then refreshes
-`docs/product-plan.md` and deletes this paragraph.
+These are also recorded, in the same detail, in plan Section 11.3 (parking lot). Remove an item
+from both when its PR merges.
 
 1. **Harden the settings writers and cap uncapped counts.**
    - `SettingsService.applyValues`, through `SettingsWriter.saveOrgDefault`, upserts the whole
@@ -831,38 +828,10 @@ Product plan Section 6 is the source of truth:
 
   Before C-34, the query compiler needs a security review and scale tests.
 
-### Owner questions not yet in the plan
+### Owner questions
 
-These are meant for plan Section 11.2 but could not be written: on 2026-09-26 the BMemory
-server's disk was full, so the plan was not edited. Add them to BMemory first, then refresh
-`docs/product-plan.md`.
-
-- Are templates copied at install or at first use?
-- Should NPC same-org gift matching go by record ID, or should there be a "match only,
-  never create" option?
-- Should per-automation switches have an end date?
-- First-name matching (John and Jane at one address): the recommendation is to create a new
-  person when first names differ.
-- Should Campaign sync default to off?
-- For the Opportunity mirror in NPSP mode, the recommendation is to pre-select it and ask for
-  confirmation.
-- Deleting a gift leaves its Opportunity alone and raises a Warning: is that right?
-- Should there be an "acknowledge gifts from Opportunities" setting, off by default? It is
-  not built.
-- Should the record-type filter default to empty?
-- Should Nonprofit Hub be a separate app?
-- Are the neutral "Open Impact ..." names that nonprofits now see acceptable?
-- Rename the `Nonprofit_*` API names before the first package version?
-- Do the static checks suffice in place of a Platform-only org?
-- The plan needs these corrections:
-  - the v0.3 row lists NPSP import templates;
-  - Section 7.3 claims four CI shapes;
-  - Section 7.3 calls TestDataFactory `@IsTest global`;
-  - the X-07 row says 0.10;
-  - D-14 does not cite ADR-0053 and ADR-0054;
-  - Section 4.1 places the Nonprofit Hub app in Core;
-  - the 2026-09-23 suites decision has no D-number;
-  - the C-25 note may be stale.
+The owner questions raised while building v0.5 and v0.6 are plan Section 11.2, items 14 to 27,
+each with the default that shipped and a recommendation.
 
 ### Working notes for new contributors
 
