@@ -22,8 +22,8 @@ Administrators are contributors too. You do not need to write Apex to make this 
 Read [docs/contributor-guide/environment.md](docs/contributor-guide/environment.md) first. The short version:
 
 ```bash
-git clone https://github.com/Nonprofit-Collaborative/OpenImpact.git
-cd OpenImpact
+git clone https://github.com/Nonprofit-Collaborative/BarnCRM.git
+cd BarnCRM
 npm install
 scripts/org/create-scratch-org.sh platform-only
 npm test

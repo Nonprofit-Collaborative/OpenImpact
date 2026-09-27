@@ -49,8 +49,8 @@ Every release is tested by CI against four org shapes:
 ## For contributors
 
 ```bash
-git clone https://github.com/Nonprofit-Collaborative/OpenImpact.git
-cd OpenImpact
+git clone https://github.com/Nonprofit-Collaborative/BarnCRM.git
+cd BarnCRM
 npm install
 scripts/org/create-scratch-org.sh platform-only
 npm test

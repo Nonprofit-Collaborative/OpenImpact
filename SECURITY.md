@@ -13,7 +13,7 @@ Once versions are published, this table will list which of them receive security
 
 ## Reporting a vulnerability
 
-Please report security issues privately, through GitHub private vulnerability reporting on this repository: go to the Security tab of https://github.com/Nonprofit-Collaborative/OpenImpact and choose "Report a vulnerability".
+Please report security issues privately, through GitHub private vulnerability reporting on this repository: go to the Security tab of https://github.com/Nonprofit-Collaborative/BarnCRM and choose "Report a vulnerability".
 
 Do not open a public issue, a pull request, or a discussion post for a suspected vulnerability. Do not post details on social media or a community forum before we have had a chance to respond.
 

@@ -18,7 +18,7 @@ public with sharing class ModuleDetectionService {
     private static final String MODULE_CORE = 'Core';
     private static final String MODULE_GIVING = 'Giving';
 
-    private static final String DOCS_BASE = 'https://github.com/Nonprofit-Collaborative/OpenImpact/blob/main/docs/product-plan.md';
+    private static final String DOCS_BASE = 'https://github.com/Nonprofit-Collaborative/BarnCRM/blob/main/docs/product-plan.md';
 
     /** One row of the module list the Setup Assistant shows in step six. */
     public class ModuleInfo {
