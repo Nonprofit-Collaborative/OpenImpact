@@ -83,6 +83,11 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
     private Datetime completedAt;
     private Datetime startedAt;
     private Id committedBy;
+    /** The job's operation: an import, or a bulk update, whose undo is the restore pass only. */
+    private String operation;
+
+    /** Objects found in describe, asked once per transaction. */
+    private static Map<String, Schema.SObjectType> globalDescribe;
 
     /**
      * Starts the first pass of the undo of one batch. `countedAtStart` is the total the person
@@ -169,7 +174,13 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
     public Database.QueryLocator start(Database.BatchableContext context) {
         Id owner = batchId;
         Import_Batch__c batch = [
-            SELECT Completed_At__c, Started_At__c, Committed_By__c, Status__c, Job_Id__c
+            SELECT
+                Completed_At__c,
+                Started_At__c,
+                Committed_By__c,
+                Status__c,
+                Job_Id__c,
+                Operation__c
             FROM Import_Batch__c
             WHERE Id = :owner
             WITH SYSTEM_MODE
@@ -186,6 +197,7 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         }
         startedAt = batch.Started_At__c;
         committedBy = batch.Committed_By__c;
+        operation = batch.Operation__c;
         // Every query below is in system mode, so a tagged record the person cannot see is
         // still met, refused by the user-mode delete, and journaled as kept (R-IB9), instead
         // of silently staying behind.
@@ -285,6 +297,10 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         try {
             List<String> passes = passes();
             Integer next = passes.indexOf(pass) + 1;
+            // A bulk update created nothing, so its undo is the restore pass alone (R-IB14).
+            if (isBulkUpdate()) {
+                next = passes.size();
+            }
             if (next > 0 && next < passes.size()) {
                 Database.executeBatch(
                     new ImportUndoBatch(
@@ -344,7 +360,7 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         Map<String, Set<Id>> idsByObject = new Map<String, Set<Id>>();
         Map<String, Set<String>> fieldsByObject = new Map<String, Set<String>>();
         for (Map<String, Object> entry : entries) {
-            String objectName = restorable(entry);
+            String objectName = restorableObject(entry);
             if (objectName == null) {
                 continue;
             }
@@ -365,7 +381,7 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         Map<Id, List<String>> changedFields = new Map<Id, List<String>>();
         for (Integer i = entries.size() - 1; i >= 0; i--) {
             Map<String, Object> entry = entries[i];
-            String objectName = restorable(entry);
+            String objectName = restorableObject(entry);
             if (objectName == null) {
                 continue;
             }
@@ -446,17 +462,36 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         }
     }
 
-    /** The object an update entry is on, when it is one Core writes; null otherwise. */
-    private static String restorable(Map<String, Object> entry) {
+    /**
+     * The object an update entry is on, when it is one this undo puts back; null otherwise. An
+     * import writes people, households and organizations; a bulk update writes whatever its
+     * query returned, so any object its journal names that describe still finds is put back,
+     * under the name describe gives (R-IB14).
+     */
+    private String restorableObject(Map<String, Object> entry) {
         String objectName = (String) entry.get('object');
         if (
             !ImportJournalService.ACTION_UPDATED.equals(entry.get('action')) ||
-            !('Contact'.equals(objectName) || 'Account'.equals(objectName)) ||
+            String.isBlank(objectName) ||
             String.isBlank((String) entry.get('id'))
         ) {
             return null;
         }
-        return objectName;
+        if ('Contact'.equals(objectName) || 'Account'.equals(objectName)) {
+            return objectName;
+        }
+        if (!isBulkUpdate()) {
+            return null;
+        }
+        if (globalDescribe == null) {
+            globalDescribe = Schema.getGlobalDescribe();
+        }
+        Schema.SObjectType type = globalDescribe.get(objectName.toLowerCase());
+        return type == null ? null : type.getDescribe(SObjectDescribeOptions.DEFERRED).getName();
+    }
+
+    private Boolean isBulkUpdate() {
+        return BulkUpdateService.OPERATION_UPDATE.equals(operation);
     }
 
     private static Map<String, Object> fieldsOf(Map<String, Object> entry) {

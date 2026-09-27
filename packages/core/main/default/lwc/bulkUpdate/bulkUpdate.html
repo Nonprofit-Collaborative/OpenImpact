@@ -1,0 +1,238 @@
+<template>
+    <lightning-card title={labels.heading} icon-name="standard:data_integration_hub">
+        <div class="slds-var-p-horizontal_medium">
+            <template lwc:if={loading}>
+                <lightning-spinner alternative-text={labels.loadingAltText} size="small"></lightning-spinner>
+            </template>
+            <template lwc:if={cannotUse}>
+                <p class="slds-text-color_weak" data-id="no-permission">{labels.noPermission}</p>
+            </template>
+            <template lwc:if={notice}>
+                <p class="slds-text-color_success slds-var-m-bottom_small" data-id="notice">{notice}</p>
+            </template>
+            <template lwc:if={error}>
+                <p class="slds-text-color_error slds-var-m-bottom_small" data-id="error">{error}</p>
+            </template>
+
+            <template lwc:if={canUse}>
+                <h3 class="slds-text-heading_small">{labels.chooseHeading}</h3>
+                <lightning-combobox
+                    label={labels.openSaved}
+                    options={savedOptions}
+                    value={savedId}
+                    onchange={handleOpenSaved}
+                    data-id="saved"
+                ></lightning-combobox>
+
+                <template lwc:if={hasQuery}>
+                    <p class="slds-var-m-top_small" data-id="object-line">{objectLine}</p>
+                    <lightning-textarea label={labels.queryLabel} value={query.soql} readonly data-id="soql"></lightning-textarea>
+
+                    <h3 class="slds-text-heading_small slds-var-m-top_medium">{labels.changesHeading}</h3>
+                    <template for:each={changeRows} for:item="change">
+                        <div key={change.key} class="slds-grid slds-wrap slds-gutters_x-small slds-grid_vertical-align-end" data-id="change">
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                                <lightning-combobox
+                                    label={labels.fieldLabel}
+                                    options={targetOptions}
+                                    value={change.field}
+                                    data-key={change.key}
+                                    data-part="field"
+                                    onchange={handleChangeEdit}
+                                ></lightning-combobox>
+                            </div>
+                            <template lwc:if={change.hasField}>
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4">
+                                    <lightning-combobox
+                                        label={labels.actionLabel}
+                                        options={change.actionOptions}
+                                        value={change.action}
+                                        data-key={change.key}
+                                        data-part="action"
+                                        onchange={handleChangeEdit}
+                                    ></lightning-combobox>
+                                </div>
+                                <template lwc:if={change.isBoolean}>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4">
+                                        <lightning-combobox
+                                            label={labels.newValue}
+                                            options={change.booleanOptions}
+                                            value={change.value}
+                                            data-key={change.key}
+                                            data-part="value"
+                                            onchange={handleChangeEdit}
+                                        ></lightning-combobox>
+                                    </div>
+                                </template>
+                                <template lwc:if={change.isPicklist}>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4">
+                                        <lightning-combobox
+                                            label={labels.newValue}
+                                            options={change.picklistValues}
+                                            value={change.value}
+                                            data-key={change.key}
+                                            data-part="value"
+                                            onchange={handleChangeEdit}
+                                        ></lightning-combobox>
+                                    </div>
+                                </template>
+                                <template lwc:if={change.isInput}>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4">
+                                        <lightning-input
+                                            type={change.inputType}
+                                            step="any"
+                                            label={labels.newValue}
+                                            value={change.value}
+                                            data-key={change.key}
+                                            data-part="value"
+                                            onchange={handleChangeEdit}
+                                        ></lightning-input>
+                                    </div>
+                                </template>
+                                <template lwc:if={change.isCopy}>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4">
+                                        <lightning-combobox
+                                            label={labels.copyFrom}
+                                            options={change.sourceOptions}
+                                            value={change.source}
+                                            data-key={change.key}
+                                            data-part="source"
+                                            onchange={handleChangeEdit}
+                                        ></lightning-combobox>
+                                    </div>
+                                </template>
+                            </template>
+                            <div class="slds-col slds-no-flex">
+                                <lightning-button-icon
+                                    icon-name="utility:close"
+                                    alternative-text={labels.remove}
+                                    variant="bare"
+                                    data-key={change.key}
+                                    onclick={handleRemoveChange}
+                                ></lightning-button-icon>
+                            </div>
+                        </div>
+                    </template>
+                    <div class="slds-var-m-vertical_small">
+                        <lightning-button
+                            label={labels.addChange}
+                            disabled={cannotAddChange}
+                            onclick={handleAddChange}
+                            data-id="add-change"
+                        ></lightning-button>
+                        <lightning-button
+                            class="slds-var-m-left_x-small"
+                            variant="brand"
+                            label={labels.previewButton}
+                            disabled={cannotPreview}
+                            onclick={handlePreview}
+                            data-id="preview"
+                        ></lightning-button>
+                    </div>
+
+                    <template lwc:if={preview}>
+                        <section class="slds-box slds-var-m-bottom_medium" data-id="preview-box">
+                            <p class="slds-text-title_bold" data-id="preview-count">{previewCount}</p>
+                            <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-var-m-vertical_small">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">{labels.recordLabel}</th>
+                                        <th scope="col">{labels.fieldLabel}</th>
+                                        <th scope="col">{labels.beforeLabel}</th>
+                                        <th scope="col">{labels.afterLabel}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={sampleRows} for:item="row">
+                                        <tr key={row.key} data-id="sample-row">
+                                            <td>{row.name}</td>
+                                            <td>{row.label}</td>
+                                            <td>{row.before}</td>
+                                            <td>{row.after}</td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                            <lightning-input
+                                label={labels.confirmLabel}
+                                value={confirmText}
+                                onchange={handleConfirmText}
+                                data-id="confirm-count"
+                            ></lightning-input>
+                            <lightning-button
+                                class="slds-var-m-top_x-small"
+                                variant="destructive"
+                                label={updateLabel}
+                                disabled={cannotStart}
+                                onclick={handleStart}
+                                data-id="start"
+                            ></lightning-button>
+                        </section>
+                    </template>
+                </template>
+                <template lwc:else>
+                    <p class="slds-text-body_small slds-var-m-top_small" data-id="no-query">{labels.noQuery}</p>
+                </template>
+
+                <div class="slds-grid slds-grid_vertical-align-center slds-var-m-top_large">
+                    <h3 class="slds-col slds-text-heading_small">{labels.recentHeading}</h3>
+                    <lightning-button label={labels.refreshButton} onclick={handleRefresh} data-id="refresh"></lightning-button>
+                </div>
+
+                <template lwc:if={undoing}>
+                    <section class="slds-box slds-var-m-vertical_small" data-id="undo-confirm">
+                        <h3 class="slds-text-heading_small slds-var-m-bottom_small">{undoTitle}</h3>
+                        <p class="slds-var-m-bottom_small" data-id="undo-count">{undoCount}</p>
+                        <lightning-button label={labels.cancel} onclick={handleUndoCancel}></lightning-button>
+                        <lightning-button
+                            class="slds-var-m-left_x-small"
+                            variant="destructive"
+                            label={labels.undoConfirmButton}
+                            disabled={cannotConfirmUndo}
+                            onclick={handleUndoConfirm}
+                            data-id="undo-confirm-button"
+                        ></lightning-button>
+                    </section>
+                </template>
+
+                <template lwc:if={hasJobs}>
+                    <ul class="slds-has-dividers_bottom-space">
+                        <template for:each={jobRows} for:item="job">
+                            <li key={job.id} class="slds-item" data-id="job">
+                                <div class="slds-grid slds-grid_vertical-align-center">
+                                    <div class="slds-col">
+                                        <p class="slds-text-title_bold">{job.name} · {job.objectName} · {job.status}</p>
+                                        <p class="slds-text-body_small">{job.summary}</p>
+                                        <template lwc:if={job.showDeadline}>
+                                            <p class="slds-text-body_small">
+                                                {labels.undoUntil}
+                                                <lightning-formatted-date-time
+                                                    class="slds-var-m-left_xx-small"
+                                                    value={job.undoDeadline}
+                                                    year="numeric"
+                                                    month="short"
+                                                    day="numeric"
+                                                ></lightning-formatted-date-time>
+                                            </p>
+                                        </template>
+                                    </div>
+                                    <template lwc:if={job.canUndo}>
+                                        <lightning-button
+                                            label={labels.undoButton}
+                                            data-id={job.id}
+                                            disabled={working}
+                                            onclick={handleUndo}
+                                        ></lightning-button>
+                                    </template>
+                                </div>
+                            </li>
+                        </template>
+                    </ul>
+                </template>
+                <template lwc:else>
+                    <p class="slds-text-body_small" data-id="no-jobs">{labels.recentEmpty}</p>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

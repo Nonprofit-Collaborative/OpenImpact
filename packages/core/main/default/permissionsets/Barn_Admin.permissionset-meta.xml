@@ -319,6 +319,10 @@
     <apexClass>FindController</apexClass>
     <enabled>true</enabled>
   </classAccesses>
+  <classAccesses>
+    <apexClass>BulkUpdateController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
   <customPermissions>
     <enabled>true</enabled>
     <name>Manage_Barn_Settings</name>
@@ -326,6 +330,10 @@
   <customPermissions>
     <enabled>true</enabled>
     <name>Find_And_Export_Records</name>
+  </customPermissions>
+  <customPermissions>
+    <enabled>true</enabled>
+    <name>Bulk_Update_Records</name>
   </customPermissions>
   <fieldPermissions>
     <editable>true</editable>
@@ -1227,6 +1235,16 @@
     <field>Saved_Query__c.Query_JSON__c</field>
     <readable>true</readable>
   </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Import_Batch__c.Operation__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Import_Batch__c.Operation_JSON__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
   <objectPermissions>
     <allowCreate>true</allowCreate>
     <allowDelete>true</allowDelete>
@@ -1430,6 +1448,14 @@
   </tabSettings>
   <tabSettings>
     <tab>Find</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Bulk_Update</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Import_Batch__c</tab>
     <visibility>Visible</visibility>
   </tabSettings>
   <userPermissions>

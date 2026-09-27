@@ -131,3 +131,53 @@ back and never executed.
 6. **Permission set.** `Find_And_Export_Records` is in Barn Admin and in a new set, Barn Find
    and Export, assignable alone, which grants the Find tab, the controller and access to saved
    queries, and nothing else.
+
+## C-35 builder decisions (bulk update, amended 2026-09-27)
+
+1. **A bulk update is a data job, and runs as the person who started it.** `BulkUpdateService`
+   checks the document and up to five changes as that person, counts the matching records in
+   user mode, and refuses to start when more match than they confirmed or than the maximum
+   per bulk update allows (`Bulk_Update_Max_Records__c`, default 50,000, accepted from 1 to
+   50,000). It then writes an `Import_Batch__c` with `Operation__c` Update, the document, the
+   changes and the confirmed count in `Operation_JSON__c`, the undo deadline stamped from the
+   import undo setting, and no staged rows; the job record is written in system mode under
+   ADR-0021. `BulkUpdateBatch` reads at most the confirmed number of records in Id order, and
+   each chunk reads its records again with the filter, so a record that no longer matches is
+   left alone and counted. Saves are `Database.update(records, false, AccessLevel.USER_MODE)`.
+2. **A count never exceeds the rows one request may read.** A count reads at most the rows the
+   transaction has left, less a margin; a preview or start that cannot tell whether more
+   records match than it may change is refused with a sentence asking for a narrower query,
+   never guessed. In practice a single bulk update tops out a few hundred records under the
+   50,000 maximum.
+3. **The journal is the import journal.** Each chunk writes one commit page (canonical model
+   R-IJ1) holding an Updated entry per record it changed, with the value before and after for
+   each field that changed, and a Failed entry per record the platform refused, with the
+   platform's reason. A record whose fields already held the new values is not saved and not
+   journaled. The undo is the import undo (`ImportUndoService`, `ImportUndoBatch`): for a job
+   whose operation is Update it runs the restore pass only, and it restores any object the
+   journal names that describe still finds, where an import restores only people,
+   households and organizations. The count an undo shows is the job's updated records.
+4. **Protected fields are worked out at run time** by `DataProtectedFields`, from describe
+   (formula, auto-number, fields Salesforce sets, fields the person may not edit, custom
+   settings, metadata, events and sharing, history and feed objects), from the Rollup
+   Definitions (every target field, active or not), and from a short list of what the package
+   computes (household name and greetings, member count, primary affiliation, every rollup
+   last calculated time, the import batch tag, the sample data key and a saved query's
+   document) and of its bookkeeping objects (data jobs, import rows and templates, the
+   journal, the error log, settings, setting changes, automation settings, rollup
+   definitions, duplicate dismissals, and Giving's receipts, receipt runs and receipt number
+   sequences, named as text so Core holds no reference to them). An organization's own name
+   is protected with the household's, because both are the Account name. Fields locked by an
+   issued receipt are refused by the receipt lock triggers, which still run, and those records
+   are journaled as Failed.
+5. **Compatible copies.** A field may be copied into another of the same type; any text,
+   email, phone, web address or picklist into a text field; any number into a number field;
+   and a lookup into a lookup that can point at the same kind of record. A value too long for
+   its target fails that record, journaled with the reason.
+6. **Permission set.** `Bulk_Update_Records` is in Barn Admin and in a new set, Barn Bulk
+   Update, assignable alone, which grants the Bulk Update and Data Jobs tabs, the controller,
+   read access to data jobs and saved queries, and nothing else. The shared saved query list
+   (C-34 decision 2) is open to it as well, so a person who may bulk update and not build
+   queries can use a query a colleague shared.
+7. **Data Jobs.** `Import_Batch__c` is labelled Data Job, with a Data Jobs tab in the Hub app;
+   its API name is unchanged, as the plan requires.

@@ -3,8 +3,8 @@
  * sharing, recorded as C-34 decision 2 in ADR-0047 (amended), the ADR the dynamic Apex guide
  * asks a user-facing system-mode read to have. It keeps these conditions:
  *
- * - It is reached only by a holder of `Find_And_Export_Records`, checked here, not only by
- *   the caller.
+ * - It is reached only by a holder of `Find_And_Export_Records` or `Bulk_Update_Records`
+ *   (C-35 decision 6), checked here, not only by the caller.
  * - It reads `Saved_Query__c` rows whose shared flag is set, and nothing else: never a
  *   record the query would return. Opening one compiles it again as the person opening it, so
  *   what they see is what their own access allows.
@@ -57,6 +57,7 @@ public without sharing class SavedQuerySharedReader {
         if (permissionOverride != null) {
             return permissionOverride;
         }
-        return FeatureManagement.checkPermission(FindController.PERMISSION);
+        return FeatureManagement.checkPermission(FindController.PERMISSION) ||
+            FeatureManagement.checkPermission(BulkUpdateController.PERMISSION);
     }
 }

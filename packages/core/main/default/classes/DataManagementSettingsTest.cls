@@ -27,4 +27,20 @@ private class DataManagementSettingsTest {
         TestDataFactory.saveSettings(settings);
         Assert.areEqual(250, DataManagementSettings.exportRowLimit());
     }
+
+    @IsTest
+    static void theBulkUpdateMaximumDefaultsAndIsHeldAtFiftyThousand() {
+        Barn_Settings__c settings = TestDataFactory.defaultSettings();
+        settings.Bulk_Update_Max_Records__c = null;
+        TestDataFactory.saveSettings(settings);
+        Assert.areEqual(50000, DataManagementSettings.bulkUpdateMaxRecords());
+
+        settings.Bulk_Update_Max_Records__c = 250000;
+        TestDataFactory.saveSettings(settings);
+        Assert.areEqual(50000, DataManagementSettings.bulkUpdateMaxRecords());
+
+        settings.Bulk_Update_Max_Records__c = 10;
+        TestDataFactory.saveSettings(settings);
+        Assert.areEqual(10, DataManagementSettings.bulkUpdateMaxRecords());
+    }
 }

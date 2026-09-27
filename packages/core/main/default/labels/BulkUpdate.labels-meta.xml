@@ -1,0 +1,451 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_BulkUpdate_ErrorNoPermission</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: refused without the Bulk Update Records permission</shortDescription>
+        <value>You need the Bulk Update Records permission to use bulk update. Ask your administrator.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ReasonBookkeeping</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: an object BarnCRM keeps itself</shortDescription>
+        <value>BarnCRM keeps these records itself.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ReasonSystemObject</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: a system object</shortDescription>
+        <value>Salesforce keeps these records itself.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ReasonNoObjectAccess</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: the person may not edit these records</shortDescription>
+        <value>you do not have permission to edit them.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ReasonComputed</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: a field BarnCRM calculates</shortDescription>
+        <value>BarnCRM calculates it.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ReasonFormula</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: a formula field</shortDescription>
+        <value>it is a formula.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ReasonAutoNumber</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: an auto-number field</shortDescription>
+        <value>it is numbered automatically.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ReasonNoFieldAccess</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: the person may not edit the field</shortDescription>
+        <value>you do not have permission to edit it.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ReasonSystem</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: a field Salesforce sets</shortDescription>
+        <value>Salesforce sets it.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ReasonType</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: a field of a type bulk update cannot write</shortDescription>
+        <value>bulk update cannot write this kind of field.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ErrorProtectedObject</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: refused object. {0} plural label, {1} reason</shortDescription>
+        <value>{0} cannot be bulk updated: {1}</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ErrorProtectedField</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: refused field. {0} field label, {1} reason</shortDescription>
+        <value>{0} cannot be bulk updated: {1}</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ErrorNoChanges</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: no change chosen, or one that cannot be read</shortDescription>
+        <value>Choose at least one field to change, and what to do with it.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ErrorTooManyChanges</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: more than five changes</shortDescription>
+        <value>Choose at most five fields to change.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ErrorDuplicateField</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: a field chosen twice. {0} field label</shortDescription>
+        <value>{0} is chosen more than once.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ErrorRequired</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: a required field cannot be cleared. {0} field</shortDescription>
+        <value>{0} is required, so it cannot be cleared.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ErrorBadValue</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: the new value does not suit the field. {0} field</shortDescription>
+        <value>The new value for {0} is not a valid value for that field.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ErrorIncompatibleCopy</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: a copy between unlike fields. {0} source, {1} target</shortDescription>
+        <value>{0} cannot be copied into {1}: the two fields hold different kinds of value.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ErrorConfirm</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: no confirmed count</shortDescription>
+        <value>Confirm the number of records to update.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ErrorOverMaximum</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: more records match than the maximum. {0} maximum</shortDescription>
+        <value>More than {0} records match, the most one bulk update may change. Narrow the query, or ask your administrator about the maximum in BarnCRM Settings, Import.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ErrorMoreThanConfirmed</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: more match now than were confirmed. {0} confirmed</shortDescription>
+        <value>More records match now than the {0} you confirmed. Nothing was changed. Select Preview again and confirm the new number.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ErrorTooManyToCount</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: too many records to count in one request</shortDescription>
+        <value>Too many records match to count in one go. Narrow the query, or run it in parts.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ErrorNothingMatches</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: no record matches</shortDescription>
+        <value>No records match this query, so there is nothing to update.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ErrorNotABulkUpdate</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: the job is not a bulk update</shortDescription>
+        <value>That data job is not a bulk update, or it no longer exists.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_LogStarted</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update log: started. {0} user, {1} time, {2} count, {3} object, {4} asked</shortDescription>
+        <value>Bulk update started by {0} on {1}: {2} {3} records matched, {4} confirmed.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_LogStopped</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update run log: stopped before any change. {0} reason</shortDescription>
+        <value>Stopped before changing anything: {0}</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_LogFinished</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update log: finished. {0} updated, {1} same, {2} gone, {3} failed</shortDescription>
+        <value>Bulk update finished: {0} updated, {1} already had these values, {2} no longer matched the query, {3} failed.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_LogJournalIncomplete</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update run log: the journal could not be written in full</shortDescription>
+        <value>Some changes could not be recorded in the journal, so they cannot be put back by an undo. The Error Log says why.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_Heading</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: card title</shortDescription>
+        <value>Bulk update</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ChooseHeading</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: choose records heading</shortDescription>
+        <value>Choose records</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_NoQuery</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: no query chosen yet</shortDescription>
+        <value>Open a saved query, or send one here from Find.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ObjectLine</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: which records. {0} plural label</shortDescription>
+        <value>Records to change: {0}</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ChangesHeading</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: changes heading</shortDescription>
+        <value>Changes</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_AddChange</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: add a change button</shortDescription>
+        <value>Add a change</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ActionLabel</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: what to do with the field</shortDescription>
+        <value>Change</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ActionSet</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: set to a value</shortDescription>
+        <value>Set to a value</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ActionClear</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: clear</shortDescription>
+        <value>Clear</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ActionCopy</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: copy from another field</shortDescription>
+        <value>Copy from another field</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_NewValueLabel</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: new value label</shortDescription>
+        <value>New value</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_CopyFromLabel</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: copy from label</shortDescription>
+        <value>Copy from</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_PreviewButton</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: preview button</shortDescription>
+        <value>Preview</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_PreviewCount</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: how many match. {0} count</shortDescription>
+        <value>{0} records match. This is how the first few would change:</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_RecordLabel</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: sample record column</shortDescription>
+        <value>Record</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_BeforeLabel</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: value before</shortDescription>
+        <value>Before</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_AfterLabel</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: value after</shortDescription>
+        <value>After</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_ConfirmLabel</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: type the count to confirm</shortDescription>
+        <value>Type the number of records to confirm</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_UpdateButton</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: start button. {0} count</shortDescription>
+        <value>Update {0} records</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_Started</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: started notice. {0} job name</shortDescription>
+        <value>The bulk update {0} has started. It runs in the background; its progress and its undo are listed below.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_RecentHeading</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: recent jobs heading</shortDescription>
+        <value>Recent bulk updates</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_RecentEmpty</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: no jobs yet</shortDescription>
+        <value>No bulk updates yet.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_JobSummary</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: job counts. {0} matched, {1} updated, {2} same, {3} failed</shortDescription>
+        <value>{0} matched, {1} updated, {2} already had these values, {3} failed.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_RefreshButton</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: refresh the job list</shortDescription>
+        <value>Refresh</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_UndoConfirmHeading</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: undo confirmation heading. {0} job name</shortDescription>
+        <value>Undo {0}?</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_UndoConfirmCount</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: what an undo puts back. {0} records</shortDescription>
+        <value>{0} changed records will be put back, except values somebody has changed since.</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_UndoConfirmButton</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: undo confirm button</shortDescription>
+        <value>Undo this bulk update</value>
+    </labels>
+    <labels>
+        <fullName>Core_BulkUpdate_UndoStarted</fullName>
+        <categories>BulkUpdate</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bulk update: undo started notice</shortDescription>
+        <value>The undo has started. The bulk update shows Undone when it has finished; select Refresh to check.</value>
+    </labels>
+</CustomLabels>

@@ -884,6 +884,7 @@ outside the accepted range at its nearest end, as the import keys are read.
 | Key | Type | Default | Definition |
 |---|---|---|---|
 | `Export_Row_Limit__c` | integer | 50000 | The most rows one Find export may download, from 1 to 100,000. |
+| `Bulk_Update_Max_Records__c` | integer | 50000 | The most records one bulk update may change, from 1 to 50,000 (R-IB14). |
 
 ### Rules
 
@@ -1392,9 +1393,11 @@ from Nonprofit Cloud", section 5).
 
 ### Definition
 
-One upload: the file, the template it was read with, what happened, and the log of it
-(plan Section 4.9). A batch is the unit an administrator dry-runs, commits, and in v0.5
-undoes.
+One data job: a file import (one upload: the file, the template it was read with, what
+happened, and the log of it) or, from v0.7, a bulk update (C-35: the query and the changes, and
+what happened). Labelled **Data Job** from v0.7; its API name is unchanged (plan Section 4.9).
+An import is the unit an administrator dry-runs, commits, and in v0.5 undoes; a bulk update is
+committed when it starts and is undone the same way.
 
 ### Attributes
 
@@ -1423,6 +1426,8 @@ undoes.
 | Processor Settings | long text | computed | The settings the entity processor ran the last dry run under, as a document only that processor reads; the commit runs under them (R-IB11). |
 | Pass Number | integer | computed | How many dry runs and commits have been started on this batch; the current one is the latest (R-IB13). |
 | Job Id | text | computed | The job running the current dry run or commit, so a pass still running can be told from one the platform aborted (R-IB13). |
+| Operation | picklist(Import, Update) | yes (defaults Import) | What kind of data job this is: a file import, or a bulk update (R-IB14). Delete is later (C-37). |
+| Operation Definition | long text | conditional | For a bulk update, the query document (Section 17B), the changes and the confirmed count it ran with, as one document; empty for an import (R-IB14). |
 
 ### Relationships
 
@@ -1664,6 +1669,37 @@ key from an earlier pass is never read. While a pass runs, rows it has not reach
 show the last pass's outcome; the batch's counts are read back when it finishes, by which time
 every row belongs to it.
 
+**R-IB14 A bulk update is a data job with no rows.** A bulk update (C-35) is a batch with
+Operation Update, no template, no file and no staged rows: its query document, its changes (up
+to five, each setting a field to a value, clearing it, or copying another field of a compatible
+type on the same record into it) and the count the person confirmed are its Operation
+Definition, and those, with the journal, are the whole record of it (plan Section 4.9). Before
+it starts the records are counted as the person, in user mode; it is refused when none match,
+when more match than were confirmed, when more match than `Bulk_Update_Max_Records__c` allows,
+or when there are too many to count in one request. It is committed when it starts: Committed
+By, Started At and the Undo Deadline (R-IB7) are stamped then and Row Count is the count. The
+job reads at most the confirmed number of records, in identifier order, and each chunk reads
+its own records again with the query's filter, so a record changed since so that it no longer
+matches is left alone. Each record is saved in the person's own mode, with partial success,
+and every automation runs. Rows Updated counts the records saved, Rows Matched those that
+already held the new values (not saved), Rows Rejected those the platform refused, and the Run
+Log says how many no longer matched. The journal holds an Updated entry for each record saved
+and a Failed entry for each refused (Section 17A), and the undo is an import's: it puts back
+each value nobody has changed since, within the same window, and deletes nothing.
+
+**R-IB15 What a data job never writes.** Neither a bulk update nor an import writes over a
+field the package computes (every Rollup Definition target, household name and greetings,
+member count, primary affiliation, every last calculated time, the batch tag, the sample data
+key, a saved query's document), a formula, auto-number or system field, a field the person may
+not edit, or any record of the package's own bookkeeping objects (data jobs, import rows and
+templates, the journal, the error log, settings and setting changes, automation settings,
+rollup definitions, duplicate dismissals, and, with Giving installed, receipts, receipt runs and
+receipt number sequences). The list is worked out when the job runs, from describe and from the
+Rollup Definitions, so a new rollup's target is protected without a code change. Because a
+household and an organization are both an Account, the Account name is protected for both.
+Fields locked by an issued receipt are not on the list: the receipt lock refuses the save, and
+the refusal is journaled.
+
 ### Salesforce implementation
 
 - **Object:** `Import_Batch__c`, auto-number Name with format `IB-{000000}`.
@@ -1692,13 +1728,20 @@ every row belongs to it.
 | Processor Settings | `Processor_Settings_JSON__c` | Long Text Area (32768) |
 | Pass Number | `Pass_Number__c` | Number (9, 0) |
 | Job Id | `Job_Id__c` | Text (18) |
+| Operation | `Operation__c` | Picklist: Import, Update (default Import) |
+| Operation Definition | `Operation_JSON__c` | Long Text Area (131072) |
 
 - **Batch tag on other objects:** `Created_By_Import_Batch__c`, a Lookup to
   `Import_Batch__c`, on Account (households and organizations), on Contact, and on
   `Gift__c`. The Account and Contact fields ship in Core with the import framework; the
   `Gift__c` field ships in Giving (Section 18).
 - **Settings keys:** `Import_Chunk_Size__c` and `Import_Undo_Retention_Days__c`
-  (Section 12).
+  (Section 12); a bulk update also reads `Bulk_Update_Max_Records__c`.
+- **Labels and tab:** the object is labelled Data Job, plural Data Jobs, with a Data Jobs tab in
+  the Hub app; API names are unchanged (plan Section 4.9).
+- **Bulk update (R-IB14, R-IB15):** `BulkUpdateService`, `BulkUpdateBatch`,
+  `DataProtectedFields`, `BulkUpdateController`, LWC `bulkUpdate`; permission
+  `Bulk_Update_Records`, in Barn Admin and the Barn Bulk Update permission set.
 - **Remembered between chunks, in a dry run only:** the digests of the records earlier chunks
   would create are kept on those rows (`Person_1_Key__c`, `Person_2_Key__c`,
   `Organization_Key__c`, Section 17) and each chunk queries only the digests it needs through
@@ -1883,7 +1926,8 @@ indexed; they are not unique, and nothing outside the import reads them.
 
 The record of the changes an import made to records it did not create, kept so that an undo
 can put them back (plan Section 4.9: "updates are journaled for reversal"), and of what an
-undo left in place and why (feature C-19).
+undo left in place and why (feature C-19). A bulk update (C-35, R-IB14) journals through the
+same pages, with a Failed entry for each record that did not save.
 
 ### Attributes
 
@@ -1923,7 +1967,9 @@ a date as `YYYY-MM-DD`), so a value put back is the value that was there.
     { "action": "Kept", "object": "Account", "id": "001...", "label": "The Smith Family",
       "reason": "A person this import did not create is in this household." },
     { "action": "NotRestored", "object": "Contact", "id": "003...", "field": "Email",
-      "reason": "Changed since the import." }
+      "reason": "Changed since the import." },
+    { "action": "Failed", "object": "Contact", "id": "003...",
+      "reason": "The platform's own message, for example a validation rule's." }
   ]
 }
 ```
@@ -1931,7 +1977,10 @@ a date as `YYYY-MM-DD`), so a value put back is the value that was there.
 **R-IJ3 What is journaled.** A commit journals updates only: the attributes a row changed on
 a record the import did not create, with the value before and the value written, in full. A
 created record needs no entry because it carries the tag (R-IB3), and a matched or rejected
-row changed nothing and is recorded on its staged row (Section 17). An undo journals the
+row changed nothing and is recorded on its staged row (Section 17). A bulk update journals, per record it
+saved, the attributes whose value changed, before and after, and, per record the platform
+refused, a Failed entry with the reason; it journals nothing for a record that already held the
+new values. An undo journals the
 records it kept and the values it did not put back, each with its reason; the records it
 deleted are counted in the Run Log rather than listed, because the recycle bin lists them.
 
@@ -5474,6 +5523,7 @@ None open. R-M3's Primary Contact mirror, the only entry, was closed on 2026-09-
 | v0.6 | 2026-09-24 | C-23 automation pause with automatic resume, and the error digest (ADR-0055). No object added. `Barn_Settings__c` gains five keys (Section 12, v0.6 keys): `Error_Digest_Recipients__c`, `Error_Digest_Frequency__c`, `Error_Digest_Covered_Until__c`, `Error_Digest_Last_Run__c` and `Error_Digest_Last_Run_Summary__c`. New rules R-A5 (a pause ends by itself through a one-time job that records the resume) and R-E5 (the digest counts and links, never quotes, and goes only to active users); R-E3 reworded to point at R-E5. |
 | v0.6 | 2026-09-25 | G-20 follow-up: Health Check finding for unposted gifts in a closed period (ADR-0053's recorded follow-up, ADR-0057). No object, field or rule added: the finding reports what R-G14 already locks, a gift with a counting status (ADR-0022) and a type other than In-kind, dated on or before Books Closed Through, whose `Accounting_Posted_At__c` is still empty, capped and linked the way C-21's orphan findings already are. Because Core may not name a gift or a closed period (C-29), Core gains a small extension seam instead of a new Core check: `HealthCheckExtension`, an interface, and `HealthCheckExtensions`, a resolver that finds an implementation by name with `Type.forName`, the same shape `ImportEntityProcessor` already uses for the opposite direction (R-IR6). `HealthCheckService.run()` folds a found extension's findings into the one report, isolated the way one failing check already is. Giving ships the one implementation, `GivingHealthCheckExtension`, delegating to `HealthCheckGivingChecks`, grouped the way ADR-0039 groups Core's own checks. |
 | v0.7 | 2026-09-27 | C-34 Find (ADR-0047, amended). New Section 17B: the query document shared by Find, saved queries and bulk update, with rules R-Q1 to R-Q6, and one object, `Saved_Query__c` (`Object_Name__c`, `Is_Shared__c`, `Query_JSON__c`), private to its owner and shared by a flag. R-R2 is extended for queries only (R-Q2): parent paths and relative date periods. `Barn_Settings__c` gains `Export_Row_Limit__c` (Section 12, v0.7 keys). |
+| v0.7 | 2026-09-27 | C-35 bulk update (ADR-0047, amended). `Import_Batch__c` is labelled Data Job and gains `Operation__c` (Import, Update) and `Operation_JSON__c`; rules R-IB14 (a bulk update is a data job with no rows, counted, confirmed and journaled) and R-IB15 (what a data job never writes, worked out at run time). The journal gains the Failed entry (R-IJ2, R-IJ3), and an undo of a bulk update restores any object its journal names. `Barn_Settings__c` gains `Bulk_Update_Max_Records__c` (Section 12, v0.7 keys). |
 
 ---
 ## 32. Entity ownership by package

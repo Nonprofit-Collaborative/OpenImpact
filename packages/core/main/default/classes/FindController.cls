@@ -119,6 +119,9 @@ public with sharing class FindController {
         Context context = new Context();
         context.canUse = hasPermission();
         context.exportRowLimit = DataManagementSettings.exportRowLimit();
+        if (BulkUpdateController.hasPermission()) {
+            context.bulkUpdateTab = NamespaceUtil.qualify(BulkUpdateController.TAB);
+        }
         return context;
     }
 
