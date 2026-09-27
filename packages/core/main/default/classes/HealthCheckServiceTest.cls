@@ -313,6 +313,7 @@ private class HealthCheckServiceTest {
     @IsTest
     static void industriesObjectsWithoutConnectAreReported() {
         OrgShapeDetector.overrideShape = shape(false, false, true, false);
+        HealthCheckOrgShapeChecks.connectInstalledForTest = false;
 
         HealthCheckService.Finding finding = find(
             HealthCheckService.run(),
@@ -329,6 +330,18 @@ private class HealthCheckServiceTest {
             null,
             finding.fixTarget,
             'There is nothing to click: Connect is a separate install in v0.6.'
+        );
+    }
+
+    @IsTest
+    static void industriesObjectsWithConnectInstalledAreNotReported() {
+        OrgShapeDetector.overrideShape = shape(false, false, true, false);
+        HealthCheckOrgShapeChecks.connectInstalledForTest = true;
+
+        System.assertEquals(
+            null,
+            find(HealthCheckService.run(), 'connect_module_absent'),
+            'Connect is installed, so there is nothing to suggest.'
         );
     }
 

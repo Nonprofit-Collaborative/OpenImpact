@@ -96,6 +96,13 @@
 
 set -uo pipefail
 
+# The sf CLI is a Node process, and a large deploy or test result can pass
+# Node's default heap, which aborts it with "JavaScript heap out of memory". A larger heap is
+# the default here; a NODE_OPTIONS that already sets max-old-space-size is left as it is.
+if [[ "${NODE_OPTIONS:-}" != *max-old-space-size* ]]; then
+  export NODE_OPTIONS="${NODE_OPTIONS:+${NODE_OPTIONS} }--max-old-space-size=8192"
+fi
+
 STAGE_PAUSE_SECONDS="${STAGE_PAUSE_SECONDS:-15}"
 STALL_SECONDS="${STALL_SECONDS:-300}"
 POLL_SECONDS="${POLL_SECONDS:-15}"

@@ -13,9 +13,17 @@
 public with sharing class HealthCheckOrgShapeChecks {
     /**
      * An Apex class the Connect package ships, used to tell whether Connect is installed
-     * without referencing it at compile time.
+     * without referencing it at compile time. Connect's post-install script: every Connect
+     * version has one, because the install runs it.
      */
-    private static final String CONNECT_MARKER_CLASS = 'ConnectService';
+    private static final String CONNECT_MARKER_CLASS = 'ConnectPostInstall';
+
+    /**
+     * Test seam: whether Connect is installed, in place of the lookup. The gate orgs have every
+     * package deployed, so a test of the finding cannot depend on the org.
+     */
+    @TestVisible
+    private static Boolean connectInstalledForTest;
 
     /** What this org has installed, and the mode that shape recommends. */
     public class OrgShapeCheck implements HealthCheckService.Check {
@@ -362,7 +370,7 @@ public with sharing class HealthCheckOrgShapeChecks {
         if (shape == null || shape.hasIndustriesNonprofit != true) {
             return null;
         }
-        if (Type.forName(CONNECT_MARKER_CLASS) != null) {
+        if (isConnectInstalled()) {
             return null;
         }
 
@@ -373,6 +381,24 @@ public with sharing class HealthCheckOrgShapeChecks {
             HealthCheckService.SEVERITY_INFO,
             HealthCheckService.CATEGORY_ORG_SHAPE
         );
+    }
+
+    /**
+     * Found by namespace first and then without one, the lookup `HealthCheckExtensions` uses:
+     * in a namespaced org a bare name resolves only within Core's own classes' view.
+     */
+    private static Boolean isConnectInstalled() {
+        if (connectInstalledForTest != null) {
+            return connectInstalledForTest;
+        }
+        String prefix = NamespaceUtil.prefix();
+        if (
+            String.isNotBlank(prefix) &&
+            Type.forName(prefix.removeEnd('__'), CONNECT_MARKER_CLASS) != null
+        ) {
+            return true;
+        }
+        return Type.forName(CONNECT_MARKER_CLASS) != null;
     }
 
     private static HealthCheckService.Finding multiCurrencyFinding(

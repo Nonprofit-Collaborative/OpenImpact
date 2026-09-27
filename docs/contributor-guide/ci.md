@@ -322,10 +322,15 @@ once more. A run with any result, including real failures, is never retried. Dep
 that stall are resubmitted too: see "Stalled deploys" under `org-tests`.
 
 **At about 2,200 tests the sf CLI can run out of memory reading the results.** The Node
-process aborts with `JavaScript heap out of memory` after every stage has deployed, the retry
-hits the same wall, and the script posts a failure reading `0 of 0 failed`: no test failed.
-Run the gate with a larger heap:
-`NODE_OPTIONS=--max-old-space-size=8192 scripts/org/run-org-tests.sh <org alias>`.
+process aborts with `JavaScript heap out of memory` after every stage has deployed. The gate
+and `deploy-packages.sh` therefore give Node an 8 GB heap
+(`NODE_OPTIONS=--max-old-space-size=8192`) unless `NODE_OPTIONS` already sets
+`max-old-space-size`. If the CLI still runs out, the script says so and posts a failure
+reading "The sf CLI ran out of memory reading the results", without a retry, since a retry
+with the same heap hits the same wall: no test failed. Rerun with a larger value, for example
+`NODE_OPTIONS=--max-old-space-size=12288 scripts/org/run-org-tests.sh <org alias>`. Most of
+the payload is code coverage; dropping `--code-coverage` would shrink it but lose the coverage
+the package versions need.
 
 **One test depends on Salesforce's own duplicate matching.**
 `DuplicateServiceTest.theStandardRuleForPeopleFindsIdenticalTwinsOnce` asks the platform's
@@ -742,7 +747,7 @@ Remove each item from this list in the PR that finishes it.
   which passed 16 times out of 16 when run alone.
 - To land it:
   1. Run one full gate from a clean detached worktree at the top head, with
-     `NODE_OPTIONS=--max-old-space-size=8192 scripts/org/run-org-tests.sh oi-test` (or `oi-pa`).
+     `scripts/org/run-org-tests.sh oi-test` (or `oi-pa`); the script now sets the larger heap.
      If only the flaky test fails, rerun the gate.
   2. Fast-forward each lower branch to the top head:
      `git push origin 3da9276ad53ed3231e01b314d7e0e6205a23f8e7:refs/heads/feature/c-29-neutral-core-N`
@@ -774,6 +779,9 @@ refreshes `docs/product-plan.md` and deletes this subsection:
     `Barn_Hub_Home` and `Barn_Settings` tabs).
 - Section 12 D-01 and Section 8.3: record the rename pass as done for labels, docs and API
   names; the GitHub repository and the `oi-test` and `oi-pa` aliases are still to change.
+- Section 11.3: remove the work items done on this branch: the sf CLI heap in the org test
+  script, and the Health Check lookup of a `ConnectService` class that does not exist (it now
+  looks up `ConnectPostInstall`).
 
 The rename pass for labels, API names and docs is on branch
 `claude/openimpact-barncrm-status-ft0c1x`, built on the C-29 top head, so it merges after C-29.
@@ -815,9 +823,6 @@ from both when its PR merges.
 
    Update the admin guide first. Add tests, including a 200-row bulk case.
 3. **Fix the dynamic Apex convention violations** (see `dynamic-apex.md`).
-   - **Bug:** `HealthCheckOrgShapeChecks` looks for a `ConnectService` class that does not
-     exist, so it always reports Connect as not installed. Point it at a real Connect class,
-     and update item 4 of `packages/core/integration/c-07-c-11.permissions.md`.
    - **Uncapped counts:** `ReceiptGapSelector` (on `main`; C-29 replaces it),
      `CampaignSyncSelector.countAppeals`, `HubErrorCountSelector.countNewErrors`, and
      `HealthCheckSettingsChecks.errorLogFinding` (use `countNewUpTo`).
@@ -833,14 +838,7 @@ from both when its PR merges.
    - **Tests:**
      - add a "Campaign unavailable" test seam;
      - make tests that return early assert both cases.
-4. **Raise the sf CLI heap in the org test script.**
-   - Export `NODE_OPTIONS=--max-old-space-size=8192` in `scripts/org/run-org-tests.sh`, and in
-     `scripts/org/deploy-packages.sh` if it needs it.
-   - Detect the out-of-memory signature and report it as a client crash, not as "0 of 0
-     failed".
-   - Consider requesting a smaller result payload.
-   - Update the heap paragraph in this page.
-5. **Smaller review follow-ups.**
+4. **Smaller review follow-ups.**
    - X-01: the `DUPLICATE_VALUE` handling matches on a message substring, which is loose.
    - X-01: the admin guide should warn against listing `Master` in the record-type filter.
    - C-29: optionally assert `Limits.getQueryRows()` in the receipt-cap test.

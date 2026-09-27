@@ -24,6 +24,13 @@
 
 set -euo pipefail
 
+# The sf CLI is a Node process, and reading about 2,200 test results with coverage can pass
+# Node's default heap, which aborts it with "JavaScript heap out of memory". A larger heap is
+# the default here; a NODE_OPTIONS that already sets max-old-space-size is left as it is.
+if [[ "${NODE_OPTIONS:-}" != *max-old-space-size* ]]; then
+  export NODE_OPTIONS="${NODE_OPTIONS:+${NODE_OPTIONS} }--max-old-space-size=8192"
+fi
+
 ALIAS="${1:-}"
 if [[ -z "$ALIAS" ]]; then
   echo "Usage: run-org-tests.sh <org alias>" >&2
@@ -113,6 +120,15 @@ run_tests() {
   OUTCOME="${OUTCOME:-Unknown}" RAN="${RAN:-0}" PASSING="${PASSING:-0}" FAILING="${FAILING:-0}"
 }
 
+# The CLI itself running out of memory is not a test result and not a platform fault: a retry
+# with the same heap hits the same wall, and reporting it as "0 of 0 failed" reads as if the
+# tests had run. It is reported as a client crash instead.
+cli_heap_crash() {
+  [[ "$RAN" -eq 0 ]] || return 1
+  grep -qiE 'heap out of memory|Reached heap limit|Allocation failed' \
+    "${RESULTS_DIR}/org-tests.err" "${RESULTS_DIR}/org-tests.json" 2>/dev/null
+}
+
 # A run that comes back with no results at all because of UNKNOWN_EXCEPTION, or a platform or
 # network error, is retried once after a pause: that is a transient platform fault, not a test
 # result. A run with any result, including real failures, is never retried.
@@ -124,10 +140,21 @@ transient_no_results() {
     "${RESULTS_DIR}/org-tests.json" "${RESULTS_DIR}/org-tests.err"
 }
 run_tests
+if cli_heap_crash; then
+  post_status failure "The sf CLI ran out of memory reading the results on ${ALIAS}; no result was read"
+  echo "== The sf CLI ran out of memory (NODE_OPTIONS=${NODE_OPTIONS}). No test result was read," >&2
+  echo "   so this is not a test failure. Rerun with a larger --max-old-space-size. ==" >&2
+  exit 1
+fi
 if transient_no_results; then
   echo "== The test run returned no results (platform or network error). Retrying once in ${TEST_RETRY_WAIT_SECONDS}s ==" >&2
   sleep "$TEST_RETRY_WAIT_SECONDS"
   run_tests
+  if cli_heap_crash; then
+    post_status failure "The sf CLI ran out of memory reading the results on ${ALIAS}; no result was read"
+    echo "== The sf CLI ran out of memory on the retry. No test result was read. ==" >&2
+    exit 1
+  fi
 fi
 
 if [[ "$OUTCOME" == "Passed" && "$FAILING" -eq 0 && "$RAN" -gt 0 ]]; then
