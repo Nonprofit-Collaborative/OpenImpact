@@ -544,7 +544,7 @@ private class HouseholdMergeServiceTest {
 
     @IsTest
     static void theEmptiedHouseholdStaysWhenTheOrgSaysSo() {
-        Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
+        Barn_Settings__c settings = HouseholdTestDataFactory.settings(
             HouseholdTestDataFactory.MODE_CONTACT
         );
         settings.Delete_Empty_Households__c = false;

@@ -3,7 +3,7 @@
  *
  * ADR-0021 and ADR-0027 name the writers that may write this protected setting in system mode
  * (the automation pause, the seasonal swap's run record, the error digest's run record). Each
- * of them used to start from `Nonprofit_Settings__c.getOrgDefaults()` and upsert the whole
+ * of them used to start from `Barn_Settings__c.getOrgDefaults()` and upsert the whole
  * record, which went wrong in three ways this class exists to prevent:
  *
  * 1. On an org that has never saved its settings, `getOrgDefaults()` reads every checkbox as
@@ -25,14 +25,14 @@ public without sharing class OrgSettingsSystemWriter {
      * transactions racing, so this is how a test reaches the duplicate path.
      */
     @TestVisible
-    private static Nonprofit_Settings__c competingFirstSaveForTest;
+    private static Barn_Settings__c competingFirstSaveForTest;
 
     public static void save(Map<Schema.SObjectField, Object> values) {
-        Nonprofit_Settings__c stored = lockStored();
+        Barn_Settings__c stored = lockStored();
         if (stored != null) {
             updateKeys(stored.Id, values);
         } else {
-            Nonprofit_Settings__c created = SettingsService.firstSaveRecord();
+            Barn_Settings__c created = SettingsService.firstSaveRecord();
             putAll(created, values);
             if (insertFirst(created)) {
                 Database.update(
@@ -53,7 +53,7 @@ public without sharing class OrgSettingsSystemWriter {
      * Inserts the org's first settings record. False when one already exists because another
      * run inserted it first; any other failure is thrown.
      */
-    private static Boolean insertFirst(Nonprofit_Settings__c created) {
+    private static Boolean insertFirst(Barn_Settings__c created) {
         if (competingFirstSaveForTest != null) {
             Database.insert(competingFirstSaveForTest, AccessLevel.SYSTEM_MODE);
             competingFirstSaveForTest = null;
@@ -70,7 +70,7 @@ public without sharing class OrgSettingsSystemWriter {
     }
 
     private static void updateKeys(Id recordId, Map<Schema.SObjectField, Object> values) {
-        Nonprofit_Settings__c changes = new Nonprofit_Settings__c(Id = recordId);
+        Barn_Settings__c changes = new Barn_Settings__c(Id = recordId);
         putAll(changes, values);
         Database.update(changes, AccessLevel.SYSTEM_MODE);
     }
@@ -80,16 +80,13 @@ public without sharing class OrgSettingsSystemWriter {
      * never saved one. Read what a decision depends on through this, then `save`, and a second
      * run waits for the first to finish instead of acting on the same stale value.
      */
-    public static Nonprofit_Settings__c lockStored() {
-        return (Nonprofit_Settings__c) SettingsRecordSelector.lockOrgDefault(
-            Nonprofit_Settings__c.SObjectType
+    public static Barn_Settings__c lockStored() {
+        return (Barn_Settings__c) SettingsRecordSelector.lockOrgDefault(
+            Barn_Settings__c.SObjectType
         );
     }
 
-    private static void putAll(
-        Nonprofit_Settings__c target,
-        Map<Schema.SObjectField, Object> values
-    ) {
+    private static void putAll(Barn_Settings__c target, Map<Schema.SObjectField, Object> values) {
         for (Schema.SObjectField field : values.keySet()) {
             target.put(field, values.get(field));
         }

@@ -5,16 +5,13 @@
 @IsTest
 private class HealthCheckGivingSelectorTest {
     private static User jen() {
-        return TestDataFactory.createUser(
-            'Jen',
-            new List<String>{ 'Nonprofit_Admin', 'Giving_Admin' }
-        );
+        return TestDataFactory.createUser('Jen', new List<String>{ 'Barn_Admin', 'Giving_Admin' });
     }
 
     private static User david() {
         return TestDataFactory.createUser(
             'David',
-            new List<String>{ 'Nonprofit_Staff', 'Giving_Staff' }
+            new List<String>{ 'Barn_Staff', 'Giving_Staff' }
         );
     }
 

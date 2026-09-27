@@ -12,8 +12,8 @@ public class TestDataFactory {
      * The org level Nonprofit Settings, with the shipped v0.1 defaults, saved and cached.
      */
     @NamespaceAccessible
-    public static Nonprofit_Settings__c defaultSettings() {
-        Nonprofit_Settings__c settings = Nonprofit_Settings__c.getOrgDefaults();
+    public static Barn_Settings__c defaultSettings() {
+        Barn_Settings__c settings = Barn_Settings__c.getOrgDefaults();
         settings.Coexistence_Mode__c = SettingsService.COEXISTENCE_MODE_DEFAULT;
         settings.Household_Membership_Mode__c = SettingsService.MEMBERSHIP_MODE_DEFAULT;
         settings.Auto_Create_Households__c = true;
@@ -31,7 +31,7 @@ public class TestDataFactory {
      * Saves the org level settings and clears the transaction cache so the next read sees them.
      */
     @NamespaceAccessible
-    public static void saveSettings(Nonprofit_Settings__c settings) {
+    public static void saveSettings(Barn_Settings__c settings) {
         if (settings.Id == null) {
             insert settings;
         } else {
@@ -46,8 +46,8 @@ public class TestDataFactory {
      * negative number produces a pause that has already expired.
      */
     @NamespaceAccessible
-    public static Nonprofit_Settings__c pausedSettings(Integer hoursFromNow) {
-        Nonprofit_Settings__c settings = defaultSettings();
+    public static Barn_Settings__c pausedSettings(Integer hoursFromNow) {
+        Barn_Settings__c settings = defaultSettings();
         settings.Automation_Paused_Until__c = System.now().addHours(hoursFromNow);
         saveSettings(settings);
         return settings;

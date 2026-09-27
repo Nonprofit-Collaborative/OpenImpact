@@ -297,7 +297,7 @@ private class HealthCheckServiceTest {
     @IsTest
     static void contactMembershipWithAutomaticHouseholdsOffIsNotReported() {
         OrgShapeDetector.overrideShape = shape(false, false, false, false);
-        Nonprofit_Settings__c settings = HouseholdTestDataFactory.settings(
+        Barn_Settings__c settings = HouseholdTestDataFactory.settings(
             HouseholdTestDataFactory.MODE_CONTACT
         );
         settings.Auto_Create_Households__c = false;
@@ -361,10 +361,7 @@ private class HealthCheckServiceTest {
             OrgShapeDetector.overrideShape = shape(false, false, false, false);
             HealthCheckService.accessCountsOverride = new FixedAccessCounts(0, 0);
 
-            HealthCheckService.Finding finding = find(
-                HealthCheckService.run(),
-                'no_nonprofit_admin'
-            );
+            HealthCheckService.Finding finding = find(HealthCheckService.run(), 'no_barn_admin');
 
             System.assertNotEquals(
                 null,
@@ -396,7 +393,7 @@ private class HealthCheckServiceTest {
 
             System.assertEquals(
                 null,
-                find(findings, 'no_nonprofit_admin'),
+                find(findings, 'no_barn_admin'),
                 'One administrator is enough: there is nothing to say about it.'
             );
             System.assertEquals(
@@ -437,7 +434,7 @@ private class HealthCheckServiceTest {
 
             System.assertEquals(
                 null,
-                find(HealthCheckService.run(), 'no_nonprofit_admin'),
+                find(HealthCheckService.run(), 'no_barn_admin'),
                 'Someone given the admin permission set by hand is still an administrator.'
             );
         }
@@ -483,7 +480,7 @@ private class HealthCheckServiceTest {
 
             System.assertEquals(
                 null,
-                find(findings, 'no_nonprofit_admin'),
+                find(findings, 'no_barn_admin'),
                 'Priya sees her own assignments and nothing else, so the count would be wrong.'
             );
             System.assertEquals(
@@ -522,7 +519,7 @@ private class HealthCheckServiceTest {
         // The pause is not an editable setting with a shipped Setting Definition row: Maria sets
         // it from the Automation panel, and the settings service rightly refuses a key no row
         // names. The factory writes the same field the way the product does.
-        Nonprofit_Settings__c paused = TestDataFactory.pausedSettings(2);
+        Barn_Settings__c paused = TestDataFactory.pausedSettings(2);
         // A pause set from the page has its resume scheduled with it (R-A5).
         AutomationResumeJob.scheduleAt(paused.Automation_Paused_Until__c);
 
@@ -582,7 +579,7 @@ private class HealthCheckServiceTest {
     @IsTest
     static void aScheduledDigestThatStoppedRunningIsAWarning() {
         OrgShapeDetector.overrideShape = shape(false, false, false, false);
-        Nonprofit_Settings__c settings = TestDataFactory.defaultSettings();
+        Barn_Settings__c settings = TestDataFactory.defaultSettings();
         settings.Error_Digest_Last_Run__c = System.now()
             .addDays(-HealthCheckSettingsChecks.DIGEST_STALE_DAYS - 1);
         TestDataFactory.saveSettings(settings);
@@ -602,7 +599,7 @@ private class HealthCheckServiceTest {
     @IsTest
     static void aDigestThatRanTodayOrIsNotScheduledIsNotReported() {
         OrgShapeDetector.overrideShape = shape(false, false, false, false);
-        Nonprofit_Settings__c settings = TestDataFactory.defaultSettings();
+        Barn_Settings__c settings = TestDataFactory.defaultSettings();
         settings.Error_Digest_Last_Run__c = System.now()
             .addDays(-HealthCheckSettingsChecks.DIGEST_STALE_DAYS - 1);
         TestDataFactory.saveSettings(settings);

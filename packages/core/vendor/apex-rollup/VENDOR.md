@@ -473,7 +473,7 @@ this way.
 scratchpad. It is written with `System.AccessLevel.SYSTEM_MODE` on every DML statement already
 (patch C), and the reads are the other half of the same operation. The user who triggers a rollup
 is whoever saved a child record, a fundraiser as often as an administrator, so granting field
-access in `Nonprofit_Admin` would fix the test run and leave the engine failing for everyone else;
+access in `Barn_Admin` would fix the test run and leave the engine failing for everyone else;
 granting it in every permission set would expose an internal object that no one should read.
 Naming system mode on the reads is what upstream's design intends and what its old default did.
 The test queries are syntax checks and setup reads on the test-support object and on `Account`,

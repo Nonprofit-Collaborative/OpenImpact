@@ -61,7 +61,7 @@ function agentforceReport(overrides = {}) {
     orgShape: { hasPersonAccounts: true, hasIndustriesNonprofit: true },
     // Both come from Apex, which computes them from the running namespace. Unmanaged, which
     // is what the scratch orgs are, they look like this.
-    settingsTabApiName: 'Nonprofit_Settings',
+    settingsTabApiName: 'Barn_Settings',
     sectionStateKey: 'c__section',
     findings: [
       {
@@ -92,7 +92,7 @@ function agentforceReport(overrides = {}) {
         fixTarget: 'action:enableAutomaticHouseholds'
       },
       {
-        key: 'no_nonprofit_admin',
+        key: 'no_barn_admin',
         title: 'No one is assigned the Nonprofit Admin role',
         detail: 'Nobody has the role.',
         severity: 'Error',
@@ -431,7 +431,7 @@ describe('c-health-check-panel', () => {
     expect(handler.mock.calls[0][0].detail.section).toBe('Access');
     expect(mockNavigate).toHaveBeenCalledWith({
       type: 'standard__navItemPage',
-      attributes: { apiName: 'Nonprofit_Settings' },
+      attributes: { apiName: 'Barn_Settings' },
       state: { c__section: 'Access' }
     });
   });
@@ -453,7 +453,7 @@ describe('c-health-check-panel', () => {
   it('uses the namespaced tab and state key the report supplies', async () => {
     getReport.mockResolvedValue(
       agentforceReport({
-        settingsTabApiName: 'example__Nonprofit_Settings',
+        settingsTabApiName: 'example__Barn_Settings',
         sectionStateKey: 'example__section'
       })
     );
@@ -465,7 +465,7 @@ describe('c-health-check-panel', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith({
       type: 'standard__navItemPage',
-      attributes: { apiName: 'example__Nonprofit_Settings' },
+      attributes: { apiName: 'example__Barn_Settings' },
       state: { example__section: 'Access' }
     });
   });

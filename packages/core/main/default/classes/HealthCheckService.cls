@@ -111,7 +111,7 @@ public with sharing class HealthCheckService {
     }
 
     /** The settings console tab that hosts every section a fix can point at. */
-    public static final String SETTINGS_TAB = 'Nonprofit_Settings';
+    public static final String SETTINGS_TAB = 'Barn_Settings';
 
     /** The page state parameter that tells the console which section to open. */
     public static final String SECTION_STATE_PARAMETER = 'section';
@@ -126,9 +126,9 @@ public with sharing class HealthCheckService {
      * assigns) that mean "this person uses Open Impact", and the permission set that means
      * "this person administers it". See packages/core/integration/c-07-c-11.permissions.md.
      */
-    public static final String GROUP_ADMIN = 'Nonprofit_Admin_Group';
-    public static final String PERMISSION_SET_ADMIN = 'Nonprofit_Admin';
-    public static final Set<String> NONPROFIT_GROUPS = new Set<String>{
+    public static final String GROUP_ADMIN = 'Barn_Admin_Group';
+    public static final String PERMISSION_SET_ADMIN = 'Barn_Admin';
+    public static final Set<String> BARN_GROUPS = new Set<String>{
         GROUP_ADMIN,
         'Fundraising_Staff',
         'Program_Staff',
@@ -140,10 +140,10 @@ public with sharing class HealthCheckService {
      * The packaged permission sets themselves. An administrator who assigned one of these
      * directly, rather than through a role, has still given that person the app.
      */
-    public static final Set<String> NONPROFIT_PERMISSION_SETS = new Set<String>{
+    public static final Set<String> BARN_PERMISSION_SETS = new Set<String>{
         PERMISSION_SET_ADMIN,
-        'Nonprofit_Staff',
-        'Nonprofit_Read_Only'
+        'Barn_Staff',
+        'Barn_Read_Only'
     };
 
     /**
@@ -322,10 +322,8 @@ public with sharing class HealthCheckService {
         }
 
         public Integer usersWithoutAccess() {
-            Set<Id> assigned = UserAccessSelector.getAssignedUserIds(NONPROFIT_GROUPS);
-            assigned.addAll(
-                UserAccessSelector.getPermissionSetAssigneeIds(NONPROFIT_PERMISSION_SETS)
-            );
+            Set<Id> assigned = UserAccessSelector.getAssignedUserIds(BARN_GROUPS);
+            assigned.addAll(UserAccessSelector.getPermissionSetAssigneeIds(BARN_PERMISSION_SETS));
             return UserAccessSelector.countActiveStandardUsersExcluding(assigned);
         }
     }
@@ -445,7 +443,7 @@ public with sharing class HealthCheckService {
         if (canManageSettings()) {
             steps.add(
                 new CheckStep(
-                    'nonprofit_admin',
+                    'barn_admin',
                     new HealthCheckAccessChecks.NoAdminCheck(accessCounts())
                 )
             );

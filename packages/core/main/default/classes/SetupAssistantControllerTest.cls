@@ -467,7 +467,7 @@ private class SetupAssistantControllerTest {
             rows.add(
                 new Setting_Definition__mdt(
                     Setting_Key__c = key,
-                    Settings_Object__c = 'Nonprofit_Settings__c',
+                    Settings_Object__c = 'Barn_Settings__c',
                     Section__c = 'Organization',
                     Module__c = 'Core',
                     Data_Type__c = 'Text'
@@ -479,9 +479,9 @@ private class SetupAssistantControllerTest {
 
     /** What is actually stored, read past any cached org default. */
     private static String savedLegalName() {
-        List<Nonprofit_Settings__c> rows = [
+        List<Barn_Settings__c> rows = [
             SELECT Organization_Legal_Name__c
-            FROM Nonprofit_Settings__c
+            FROM Barn_Settings__c
             WHERE SetupOwnerId = :UserInfo.getOrganizationId()
         ];
         return rows.isEmpty() ? null : rows[0].Organization_Legal_Name__c;

@@ -70,7 +70,7 @@ private class SettingsServiceTest {
         List<Setting_Change__c> changes = SettingChangeSelector.getRecent(10);
         Assert.areEqual(1, changes.size(), 'One changed setting writes exactly one audit record');
         Assert.areEqual(
-            'Nonprofit_Settings__c.' + TEXT_KEY,
+            'Barn_Settings__c.' + TEXT_KEY,
             changes[0].Setting_Name__c,
             'The audit record names the settings object and the setting, because each package owns one'
         );
@@ -342,7 +342,7 @@ private class SettingsServiceTest {
         SettingsService.saveValues(new Map<String, Object>{ TEXT_KEY => 'The {LastName} Family' });
 
         Test.startTest();
-        Object named = SettingsService.getValue('Nonprofit_Settings__c', TEXT_KEY);
+        Object named = SettingsService.getValue('Barn_Settings__c', TEXT_KEY);
         Test.stopTest();
 
         Assert.areEqual(
@@ -351,11 +351,11 @@ private class SettingsServiceTest {
             'Naming Core\'s own object reads the same value'
         );
         Assert.isTrue(
-            SettingsService.hasKey('Nonprofit_Settings__c', TEXT_KEY),
+            SettingsService.hasKey('Barn_Settings__c', TEXT_KEY),
             'Core owns the household name pattern'
         );
         Assert.isFalse(
-            SettingsService.hasKey('Nonprofit_Settings__c', 'Not_A_Setting__c'),
+            SettingsService.hasKey('Barn_Settings__c', 'Not_A_Setting__c'),
             'Core does not own a setting that does not exist'
         );
     }
@@ -363,8 +363,8 @@ private class SettingsServiceTest {
     @IsTest
     static void readsSettingsWithoutQueryingEveryTime() {
         Test.startTest();
-        Nonprofit_Settings__c first = SettingsService.getSettings();
-        Nonprofit_Settings__c second = SettingsService.getSettings();
+        Barn_Settings__c first = SettingsService.getSettings();
+        Barn_Settings__c second = SettingsService.getSettings();
         Test.stopTest();
 
         Assert.areNotEqual(null, first, 'An org that has never saved still gets a settings record');
@@ -375,8 +375,8 @@ private class SettingsServiceTest {
     static void theOrgSettingsAreReadOncePerTransaction() {
         TestDataFactory.defaultSettings();
 
-        Nonprofit_Settings__c first = SettingsService.getSettings();
-        Nonprofit_Settings__c second = SettingsService.getSettings();
+        Barn_Settings__c first = SettingsService.getSettings();
+        Barn_Settings__c second = SettingsService.getSettings();
 
         Assert.isNotNull(first, 'A fresh org has settings to read.');
         Assert.areEqual(first.Id, second.Id, 'The second read is the cached one.');
@@ -389,7 +389,7 @@ private class SettingsServiceTest {
 
     @IsTest
     static void aWriteIsSeenByTheNextRead() {
-        Nonprofit_Settings__c settings = TestDataFactory.defaultSettings();
+        Barn_Settings__c settings = TestDataFactory.defaultSettings();
         Assert.isNull(SettingsService.getSettings().Automation_Paused_Until__c, 'Not paused.');
 
         settings.Automation_Paused_Until__c = System.now().addHours(4);
@@ -403,7 +403,7 @@ private class SettingsServiceTest {
 
     @IsTest
     static void aModeIsReadBackAsItWasSaved() {
-        Nonprofit_Settings__c settings = TestDataFactory.defaultSettings();
+        Barn_Settings__c settings = TestDataFactory.defaultSettings();
         settings.Coexistence_Mode__c = 'NPSP';
         settings.Household_Membership_Mode__c = 'Junction';
         TestDataFactory.saveSettings(settings);
@@ -418,7 +418,7 @@ private class SettingsServiceTest {
 
     @IsTest
     static void aModeNobodyRecognizesFallsBackToTheShippedDefault() {
-        Nonprofit_Settings__c settings = TestDataFactory.defaultSettings();
+        Barn_Settings__c settings = TestDataFactory.defaultSettings();
         settings.Coexistence_Mode__c = 'Something a data load put here';
         settings.Household_Membership_Mode__c = null;
         TestDataFactory.saveSettings(settings);
@@ -482,7 +482,7 @@ private class SettingsServiceTest {
             'Formal_Greeting_Pattern__c' => '"{Salutation} {FirstName} {LastName}"',
             'Informal_Greeting_Pattern__c' => '"{FirstName}"'
         };
-        Map<String, Schema.SObjectField> shipped = Schema.SObjectType.Nonprofit_Settings__c.fields.getMap();
+        Map<String, Schema.SObjectField> shipped = Schema.SObjectType.Barn_Settings__c.fields.getMap();
 
         for (String fieldName : expectedByField.keySet()) {
             String formula = shipped.get(fieldName).getDescribe().getDefaultValueFormula();
@@ -546,7 +546,7 @@ private class SettingsServiceTest {
     @IsTest
     static void aCheckboxThatShipsOnReadsOnBeforeTheOrgHasSavedAnything() {
         Test.startTest();
-        Nonprofit_Settings__c settings = SettingsService.getSettings();
+        Barn_Settings__c settings = SettingsService.getSettings();
         Test.stopTest();
 
         Assert.isNull(settings.Id, 'This org has never saved its settings');
@@ -569,7 +569,7 @@ private class SettingsServiceTest {
         SettingsService.saveValues(new Map<String, Object>{ TEXT_KEY => 'The {LastName} Family' });
         Test.stopTest();
 
-        Nonprofit_Settings__c stored = SettingsService.getSettings();
+        Barn_Settings__c stored = SettingsService.getSettings();
         Assert.isNotNull(stored.Id, 'Saving one value creates the org level record');
         Assert.areEqual(
             'The {LastName} Family',

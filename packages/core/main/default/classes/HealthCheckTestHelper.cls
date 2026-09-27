@@ -12,7 +12,7 @@
 @IsTest
 public class HealthCheckTestHelper {
     /** The packaged role an administrator of Open Impact is given (admin guide, Access). */
-    private static final String NONPROFIT_ADMIN = HealthCheckService.PERMISSION_SET_ADMIN;
+    private static final String BARN_ADMIN = HealthCheckService.PERMISSION_SET_ADMIN;
 
     /**
      * Maria: a user holding the Manage Nonprofit Settings custom permission, and the packaged
@@ -42,7 +42,7 @@ public class HealthCheckTestHelper {
         List<PermissionSet> packaged = [
             SELECT Id
             FROM PermissionSet
-            WHERE Name = :NONPROFIT_ADMIN
+            WHERE Name = :BARN_ADMIN
             LIMIT 1
         ];
         System.assert(

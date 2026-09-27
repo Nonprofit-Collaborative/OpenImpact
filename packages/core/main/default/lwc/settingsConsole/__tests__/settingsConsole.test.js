@@ -105,7 +105,7 @@ function model(canEdit) {
             description: 'What Open Impact found in your org.',
             dataType: 'Component',
             section: 'Health',
-            settingsObject: 'Nonprofit_Settings__c',
+            settingsObject: 'Barn_Settings__c',
             component: 'notAComponentInThisBuild',
             navigationTarget: null,
             helpUrl: null,

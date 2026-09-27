@@ -6,18 +6,18 @@
 @IsTest
 private class ErrorDigestRecipientsTest {
     private static User maria() {
-        return TestDataFactory.createUser('Maria', new List<String>{ 'Nonprofit_Admin' });
+        return TestDataFactory.createUser('Maria', new List<String>{ 'Barn_Admin' });
     }
 
-    private static Nonprofit_Settings__c settings() {
-        return Nonprofit_Settings__c.getOrgDefaults();
+    private static Barn_Settings__c settings() {
+        return Barn_Settings__c.getOrgDefaults();
     }
 
     @IsTest
     static void theDefaultRecipientsAreTheAdministrators() {
         TestDataFactory.defaultSettings();
         User admin = maria();
-        User staff = TestDataFactory.createUser('David', new List<String>{ 'Nonprofit_Staff' });
+        User staff = TestDataFactory.createUser('David', new List<String>{ 'Barn_Staff' });
 
         List<User> recipients;
         System.runAs(admin) {
@@ -34,7 +34,7 @@ private class ErrorDigestRecipientsTest {
     @IsTest
     static void anAddressThatIsNotAUserIsRefusedWhenSaved() {
         TestDataFactory.defaultSettings();
-        TestDataFactory.createUser('Jen', new List<String>{ 'Nonprofit_Staff' });
+        TestDataFactory.createUser('Jen', new List<String>{ 'Barn_Staff' });
         User admin = maria();
 
         System.runAs(admin) {
@@ -78,7 +78,7 @@ private class ErrorDigestRecipientsTest {
 
     @IsTest
     static void listedUsersAreFoundByEmailInTheOrderListed() {
-        User jen = TestDataFactory.createUser('Jen', new List<String>{ 'Nonprofit_Staff' });
+        User jen = TestDataFactory.createUser('Jen', new List<String>{ 'Barn_Staff' });
         User admin = maria();
 
         List<User> recipients;
@@ -97,7 +97,7 @@ private class ErrorDigestRecipientsTest {
 
     @IsTest
     static void anInactiveUserIsNotARecipient() {
-        User gone = TestDataFactory.createUser('Former', new List<String>{ 'Nonprofit_Staff' });
+        User gone = TestDataFactory.createUser('Former', new List<String>{ 'Barn_Staff' });
         System.runAs(new User(Id = UserInfo.getUserId())) {
             update new User(Id = gone.Id, IsActive = false);
         }
@@ -112,12 +112,9 @@ private class ErrorDigestRecipientsTest {
     @IsTest
     static void theDigestStopsAtItsRecipientCap() {
         Assert.areEqual(50, ErrorDigestRecipients.MAX_RECIPIENTS, 'Fifty people at most.');
-        User first = TestDataFactory.createUser('Capfirst', new List<String>{ 'Nonprofit_Staff' });
-        User second = TestDataFactory.createUser(
-            'Capsecond',
-            new List<String>{ 'Nonprofit_Staff' }
-        );
-        User third = TestDataFactory.createUser('Capthird', new List<String>{ 'Nonprofit_Staff' });
+        User first = TestDataFactory.createUser('Capfirst', new List<String>{ 'Barn_Staff' });
+        User second = TestDataFactory.createUser('Capsecond', new List<String>{ 'Barn_Staff' });
+        User third = TestDataFactory.createUser('Capthird', new List<String>{ 'Barn_Staff' });
         ErrorDigestRecipients.recipientCap = 2;
 
         Test.startTest();

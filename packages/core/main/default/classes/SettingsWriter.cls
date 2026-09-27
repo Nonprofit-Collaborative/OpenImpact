@@ -24,7 +24,7 @@
  */
 public with sharing class SettingsWriter {
     @TestVisible
-    private static final String EDIT_PERMISSION = 'Manage_Nonprofit_Settings';
+    private static final String EDIT_PERMISSION = 'Manage_Barn_Settings';
 
     /** Raised when a caller reaches the write without the Manage Nonprofit Settings permission. */
     public class PermissionException extends Exception {

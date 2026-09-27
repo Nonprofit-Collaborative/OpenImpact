@@ -28,7 +28,7 @@ jest.mock(
 );
 
 // David has no Manage Nonprofit Settings permission, so the page opens read only.
-jest.mock('@salesforce/customPermission/Manage_Nonprofit_Settings', () => ({ default: false }), {
+jest.mock('@salesforce/customPermission/Manage_Barn_Settings', () => ({ default: false }), {
   virtual: true
 });
 

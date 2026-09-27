@@ -6,5 +6,5 @@
   </description>
   <hasActivationRequired>false</hasActivationRequired>
   <label>Open Impact Admin Group</label>
-  <permissionSets>Nonprofit_Admin</permissionSets>
+  <permissionSets>Barn_Admin</permissionSets>
 </PermissionSetGroup>

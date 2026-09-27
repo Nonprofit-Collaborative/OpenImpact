@@ -11,10 +11,10 @@
  */
 public with sharing class AccessService {
     /** The DeveloperName of the group that grants Nonprofit Settings. */
-    public static final String ADMIN_ROLE = 'Nonprofit_Admin_Group';
+    public static final String ADMIN_ROLE = 'Barn_Admin_Group';
 
     /** The permission set inside that group, assignable before the group is calculated. */
-    public static final String ADMIN_PERMISSION_SET = 'Nonprofit_Admin';
+    public static final String ADMIN_PERMISSION_SET = 'Barn_Admin';
 
     /** The five packaged roles, in the order the page shows them. */
     public static final List<String> ROLE_DEVELOPER_NAMES = new List<String>{

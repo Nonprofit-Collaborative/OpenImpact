@@ -162,7 +162,7 @@ private class RelationshipServiceTest {
     @IsTest
     static void writesNoOtherSideWhenTheOrgHasTurnedItOff() {
         RelationshipTestDataFactory.quietOtherAutomations();
-        insert new Nonprofit_Settings__c(
+        insert new Barn_Settings__c(
             SetupOwnerId = UserInfo.getOrganizationId(),
             Relationship_Auto_Reciprocal__c = false
         );

@@ -10,19 +10,19 @@
 private class AutomationControlControllerTest {
     private static final String NAMING = 'Household_Naming';
 
-    private static User nonprofitAdmin() {
-        return TestDataFactory.createUser('Maria', new List<String>{ 'Nonprofit_Admin' });
+    private static User barnAdmin() {
+        return TestDataFactory.createUser('Maria', new List<String>{ 'Barn_Admin' });
     }
 
     private static User staffOnly() {
-        return TestDataFactory.createUser('David', new List<String>{ 'Nonprofit_Staff' });
+        return TestDataFactory.createUser('David', new List<String>{ 'Barn_Staff' });
     }
 
     @IsTest
     static void thePageListsEveryAutomationAndThePauseState() {
         TestDataFactory.insertAutomationSettings(new Map<String, Boolean>{ NAMING => true });
         TestDataFactory.pausedSettings(2);
-        User maria = nonprofitAdmin();
+        User maria = barnAdmin();
 
         Test.startTest();
         AutomationControlController.AutomationPageView page;
@@ -56,7 +56,7 @@ private class AutomationControlControllerTest {
             Is_Package_Default__c = true
         );
         AutomationControl.clearCache();
-        User maria = nonprofitAdmin();
+        User maria = barnAdmin();
 
         Test.startTest();
         AutomationControlController.AutomationPageView page;
@@ -87,7 +87,7 @@ private class AutomationControlControllerTest {
     static void mariaPausesResumesAndSwitchesOneAutomationOff() {
         TestDataFactory.insertAutomationSettings(new Map<String, Boolean>{ NAMING => true });
         TestDataFactory.defaultSettings();
-        User maria = nonprofitAdmin();
+        User maria = barnAdmin();
 
         Test.startTest();
         System.runAs(maria) {
@@ -158,7 +158,7 @@ private class AutomationControlControllerTest {
     @IsTest
     static void aPauseLengthThatIsNotOfferedIsRefused() {
         TestDataFactory.defaultSettings();
-        User maria = nonprofitAdmin();
+        User maria = barnAdmin();
 
         Test.startTest();
         System.runAs(maria) {

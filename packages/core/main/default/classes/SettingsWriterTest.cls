@@ -29,7 +29,7 @@ private class SettingsWriterTest {
         Test.startTest();
         System.runAs(maria) {
             SettingsWriter.saveOrgDefault(
-                new Nonprofit_Settings__c(
+                new Barn_Settings__c(
                     SetupOwnerId = UserInfo.getOrganizationId(),
                     Household_Name_Pattern__c = 'The {LastName} Family'
                 )
@@ -44,7 +44,7 @@ private class SettingsWriterTest {
         );
         Assert.areEqual(
             'The {LastName} Family',
-            Nonprofit_Settings__c.getOrgDefaults().Household_Name_Pattern__c,
+            Barn_Settings__c.getOrgDefaults().Household_Name_Pattern__c,
             'What she saved is what the org now runs on'
         );
     }
@@ -58,7 +58,7 @@ private class SettingsWriterTest {
         System.runAs(david) {
             try {
                 SettingsWriter.saveOrgDefault(
-                    new Nonprofit_Settings__c(
+                    new Barn_Settings__c(
                         SetupOwnerId = UserInfo.getOrganizationId(),
                         Household_Name_Pattern__c = 'The {LastName} Clan'
                     )

@@ -19,7 +19,7 @@ public with sharing class ErrorDigestRecipients {
     @TestVisible
     private static Integer recipientCap = MAX_RECIPIENTS;
 
-    private static final String MANAGE_SETTINGS = 'Manage_Nonprofit_Settings';
+    private static final String MANAGE_SETTINGS = 'Manage_Barn_Settings';
 
     /**
      * The users the digest goes to: those whose addresses are listed, in the order listed, or,

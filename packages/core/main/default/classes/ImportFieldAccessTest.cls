@@ -36,7 +36,7 @@ private class ImportFieldAccessTest {
             insert person;
             insert new PermissionSetAssignment(
                 AssigneeId = person.Id,
-                PermissionSetId = [SELECT Id FROM PermissionSet WHERE Name = 'Nonprofit_Admin']
+                PermissionSetId = [SELECT Id FROM PermissionSet WHERE Name = 'Barn_Admin']
                 .Id
             );
         }
@@ -144,7 +144,7 @@ private class ImportFieldAccessTest {
     }
 
     @IsTest
-    static void aNonprofitAdminLoadsTheOptOuts() {
+    static void aBarnAdminLoadsTheOptOuts() {
         given();
         User person = importer();
         ImportRowProcessor.Outcome committed;
