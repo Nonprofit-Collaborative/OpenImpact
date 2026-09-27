@@ -66,23 +66,47 @@ fi
 
 CLASSPATH="${APEX_LS_JAR}:$(cat "$CP_FILE")"
 
-set +e
-java -cp "$CLASSPATH" io.github.apexdevtools.apexls.CheckForIssues \
-  --workspace "$REPO_ROOT" --detail errors --format text
-STATUS=$?
-set -e
+# Two passes. The first checks every package together, as they deploy. The second checks Core
+# alone, as the Community Suite installs it (ADR-0046, ADR-0059): Core must never name a
+# Giving, Connect or other module class at compile time, and in the first pass those classes
+# are present, so a reference to one compiles there and fails only in an org without them.
+# The second pass copies packages/core into a temporary workspace whose sfdx-project.json
+# lists Core only.
+run_check() {
+  local workspace="$1" label="$2" status
+  set +e
+  java -cp "$CLASSPATH" io.github.apexdevtools.apexls.CheckForIssues \
+    --workspace "$workspace" --detail errors --format text
+  status=$?
+  set -e
+  case "$status" in
+    0)
+      echo "check-apex-offline: ${label}: no compile-level errors found."
+      ;;
+    4)
+      echo "check-apex-offline: FAILED, apex-ls reported compile-level errors above (${label})." >&2
+      return 1
+      ;;
+    *)
+      echo "check-apex-offline: apex-ls exited with unexpected status $status (${label})." >&2
+      return 1
+      ;;
+  esac
+}
 
-case "$STATUS" in
-  0)
-    echo "check-apex-offline: no compile-level errors found."
-    exit 0
-    ;;
-  4)
-    echo "check-apex-offline: FAILED, apex-ls reported compile-level errors above." >&2
-    exit 1
-    ;;
-  *)
-    echo "check-apex-offline: apex-ls exited with unexpected status $STATUS." >&2
-    exit 1
-    ;;
-esac
+run_check "$REPO_ROOT" "all packages" || exit 1
+
+CORE_ONLY="$(mktemp -d)"
+trap 'rm -rf "$CORE_ONLY"' EXIT
+mkdir -p "$CORE_ONLY/packages"
+cp -R "$REPO_ROOT/packages/core" "$CORE_ONLY/packages/core"
+API_VERSION="$(sed -n 's/.*"sourceApiVersion": *"\([0-9.]*\)".*/\1/p' "$REPO_ROOT/sfdx-project.json" | head -1)"
+cat > "$CORE_ONLY/sfdx-project.json" <<EOF
+{
+  "namespace": "",
+  "sourceApiVersion": "${API_VERSION}",
+  "packageDirectories": [{ "path": "packages/core", "default": true }]
+}
+EOF
+run_check "$CORE_ONLY" "Core alone" || exit 1
+exit 0
