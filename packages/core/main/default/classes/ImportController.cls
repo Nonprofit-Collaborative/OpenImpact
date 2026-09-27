@@ -46,6 +46,23 @@ public with sharing class ImportController {
         public Integer matchDateWindowDays;
         @AuraEnabled
         public Decimal matchAmountTolerance;
+        /** How this template matches rows (R-IT8, R-IT9). */
+        @AuraEnabled
+        public String personMatchField;
+        @AuraEnabled
+        public String organizationRule;
+        @AuraEnabled
+        public String organizationMatchField;
+        @AuraEnabled
+        public String severalMatches;
+    }
+
+    /** The fields each External ID rule can match on, for the matching step (R-IT8). */
+    public class MatchFields {
+        @AuraEnabled
+        public List<ImportMapping.Target> person = new List<ImportMapping.Target>();
+        @AuraEnabled
+        public List<ImportMapping.Target> organization = new List<ImportMapping.Target>();
     }
 
     /** One import as the wizard and the results screen show it. */
@@ -97,6 +114,14 @@ public with sharing class ImportController {
         public String donationMatching;
         public Integer matchDateWindowDays;
         public Decimal matchAmountTolerance;
+        /** True when the wizard showed the matching choices, which are then saved (R-IT8). */
+        public Boolean saveMatching;
+        public String organizationRule;
+        public String personMatchField;
+        public String organizationMatchField;
+        public String severalMatches;
+        /** The values given for every row of this file (R-IB14). */
+        public List<ImportMapping.Assignment> fileValues;
     }
 
     /** One staged row as the exceptions table shows it. */
@@ -111,6 +136,9 @@ public with sharing class ImportController {
         public String errorMessage;
         @AuraEnabled
         public String values;
+        /** True when the row's key found more than one record (R-IT9). */
+        @AuraEnabled
+        public Boolean severalMatches;
     }
 
     /** True when the running user may upload and commit an import. */
@@ -133,6 +161,42 @@ public with sharing class ImportController {
             return targets == null ? new List<ImportMapping.Target>() : targets;
         } catch (Exception e) {
             throw auraError(e, 'ImportController.getEntityTargets');
+        }
+    }
+
+    /**
+     * The fields the External ID rules can match on (R-IT8): the person object's and the
+     * organization object's external ID and unique fields the user may read, from describe.
+     * The person object is the one the template's person mode stores people in.
+     */
+    @AuraEnabled
+    public static MatchFields getMatchFields(String templateId) {
+        try {
+            enforcePermission();
+            Import_Template__c template = ImportTemplateSelector.selectById(templateId);
+            MatchFields fields = new MatchFields();
+            fields.person = ImportMatcher.matchFields(
+                ImportTemplateService.isPersonAccountMode(template)
+                    ? Account.SObjectType
+                    : Contact.SObjectType
+            );
+            fields.organization = ImportMatcher.matchFields(Account.SObjectType);
+            return fields;
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.getMatchFields');
+        }
+    }
+
+    /**
+     * One page of the rows whose key found more than one record (R-IT9), which the dry run lists
+     * whether they were rejected or used the most recently changed record.
+     */
+    @AuraEnabled
+    public static List<RowView> getSeveralMatchRows(String batchId, Integer offsetRows) {
+        try {
+            return toRowViews(ImportRowSelector.selectSeveralMatches(batchId, offsetRows));
+        } catch (Exception e) {
+            throw auraError(e, 'ImportController.getSeveralMatchRows');
         }
     }
 
@@ -161,6 +225,14 @@ public with sharing class ImportController {
                     ? null
                     : template.Match_Date_Window_Days__c.intValue();
                 view.matchAmountTolerance = template.Match_Amount_Tolerance__c;
+                view.personMatchField = template.Person_Match_Field__c;
+                view.organizationRule = String.isBlank(template.Organization_Matching_Rule__c)
+                    ? ImportTemplateService.ORGANIZATION_RULE_NAME
+                    : template.Organization_Matching_Rule__c;
+                view.organizationMatchField = template.Organization_Match_Field__c;
+                view.severalMatches = String.isBlank(template.Several_Matches__c)
+                    ? ImportTemplateService.SEVERAL_REJECT
+                    : template.Several_Matches__c;
                 result.add(view);
             }
             return result;
@@ -237,13 +309,23 @@ public with sharing class ImportController {
                     options.matchAmountTolerance
                 );
             }
+            if (options.saveMatching == true) {
+                ImportTemplateService.saveMatching(
+                    templateId,
+                    options.organizationRule,
+                    options.personMatchField,
+                    options.organizationMatchField,
+                    options.severalMatches
+                );
+            }
             return toView(
                 ImportBatchService.create(
                     templateId,
                     fileId,
                     fileName,
                     options.expectedCount,
-                    options.expectedAmount
+                    options.expectedAmount,
+                    options.fileValues
                 )
             );
         } catch (Exception e) {
@@ -389,20 +471,25 @@ public with sharing class ImportController {
             List<Import_Row__c> rows = String.isBlank(status)
                 ? ImportRowSelector.selectByBatch(batchId, offsetRows)
                 : ImportRowSelector.selectByBatchAndStatus(batchId, status, offsetRows);
-            List<RowView> result = new List<RowView>();
-            for (Import_Row__c row : rows) {
-                RowView view = new RowView();
-                view.id = row.Id;
-                view.rowNumber = row.Row_Number__c == null ? null : row.Row_Number__c.intValue();
-                view.status = row.Status__c;
-                view.errorMessage = row.Error_Message__c;
-                view.values = row.Raw_Values_JSON__c;
-                result.add(view);
-            }
-            return result;
+            return toRowViews(rows);
         } catch (Exception e) {
             throw auraError(e, 'ImportController.getRows');
         }
+    }
+
+    private static List<RowView> toRowViews(List<Import_Row__c> rows) {
+        List<RowView> result = new List<RowView>();
+        for (Import_Row__c row : rows) {
+            RowView view = new RowView();
+            view.id = row.Id;
+            view.rowNumber = row.Row_Number__c == null ? null : row.Row_Number__c.intValue();
+            view.status = row.Status__c;
+            view.errorMessage = row.Error_Message__c;
+            view.values = row.Raw_Values_JSON__c;
+            view.severalMatches = row.Several_Matches__c == true;
+            result.add(view);
+        }
+        return result;
     }
 
     private static BatchView toView(Import_Batch__c batch) {

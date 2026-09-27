@@ -24,6 +24,9 @@
 public with sharing class ImportUndoBatch implements Database.Batchable<SObject>, Database.Stateful {
     @TestVisible
     private static final String PASS_RESTORE = 'Restore';
+    /** The records the journal names as created, which carry no batch tag (R-IJ3, R-IB9). */
+    @TestVisible
+    private static final String PASS_CREATED = 'Created';
     @TestVisible
     private static final String PASS_CONTACTS = 'Contacts';
     @TestVisible
@@ -79,6 +82,8 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
     private final String pass;
     private final Datetime undoStartedAt;
     private Integer restored;
+    /** How many records the journal names as created that the undo kept (R-IB9). */
+    private Integer journaledKept = 0;
     private Boolean failed;
     private Datetime completedAt;
     private Datetime startedAt;
@@ -109,7 +114,7 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
      */
     @TestVisible
     private static List<String> passes() {
-        List<String> result = new List<String>{ PASS_RESTORE };
+        List<String> result = new List<String>{ PASS_RESTORE, PASS_CREATED };
         for (Schema.SObjectType type : ImportEntityProcessors.taggedTypes()) {
             result.add(
                 PASS_TAGGED_PREFIX + type.getDescribe(SObjectDescribeOptions.DEFERRED).getName()
@@ -166,6 +171,19 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         this.undoStartedAt = undoStartedAt;
     }
 
+    /** The next pass, carrying how many journaled creations the passes before it kept. */
+    private ImportUndoBatch(ImportUndoBatch previous, String pass) {
+        this(
+            previous.batchId,
+            previous.countedAtStart,
+            pass,
+            previous.restored,
+            previous.failed,
+            previous.undoStartedAt
+        );
+        this.journaledKept = previous.journaledKept;
+    }
+
     public Database.QueryLocator start(Database.BatchableContext context) {
         Id owner = batchId;
         Import_Batch__c batch = [
@@ -196,6 +214,18 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
                     SELECT Id, Entries_JSON__c
                     FROM Import_Journal__c
                     WHERE Import_Batch__c = :owner AND Phase__c = :phase
+                    WITH SYSTEM_MODE
+                    ORDER BY CreatedDate DESC, Id DESC
+                ]
+            );
+        }
+        if (PASS_CREATED.equals(pass)) {
+            String phase = ImportJournalService.PHASE_COMMIT;
+            return Database.getQueryLocator(
+                [
+                    SELECT Id, Entries_JSON__c
+                    FROM Import_Journal__c
+                    WHERE Import_Batch__c = :owner AND Phase__c = :phase AND Created_Count__c > 0
                     WITH SYSTEM_MODE
                     ORDER BY CreatedDate DESC, Id DESC
                 ]
@@ -268,6 +298,10 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
                 for (SObject page : records) {
                     restore((Import_Journal__c) page, journal);
                 }
+            } else if (PASS_CREATED.equals(pass)) {
+                for (SObject page : records) {
+                    deleteJournaled((Import_Journal__c) page, journal);
+                }
             } else {
                 deleteTagged(records, journal);
             }
@@ -287,14 +321,7 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
             Integer next = passes.indexOf(pass) + 1;
             if (next > 0 && next < passes.size()) {
                 Database.executeBatch(
-                    new ImportUndoBatch(
-                        batchId,
-                        countedAtStart,
-                        passes[next],
-                        restored,
-                        failed,
-                        undoStartedAt
-                    ),
+                    new ImportUndoBatch(this, passes[next]),
                     scopeFor(passes[next], batchId)
                 );
                 return;
@@ -303,7 +330,7 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
             ErrorLogger.log(e, 'ImportUndoBatch.finish', batchId);
             failed = true;
         }
-        ImportUndoService.finish(batchId, countedAtStart, restored, failed);
+        ImportUndoService.finish(batchId, countedAtStart, restored, failed, journaledKept);
     }
 
     /**
@@ -446,17 +473,46 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         }
     }
 
-    /** The object an update entry is on, when it is one Core writes; null otherwise. */
+    /**
+     * The object an update entry is on, or null for an entry that is not an update or whose
+     * identifier is not a record of the object it names. Any object an import updated can be
+     * put back (since C-32 an affiliation as well as a person or an account); the values are
+     * written in the running user's own mode, so nothing is put back they could not write.
+     */
     private static String restorable(Map<String, Object> entry) {
-        String objectName = (String) entry.get('object');
-        if (
-            !ImportJournalService.ACTION_UPDATED.equals(entry.get('action')) ||
-            !('Contact'.equals(objectName) || 'Account'.equals(objectName)) ||
-            String.isBlank((String) entry.get('id'))
-        ) {
+        if (!ImportJournalService.ACTION_UPDATED.equals(entry.get('action'))) {
             return null;
         }
-        return objectName;
+        return objectOf(entry);
+    }
+
+    /** The object an entry's record is of, when that is the object the entry names; else null. */
+    private static String objectOf(Map<String, Object> entry) {
+        String objectName = (String) entry.get('object');
+        Id recordId = recordIdOf(entry);
+        if (recordId == null || String.isBlank(objectName)) {
+            return null;
+        }
+        String actual = objectNameOf(recordId.getSObjectType());
+        return actual.equalsIgnoreCase(objectName) ? actual : null;
+    }
+
+    private static Id recordIdOf(Map<String, Object> entry) {
+        try {
+            return Id.valueOf((String) entry.get('id'));
+        } catch (Exception notAnId) {
+            return null;
+        }
+    }
+
+    /** Each object's API name, described once per transaction. */
+    private static final Map<Schema.SObjectType, String> OBJECT_NAMES = new Map<Schema.SObjectType, String>();
+
+    private static String objectNameOf(Schema.SObjectType type) {
+        if (!OBJECT_NAMES.containsKey(type)) {
+            OBJECT_NAMES.put(type, type.getDescribe(SObjectDescribeOptions.DEFERRED).getName());
+        }
+        return OBJECT_NAMES.get(type);
     }
 
     private static Map<String, Object> fieldsOf(Map<String, Object> entry) {
@@ -464,11 +520,21 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         return fields == null ? new Map<String, Object>() : (Map<String, Object>) fields;
     }
 
+    /** Each object's fields, described once per transaction. */
+    private static final Map<String, Map<String, Schema.SObjectField>> FIELD_MAPS = new Map<String, Map<String, Schema.SObjectField>>();
+
     private static Map<String, Schema.SObjectField> fieldMap(String objectName) {
-        return Schema.getGlobalDescribe()
-            .get(objectName)
-            .getDescribe(SObjectDescribeOptions.DEFERRED)
-            .fields.getMap();
+        String key = objectName.toLowerCase();
+        if (!FIELD_MAPS.containsKey(key)) {
+            Schema.SObjectType type = Schema.getGlobalDescribe().get(objectName);
+            FIELD_MAPS.put(
+                key,
+                type == null
+                    ? new Map<String, Schema.SObjectField>()
+                    : type.getDescribe(SObjectDescribeOptions.DEFERRED).fields.getMap()
+            );
+        }
+        return FIELD_MAPS.get(key);
     }
 
     /**
@@ -603,6 +669,89 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
         for (Integer i = 0; i < results.size(); i++) {
             if (!results[i].isSuccess()) {
                 journal.add(kept(toDelete[i], refusedBecause(results[i].getErrors())));
+            }
+        }
+    }
+
+    /**
+     * Deletes the records one commit journal page names as created (R-IJ3), which carry no
+     * batch tag (since C-32, affiliations), keeping those that have gained something since, by
+     * the same checks and the same user-mode delete as the tagged records (R-IB9). The page is
+     * the batch's own, so the one-batch rule holds; an entry whose identifier is not a record of
+     * the object it names is passed over, and so is a record already gone, which keeps a second
+     * run of a failed undo safe.
+     */
+    private void deleteJournaled(Import_Journal__c page, List<Map<String, Object>> journal) {
+        Map<Schema.SObjectType, Set<Id>> idsByType = new Map<Schema.SObjectType, Set<Id>>();
+        for (Map<String, Object> entry : ImportJournalService.entries(page)) {
+            if (
+                !ImportJournalService.ACTION_CREATED.equals(entry.get('action')) ||
+                objectOf(entry) == null
+            ) {
+                continue;
+            }
+            Id recordId = recordIdOf(entry);
+            if (!idsByType.containsKey(recordId.getSObjectType())) {
+                idsByType.put(recordId.getSObjectType(), new Set<Id>());
+            }
+            idsByType.get(recordId.getSObjectType()).add(recordId);
+        }
+        for (Schema.SObjectType type : idsByType.keySet()) {
+            deleteJournaledOf(type, idsByType.get(type), journal);
+        }
+    }
+
+    /** One object's journaled creations from one page, kept out of the caller's loop. */
+    private void deleteJournaledOf(
+        Schema.SObjectType type,
+        Set<Id> ids,
+        List<Map<String, Object>> journal
+    ) {
+        Schema.DescribeSObjectResult described = type.getDescribe(SObjectDescribeOptions.DEFERRED);
+        Boolean named = described.fields.getMap().containsKey('name');
+        // In system mode, so a record the person cannot see is still met, refused by the
+        // user-mode delete and journaled as kept, rather than silently left (R-IB9).
+        List<SObject> records = Database.queryWithBinds(
+            'SELECT Id' +
+                (named ? ', Name' : '') +
+                ' FROM ' +
+                described.getName() +
+                ' WHERE Id IN :ids',
+            new Map<String, Object>{ 'ids' => ids },
+            AccessLevel.SYSTEM_MODE
+        );
+        if (records.isEmpty()) {
+            return;
+        }
+        if (!described.isDeletable()) {
+            for (SObject record : records) {
+                journal.add(kept(record, Label.Core_Import_UndoKeptNoAccess));
+            }
+            journaledKept += records.size();
+            return;
+        }
+        Map<Id, String> keep = reasonsToKeep(new Map<Id, SObject>(records).keySet(), type);
+        List<SObject> toDelete = new List<SObject>();
+        for (SObject record : records) {
+            if (keep.containsKey(record.Id)) {
+                journal.add(kept(record, keep.get(record.Id)));
+                journaledKept++;
+            } else {
+                toDelete.add(record);
+            }
+        }
+        if (toDelete.isEmpty()) {
+            return;
+        }
+        List<Database.DeleteResult> results = Database.delete(
+            toDelete,
+            false,
+            AccessLevel.USER_MODE
+        );
+        for (Integer i = 0; i < results.size(); i++) {
+            if (!results[i].isSuccess()) {
+                journal.add(kept(toDelete[i], refusedBecause(results[i].getErrors())));
+                journaledKept++;
             }
         }
     }
@@ -958,10 +1107,12 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
     // -------------------------------------------------------------------------------------
 
     private static Map<String, Object> kept(SObject record, String reason) {
+        // Read from what was queried: an object with no Name field has no label to give.
+        Object name = record.getPopulatedFieldsAsMap().get('Name');
         return ImportJournalService.kept(
-            record.getSObjectType().getDescribe(SObjectDescribeOptions.DEFERRED).getName(),
+            objectNameOf(record.getSObjectType()),
             record.Id,
-            String.valueOf(record.get('Name')),
+            name == null ? null : String.valueOf(name),
             reason
         );
     }
@@ -994,7 +1145,7 @@ public with sharing class ImportUndoBatch implements Database.Batchable<SObject>
      * chunk size, held at MAX_CHUNK so the checks and the delete fit one transaction.
      */
     private static Integer scopeFor(String pass, Id batchId) {
-        if (PASS_RESTORE.equals(pass)) {
+        if (PASS_RESTORE.equals(pass) || PASS_CREATED.equals(pass)) {
             return 1;
         }
         Decimal chunkSize = [

@@ -12,6 +12,8 @@ import getBatch from '@salesforce/apex/ImportController.getBatch';
 import getRows from '@salesforce/apex/ImportController.getRows';
 import saveRecurring from '@salesforce/apex/ImportController.saveRecurring';
 import getEntityTargets from '@salesforce/apex/ImportController.getEntityTargets';
+import getMatchFields from '@salesforce/apex/ImportController.getMatchFields';
+import getSeveralMatchRows from '@salesforce/apex/ImportController.getSeveralMatchRows';
 
 jest.mock('@salesforce/apex/ImportController.canImport', () => ({ default: jest.fn() }), {
   virtual: true
@@ -49,6 +51,12 @@ jest.mock('@salesforce/apex/ImportController.getRows', () => ({ default: jest.fn
 jest.mock('@salesforce/apex/ImportController.getEntityTargets', () => ({ default: jest.fn() }), {
   virtual: true
 });
+jest.mock('@salesforce/apex/ImportController.getMatchFields', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock('@salesforce/apex/ImportController.getSeveralMatchRows', () => ({ default: jest.fn() }), {
+  virtual: true
+});
 
 const TEMPLATE = {
   id: 'a01',
@@ -75,6 +83,16 @@ const DRY_RUN_BATCH = {
 };
 
 const FILE_TEXT = 'Last Name,Email,Notes\nRamirez,ana@example.org,vip\nOkafor,ben@example.org,';
+
+/** How a template matches rows when nobody changed anything (R-IT8, R-IT9). */
+const DEFAULT_MATCHING = {
+  saveMatching: true,
+  organizationRule: 'Name exact',
+  personMatchField: '',
+  organizationMatchField: '',
+  severalMatches: 'Reject the row',
+  fileValues: []
+};
 
 /**
  * Lets every pending promise and rerender settle. Several turns, because reading a file goes
@@ -127,6 +145,11 @@ describe('the import wizard', () => {
     getBatch.mockResolvedValue(DRY_RUN_BATCH);
     getRows.mockResolvedValue([]);
     getEntityTargets.mockResolvedValue([]);
+    getMatchFields.mockResolvedValue({
+      person: [{ value: 'Donor_Id__c', label: 'Donor ID' }],
+      organization: [{ value: 'Org_Id__c', label: 'Organization ID' }]
+    });
+    getSeveralMatchRows.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -401,7 +424,8 @@ describe('the import wizard', () => {
     await flush();
     expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson)).toEqual({
       expectedCount: 2,
-      expectedAmount: null
+      expectedAmount: null,
+      ...DEFAULT_MATCHING
     });
 
     document.body.removeChild(element);
@@ -411,7 +435,8 @@ describe('the import wizard', () => {
     await flush();
     expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson)).toEqual({
       expectedCount: null,
-      expectedAmount: null
+      expectedAmount: null,
+      ...DEFAULT_MATCHING
     });
   });
 
@@ -472,6 +497,7 @@ describe('the import wizard', () => {
     expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson)).toEqual({
       expectedCount: null,
       expectedAmount: null,
+      ...DEFAULT_MATCHING,
       saveDonationMatching: true,
       donationMatching: 'Never match',
       matchDateWindowDays: 3,
@@ -502,5 +528,142 @@ describe('the import wizard', () => {
     await flush();
     expect(element.shadowRoot.querySelector('[data-id="expected-count"]')).not.toBeNull();
     expect(element.shadowRoot.querySelector('[data-id="results"]')).toBeNull();
+  });
+  it('explains each organization rule and what several matches do, and saves the choices', async () => {
+    const element = await toMatchingStep();
+    await flush();
+    const help = () => element.shadowRoot.querySelector('[data-id="organization-rule-help"]');
+    expect(help().textContent).toContain('c.Core_Import_OrganizationNameHelp');
+    expect(element.shadowRoot.querySelector('[data-id="organization-field"]')).toBeNull();
+    const rule = element.shadowRoot.querySelector('[data-id="organization-rule"]');
+    rule.dispatchEvent(new CustomEvent('change', { detail: { value: 'External ID' } }));
+    await flush();
+    expect(help().textContent).toContain('c.Core_Import_OrganizationExternalIdHelp');
+    // The organization External ID rule needs its field before a dry run.
+    expect(element.shadowRoot.querySelector('[data-id="dry-run"]').disabled).toBe(true);
+    const field = element.shadowRoot.querySelector('[data-id="organization-field"]');
+    expect(field.options).toEqual([{ label: 'Organization ID', value: 'Org_Id__c' }]);
+    field.dispatchEvent(new CustomEvent('change', { detail: { value: 'Org_Id__c' } }));
+    const several = element.shadowRoot.querySelector('[data-id="several"]');
+    expect(several.value).toBe('Reject the row');
+    several.dispatchEvent(
+      new CustomEvent('change', { detail: { value: 'Use the most recently changed' } })
+    );
+    await flush();
+    expect(element.shadowRoot.querySelector('[data-id="several-help"]').textContent).toContain(
+      'c.Core_Import_SeveralMostRecentHelp'
+    );
+    expect(element.shadowRoot.querySelector('[data-id="dry-run"]').disabled).toBe(false);
+    click(element, 'dry-run');
+    await flush();
+    expect(getMatchFields).toHaveBeenCalledWith({ templateId: 'a01' });
+    expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson)).toMatchObject({
+      saveMatching: true,
+      organizationRule: 'External ID',
+      organizationMatchField: 'Org_Id__c',
+      severalMatches: 'Use the most recently changed'
+    });
+  });
+
+  it('offers the person match fields only under the External ID rule, the first one first', async () => {
+    getTemplates.mockResolvedValue([{ ...TEMPLATE, matchingRule: 'External ID' }]);
+    const element = await toMatchingStep();
+    await flush();
+    const picker = element.shadowRoot.querySelector('[data-id="person-field"]');
+    expect(picker.options).toEqual([
+      { label: 'c.Core_Import_PersonMatchFieldDefault', value: '' },
+      { label: 'Donor ID', value: 'Donor_Id__c' }
+    ]);
+    picker.dispatchEvent(new CustomEvent('change', { detail: { value: 'Donor_Id__c' } }));
+    click(element, 'dry-run');
+    await flush();
+    expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson).personMatchField).toBe(
+      'Donor_Id__c'
+    );
+  });
+
+  it('keeps the matching choices the template saved', async () => {
+    getTemplates.mockResolvedValue([
+      {
+        ...TEMPLATE,
+        organizationRule: 'External ID',
+        organizationMatchField: 'Org_Id__c',
+        severalMatches: 'Use the most recently changed'
+      }
+    ]);
+    const element = await toMatchingStep();
+    await flush();
+    expect(element.shadowRoot.querySelector('[data-id="organization-rule"]').value).toBe(
+      'External ID'
+    );
+    expect(element.shadowRoot.querySelector('[data-id="organization-field"]').value).toBe(
+      'Org_Id__c'
+    );
+    expect(element.shadowRoot.querySelector('[data-id="several"]').value).toBe(
+      'Use the most recently changed'
+    );
+  });
+
+  it('sends the values for every row of the file, leaving out an empty one', async () => {
+    const element = await toMatchingStep();
+    const values = element.shadowRoot.querySelector('[data-id="file-values"]');
+    expect(values.options.map((option) => option.value)).not.toContain('Ignore');
+    values.dispatchEvent(
+      new CustomEvent('change', {
+        detail: {
+          values: [
+            { target: 'Household.Name', value: 'Gala 2026 guests' },
+            { target: 'Organization.Phone', value: '  ' }
+          ]
+        }
+      })
+    );
+    await flush();
+    click(element, 'dry-run');
+    await flush();
+    expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson).fileValues).toEqual([
+      { target: 'Household.Name', value: 'Gala 2026 guests' }
+    ]);
+  });
+
+  it('offers the affiliation columns, which Core loads', async () => {
+    const element = render();
+    await flush();
+    click(element, 'next');
+    await flush();
+    await chooseFile(element);
+    const picker = element.shadowRoot.querySelector('[data-id="column-row"] lightning-combobox');
+    const values = picker.options.map((option) => option.value);
+    expect(values).toContain('Affiliation.Role__c');
+    expect(values).toContain('Affiliation.Is_Primary__c');
+  });
+
+  it('lists the rows that matched several records once the dry run finishes', async () => {
+    let poll;
+    const interval = jest.spyOn(window, 'setInterval').mockImplementation((callback) => {
+      poll = callback;
+      return 1;
+    });
+    try {
+      getSeveralMatchRows.mockResolvedValue([
+        {
+          id: 'r1',
+          rowNumber: 3,
+          status: 'Rejected',
+          errorMessage: 'More than one person matches.',
+          severalMatches: true
+        }
+      ]);
+      const element = await toMatchingStep();
+      click(element, 'dry-run');
+      await flush();
+      poll();
+      await flush();
+      expect(getSeveralMatchRows).toHaveBeenCalledWith({ batchId: 'a02', offsetRows: 0 });
+      const results = element.shadowRoot.querySelector('[data-id="results"]');
+      expect(results.severalRows).toHaveLength(1);
+    } finally {
+      interval.mockRestore();
+    }
   });
 });

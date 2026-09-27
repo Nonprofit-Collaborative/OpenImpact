@@ -118,6 +118,57 @@
                     <p class="slds-text-body_small slds-var-m-top_x-small" data-id="rule-help">
                         {ruleHelp}
                     </p>
+                    <template lwc:if={usesPersonField}>
+                        <lightning-combobox
+                            data-id="person-field"
+                            label={labels.personMatchFieldLabel}
+                            value={personMatchField}
+                            options={personFieldOptions}
+                            onchange={handlePersonFieldChange}
+                        ></lightning-combobox>
+                    </template>
+                    <lightning-combobox
+                        class="slds-var-m-top_small"
+                        data-id="organization-rule"
+                        label={labels.organizationRuleLabel}
+                        value={organizationRule}
+                        options={organizationRuleOptions}
+                        onchange={handleOrganizationRuleChange}
+                    ></lightning-combobox>
+                    <p
+                        class="slds-text-body_small slds-var-m-top_x-small"
+                        data-id="organization-rule-help"
+                    >
+                        {organizationRuleHelp}
+                    </p>
+                    <template lwc:if={usesOrganizationField}>
+                        <lightning-combobox
+                            data-id="organization-field"
+                            label={labels.organizationFieldLabel}
+                            value={organizationMatchField}
+                            options={organizationFieldOptions}
+                            required
+                            onchange={handleOrganizationFieldChange}
+                        ></lightning-combobox>
+                    </template>
+                    <lightning-radio-group
+                        class="slds-var-m-top_small"
+                        data-id="several"
+                        name="several"
+                        label={labels.severalMatchesLabel}
+                        value={severalMatches}
+                        options={severalOptions}
+                        onchange={handleSeveralChange}
+                    ></lightning-radio-group>
+                    <p class="slds-text-body_small slds-var-m-top_x-small" data-id="several-help">
+                        {severalHelp}
+                    </p>
+                    <c-import-file-values
+                        data-id="file-values"
+                        options={fileValueOptions}
+                        values={fileValues}
+                        onchange={handleFileValuesChange}
+                    ></c-import-file-values>
                     <h3 class="slds-text-heading_x-small slds-var-m-top_medium">
                         {labels.controlTotalsHeading}
                     </h3>
@@ -184,6 +235,7 @@
                     <c-import-results
                         batch={batch}
                         rejected-rows={rejectedRows}
+                        several-rows={severalRows}
                         data-id="results"
                     ></c-import-results>
                 </template>

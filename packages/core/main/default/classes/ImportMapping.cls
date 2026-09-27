@@ -23,11 +23,17 @@ public with sharing class ImportMapping {
     public static final String ENTITY_CONTACT_2 = 'Contact2';
     @NamespaceAccessible
     public static final String ENTITY_ORGANIZATION = 'Organization';
+    /** The row's first person's connection to its organization, resolved by Core (R-IR8). */
+    @NamespaceAccessible
+    public static final String ENTITY_AFFILIATION = 'Affiliation';
+
+    /** The most values one file may be given for all its rows (R-IB14). */
+    @NamespaceAccessible
+    public static final Integer MAX_FILE_VALUES = 50;
 
     /** The row entities Core stages but does not write (R-IR6). */
     @NamespaceAccessible
     public static final Set<String> DEFERRED_ENTITIES = new Set<String>{
-        'Affiliation',
         'Gift',
         'Allocation',
         'SoftCredit',
@@ -117,6 +123,15 @@ public with sharing class ImportMapping {
     public List<Column> columns;
     @AuraEnabled
     public List<Assignment> defaults;
+
+    /**
+     * The values given for every row of one file (R-IB14), which belong to the batch and not
+     * the template: transient, so they are never saved into the template's document. A row's
+     * own value wins over these, and these win over `defaults`. Null until the batch's values
+     * are read.
+     */
+    @NamespaceAccessible
+    public transient List<Assignment> fileValues;
 
     @NamespaceAccessible
     public ImportMapping() {
@@ -241,12 +256,61 @@ public with sharing class ImportMapping {
         for (String target : targetsBySourceKey().values()) {
             result.add(entityOf(target));
         }
-        for (Assignment assignment : defaults) {
+        for (Assignment assignment : assignments()) {
+            result.add(entityOf(assignment.target));
+        }
+        return result;
+    }
+
+    /**
+     * Every value applied to rows that do not carry their own, the file's (R-IB14) before the
+     * template's, with blank and unreadable targets left out.
+     */
+    @NamespaceAccessible
+    public List<Assignment> assignments() {
+        List<Assignment> result = new List<Assignment>();
+        List<Assignment> all = new List<Assignment>();
+        if (fileValues != null) {
+            all.addAll(fileValues);
+        }
+        all.addAll(defaults);
+        for (Assignment assignment : all) {
             if (assignment != null && !isIgnored(assignment.target)) {
-                result.add(entityOf(assignment.target));
+                result.add(assignment);
             }
         }
         return result;
+    }
+
+    /**
+     * Reads the values given for every row of a file (R-IB14), held in the defaults format of
+     * the mapping document. Blank targets and blank values are left out, and at most
+     * MAX_FILE_VALUES are kept. An unreadable document reads as none, as a mapping does.
+     */
+    @NamespaceAccessible
+    public static List<Assignment> parseValues(String document) {
+        List<Assignment> result = new List<Assignment>();
+        for (Assignment assignment : parse(document).defaults) {
+            if (
+                assignment != null &&
+                !isIgnored(assignment.target) &&
+                String.isNotBlank(assignment.value) &&
+                result.size() < MAX_FILE_VALUES
+            ) {
+                result.add(new Assignment(assignment.target.trim(), assignment.value.trim()));
+            }
+        }
+        return result;
+    }
+
+    /** The values given for every row of a file, as the batch stores them (R-IB14). */
+    @NamespaceAccessible
+    public static String valuesDocument(List<Assignment> values) {
+        ImportMapping document = new ImportMapping();
+        document.defaults = values == null ? new List<Assignment>() : values;
+        return JSON.serialize(
+            new Map<String, Object>{ 'version' => 1, 'defaults' => document.defaults }
+        );
     }
 
     /** The entities this mapping names that Core stages but cannot write (R-IR6). */

@@ -14,7 +14,7 @@ public with sharing class ImportRowSelector {
         'Id, Name, Import_Batch__c, Row_Number__c, ' +
         'Raw_Values_JSON__c, Status__c, Error_Message__c, Household__c, Contact_1__c, ' +
         'Person_1_Account__c, Contact_2__c, Person_2_Account__c, Organization__c, Gift_Id__c, ' +
-        'Soft_Credit_Id__c';
+        'Soft_Credit_Id__c, Several_Matches__c';
 
     /** One page of a batch's rows in file order. */
     @NamespaceAccessible
@@ -35,7 +35,25 @@ public with sharing class ImportRowSelector {
         return page(batchId, status, offsetRows);
     }
 
+    /**
+     * One page of a batch's rows whose key found more than one record, in file order (R-IT9):
+     * the dry run lists them whether they were rejected or used the most recently changed one.
+     */
+    @NamespaceAccessible
+    public static List<Import_Row__c> selectSeveralMatches(Id batchId, Integer offsetRows) {
+        return page(batchId, null, offsetRows, true);
+    }
+
     private static List<Import_Row__c> page(Id batchId, String status, Integer offsetRows) {
+        return page(batchId, status, offsetRows, false);
+    }
+
+    private static List<Import_Row__c> page(
+        Id batchId,
+        String status,
+        Integer offsetRows,
+        Boolean severalOnly
+    ) {
         if (batchId == null) {
             return new List<Import_Row__c>();
         }
@@ -49,6 +67,9 @@ public with sharing class ImportRowSelector {
         if (String.isNotBlank(status)) {
             query += ' AND Status__c = :status';
             binds.put('status', status);
+        }
+        if (severalOnly) {
+            query += ' AND Several_Matches__c = TRUE';
         }
         query += ' ORDER BY Row_Number__c ASC LIMIT :pageSize OFFSET :skip';
         return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);

@@ -1,6 +1,7 @@
 /**
  * Resolves one chunk of staged rows in dependency order, and is the only class that decides
- * what a row means (R-IR1): the organization, then the household, then the two people.
+ * what a row means (R-IR1): the organization, then the household, then the two people, then the
+ * affiliation between the first person and the organization (R-IR8).
  *
  * Three rules shape everything here.
  *
@@ -153,6 +154,50 @@ public with sharing class ImportRowProcessor {
         public String processorSettings;
     }
 
+    /**
+     * How this template matches rows (R-IT8, R-IT9), read once per chunk: the fields the
+     * External ID rules match on, as the org names them, and what a row whose key finds several
+     * records does. A chosen field that cannot be used is null here; the dry run refuses to
+     * start on one (`ImportTemplateService.matchingRefusal`), so meeting it means the org
+     * changed during a run, and the rows are told.
+     */
+    private class Rules {
+        String personField;
+        Boolean personFieldChosen = false;
+        Boolean organizationsByField = false;
+        String organizationField;
+        Boolean mostRecent = false;
+
+        Rules(Import_Template__c template, Boolean personAccounts) {
+            Schema.SObjectType personType = personAccounts
+                ? Account.SObjectType
+                : Contact.SObjectType;
+            String chosen = ImportTemplateService.textOf(
+                template,
+                Import_Template__c.Person_Match_Field__c
+            );
+            personFieldChosen = chosen != null;
+            // An empty choice is the rule as it matched before C-32: the first external ID.
+            personField = chosen == null
+                ? ImportMatcher.externalIdField(personType)
+                : ImportMatcher.matchField(personType, chosen);
+            organizationsByField = ImportTemplateService.matchesOrganizationsByField(template);
+            organizationField = organizationsByField
+                ? ImportMatcher.matchField(
+                      Account.SObjectType,
+                      ImportTemplateService.textOf(
+                          template,
+                          Import_Template__c.Organization_Match_Field__c
+                      )
+                  )
+                : null;
+            mostRecent = ImportTemplateService.usesMostRecent(template);
+        }
+    }
+
+    /** The chunk's matching rules, set at the start of `process`. */
+    private static Rules rules;
+
     /** One row's working state while the chunk is resolved. */
     private class Working {
         Import_Row__c row;
@@ -179,6 +224,8 @@ public with sharing class ImportRowProcessor {
         /** How many records already hold each person's shared key: none, one, or several (2). */
         Integer heldBefore1 = 0;
         Integer heldBefore2 = 0;
+        /** True when the row carries any organization value, keyed or not (R-IT8). */
+        Boolean namesOrganization = false;
         String error;
     }
 
@@ -200,12 +247,21 @@ public with sharing class ImportRowProcessor {
         }
         Boolean personAccounts = ImportTemplateService.isPersonAccountMode(template);
         String rule = ImportTemplateService.normalizedRule(template.Matching_Rule__c);
+        if (mapping.fileValues == null) {
+            // The values given for every row of this file live on the batch (R-IB14).
+            mapping.fileValues = batch != null && batch.isSet(Import_Batch__c.File_Values_JSON__c)
+                ? ImportMapping.parseValues(batch.File_Values_JSON__c)
+                : new List<ImportMapping.Assignment>();
+        }
+        rules = new Rules(template, personAccounts);
         noteFieldsWithoutAccess(mapping, personAccounts, outcome);
 
         List<Working> working = read(batch, rows, mapping, outcome);
+        noteUnreadableCheckboxes(working, personAccounts, outcome);
         resolveOrganizations(working, rule, batch, dryRun, outcome);
         resolvePeople(working, rule, batch, personAccounts, dryRun, outcome);
         tagAndNameHouseholds(working, batch, dryRun, outcome);
+        resolveAffiliations(working, personAccounts, dryRun, outcome);
         offerToEntityProcessor(batch, template, mapping, working, dryRun, outcome);
         writeBack(working, outcome);
         if (
@@ -241,11 +297,24 @@ public with sharing class ImportRowProcessor {
             Working item = new Working();
             item.row = row;
             item.values = rawValues(row);
-            item.byEntity = groupByEntity(item.values, targets, mapping.defaults);
+            item.byEntity = groupByEntity(item.values, targets, mapping.assignments());
             splitFullNames(item.byEntity);
+            Map<String, String> organization = item.byEntity.get(ImportMapping.ENTITY_ORGANIZATION);
+            item.namesOrganization = organization != null && hasAnyValue(organization);
+            // Matched by name, or by the chosen field's value under the External ID rule (R-IT8).
             item.organizationKey = ImportMatcher.nameKey(
-                attribute(item.byEntity, ImportMapping.ENTITY_ORGANIZATION, 'Name')
+                rules.organizationsByField
+                    ? valueFor(organization, rules.organizationField, false)
+                    : attribute(item.byEntity, ImportMapping.ENTITY_ORGANIZATION, 'Name')
             );
+            if (
+                rules.organizationsByField &&
+                item.namesOrganization &&
+                item.organizationKey == null
+            ) {
+                // Neither matchable nor safely created: a second load would make it again.
+                item.error = Label.Core_Import_ErrorOrganizationKeyMissing;
+            }
             working.add(item);
         }
         return working;
@@ -324,6 +393,40 @@ public with sharing class ImportRowProcessor {
         return held == null ? null : held.get(name);
     }
 
+    private static Boolean hasAnyValue(Map<String, String> held) {
+        for (String value : held.values()) {
+            if (String.isNotBlank(value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The row's value for a match field (R-IT8): the attribute of the same name, ignoring case,
+     * or for a person stored as an account the contact-terms attribute that is held in it
+     * (R-IT3), so a template names a person's identifier the same way in either mode.
+     */
+    private static String valueFor(Map<String, String> held, String field, Boolean personAccounts) {
+        if (held == null || String.isBlank(field)) {
+            return null;
+        }
+        // A packaged field is named without the package's prefix in a template (R-IT1).
+        String local = String.isBlank(NamespaceUtil.prefix())
+            ? field
+            : field.removeStartIgnoreCase(NamespaceUtil.prefix());
+        for (String attributeName : held.keySet()) {
+            if (
+                attributeName.equalsIgnoreCase(field) ||
+                attributeName.equalsIgnoreCase(local) ||
+                (personAccounts && storedName(attributeName, true).equalsIgnoreCase(field))
+            ) {
+                return held.get(attributeName);
+            }
+        }
+        return null;
+    }
+
     /**
      * Turns a single whole-name column into a first and a last name, because a great many
      * donor lists have only one. "Ramirez, Ana" and "Ana Ramirez" both read the same way.
@@ -390,16 +493,34 @@ public with sharing class ImportRowProcessor {
             outcome.notes.add(Label.Core_Import_LogOrganizationRecordTypeMissing);
             return;
         }
-        Map<String, Id> existing = ImportMatcher.accountsByName(names, recordTypeId);
+        ImportMatcher.forgetHeldKeys();
+        Map<String, Id> existing = rules.organizationsByField
+            ? ImportMatcher.byField(
+                  Account.SObjectType,
+                  rules.organizationField,
+                  names,
+                  new Set<Id>{ recordTypeId }
+              )
+            : ImportMatcher.accountsByName(names, recordTypeId);
+        noteUnreadableMatchFields(outcome);
 
         Map<String, Working> firstRowByName = new Map<String, Working>();
         List<Account> toCreate = new List<Account>();
         List<String> createdNames = new List<String>();
         for (Working item : working) {
-            if (item.organizationKey == null) {
+            if (item.organizationKey == null || item.error != null) {
                 continue;
             }
             Id found = existing.get(item.organizationKey);
+            if (found != null && ImportMatcher.isHeldByMany(item.organizationKey)) {
+                // Several organizations hold the key (R-IT9): rejected, or the latest changed.
+                item.row.Several_Matches__c = true;
+                if (!rules.mostRecent) {
+                    item.error = Label.Core_Import_ErrorSeveralOrganizations;
+                    continue;
+                }
+                found = ImportMatcher.mostRecent(item.organizationKey);
+            }
             if (found != null) {
                 item.organizationId = found;
                 continue;
@@ -409,9 +530,15 @@ public with sharing class ImportRowProcessor {
                 // record, so one file never creates the same organization twice (R-IB4).
                 continue;
             }
+            String name = attribute(item.byEntity, ImportMapping.ENTITY_ORGANIZATION, 'Name');
+            if (String.isBlank(name)) {
+                // Found by an identifier nobody holds, with no name to create one by. A later
+                // row of the chunk with the same identifier and a name may still create it.
+                continue;
+            }
             firstRowByName.put(item.organizationKey, item);
             Account organization = new Account(
-                Name = attribute(item.byEntity, ImportMapping.ENTITY_ORGANIZATION, 'Name'),
+                Name = name,
                 RecordTypeId = recordTypeId,
                 Created_By_Import_Batch__c = batch.Id
             );
@@ -425,40 +552,47 @@ public with sharing class ImportRowProcessor {
             toCreate.add(organization);
             createdNames.add(item.organizationKey);
         }
-        if (toCreate.isEmpty()) {
-            return;
-        }
         if (dryRun) {
             Set<String> digests = new Set<String>();
-            for (String name : firstRowByName.keySet()) {
-                digests.add(digest(ORGANIZATION_DIGEST, name));
+            for (Working item : working) {
+                if (item.organizationId == null && item.organizationKey != null) {
+                    digests.add(digest(ORGANIZATION_DIGEST, item.organizationKey));
+                }
             }
             Set<String> earlier = ImportRowSelector.createdDigestsWrittenEarlier(batch, digests);
             for (Working item : working) {
-                if (item.organizationId != null || item.organizationKey == null) {
+                if (
+                    item.organizationId != null ||
+                    item.organizationKey == null ||
+                    item.error != null
+                ) {
                     continue;
                 }
+                String digest = digest(ORGANIZATION_DIGEST, item.organizationKey);
                 // An organization an earlier chunk would create is found by the commit here,
                 // so the row is not one that creates it (R-IB12).
-                if (!earlier.contains(digest(ORGANIZATION_DIGEST, item.organizationKey))) {
-                    item.createdAnything = true;
+                if (earlier.contains(digest)) {
+                    continue;
                 }
+                if (!firstRowByName.containsKey(item.organizationKey)) {
+                    item.error = Label.Core_Import_ErrorOrganizationNameMissing;
+                    continue;
+                }
+                item.createdAnything = true;
             }
             // The first row naming each new organization carries its digest for later chunks.
-            for (String name : firstRowByName.keySet()) {
-                String digest = digest(ORGANIZATION_DIGEST, name);
+            for (String key : firstRowByName.keySet()) {
+                String digest = digest(ORGANIZATION_DIGEST, key);
                 if (!earlier.contains(digest)) {
-                    firstRowByName.get(name).row.Organization_Key__c = digest;
+                    firstRowByName.get(key).row.Organization_Key__c = digest;
                 }
             }
             return;
         }
         Map<String, Id> newIds = new Map<String, Id>();
-        List<Database.SaveResult> results = Database.insert(
-            toCreate,
-            saveOptions(),
-            AccessLevel.USER_MODE
-        );
+        List<Database.SaveResult> results = toCreate.isEmpty()
+            ? new List<Database.SaveResult>()
+            : Database.insert(toCreate, saveOptions(), AccessLevel.USER_MODE);
         for (Integer i = 0; i < results.size(); i++) {
             Working owner = firstRowByName.get(createdNames[i]);
             if (results[i].isSuccess()) {
@@ -477,7 +611,9 @@ public with sharing class ImportRowProcessor {
                 item.organizationId = created;
                 item.createdAnything = true;
             } else if (item.error == null) {
-                item.error = Label.Core_Import_ErrorOrganizationNotSaved;
+                item.error = firstRowByName.containsKey(item.organizationKey)
+                    ? Label.Core_Import_ErrorOrganizationNotSaved
+                    : Label.Core_Import_ErrorOrganizationNameMissing;
             }
         }
     }
@@ -498,25 +634,26 @@ public with sharing class ImportRowProcessor {
         Set<String> emailKeys = new Set<String>();
         Set<String> namePostalKeys = new Set<String>();
         Set<String> externalIds = new Set<String>();
-        // The External ID rule matches on whatever field this org marked as its external
-        // identifier, so no field has to be invented for it and an org without one is told.
+        // The External ID rule matches on the field the template chose from the object's
+        // external ID and unique fields, or, where it chose none, the first external ID field
+        // the org has, as before C-32 (R-IT8); an org without one is told.
         String externalIdField = ImportTemplateService.RULE_EXTERNAL_ID.equals(rule)
-            ? ImportMatcher.externalIdField(
-                  personAccounts ? Account.SObjectType : Contact.SObjectType
-              )
+            ? rules.personField
             : null;
         for (Working item : working) {
             item.personKey1 = personKey(
                 item,
                 ImportMapping.ENTITY_CONTACT_1,
                 rule,
-                externalIdField
+                externalIdField,
+                personAccounts
             );
             item.personKey2 = personKey(
                 item,
                 ImportMapping.ENTITY_CONTACT_2,
                 rule,
-                externalIdField
+                externalIdField,
+                personAccounts
             );
             item.byName = !ImportTemplateService.RULE_EXTERNAL_ID.equals(rule);
             tellApartByFirstName(item, rule);
@@ -545,16 +682,7 @@ public with sharing class ImportRowProcessor {
             externalIds,
             outcome
         );
-        // A matching field the user may not read would fail the chunk's query, so it was not
-        // matched on; the run log says so, because everybody then counts as new (R-IB5).
-        for (String fieldLabel : ImportMatcher.unreadableFields()) {
-            outcome.notes.add(
-                String.format(
-                    Label.Core_Import_LogMatchFieldNoAccess,
-                    new List<String>{ fieldLabel }
-                )
-            );
-        }
+        noteUnreadableMatchFields(outcome);
 
         Map<String, Integer> earlier = dryRun
             ? ImportRowSelector.createdDigestCounts(batch, digestsToAsk(working))
@@ -571,6 +699,21 @@ public with sharing class ImportRowProcessor {
             return;
         }
         savePeople(working, batch, personAccounts, outcome);
+    }
+
+    /**
+     * A matching field the user may not read would fail the chunk's query, so it was not
+     * matched on; the run log says so, because everybody then counts as new (R-IB5).
+     */
+    private static void noteUnreadableMatchFields(Outcome outcome) {
+        for (String fieldLabel : ImportMatcher.unreadableFields()) {
+            outcome.notes.add(
+                String.format(
+                    Label.Core_Import_LogMatchFieldNoAccess,
+                    new List<String>{ fieldLabel }
+                )
+            );
+        }
     }
 
     /**
@@ -642,7 +785,8 @@ public with sharing class ImportRowProcessor {
         Working item,
         String entity,
         String rule,
-        String externalIdField
+        String externalIdField,
+        Boolean personAccounts
     ) {
         Map<String, String> held = item.byEntity.get(entity);
         if (held == null || held.isEmpty()) {
@@ -662,7 +806,9 @@ public with sharing class ImportRowProcessor {
             }
             return ImportMatcher.nameAndPostalKey(held.get('LastName'), postal);
         }
-        return externalIdField == null ? null : ImportMatcher.nameKey(held.get(externalIdField));
+        return externalIdField == null
+            ? null
+            : ImportMatcher.nameKey(valueFor(held, externalIdField, personAccounts));
     }
 
     private static Map<String, Id> matchPeople(
@@ -687,11 +833,21 @@ public with sharing class ImportRowProcessor {
                 : ImportMatcher.contactsByNameAndPostalCode(namePostalKeys);
         }
         Schema.SObjectType type = personAccounts ? Account.SObjectType : Contact.SObjectType;
-        if (ImportMatcher.externalIdField(type) == null) {
-            outcome.notes.add(Label.Core_Import_LogNoExternalIdField);
+        if (rules.personField == null) {
+            outcome.notes.add(
+                rules.personFieldChosen
+                    ? Label.Core_Import_LogMatchFieldGone
+                    : Label.Core_Import_LogNoExternalIdField
+            );
             return new Map<String, Id>();
         }
-        return ImportMatcher.byExternalId(type, externalIds);
+        // A person stored as an account is looked for among person accounts only (R-IT8).
+        return ImportMatcher.byField(
+            type,
+            rules.personField,
+            externalIds,
+            personAccounts ? personRecordTypeIds() : null
+        );
     }
 
     /**
@@ -763,6 +919,8 @@ public with sharing class ImportRowProcessor {
                 (matches.containsKey(shared) ? (ImportMatcher.isHeldByMany(shared) ? 2 : 1) : 0) +
                 heldEarlier;
             Id found = named == null ? null : matches.get(named);
+            // The key the person is found by, when several records hold it (R-IT9).
+            String severalUnder = found != null && ImportMatcher.isHeldByMany(named) ? named : null;
             Boolean coming =
                 found == null &&
                 named != null &&
@@ -778,6 +936,28 @@ public with sharing class ImportRowProcessor {
             ) {
                 found = matches.get(shared);
                 coming = found == null && heldEarlier > 0;
+                // Only a row with no first name reaches here with several holders: in the org,
+                // or among the people earlier chunks of the dry run would create.
+                severalUnder = held > 1 ? shared : null;
+            }
+            if (severalUnder != null && item.error == null) {
+                item.row.Several_Matches__c = true;
+                if (rules.mostRecent) {
+                    // The most recently changed of the org's holders; where every holder is a
+                    // person an earlier chunk would create, the commit will find them, and the
+                    // row counts as matching them here, as it does now.
+                    Id latest = ImportMatcher.mostRecent(severalUnder);
+                    if (latest != null) {
+                        found = latest;
+                        coming = false;
+                    }
+                } else {
+                    found = null;
+                    coming = false;
+                    item.error = isFirst
+                        ? Label.Core_Import_ErrorSeveralPeople
+                        : Label.Core_Import_ErrorSeveralSecondPeople;
+                }
             }
             if (isFirst) {
                 item.person1Id = found;
@@ -881,6 +1061,7 @@ public with sharing class ImportRowProcessor {
         row.Person_2_Name_Key__c = null;
         row.Organization_Key__c = null;
         row.Processor_Key__c = null;
+        row.Several_Matches__c = false;
     }
 
     /** A row has to describe somebody. One that does not is rejected before anything is saved. */
@@ -1543,8 +1724,14 @@ public with sharing class ImportRowProcessor {
             return result;
         }
         Map<String, Object> populated = new Map<String, Object>();
+        String prefix = NamespaceUtil.prefix().toLowerCase();
         for (String name : stored.getPopulatedFieldsAsMap().keySet()) {
-            populated.put(name.toLowerCase(), stored.getPopulatedFieldsAsMap().get(name));
+            Object value = stored.getPopulatedFieldsAsMap().get(name);
+            populated.put(name.toLowerCase(), value);
+            // A packaged field is read under its prefixed name and named without it (R-IT1).
+            if (String.isNotBlank(prefix) && name.toLowerCase().startsWith(prefix)) {
+                populated.put(name.toLowerCase().removeStart(prefix), value);
+            }
         }
         for (String attributeName : held.keySet()) {
             String incoming = held.get(attributeName);
@@ -1557,8 +1744,10 @@ public with sharing class ImportRowProcessor {
             Object current = populated.get(lookupKey);
             if (isCheckbox(stored, lookupKey)) {
                 // A checkbox is compared as the value the save would write: "Yes" in the file
-                // is the true already stored, not a change to journal on every re-import.
-                if ((Boolean) convertCheckbox(incoming) != (current == true)) {
+                // is the true already stored, not a change to journal on every re-import. A value
+                // that reads as neither is no change: it is not loaded (`readCheckbox`).
+                Boolean read = readCheckbox(incoming);
+                if (read != null && read != (current == true)) {
                     result.put(attributeName, incoming);
                 }
                 continue;
@@ -1828,6 +2017,317 @@ public with sharing class ImportRowProcessor {
     }
 
     // -------------------------------------------------------------------------------------
+    // Affiliations (R-IR8)
+    // -------------------------------------------------------------------------------------
+
+    /** The affiliation attributes Core sets itself, which a mapped column never overrides. */
+    private static final Set<String> AFFILIATION_LINKS = new Set<String>{
+        'contact__c',
+        'person_account__c',
+        'organization__c'
+    };
+
+    /**
+     * Connects each row's first person to its organization (R-IR8, R-AF5), in the dry run as in
+     * the commit. A current affiliation between them (no End Date) is the row's and takes the
+     * row's values that differ, journaled as an update; several current ones are several
+     * matches (R-IT9); otherwise one is created and journaled as created, because an
+     * affiliation carries no batch tag (R-IJ3). A row with no organization or no first person
+     * gets none, said once in the run log, and is never rejected for it. Rows of the chunk
+     * naming the same new affiliation share the first row's.
+     */
+    private static void resolveAffiliations(
+        List<Working> working,
+        Boolean personAccounts,
+        Boolean dryRun,
+        Outcome outcome
+    ) {
+        List<Working> affiliating = new List<Working>();
+        Boolean leftOut = false;
+        for (Working item : working) {
+            Map<String, String> held = item.byEntity.get(ImportMapping.ENTITY_AFFILIATION);
+            if (held == null || !hasAnyValue(held) || item.error != null) {
+                continue;
+            }
+            // In a dry run a person or organization the commit will create counts as there.
+            Boolean hasOrganization =
+                item.organizationId != null || (dryRun && item.organizationKey != null);
+            Boolean hasPerson =
+                item.person1Id != null ||
+                (dryRun &&
+                (item.comingPerson1 || describesPerson(item, ImportMapping.ENTITY_CONTACT_1)));
+            if (hasOrganization && hasPerson) {
+                affiliating.add(item);
+            } else {
+                leftOut = true;
+            }
+        }
+        if (leftOut) {
+            outcome.notes.add(Label.Core_Import_LogAffiliationLeftOut);
+        }
+        if (affiliating.isEmpty()) {
+            return;
+        }
+        Schema.SObjectType type = Affiliation__c.SObjectType;
+        Schema.DescribeSObjectResult described = type.getDescribe(SObjectDescribeOptions.DEFERRED);
+        if (!described.isAccessible() || !described.isCreateable() || !linksReadable()) {
+            outcome.notes.add(Label.Core_Import_LogAffiliationNoAccess);
+            return;
+        }
+        Map<String, List<SObject>> existing = currentAffiliations(affiliating, type);
+        if (existing == null) {
+            outcome.notes.add(Label.Core_Import_LogAffiliationNoAccess);
+            return;
+        }
+        String objectName = described.getName();
+        Set<String> pairsInChunk = new Set<String>();
+        List<SObject> toCreate = new List<SObject>();
+        List<Working> creators = new List<Working>();
+        Map<Id, SObject> toUpdate = new Map<Id, SObject>();
+        Map<Id, SObject> storedById = new Map<Id, SObject>();
+        Map<Id, List<Working>> updaters = new Map<Id, List<Working>>();
+        for (Working item : affiliating) {
+            Map<String, String> held = affiliationFields(
+                item.byEntity.get(ImportMapping.ENTITY_AFFILIATION)
+            );
+            String pair = affiliationPair(item);
+            List<SObject> found = existing.containsKey(pair)
+                ? existing.get(pair)
+                : new List<SObject>();
+            if (found.size() > 1) {
+                item.row.Several_Matches__c = true;
+                if (!rules.mostRecent) {
+                    item.error = Label.Core_Import_ErrorSeveralAffiliations;
+                    continue;
+                }
+            }
+            if (!found.isEmpty()) {
+                // Newest first, so the first is the most recently changed (R-IT9).
+                SObject stored = found[0];
+                if (!changes(stored, held)) {
+                    continue;
+                }
+                if (dryRun) {
+                    item.updatedAnything = true;
+                    continue;
+                }
+                SObject change = toUpdate.containsKey(stored.Id)
+                    ? toUpdate.get(stored.Id)
+                    : type.newSObject(stored.Id);
+                applyChanges(change, stored, type, held, outcome);
+                toUpdate.put(stored.Id, change);
+                storedById.put(stored.Id, stored);
+                if (!updaters.containsKey(stored.Id)) {
+                    updaters.put(stored.Id, new List<Working>());
+                }
+                updaters.get(stored.Id).add(item);
+                continue;
+            }
+            if (pairsInChunk.contains(pair)) {
+                // An earlier row of the chunk creates this affiliation; this row shares it.
+                continue;
+            }
+            pairsInChunk.add(pair);
+            item.createdAnything = true;
+            if (dryRun) {
+                continue;
+            }
+            SObject affiliation = type.newSObject();
+            affiliation.put(Affiliation__c.Organization__c, item.organizationId);
+            affiliation.put(
+                item.person1Id.getSObjectType() == Account.SObjectType
+                    ? Affiliation__c.Person_Account__c
+                    : Affiliation__c.Contact__c,
+                item.person1Id
+            );
+            applyValues(affiliation, type, held, new Set<String>(), outcome);
+            toCreate.add(affiliation);
+            creators.add(item);
+        }
+        if (dryRun) {
+            return;
+        }
+        saveAffiliations(toCreate, creators, toUpdate, storedById, updaters, objectName, outcome);
+    }
+
+    /** Saves the chunk's new and changed affiliations, and journals each save (R-IJ3). */
+    private static void saveAffiliations(
+        List<SObject> toCreate,
+        List<Working> creators,
+        Map<Id, SObject> toUpdate,
+        Map<Id, SObject> storedById,
+        Map<Id, List<Working>> updaters,
+        String objectName,
+        Outcome outcome
+    ) {
+        List<Database.SaveResult> created = toCreate.isEmpty()
+            ? new List<Database.SaveResult>()
+            : Database.insert(toCreate, saveOptions(), AccessLevel.USER_MODE);
+        for (Integer i = 0; i < created.size(); i++) {
+            if (created[i].isSuccess()) {
+                outcome.journal.add(
+                    ImportJournalService.created(
+                        objectName,
+                        created[i].getId(),
+                        rowNumber(creators[i].row)
+                    )
+                );
+            } else {
+                // The person and organization stay, as a gift's rejection leaves them (R-IR7).
+                creators[i].error = message(created[i]);
+            }
+        }
+        if (toUpdate.isEmpty()) {
+            return;
+        }
+        List<SObject> records = toUpdate.values();
+        List<Database.SaveResult> updated = Database.update(
+            records,
+            saveOptions(),
+            AccessLevel.USER_MODE
+        );
+        for (Integer i = 0; i < updated.size(); i++) {
+            List<Working> owners = updaters.get(records[i].Id);
+            for (Working owner : owners) {
+                if (updated[i].isSuccess()) {
+                    owner.updatedAnything = true;
+                } else if (owner.error == null) {
+                    owner.error = message(updated[i]);
+                }
+            }
+            if (updated[i].isSuccess()) {
+                journalUpdate(
+                    outcome,
+                    objectName,
+                    records[i],
+                    storedById.get(records[i].Id),
+                    rowNumber(owners[0].row)
+                );
+            }
+        }
+    }
+
+    /**
+     * Which person and organization a row's affiliation joins, as one key. In a dry run a
+     * person or organization the commit will create has no identifier yet, and is named by its
+     * matching key, so rows of the chunk naming the same new pair still share one.
+     */
+    private static String affiliationPair(Working item) {
+        String person = item.person1Id != null
+            ? String.valueOf(item.person1Id)
+            : 'new:' + (item.personKey1 == null ? String.valueOf(item.row.Id) : item.personKey1);
+        String organization = item.organizationId != null
+            ? String.valueOf(item.organizationId)
+            : 'new:' + item.organizationKey;
+        return person + '|' + organization;
+    }
+
+    /**
+     * A row's affiliation values, leaving out the person and organization links, which Core
+     * sets. The names are the template's (R-IT1); `applyValues` finds each field by it and
+     * reports one the object does not have.
+     */
+    private static Map<String, String> affiliationFields(Map<String, String> held) {
+        Map<String, String> result = new Map<String, String>();
+        for (String attributeName : held.keySet()) {
+            if (!AFFILIATION_LINKS.contains(attributeName.toLowerCase())) {
+                result.put(attributeName, held.get(attributeName));
+            }
+        }
+        return result;
+    }
+
+    /** Whether the user may read the fields an affiliation is found by. */
+    private static Boolean linksReadable() {
+        return Affiliation__c.Contact__c.getDescribe().isAccessible() &&
+            Affiliation__c.Person_Account__c.getDescribe().isAccessible() &&
+            Affiliation__c.Organization__c.getDescribe().isAccessible() &&
+            Affiliation__c.End_Date__c.getDescribe().isAccessible();
+    }
+
+    /**
+     * The current affiliations between the chunk's known people and organizations, keyed by
+     * `affiliationPair` and newest first, with the mapped fields the user may read, in user
+     * mode. Null when the read is refused.
+     */
+    private static Map<String, List<SObject>> currentAffiliations(
+        List<Working> affiliating,
+        Schema.SObjectType type
+    ) {
+        Map<String, List<SObject>> result = new Map<String, List<SObject>>();
+        Set<Id> organizationIds = new Set<Id>();
+        Set<Id> personIds = new Set<Id>();
+        Map<String, Schema.SObjectField> fields = fieldsOf(type);
+        String contactField = Affiliation__c.Contact__c.getDescribe().getName();
+        String personField = Affiliation__c.Person_Account__c.getDescribe().getName();
+        String organizationField = Affiliation__c.Organization__c.getDescribe().getName();
+        Set<String> selected = new Set<String>{
+            'Id',
+            'LastModifiedDate',
+            contactField,
+            personField,
+            organizationField
+        };
+        for (Working item : affiliating) {
+            if (item.organizationId != null && item.person1Id != null) {
+                organizationIds.add(item.organizationId);
+                personIds.add(item.person1Id);
+            }
+            for (
+                String name : affiliationFields(item.byEntity.get(ImportMapping.ENTITY_AFFILIATION))
+                    .keySet()
+            ) {
+                Schema.SObjectField field = fields.get(name.toLowerCase());
+                if (field != null && field.getDescribe().isAccessible()) {
+                    selected.add(field.getDescribe().getName());
+                }
+            }
+        }
+        if (organizationIds.isEmpty()) {
+            return result;
+        }
+        String query =
+            'SELECT ' +
+            String.join(new List<String>(selected), ', ') +
+            ' FROM ' +
+            type.getDescribe(SObjectDescribeOptions.DEFERRED).getName() +
+            ' WHERE ' +
+            organizationField +
+            ' IN :organizationIds AND (' +
+            contactField +
+            ' IN :personIds OR ' +
+            personField +
+            ' IN :personIds) AND ' +
+            Affiliation__c.End_Date__c.getDescribe().getName() +
+            ' = NULL ORDER BY LastModifiedDate DESC, Id DESC LIMIT 10000';
+        List<SObject> rows;
+        try {
+            rows = Database.queryWithBinds(
+                query,
+                new Map<String, Object>{
+                    'organizationIds' => organizationIds,
+                    'personIds' => personIds
+                },
+                AccessLevel.USER_MODE
+            );
+        } catch (Exception refused) {
+            ErrorLogger.log(refused, 'ImportRowProcessor.currentAffiliations');
+            return null;
+        }
+        for (SObject row : rows) {
+            Object person = row.get(contactField) != null
+                ? row.get(contactField)
+                : row.get(personField);
+            String pair = String.valueOf(person) + '|' + String.valueOf(row.get(organizationField));
+            if (!result.containsKey(pair)) {
+                result.put(pair, new List<SObject>());
+            }
+            result.get(pair).add(row);
+        }
+        return result;
+    }
+
+    // -------------------------------------------------------------------------------------
     // The rest of the row
     // -------------------------------------------------------------------------------------
 
@@ -1981,31 +2481,25 @@ public with sharing class ImportRowProcessor {
         Outcome outcome
     ) {
         Set<String> targets = new Set<String>(mapping.targetsBySourceKey().values());
-        for (ImportMapping.Assignment assignment : mapping.defaults) {
-            if (assignment != null && !ImportMapping.isIgnored(assignment.target)) {
-                targets.add(assignment.target.trim());
-            }
+        for (ImportMapping.Assignment assignment : mapping.assignments()) {
+            targets.add(assignment.target.trim());
         }
         Schema.SObjectType personType = personAccounts ? Account.SObjectType : Contact.SObjectType;
         for (String target : targets) {
             String entity = ImportMapping.entityOf(target);
-            Schema.SObjectType type;
-            if (ImportMapping.ENTITY_ORGANIZATION.equals(entity)) {
-                type = Account.SObjectType;
-            } else if (
+            Boolean person =
                 ImportMapping.ENTITY_CONTACT_1.equals(entity) ||
-                ImportMapping.ENTITY_CONTACT_2.equals(entity)
-            ) {
-                type = personType;
-            } else {
-                // A household takes only its name from a row, and the rest of a row is the
-                // entity processor's to report (R-IR6).
+                ImportMapping.ENTITY_CONTACT_2.equals(entity);
+            // A household takes only its name from a row, and the rest of a row is the
+            // entity processor's to report (R-IR6).
+            Schema.SObjectType type = person ? personType : coreTypeOf(entity);
+            if (type == null) {
                 continue;
             }
             String attribute = ImportMapping.attributeOf(target);
             // Only a person's attributes are contact names to translate; an organization's
             // are the account's own, whatever the person mode.
-            if (!ImportMapping.ENTITY_ORGANIZATION.equals(entity)) {
+            if (person) {
                 attribute = storedName(attribute, personAccounts);
             }
             Schema.SObjectField field = fieldsOf(type).get(attribute.toLowerCase());
@@ -2063,6 +2557,10 @@ public with sharing class ImportRowProcessor {
                 outcome.notes.add(noAccessNote(describe));
                 continue;
             }
+            if (describe.getType() == Schema.DisplayType.BOOLEAN && readCheckbox(value) == null) {
+                // Neither yes nor no: left as it is, and named once in the run log.
+                continue;
+            }
             try {
                 record.put(describe.getSObjectField(), convert(value, describe));
             } catch (Exception ignored) {
@@ -2100,16 +2598,113 @@ public with sharing class ImportRowProcessor {
         return field != null && field.getDescribe().getType() == Schema.DisplayType.BOOLEAN;
     }
 
-    /** A checkbox column's value as the save writes it; the one reading for both. */
-    private static Boolean convertCheckbox(String value) {
-        return 'true'.equalsIgnoreCase(value) || 'yes'.equalsIgnoreCase(value) || '1'.equals(value);
+    /** The words a checkbox column reads as ticked, and as not ticked, ignoring case. */
+    private static final Set<String> CHECKBOX_TRUE = new Set<String>{
+        'true',
+        'yes',
+        'y',
+        '1',
+        'x',
+        'checked',
+        'on',
+        't'
+    };
+    private static final Set<String> CHECKBOX_FALSE = new Set<String>{
+        'false',
+        'no',
+        'n',
+        '0',
+        'off',
+        'f'
+    };
+
+    /**
+     * A checkbox column's value as the save writes it, the one reading for the save and the
+     * comparison: true or false for the words above, and null for a blank or anything else,
+     * which is not loaded, so a column of "Opted out" never turns an opt-out off (admin guide,
+     * Importing, section 4E).
+     */
+    @TestVisible
+    private static Boolean readCheckbox(String value) {
+        String word = value == null ? '' : value.trim().toLowerCase();
+        if (CHECKBOX_TRUE.contains(word)) {
+            return true;
+        }
+        if (CHECKBOX_FALSE.contains(word)) {
+            return false;
+        }
+        return null;
+    }
+
+    /**
+     * Names in the run log, once per field, a checkbox column that holds a value it does not
+     * read as yes or no, with the first such value, in the dry run as in the commit. The value
+     * is then left out of the save (`applyValues`) and is no change (`differences`).
+     */
+    private static void noteUnreadableCheckboxes(
+        List<Working> working,
+        Boolean personAccounts,
+        Outcome outcome
+    ) {
+        Set<String> noted = new Set<String>();
+        Schema.SObjectType personType = personAccounts ? Account.SObjectType : Contact.SObjectType;
+        for (Working item : working) {
+            for (String entity : item.byEntity.keySet()) {
+                Boolean person =
+                    entity == ImportMapping.ENTITY_CONTACT_1 ||
+                    entity == ImportMapping.ENTITY_CONTACT_2;
+                Schema.SObjectType type = person ? personType : coreTypeOf(entity);
+                if (type == null) {
+                    continue;
+                }
+                Map<String, String> held = item.byEntity.get(entity);
+                for (String attributeName : held.keySet()) {
+                    String value = held.get(attributeName);
+                    String name = person
+                        ? storedName(attributeName, personAccounts)
+                        : attributeName;
+                    Schema.SObjectField field = fieldsOf(type).get(name.toLowerCase());
+                    if (
+                        String.isBlank(value) ||
+                        field == null ||
+                        field.getDescribe().getType() != Schema.DisplayType.BOOLEAN ||
+                        readCheckbox(value) != null ||
+                        noted.contains(entity + '.' + name.toLowerCase())
+                    ) {
+                        continue;
+                    }
+                    noted.add(entity + '.' + name.toLowerCase());
+                    outcome.notes.add(
+                        String.format(
+                            Label.Core_Import_LogCheckboxUnreadable,
+                            new List<String>{ field.getDescribe().getLabel(), value.abbreviate(40) }
+                        )
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     * The object an organization or affiliation entity is written to, or null for an entity
+     * that is not written field by field here (a household takes only its name, and the rest of
+     * a row is the entity processor's, R-IR6). People depend on the person mode.
+     */
+    private static Schema.SObjectType coreTypeOf(String entity) {
+        if (entity == ImportMapping.ENTITY_ORGANIZATION) {
+            return Account.SObjectType;
+        }
+        if (entity == ImportMapping.ENTITY_AFFILIATION) {
+            return Affiliation__c.SObjectType;
+        }
+        return null;
     }
 
     /** A column value as the field's type, for the few types a spreadsheet carries. */
     private static Object convert(String value, Schema.DescribeFieldResult describe) {
         Schema.DisplayType kind = describe.getType();
         if (kind == Schema.DisplayType.BOOLEAN) {
-            return convertCheckbox(value);
+            return readCheckbox(value);
         }
         if (
             kind == Schema.DisplayType.CURRENCY ||

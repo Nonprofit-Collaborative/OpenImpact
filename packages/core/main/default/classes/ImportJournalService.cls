@@ -23,6 +23,9 @@ public with sharing class ImportJournalService {
     public static final String ACTION_KEPT = 'Kept';
     @NamespaceAccessible
     public static final String ACTION_NOT_RESTORED = 'NotRestored';
+    /** A record the commit created of an object that carries no batch tag (R-IJ3). */
+    @NamespaceAccessible
+    public static final String ACTION_CREATED = 'Created';
 
     /** The document version written into every page, so a reader can tell the shape. */
     private static final Integer DOCUMENT_VERSION = 1;
@@ -69,6 +72,20 @@ public with sharing class ImportJournalService {
             'id' => String.valueOf(recordId),
             'row' => row,
             'fields' => fields
+        };
+    }
+
+    /**
+     * A created entry: a record the commit created of an object with no batch tag, such as an
+     * affiliation, which an undo finds here rather than by the tag (R-IJ3, R-IB9).
+     */
+    @NamespaceAccessible
+    public static Map<String, Object> created(String objectName, Id recordId, Integer row) {
+        return new Map<String, Object>{
+            'action' => ACTION_CREATED,
+            'object' => objectName,
+            'id' => String.valueOf(recordId),
+            'row' => row
         };
     }
 
@@ -124,11 +141,18 @@ public with sharing class ImportJournalService {
             Integer paged = 0;
             for (List<Map<String, Object>> page : paginate(entries, batchId)) {
                 paged += page.size();
+                Integer createdEntries = 0;
+                for (Map<String, Object> entry : page) {
+                    if (ACTION_CREATED.equals(entry.get('action'))) {
+                        createdEntries++;
+                    }
+                }
                 pages.add(
                     new Import_Journal__c(
                         Import_Batch__c = batchId,
                         Phase__c = PHASE_UNDO.equals(phase) ? PHASE_UNDO : PHASE_COMMIT,
                         Entry_Count__c = page.size(),
+                        Created_Count__c = createdEntries == 0 ? null : createdEntries,
                         Entries_JSON__c = document(page)
                     )
                 );
@@ -173,6 +197,26 @@ public with sharing class ImportJournalService {
             'SELECT SUM(Entry_Count__c) total FROM Import_Journal__c ' +
             'WHERE Import_Batch__c = :batchId AND Phase__c = :phase',
             new Map<String, Object>{ 'batchId' => batchId, 'phase' => phase },
+            AccessLevel.SYSTEM_MODE
+        );
+        Object total = totals.isEmpty() ? null : totals[0].get('total');
+        return total == null ? 0 : ((Decimal) total).intValue();
+    }
+
+    /**
+     * How many records the commit of a batch created that carry no batch tag, summed from the
+     * pages' Created Count (R-IJ3). Read in system mode, as `entryCount` is: an undo's count
+     * must include what the running user cannot see (R-IB9).
+     */
+    @NamespaceAccessible
+    public static Integer createdCount(Id batchId) {
+        if (batchId == null) {
+            return 0;
+        }
+        List<AggregateResult> totals = Database.queryWithBinds(
+            'SELECT SUM(Created_Count__c) total FROM Import_Journal__c ' +
+            'WHERE Import_Batch__c = :batchId AND Phase__c = :phase',
+            new Map<String, Object>{ 'batchId' => batchId, 'phase' => PHASE_COMMIT },
             AccessLevel.SYSTEM_MODE
         );
         Object total = totals.isEmpty() ? null : totals[0].get('total');

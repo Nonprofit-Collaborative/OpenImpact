@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_Import_ErrorFileValuesTooLong</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import: the values for every row are too long to keep</shortDescription>
+        <value>The values for every row of this file are too long to keep with the import. Shorten them, or add them to the file as columns.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorMatchFieldUnusable</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import: a chosen match field cannot be used; {0} is its name</shortDescription>
+        <value>Rows cannot be matched on {0}: it is not an external ID or unique text field you can read. Choose another field in the matching step.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorOrganizationFieldRequired</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import: the organization External ID rule needs a field</shortDescription>
+        <value>Choose the field organizations are matched on, or match them by name.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorOrganizationKeyMissing</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import row: organization named without the field it is matched on</shortDescription>
+        <value>This row names an organization but leaves empty the field organizations are matched on, so it could be neither found nor safely created. Fill in that column, or match organizations by name.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorOrganizationNameMissing</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import row: a new organization has no name</shortDescription>
+        <value>No organization has this row's identifier, and the row gives no organization name to create one with. Add the name, or check the identifier.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorSeveralAffiliations</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import row: several current affiliations match</shortDescription>
+        <value>This person has more than one current affiliation with this organization, and the mapping says to reject such a row. End or remove the extra one, or choose Use the most recently changed, and load the row again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorSeveralOrganizations</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import row: several organizations match and the mapping rejects it</shortDescription>
+        <value>More than one organization in your org matches this row, and the mapping says to reject such a row. Merge the duplicates, or choose Use the most recently changed, and load the row again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorSeveralPeople</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import row: several people match the first person</shortDescription>
+        <value>More than one person in your org matches this row's person, and the mapping says to reject such a row. Merge the duplicates, or choose Use the most recently changed, and load the row again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorSeveralSecondPeople</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import row: several people match the second person</shortDescription>
+        <value>More than one person in your org matches this row's second person, and the mapping says to reject such a row. Merge the duplicates, or choose Use the most recently changed, and load the row again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_ErrorTooManyFileValues</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import: more values for every row than allowed; {0} is the limit</shortDescription>
+        <value>A file can be given at most {0} values for every row. Remove some, or add them to the file as columns.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_FileValueAddButton</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: button that adds a value for every row</shortDescription>
+        <value>Add a value</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_FileValueLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: the value given for every row of the file</shortDescription>
+        <value>Value</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_FileValueRemoveButton</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: button that removes a value for every row</shortDescription>
+        <value>Remove</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_FileValueTargetLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: picker for what a value for every row is for</shortDescription>
+        <value>Value for</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_FileValuesHeading</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: heading of the values for every row of the file</shortDescription>
+        <value>Values for every row of this file</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_FileValuesHelp</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: what a value for every row of the file does</shortDescription>
+        <value>A value here fills every row of this file that does not have its own, for this file only. For example, the appeal every gift in it answers.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogAffiliationLeftOut</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: rows with affiliation values but no person or organization</shortDescription>
+        <value>Affiliation values were not loaded on rows that have no organization or no first person, or whose organization or person was rejected. The rest of those rows loaded.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogAffiliationNoAccess</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: the importing user cannot read or create affiliations</shortDescription>
+        <value>Affiliations were not loaded: you cannot read or create affiliations, or read the fields that link them. Ask your administrator for access and load the file again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogCheckboxUnreadable</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: checkbox value not read; {0} field, {1} a value</shortDescription>
+        <value>Not loaded: {0} values that are neither yes nor no, such as "{1}". Those rows keep what the field already held. Change the cells to yes or no and load the file again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogMatchFieldGone</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: the chosen person match field cannot be used</shortDescription>
+        <value>Nobody was matched by identifier: the field this mapping matches people on is gone, or you cannot read it, so every person counts as new. Choose the field again in the matching step before you commit.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_LogSeveralMatches</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import run log: how many rows matched several records; {0} the count</shortDescription>
+        <value>{0} rows matched more than one record. Each is listed under Rows that matched more than one record, with what was done with it.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_OrganizationExternalIdHelp</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: what the organization external ID rule does and risks</shortDescription>
+        <value>Finds the organization by an identifier from your other system, in the field you pick. Risk: a reused or mistyped identifier updates the wrong organization.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_OrganizationFieldLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: picker for the field organizations are matched on</shortDescription>
+        <value>Match organizations on</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_OrganizationNameHelp</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: what the organization name rule does and risks</shortDescription>
+        <value>Finds the organization with exactly this name. Risk: two organizations with one name are treated as one, and a name spelled differently in the file makes a new organization.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_OrganizationRuleLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: picker for how organizations are matched</shortDescription>
+        <value>Match organizations by</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_PersonMatchFieldDefault</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: person match field option meaning the first external ID</shortDescription>
+        <value>The first external ID field (as before)</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_PersonMatchFieldLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: picker for the field people are matched on</shortDescription>
+        <value>Match people on</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_SeveralHeading</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import results: heading of the rows that matched several records</shortDescription>
+        <value>Rows that matched more than one record</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_SeveralHelp</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import results: what the table of rows with several matches shows</shortDescription>
+        <value>Each of these rows found more than one record already in your org. A rejected one says so; any other went to the most recently changed record.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_SeveralMatchesLabel</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: what a row does when several records match</shortDescription>
+        <value>When a row matches more than one record</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_SeveralMostRecentHelp</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: what using the most recently changed record risks</shortDescription>
+        <value>The row goes to whichever of those records was changed most recently. Risk: if that is the wrong one of the duplicates, it is updated anyway.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_SeveralMostRecentOption</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: option to use the most recently changed of several</shortDescription>
+        <value>Use the most recently changed</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_SeveralRejectHelp</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: what rejecting a row with several matches does and risks</shortDescription>
+        <value>The row is rejected and listed, so nothing is merged into the wrong record. Risk: you fix those rows, or the duplicates, and load them again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_SeveralRejectOption</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import wizard: option to reject a row that matches several records</shortDescription>
+        <value>Reject the row</value>
+    </labels>
+    <labels>
+        <fullName>Core_Import_StatusHeader</fullName>
+        <categories>Import</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Import results: table column heading for the row's status</shortDescription>
+        <value>Status</value>
+    </labels>
+</CustomLabels>

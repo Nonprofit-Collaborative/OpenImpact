@@ -1,7 +1,7 @@
 # ADR-0047: Data management runs in the org, compiles queries from a document, and is phased
 
 **Status:** Accepted
-**Date:** 2026-09-23
+**Date:** 2026-09-23 (amended 2026-09-27: C-32 builder decisions, below)
 **Source:** product owner decision (Brandon, 2026-09-23), plan Section 4.9, Section 6 and
 Section 12 decision D-13; amends the import framework scope of C-14 and C-19
 
@@ -64,3 +64,45 @@ and a self-callout to explain at security review. Plan Section 4.10 forbids SOQL
 - The query compiler needs security review notes, and v0.7 proves a 250,000-row import and a
   50,000-record bulk update with undo in the scale org.
 - Undoing a gift import keeps any gift with an issued receipt (ADR-0010, ADR-0024).
+
+## Amendment, 2026-09-27: C-32 builder decisions (import matching and per-file values)
+
+Builder decisions under plan Section 9.3, made while building C-32; the owner decisions above
+stand unchanged. Canonical model R-IT8, R-IT9, R-IB14, R-IB15, R-IR8 and R-IJ3 carry the detail.
+
+- **Choices are template attributes, not a document.** People keep `Matching_Rule__c` and gain
+  `Person_Match_Field__c`; organizations gain `Organization_Matching_Rule__c` (Name exact,
+  External ID) and `Organization_Match_Field__c`; `Several_Matches__c` holds the rule for
+  several matches. An empty value keeps what a template did before C-32, except the rule for
+  several matches, whose empty value is the owner's default (reject), so a template saved before
+  C-32 rejects a row it once resolved to the earliest created record. That is the one
+  behaviour change for existing templates, and the dry run shows every such row.
+- **An empty external ID field means the first one.** A template that used the External ID
+  rule before C-32 named no field and matched on the object's first external ID field; it still
+  does. A chosen field must be an external ID or unique field the user may read, checked
+  against describe when the dry run starts.
+- **What counts as several.** The key is the one the importer already matches on (R-IB12): a
+  shared email or surname and postal code narrowed to the row's first name where several hold
+  it. Several records under the narrowed key, or under the shared key when the row gives no
+  first name, or under an external ID, are several matches. Several holders of a shared key
+  none of whom has the row's first name is not several matches: the person is created, as
+  before, because taking one of them would rename somebody.
+- **"Most recently changed" is Last Modified Date**, the higher identifier breaking a tie, so a
+  file resolves the same way twice.
+- **The dry run lists several-match rows either way** through a checkbox on the row
+  (`Import_Row__c.Several_Matches__c`), shown as its own table beside the rejected rows.
+- **Per-file values live on the batch** (`File_Values_JSON__c`), in the mapping document's
+  defaults format, because they describe one file and must not come back with the next. The
+  row's own value wins, then the file's, then the template's defaults.
+- **Affiliation is resolved in Core** from the row's first person and organization, matched to a
+  current affiliation between them, and journaled. Affiliations carry no batch tag; rather than
+  add one, the journal gains a Created entry and a per-page `Created_Count__c`, and undo deletes
+  journaled creations with the same checks as tagged ones. C-33 reuses the same entry for
+  objects that can never carry a tag.
+- **Staged rows are purged by a batch job after the commit's finish**, in system mode
+  (ADR-0021), keeping rejected rows. A job, not the finish itself, because a large file's rows
+  are more than one transaction may delete.
+- **The checkbox work item is folded in** (contributor guide, CI work item 2): true is `true`,
+  `yes`, `y`, `1`, `x`, `checked`, `on`, `t`; false is `false`, `no`, `n`, `0`, `off`, `f`, all
+  ignoring case; blank changes nothing; anything else leaves the field unloaded and says so in
+  the run log, once per field and value.

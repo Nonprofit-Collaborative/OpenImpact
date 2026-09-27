@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Person_Match_Field__c</fullName>
+  <description>Under the External ID rule, the API name of the person field a row is matched on, chosen from the person object's external ID and unique fields. Empty means the first external ID field the object has, which is how the rule matched before C-32 (canonical model R-IT8).</description>
+  <externalId>false</externalId>
+  <inlineHelpText>The field people are matched on under the External ID rule.</inlineHelpText>
+  <label>Person Match Field</label>
+  <length>255</length>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Text</type>
+  <unique>false</unique>
+</CustomField>

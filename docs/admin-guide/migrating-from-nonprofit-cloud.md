@@ -176,7 +176,7 @@ These are not loaded by the four mappings. Each has what to do in the meantime.
 | Not loaded | What to do meanwhile |
 |---|---|
 | Households and who is in them | Each person gets a household of their own. Merge the households of people who live together ([Household merge and split](household-merge-split.md)), or load couples in one row with the second person's columns mapped to **Contact 2** ([Importing](importing.md), section 4). |
-| Relationships and affiliations | No import yet (planned for v0.7). Enter the ones you need by hand ([Relationships](relationships.md), [Affiliations](affiliations.md)). |
+| Relationships and affiliations | Affiliations load with the people when you map the Affiliation columns ([Importing](importing.md), section 4C). Relationships have no import yet: enter the ones you need by hand ([Relationships](relationships.md)). |
 | Gift commitments (pledges and recurring gifts) and their schedules | No import yet. Create each active commitment by hand ([Commitments](commitments.md)) before loading gifts. With **Match or create**, a gift dated near one of its scheduled payments pays it; older gifts load as gifts on their own. |
 | Soft credits | A soft credit loads only on the same row as a new gift, and Nonprofit Cloud exports them separately. Credits between household members are made automatically; add others by hand ([Soft credits](soft-credits.md)). |
 | Tributes | Same: add them by hand to the gift ([Tributes](tributes.md)). |

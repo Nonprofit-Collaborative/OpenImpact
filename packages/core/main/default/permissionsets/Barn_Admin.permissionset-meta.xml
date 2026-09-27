@@ -895,6 +895,11 @@
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
+    <editable>true</editable>
+    <field>Import_Batch__c.File_Values_JSON__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
     <editable>false</editable>
     <field>Import_Journal__c.Entries_JSON__c</field>
     <readable>true</readable>
@@ -907,6 +912,11 @@
   <fieldPermissions>
     <editable>false</editable>
     <field>Import_Journal__c.Phase__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Import_Journal__c.Created_Count__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -967,6 +977,11 @@
   <fieldPermissions>
     <editable>true</editable>
     <field>Import_Row__c.Status__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>false</editable>
+    <field>Import_Row__c.Several_Matches__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>
@@ -1037,6 +1052,26 @@
   <fieldPermissions>
     <editable>true</editable>
     <field>Import_Template__c.Template_Key__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Import_Template__c.Person_Match_Field__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Import_Template__c.Organization_Matching_Rule__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Import_Template__c.Organization_Match_Field__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Import_Template__c.Several_Matches__c</field>
     <readable>true</readable>
   </fieldPermissions>
   <fieldPermissions>

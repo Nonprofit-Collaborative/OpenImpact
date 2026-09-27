@@ -84,7 +84,21 @@ public with sharing class ImportUndoService {
             return view;
         }
         countTagged(batch.Id, view);
-        view.updates = ImportJournalService.entryCount(batch.Id, ImportJournalService.PHASE_COMMIT);
+        // What the commit created with no tag to find it by is named in the journal (R-IJ3).
+        Integer journaled = ImportJournalService.createdCount(batch.Id);
+        if (journaled > 0) {
+            TaggedCount counted = new TaggedCount();
+            Schema.DescribeSObjectResult described = journaledType()
+                .getDescribe(SObjectDescribeOptions.DEFERRED);
+            counted.objectName = described.getName();
+            counted.label = described.getLabelPlural();
+            counted.count = journaled;
+            view.others.add(0, counted);
+            view.total += journaled;
+        }
+        view.updates =
+            ImportJournalService.entryCount(batch.Id, ImportJournalService.PHASE_COMMIT) -
+            journaled;
         if (String.isBlank(view.reason) && view.total == 0 && view.updates == 0) {
             view.reason = Label.Core_Import_UndoErrorNothingToUndo;
         }
@@ -144,6 +158,15 @@ public with sharing class ImportUndoService {
     }
 
     /**
+     * The object a batch's journaled creations are of (R-IJ3): the affiliations a people
+     * import makes, the one untagged object Core creates from a row.
+     */
+    @NamespaceAccessible
+    public static Schema.SObjectType journaledType() {
+        return Affiliation__c.SObjectType;
+    }
+
+    /**
      * Closes an undo: its status, and one line added to the run log saying who ran it, when,
      * and what it deleted, kept and put back. Called from the job's last finish, in system
      * mode over fields the package owns (ADR-0021).
@@ -155,9 +178,26 @@ public with sharing class ImportUndoService {
         Integer restored,
         Boolean failed
     ) {
+        finish(batchId, countedAtStart, restored, failed, 0);
+    }
+
+    /**
+     * Closes an undo as above. `journaledKept` is how many of the records the journal names as
+     * created the undo kept (R-IB9): they are not found by a tag, so they cannot be counted
+     * again here, and the undo job carries the number.
+     */
+    @NamespaceAccessible
+    public static void finish(
+        Id batchId,
+        Integer countedAtStart,
+        Integer restored,
+        Boolean failed,
+        Integer journaledKept
+    ) {
         try {
             Preview left = new Preview();
             countTagged(batchId, left);
+            left.total += journaledKept == null ? 0 : journaledKept;
             Integer counted = countedAtStart == null ? 0 : countedAtStart;
             Import_Batch__c batch = [
                 SELECT Id, Run_Log__c

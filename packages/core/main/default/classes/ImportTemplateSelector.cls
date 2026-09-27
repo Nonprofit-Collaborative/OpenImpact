@@ -26,7 +26,11 @@ public with sharing class ImportTemplateSelector {
                 Active__c,
                 Donation_Matching__c,
                 Match_Date_Window_Days__c,
-                Match_Amount_Tolerance__c
+                Match_Amount_Tolerance__c,
+                Person_Match_Field__c,
+                Organization_Matching_Rule__c,
+                Organization_Match_Field__c,
+                Several_Matches__c
             FROM Import_Template__c
             WHERE Active__c = TRUE
             WITH USER_MODE
@@ -58,7 +62,11 @@ public with sharing class ImportTemplateSelector {
                 Active__c,
                 Donation_Matching__c,
                 Match_Date_Window_Days__c,
-                Match_Amount_Tolerance__c
+                Match_Amount_Tolerance__c,
+                Person_Match_Field__c,
+                Organization_Matching_Rule__c,
+                Organization_Match_Field__c,
+                Several_Matches__c
             FROM Import_Template__c
             WHERE Id = :templateId
             WITH USER_MODE
