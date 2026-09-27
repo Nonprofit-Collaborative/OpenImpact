@@ -4,6 +4,10 @@
 **Date:** 2026-09-23
 **Source:** product owner decision (Brandon, 2026-09-23), plan Section 4.9, Section 6 and
 Section 12 decision D-13; amends the import framework scope of C-14 and C-19
+**Amended:** 2026-09-27, in place, by the owner's rule that data management decisions are
+recorded here rather than in new ADRs: the query compiler's security review notes (required
+before C-34 by plan Section 6, v0.7), and the builder decisions of C-34 (Find) and C-35 (bulk
+update), each in its own section below and marked as such.
 
 ## Context
 
@@ -64,3 +68,66 @@ and a self-callout to explain at security review. Plan Section 4.10 forbids SOQL
 - The query compiler needs security review notes, and v0.7 proves a 250,000-row import and a
   50,000-record bulk update with undo in the scale org.
 - Undoing a gift import keeps any gift with an issued receipt (ADR-0010, ADR-0024).
+
+## Security review notes for the query compiler (C-34, amended 2026-09-27)
+
+Written before C-34, as plan Section 6 (v0.7) requires. They cover `QueryDocument`,
+`QueryCompiler`, `QuerySelector`, `FindController`, `SavedQueryService`, `BulkUpdateService`,
+`BulkUpdateBatch` and the two Lightning components, `find` and `bulkUpdate`. A security
+reviewer should be able to check every row of the table against the code.
+
+**What crosses the trust boundary.** The browser sends a query document (JSON), a saved
+query's name, a shared flag, a page cursor (the last record Id of the previous page), and, for
+bulk update, up to five assignments and a confirmed count. The server never accepts SOQL text,
+an operator it did not define, or a field or object name it has not found in the running
+user's own describe results.
+
+| Threat | How it is prevented |
+|---|---|
+| **SOQL injection through a name** (object, field, relationship, sort field) | Names are never copied from the document into a query. The compiler looks each one up in the running user's describe results (`Schema.getGlobalDescribe`, then the object's field map, then each relationship's `getRelationshipName`), refuses anything it does not find, and writes into the query the name describe returned (`getName()`, `getRelationshipName()`). A name that is not an identifier is refused before the lookup. A path is at most three parts: two relationships and a field. |
+| **SOQL injection through a value** | Every value is a bind variable (`:b0`, `:b1`, ...) passed to `Database.queryWithBinds`, `Database.countQueryWithBinds` or `Database.getQueryLocatorWithBinds`, typed from the field's describe (text, number, date, date and time, true or false, record Id). The row limit, the page size and the export cursor are binds too. A LIKE pattern's own wildcards (`\`, `%`, `_`) are escaped before the pattern is bound. No value is concatenated into executed SOQL. |
+| **Operators and filter logic** | Operators come from the fixed list of canonical model R-R2 plus the relative date periods, each mapped to a comparison in code. The logic string may hold only condition numbers, brackets, AND, OR and NOT, as `RollupFilterParser` already enforces, and each number must name a condition in the document. |
+| **Object and field access** | Every read runs with `AccessLevel.USER_MODE`, so object permissions, field-level security and sharing apply to every row and every field. Before running, the compiler also refuses an object the user cannot read and a field (or a lookup on the way to one) they cannot read, with a sentence naming it, so a missing permission is a message, not a query exception. Filter and sort fields must be filterable and sortable in describe. |
+| **Sharing** | All classes are `with sharing` and every record read and write is in user mode, so a record the user cannot see is never counted, returned, exported or updated. The one read outside sharing is the list of saved queries other people marked shared (see the C-34 decisions): it returns query documents, never records, and a shared document is compiled again as the person who opens it. |
+| **Writes** | Bulk update saves with `Database.update(records, false, AccessLevel.USER_MODE)`. Each target field must be updateable for the user and not on the protected-fields list (`DataProtectedFields`, built at run time from describe and the Rollup Definitions). The only system-mode writes are the job record (`Import_Batch__c`) and its journal (`Import_Journal__c`), under ADR-0021. |
+| **Row limits** | The grid returns at most 2,000 rows a request. Export is paged by the browser in record Id order, 1,000 rows a request, up to the export row limit setting (default 50,000). A count reads at most what one request can: never more than the rows the transaction has left, so a count cannot hit the query row limit. The export limit and the bulk update maximum are guards against accidental heavy work, not access controls: a person can only ever read what their own access allows. |
+| **CPU and heap** | A document may name at most 50 fields, 20 conditions, 100 values in one list, 3 sort fields and 32,768 characters; values are at most 255 characters. Describe results are cached per transaction. Rows are flattened on the server into one map per row and nothing else is held. Bulk update runs in Batch Apex in chunks of the import chunk size (at most 200), and each chunk re-reads only its own records. |
+| **CSV injection in the export** | The file is built in the browser. A text cell that begins with `=`, `+`, `-`, `@`, a tab or a carriage return is prefixed with an apostrophe, so a spreadsheet shows it as text and never runs it as a formula. Number, date and true or false columns are written as values. Every cell is quoted where it holds a comma, a quote or a line break, and quotes are doubled. The file is UTF-8 with a byte-order mark. |
+| **Cross-site scripting** | Values are rendered only through Lightning base components (`lightning-datatable`, `lightning-formatted-*`), never as HTML. The generated SOQL is shown in a read-only text area. |
+| **Permission to use the tools** | Every controller method checks its custom permission first (`Find_And_Export_Records`, `Bulk_Update_Records`). Neither grants access to any record. |
+| **Confirmation and replay** | A bulk update starts only with a confirmed count; the server counts again and refuses when more records match than were confirmed, or than the maximum per bulk update allows. The job reads at most the confirmed number of records, and each chunk updates only records that still match the filter when it runs. |
+
+**What is displayed is not what runs.** The SOQL shown to the administrator is rendered from
+the same compiled document, with each bound value written out as a literal (text quoted and
+escaped) so it can be copied into another tool. That text is display only: it is never sent
+back and never executed.
+
+## C-34 builder decisions (Find, amended 2026-09-27)
+
+1. **One query document for Find, saved queries and bulk update** (`QueryDocument`, canonical
+   model Section 17B): object, fields (paths of at most two relationships), an R-R2 filter,
+   up to three sort fields and an optional row limit. R-R2 is extended, not replaced: a
+   condition's field may be a parent path, and a date or date and time condition may carry a
+   `relative` period (today, this month, last month, this year, last year, last N days, next N
+   days) instead of a value. A relative period is worked out when the query runs, in the
+   running user's time zone, and bound as two dates, so a saved query always means "now".
+2. **Saved queries are private to their owner by default and shared by a flag.**
+   `Saved_Query__c` has private sharing, and its owner edits and deletes it in user mode. A
+   query marked shared is listed to every holder of `Find_And_Export_Records` by
+   `SavedQuerySharedReader`, a `without sharing` class that reads only saved queries with the
+   shared flag set, and only their name, object, owner and document. It is the one read in this
+   feature that crosses sharing, and it is recorded here as the ADR the contributor guide asks
+   for: it returns a definition the owner chose to publish, never a record, and opening a shared
+   query compiles it again as the person opening it, so each person sees only what their own
+   access allows. Apex managed sharing to all internal users was the alternative; it needs the
+   Group object, which is not on the allowlist, and share rows to keep in step with the flag.
+3. **Relationships that can point at more than one kind of record are not followed** in v1
+   (for example an owner that may be a user or a queue); their Id can still be shown.
+4. **Export follows the query's filter and row limit, in record Id order**, whatever sort the
+   grid shows, because paging by the last Id is the only paging that neither skips nor repeats
+   a row while others edit. The header row uses the column labels the grid shows.
+5. **Export row limit** is a new setting, `Export_Row_Limit__c`, default 50,000, accepted from
+   1 to 100,000, in the Import section of the settings console.
+6. **Permission set.** `Find_And_Export_Records` is in Barn Admin and in a new set, Barn Find
+   and Export, assignable alone, which grants the Find tab, the controller and access to saved
+   queries, and nothing else.

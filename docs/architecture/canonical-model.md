@@ -2,7 +2,7 @@
 
 **Version:** v0.3
 **Status:** governing specification for the v0.1, v0.2, and v0.3 builds
-**Last updated:** 2026-09-25
+**Last updated:** 2026-09-27
 
 ## 1. Purpose
 
@@ -874,6 +874,16 @@ its job from the console, as the nightly jobs are (ADR-0038), so it has no on an
 | `Error_Digest_Covered_Until__c` | datetime | empty | The end of the window the last digest run covered; the next digest counts entries created after it. Written by the job. |
 | `Error_Digest_Last_Run__c` | datetime | empty | When the digest job last ran, whether or not it sent anything. Written by the job. |
 | `Error_Digest_Last_Run_Summary__c` | text (255) | empty | What the last digest run did, in one sentence. Written by the job. |
+
+### v0.7 keys
+
+Added by data management: Find (C-34) and bulk update (C-35). Both are read by
+`DataManagementSettings`, which applies the default when the key is empty and holds a value
+outside the accepted range at its nearest end, as the import keys are read.
+
+| Key | Type | Default | Definition |
+|---|---|---|---|
+| `Export_Row_Limit__c` | integer | 50000 | The most rows one Find export may download, from 1 to 100,000. |
 
 ### Rules
 
@@ -1948,6 +1958,121 @@ By, Started At and Completed At.
 
 - **Service:** `ImportJournalService` (writes and reads pages), `ImportRowProcessor` (writes
   the commit phase), `ImportUndoBatch` (writes the undo phase), LWC `importHistory`.
+
+---
+
+## 17B. Query Document and Saved Query
+
+### Definition
+
+A **query document** is one question asked of the organization's records: which kind of
+record, which attributes (its own and those of records it refers to), which records (a filter
+document, R-R2), in what order and how many (plan Section 4.9, C-34). Find, saved queries and
+bulk update (C-35) share it, and it is compiled into a query only from names found in the
+running user's own describe results, never accepted as query text (ADR-0047, amended). A
+**Saved Query** is a query document somebody named and kept, owned by them and optionally
+shared with every other person who uses Find.
+
+### Attributes
+
+The query document (held as text in Saved Query's Document, and in a bulk update's Operation
+Definition, Section 16):
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Version | integer | yes | The document format, 1 today, so a later format never has to guess what an older one meant. |
+| Object | text | yes | The API name of the kind of record the question is asked of. |
+| Fields | list of text | yes | The attributes shown, each a path of at most two references and an attribute, for example `Account.Owner.Name`; the record identifier is always included. |
+| Filter | filter document | no | Which records, in the R-R2 format extended by R-Q2; empty means all of them. |
+| Order | list of (path, direction, nulls) | no | Up to three sort attributes, each ascending or descending with empty values first or last. |
+| Row Limit | integer | no | The most records returned, from 1 to 100,000; empty means as many as the tool allows. |
+
+Saved Query:
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Name | text | yes | The query's name as its owner gave it. |
+| Owner | reference(User) | yes | The person who saved it; only they may change or delete it. |
+| Object | text | yes | The API name of the kind of record it asks about, copied from the document so a list can show it without reading the document. |
+| Is Shared | boolean | yes (defaults false) | Whether every other person who uses Find may open it. |
+| Document | long text | yes | The query document itself. |
+
+### Relationships
+
+- **Saved Query to User**, many to one, through its standard owner.
+- A saved query names its object and fields as text, never as references, so it can ask about
+  any object in the org, including standard objects Core may not name (ADR-0013).
+
+### Rules
+
+**R-Q1 Names come from describe.** The compiler resolves the object, every path segment and
+every attribute against the running user's describe results, refuses one it does not find or
+the user may not read, and writes into the query only the names describe returned. A path
+follows at most two references, and never a reference that may point at more than one kind of
+record. Filter attributes must be filterable and sort attributes sortable.
+
+**R-Q2 Filter extensions.** A condition's attribute may be a path (R-Q1). A date or date and
+time condition may carry, instead of a value, a relative period: `TODAY`, `THIS_MONTH`,
+`LAST_MONTH`, `THIS_YEAR`, `LAST_YEAR`, `LAST_N_DAYS` or `NEXT_N_DAYS` (with `n` from 1 to
+3,650, counting today). With equals the record's value falls in the period; not equals,
+outside it; less than, before it; less or equal, not after it; greater than, after it; greater
+or equal, not before it. The period is worked out each time the query runs, in the running
+user's time zone. A date value given for a date and time attribute means that whole day.
+
+```
+{
+  "version": 1,
+  "object": "Contact",
+  "fields": ["FirstName", "LastName", "Account.Name"],
+  "filter": {
+    "logic": "1 AND 2",
+    "conditions": [
+      { "id": 1, "field": "MailingPostalCode", "operator": "starts with", "value": "97" },
+      { "id": 2, "field": "CreatedDate", "operator": "equals", "relative": "THIS_YEAR" }
+    ]
+  },
+  "orderBy": [{ "field": "LastName", "direction": "ASC", "nulls": "LAST" }],
+  "limit": 500
+}
+```
+
+**R-Q3 Values are bound.** Every value, the row limit and the export cursor are bind
+variables typed from the attribute's describe; nothing a person typed is written into the
+query. The query shown to the administrator is rendered from the same document with the values
+written out, for reading and copying only.
+
+**R-Q4 Every read is the person's own.** Queries run in user mode, so object access,
+attribute access and sharing apply to every record and value. A document stays within 50
+fields, 20 conditions, 100 values in one list, 3 sort attributes and 32,768 characters.
+
+**R-Q5 Export.** An export reads the document's records a page at a time in record identifier
+order, following its filter and row limit, up to `Export_Row_Limit__c` (Section 12), and the
+browser writes them as a CSV file in UTF-8 with a byte-order mark. A text value that begins with
+`=`, `+`, `-`, `@`, a tab or a carriage return is written with an apostrophe in front.
+
+**R-Q6 Sharing a query shares a question, not records.** A saved query is private to its
+owner. When Is Shared is true, every holder of `Find_And_Export_Records` may list and open it,
+and it is compiled again as the person opening it, so each person sees only what their own
+access allows (ADR-0047, amended, C-34 decision 2).
+
+### Salesforce implementation
+
+- **Object:** `Saved_Query__c`, text Name, private sharing (internal and external).
+
+| Attribute | API name | Type |
+|---|---|---|
+| Name | `Name` | Text (80, standard) |
+| Owner | `OwnerId` | Lookup to User (standard) |
+| Object | `Object_Name__c` | Text (255) |
+| Is Shared | `Is_Shared__c` | Checkbox |
+| Document | `Query_JSON__c` | Long Text Area (32768) |
+
+- **Settings key:** `Export_Row_Limit__c` (Section 12).
+- **Permission:** `Find_And_Export_Records`, in Barn Admin and in the Barn Find and Export
+  permission set, assignable alone; it grants no record access.
+- **Service:** `QueryDocument` (the document), `QueryCompiler` (R-Q1 to R-Q3), `QuerySelector`
+  (user-mode reads, R-Q4 and R-Q5), `SavedQueryService`, `SavedQuerySharedReader` (the shared
+  list, R-Q6), `FindController`, LWC `find` and `queryFieldPicker`.
 
 ---
 
@@ -5348,6 +5473,7 @@ None open. R-M3's Primary Contact mirror, the only entry, was closed on 2026-09-
 | v0.6 | 2026-09-24 | Cancelled gift status, by the owner's decision (ADR-0054, amending G-04, ADR-0022, ADR-0023 and ADR-0031). No object added. `Gift__c.Status__c` gains Cancelled. New R-G16: a Pending gift that will never be paid is cancelled, with no negative gift, outside every total, the export and receipts, and allowed in a closed period; it moves only between Pending and Cancelled and unlinks its installment. R-G3: only a Received gift is refunded or written off. R-G14, R-AK8, R-RC8 and Section 26 name Cancelled. |
 | v0.6 | 2026-09-24 | C-23 automation pause with automatic resume, and the error digest (ADR-0055). No object added. `Barn_Settings__c` gains five keys (Section 12, v0.6 keys): `Error_Digest_Recipients__c`, `Error_Digest_Frequency__c`, `Error_Digest_Covered_Until__c`, `Error_Digest_Last_Run__c` and `Error_Digest_Last_Run_Summary__c`. New rules R-A5 (a pause ends by itself through a one-time job that records the resume) and R-E5 (the digest counts and links, never quotes, and goes only to active users); R-E3 reworded to point at R-E5. |
 | v0.6 | 2026-09-25 | G-20 follow-up: Health Check finding for unposted gifts in a closed period (ADR-0053's recorded follow-up, ADR-0057). No object, field or rule added: the finding reports what R-G14 already locks, a gift with a counting status (ADR-0022) and a type other than In-kind, dated on or before Books Closed Through, whose `Accounting_Posted_At__c` is still empty, capped and linked the way C-21's orphan findings already are. Because Core may not name a gift or a closed period (C-29), Core gains a small extension seam instead of a new Core check: `HealthCheckExtension`, an interface, and `HealthCheckExtensions`, a resolver that finds an implementation by name with `Type.forName`, the same shape `ImportEntityProcessor` already uses for the opposite direction (R-IR6). `HealthCheckService.run()` folds a found extension's findings into the one report, isolated the way one failing check already is. Giving ships the one implementation, `GivingHealthCheckExtension`, delegating to `HealthCheckGivingChecks`, grouped the way ADR-0039 groups Core's own checks. |
+| v0.7 | 2026-09-27 | C-34 Find (ADR-0047, amended). New Section 17B: the query document shared by Find, saved queries and bulk update, with rules R-Q1 to R-Q6, and one object, `Saved_Query__c` (`Object_Name__c`, `Is_Shared__c`, `Query_JSON__c`), private to its owner and shared by a flag. R-R2 is extended for queries only (R-Q2): parent paths and relative date periods. `Barn_Settings__c` gains `Export_Row_Limit__c` (Section 12, v0.7 keys). |
 
 ---
 ## 32. Entity ownership by package
@@ -5363,7 +5489,7 @@ included; standard objects the packages extend are named by the entity that gove
 | Error Log | Core | v0.1 | 9 |
 | Automation Setting | Core | v0.1 | 10 |
 | Setting Change | Core | v0.1 | 11 |
-| Nonprofit Settings | Core | v0.1, extended v0.2, v0.3, v0.5 and v0.6 | 12 |
+| Nonprofit Settings | Core | v0.1, extended v0.2, v0.3, v0.5, v0.6 and v0.7 | 12 |
 | Naming Pattern (shipped default) | Core | v0.1 | 13 |
 | Automation Registry (shipped default) | Core | v0.1 | 13 |
 | Rollup Definition | Core | v0.2 | 14 |
@@ -5373,6 +5499,7 @@ included; standard objects the packages extend are named by the entity that gove
 | Import Batch | Core | v0.2 | 16 |
 | Import Row | Core | v0.2 | 17 |
 | Import Journal | Core | v0.5 | 17A |
+| Saved Query | Core | v0.7 | 17B |
 | Gift | Giving | v0.2 | 18 |
 | Gift Allocation | Giving | v0.2 | 19 |
 | Fund | Giving | v0.2 | 20 |

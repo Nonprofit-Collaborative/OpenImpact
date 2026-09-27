@@ -315,9 +315,17 @@
     <apexClass>UserSelector</apexClass>
     <enabled>true</enabled>
   </classAccesses>
+  <classAccesses>
+    <apexClass>FindController</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
   <customPermissions>
     <enabled>true</enabled>
     <name>Manage_Barn_Settings</name>
+  </customPermissions>
+  <customPermissions>
+    <enabled>true</enabled>
+    <name>Find_And_Export_Records</name>
   </customPermissions>
   <fieldPermissions>
     <editable>true</editable>
@@ -1204,6 +1212,21 @@
     <field>Setting_Change__c.Setting_Name__c</field>
     <readable>true</readable>
   </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Saved_Query__c.Is_Shared__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Saved_Query__c.Object_Name__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Saved_Query__c.Query_JSON__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
   <objectPermissions>
     <allowCreate>true</allowCreate>
     <allowDelete>true</allowDelete>
@@ -1348,6 +1371,15 @@
     <object>Setting_Change__c</object>
     <viewAllRecords>true</viewAllRecords>
   </objectPermissions>
+  <objectPermissions>
+    <allowCreate>true</allowCreate>
+    <allowDelete>true</allowDelete>
+    <allowEdit>true</allowEdit>
+    <allowRead>true</allowRead>
+    <modifyAllRecords>false</modifyAllRecords>
+    <object>Saved_Query__c</object>
+    <viewAllRecords>false</viewAllRecords>
+  </objectPermissions>
   <recordTypeVisibilities>
     <recordType>Account.Household</recordType>
     <visible>true</visible>
@@ -1394,6 +1426,10 @@
   </tabSettings>
   <tabSettings>
     <tab>Relationship__c</tab>
+    <visibility>Visible</visibility>
+  </tabSettings>
+  <tabSettings>
+    <tab>Find</tab>
     <visibility>Visible</visibility>
   </tabSettings>
   <userPermissions>
