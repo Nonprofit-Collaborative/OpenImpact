@@ -1,7 +1,9 @@
-# ADR-0058: The Opportunity mirror keeps its link on the gift, runs one way at a time, and reconciles on a page
+# ADR-0058: The Opportunity and Gift Transaction mirrors keep their link on the gift, run one way at a time, and reconcile on a page
 
 **Status:** Accepted (builder decision)
 **Date:** 2026-09-25
+**Amended:** 2026-09-27, feature X-07, the Gift Transaction mirror (see "Amendment for X-07: the
+Gift Transaction mirror" below; canonical model Section 29D). Decisions 1 to 10 are unchanged.
 **Source:** builder decision under plan Section 9.3, feature X-01 (plan Section 4.12, "Opportunity
 mirror"; Section 4.5, coexistence modes); follows ADR-0056 (Campaign sync) and refines ADR-0004,
 ADR-0013 and ADR-0021 for Connect; amends ADR-0057 (Connect's Health Check extension); canonical
@@ -209,3 +211,142 @@ new here.
 - Core changes twice, minimally: `HealthCheckExtensions` returns a list of extensions, and
   Setting Definition gains `Required_Permission__c`. Campaign sync and the accounting export
   pages could adopt the latter; not done here.
+
+## Amendment for X-07: the Gift Transaction mirror
+
+Added 2026-09-27. Plan Section 4.12 asks for a one-way copy of gifts to Nonprofit Cloud's
+`GiftTransaction` "plus designation", so native donor summaries and Agentforce actions still see
+gifts, in dynamic Apex only and hidden where the objects are absent; Section 4.5 has it off by
+default in Agentforce Nonprofit coexistence; Section 6.3 moves X-07 to v0.6. It shares its design
+with X-01, so it is recorded here rather than in a new record. Canonical model Section 29D holds
+the rules (R-GT1 to R-GT10).
+
+### Context for X-07
+
+Six constraints differ from the Opportunity mirror's.
+
+1. **Every Nonprofit Cloud object is optional and license gated.** `GiftTransaction` appears in
+   the describe only with the Fundraising Access license and, per user, the Fundraising User
+   permission (`docs/architecture/reference/nonprofit-cloud-data-model.md` Section 2). The CI
+   gate `check-standard-objects.sh` refuses the name outside a `// detection-only:` constant.
+2. **The field list is corroborated, not verified.** The reference has the field API names from
+   two channels but marks their types as inferred, and verifies no Status value, no required flag
+   and no `referenceTo`. No Nonprofit Cloud org is available to the build.
+3. **What the mirror is for is calculated in batch.** Donor Gift Summary and the Gift Designation
+   totals are Data Processing Engine outputs, produced by a schedule the administrator builds
+   (reference Section 8, items 1 and 2), and must never be written by us.
+4. **Refunds are modelled differently.** BarnCRM records a refund as a negative gift (R-G3);
+   Nonprofit Cloud records it on the transaction (`RefundedAmount` and refund records), so a
+   negative Gift Transaction would count as one more gift (reference Section 8 item 5).
+5. **The first customers migrate from Nonprofit Cloud in the same org.** The Nonprofit Cloud
+   import templates (C-14) load Gift Transactions as gifts; every such gift already has its Gift
+   Transaction.
+6. **Designations need a mapping the model does not have.** `GiftTransactionDesignation` names a
+   `GiftDesignation`, and nothing in BarnCRM says which designation a fund is.
+
+### Decisions for X-07
+
+11. **The link is its own attribute on Gift.** `Gift__c.Gift_Transaction_Id__c`, Text(18), unique,
+    external ID, case sensitive, shipped by Connect, used by both directions, for the reasons of
+    decision 1. It is separate from `Opportunity_Id__c`: an org running NPSP alongside Nonprofit
+    Cloud during a move could mirror a gift to both, and one field holding either would make
+    a gift's link mean two things.
+12. **One direction setting, and it is independent of the Opportunity mirror's.**
+    `Connect_Settings__c.Gift_Transaction_Mirror_Direction__c`, stored as `Off`,
+    `GiftsToGiftTransactions` or `GiftTransactionsToGifts`, empty read as Off, shown in the Giving
+    section of Nonprofit Settings. Off at install in every coexistence mode, as plan Section 4.5
+    says. The two mirrors write different objects and different links, so no combination of the
+    two settings can loop; an org choosing both inbound directions is told in the admin guide that
+    a tool writing both an Opportunity and a Gift Transaction for one donation makes two gifts.
+13. **Both directions are runs; saving a gift copies nothing.** Run now and a nightly run at 01:35,
+    in the shape of decision 5 and ADR-0038, in the runner's user mode, respecting the pause and
+    the `Gift_Transaction_Mirror` switch as decision 6a says. A copy on save, as Gifts to
+    Opportunities has, is not chosen: what it is for is calculated in Nonprofit Cloud's own
+    scheduled runs (constraint 3), so it would be seen no sooner; a saver without the Fundraising
+    User permission (constraint 1) could not make it, so it would skip and warn on those saves; and
+    it would put Nonprofit Cloud's fundraising automation inside every gift save. The
+    `Gift_Transaction_Mirror` automation on Gift does only two things: it checks a typed or
+    changed link (decision 17), and after a delete it reports the Gift Transactions left behind
+    (decision 6b). An org without Nonprofit Cloud pays one describe lookup when someone types a
+    link, and nothing otherwise.
+14. **The mirror checks the shape it relies on, and names a paid status rather than guessing
+    one** (constraint 2). The mirror is available only when the running person's describe has
+    `GiftTransaction` with `DonorId` a reference to Account, `TransactionDate` a date,
+    `OriginalAmount` an amount and `Status` a picklist; otherwise the page says it is unavailable
+    and nothing queries the object. `CurrentAmount` and `Name` are optional and written only where
+    they exist and are writable. The Status value that means paid is an administrator setting,
+    `Gift_Transaction_Mirror_Status__c`, checked against the org's active Status values before a
+    run does anything: a guessed value would either fail every insert or create transactions
+    Nonprofit Cloud does not count as paid, silently defeating the feature.
+15. **A start date in both directions, required** (constraint 5). `Gift_Transaction_Mirror_Start__c`,
+    read as a date in the org's time zone as decision 5 reads its own. Gifts dated before it are
+    not copied and Gift Transactions dated before it do not become gifts, so the gifts imported
+    from Nonprofit Cloud are not copied back as a second transaction each, and the Gift
+    Transactions they came from do not become a second gift each. Until it and the paid status are
+    set, the mirror moves nothing. Matching an imported gift to its Gift Transaction by the gift's
+    External Id was considered and not chosen: a migration from another org leaves identifiers that
+    look like Gift Transactions' and name nothing here, and a match that fails for want of sharing
+    would create the duplicate it exists to prevent.
+16. **Which gifts, and what is copied** (constraint 4). Received gifts above zero that are not
+    in-kind. A refund or write-off (a negative gift) is never copied, and an original that is later
+    refunded or written off keeps its Gift Transaction unchanged, listed by the reconciliation; the
+    admin guide says to record the refund in Nonprofit Cloud where its summaries must show it. The
+    copy writes Donor (the Donor Account, else the Household), Transaction Date and Original Amount,
+    and on creation only Current Amount, Status and Name. A later run updates the first three when
+    they differ and never Status or Current Amount, which Nonprofit Cloud maintains once the
+    transaction exists. Gift Transactions to Gifts makes a gift from each Gift Transaction of the
+    paid status on or after the start date that no gift names: Donor Account from Donor, Amount
+    from Original Amount (above zero), Gift Date from Transaction Date, Type Other, Status Received,
+    the link set in the insert (decision 5), never edited afterwards (constraint 4 of the main
+    decision).
+17. **Everything else follows the Opportunity mirror.** Refusals are grouped by message (decision
+    7) through `ConnectSync.Warnings`; a Gift Transaction made for a gift whose link could not be
+    stored is deleted in the same run (decision 6); nothing the org had is deleted and a linked
+    record that cannot be found is "deleted or not visible to you" (decision 8); a typed link is
+    checked to be a Gift Transaction's identifier and stored in its 18 character form wherever the
+    saver can see Gift Transactions (R-OM10); each chunk checks the headroom decision 3 sets
+    before any write, and a chunk without it is skipped and counted with one Warning; the last
+    completed run is recorded through `ConnectSettingsWriter` and a stale nightly run is a Health
+    Check finding in `ConnectHealthCheckExtension` (decision 6a); the reconciliation is a page
+    with the caps and refusals of decision 9, gated by the custom permission
+    `Use_Gift_Transaction_Mirror` on the `Gift_Transaction_Mirror` permission set.
+18. **Designations and the rest are deferred** (constraint 6). Designations, campaign and outreach
+    source code, payment and tax fields, soft credits, tributes, commitments and refund records are
+    not mirrored in v0.6. The donor summaries that justify X-07 (reference Section 3.12) read the
+    transaction alone; designations need a Fund to Gift Designation link, which is a model change
+    of its own and an owner question (below).
+
+### Alternatives considered for X-07
+
+- **Copy on save, as Gifts to Opportunities does.** Rejected for the reasons in decision 13.
+- **One link field for both mirrors.** Rejected in decision 11.
+- **Write Status as `Paid`**, inferred from the `IsPaid` flag's name. Rejected: the value is not
+  verified (constraint 2), and a wrong guess fails silently in the way decision 14 describes.
+- **Filter Gift Transactions to Gifts on `IsPaid`.** Not chosen: its type is inferred and whether
+  it follows Status is unverified; the paid status the administrator names already says which
+  transactions are paid, and the same setting serves both directions.
+- **A negative Gift Transaction for a refund, or a Gift Refund record.** The first is rejected in
+  constraint 4; the second needs field types and values nobody has verified and belongs with the
+  deferred work.
+- **Mirror designations by fund name.** Rejected: a name is not a key, and a renamed fund would
+  move money between designations.
+
+### Consequences of X-07
+
+- Connect ships a second link attribute on Gift, five Connect Settings keys, a third registry row,
+  a scheduled job, a page, a permission set and a custom permission. No Core change: the Health
+  Check seam, `Required_Permission__c` and the automation switch rows are reused as they are.
+- Until both the paid status and the start date are set, choosing a direction does nothing but
+  make the page say what is missing.
+- Nonprofit Cloud's summaries lag BarnCRM by up to a day plus however often its own Data
+  Processing Engine runs are scheduled.
+- A refunded gift still counts at its full amount in Nonprofit Cloud until the refund is recorded
+  there. The reconciliation lists every such gift.
+- Everything above is written against the reference file, not against a Nonprofit Cloud org. The
+  Apex tests assert the unavailable branch everywhere and the available branch only where a test
+  org has Gift Transactions; neither CI test org does. Running the tests and the admin guide's
+  walkthrough in a Nonprofit Cloud org, and correcting the reference from a describe there, is
+  recorded as open work in `docs/contributor-guide/ci.md`.
+- Owner questions: whether designations should be mirrored, which needs a Fund to Gift
+  Designation link; and whether choosing Agentforce Nonprofit coexistence should propose the
+  mirror, which plan Section 4.5 leaves off by default.

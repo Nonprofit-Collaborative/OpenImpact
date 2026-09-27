@@ -7,7 +7,9 @@ alongside something that is already there. Coexistence mode is the one setting t
 which situation you are in. In this version it is a record of what is installed: it does not
 read, adopt, or change any household data, and the only behaviour attached to it is that
 choosing Agentforce Nonprofit coexistence also switches household membership to the
-junction, because Person Accounts require that.
+junction, because Person Accounts require that. Keeping Nonprofit Cloud's own gift records in
+step with BarnCRM's gifts is a separate choice, the
+[Gift Transaction mirror](gift-transaction-mirror.md), which is off until you turn it on.
 
 Most organizations arriving at BarnCRM are already on Salesforce Nonprofit Cloud
 (Agentforce Nonprofit), usually with Person Accounts turned on. That is the case BarnCRM

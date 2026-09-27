@@ -2087,7 +2087,8 @@ is the change that upgrades handle worst.
 
 **R-G10 No standard-object reference.** Nothing on this entity points at Opportunity or
 Campaign. The mirrors live in Connect (ADR-0004). The Opportunity mirror's Opportunity ID is a
-text attribute Connect adds to Gift, not a reference (Section 29C).
+text attribute Connect adds to Gift, not a reference (Section 29C), and so is the Gift Transaction
+mirror's Gift Transaction ID (Section 29D).
 
 **R-G11 Matching gift linkage (G-10).** An employer's matching gift is linked to the
 employee's gift through Matched Gift, which both records carry, so the link is visible
@@ -4916,7 +4917,9 @@ Opportunity may be named (plan Section 4.2), and even there only through dynamic
 Connect installs on an org where the object is absent and its feature says it is unavailable.
 The inbound gift API and the accounting export add nothing to the model (Section 30). Campaign
 sync (X-02) adds one attribute to Appeal and Connect's own settings object. The Opportunity
-mirror (X-01) adds one attribute to Gift and two keys to that settings object.
+mirror (X-01) adds one attribute to Gift and two keys to that settings object. The Gift
+Transaction mirror (X-07) adds another attribute to Gift and five keys to that settings object,
+and is the only place a Nonprofit Cloud object is named, by string, through describe.
 
 ## 29B. Campaign Sync
 
@@ -5227,6 +5230,200 @@ only, because a gift is never edited from its Opportunity.
 - **List view** `Gifts_And_Opportunities` on Gift, shipped by Connect, where Opportunity ID is
   typed or cleared (R-OM10).
 
+## 29D. Gift Transaction Mirror
+
+### Definition
+
+A copy between gifts and Nonprofit Cloud (Agentforce Nonprofit) Gift Transaction records, in one
+direction per org (plan Sections 4.5 and 4.12, feature X-07). **Gifts to Gift Transactions**
+copies each received gift to a Gift Transaction, so Nonprofit Cloud's donor gift summaries,
+donor pages, actionable lists and Agentforce actions, which read Gift Transactions only, see the
+organization's giving. **Gift Transactions to Gifts** is for an org where Nonprofit Cloud gift
+entry or a payment integration writes Gift Transactions: each paid Gift Transaction becomes a
+gift. The org chooses one direction or neither, and a reconciliation page shows where the two
+sides disagree.
+
+The Gift Transaction mirror is not an entity of its own. It is one attribute on Gift, held by
+Connect because no other package may name a Nonprofit Cloud object, and five keys on Connect
+Settings. There is no link object, for the reason Section 29C gives (ADR-0058, as amended for
+X-07). Every Nonprofit Cloud object and field is reached through describe, by name, never at
+compile time; the names used are those of
+`docs/architecture/reference/nonprofit-cloud-data-model.md` Section 3.1, and the types it marks
+as inferred are checked at run time (R-GT1).
+
+### Attributes added to Gift
+
+| Attribute | Type | Required | Definition |
+|---|---|---|---|
+| Gift Transaction ID | text (18) | no | The record identifier of the Gift Transaction this gift is mirrored to or was made from. Written by the mirror's runs; an administrator may type an existing Gift Transaction's identifier to link to it, or clear it. Unique, so two gifts never share one Gift Transaction. Independent of Opportunity ID (Section 29C): a gift may have both. |
+
+It is text rather than a lookup for the reason Section 29B gives: a lookup to a Nonprofit Cloud
+object would stop Connect installing on every org without Nonprofit Cloud (ADR-0009, ADR-0013).
+
+### Connect Settings keys (v0.6)
+
+| Key | Type | Default | Definition |
+|---|---|---|---|
+| `Gift_Transaction_Mirror_Direction__c` | text | empty | `GiftsToGiftTransactions`, `GiftTransactionsToGifts` or `Off`, shown as Gifts to Gift Transactions, Gift Transactions to Gifts and Off. Empty reads as Off (R-GT1). |
+| `Gift_Transaction_Mirror_Status__c` | text | empty | The API value of the Gift Transaction Status that means paid in this org. Written on each Gift Transaction the mirror creates, and the only Status a Gift Transaction may have to become a gift. Empty, or a value the org's Status list does not have active, means nothing is mirrored (R-GT2). |
+| `Gift_Transaction_Mirror_Start__c` | datetime | empty | Both directions: only gifts dated, and Gift Transactions with a Transaction Date, on or after this date are mirrored, read as a date in the org's default time zone. Empty means nothing is mirrored (R-GT2). |
+| `Gift_Transaction_Mirror_Last_Run__c` | datetime | empty | Written by the runs, not by an administrator: when the last completed run started (R-GT5). |
+| `Gift_Transaction_Mirror_Last_Summary__c` | text | empty | Written by the runs: one sentence saying what the last completed run did (R-GT5). |
+
+### Rules
+
+**R-GT1 One direction, off until chosen, and nothing at all without Nonprofit Cloud.** The
+mirror does nothing until an administrator chooses a direction in Nonprofit Settings, and one
+setting holds the choice, so both directions can never be active at once. It is independent of
+the Opportunity mirror (Section 29C), whose direction is its own setting. The mirror is
+available only when the running person's describe has the Gift Transaction object (Nonprofit
+Cloud fundraising, which needs the Fundraising Access license and the Fundraising User
+permission) and its fields are the shape this version expects: Donor a reference to Account,
+Transaction Date a date, Original Amount an amount, Status a picklist. Otherwise the mirror is
+unavailable: the page says so, runs do nothing, and no query names a Nonprofit Cloud object.
+Saving a gift never reads Nonprofit Cloud records (R-GT5), so an org without Nonprofit Cloud pays
+nothing for the feature being installed.
+
+**R-GT2 Nothing moves until the paid status and the start date are set.** Nonprofit Cloud's
+Gift Transaction Status values are the org's configuration and are not verified by this version,
+so the administrator names the value that means paid, and the mirror checks that it is an active
+value of the org's Status list before a run does anything. The start date applies in both
+directions. A gift imported from Nonprofit Cloud into the same org (the Nonprofit Cloud import
+templates, C-14) already has its Gift Transaction; copying it back would count every historical
+gift twice in Nonprofit Cloud's summaries, and making gifts from every historical Gift
+Transaction would thank every donor again. Setting the start date to the day after the last
+import is how an administrator says where the mirror begins.
+
+**R-GT3 Which gifts are copied.** In Gifts to Gift Transactions, a gift is copied when its
+Status is Received, its Amount is above zero, its Type is not In-kind, and its Gift Date is on or
+after the start date. A refund or write-off, which is a negative gift (R-G3), is never copied:
+Nonprofit Cloud records money given back on the Gift Transaction itself (Refunded Amount and its
+refund records), so a negative Gift Transaction would be counted as a gift in its summaries. A
+refunded or written off original that has no Gift Transaction yet is not copied; one that
+already has one keeps it unchanged, and the reconciliation lists it (R-GT10). An in-kind gift
+carries no money (R-G12) and is not copied. Pending and Cancelled gifts are not copied.
+
+**R-GT4 What is copied.** Donor Account to Donor, or Household when the donor is a person stored
+as a contact; Gift Date to Transaction Date; Amount to Original Amount. On creation only: Amount
+to Current Amount, the paid status of R-GT2 to Status, and the gift's name to Name, each only
+where the org has the field and the person running may write it. Nothing else is written: no
+designation, campaign, source code, payment or tax field, and never a record Nonprofit Cloud
+calculates (Donor Gift Summary, the Gift Designation totals). A later run updates Donor,
+Transaction Date and Original Amount when the gift's differ, and never Status or Current Amount,
+which Nonprofit Cloud maintains once the transaction exists (a refund recorded there lowers
+Current Amount). A gift with neither a Donor Account nor a Household cannot be copied and is
+logged as R-GT7 describes.
+
+**R-GT5 Runs, never on save.** The Gift Transaction mirror page offers **Run now** and a nightly
+schedule (Schedule and Stop, the shape of ADR-0038, at 01:35). Saving a gift copies nothing:
+Nonprofit Cloud calculates its donor summaries in its own scheduled runs, so a copy on save
+would be seen no sooner, and Gift Transactions are open only to people with the Fundraising User
+permission, which not everyone who enters gifts has. In Gifts to Gift Transactions a run copies every
+gift of R-GT3 that has no Gift Transaction yet, and every linked gift of R-GT3 changed since the
+last completed run started; in Gift Transactions to Gifts it applies R-GT6. Starting a run or
+the schedule needs the Manage Nonprofit Settings permission, and only one run is in progress at a
+time. A run executes as the person who started or scheduled it, in user mode. While automation is
+paused (ADR-0055) or the `Gift_Transaction_Mirror` switch is off, a run does nothing and writes
+one Info entry saying so, checked when it starts and before each chunk; a run whose paid status
+or start date is missing or unknown, or whose person can no longer read or write what the
+direction needs, does nothing and writes one Warning. A chunk that starts without half of the
+transaction's queries and DML statements, and 40 percent of its CPU time, unspent is skipped and
+counted, with one Warning for the run. A run writes a summary at Info when it ends; one that
+left no chunk also records its start time and summary on Connect Settings, which the page shows,
+so a run that left chunks is followed by one that rechecks from the last complete run.
+Health Check warns when the nightly run is scheduled, the direction is chosen, and no run has
+completed for more than two days.
+
+**R-GT6 Gift Transactions to Gifts.** Each Gift Transaction whose Status is the paid status,
+whose Transaction Date is on or after the start date, and that no gift names, becomes a gift:
+Donor Account is its Donor, which must be an Account (a person account or a business account);
+Amount is its Original Amount, which must be above zero; Gift Date is its Transaction Date; Type
+Other; Status Received; and Gift Transaction ID is set in the same insert, so the unique
+attribute stops a second gift even when two runs overlap. Giving's own rules then derive the
+household and the default allocation, as for any gift. A gift made this way is never edited by
+the mirror afterwards (R-G4, R-G14); a later change to its Gift Transaction shows on the
+reconciliation page. A Gift Transaction that cannot become a gift is logged as R-GT7 describes
+and tried again by the next run; one another run has just made a gift of is counted as unchanged.
+
+**R-GT7 A refusal never stops the run.** Every write is in user mode with partial success. A
+record the platform refuses is counted, and one Warning per distinct message is written when the
+run ends, giving the count and naming up to ten records, with at most 50 distinct messages kept
+(`ConnectSync.Warnings`, as R-OM6). A Gift Transaction created for a gift whose Gift Transaction
+ID then could not be stored is deleted again in the same run, so the next run does not make a
+second one; one it cannot delete is named in a Warning.
+
+**R-GT8 Nothing the org had is deleted.** Deleting a gift leaves its Gift Transaction in place,
+and one Warning per delete names the gifts and their Gift Transactions; in Gift Transactions to
+Gifts it also says the next run makes a new gift from a Gift Transaction still paid. A linked
+Gift Transaction the person running cannot find is logged as "deleted or not visible to you" and
+is not replaced: clearing the gift's Gift Transaction ID makes a new one.
+
+**R-GT9 One gift, one Gift Transaction.** Gift Transaction ID is unique, so a Gift Transaction
+mirrors at most one gift. A typed value that is not a Gift Transaction's identifier is refused on
+save wherever the person saving can see Gift Transactions, and a 15 character identifier is stored
+in its 18 character form. Typing an existing Gift Transaction's identifier links to it, and in
+Gifts to Gift Transactions the next run writes the gift's values of R-GT4 onto it.
+
+**R-GT10 Reconciliation.** For a date range, the page compares the gifts of R-GT3 dated in the
+range (without the start date) with the Gift Transactions of the paid status dated in the range,
+both as the person viewing can see them, and shows each side's count and total and the
+differences: a gift with no Gift Transaction; a gift whose Gift Transaction is deleted or not
+visible; a linked pair whose amount, date or status disagree; and a Gift Transaction that no gift
+of R-GT3 names. It reads in user mode and writes nothing; it refuses in words a viewer who cannot
+read Gift Transactions, their Name, Original Amount, Transaction Date and Status, or the gift's
+Gift Transaction ID, and a range over 10,000 records a side or more than the transaction can
+read, as R-OM11 does. In Gifts to Gift Transactions it offers **Copy these gifts again**, a run
+over the gifts of R-GT3 in the range that are dated on or after the start date. In Gift
+Transactions to Gifts the differences are shown only.
+
+### Salesforce implementation
+
+- **Attribute on `Gift__c`, shipped by Connect** (in `packages/connect`):
+
+| Attribute | API name | Type |
+|---|---|---|
+| Gift Transaction ID | `Gift_Transaction_Id__c` | Text(18), unique, external ID, case sensitive |
+
+- **Custom setting `Connect_Settings__c`** (Section 29B) gains:
+
+| Attribute | API name | Type |
+|---|---|---|
+| Gift Transaction Mirror Direction | `Gift_Transaction_Mirror_Direction__c` | Text(40) |
+| Gift Transaction Mirror Status | `Gift_Transaction_Mirror_Status__c` | Text(255) |
+| Gift Transaction Mirror Start | `Gift_Transaction_Mirror_Start__c` | Date/Time |
+| Gift Transaction Mirror Last Run | `Gift_Transaction_Mirror_Last_Run__c` | Date/Time |
+| Gift Transaction Mirror Last Summary | `Gift_Transaction_Mirror_Last_Summary__c` | Text(255) |
+
+- **Nonprofit Cloud names read, all through describe:** the object `GiftTransaction` and its
+  fields `DonorId`, `TransactionDate`, `OriginalAmount`, `CurrentAmount`, `Status` and `Name`.
+  Each is corroborated in the reference by two channels; their types, required flags and
+  `Status` values are not verified, which is why R-GT1 checks the types and R-GT2 asks for the
+  status. `CurrentAmount` and `Name` are optional: without them, or without write access to
+  them, a Gift Transaction is created without them.
+- **Automation:** `Automation_Registry__mdt` row `Gift_Transaction_Mirror` on `Gift__c`, order
+  51, enabled by default, handler `GiftTransactionMirrorTriggerHandler`, running before insert and
+  before update (R-GT9, only when the link is typed or changed) and after delete (R-GT8). It
+  copies nothing; its switch also stops the runs. Its switch row is created by
+  `ConnectPostInstall`.
+- **Service:** `GiftTransactionMirrorSchema` (the object and field describe and the shape check of
+  R-GT1), `GiftTransactionMirrorService` (settings, the link check, Gifts to Gift Transactions),
+  `GiftTransactionGiftService` (Gift Transactions to Gifts), `GiftTransactionMirrorSelector`
+  (gift and Gift Transaction reads, Gift Transaction by dynamic query only),
+  `GiftTransactionMirrorBatch` and `GiftTransactionMirrorSchedulable` (R-GT5),
+  `GiftTransactionMirrorReconciliation` (R-GT10), `GiftTransactionMirrorController` and the
+  `giftTransactionMirror` page reached from the Giving section of Nonprofit Settings. Shared with
+  the Opportunity mirror: `ConnectSync`, `ConnectSettingsWriter` (the runs' record of their last
+  completed run) and `ConnectHealthCheckExtension` (the stale run finding).
+  Permission set: `Gift_Transaction_Mirror`, which also carries the custom permission
+  `Use_Gift_Transaction_Mirror`: the page's reads require it, and the console shows the page's
+  row only to someone who has it.
+- **List view** `Gifts_And_Gift_Transactions` on Gift, shipped by Connect, where Gift
+  Transaction ID is typed or cleared (R-GT9).
+- **Deferred:** designations (`GiftTransactionDesignation`, which needs a link from Fund to Gift
+  Designation that the model does not have), campaign and source code, payment fields, soft
+  credits, tributes, commitments and refunds as Nonprofit Cloud refund records. ADR-0058's X-07
+  section records why.
+
 ---
 
 ## 30. Deferred to later iterations
@@ -5262,11 +5459,14 @@ records nothing (ADR-0051). The posting flag plan Section 4.12 mentions is G-20'
 two attributes on Gift and one Giving settings key, and no new entity (R-G13, R-G14, ADR-0053).
 
 Campaign sync (X-02) left this table in v0.6 and is specified in Section 29B. It adds no
-entity: one attribute on Appeal, shipped by Connect, and Connect's own settings object. The
-Gift Transaction mirror and NPSP household adoption are still to come.
+entity: one attribute on Appeal, shipped by Connect, and Connect's own settings object. NPSP
+household adoption is still to come.
 
 The Opportunity mirror (X-01) left this table in v0.6 and is specified in Section 29C. It adds no
 entity either: one attribute on Gift, shipped by Connect, and two keys on Connect Settings.
+
+The Gift Transaction mirror (X-07) left this table in v0.6 and is specified in Section 29D. It
+adds no entity: one attribute on Gift, shipped by Connect, and five keys on Connect Settings.
 
 Two v0.4 entities have attributes that already exist on `Gift__c` from v0.2, because the
 object is not worth altering later for fields this cheap: Acknowledgment Status,
@@ -5344,6 +5544,7 @@ None open. R-M3's Primary Contact mirror, the only entry, was closed on 2026-09-
 | v0.6 | 2026-09-23 | X-03, X-04 and X-06, the Connect integration surface (ADR-0051). No object or field added. R-G7 is reworded: the inbound gift API answers a resend with the gift already recorded and never edits it, and refuses a resend whose amount differs. The accounting export reads `Gift__c`, `Gift_Allocation__c` and `Fund__c` and writes nothing: the posting flag plan Section 4.12 names belongs to G-20 in Giving, and no Connect object records export runs. Section 30 notes that X-03 and X-04 add no Connect entity. |
 | v0.6 | 2026-09-24 | X-02 Campaign sync (ADR-0056, Campaign sync keeps its link on the appeal). New Part F and Section 29B, rules R-CS1 to R-CS8. `Appeal__c` gains `Campaign_Id__c` (Text 18, unique, external ID), shipped by Connect rather than Giving, because Giving may not name Campaign and a lookup to Campaign would stop Connect installing where Campaign is absent. New custom setting `Connect_Settings__c` with `Campaign_Sync_Enabled__c` (default off). New automation `Campaign_Sync` on Appeal. No object added. R-AP4 points at Section 29B. Review changes of 2026-09-25: R-CS1 names the setting as the authoritative switch; R-CS4 logs a saver without access once, on create; R-CS5 writes refusals in one statement and skips a save too large to copy; R-CS7 lets Sync all appeals delete a Campaign it created and could not link. |
 | v0.6 | 2026-09-25 | X-01 Opportunity mirror (ADR-0058). New Section 29C, rules R-OM1 to R-OM11. `Gift__c` gains `Opportunity_Id__c` (Text 18, unique, external ID), shipped by Connect for the reason Section 29B gives. `Connect_Settings__c` gains `Opportunity_Mirror_Direction__c` (one direction or Off, empty reads as Off) and `Opportunity_Mirror_Start__c`. New automation `Opportunity_Mirror` on Gift. No object added. R-G10 names the attribute. Review changes of 2026-09-25: R-OM3 leaves a Pending gift's stage alone and omits Campaign where the saver cannot read it; R-OM5 needs only Opportunity create and edit; R-OM6 requires half the query and DML limits unspent and caps the distinct messages; R-OM7 gains an optional record type list (`Opportunity_Mirror_Record_Types__c`) and reads the start date in the org's time zone; R-OM8 rechecks linked gifts changed since the last completed run, skips a run while automation is paused or the switch is off, records the last completed run (`Opportunity_Mirror_Last_Run__c`, `Opportunity_Mirror_Last_Summary__c`) and has a Health Check finding; R-OM9 warns when a linked gift is deleted; R-OM11 caps its counts and refuses a viewer without read access. Setting Definition gains `Required_Permission__c`, and `HealthCheckExtensions` looks up Connect's extension as well as Giving's (ADR-0057 amended). |
+| v0.6 | 2026-09-27 | X-07 Gift Transaction mirror (ADR-0058, amended for X-07). New Section 29D, rules R-GT1 to R-GT10. `Gift__c` gains `Gift_Transaction_Id__c` (Text 18, unique, external ID), shipped by Connect. `Connect_Settings__c` gains `Gift_Transaction_Mirror_Direction__c`, `Gift_Transaction_Mirror_Status__c`, `Gift_Transaction_Mirror_Start__c`, `Gift_Transaction_Mirror_Last_Run__c` and `Gift_Transaction_Mirror_Last_Summary__c`. New automation `Gift_Transaction_Mirror` on Gift, which checks a typed link and reports deleted linked gifts and copies nothing on save: both directions are runs. Only received gifts above zero that are not in-kind are copied, never a refund. Nothing is mirrored until a paid status and a start date are set. No object added. R-G10 names the attribute. Section 32's Gift Transaction mirror row points at Section 29D. |
 | v0.6 | 2026-09-24 | G-20 posting flag and period lock (ADR-0053). No object added. `Gift__c` gains `Accounting_Posted_At__c` (Date/Time) and `Accounting_Posted_By__c` (Lookup to User), both package written and read only in every permission set (R-G13). `Giving_Settings__c` gains `Books_Closed_Through__c` (Date), set on the Accounting Periods page and named by no Setting Definition row. New rules R-G13 (posting and unposting), R-G14 (a gift in the books that is posted or dated in a closed period is locked; nothing enters the books in a closed period) and R-GA5 (a locked gift's allocations are fixed). Two Always Runs automations, `Gift_Posting_Lock` and `Gift_Allocation_Posting_Lock`, and two custom permissions, `Post_Gifts` and `Override_Posting_Lock`, the second on no permission set. |
 | v0.6 | 2026-09-24 | Cancelled gift status, by the owner's decision (ADR-0054, amending G-04, ADR-0022, ADR-0023 and ADR-0031). No object added. `Gift__c.Status__c` gains Cancelled. New R-G16: a Pending gift that will never be paid is cancelled, with no negative gift, outside every total, the export and receipts, and allowed in a closed period; it moves only between Pending and Cancelled and unlinks its installment. R-G3: only a Received gift is refunded or written off. R-G14, R-AK8, R-RC8 and Section 26 name Cancelled. |
 | v0.6 | 2026-09-24 | C-23 automation pause with automatic resume, and the error digest (ADR-0055). No object added. `Barn_Settings__c` gains five keys (Section 12, v0.6 keys): `Error_Digest_Recipients__c`, `Error_Digest_Frequency__c`, `Error_Digest_Covered_Until__c`, `Error_Digest_Last_Run__c` and `Error_Digest_Last_Run_Summary__c`. New rules R-A5 (a pause ends by itself through a one-time job that records the resume) and R-E5 (the digest counts and links, never quotes, and goes only to active users); R-E3 reworded to point at R-E5. |
@@ -5403,7 +5604,7 @@ included; standard objects the packages extend are named by the entity that gove
 | Stewardship Plan | Giving | v0.4 | 25K |
 | Gift Batch | Giving | v0.5 | 25L |
 | Gift Batch Row | Giving | v0.5 | 25M |
-| Gift Transaction mirror | Connect | v0.6 | 30 |
+| Gift Transaction mirror (Gift Transaction ID on Gift) | Connect | v0.6 | 29D |
 | Opportunity mirror (Opportunity ID on Gift) | Connect | v0.6 | 29C |
 | Campaign sync (Campaign ID on Appeal) | Connect | v0.6 | 29B |
 | Connect Settings | Connect | v0.6 | 29B |

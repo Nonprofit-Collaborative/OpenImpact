@@ -66,7 +66,7 @@ the plan gets an ADR recording the workaround (see `../README.md` for the full r
 | [0055](0055-automatic-resume-and-error-digest.md) | A pause ends through a one-time resume job, and the error digest counts and goes only to users | Accepted (builder decision) |
 | [0056](0056-campaign-sync-keeps-its-link-on-the-appeal.md) | Campaign sync keeps its link on the appeal, writes with the saver's access, and is off until switched on | Accepted (builder decision) |
 | [0057](0057-health-check-extension-for-dependent-packages.md) | A Health Check extension seam lets a dependent package add findings without Core depending on it | Accepted (builder decision) |
-| [0058](0058-opportunity-mirror-keeps-its-link-on-the-gift-and-runs-one-way.md) | The Opportunity mirror keeps its link on the gift, runs one way at a time, and reconciles on a page | Accepted (builder decision) |
+| [0058](0058-opportunity-mirror-keeps-its-link-on-the-gift-and-runs-one-way.md) | The Opportunity and Gift Transaction mirrors keep their link on the gift, run one way at a time, and reconcile on a page | Accepted (builder decision), amended 2026-09-27 for X-07 |
 | [0059](0059-core-is-neutral.md) | Core is neutral: the nonprofit app, wording, giving and receipt settings and Setup Assistant steps live in Giving | Accepted (builder decision) |
 
 ADRs 0001 to 0012 correspond to decisions D-01 to D-12 in the product plan's decision log
@@ -138,6 +138,10 @@ mode with a headroom check ahead of NPSP's own automation, Opportunities to Gift
 catch-up run in a nightly job, and a reconciliation page replaces the packaged report type
 Opportunity forbids; it amends ADR-0057 so `HealthCheckExtensions` also looks up Connect's
 extension.
+Its amendment of 2026-09-27 records X-07, the Gift Transaction mirror, on the same design: its
+own link attribute on Gift, both directions as runs rather than a copy on save, a paid status and
+a start date the administrator sets before anything moves, no refunds or designations yet, and
+every Nonprofit Cloud name reached through describe.
 ADR-0059 is a builder decision for C-29 under ADR-0046: the seven Giving-only settings keys
 move to `Giving_Settings__c`, the Setup Assistant gains an extension seam so a dependent
 package can add or extend a step, the two receipt Health Check questions move to Giving's own

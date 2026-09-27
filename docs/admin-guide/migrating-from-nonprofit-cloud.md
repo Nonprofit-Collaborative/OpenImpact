@@ -200,6 +200,10 @@ that keeps people as person accounts:
   A business account of another record type gets a new BarnCRM organization of the same
   name. Check the dry run's "would create" count for organizations before you commit.
 
+If you then turn on the [Gift Transaction mirror](gift-transaction-mirror.md), set its start date
+to the day after your last gift load, so the gifts you loaded are not copied back to Nonprofit
+Cloud as a second Gift Transaction each.
+
 ## 8. Common mistakes
 
 **Every line of a split gift is rejected with "The split adds up to ..., not the gift amount of
