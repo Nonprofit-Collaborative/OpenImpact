@@ -26,6 +26,9 @@ public with sharing class ImportMapping {
     /** The row's first person's connection to its organization, resolved by Core (R-IR8). */
     @NamespaceAccessible
     public static final String ENTITY_AFFILIATION = 'Affiliation';
+    /** The one record a row of a template that loads one object describes (R-IT10). */
+    @NamespaceAccessible
+    public static final String ENTITY_RECORD = 'Record';
 
     /** The most values one file may be given for all its rows (R-IB14). */
     @NamespaceAccessible
@@ -58,6 +61,12 @@ public with sharing class ImportMapping {
         public String source;
         @AuraEnabled
         public String target;
+        /**
+         * For a lookup column of a template that loads one object, the parent field the value
+         * names its parent by; empty or Id means the record Id (R-IT11).
+         */
+        @AuraEnabled
+        public String lookupField;
 
         // JSON.deserialize requires a no-arg constructor to build this class from the stored
         // mapping document (see parse below); the fields it fills in are set afterward by the
@@ -66,6 +75,7 @@ public with sharing class ImportMapping {
         public Column() {
             this.source = null;
             this.target = null;
+            this.lookupField = null;
         }
 
         @NamespaceAccessible
@@ -221,6 +231,28 @@ public with sharing class ImportMapping {
                 continue;
             }
             result.put(key(column.source), column.target.trim());
+        }
+        return result;
+    }
+
+    /**
+     * The parent field each lookup column names its parent by (R-IT11), keyed by the column's
+     * target attribute in lower case; a column with none, or Id, is left out and means the
+     * record Id.
+     */
+    @NamespaceAccessible
+    public Map<String, String> lookupFieldsByAttribute() {
+        Map<String, String> result = new Map<String, String>();
+        for (Column column : columns) {
+            if (
+                column == null ||
+                isIgnored(column.target) ||
+                String.isBlank(column.lookupField) ||
+                'id'.equalsIgnoreCase(column.lookupField.trim())
+            ) {
+                continue;
+            }
+            result.put(attributeOf(column.target).toLowerCase(), column.lookupField.trim());
         }
         return result;
     }

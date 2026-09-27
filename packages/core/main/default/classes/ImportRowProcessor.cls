@@ -253,6 +253,10 @@ public with sharing class ImportRowProcessor {
                 ? ImportMapping.parseValues(batch.File_Values_JSON__c)
                 : new List<ImportMapping.Assignment>();
         }
+        if (ImportObjectLoader.loadsOneObject(template)) {
+            // A template that loads one object has its own row model (R-IT10).
+            return ImportObjectLoader.process(batch, template, mapping, rows, dryRun);
+        }
         rules = new Rules(template, personAccounts);
         noteFieldsWithoutAccess(mapping, personAccounts, outcome);
 
@@ -318,6 +322,18 @@ public with sharing class ImportRowProcessor {
             working.add(item);
         }
         return working;
+    }
+
+    /**
+     * A row's values grouped by entity, entity to attribute to value, with the file's values and
+     * then the template's defaults filled in where the row has none (R-IB14). Empty for a row
+     * whose staged values cannot be read.
+     */
+    public static Map<String, Map<String, String>> valuesByEntity(
+        Import_Row__c row,
+        ImportMapping mapping
+    ) {
+        return groupByEntity(rawValues(row), mapping.targetsBySourceKey(), mapping.assignments());
     }
 
     /** The row's uploaded values, keyed the way a mapping's source columns are keyed. */
@@ -2624,8 +2640,7 @@ public with sharing class ImportRowProcessor {
      * which is not loaded, so a column of "Opted out" never turns an opt-out off (admin guide,
      * Importing, section 4E).
      */
-    @TestVisible
-    private static Boolean readCheckbox(String value) {
+    public static Boolean readCheckbox(String value) {
         String word = value == null ? '' : value.trim().toLowerCase();
         if (CHECKBOX_TRUE.contains(word)) {
             return true;
@@ -2701,7 +2716,7 @@ public with sharing class ImportRowProcessor {
     }
 
     /** A column value as the field's type, for the few types a spreadsheet carries. */
-    private static Object convert(String value, Schema.DescribeFieldResult describe) {
+    public static Object convert(String value, Schema.DescribeFieldResult describe) {
         Schema.DisplayType kind = describe.getType();
         if (kind == Schema.DisplayType.BOOLEAN) {
             return readCheckbox(value);
@@ -2733,7 +2748,7 @@ public with sharing class ImportRowProcessor {
      * that resembles someone; the pair is left for the duplicate scan to find (R-DP3). A rule
      * the org set to block still blocks, and the row reports the rule's message.
      */
-    private static Database.DMLOptions saveOptions() {
+    public static Database.DMLOptions saveOptions() {
         Database.DMLOptions options = new Database.DMLOptions();
         options.OptAllOrNone = false;
         options.DuplicateRuleHeader.AllowSave = true;
@@ -2741,7 +2756,7 @@ public with sharing class ImportRowProcessor {
     }
 
     /** The failure of a save, in the words the platform used, so nothing is lost in paraphrase. */
-    private static String message(Database.SaveResult result) {
+    public static String message(Database.SaveResult result) {
         List<String> parts = new List<String>();
         for (Database.Error error : result.getErrors()) {
             parts.add(error.getMessage());

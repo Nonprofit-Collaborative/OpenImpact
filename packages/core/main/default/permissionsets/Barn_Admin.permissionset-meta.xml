@@ -1076,6 +1076,26 @@
   </fieldPermissions>
   <fieldPermissions>
     <editable>true</editable>
+    <field>Import_Template__c.Target_Object__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Import_Template__c.Load_Operation__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Import_Template__c.Load_Match_Field__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
+    <field>Import_Template__c.Lookup_Not_Found__c</field>
+    <readable>true</readable>
+  </fieldPermissions>
+  <fieldPermissions>
+    <editable>true</editable>
     <field>Relationship__c.Contact__c</field>
     <readable>true</readable>
   </fieldPermissions>

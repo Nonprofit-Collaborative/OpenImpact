@@ -4,7 +4,8 @@
 
 Importing loads a spreadsheet of people, households, and organizations into BarnCRM
 without a consultant, and, with the Giving module installed, their gifts too
-([Importing gifts](gift-import.md)). You upload the file, BarnCRM suggests which column means what,
+([Importing gifts](gift-import.md)). A mapping can instead load the records of one object,
+such as volunteer hours or an object your organization built (section 6A). You upload the file, BarnCRM suggests which column means what,
 you say how a row should be matched against records you already have, and then you run a
 **dry run** that tells you exactly what would be created, updated, matched, or rejected
 before anything is written. When the preview looks right you commit it, and the results
@@ -281,6 +282,63 @@ Marking a mapping recurring changes nothing about how its files are imported. Ba
 never fetches or loads a file on its own: every file is still uploaded, dry run and
 committed by a person, because an import nobody watched is an import nobody checked.
 
+## 6A. Loading records of one object
+
+Not every file is a list of people. An export you fixed in Excel, a sheet of volunteer hours,
+a list of program enrollments or the records of an object your organization built itself: a
+mapping can instead load **one object**, including custom objects, row by row.
+
+**Make the mapping.** On the first step of the **Import** tab, under **Load records of one
+object**, choose the object, give the mapping a name, and select **Create mapping**. The list
+offers every object you can create or edit records of, except the ones BarnCRM keeps for
+itself (imports, the error log, settings, rollup definitions and receipts) and Salesforce's
+own setup (users, profiles, roles, permission sets and the like), which stays in Setup. The mapping is saved
+like any other and offered next time.
+
+**Map the columns.** The picker offers the object's fields by their labels. A lookup column,
+one that names another record (the organization of an affiliation, the person of a volunteer
+shift), has a second picker, **Find it by**: the record's **Id**, or one of that object's
+external ID or unique fields, or its name. Choose the one your file holds.
+
+**Choose what each row does.**
+
+| Choice | What it does | What it risks |
+|---|---|---|
+| **Insert** | Every row creates a record. | Loading the same file twice creates everything twice. |
+| **Update by record Id** | A column mapped to **Record Id** names the record to change. Nothing is created. | A wrong Id changes the wrong record; export the Ids from a report rather than typing them. |
+| **Upsert by external ID** | A column mapped to the external ID field you pick finds the record, or creates it when nobody has that value. | A reused or mistyped identifier updates the wrong record. |
+
+Then choose, as for people, what happens when a key or a lookup finds **more than one
+record** (reject the row, the default, or use the most recently changed), and what happens when
+a lookup finds **none** (reject the row, the default, or leave the lookup empty and load the
+rest of the row). The dry run lists every row that found more than one record.
+
+**What stays the same.** Values for every row of the file, control totals, the dry run, the
+commit, the results and the undo all work exactly as they do for people. Undo removes the
+records the import created and puts back the values it changed, unless somebody has changed
+them since.
+
+**What a load never writes.** Some fields are kept by BarnCRM or by Salesforce and are never
+imported over, whatever the mapping says: totals that BarnCRM's rollups calculate, household
+names and greetings, primary contact and primary affiliation, the import tag, formula and
+auto-number fields, and the created and modified dates. A column mapped to one is left out,
+and the run log names it once. A gift locked by a receipt or a closed period still refuses the
+change, and that row is rejected with the reason.
+
+Three more rules, on purpose:
+
+- **A blank cell changes nothing.** An update writes the values the file has and leaves the
+  rest as they are. To clear a field, use bulk update.
+- **A row repeating an earlier row's Id or external ID is rejected.** The file should say one
+  thing about each record; the dry run tells you which row came first.
+- **A value that does not fit its field rejects the row**, naming the field and the value, for
+  example a date Salesforce cannot read. People imports skip such a value instead, because a
+  person row has other things to load.
+
+The dry run checks everything BarnCRM can check without saving. A validation rule, or a
+required field the file leaves empty, is only met when the record is saved, so the commit
+reports those rows as rejected, with Salesforce's own message.
+
 ## 7. Common mistakes
 
 **An Excel file shows the wrong columns, or none.** Only the **first sheet** of a workbook is
@@ -357,6 +415,16 @@ are person accounts this can be one of the two postal codes (mailing or billing)
 other still matches. Do not commit: ask your Salesforce administrator
 for access to the field, then dry run again.
 
+**The run log says a field "is never imported over".** The column is mapped to a field
+BarnCRM or Salesforce keeps itself, such as a rollup total or a household greeting (section
+6A). It was left out of every row. Map the column to **Do not load**, or to the field it should
+feed.
+
+**Rows rejected because a lookup "found no record".** A lookup column names a record nobody
+in your org has by the field chosen under **Find it by**, or one you cannot see. Check the
+column against that field, choose another field, or choose **Leave it empty** to load the rest
+of those rows.
+
 **Gift columns in the file were not loaded.** Gifts are loaded by the Giving module. Without
 it, gift columns are recognized and kept with the staged row, and the run log says so. With
 it installed, see [Importing gifts](gift-import.md).
@@ -399,6 +467,8 @@ For building a report on your imports.
 | The control totals of a file | Import Batch | Expected Count, Expected Amount, File Amount |
 | The values given for every row of a file | Import Batch | File Values |
 | How a mapping matches rows | Import Template | Matching Rule, Person Match Field, Organization Matching Rule, Organization Match Field, When Several Match |
+| What a one-object mapping loads and how | Import Template | Object, Load Operation, Load Match Field, When A Lookup Finds None |
+| The record a one-object row created, updated or matched | Import Row | Resulting Record |
 | The import a record came from | Account, Contact, Gift | Created By Import Batch |
 | Which mappings are for a recurring file, and when each was last used | Import Template | Is Recurring, Source Name, Last Import Date |
 | When an import can be undone until | Import Batch | Undo Deadline |

@@ -306,22 +306,12 @@ public with sharing class ImportBatchService {
             template.Column_Mapping_JSON__c,
             template.Default_Values_JSON__c
         );
-        if (!mapping.identifiesSomebody()) {
-            throw new ImportException(Label.Core_Import_ErrorMappingIdentifiesNobody);
-        }
-        // A chosen match field the org no longer has, or the user may not read (R-IT8).
-        String matching = ImportTemplateService.matchingRefusal(template);
-        if (String.isNotBlank(matching)) {
-            throw new ImportException(matching);
-        }
         if (batch.Row_Count__c == null || batch.Row_Count__c <= 0) {
             throw new ImportException(Label.Core_Import_ErrorNoRows);
         }
-        if (
-            ImportTemplateService.isPersonAccountMode(template) &&
-            OrgShapeDetector.detect().personAccountRecordTypeIds.isEmpty()
-        ) {
-            throw new ImportException(Label.Core_Import_ErrorPersonModeUnavailable);
+        String refused = refusalToRun(template, mapping);
+        if (String.isNotBlank(refused)) {
+            throw new ImportException(refused);
         }
         // No reset of the staged rows: each chunk clears and stamps its own, so a pass costs the
         // same one write here however long the file (R-IB13).
@@ -349,6 +339,33 @@ public with sharing class ImportBatchService {
         );
         Database.update(batch, AccessLevel.USER_MODE);
         return batch.Job_Id__c;
+    }
+
+    /**
+     * Why this template's mapping cannot run, or null. A template that loads one object is
+     * checked by its loader (R-IT10, R-IT12); one that loads people must identify somebody, its
+     * chosen match fields must be usable (R-IT8), and person accounts must exist in Person
+     * Accounts mode.
+     */
+    private static String refusalToRun(Import_Template__c template, ImportMapping mapping) {
+        if (ImportObjectLoader.loadsOneObject(template)) {
+            return ImportObjectLoader.refusal(template, mapping);
+        }
+        if (!mapping.identifiesSomebody()) {
+            return Label.Core_Import_ErrorMappingIdentifiesNobody;
+        }
+        // A chosen match field the org no longer has, or the user may not read (R-IT8).
+        String matching = ImportTemplateService.matchingRefusal(template);
+        if (String.isNotBlank(matching)) {
+            return matching;
+        }
+        if (
+            ImportTemplateService.isPersonAccountMode(template) &&
+            OrgShapeDetector.detect().personAccountRecordTypeIds.isEmpty()
+        ) {
+            return Label.Core_Import_ErrorPersonModeUnavailable;
+        }
+        return null;
     }
 
     /** Set by a test to stand for the platform's answer about a batch's job. */

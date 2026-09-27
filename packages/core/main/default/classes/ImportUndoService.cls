@@ -88,7 +88,7 @@ public with sharing class ImportUndoService {
         Integer journaled = ImportJournalService.createdCount(batch.Id);
         if (journaled > 0) {
             TaggedCount counted = new TaggedCount();
-            Schema.DescribeSObjectResult described = journaledType()
+            Schema.DescribeSObjectResult described = journaledType(batch)
                 .getDescribe(SObjectDescribeOptions.DEFERRED);
             counted.objectName = described.getName();
             counted.label = described.getLabelPlural();
@@ -158,12 +158,20 @@ public with sharing class ImportUndoService {
     }
 
     /**
-     * The object a batch's journaled creations are of (R-IJ3): the affiliations a people
-     * import makes, the one untagged object Core creates from a row.
+     * The object a batch's journaled creations are of (R-IJ3): the object a template that loads
+     * one object loads (R-IT10), or else the affiliations a people import makes, the one untagged
+     * object Core creates from a row. Only the label shown before an undo depends on it; the undo
+     * reads each record's object from its identifier.
      */
     @NamespaceAccessible
-    public static Schema.SObjectType journaledType() {
-        return Affiliation__c.SObjectType;
+    public static Schema.SObjectType journaledType(Import_Batch__c batch) {
+        Import_Template__c template = batch == null
+            ? null
+            : ImportTemplateSelector.selectById(batch.Import_Template__c);
+        Schema.SObjectType loaded = ImportObjectLoader.loadsOneObject(template)
+            ? ImportObjectLoader.typeOf(template)
+            : null;
+        return loaded == null ? Affiliation__c.SObjectType : loaded;
     }
 
     /**

@@ -1,7 +1,7 @@
 # ADR-0047: Data management runs in the org, compiles queries from a document, and is phased
 
 **Status:** Accepted
-**Date:** 2026-09-23 (amended 2026-09-27: C-32 builder decisions, below)
+**Date:** 2026-09-23 (amended 2026-09-27: C-32 and C-33 builder decisions, below)
 **Source:** product owner decision (Brandon, 2026-09-23), plan Section 4.9, Section 6 and
 Section 12 decision D-13; amends the import framework scope of C-14 and C-19
 
@@ -106,3 +106,37 @@ stand unchanged. Canonical model R-IT8, R-IT9, R-IB14, R-IB15, R-IR8 and R-IJ3 c
   `yes`, `y`, `1`, `x`, `checked`, `on`, `t`; false is `false`, `no`, `n`, `0`, `off`, `f`, all
   ignoring case; blank changes nothing; anything else leaves the field unloaded and says so in
   the run log, once per field and value.
+
+## Amendment, 2026-09-27: C-33 builder decisions (load one object)
+
+Builder decisions under plan Section 9.3, made while building C-33. Canonical model R-IT10 to
+R-IT12 carry the detail.
+
+- **One template shape, two row models.** A template with `Target_Object__c` set loads one
+  object (`ImportObjectLoader`); without it, the people and organizations model of Section 17 is
+  unchanged. `Load_Operation__c`, `Load_Match_Field__c` and `Lookup_Not_Found__c` join the
+  template; `Several_Matches__c` (C-32) also governs an upsert's key and every lookup. The
+  mapping targets are `Record.` plus a field name, and a lookup column carries `lookupField`
+  in the mapping document rather than a new attribute, because it belongs to the column.
+- **Upsert is not `Database.upsert`.** The loader finds the record by the external ID in user
+  mode, then inserts or updates, so the dry run can make the same decision, several matches
+  can be refused, and the journal gets the values before. Upsert keys are external ID fields
+  only (the platform's own meaning of upsert); lookups may also use unique and name fields.
+- **Created records are journaled, not tagged.** An object Core does not own has no
+  `Created_By_Import_Batch__c`, so every created record is a Created journal entry (C-32's
+  mechanism) and undo deletes it with the same checks as a tagged record.
+- **A repeated key is rejected wherever it falls.** The digest of each row's key is written to
+  `Import_Row__c.Processor_Key__c` in the dry run and the commit (Core owns that field when no
+  entity processor runs, which it never does for a one-object template), so a row repeating an
+  earlier row's key is rejected identically whatever the chunk boundaries.
+- **An unreadable value rejects the row** in a one-object load, where the people model skips
+  the field and says so: a person row has other entities to load, a one-object row does not.
+- **Protected fields are one reusable class.** `DataProtectedFields` builds the plan's list at
+  run time from describe and the Rollup Definitions (all definitions, active or not), and C-35
+  is meant to use the same class. The receipt and closed-period locks stay in their triggers.
+- **The object list comes from describe**, filtered to objects the user can create or edit,
+  that are queryable, and that are not bookkeeping, settings, metadata, events, big or external
+  objects. Salesforce setup and security objects (users, groups, profiles, roles, permission
+  sets and their assignments) are refused by name, because D-13 leaves permission management
+  to Setup and an import would otherwise be a bulk permission tool. Core still names no
+  standard object as a type (ADR-0013).

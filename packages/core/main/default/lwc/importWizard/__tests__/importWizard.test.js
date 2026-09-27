@@ -14,6 +14,10 @@ import saveRecurring from '@salesforce/apex/ImportController.saveRecurring';
 import getEntityTargets from '@salesforce/apex/ImportController.getEntityTargets';
 import getMatchFields from '@salesforce/apex/ImportController.getMatchFields';
 import getSeveralMatchRows from '@salesforce/apex/ImportController.getSeveralMatchRows';
+import getLoadableObjects from '@salesforce/apex/ImportController.getLoadableObjects';
+import createObjectTemplate from '@salesforce/apex/ImportController.createObjectTemplate';
+import getObjectFields from '@salesforce/apex/ImportController.getObjectFields';
+import getKeyFields from '@salesforce/apex/ImportController.getKeyFields';
 
 jest.mock('@salesforce/apex/ImportController.canImport', () => ({ default: jest.fn() }), {
   virtual: true
@@ -55,6 +59,23 @@ jest.mock('@salesforce/apex/ImportController.getMatchFields', () => ({ default: 
   virtual: true
 });
 jest.mock('@salesforce/apex/ImportController.getSeveralMatchRows', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+
+jest.mock('@salesforce/apex/ImportController.getLoadableObjects', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock(
+  '@salesforce/apex/ImportController.createObjectTemplate',
+  () => ({ default: jest.fn() }),
+  {
+    virtual: true
+  }
+);
+jest.mock('@salesforce/apex/ImportController.getObjectFields', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock('@salesforce/apex/ImportController.getKeyFields', () => ({ default: jest.fn() }), {
   virtual: true
 });
 
@@ -665,5 +686,187 @@ describe('the import wizard', () => {
     } finally {
       interval.mockRestore();
     }
+  });
+  describe('a mapping that loads one object', () => {
+    const OBJECT_TEMPLATE = {
+      ...TEMPLATE,
+      id: 'a09',
+      name: 'Affiliations',
+      targetObject: 'Affiliation__c',
+      targetObjectLabel: 'Affiliation',
+      loadOperation: 'Insert',
+      lookupNotFound: 'Reject the row'
+    };
+    const FIELDS = [
+      { value: 'Record.Id', label: 'Record Id', isLookup: false, lookupFields: [] },
+      {
+        value: 'Record.Organization__c',
+        label: 'Organization',
+        isLookup: true,
+        lookupFields: [
+          { value: 'Id', label: 'Record Id' },
+          { value: 'Name', label: 'Account Name' }
+        ]
+      },
+      { value: 'Record.Role__c', label: 'Role', isLookup: false, lookupFields: [] }
+    ];
+    const OBJECT_FILE = 'Employer,Role\nRose City,Treasurer\nOak Trust,Chair';
+
+    beforeEach(() => {
+      getTemplates.mockResolvedValue([OBJECT_TEMPLATE]);
+      getObjectFields.mockResolvedValue(FIELDS);
+      getKeyFields.mockResolvedValue([{ value: 'Pair_Key__c', label: 'Pair Key' }]);
+      suggestMapping.mockResolvedValue(
+        JSON.stringify({
+          version: 1,
+          columns: [
+            { source: 'Employer', target: 'Record.Organization__c', lookupField: 'Name' },
+            { source: 'Role', target: 'Record.Role__c' }
+          ]
+        })
+      );
+    });
+
+    async function toColumns() {
+      const element = render();
+      await flush();
+      click(element, 'next');
+      await flush();
+      await chooseFile(element, OBJECT_FILE, 'affiliations.csv');
+      return element;
+    }
+
+    it("offers the object's own fields and a lookup's Find it by picker", async () => {
+      const element = await toColumns();
+      expect(getObjectFields).toHaveBeenCalledWith({ templateId: 'a09' });
+      const pickers = element.shadowRoot.querySelectorAll(
+        '[data-id="column-row"] lightning-combobox'
+      );
+      expect(pickers[0].options.map((option) => option.value)).toEqual([
+        'Ignore',
+        'Record.Id',
+        'Record.Organization__c',
+        'Record.Role__c'
+      ]);
+      const lookup = element.shadowRoot.querySelector('[data-id="lookup-field"]');
+      expect(lookup.value).toBe('Name');
+      expect(lookup.options).toEqual([
+        { label: 'Record Id', value: 'Id' },
+        { label: 'Account Name', value: 'Name' }
+      ]);
+      expect(element.shadowRoot.querySelectorAll('[data-id="lookup-field"]')).toHaveLength(1);
+    });
+
+    it('shows the load choices instead of the people rules and saves them', async () => {
+      const element = await toColumns();
+      click(element, 'next');
+      await flush();
+      expect(element.shadowRoot.querySelector('[data-id="rule"]')).toBeNull();
+      expect(element.shadowRoot.querySelector('[data-id="organization-rule"]')).toBeNull();
+      const options = element.shadowRoot.querySelector('[data-id="load-options"]');
+      expect(options.operation).toBe('Insert');
+      options.dispatchEvent(
+        new CustomEvent('change', {
+          detail: { operation: 'Insert', matchField: '', lookupNotFound: 'Leave it empty' }
+        })
+      );
+      await flush();
+      click(element, 'dry-run');
+      await flush();
+      const sent = createBatch.mock.calls[0][0];
+      expect(JSON.parse(sent.mappingDocument).columns).toEqual([
+        { source: 'Employer', target: 'Record.Organization__c', lookupField: 'Name' },
+        { source: 'Role', target: 'Record.Role__c' }
+      ]);
+      expect(JSON.parse(sent.optionsJson)).toMatchObject({
+        saveLoad: true,
+        loadOperation: 'Insert',
+        loadMatchField: '',
+        lookupNotFound: 'Leave it empty'
+      });
+    });
+
+    it('will not dry run an update without a Record Id column, or an upsert without its field', async () => {
+      const element = await toColumns();
+      click(element, 'next');
+      await flush();
+      const options = element.shadowRoot.querySelector('[data-id="load-options"]');
+      options.dispatchEvent(
+        new CustomEvent('change', {
+          detail: {
+            operation: 'Update by record Id',
+            matchField: '',
+            lookupNotFound: 'Reject the row'
+          }
+        })
+      );
+      await flush();
+      expect(element.shadowRoot.querySelector('[data-id="dry-run"]').disabled).toBe(true);
+      options.dispatchEvent(
+        new CustomEvent('change', {
+          detail: {
+            operation: 'Upsert by external ID',
+            matchField: 'Pair_Key__c',
+            lookupNotFound: 'Reject the row'
+          }
+        })
+      );
+      await flush();
+      expect(getKeyFields).toHaveBeenCalledWith({ templateId: 'a09' });
+      expect(element.shadowRoot.querySelector('[data-id="dry-run"]').disabled).toBe(true);
+      options.dispatchEvent(
+        new CustomEvent('change', {
+          detail: { operation: 'Insert', matchField: '', lookupNotFound: 'Reject the row' }
+        })
+      );
+      await flush();
+      expect(element.shadowRoot.querySelector('[data-id="dry-run"]').disabled).toBe(false);
+    });
+
+    it('makes a one-object mapping on the first step and chooses it', async () => {
+      getTemplates.mockResolvedValue([TEMPLATE]);
+      getLoadableObjects.mockResolvedValue([{ value: 'Affiliation__c', label: 'Affiliation' }]);
+      createObjectTemplate.mockResolvedValue(OBJECT_TEMPLATE);
+      const element = render();
+      await flush();
+      click(element, 'choose-object');
+      await flush();
+      const object = element.shadowRoot.querySelector('[data-id="new-object"]');
+      expect(object.options).toEqual([{ label: 'Affiliation', value: 'Affiliation__c' }]);
+      expect(element.shadowRoot.querySelector('[data-id="create-object-template"]').disabled).toBe(
+        true
+      );
+      object.dispatchEvent(new CustomEvent('change', { detail: { value: 'Affiliation__c' } }));
+      const name = element.shadowRoot.querySelector('[data-id="new-template-name"]');
+      name.value = 'Board members';
+      name.dispatchEvent(new CustomEvent('change'));
+      await flush();
+      click(element, 'create-object-template');
+      await flush();
+      expect(createObjectTemplate).toHaveBeenCalledWith({
+        name: 'Board members',
+        objectName: 'Affiliation__c'
+      });
+      expect(element.shadowRoot.querySelector('[data-id="template"]').value).toBe('a09');
+    });
+
+    it('says why a one-object mapping could not be made', async () => {
+      getLoadableObjects.mockResolvedValue([{ value: 'Affiliation__c', label: 'Affiliation' }]);
+      createObjectTemplate.mockRejectedValue({ body: { message: 'Give the mapping a name.' } });
+      const element = render();
+      await flush();
+      click(element, 'choose-object');
+      await flush();
+      element.shadowRoot
+        .querySelector('[data-id="new-object"]')
+        .dispatchEvent(new CustomEvent('change', { detail: { value: 'Affiliation__c' } }));
+      const name = element.shadowRoot.querySelector('[data-id="new-template-name"]');
+      name.value = 'x';
+      name.dispatchEvent(new CustomEvent('change'));
+      await flush();
+      click(element, 'create-object-template');
+      await flush();
+      expect(element.shadowRoot.textContent).toContain('Give the mapping a name.');
+    });
   });
 });

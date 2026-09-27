@@ -1248,6 +1248,10 @@ Maria load the same payment processor export every month without rebuilding the 
 | Organization Matching Rule | picklist(Name exact, External ID) | no | How an incoming row is matched to an existing organization; empty means Name exact (R-IT8). |
 | Organization Match Field | text | no | Under the organization External ID rule, the organization field a row is matched on, chosen from the organization object's external ID and unique fields (R-IT8). |
 | When Several Match | picklist(Reject the row, Use the most recently changed) | no | What a row does when its matching key finds more than one record; empty means Reject the row (R-IT9). |
+| Object | text | no | The object this template loads, by its API name from describe, when it loads one object rather than people and organizations; empty means the row model of Section 17 (R-IT10). |
+| Load Operation | picklist(Insert, Update by record Id, Upsert by external ID) | no | What a template that loads one object does with each row; empty means Insert (R-IT10). |
+| Load Match Field | text | no | Under Upsert by external ID, the object's external ID field a row is matched on (R-IT10). |
+| When A Lookup Finds None | picklist(Reject the row, Leave it empty) | no | What a row does when a lookup column names a parent nobody has; empty means Reject the row (R-IT11). |
 | Default Values | long text | no | Values applied to every row that does not carry its own, held in the same document format. |
 | Person Mode | picklist(Contacts, Person Accounts) | yes | Whether a person in this file becomes a Contact or a person Account; defaulted from the detected org shape. |
 | Is Package Default | boolean | yes (defaults false) | Marks a template materialized from a shipped default rather than built by the admin. |
@@ -1363,10 +1367,82 @@ first name, and it finds several only when several people also share that first 
 none has it, the person is created, as R-IB12 says. Either way the row is marked Several
 Matches, the dry run lists every such row with the rule that applied, and a rejected row
 names how many records its key found. The rule applies to people, organizations and
-affiliations (R-IR8). Earlier chunks count: a key that two records an earlier chunk of the same
+affiliations (R-IR8), and, in a template that loads one object, to the record an upsert
+matches and to each lookup (R-IT10, R-IT11). Earlier chunks count: a key that two records an earlier chunk of the same
 dry run would create both hold finds several, as the commit will, so the dry run and the commit
 agree. Before C-32 the earliest created record won; a template with an empty value now
 rejects such a row.
+
+**R-IT10 A template can load one object** (C-33). A template whose Object is set loads rows
+into that one object, including custom objects and any standard object the org has, found in
+describe at run time: Core names no object for it (plan Section 4.9, ADR-0013). Its mapping
+document's targets are `Record.` and the field's API name, for example `Record.Role__c`, and
+the other row entities of R-IR1 are not read. Load Operation says what each row does:
+
+- **Insert**: every row creates a record. Nothing is matched, so the same file loaded twice
+  creates everything twice; the wizard says so.
+- **Update by record Id**: a column mapped to `Record.Id` names the record. A row whose Id is
+  not a record of this object that the user can see is rejected. Nothing is created.
+- **Upsert by external ID**: a column mapped to Load Match Field, one of the object's own
+  external ID fields, finds the record; none found creates one, and several found is several
+  matches (R-IT9). A row without a value for the field is rejected.
+
+A row whose record key (its Id, or its external ID) repeats a row earlier in the same file is
+rejected, naming that the key came before, in the dry run and the commit alike, so the result
+never depends on how the file fell into chunks: each row writes the digest of its key to its
+Processor Key, and each chunk asks only for its own keys among the rows of the same pass
+(R-IB12, R-IB13). An update writes only the fields whose value differs, and a blank cell never
+clears a stored value, as in the row model. A value that cannot be read as its field's type (a
+date, a number, a checkbox value that is neither yes nor no) rejects the row with the field and the value
+named, because one object has no other entity on the row to keep. Everything is read and
+written in the running user's own mode (plan Section 4.9, "Queries are built from a
+document"); the dry run refuses to start on an object the user cannot read, or cannot create
+records of (Insert, Upsert) or edit (Update, Upsert). The same batch, dry run, control totals,
+journal and undo apply: every record a load creates is journaled as a Created entry (R-IJ3)
+and every update journals the values it replaced, so undo deletes the one and puts back the
+other (R-IB9). The row's Resulting Record holds the record it created, updated or matched.
+
+**R-IT11 Lookups name their parent by a field the administrator picks** (C-33). A lookup
+column names its parent by record Id, which is the default, or by one of the parent object's
+external ID or unique fields, or by its name field, chosen per column and held on the column in
+the mapping document as `lookupField`:
+
+```
+{ "source": "Organization", "target": "Record.Organization__c", "lookupField": "Name" }
+```
+
+A parent is looked for among the records the user can see, in user mode. When none has the
+value, When A Lookup Finds None decides: **Reject the row** (the default, for the same reason as
+R-IT9) or **Leave it empty**, which loads the row without the lookup and says so once in the
+run log. When several have it (two organizations with one name), When Several Match decides,
+and the row is marked Several Matches. A lookup that can point at more than one object names
+its parent by Id only. A parent named by Id is checked too, so the dry run rejects a row whose
+parent the commit would not find.
+
+**R-IT12 What a load never writes** (C-33, plan Section 4.9, "Fields that can never be bulk
+updated or imported over"). The list is built at run time by `DataProtectedFields`, from
+describe and the Rollup Definitions, so a rollup added later is protected without code, and it
+is the one list bulk update (C-35) uses too:
+
+- **Objects**: the package's own bookkeeping (import templates, batches, rows and journal, the
+  error log, settings and setting changes, automation settings, rollup definitions, receipts,
+  receipt runs and receipt number sequences), Salesforce setup and security objects (users,
+  groups, queues, profiles, roles, permission sets and their assignments, record types, the
+  organization), custom settings, custom metadata, platform events, big objects and external
+  objects, and the share, history, feed and change event objects the platform keeps. A template naming one is refused when it is made
+  and when a dry run starts.
+- **Fields**: every Rollup Definition's target field, active or not; the fields the package
+  keeps itself (household greetings, member count, primary contact, primary affiliation, the
+  Created By Import Batch tag, and any `Last Calculated` value); formula and auto-number fields;
+  and the fields the platform keeps (created and modified by and date, the system stamp,
+  activity and view dates).
+- **On a household**, its name, which the household naming patterns keep (R-H8); an
+  organization's name is not protected.
+
+A mapped protected field is left out of every row and named once in the run log, in the dry run
+and the commit. A field locked by an issued receipt or a closed period is not on the list: the
+lock's own triggers still run on the save and refuse the change (ADR-0010, ADR-0053), and the
+row is rejected with their message.
 
 **R-IT5 What ships.** Core ships a generic donor list template and a generic gift list
 template (v0.2). The migration templates (v0.5) are rows of the same type, placed by what
@@ -1407,6 +1483,10 @@ from Nonprofit Cloud", section 5).
 | Organization Matching Rule | `Organization_Matching_Rule__c` | Picklist: Name exact, External ID |
 | Organization Match Field | `Organization_Match_Field__c` | Text (255) |
 | When Several Match | `Several_Matches__c` | Picklist: Reject the row, Use the most recently changed |
+| Object | `Target_Object__c` | Text (255) |
+| Load Operation | `Load_Operation__c` | Picklist: Insert, Update by record Id, Upsert by external ID |
+| Load Match Field | `Load_Match_Field__c` | Text (255) |
+| When A Lookup Finds None | `Lookup_Not_Found__c` | Picklist: Reject the row, Leave it empty |
 | Default Values | `Default_Values_JSON__c` | Long Text Area |
 | Person Mode | `Person_Mode__c` | Picklist: Contacts, Person Accounts |
 | Is Package Default | `Is_Package_Default__c` | Checkbox |
@@ -1422,7 +1502,10 @@ from Nonprofit Cloud", section 5).
 - **Service:** `ImportTemplateService` (materialization and save), `ImportTemplateSelector`,
   `ImportMapping` (the mapping document in R-IT1), `ImportColumnLibrary` (the known column
   names automatic mapping suggests from), LWC `importWizard` (where a template is marked
-  recurring), `HubController` and LWC `hubHome` (the recurring sources list, R-IT6).
+  recurring), `HubController` and LWC `hubHome` (the recurring sources list, R-IT6),
+  `ImportObjectLoader` (a template that loads one object, R-IT10 and R-IT11) and
+  `DataProtectedFields` (what a load or a bulk update never writes, R-IT12), LWC
+  `importLoadOptions` (the load operation and lookup choices) and `importFileValues` (R-IB14).
 
 ---
 
@@ -1814,7 +1897,7 @@ processor resolves those in dependency order.
 | Contact 2 | reference(Contact) | computed | The second person, where people are Contacts. |
 | Person 2 Account | reference(Organization) | computed | The second person, where people are person Accounts. |
 | Organization | reference(Organization) | computed | The organization this row resolved to. |
-| Gift | text | computed | The gift this row resolved to, held as a record identifier (R-IR2). |
+| Gift | text | computed | The gift this row resolved to, held as a record identifier (R-IR2); in a template that loads one object, the record the row created, updated or matched (R-IT10). Labelled Resulting Record. |
 | Soft Credit | text | computed | The soft credit this row resolved to, held as a record identifier (R-IR2). |
 | Person 1 Key | text | computed | In a dry run only, a digest of the matching key of the first person this row would create, so later chunks count that person once (R-IB12). Cleared when the row is processed again. |
 | Person 2 Key | text | computed | The same for the second person. |
@@ -1822,7 +1905,7 @@ processor resolves those in dependency order.
 | Person 2 Name Key | text | computed | The same for the second person. |
 | Organization Key | text | computed | The same for the organization this row would create. |
 | Pass Number | integer | computed | The pass of its import that last processed this row (R-IB13). |
-| Processor Key | text | computed | In a dry run only, a digest the entity processor writes for what this row would load, so later chunks of the same dry run can see it (R-IR6). Core never reads its meaning. |
+| Processor Key | text | computed | In a dry run only, a digest the entity processor writes for what this row would load, so later chunks of the same dry run can see it (R-IR6). Core never reads its meaning, except in a template that loads one object, where Core writes it, in the dry run and the commit alike, as the digest of the record key the row loads (R-IT10). |
 | Several Matches | boolean | computed | True when this row's matching key found more than one record, whether the row was then rejected or used the most recently changed one (R-IT9). Cleared when the row is processed again. |
 
 ### Relationships
@@ -2041,7 +2124,9 @@ a date as `YYYY-MM-DD`), so a value put back is the value that was there.
 import did not create, with the value before and the value written, in full. A created record
 that carries the tag (R-IB3) needs no entry. A created record of an object that has no tag
 (since C-32, an affiliation, R-IR8) is journaled as a Created entry naming its object and
-identifier, and the page counts those entries in Created Count. A matched or rejected row
+identifier, and the page counts those entries in Created Count. A template that loads one
+object journals every record it creates this way (R-IT10), because an object Core does not own
+carries no tag. A matched or rejected row
 changed nothing and is recorded on its staged row (Section 17) until the commit ends
 (R-IB15). An undo journals the
 records it kept and the values it did not put back, each with its reason; the records it

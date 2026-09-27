@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Target_Object__c</fullName>
+  <description>The API name of the one object this template loads, found in describe at run time, when it loads one object rather than people and organizations. Empty means the people and organizations row model (canonical model R-IT10).</description>
+  <externalId>false</externalId>
+  <inlineHelpText>The object this mapping loads, when it loads one object.</inlineHelpText>
+  <label>Object</label>
+  <length>255</length>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Text</type>
+  <unique>false</unique>
+</CustomField>
