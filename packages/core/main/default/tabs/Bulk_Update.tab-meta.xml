@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>
+    Change up to five fields on every record a Find query returns, with a preview, a confirmed
+    count and an undo.
+  </description>
+  <flexiPage>Bulk_Update</flexiPage>
+  <label>Bulk Update</label>
+  <motif>Custom19: Wrench</motif>
+</CustomTab>

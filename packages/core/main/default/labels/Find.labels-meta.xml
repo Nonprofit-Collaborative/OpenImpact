@@ -1,0 +1,699 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Core_Find_ErrorNoPermission</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: refused without the Find and Export Records permission</shortDescription>
+        <value>You need the Find and Export Records permission to use Find. Ask your administrator.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ErrorInvalidDocument</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: the query document could not be read</shortDescription>
+        <value>This query could not be read. Start a new one, or open a saved query.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ErrorTooBig</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: the query breaks one of the size limits</shortDescription>
+        <value>This query is larger than Find allows: at most 50 columns, 20 filters, 3 sort fields, 100 values in one list and 255 characters in one value.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ErrorRowLimit</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: the row limit is not a whole number in range</shortDescription>
+        <value>The row limit must be a whole number from 1 to 100,000, or empty.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ErrorUnknownObject</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: the object is unknown or not readable</shortDescription>
+        <value>You cannot read that kind of record, or it does not exist in this org.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ErrorUnknownField</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: a field is unknown or not readable. {0} path, {1} object</shortDescription>
+        <value>The field {0} does not exist on {1}, or you do not have access to it.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ErrorPath</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: a path follows too many or a many-way lookup. {0} path</shortDescription>
+        <value>{0} follows more than two lookups, or a lookup that can point at more than one kind of record.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ErrorNotShowable</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: a compound or file field cannot be a column. {0} field</shortDescription>
+        <value>{0} cannot be a column. Add the parts of it you need, for example the street and the city, instead.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ErrorNotFilterable</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: a field cannot be filtered on. {0} field</shortDescription>
+        <value>{0} cannot be used in a filter.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ErrorNotSortable</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: a field cannot be sorted on. {0} field</shortDescription>
+        <value>{0} cannot be used to sort.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ErrorOperator</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: a condition does not suit its field. {0} filter, {1} field</shortDescription>
+        <value>Filter {0} uses a condition that does not suit {1}.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ErrorBadValue</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: a filter value does not suit its field. {0} filter, {1} field</shortDescription>
+        <value>The value in filter {0} is not a valid value for {1}.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ErrorLogic</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: the filter logic is not valid</shortDescription>
+        <value>The filter logic can use only the filter numbers, AND, OR, NOT and brackets. It must name every filter, and AND and OR need brackets to be used together, for example 1 AND (2 OR 3).</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ErrorSavedGone</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: the saved query is gone or not shared</shortDescription>
+        <value>That saved query no longer exists, or it is not shared with you.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ErrorNameRequired</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: saving needs a name</shortDescription>
+        <value>Give the query a name.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ErrorNotOwner</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: only the owner may change or delete a query</shortDescription>
+        <value>Only the person who saved a query can change or delete it. Save a copy under a new name instead.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_Heading</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: card title</shortDescription>
+        <value>Find records</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ObjectLabel</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: object picker label</shortDescription>
+        <value>Find</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ObjectPlaceholder</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: object picker placeholder</shortDescription>
+        <value>Choose a kind of record</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ColumnsHeading</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: columns section heading</shortDescription>
+        <value>Columns</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_AddColumnButton</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: add a column button</shortDescription>
+        <value>Add column</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_RemoveButton</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: remove button alternative text</shortDescription>
+        <value>Remove</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_FiltersHeading</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: filters section heading</shortDescription>
+        <value>Filters</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_AddFilterButton</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: add a filter button</shortDescription>
+        <value>Add filter</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_FieldLabel</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: field picker label</shortDescription>
+        <value>Field</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ConditionLabel</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: condition picker label</shortDescription>
+        <value>Condition</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ValueLabel</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: filter value label</shortDescription>
+        <value>Value</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_WhenLabel</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: relative date picker label</shortDescription>
+        <value>When</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_WhenValue</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: relative date option meaning a date typed in</shortDescription>
+        <value>A date I choose</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_DaysLabel</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: number of days for a last or next N days filter</shortDescription>
+        <value>Number of days</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ListHint</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: hint under a value for is one of</shortDescription>
+        <value>Separate several values with commas.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_LogicLabel</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: filter logic label</shortDescription>
+        <value>Filter logic (optional)</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_LogicHelp</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: filter logic help</shortDescription>
+        <value>Number the filters, for example 1 AND (2 OR 3). Leave it empty to require every filter.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_SortHeading</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: sort section heading</shortDescription>
+        <value>Sort by</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_AddSortButton</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: add a sort field button</shortDescription>
+        <value>Add sort field</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_DirectionLabel</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: sort direction label</shortDescription>
+        <value>Direction</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_Ascending</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: ascending sort option</shortDescription>
+        <value>Ascending</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_Descending</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: descending sort option</shortDescription>
+        <value>Descending</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_RowLimitLabel</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: row limit label</shortDescription>
+        <value>Row limit</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_RowLimitHelp</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: row limit help. {0} rows the table shows</shortDescription>
+        <value>Leave it empty for every matching record. The table shows at most {0}; the export follows the limit.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_RunButton</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: run button</shortDescription>
+        <value>Run</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_QueryLabel</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: read only query label</shortDescription>
+        <value>Query (read only)</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ResultsCount</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: how many rows the table shows. {0} count</shortDescription>
+        <value>{0} records shown.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ResultsLimit</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: the table is full. {0} rows</shortDescription>
+        <value>Only the first {0} are shown. Export to CSV for all of them.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_NoResults</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: nothing matched</shortDescription>
+        <value>No records match.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_SaveButton</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: save query button</shortDescription>
+        <value>Save query</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_SaveNameLabel</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: saved query name label</shortDescription>
+        <value>Query name</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_SaveShareLabel</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: saved query share checkbox label</shortDescription>
+        <value>Share with other people who use Find</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_SaveConfirmButton</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: save confirm button</shortDescription>
+        <value>Save</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_CancelButton</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: cancel button</shortDescription>
+        <value>Cancel</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_Saved</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: saved notice</shortDescription>
+        <value>Saved.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_SharedNote</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: a shared query belongs to someone else. {0} owner</shortDescription>
+        <value>This query belongs to {0}. Saving it keeps your own copy under the name you give.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_OpenSavedLabel</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: saved query picker label</shortDescription>
+        <value>Open a saved query</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_SharedBy</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: a shared query in the list. {0} name, {1} owner</shortDescription>
+        <value>{0} (shared by {1})</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_DeleteButton</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: delete query button</shortDescription>
+        <value>Delete query</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_Deleted</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: deleted notice</shortDescription>
+        <value>Deleted.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ExportButton</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: export button</shortDescription>
+        <value>Export to CSV</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ExportProgress</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: export progress. {0} rows</shortDescription>
+        <value>Exporting: {0} rows so far.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ExportDone</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: export finished. {0} rows</shortDescription>
+        <value>Exported {0} rows.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_ExportStopped</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: export stopped at the limit. {0} limit</shortDescription>
+        <value>The export stopped at the export row limit of {0} rows. Narrow the filter or ask your administrator to raise the limit in BarnCRM Settings, Import.</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_SendToBulkUpdate</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: send the query to bulk update button</shortDescription>
+        <value>Send to bulk update</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_OpEquals</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: condition equals</shortDescription>
+        <value>equals</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_OpNotEquals</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: condition does not equal</shortDescription>
+        <value>does not equal</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_OpLess</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: condition less than</shortDescription>
+        <value>less than</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_OpLessEqual</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: condition at most</shortDescription>
+        <value>at most</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_OpGreater</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: condition greater than</shortDescription>
+        <value>greater than</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_OpGreaterEqual</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: condition at least</shortDescription>
+        <value>at least</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_OpContains</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: condition contains</shortDescription>
+        <value>contains</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_OpNotContains</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: condition does not contain</shortDescription>
+        <value>does not contain</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_OpStarts</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: condition starts with</shortDescription>
+        <value>starts with</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_OpNull</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: condition is empty</shortDescription>
+        <value>is empty</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_OpNotNull</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: condition is not empty</shortDescription>
+        <value>is not empty</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_OpIn</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: condition is one of</shortDescription>
+        <value>is one of</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_OpNotIn</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: condition is not one of</shortDescription>
+        <value>is not one of</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_RelToday</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: relative period today</shortDescription>
+        <value>Today</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_RelThisMonth</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: relative period this month</shortDescription>
+        <value>This month</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_RelLastMonth</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: relative period last month</shortDescription>
+        <value>Last month</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_RelThisYear</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: relative period this year</shortDescription>
+        <value>This year</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_RelLastYear</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: relative period last year</shortDescription>
+        <value>Last year</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_RelLastNDays</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: relative period last N days</shortDescription>
+        <value>Last N days</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_RelNextNDays</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: relative period next N days</shortDescription>
+        <value>Next N days</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_Yes</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: true option</shortDescription>
+        <value>Yes</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_No</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: false option</shortDescription>
+        <value>No</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_PickerPlaceholder</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: field picker placeholder</shortDescription>
+        <value>Choose a field</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_PickerFieldOn</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: second field picker label. {0} related record</shortDescription>
+        <value>Field on {0}</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_PickerRelationship</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: a lookup that can be followed. {0} lookup label</shortDescription>
+        <value>{0} &gt;</value>
+    </labels>
+    <labels>
+        <fullName>Core_Find_LoadingAltText</fullName>
+        <categories>Find</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Find: spinner alternative text</shortDescription>
+        <value>Loading</value>
+    </labels>
+</CustomLabels>

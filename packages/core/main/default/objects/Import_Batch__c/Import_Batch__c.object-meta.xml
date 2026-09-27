@@ -2,8 +2,9 @@
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
   <deploymentStatus>Deployed</deploymentStatus>
   <description>
-    One upload: the file, the mapping it was read with, what happened, and the log of it. The unit
-    an administrator dry runs, commits and later undoes. Canonical model Section 16.
+    One data job: a file import (the file, the mapping it was read with, what happened and the
+    log of it) or a bulk update (its query and changes). Labelled Data Job; the API name is
+    unchanged. Canonical model Section 16.
   </description>
   <enableActivities>false</enableActivities>
   <enableBulkApi>true</enableBulkApi>
@@ -14,13 +15,13 @@
   <enableSearch>true</enableSearch>
   <enableSharing>true</enableSharing>
   <enableStreamingApi>true</enableStreamingApi>
-  <label>Import</label>
+  <label>Data Job</label>
   <nameField>
     <displayFormat>IB-{000000}</displayFormat>
-    <label>Import Number</label>
+    <label>Data Job Number</label>
     <type>AutoNumber</type>
   </nameField>
-  <pluralLabel>Imports</pluralLabel>
+  <pluralLabel>Data Jobs</pluralLabel>
   <searchLayouts />
   <sharingModel>ReadWrite</sharingModel>
   <visibility>Public</visibility>

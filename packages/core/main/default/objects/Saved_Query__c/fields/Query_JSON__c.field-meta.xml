@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Query_JSON__c</fullName>
+  <description>The query document itself (canonical model Section 17B). Written only by Find, which checks it before saving; it is never run as query text.</description>
+  <inlineHelpText>The query as Find stores it. Change it from the Find tab.</inlineHelpText>
+  <label>Document</label>
+  <length>32768</length>
+  <trackTrending>false</trackTrending>
+  <type>LongTextArea</type>
+  <visibleLines>5</visibleLines>
+</CustomField>

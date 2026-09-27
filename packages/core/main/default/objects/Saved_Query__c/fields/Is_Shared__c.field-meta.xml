@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Is_Shared__c</fullName>
+  <defaultValue>false</defaultValue>
+  <description>Whether everyone who uses Find may open this query. Each person who opens it sees only the records their own access allows (R-Q6).</description>
+  <inlineHelpText>Shared queries are listed to everyone who uses Find. Each person sees only the records they already have access to.</inlineHelpText>
+  <label>Is Shared</label>
+  <type>Checkbox</type>
+</CustomField>

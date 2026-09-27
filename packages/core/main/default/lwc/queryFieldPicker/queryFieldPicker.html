@@ -1,0 +1,19 @@
+<template>
+    <div class="slds-grid slds-wrap slds-gutters_x-small">
+        <template for:each={levels} for:item="level">
+            <div key={level.key} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                <lightning-combobox
+                    label={level.label}
+                    placeholder={placeholder}
+                    options={level.options}
+                    value={level.value}
+                    data-index={level.index}
+                    onchange={handleChange}
+                ></lightning-combobox>
+            </div>
+        </template>
+    </div>
+    <template lwc:if={error}>
+        <p class="slds-text-color_error" data-id="picker-error">{error}</p>
+    </template>
+</template>
