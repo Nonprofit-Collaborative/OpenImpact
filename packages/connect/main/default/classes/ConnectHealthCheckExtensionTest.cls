@@ -1,5 +1,5 @@
 /**
- * Connect's Health Check finding (X-01, R-OM8): a scheduled Opportunity mirror run that has not
+ * Connect's Health Check findings (X-01, R-OM8; X-07, R-GT5): a scheduled mirror run that has not
  * completed for more than two days is reported to Maria, in Core's one report, and only when the
  * mirror is scheduled, on, and she may manage settings.
  */
@@ -50,6 +50,58 @@ private class ConnectHealthCheckExtensionTest {
             );
         }
         Test.stopTest();
+    }
+
+    private static void chooseGiftTransactions(String direction) {
+        Connect_Settings__c settings = Connect_Settings__c.getOrgDefaults();
+        settings.Gift_Transaction_Mirror_Direction__c = direction;
+        upsert settings;
+    }
+
+    private static Boolean reportedGiftTransactions(List<HealthCheckService.Finding> findings) {
+        for (HealthCheckService.Finding finding : findings) {
+            if (finding.key == ConnectHealthCheckExtension.GIFT_TRANSACTION_STALE_KEY) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @IsTest
+    static void aStaleGiftTransactionRunIsReportedOnlyWhereTheMirrorCanWork() {
+        chooseGiftTransactions(GiftTransactionMirrorService.GIFTS_TO_GIFT_TRANSACTIONS);
+        User admin = maria();
+        Boolean available = GiftTransactionMirrorService.isAvailable();
+        Test.startTest();
+        System.runAs(admin) {
+            GiftTransactionMirrorSchedulable.schedule();
+            ConnectHealthCheckExtension.nowForTest = System.now().addDays(3);
+            Assert.areEqual(
+                available,
+                reportedGiftTransactions(new ConnectHealthCheckExtension().findings()),
+                'Scheduled, chosen and three days without a completed run (R-GT5).'
+            );
+            GiftTransactionMirrorSchema.absentForTest = true;
+            Assert.isFalse(
+                reportedGiftTransactions(new ConnectHealthCheckExtension().findings()),
+                'Never where there are no Gift Transactions (R-GT1).'
+            );
+            GiftTransactionMirrorSchema.absentForTest = false;
+            ConnectSettingsWriter.recordGiftTransactionMirrorRun(System.now().addDays(2), 'Ran');
+            Assert.isFalse(
+                reportedGiftTransactions(new ConnectHealthCheckExtension().findings()),
+                'A run completed a day ago.'
+            );
+        }
+        Test.stopTest();
+        chooseGiftTransactions(GiftTransactionMirrorService.OFF);
+        ConnectHealthCheckExtension.nowForTest = System.now().addDays(30);
+        System.runAs(admin) {
+            Assert.isFalse(
+                reportedGiftTransactions(new ConnectHealthCheckExtension().findings()),
+                'Off.'
+            );
+        }
     }
 
     @IsTest

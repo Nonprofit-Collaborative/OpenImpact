@@ -1,6 +1,7 @@
 /**
- * Installing Connect creates the Automation page's switches for Campaign sync and the Opportunity
- * mirror, switched on, and an upgrade leaves an administrator's choice alone (ADR-0056).
+ * Installing Connect creates the Automation page's switches for Campaign sync, the Opportunity
+ * mirror and the Gift Transaction mirror, switched on, and an upgrade leaves an administrator's
+ * choice alone (ADR-0056).
  */
 @IsTest
 private class ConnectPostInstallTest {
@@ -51,6 +52,21 @@ private class ConnectPostInstallTest {
             WHERE Automation_Name__c = :OpportunityMirrorService.AUTOMATION_NAME
         ];
         Assert.areEqual(1, switches.size(), 'The switch row exists from install.');
+        Assert.isTrue(switches[0].Enabled__c, 'It arrives on; the direction setting is Off.');
+    }
+
+    @IsTest
+    static void installingConnectCreatesTheGiftTransactionMirrorSwitch() {
+        Test.startTest();
+        Test.testInstall(new ConnectPostInstall(), null);
+        Test.stopTest();
+
+        List<Automation_Setting__c> switches = [
+            SELECT Enabled__c
+            FROM Automation_Setting__c
+            WHERE Automation_Name__c = :GiftTransactionMirrorService.AUTOMATION_NAME
+        ];
+        Assert.areEqual(1, switches.size(), 'The switch row exists from install, NPC or not.');
         Assert.isTrue(switches[0].Enabled__c, 'It arrives on; the direction setting is Off.');
     }
 }
