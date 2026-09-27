@@ -2,7 +2,8 @@
 
 **Status:** Accepted
 **Date:** 2026-09-23; amended 2026-09-27 (name settled as BarnCRM, Impact Suite renamed Nonprofit
-Suite, owner decision)
+Suite, owner decision); amended 2026-09-27 (tested as unlocked packages with no namespace before
+the namespace and managed packages, owner decision)
 **Source:** product owner decision (Brandon), plan Section 3 "Suites and packaging", Section 8.3,
 Section 11.2 open question 5, and Section 12 decisions D-01 and D-02; amends ADR-0001 (name) and
 ADR-0002 (packaging)
@@ -49,6 +50,23 @@ PackageInstallRequest exists but is not a supported product path.
   managed-package rules from the start: anything `global` is permanent, nothing relies on a
   subscriber editing a packaged component, no namespace is hard-coded. The same source becomes
   2GP managed packages for the AppExchange listing with identical API names.
+- **Tested first as unlocked packages with no namespace** (owner decision, 2026-09-27). Before
+  the namespace is registered, Core, Giving and Connect are built as unlocked package versions
+  with an empty namespace and installed in test orgs. Volunteers, Programs and Funders hold no
+  metadata yet, so they get no version. The namespace stays deferred and nothing in source
+  carries a prefix, so the same source later builds the namespaced packages. What this costs:
+  - A namespace cannot be added to a package afterwards. The namespaced unlocked and managed
+    packages are new packages, so an org that installed a no-namespace version moves to them
+    only by the export, uninstall, install and reimport path of C-31. These versions are for
+    test orgs and pilots who accept that in writing, not for production data meant to stay.
+  - Without a namespace, BarnCRM's component names are the org's own: an org that already has,
+    for example, its own `Fund__c` or `Gift__c` cannot install until the conflict is removed.
+    Test orgs are chosen or created clean.
+  - `@NamespaceAccessible` has no effect between no-namespace packages (every public class is
+    visible to the others), so a cross-package reference that only works without a namespace is
+    not caught by these installs. The offline and static checks and review still enforce it.
+  - Beta versions install only in scratch and sandbox orgs; a version installed in a Developer
+    Edition or production test org must be promoted, which needs 75 percent code coverage.
 - **Production pilots on unlocked packages are allowed** (owner decision). Each moves to managed
   through a supported migration: export, uninstall unlocked, install managed, reimport, built and
   rehearsed before listing (C-31).

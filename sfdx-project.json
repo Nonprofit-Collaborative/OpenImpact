@@ -7,48 +7,81 @@
       "path": "packages/core",
       "default": true,
       "package": "BarnCRM Core",
-      "versionName": "v0.1",
-      "versionNumber": "0.1.0.NEXT"
+      "versionName": "v0.6",
+      "versionNumber": "0.6.0.NEXT"
     },
     {
       "path": "packages/giving",
       "default": false,
       "package": "BarnCRM Giving",
-      "versionName": "v0.1",
-      "versionNumber": "0.1.0.NEXT",
-      "dependencies": [{ "package": "BarnCRM Core" }]
+      "versionName": "v0.6",
+      "versionNumber": "0.6.0.NEXT",
+      "dependencies": [
+        {
+          "package": "BarnCRM Core",
+          "versionNumber": "0.6.0.LATEST"
+        }
+      ]
     },
     {
       "path": "packages/volunteers",
       "default": false,
       "package": "BarnCRM Volunteers",
-      "versionName": "v0.1",
-      "versionNumber": "0.1.0.NEXT",
-      "dependencies": [{ "package": "BarnCRM Core" }]
+      "versionName": "v0.6",
+      "versionNumber": "0.6.0.NEXT",
+      "dependencies": [
+        {
+          "package": "BarnCRM Core",
+          "versionNumber": "0.6.0.LATEST"
+        }
+      ]
     },
     {
       "path": "packages/programs",
       "default": false,
       "package": "BarnCRM Programs",
-      "versionName": "v0.1",
-      "versionNumber": "0.1.0.NEXT",
-      "dependencies": [{ "package": "BarnCRM Core" }]
+      "versionName": "v0.6",
+      "versionNumber": "0.6.0.NEXT",
+      "dependencies": [
+        {
+          "package": "BarnCRM Core",
+          "versionNumber": "0.6.0.LATEST"
+        }
+      ]
     },
     {
       "path": "packages/funders",
       "default": false,
       "package": "BarnCRM Funders",
-      "versionName": "v0.1",
-      "versionNumber": "0.1.0.NEXT",
-      "dependencies": [{ "package": "BarnCRM Core" }, { "package": "BarnCRM Giving" }]
+      "versionName": "v0.6",
+      "versionNumber": "0.6.0.NEXT",
+      "dependencies": [
+        {
+          "package": "BarnCRM Core",
+          "versionNumber": "0.6.0.LATEST"
+        },
+        {
+          "package": "BarnCRM Giving",
+          "versionNumber": "0.6.0.LATEST"
+        }
+      ]
     },
     {
       "path": "packages/connect",
       "default": false,
       "package": "BarnCRM Connect",
-      "versionName": "v0.1",
-      "versionNumber": "0.1.0.NEXT",
-      "dependencies": [{ "package": "BarnCRM Core" }, { "package": "BarnCRM Giving" }]
+      "versionName": "v0.6",
+      "versionNumber": "0.6.0.NEXT",
+      "dependencies": [
+        {
+          "package": "BarnCRM Core",
+          "versionNumber": "0.6.0.LATEST"
+        },
+        {
+          "package": "BarnCRM Giving",
+          "versionNumber": "0.6.0.LATEST"
+        }
+      ]
     }
   ]
 }
