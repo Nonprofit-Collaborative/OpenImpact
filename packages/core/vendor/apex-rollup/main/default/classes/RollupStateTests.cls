@@ -62,7 +62,7 @@ private class RollupStateTests {
       RollupState.GenericInfo.class
     ));
     Assert.areEqual(info.value, updatedInfo.value);
-    // Open Impact patch D: the DataWeave strategy is gone, so the default strategy is the JSON one.
+    // BarnCRM patch D: the DataWeave strategy is gone, so the default strategy is the JSON one.
     Assert.areEqual(RollupState.JSONSerializationStrategy.class, RollupState.serializationStrategy.getType());
   }
 
@@ -85,7 +85,7 @@ private class RollupStateTests {
 
     Datetime actualMessageDate = (Datetime) sObjectInfo.item.get('MessageDate');
     // Upstream note, kept for the record: this assertion compares only the date portion because a
-    // UTC Datetime string can arrive without its trailing "Z". Under Open Impact patch D the JSON
+    // UTC Datetime string can arrive without its trailing "Z". Under BarnCRM patch D the JSON
     // strategy is the only strategy, so the DataWeave self-recovery upstream described no longer
     // applies, and the date-only comparison is what makes the assertion strategy independent.
     Assert.areEqual(nonUtcDatetimeParsed.substring(0, 10), actualMessageDate.formatGmt('YYYY-MM-dd'));

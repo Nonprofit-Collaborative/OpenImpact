@@ -2,7 +2,8 @@
 # check-namespace.sh
 #
 # Fails (exit 1) if:
-#   - any file under packages/ (excluding .gitkeep) contains the literal string "openimpact__"
+#   - any file under packages/ (excluding .gitkeep) contains the literal string "barncrm__"
+#     (the namespace candidate) or "openimpact__" (the retired one)
 #   - any file under packages/ contains an explicit namespace prefix on a custom component,
 #     i.e. a double-underscore-prefixed name followed by another double underscore
 #     (namespace__Object__suffix), matched as [A-Za-z0-9]+__[A-Za-z0-9_]+__(c|r|mdt|e|b)
@@ -16,7 +17,8 @@
 # from another system, and an NPSP export heads its columns with NPSP's own prefixed field
 # names, for example npe01__Payment_Amount__c. Those are text compared with a file's header
 # row, never a reference to a component of this package, so the prefixed-component check
-# lists them and does not fail on them. The literal 'openimpact__' check still covers them.
+# lists them and does not fail on them. The literal 'barncrm__' and 'openimpact__' check still
+# covers them.
 #
 # The exemption is decided on the path part of each grep -rn line (path:line:text), anchored
 # at the start, so a line in any other file that names such a path is still checked. For
@@ -31,10 +33,10 @@ set -euo pipefail
 FAILED=0
 
 if [[ -d packages ]]; then
-  echo "== Checking for literal 'openimpact__' =="
-  if MATCHES=$(grep -rn "openimpact__" packages --include='*' --exclude='.gitkeep' 2>/dev/null); then
+  echo "== Checking for literal 'barncrm__' and 'openimpact__' =="
+  if MATCHES=$(grep -rniE "(barncrm|openimpact)__" packages --include='*' --exclude='.gitkeep' 2>/dev/null); then
     echo "$MATCHES"
-    echo "FAIL: found literal 'openimpact__' references above." >&2
+    echo "FAIL: found literal 'barncrm__' or 'openimpact__' references above." >&2
     FAILED=1
   fi
 

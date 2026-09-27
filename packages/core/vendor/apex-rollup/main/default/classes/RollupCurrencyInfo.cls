@@ -67,7 +67,7 @@ public without sharing virtual class RollupCurrencyInfo implements RollupLogger.
     set;
   }
 
-  // Open Impact patch A, see packages/core/vendor/apex-rollup/VENDOR.md.
+  // BarnCRM patch A, see packages/core/vendor/apex-rollup/VENDOR.md.
   // Upstream seeded this map with four Sales Cloud object names as string literals, mapping each to
   // the date field that dated multicurrency conversion should read. Core may not name those objects
   // and does not ship dated multicurrency support, so the map starts empty and is populated at

@@ -28,7 +28,8 @@ PackageInstallRequest exists but is not a supported product path.
 - **The rename is one pass, after C-29 (PRs #163 to #174) merges**, since C-29 changes many of
   the same labels. In order: labels, app, tab and permission set names, help text and
   descriptions, settling plan Section 11.2 questions 23 to 25 at the same time so API names
-  change at most once; then the guides, README, NOTICE and `package.json`; then contributor-typed
+  change at most once (answered 2026-09-27: one app for both suites, the neutral names accepted
+  as BarnCRM names, the `Nonprofit_*` API names renamed `Barn_*`; ADR-0059 records them); then the guides, README, NOTICE and `package.json`; then contributor-typed
   aliases (`oi-test`, `oi-pa`); then the GitHub repository, renamed by the owner. Each pull
   request stays under about 800 changed lines. Accepted ADRs, dated release notes and the
   decision log keep the name that was true when written.

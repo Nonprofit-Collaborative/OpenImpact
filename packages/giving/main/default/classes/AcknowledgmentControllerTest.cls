@@ -96,7 +96,7 @@ private class AcknowledgmentControllerTest {
             'Typo',
             10,
             AcknowledgmentRuleService.CHANNEL_EMAIL,
-            'Open Impact: thank you for your gift'
+            'BarnCRM: thank you for your gift'
         );
         insert wrong;
 

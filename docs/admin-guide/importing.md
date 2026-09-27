@@ -2,9 +2,9 @@
 
 ## 1. What it does
 
-Importing loads a spreadsheet of people, households, and organizations into Open Impact
+Importing loads a spreadsheet of people, households, and organizations into BarnCRM
 without a consultant, and, with the Giving module installed, their gifts too
-([Importing gifts](gift-import.md)). You upload the file, Open Impact suggests which column means what,
+([Importing gifts](gift-import.md)). You upload the file, BarnCRM suggests which column means what,
 you say how a row should be matched against records you already have, and then you run a
 **dry run** that tells you exactly what would be created, updated, matched, or rejected
 before anything is written. When the preview looks right you commit it, and the results
@@ -17,13 +17,13 @@ removed and the values it changed are put back (section 5).
 
 ## 2. How to turn it on
 
-Nothing to turn on. The **Import** tab is in the Open Impact app for anyone with the
-**Manage Open Impact Settings** permission. If you do not see the tab, ask whoever set up
-your org to give you the Open Impact Admin role on the **Access** page.
+Nothing to turn on. The **Import** tab is in the BarnCRM app for anyone with the
+**Manage BarnCRM Settings** permission. If you do not see the tab, ask whoever set up
+your org to give you the BarnCRM Admin role on the **Access** page.
 
 A few things are worth knowing before your first large file:
 
-1. Open **Open Impact Settings** and choose **Import**.
+1. Open **BarnCRM Settings** and choose **Import**.
 2. **Rows per chunk** controls how many rows are processed at a time. Leave it at 200.
    Lower it to 50 if your org has a lot of custom automation and an import fails with a
    limit error; raise it only if a very large file is running slowly and nothing else
@@ -35,7 +35,7 @@ A few things are worth knowing before your first large file:
 5. With the Giving module installed, the same page has the two donation matching settings
    ([Importing gifts](gift-import.md), section 2).
 
-Open Impact ships two ready-made mappings, a **generic donor list** and a **generic gift
+BarnCRM ships two ready-made mappings, a **generic donor list** and a **generic gift
 list**. You can edit either one, and your edits are never overwritten by an upgrade. With the
 Giving module installed it also ships mappings that read the exports of the system you are
 moving from, without renaming a column: see [Migrating from Nonprofit
@@ -47,14 +47,14 @@ You need a CSV file or an Excel workbook (.xlsx). A small one is best for the fi
 or six rows.
 
 1. Open the **Import** tab. Select **Generic contact list**, then **Next**.
-2. Select **Upload file** and choose your file. Open Impact reads the header row and shows
+2. Select **Upload file** and choose your file. BarnCRM reads the header row and shows
    you every column it found, with the first few values from the file underneath each one.
-3. Check the columns. Each column shows what Open Impact thinks it is, for example
+3. Check the columns. Each column shows what BarnCRM thinks it is, for example
    "Email" for a column headed `Donor Email`. Change anything that is wrong from the
    picker beside it. A column you do not want loaded is set to **Do not load**, and its
    values are kept on the staged row but written nowhere. The mapping remembers your
    choices: the next file with the same headings opens with them, and a column you set to
-   **Do not load** stays that way even when Open Impact recognizes its heading.
+   **Do not load** stays that way even when BarnCRM recognizes its heading.
 4. Choose how rows are matched. **Email exact** is the safe default. Read the sentence
    under each rule before you change it: **Name plus postal code** will treat two
    different people who share a name at one address as the same person.
@@ -81,12 +81,12 @@ It links back to the import.
 ## 4. Two people on one row
 
 Most donor lists give a couple one line: two names, one address, one gift. Map the second
-person's columns to **Contact 2** and Open Impact puts both people in the same household.
+person's columns to **Contact 2** and BarnCRM puts both people in the same household.
 You get one household with two members, not two households, and it works the same way
 whether your org keeps people as contacts or as person accounts.
 
 Where your org keeps people as person accounts, map the columns exactly as you would for
-contacts (Email, Mailing Street, Email Opt Out and so on). Open Impact writes each to the
+contacts (Email, Mailing Street, Email Opt Out and so on). BarnCRM writes each to the
 person account's own field for it, and finds the person again by that field when you load
 the next file: by their email under **Email exact**, and by their last name and mailing
 postal code under **Name plus postal code**. A person account's billing postal code counts
@@ -106,7 +106,7 @@ Three things are worth knowing about it.
   own, the same as anybody else.
 - **A couple who share an email, or a surname and postal code, are still two people.** When
   the matching rule would find both people on a row by the same email or surname and postal
-  code, Open Impact tells them apart by first name. A row naming one of them alone is matched
+  code, BarnCRM tells them apart by first name. A row naming one of them alone is matched
   by first name too, so "Jane Smith" finds Jane, not John. When several people share the
   email, or the surname and postal code, and none has the row's first name, a new person is
   created rather than a guess made. First names are compared ignoring capitals but not
@@ -131,7 +131,7 @@ removed, and neither is its donor ([Importing gifts](gift-import.md), section 6)
 
 1. Open the **Import** tab. **Recent imports** lists your last imports, newest first, with
    the date each one can be undone until.
-2. Select **Undo** beside the import. Open Impact counts what it would remove (gifts,
+2. Select **Undo** beside the import. BarnCRM counts what it would remove (gifts,
    people, households and organizations) and how many changed values it would put back, and shows
    you the numbers with the import's name and file name. Nothing has changed yet.
 3. Read the numbers. If they are what you expect, select **Undo this import**. If somebody
@@ -157,7 +157,7 @@ What undo will not do, on purpose:
 An undo that stops part way, for example because of a limit error, shows **Undo failed**.
 Select **Undo** again: it finishes the job without repeating what it already did.
 
-**Days an import can be undone** in **Open Impact Settings**, **Import**, sets the window, from
+**Days an import can be undone** in **BarnCRM Settings**, **Import**, sets the window, from
 1 to 365 days. The window is fixed when an import is committed, so changing the setting only
 affects imports you commit afterwards.
 
@@ -172,11 +172,11 @@ keeps track of it for you.
    for example "Monthly processor export". The name is required while the box is ticked.
 3. Select **Next** and import the file as usual.
 
-The Open Impact home page then lists every recurring source with the date it was last
+The BarnCRM home page then lists every recurring source with the date it was last
 imported, oldest first, and **Never** for one you have not loaded yet. When a date is older
 than you expect, that file has not been loaded this month.
 
-Marking a mapping recurring changes nothing about how its files are imported. Open Impact
+Marking a mapping recurring changes nothing about how its files are imported. BarnCRM
 never fetches or loads a file on its own: every file is still uploaded, dry run and
 committed by a person, because an import nobody watched is an import nobody checked.
 
@@ -203,7 +203,7 @@ committed import cannot be dry run or committed again: undo it, which removes wh
 
 **"No column was matched to a name or an email."** The dry run refuses to run when the
 mapping has no way to identify a person or an organization. Usually the file's header row
-is not the first row: a title line or a blank line above it means Open Impact read the
+is not the first row: a title line or a blank line above it means BarnCRM read the
 wrong row as the header. Delete the rows above the header in your spreadsheet and upload
 again.
 
@@ -215,7 +215,7 @@ external identifier column to the file and use **External ID**.
 
 **Rows rejected with "Required value missing: last name".** A person needs a last name.
 Rows where the name column is empty, or where a single "Full Name" column was mapped to
-first name only, fail this way. Map the full name column to **Full name** and Open Impact
+first name only, fail this way. Map the full name column to **Full name** and BarnCRM
 splits it, or split the column in your spreadsheet.
 
 **The import finished but some rows failed.** That is by design: one bad row does not
@@ -232,8 +232,8 @@ counted them as would create, because a dry run saves nothing for the rule to ch
 
 **The run log says "Not loaded: you do not have access to" a field.** Your user may not
 edit that field, so its column was skipped on every row, in the dry run and in the commit, and
-the rest of each row loaded. The run log names each such field once. The Open Impact Admin role
-lets you edit the standard fields import mappings use (see "Fields the Open Impact Admin role
+the rest of each row loaded. The run log names each such field once. The BarnCRM Admin role
+lets you edit the standard fields import mappings use (see "Fields the BarnCRM Admin role
 can import" below), so this usually means a column mapped to some other field, or a user
 without that role. Ask your Salesforce administrator for edit access to the field and import
 the file again: the second import matches the people it already created and adds the
@@ -254,10 +254,10 @@ it installed, see [Importing gifts](gift-import.md).
 different total of gift amounts, from the control totals you typed. The run log gives both
 numbers. Fix the file or the totals and dry run again; the commit is refused until they agree.
 
-## Fields the Open Impact Admin role can import
+## Fields the BarnCRM Admin role can import
 
 Salesforce controls standard fields one by one, and a person with only a minimal profile
-could otherwise not write them. So the Open Impact Admin permission set grants read and edit
+could otherwise not write them. So the BarnCRM Admin permission set grants read and edit
 access to the standard fields the import mappings write:
 
 | Object | Fields |
@@ -270,10 +270,10 @@ Mailing Address and the rest) follows the contact fields of the same name, and a
 phone is the account's Phone.
 
 **Birthdate is sensitive.** It is granted so a migration file's birthdates are not lost, but
-your organization may not want everyone with Open Impact Admin to see it. To withhold it, give
+your organization may not want everyone with BarnCRM Admin to see it. To withhold it, give
 your administrators a permission set that does not include it, or ask your Salesforce
 administrator to remove Birthdate from a cloned role: the importer then skips the column and
-says so in the run log, and nothing else in Open Impact needs it.
+says so in the run log, and nothing else in BarnCRM needs it.
 
 ## Field reference
 

@@ -1,6 +1,6 @@
 @IsTest
 private class RollupEvaluatorTests {
-  // Open Impact patch E, kind 5 (see VENDOR.md). Upstream gives its stub records literal Ids that
+  // BarnCRM patch E, kind 5 (see VENDOR.md). Upstream gives its stub records literal Ids that
   // carry the key prefix of the sales object this fork replaced with RollupCalcItem__c, which the
   // platform refuses for another object ("Invalid id value for this SObject type"). A custom
   // object's key prefix is assigned by the org, so the Ids are built from the describe at run time.
@@ -1341,7 +1341,7 @@ private class RollupEvaluatorTests {
 
   private static void validateQuery(Schema.SObjectType target, String whereClause) {
     // sanity check - is the where clause valid?
-    // Open Impact patch G: system mode, so the check is about syntax and not the running user's
+    // BarnCRM patch G: system mode, so the check is about syntax and not the running user's
     // field access. See VENDOR.md.
     Database.query('SELECT Id FROM ' + target + ' WHERE ' + whereClause, System.AccessLevel.SYSTEM_MODE);
   }

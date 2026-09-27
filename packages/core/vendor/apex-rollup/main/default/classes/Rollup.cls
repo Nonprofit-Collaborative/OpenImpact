@@ -306,7 +306,7 @@ public without sharing virtual class Rollup implements RollupLogger.ToStringObje
   protected Rollup() {
   }
 
-  // Open Impact patch E: widened from protected to public within the package. Apex allows an inner
+  // BarnCRM patch E: widened from protected to public within the package. Apex allows an inner
   // class of a subclass to call a protected superclass constructor (RollupAsyncProcessor line 395
   // does exactly that upstream); the offline apex-ls checker does not model that access, and this
   // is the smallest change that keeps the check green. Public here is package-visible only, since
@@ -597,7 +597,7 @@ public without sharing virtual class Rollup implements RollupLogger.ToStringObje
   // Code-analyzer-suppress(sfge)
   public static String getBatchRollupStatus(String jobId) {
     String jobStatus = [SELECT Status FROM AsyncApexJob WHERE Id = :jobId LIMIT 1]?.Status;
-    // Open Impact patch G: RollupState__c is read in system mode, see VENDOR.md.
+    // BarnCRM patch G: RollupState__c is read in system mode, see VENDOR.md.
     if ([SELECT COUNT() FROM RollupState__c WHERE RelatedJobId__c = :jobId WITH SYSTEM_MODE LIMIT 1] > 0) {
       jobStatus = 'Processing';
     }
@@ -2911,9 +2911,9 @@ public without sharing virtual class Rollup implements RollupLogger.ToStringObje
     RollupControl__mdt control
   ) {
     Schema.SObjectType itemType = calcItems.getSObjectType();
-    // Open Impact patch A, see packages/core/vendor/apex-rollup/VENDOR.md.
+    // BarnCRM patch A, see packages/core/vendor/apex-rollup/VENDOR.md.
     // Upstream listed the four standard objects the platform supports record merge on as static
-    // Schema references. Open Impact Core may not name two of them and has to compile on an org
+    // Schema references. BarnCRM Core may not name two of them and has to compile on an org
     // shape where they do not exist, so the same question is asked of the describe instead. This
     // is also strictly more correct: any object the org reports as mergeable is handled.
     if (itemType == null || itemType.getDescribe(Schema.SObjectDescribeOptions.DEFERRED).isMergeable() == false) {

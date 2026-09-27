@@ -1,7 +1,8 @@
 # ADR-0059: Core is neutral: the nonprofit app, wording, giving and receipt settings and Setup Assistant steps live in Giving
 
 **Status:** Accepted (builder decision, under the owner decision recorded in ADR-0046)
-**Date:** 2026-09-25
+**Date:** 2026-09-25; amended 2026-09-27 (owner answers to plan Section 11.2 questions 23 to 25:
+see decisions 4 to 6)
 **Source:** C-29; plan Section 4.1 "Suites and packaging" (owner decision, Brandon, 2026-09-23);
 ADR-0046; builds on ADR-0014, ADR-0017, ADR-0020 and ADR-0057 (as amended by ADR-0058)
 
@@ -60,7 +61,10 @@ Assistant flow and labels as before.
 4. **Core's app is neutral and Giving's app is the nonprofit one.** Core's app keeps its API
    name and is labelled with the working product title, Open Impact, for both suites; its tabs
    and record page overrides do not change. Giving's nonprofit app is the Fundraising app it
-   already ships (ADR-0018). The Fundraising Staff role (`Fundraising_Staff` group, unchanged
+   already ships (ADR-0018). **Amended 2026-09-27 (owner, question 23):** there is one app for
+   both suites, never a second nonprofit hub; the suite an organization chooses decides which
+   additional and optional modules it sees and can add (C-30). The app is labelled BarnCRM.
+   The Fundraising Staff role (`Fundraising_Staff` group, unchanged
    content) moves to Giving; Core's Access page already skips a role that is not in the org.
 5. **Core's wording is neutral.** No Core label, help text, description, tab, app, permission,
    permission set or role label speaks of gifts, donors, receipts, fundraising or nonprofits,
@@ -71,11 +75,16 @@ Assistant flow and labels as before.
    control total and donation matching, and the Giving and Receipts section names). The
    "Nonprofit" names become "Open Impact": Open Impact Settings, Manage Open Impact Settings,
    Open Impact Admin, Staff, Read Only and Duplicate Review, renamed with the product later
-   (plan Section 8.3).
+   (plan Section 8.3). **Amended 2026-09-27 (owner, question 24):** these neutral names are
+   accepted, with BarnCRM in place of Open Impact: BarnCRM Settings, Manage BarnCRM Settings,
+   BarnCRM Admin, Staff, Read Only and Duplicate Review.
 6. **API names do not change in C-29.** `Nonprofit_Settings__c`, `Manage_Nonprofit_Settings`,
    the `Nonprofit_*` permission sets, and the `Nonprofit_Hub_Home` and `Nonprofit_Settings`
    tabs and pages keep their API names. Only labels change. Renaming them is part of the name
-   pass, before the first package version.
+   pass, before the first package version. **Amended 2026-09-27 (owner, question 25):** renamed
+   to `Barn_Settings__c`, `Manage_Barn_Settings`, `Barn_Admin`, `Barn_Staff`, `Barn_Read_Only`,
+   `Barn_Duplicate_Review`, `Barn_Admin_Group`, the `Barn_Hub` app and the `Barn_Hub_Home` and
+   `Barn_Settings` tabs and pages. Names of Salesforce products Core detects keep their words.
 7. **Core fields that hold a module's record identifier are labelled neutrally.**
    `Import_Row__c.Gift_Id__c` and `Soft_Credit_Id__c` are on Core's Import Row layout, so a
    Core-only org would see them. They stay on the layout, where an org with Giving still reads

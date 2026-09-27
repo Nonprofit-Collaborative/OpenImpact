@@ -1,5 +1,5 @@
 /**
- * Open Impact patch C, documented sharing exception. See
+ * BarnCRM patch C, documented sharing exception. See
  * packages/core/vendor/apex-rollup/VENDOR.md and docs/product-plan.md Section 4.13.
  *
  * Plan Section 4.13 requires every Apex class to run "with sharing" unless a documented reason
@@ -18,7 +18,7 @@
  *
  * Why no user input reaches these writes: the values written are aggregates this engine computed
  * from records it queried, and the object and field names come from configuration, not from a
- * user-entered value. Under the planned Open Impact integration they will come from
+ * user-entered value. Under the planned BarnCRM integration they will come from
  * Rollup_Definition__c rows an administrator created and the console validated (RollupAdapter and
  * Rollup_Definition__c are C-14 work and do not exist yet). There is no path from a user-entered
  * value to a dynamic SOQL string or to a field name here.
@@ -49,9 +49,9 @@ public without sharing virtual class RollupState implements System.Queueable, Sy
   @TestVisible
   private static Integer maxRelatedKeysLength = 255;
   @TestVisible
-  // Open Impact patch D, see packages/core/vendor/apex-rollup/VENDOR.md. Upstream defaulted chained
+  // BarnCRM patch D, see packages/core/vendor/apex-rollup/VENDOR.md. Upstream defaulted chained
   // job state to a DataWeave script resource, with a JSON strategy behind
-  // RollupControl__mdt.ShouldUseJSONSerializationStrategy__c as the fallback. Open Impact ships the
+  // RollupControl__mdt.ShouldUseJSONSerializationStrategy__c as the fallback. BarnCRM ships the
   // JSON strategy as the only strategy: packaging a .dwl resource in a managed package is unproven,
   // and ADR-0015 says to settle that in the first packaging build rather than defer it. The
   // DataweaveSerializationStrategy inner class and the dw/ resource were deleted with this change.
@@ -273,7 +273,7 @@ public without sharing virtual class RollupState implements System.Queueable, Sy
     return System.enqueueJob(this);
   }
 
-  // Open Impact patch G, see packages/core/vendor/apex-rollup/VENDOR.md. The three RollupState__c
+  // BarnCRM patch G, see packages/core/vendor/apex-rollup/VENDOR.md. The three RollupState__c
   // queries in this class name their access level. From API 67.0 a query without one runs in user
   // mode, and no user is granted field access to this internal object.
   @SuppressWarnings('PMD.ApexCRUDViolation')

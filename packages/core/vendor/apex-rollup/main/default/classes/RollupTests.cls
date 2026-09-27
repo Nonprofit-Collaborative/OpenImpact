@@ -565,7 +565,7 @@ private class RollupTests {
     acc.AnnualRevenue = originalValue;
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ acc };
 
-    // Open Impact patch E: the setup row is a RollupCalcItem__c on this Account (upstream's was a
+    // BarnCRM patch E: the setup row is a RollupCalcItem__c on this Account (upstream's was a
     // Contract), and a null CloseDate__c matches "<= TODAY" in memory, so it would be counted.
     delete as system [SELECT Id FROM RollupCalcItem__c WHERE Name = 'Datetime tests' WITH SYSTEM_MODE];
 
@@ -2817,7 +2817,7 @@ private class RollupTests {
 
   @IsTest
   static void shouldClearConcatDistinctOnDetachToNull() {
-    // Open Impact patch G: system mode, as every other setup query in this class. See VENDOR.md.
+    // BarnCRM patch G: system mode, as every other setup query in this class. See VENDOR.md.
     Account oldAcc = [SELECT Id, AccountNumber FROM Account WITH SYSTEM_MODE];
     oldAcc.AccountNumber = 'A';
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ oldAcc };
@@ -3173,7 +3173,7 @@ private class RollupTests {
     acc.AnnualRevenue = 2; // should match count of contacts, below, to begin with
     RollupAsyncProcessor.stubParentRecords = new List<SObject>{ acc };
 
-    // Open Impact patch E: the engine filters the triggering records with every grouped row's
+    // BarnCRM patch E: the engine filters the triggering records with every grouped row's
     // LookupFieldOnCalcItem__c, so the two child objects in a grouping must name their lookup
     // to the parent the same way. Upstream's pair had that by coincidence (both AccountId).
     // RollupCalcItem__c cannot (Account__c on it, AccountId on Contact, and either name fails on

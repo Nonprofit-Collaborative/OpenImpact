@@ -615,7 +615,7 @@ deploy time, so if the type ever gains one, revisit the exemption.
 because an NPSP export heads its columns with NPSP's own prefixed names (`npe01__`, `npsp__`).
 It lists them and does not fail on them. Its pattern is anchored to the path part of each
 `grep -rn` line, so a line in any other file that names such a path is still checked. Its
-literal `openimpact__` check still covers them.
+literal `barncrm__` and `openimpact__` check still covers them.
 
 ## What happens when the secrets are missing
 
@@ -685,7 +685,7 @@ reason.
 
 ## Signing off commits (DCO)
 
-Open Impact uses the Developer Certificate of Origin instead of a CLA. Every commit must
+BarnCRM uses the Developer Certificate of Origin instead of a CLA. Every commit must
 carry a `Signed-off-by:` trailer with your name and email, certifying you have the right
 to submit the change under the project's license.
 
@@ -764,10 +764,22 @@ refreshes `docs/product-plan.md` and deletes this subsection:
   tentative; domains registered; still open are the trademark search and the namespace.
 - Section 3 and Section 8.3: "Impact Suite" becomes "Nonprofit Suite".
 - Section 5.1, C-30: the first step asks "Nonprofit Suite or Community Suite".
-- Section 11.2: questions 23 to 25 are settled in the rename pass, after C-29 merges.
+- Section 11.2, owner answers of 2026-09-27 (ADR-0059, decisions 4 to 6):
+  - 23: one app for both suites; the suite chosen decides which additional and optional
+    modules a user sees and can add (C-30). No separate Nonprofit Hub app.
+  - 24: yes, the neutral names are accepted, as BarnCRM Settings, Manage BarnCRM Settings and
+    BarnCRM Admin, Staff, Read Only and Duplicate Review.
+  - 25: the `Nonprofit_*` API names are renamed `Barn_*` (`Barn_Settings__c`,
+    `Manage_Barn_Settings`, the `Barn_*` permission sets and group, the `Barn_Hub` app, the
+    `Barn_Hub_Home` and `Barn_Settings` tabs).
+- Section 12 D-01 and Section 8.3: record the rename pass as done for labels, docs and API
+  names; the GitHub repository and the `oi-test` and `oi-pa` aliases are still to change.
 
-The rename pass itself (labels, docs, aliases, then the repository) waits for C-29 to merge;
-ADR-0046 lists its steps.
+The rename pass for labels, API names and docs is on branch
+`claude/openimpact-barncrm-status-ft0c1x`, built on the C-29 top head, so it merges after C-29.
+Still to change: GitHub links (`Nonprofit-Collaborative/OpenImpact`, including the help link base
+in `SettingsController` and `ModuleDetectionService`) once the new repository exists, and the
+`oi-test` and `oi-pa` aliases when those orgs are recreated.
 
 ### Never tested
 

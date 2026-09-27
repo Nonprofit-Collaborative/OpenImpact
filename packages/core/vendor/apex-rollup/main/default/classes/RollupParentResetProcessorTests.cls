@@ -143,8 +143,8 @@ private class RollupParentResetProcessorTests {
 
     processor.runCalc();
 
-    // Open Impact patch H: the host org may give the unparented contact above an account of its own
-    // (Open Impact Core creates a household for it), so the account under test is found by name.
+    // BarnCRM patch H: the host org may give the unparented contact above an account of its own
+    // (BarnCRM Core creates a household for it), so the account under test is found by name.
     Account resetAccount = [SELECT AnnualRevenue, AccountNumber FROM Account WHERE Name = 'Account With Null' WITH SYSTEM_MODE];
     System.assertEquals(0, resetAccount.AnnualRevenue);
     System.assertEquals('a', resetAccount.AccountNumber);

@@ -2327,7 +2327,7 @@ private class RollupCalculatorTests {
       new Map<Id, SObject>()
     );
 
-    // Open Impact patch E: the grouping columns are headed by field label, the rolled-up column by
+    // BarnCRM patch E: the grouping columns are headed by field label, the rolled-up column by
     // the field's API name (TableGroupingFormatter uses targetField.toString()), which is Amount__c
     // on RollupCalcItem__c where upstream's sales object field was Amount.
     String tableHeader = '<tr><th>Stage</th><th>Name</th><th>Amount__c</th></tr>';

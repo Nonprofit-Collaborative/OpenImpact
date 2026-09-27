@@ -3,11 +3,11 @@
     <fullName>ShouldUseJSONSerializationStrategy__c</fullName>
     <defaultValue>true</defaultValue>
     <description
-  >Open Impact ships JSON as the only Rollup State serialization strategy, so this flag is always on and the setting is kept only for compatibility with the upstream library. Turning it off has no effect.</description>
+  >BarnCRM ships JSON as the only Rollup State serialization strategy, so this flag is always on and the setting is kept only for compatibility with the upstream library. Turning it off has no effect.</description>
     <externalId>false</externalId>
     <fieldManageability>SubscriberControlled</fieldManageability>
     <inlineHelpText
-  >Open Impact ships JSON as the only Rollup State serialization strategy, so this flag is always on and the setting is kept only for compatibility with the upstream library. Turning it off has no effect.</inlineHelpText>
+  >BarnCRM ships JSON as the only Rollup State serialization strategy, so this flag is always on and the setting is kept only for compatibility with the upstream library. Turning it off has no effect.</inlineHelpText>
     <label>Should Use JSON Serialization Strategy?</label>
     <type>Checkbox</type>
 </CustomField>

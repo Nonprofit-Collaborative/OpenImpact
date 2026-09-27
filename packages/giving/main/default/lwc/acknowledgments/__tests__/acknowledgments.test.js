@@ -140,7 +140,7 @@ const PAGE = {
     }
   ],
   templates: [
-    { label: 'Open Impact: thank you for your gift', developerName: 'Open_Impact_Thank_You' }
+    { label: 'BarnCRM: thank you for your gift', developerName: 'Open_Impact_Thank_You' }
   ],
   runs: [
     {

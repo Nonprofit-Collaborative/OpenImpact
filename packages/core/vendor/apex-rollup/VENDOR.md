@@ -1,6 +1,6 @@
 # Vendored: apex-rollup
 
-Open Impact Core carries a patched copy of the apex-rollup aggregation engine as source. This file
+BarnCRM Core carries a patched copy of the apex-rollup aggregation engine as source. This file
 records what was taken, from where, what was changed, and how to take a newer upstream version.
 The decision and its reasoning are in
 [ADR-0015](../../../../docs/architecture/decisions/0015-vendor-apex-rollup-behind-adapter.md);
@@ -36,13 +36,13 @@ source and binary form, including inside a managed package, on one condition: th
 and the permission notice must travel with the copies. That is what `LICENSE` in this directory is
 for, and it must stay next to the vendored source in every build that ships it.
 
-The vendored code is redistributed inside Open Impact Core under the Open Impact project license,
-with the upstream MIT notice preserved unchanged. Open Impact claims no copyright over the upstream
-code; the local patches below are Open Impact's and are offered under the same terms.
+The vendored code is redistributed inside BarnCRM Core under the BarnCRM project license,
+with the upstream MIT notice preserved unchanged. BarnCRM claims no copyright over the upstream
+code; the local patches below are BarnCRM's and are offered under the same terms.
 
 The repository root `LICENSE` names this component and states that its MIT grant is in force and is
 not withheld by the project's own license placeholder. Whatever license the owner settles on
-(Decision D-08, ADR-0008) applies to Open Impact's own code and cannot narrow James Simone's grant.
+(Decision D-08, ADR-0008) applies to BarnCRM's own code and cannot narrow James Simone's grant.
 
 **What the first packaging build has to do, because nothing does it automatically.** A plain
 `LICENSE` file is not a Salesforce metadata type. It sits in the source tree, it is not deployed by
@@ -80,14 +80,14 @@ directory and the class names do not collide.
 
 | Upstream path | Why not vendored |
 | --- | --- |
-| `rollup/app` | The upstream administrator surface: Lightning app, tab, LWC, content assets, permission sets, profiles. ADR-0015 rules it out. The Open Impact console is the only rollup UI, and `Rollup__mdt` is never shown to an administrator. |
+| `rollup/app` | The upstream administrator surface: Lightning app, tab, LWC, content assets, permission sets, profiles. ADR-0015 rules it out. The BarnCRM console is the only rollup UI, and `Rollup__mdt` is never shown to an administrator. |
 | `rollup-namespaced` | A second copy of the same source built under the `please__` namespace. Useful upstream as proof that the library survives a namespace; nothing to vendor. |
 | `plugins/` | Optional logger and callback packages with their own package dependencies (including Nebula Logger). Out of scope, and ADR-0003 keeps Core's dependency graph empty. |
 | `extra-tests/` | Upstream's unpackaged test scaffolding, including custom objects and standard object field extensions used only in a scratch org. Not packageable and not needed. |
-| `rollup/core/profiles/Admin.profile-meta.xml` | An org shape, not package content. Profiles are not shipped by Open Impact. |
+| `rollup/core/profiles/Admin.profile-meta.xml` | An org shape, not package content. Profiles are not shipped by BarnCRM. |
 | `rollup/core/layouts/` | Page layouts for the upstream custom metadata types. The administrator never opens those records, so the layouts are dead weight in the package. Custom metadata types deploy without them. |
 | `rollup/core/flexipages/Rollup_State.flexipage-meta.xml` | Upstream admin UI for `RollupState__c`. Same reason as the layouts. Excluding the file is not enough on its own: `RollupState__c.object-meta.xml` names it in two `actionOverrides`, and those have to be stripped on every import. See patch F. |
-| `rollup/core/invocableactionextensions/` | Flow action extensions that surface the upstream invocable actions to Flow Builder. Open Impact drives the engine from Apex through `RollupAdapter`; no upstream invocable action is offered to administrators. |
+| `rollup/core/invocableactionextensions/` | Flow action extensions that surface the upstream invocable actions to Flow Builder. BarnCRM drives the engine from Apex through `RollupAdapter`; no upstream invocable action is offered to administrators. |
 | `rollup/core/dw/jsonToRollupState.dwl` | Removed by patch D below; the JSON serialization fallback replaces it. |
 | Repository root files (`README.md`, `media/`, `package.json`, `sfdx-project.json`, CI workflows) | Upstream project scaffolding and documentation images. Not package content. |
 
@@ -117,7 +117,7 @@ vendored tests in a real org: G names system mode on queries that relied on the 
 default, and H makes one test independent of the host org's own automation.
 
 Every patch is a separate commit on `feature/c-13-vendor-apex-rollup`, so `git log` on any vendored
-file shows exactly what Open Impact changed.
+file shows exactly what BarnCRM changed.
 
 ### Patch A: no static references to forbidden standard objects
 
@@ -167,7 +167,7 @@ in `Rollup.cls` that described the same members as "global facing" were reworded
 in the same pass, and a one line comment was added at the top of `Rollup.cls` recording the patch.
 
 **Why.** In a 2GP managed package a `global` member is a permanent, unremovable API commitment to
-subscribers. Open Impact ships none of upstream's invocable actions or extension points to
+subscribers. BarnCRM ships none of upstream's invocable actions or extension points to
 subscribers; `RollupAdapter`, the only caller, lives in the same package, where `public` is enough.
 
 **Notes on what stays `public` rather than being removed.** `Database.Batchable`,
@@ -176,7 +176,7 @@ subscribers; `RollupAdapter`, the only caller, lives in the same package, where 
 nothing else. The `@InvocableMethod` and `@AuraEnabled` members in the vendored classes are kept and
 left `public`. An `@InvocableMethod` on a `public` class is invisible to Flow Builder in a
 subscriber org, which is the intent: those entry points exist for upstream's own tests and for
-in-package callers, not for administrators. If Open Impact ever wants a Flow-callable rollup action
+in-package callers, not for administrators. If BarnCRM ever wants a Flow-callable rollup action
 it will be ours, on our own class, over `RollupAdapter`.
 
 **Re-applying on the next pull.** `grep -rnE '^\s*(global|@[A-Za-z]+\s+global)\b'
@@ -197,7 +197,7 @@ by design, because computed totals must be correct regardless of the running use
 user input reaches these writes. A total computed under the running user's sharing would be silently
 wrong for anyone who cannot see every child record, and that wrong total would then be written to a
 field every other user reads. The values written are aggregates the engine computed from records it
-queried; the object and field names come from configuration, which under the planned Open Impact
+queried; the object and field names come from configuration, which under the planned BarnCRM
 integration is `Rollup_Definition__c` rows an administrator created and the console validated
 (`RollupAdapter` and `Rollup_Definition__c` are C-14 work and do not exist yet).
 
@@ -365,7 +365,7 @@ Platform-only org shape CI treats as the floor, and `npm run check:standard-obje
 **Cost, honestly stated.** `RollupCalcItem__c` is a test-support object that ships inside the managed
 package, because Salesforce offers no way to keep a test and exclude the object it needs. It carries
 no tab, no layout, no permission set entry and no default records, so no administrator ever sees it,
-but it is real metadata in a subscriber org and it is the one place where vendoring cost Open Impact
+but it is real metadata in a subscriber org and it is the one place where vendoring cost BarnCRM
 something a subscriber can observe.
 
 **Setup row collision.** Upstream's `RollupTests` setup inserts a `Contract` named 'Datetime tests';
@@ -484,7 +484,7 @@ were the ones it had missed. `RollupCalcItem__c` stays out of every permission s
 **Not changed.** `RollupRepository` issues every engine query on calculation items and parents
 with an explicit `System.AccessLevel` from `Rollup__mdt.SharingMode__c` (patch C), so it was never
 affected. The `AsyncApexJob` read beside the patched line in `Rollup.getBatchRollupStatus` still
-names no mode; it does not fail for an administrator and nothing in Open Impact calls it.
+names no mode; it does not fail for an administrator and nothing in BarnCRM calls it.
 
 **Re-applying on the next pull.** `grep -n "FROM RollupState__c" main/default/classes/*.cls`:
 every hit outside the tests must carry `WITH SYSTEM_MODE`. For the tests, run the suite in an org
@@ -500,7 +500,7 @@ theirs and drop ours.
 runs the parent reset over every Account, then read "the" Account with a query that expects one
 row. It now reads the Account by the name it inserted.
 
-**Why.** Open Impact Core gives a contact saved with no household an account of its own
+**Why.** BarnCRM Core gives a contact saved with no household an account of its own
 (`Auto_Create_Households__c`, R-H1), so in any org carrying Core the insert creates two Accounts and
 the unfiltered query failed with `List has more than 1 row for assignment to SObject`. That is the
 host doing its job, not a defect in either side. The reset processor still runs over every Account,
@@ -622,9 +622,9 @@ compile time and an org without multicurrency never reaches them.
 ### What is still unproven
 
 The vendored tests have never been executed in any org by this project (the same admission
-as under "Counts"), and no Open Impact scratch org has ever been created from
+as under "Counts"), and no BarnCRM scratch org has ever been created from
 `platform-only.json`. Upstream's build proves that the types compile on that shape; it does
-not prove that Open Impact's copy of them, after patches A through H, deploys and passes.
+not prove that BarnCRM's copy of them, after patches A through H, deploys and passes.
 Only `sf project deploy start -d packages/core` followed by the Core Apex suite against a
 scratch org created from `config/scratch-defs/platform-only.json` proves that.
 
@@ -646,7 +646,7 @@ the rewrite, so the rewrite is not done. Deleting the offending test classes was
 for a second reason as well: a managed package needs 75 percent Apex code coverage, the
 vendored engine is 13,359 lines of engine covered by 11,973 lines of its own tests, and
 `RollupCalculatorTests`, `RollupTests` and `RollupFlowTests` are three of the largest of
-them. Open Impact ships no coverage of its own for the engine, so removing them risks
+them. BarnCRM ships no coverage of its own for the engine, so removing them risks
 failing packaging outright.
 
 ### How the decision is kept
@@ -656,8 +656,8 @@ tree names is in its `VENDOR_ONLY` section with a one line reason, and the vendo
 inside that gate rather than excluded from it. Two things follow. An upstream upgrade that
 introduces a new standard object fails the build here, which is the whole point: this
 section is a finding about twelve specific names, not a blanket clearance for whatever
-upstream adds next. And a `VENDOR_ONLY` name used from Open Impact's own Apex fails too,
-because the reason each one is acceptable is that no Open Impact code path reaches it.
+upstream adds next. And a `VENDOR_ONLY` name used from BarnCRM's own Apex fails too,
+because the reason each one is acceptable is that no BarnCRM code path reaches it.
 
 ## Pull procedure for a future upgrade
 
@@ -697,7 +697,7 @@ a security advisory names it. To take a new version:
 ## Formatting
 
 `packages/core/vendor/` is excluded from Prettier. Upstream formats its Apex with its own
-configuration, and running the Open Impact configuration over the vendored tree would rewrite
+configuration, and running the BarnCRM configuration over the vendored tree would rewrite
 roughly 25,000 lines, turning every future upstream diff into noise and making patch re-application
 by hand impractical. The exclusion is scoped to the vendor directory; everything else under
 `packages/core` is formatted normally.

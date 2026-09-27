@@ -12,7 +12,7 @@
  */
 public with sharing class HubController {
     private static final String EDIT_PERMISSION = 'Manage_Barn_Settings';
-    private static final String ERROR_CONTEXT = 'Open Impact home';
+    private static final String ERROR_CONTEXT = 'BarnCRM home';
 
     public class HomeModel {
         @AuraEnabled

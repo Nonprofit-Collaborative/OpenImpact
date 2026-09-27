@@ -1,5 +1,5 @@
 /**
- * Open Impact patch C, documented sharing exception. See
+ * BarnCRM patch C, documented sharing exception. See
  * packages/core/vendor/apex-rollup/VENDOR.md and docs/product-plan.md Section 4.13.
  *
  * Plan Section 4.13 requires every Apex class to run "with sharing" unless a documented reason
@@ -18,7 +18,7 @@
  *
  * Why no user input reaches these writes: the values written are aggregates this engine computed
  * from records it queried, and the object and field names come from configuration, not from a
- * user-entered value. Under the planned Open Impact integration they will come from
+ * user-entered value. Under the planned BarnCRM integration they will come from
  * Rollup_Definition__c rows an administrator created and the console validated (RollupAdapter and
  * Rollup_Definition__c are C-14 work and do not exist yet). There is no path from a user-entered
  * value to a dynamic SOQL string or to a field name here.

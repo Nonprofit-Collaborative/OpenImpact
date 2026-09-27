@@ -1,5 +1,5 @@
 /**
- * Open Impact patch E, see packages/core/vendor/apex-rollup/VENDOR.md.
+ * BarnCRM patch E, see packages/core/vendor/apex-rollup/VENDOR.md.
  * Every sort call in this class goes through a List<SObject> reference rather than the typed list.
  * RollupCalcItemSorter is a System.Comparator<SObject>; the platform compiler accepts it against a
  * typed SObject list, the offline apex-ls checker does not model that covariance. The list object

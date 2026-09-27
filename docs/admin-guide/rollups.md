@@ -13,12 +13,12 @@ up to date for you, but it is maintained by the household automation every time 
 joins or leaves, so it is not on the Rollups page and Recalculate does not touch it. If a
 member count looks wrong, the Households page is where to fix it.
 
-Open Impact calculates them for you and shows you when each one was last calculated, so
+BarnCRM calculates them for you and shows you when each one was last calculated, so
 you never have to guess whether a number on a record is current. If the calculation has
 not run recently, the Hub says so on the home page rather than leaving a stale number
 looking fresh.
 
-## What Open Impact calculates for you
+## What BarnCRM calculates for you
 
 Every total below is created when you install the module that owns it, switched on and
 ready to calculate, and every one of them can then be switched to another mode, made
@@ -65,7 +65,7 @@ about a number that looks wrong:
   once its status is Received, Refunded, or Written off: the three statuses that mean the
   money actually moved. Refunded and Written off are in that list on purpose, and the next
   point says why.
-- **A refunded gift stays in the count and leaves the total.** Open Impact records a
+- **A refunded gift stays in the count and leaves the total.** BarnCRM records a
   refund as a second gift for a negative amount rather than editing or deleting the
   original, so the two cancel out. A donor who gave $250 and had all of it back shows
   **1 gift** and **$0 total giving**. That is deliberate: they did give, once, and the
@@ -94,7 +94,7 @@ giving totals because it has no gifts, and they appear when the Giving module is
 
 One step is left for you, and nothing in the app does it on your behalf:
 
-1. Open the **Open Impact** app and choose the **Open Impact Settings** tab.
+1. Open the **BarnCRM** app and choose the **BarnCRM Settings** tab.
 2. Choose **Rollups** in the left navigation. You should see every total listed above, one
    row each.
 3. Click **Schedule nightly recalculation**. The page then shows "Nightly recalculation
@@ -112,7 +112,7 @@ already writes is not created, so the two never overwrite each other's total. Pr
 install-time step failed and the Error Log will say why, or if a rollup you need is not
 listed.
 
-It is also the reason to switch a rollup off rather than delete it. Open Impact cannot
+It is also the reason to switch a rollup off rather than delete it. BarnCRM cannot
 tell a rollup you deleted on purpose from one that has never existed, so a deleted rollup
 comes back the next time the package is upgraded or the next time somebody presses this
 button. Clearing the **Active** box is the durable way to say no to a total: an inactive
@@ -127,7 +127,7 @@ Two settings on the same page change how every rollup behaves:
 - **Default rollup mode** decides how a newly created rollup starts out: Real time,
   Scheduled, or Both.
 
-You need the **Manage Open Impact Settings** permission to change any of this. Without it,
+You need the **Manage BarnCRM Settings** permission to change any of this. Without it,
 the Rollups page still opens and still shows every total and its last calculated time; the
 controls are simply read only.
 
@@ -135,10 +135,10 @@ controls are simply read only.
 
 Do this as Maria, with the sample data loaded.
 
-1. Open the **Open Impact** app. On the home page, find the **Rollups** tile. It reads
+1. Open the **BarnCRM** app. On the home page, find the **Rollups** tile. It reads
    "Rollups last completed" with a time. If it has been more than 36 hours, the tile turns
    into a warning and offers a link to the Rollups page. Click that link, or open
-   **Open Impact Settings** and choose **Rollups**.
+   **BarnCRM Settings** and choose **Rollups**.
 2. You are looking at every total the rollup engine maintains, a little over forty rows.
    Each row says what the number means in plain language, what it counts ("SUM Amount__c
    on Gift__c"), where it shows ("Account.Total_Giving__c"), its mode, and when it was
