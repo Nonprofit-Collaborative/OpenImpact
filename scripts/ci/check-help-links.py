@@ -40,16 +40,17 @@ def help_path(path):
 
 
 def main():
+    # Suite Module rows (C-30) carry the same field for the Setup Assistant's Learn more link,
+    # appended to the same base.
     paths = sorted(
         glob.glob("packages/*/main/default/customMetadata/Setting_Definition.*.md-meta.xml")
+        + glob.glob("packages/*/main/default/customMetadata/Suite_Module.*.md-meta.xml")
     )
     problems = []
     checked = 0
 
     for path in paths:
-        name = os.path.basename(path).replace("Setting_Definition.", "").replace(
-            ".md-meta.xml", ""
-        )
+        name = os.path.basename(path).replace(".md-meta.xml", "")
         value = help_path(path)
         if not value:
             continue

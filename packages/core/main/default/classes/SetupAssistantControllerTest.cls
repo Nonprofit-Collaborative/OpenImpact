@@ -49,7 +49,8 @@ private class SetupAssistantControllerTest {
             stepByKey(state.steps, 'identity').fields.size(),
             'The organization step carries the fields it is going to edit'
         );
-        Assert.areEqual(6, state.modules.size(), 'The modules step lists the six packages');
+        Assert.isNotNull(state.suite, 'The first step needs the suites and their modules');
+        Assert.areEqual(2, state.suite.options.size(), 'It offers the two suites');
         Assert.isNotNull(state.roles, 'The access step needs the roles it can give out');
         Assert.isFalse(state.isComplete, 'A fresh org has not finished setup');
     }
@@ -342,14 +343,12 @@ private class SetupAssistantControllerTest {
         SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>();
 
         Test.startTest();
-        SetupAssistantController.SetupState state = SetupAssistantController.completeStep(
-            'modules'
-        );
+        SetupAssistantController.SetupState state = SetupAssistantController.completeStep('data');
         Test.stopTest();
 
         Assert.isTrue(
-            stepByKey(state.steps, 'modules').completed,
-            'Reading the module list is what finishes step six'
+            stepByKey(state.steps, 'data').completed,
+            'Saying the data is in is what finishes the data step'
         );
     }
 
@@ -457,6 +456,74 @@ private class SetupAssistantControllerTest {
         Test.stopTest();
 
         Assert.isTrue(refused, 'Finishing a step without the permission is refused');
+    }
+
+    @IsTest
+    static void choosesTheSuiteAndFinishesTheFirstStep() {
+        // The shipped Setting Definition rows: the suite is an ordinary setting, and a save
+        // of a key with no row is refused.
+        ModuleDetectionService.stubbedPresent = new Set<String>{ 'giving' };
+        SetupAssistantTestExtension.useNone();
+
+        Test.startTest();
+        SetupAssistantController.SetupState state = SetupAssistantController.chooseSuite(
+            SuiteService.NONPROFIT
+        );
+        Test.stopTest();
+
+        Assert.areEqual(SuiteService.NONPROFIT, state.suite.chosenSuite, 'The choice is saved');
+        Assert.isTrue(
+            stepByKey(state.steps, 'modules').completed,
+            'Saving a suite is what finishes the first step'
+        );
+        Assert.isNotNull(state.elapsedMinutes, 'The clock starts at the first change Maria makes');
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Setting_Change__c WHERE Setting_Name__c LIKE '%.Suite__c'],
+            'The choice is audited like every other setting'
+        );
+    }
+
+    @IsTest
+    static void refusesASuiteItDoesNotOffer() {
+        String message;
+
+        Test.startTest();
+        try {
+            SetupAssistantController.chooseSuite('Enterprise');
+        } catch (AuraHandledException e) {
+            message = e.getMessage();
+        }
+        Test.stopTest();
+
+        Assert.areEqual(
+            System.Label.Core_SetupAssistant_UnknownSuiteError,
+            message,
+            'A suite that is not one of the two is refused in words Maria can act on'
+        );
+        Assert.isNull(SuiteService.chosenSuite(), 'And nothing is saved');
+    }
+
+    @IsTest
+    static void refusesDavidsSuiteChoice() {
+        User david = buildDavid();
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert david;
+        }
+        Boolean refused = false;
+
+        Test.startTest();
+        System.runAs(david) {
+            try {
+                SetupAssistantController.chooseSuite(SuiteService.COMMUNITY);
+            } catch (AuraHandledException e) {
+                refused = true;
+            }
+        }
+        Test.stopTest();
+
+        Assert.isTrue(refused, 'Choosing the suite needs Manage BarnCRM Settings');
+        Assert.isNull(SuiteService.chosenSuite(), 'And nothing is saved');
     }
 
     private static List<Setting_Definition__mdt> identityRows() {

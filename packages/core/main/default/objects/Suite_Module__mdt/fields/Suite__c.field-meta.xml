@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Suite__c</fullName>
+  <description>The suite this row belongs to: Nonprofit or Community, as the Suite setting stores it.</description>
+  <externalId>false</externalId>
+  <fieldManageability>DeveloperControlled</fieldManageability>
+  <label>Suite</label>
+  <length>40</length>
+  <required>true</required>
+  <type>Text</type>
+  <unique>false</unique>
+</CustomField>

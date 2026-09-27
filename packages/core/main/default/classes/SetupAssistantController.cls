@@ -27,8 +27,9 @@ public with sharing class SetupAssistantController {
         public Integer elapsedMinutes;
         @AuraEnabled
         public CoexistenceModel coexistence;
+        /** The first step: the suite chosen or suggested, and the modules each suite offers. */
         @AuraEnabled
-        public List<ModuleDetectionService.ModuleInfo> modules;
+        public SuiteService.SuiteModel suite;
         @AuraEnabled
         public List<AccessService.Role> roles;
         @AuraEnabled
@@ -101,6 +102,26 @@ public with sharing class SetupAssistantController {
             SetupAssistantService.ensureStarted();
             CoexistenceService.applyMode(chosen);
             SetupAssistantService.markComplete('coexistence');
+            return buildState();
+        } catch (Exception e) {
+            throw logged(e, System.Label.Core_SetupAssistant_SaveErrorMessage);
+        }
+    }
+
+    /**
+     * The first step: records which suite the organization is setting up (C-30). The step
+     * finishes by itself once the setting has a value, so nothing else is marked here.
+     */
+    @AuraEnabled
+    public static SetupState chooseSuite(String suite) {
+        requireEdit();
+        String chosen = suite == null ? '' : suite.trim();
+        if (!SuiteService.suites().contains(chosen)) {
+            throw asAuraException(System.Label.Core_SetupAssistant_UnknownSuiteError);
+        }
+        try {
+            SetupAssistantService.ensureStarted();
+            SuiteService.choose(chosen);
             return buildState();
         } catch (Exception e) {
             throw logged(e, System.Label.Core_SetupAssistant_SaveErrorMessage);
@@ -199,7 +220,7 @@ public with sharing class SetupAssistantController {
         state.isComplete = state.stepsCompleted == state.stepsTotal;
         state.elapsedMinutes = SetupAssistantService.elapsedMinutes();
         state.coexistence = coexistence();
-        state.modules = ModuleDetectionService.getModules();
+        state.suite = SuiteService.model();
         state.roles = roles();
         state.importAvailable = ModuleDetectionService.isImportPresent();
         return state;
@@ -292,7 +313,8 @@ public with sharing class SetupAssistantController {
         ErrorLogger.log(e, ERROR_CONTEXT);
         Boolean speaksForItself =
             e instanceof SetupAssistantService.SetupStepException ||
-            e instanceof SettingsService.SettingsException;
+            e instanceof SettingsService.SettingsException ||
+            e instanceof SuiteService.SuiteException;
         return asAuraException(speaksForItself ? e.getMessage() : fallback);
     }
 

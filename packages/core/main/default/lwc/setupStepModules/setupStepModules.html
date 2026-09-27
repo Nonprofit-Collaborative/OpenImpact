@@ -1,13 +1,32 @@
 <template>
     <ul class="slds-has-dividers_bottom-space">
         <template for:each={rows} for:item="module">
-            <li key={module.name} class="slds-item slds-var-p-vertical_xx-small">
+            <li key={module.name} class="slds-item slds-var-p-vertical_xx-small" data-id="module-row">
                 <span class={module.statusClass}>{module.status}</span>
                 <span class="slds-text-heading_x-small slds-var-m-left_x-small">{module.name}</span>
+                <template lwc:if={module.roleText}>
+                    <span class="slds-text-body_small slds-text-color_weak slds-var-m-left_x-small" data-id="module-role"
+                        >{module.roleText}</span
+                    >
+                </template>
                 <a class="slds-var-m-left_small" href={module.docsUrl} target="_blank" rel="noopener noreferrer"
                     >{labels.learnMore}
                     <span class="slds-assistive-text">{module.name}</span>
                 </a>
+                <template lwc:if={module.showInstallLink}>
+                    <a
+                        class="slds-var-m-left_small"
+                        href={module.installUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-id="install-link"
+                        >{labels.install}
+                        <span class="slds-assistive-text">{module.name}</span>
+                    </a>
+                </template>
+                <template lwc:if={module.showHowToGet}>
+                    <p class="slds-text-body_small slds-var-m-top_xx-small" data-id="how-to-get">{labels.howToGet}</p>
+                </template>
             </li>
         </template>
     </ul>

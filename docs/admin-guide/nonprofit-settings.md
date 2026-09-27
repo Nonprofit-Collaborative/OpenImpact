@@ -61,6 +61,19 @@ Start with the sample data loaded. Steps 1 to 6 are Maria. Step 7 is David.
    out and there is no Save button. He can still read every description and follow every
    Learn more link.
 
+## Which suite you chose
+
+The first setting in the **General** section is **Suite**: **Nonprofit Suite** or
+**Community Suite**. It is the answer to the first question of the Setup Assistant, and
+changing it here is the same as changing it there. It is empty until someone chooses; while
+it is empty, the assistant suggests the Nonprofit Suite when the Giving module is installed
+and the Community Suite when it is not.
+
+The suite decides which modules the Setup Assistant lists and offers. It never installs,
+removes, hides or switches off anything: a module you have installed keeps working whichever
+suite you choose. The Setup Assistant page explains both suites and the modules each one
+offers.
+
 ## Common mistakes
 
 - **Trying to change settings without the permission and thinking the page is broken.**
@@ -89,3 +102,5 @@ changes.
 | A setting's value | The settings record of the module that owns it, one field per setting. Core's is BarnCRM Settings; a module such as Giving brings its own. |
 | A row in Recent changes | Setting Change: setting name, old value, new value, changed by, changed at |
 | The list of settings the console shows | Setting Definition, a package-shipped list that upgrades bring you |
+| Which suite you chose | BarnCRM Settings, Suite: Nonprofit, Community, or empty until chosen |
+| The modules each suite lists in the Setup Assistant | Suite Module, a package-shipped list that upgrades bring you |

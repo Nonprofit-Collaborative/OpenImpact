@@ -32,13 +32,23 @@ private class SetupAssistantServiceTest {
             'A step nobody has marked and no setting completes is still to do'
         );
         Assert.areEqual(
-            'coexistence',
+            'modules',
             steps[0].key,
-            'Confirming how BarnCRM fits the org comes first'
+            'Choosing the suite comes first (C-30), in the place the module list had'
+        );
+        Assert.areEqual(
+            System.Label.Core_SetupAssistant_SuiteStepLabel,
+            steps[0].label,
+            'And it is named for the choice it asks'
+        );
+        Assert.areEqual(
+            'coexistence',
+            steps[1].key,
+            'Confirming how BarnCRM fits the org comes next'
         );
         Assert.areEqual(
             '/lightning/setup/ManageUsers/home',
-            steps[2].setupPath,
+            steps[3].setupPath,
             'Creating a colleague who has never signed in is the one part of access Salesforce keeps in Setup'
         );
     }
@@ -197,8 +207,13 @@ private class SetupAssistantServiceTest {
         );
         Assert.areEqual(
             SetupAssistantService.RULE_ACTION,
-            stepByKey(steps, 'modules').completionRule,
+            stepByKey(steps, 'data').completionRule,
             'A step with no setting behind it finishes when Maria finishes it'
+        );
+        Assert.areEqual(
+            SuiteService.SETTING_KEY,
+            stepByKey(steps, 'modules').completionSettingKey,
+            'The suite step finishes once a suite is saved'
         );
         Assert.areEqual(
             2,
@@ -217,16 +232,16 @@ private class SetupAssistantServiceTest {
         Test.stopTest();
 
         Assert.areEqual(8, steps.size(), 'The module adds one step to Core\'s seven');
-        Assert.areEqual(SetupAssistantTestExtension.STEP_KEY, steps[2].key, 'It comes third');
-        Assert.areEqual(3, steps[2].position, 'And is numbered where it stands');
-        Assert.areEqual('access', steps[3].key, 'The Core steps after it move down one');
+        Assert.areEqual(SetupAssistantTestExtension.STEP_KEY, steps[3].key, 'It comes fourth');
+        Assert.areEqual(4, steps[3].position, 'And is numbered where it stands');
+        Assert.areEqual('access', steps[4].key, 'The Core steps after it move down one');
         Assert.areEqual(
             SetupAssistantService.RULE_SETTING,
-            steps[2].completionRule,
+            steps[3].completionRule,
             'A module step can finish when its setting has a value'
         );
-        Assert.isTrue(steps[2].advanceOnSave, 'A one question step moves on once answered');
-        Assert.areEqual('Contact', steps[2].fields[0].objectApiName, 'Its picker names its object');
+        Assert.isTrue(steps[3].advanceOnSave, 'A one question step moves on once answered');
+        Assert.areEqual('Contact', steps[3].fields[0].objectApiName, 'Its picker names its object');
     }
 
     @IsTest

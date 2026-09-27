@@ -66,4 +66,42 @@ private class ModuleDetectionServiceTest {
             'The module list and the Giving check give the same answer'
         );
     }
+
+    @IsTest
+    static void findsAModuleByTheRowsItShipsWhateverItsNameIsWrittenLike() {
+        SettingDefinitionSelector.stubbedRows = new List<Setting_Definition__mdt>{
+            new Setting_Definition__mdt(
+                Setting_Key__c = 'Indicator_Period__c',
+                Settings_Object__c = 'Logic_Model_Settings__c',
+                Section__c = 'Logic Models',
+                Module__c = 'Logic_Models',
+                Data_Type__c = 'Text'
+            )
+        };
+
+        Test.startTest();
+        Boolean logicModels = ModuleDetectionService.isPresent('Logic Models');
+        Boolean programs = ModuleDetectionService.isPresent('Programs');
+        Boolean core = ModuleDetectionService.isPresent('Core');
+        Boolean nothing = ModuleDetectionService.isPresent(' ');
+        Test.stopTest();
+
+        Assert.isTrue(logicModels, 'Capitals, spaces and underscores do not matter (C-30)');
+        Assert.isFalse(programs, 'A module that shipped no rows is not here');
+        Assert.isTrue(core, 'Core is always here');
+        Assert.isFalse(nothing, 'A blank name is no module');
+    }
+
+    @IsTest
+    static void testsCanSayWhichModulesArePresent() {
+        ModuleDetectionService.stubbedPresent = new Set<String>{ 'volunteers' };
+
+        Test.startTest();
+        Boolean giving = ModuleDetectionService.isGivingPresent();
+        Boolean volunteers = ModuleDetectionService.isPresent('Volunteers');
+        Test.stopTest();
+
+        Assert.isFalse(giving, 'Giving is absent when a test says so, even beside Giving');
+        Assert.isTrue(volunteers, 'And a module a test names is present');
+    }
 }

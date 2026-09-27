@@ -1,8 +1,9 @@
 /**
  * Proves, in an org with both packages installed, that Core's Setup Assistant finds
  * `GivingSetupAssistantExtension` by name and reads as it did before Core was made neutral
- * (C-29, ADR-0059): eight steps, the fund and appeal step third, the receipt fields on the
- * organization step, and the first gift button last.
+ * (C-29, ADR-0059): eight steps, the fund and appeal step after naming, the receipt fields on
+ * the organization step, and the first gift button last. From C-30 the suite choice, which
+ * took the place of the module inventory, comes first (ADR-0046).
  *
  * `SetupAssistantService.Step` and `StepField` fields are `@AuraEnabled` only, not
  * `@NamespaceAccessible`, so under a future namespace prefix this package cannot read them
@@ -44,20 +45,20 @@ private class GivingSetupAssistantExtensionTest {
         }
         System.assertEquals(
             new List<String>{
+                'modules',
                 'coexistence',
                 'naming',
                 'funddefaults',
                 'access',
                 'identity',
-                'modules',
                 'data',
                 'verify'
             },
             keys,
-            'Giving adds the fund and appeal step third, as before'
+            'Giving adds the fund and appeal step after naming, as before, with the suite first'
         );
         Map<String, Object> defaults = stepByKey(steps, 'funddefaults');
-        System.assertEquals(3, defaults.get('position'));
+        System.assertEquals(4, defaults.get('position'));
         System.assertEquals(Label.Giving_SetupAssistant_FundAppealStepLabel, defaults.get('label'));
         System.assertEquals(true, defaults.get('advanceOnSave'));
     }

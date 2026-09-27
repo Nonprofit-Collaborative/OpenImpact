@@ -3,7 +3,8 @@
  * steps, says how each one finishes, and remembers where Maria got to, so that closing the
  * browser in the middle of step four opens on step four tomorrow.
  *
- * Core ships seven neutral steps. A dependent package adds its own steps, fields and wording
+ * Core ships seven neutral steps, the first of which asks which suite the organization is
+ * setting up (C-30). A dependent package adds its own steps, fields and wording
  * through `SetupAssistantExtension` (C-29, ADR-0059): Giving adds the fund and appeal step and
  * the receipt fields, which makes eight. A step's fields are data, rendered by one Core panel
  * and saved through `SettingsService` on the settings object each field names.
@@ -101,7 +102,7 @@ public with sharing class SetupAssistantService {
         /** True when saving the panel's fields also moves on to the next step. */
         @AuraEnabled
         public Boolean advanceOnSave;
-        /** Where the step sits: Core's steps are 10 to 80 in tens, a module fills the gaps. */
+        /** Where the step sits: Core's are 5, then 10 to 80 in tens; a module fills the gaps. */
         public Integer sortOrder;
 
         /** A step, or a contribution to a Core step when the key is one of Core's. */
@@ -534,6 +535,19 @@ public with sharing class SetupAssistantService {
     /** The seven steps every organization answers, whatever else is installed. */
     private static List<Step> coreSteps() {
         List<Step> steps = new List<Step>();
+        // The suite choice comes first (C-30, ADR-0046). It takes the place of the module
+        // inventory that was step six and keeps that step's key, so progress an org recorded
+        // there still counts: an org that marked it done stays finished without choosing.
+        steps.add(
+            new Step(
+                    'modules',
+                    5,
+                    System.Label.Core_SetupAssistant_SuiteStepLabel,
+                    System.Label.Core_SetupAssistant_SuiteStepDescription
+                )
+                .withTarget(SettingSections.GENERAL)
+                .completedBy(null, SuiteService.SETTING_KEY)
+        );
         steps.add(
             new Step(
                     'coexistence',
@@ -593,15 +607,6 @@ public with sharing class SetupAssistantService {
                         .withLimits(255, null, null)
                         .asFullWidth()
                 )
-        );
-        steps.add(
-            new Step(
-                    'modules',
-                    60,
-                    System.Label.Core_SetupAssistant_Step6Label,
-                    System.Label.Core_SetupAssistant_Step6Description
-                )
-                .withTarget(SettingSections.GENERAL)
         );
         steps.add(
             new Step(
