@@ -1,12 +1,11 @@
-# ADR-0046: Two suites from the same packages, a tentative name, unlocked now and managed at listing
+# ADR-0046: Two suites from the same packages, the BarnCRM name, unlocked now and managed at listing
 
 **Status:** Accepted
-**Date:** 2026-09-23
+**Date:** 2026-09-23; amended 2026-09-27 (name settled as BarnCRM, Impact Suite renamed Nonprofit
+Suite, owner decision)
 **Source:** product owner decision (Brandon), plan Section 3 "Suites and packaging", Section 8.3,
 Section 11.2 open question 5, and Section 12 decisions D-01 and D-02; amends ADR-0001 (name) and
 ADR-0002 (packaging)
-**Amended by:** ADR-NEXT, which settles the name as BarnCRM and renames the Impact Suite the
-Nonprofit Suite
 
 ## Context
 
@@ -21,10 +20,20 @@ PackageInstallRequest exists but is not a supported product path.
 
 ## Decision
 
-- **Tentative name BarnCRM**, subject to the plan Section 8.3 checks. The repository, labels
-  and docs keep the working title until the name is verified, then are renamed in one pass. The
-  namespace stays deferred. This re-opens the name part of ADR-0001; its namespace deferral stands.
-- **Two suites from the same packages.** Impact Suite (nonprofits) is Core plus Giving, with
+- **The name is BarnCRM** (settled 2026-09-27; tentative from 2026-09-23), written as one word
+  with that capitalization, because "barn" alone is unsearchable. barncrm.org and barncrm.com are
+  registered. Still open before public use (a listing, a public post, a published package): the
+  full trademark search and confirming the namespace in the Dev Hub (plan Section 8.3). The
+  namespace stays deferred. This settles the name part of ADR-0001; its namespace deferral stands.
+- **The rename is one pass, after C-29 (PRs #163 to #174) merges**, since C-29 changes many of
+  the same labels. In order: labels, app, tab and permission set names, help text and
+  descriptions, settling plan Section 11.2 questions 23 to 25 at the same time so API names
+  change at most once; then the guides, README, NOTICE and `package.json`; then contributor-typed
+  aliases (`oi-test`, `oi-pa`); then the GitHub repository, renamed by the owner. Each pull
+  request stays under about 800 changed lines. Accepted ADRs, dated release notes and the
+  decision log keep the name that was true when written.
+- **Two suites from the same packages.** Nonprofit Suite (named Impact Suite until 2026-09-27) is
+  Core plus Giving, with
   Programs, Logic Models, Volunteers, Funders and Connect offered. Community Suite (for-profit
   and other organizations) is Core alone, with the modules that fit (Volunteers, Events later)
   offered; nonprofit-only modules are never offered.
@@ -60,4 +69,6 @@ PackageInstallRequest exists but is not a supported product path.
 - Pilot orgs must be told in writing, before install, that they will migrate from unlocked to
   managed packages.
 - Every review checks managed-package rules now, since unlocked packaging will not enforce them.
-- The name is still unverified; a later ADR records the final name once Section 8.3 is done.
+- The Setup Assistant's first step (C-30) asks "Nonprofit Suite or Community Suite".
+- The trademark search result is recorded here and in plan Section 8.3; a conflict re-opens the
+  name under the owner's legal gate.

@@ -756,7 +756,7 @@ Remove each item from this list in the PR that finishes it.
 
 The owner decided on 2026-09-27 that the product is BarnCRM, that barncrm.org and barncrm.com
 are registered, and that the suites are the Nonprofit Suite and the Community Suite (no longer
-Impact Suite); see ADR-NEXT (product name BarnCRM and suite names). BMemory was unreachable from
+Impact Suite); see ADR-0046, amended the same day. BMemory was unreachable from
 the session that recorded this. Whoever next has BMemory access makes these changes there, then
 refreshes `docs/product-plan.md` and deletes this subsection:
 
@@ -767,7 +767,7 @@ refreshes `docs/product-plan.md` and deletes this subsection:
 - Section 11.2: questions 23 to 25 are settled in the rename pass, after C-29 merges.
 
 The rename pass itself (labels, docs, aliases, then the repository) waits for C-29 to merge;
-the ADR lists its steps.
+ADR-0046 lists its steps.
 
 ### Never tested
 
