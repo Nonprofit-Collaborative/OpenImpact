@@ -761,6 +761,12 @@ Remove each item from this list in the PR that finishes it.
 
 ### Work items
 
+Pending plan update: the maintainer asked (2026-09-27) for every item below to be added to plan
+Section 11.3 (parking lot) in BMemory, with the same detail as here: the classes, fields, rules
+and tests named in each item, not a one-line summary. The BMemory gateway was unreachable, so
+this is not done yet. Whoever next has BMemory access does it, then refreshes
+`docs/product-plan.md` and deletes this paragraph.
+
 1. **Harden the settings writers and cap uncapped counts.**
    - `SettingsService.applyValues`, through `SettingsWriter.saveOrgDefault`, upserts the whole
      cached, unlocked `Nonprofit_Settings__c` record. It should update only the changed fields
