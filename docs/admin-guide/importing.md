@@ -4,7 +4,8 @@
 
 Importing loads a spreadsheet of people, households, and organizations into BarnCRM
 without a consultant, and, with the Giving module installed, their gifts too
-([Importing gifts](gift-import.md)). You upload the file, BarnCRM suggests which column means what,
+([Importing gifts](gift-import.md)). A mapping can instead load the records of one object,
+such as volunteer hours or an object your organization built (section 6A). You upload the file, BarnCRM suggests which column means what,
 you say how a row should be matched against records you already have, and then you run a
 **dry run** that tells you exactly what would be created, updated, matched, or rejected
 before anything is written. When the preview looks right you commit it, and the results
@@ -55,25 +56,33 @@ or six rows.
    values are kept on the staged row but written nowhere. The mapping remembers your
    choices: the next file with the same headings opens with them, and a column you set to
    **Do not load** stays that way even when BarnCRM recognizes its heading.
-4. Choose how rows are matched. **Email exact** is the safe default. Read the sentence
-   under each rule before you change it: **Name plus postal code** will treat two
-   different people who share a name at one address as the same person.
-5. Optionally, under **Control totals**, type how many rows the file should have (and, for a
+4. Choose how rows are matched: one rule for people, one for organizations, and what to do
+   when a row finds more than one record (section 4A). **Email exact** and **Name exact** are
+   the safe defaults. Read the sentence under each rule before you change it: **Name plus
+   postal code** will treat two different people who share a name at one address as the
+   same person.
+5. Optionally, under **Values for every row of this file**, give a value that applies to the
+   whole file, for example the appeal every gift in it answers (section 4B).
+6. Optionally, under **Control totals**, type how many rows the file should have (and, for a
    gift file, what its amounts should add up to). The dry run checks them and a commit is
    refused while they do not match.
-6. Select **Dry run**. Nothing is written. When it finishes you see four counts, "would
+7. Select **Dry run**. Nothing is written. When it finishes you see four counts, "would
    create", "would update", "would match and change nothing", and "would be rejected",
    and a table of the rejected rows with the reason for each one. Select **Download
    exceptions** to get those rows back as a CSV you can fix in your spreadsheet. A new
    person or organization that appears on several rows is counted once as "would create";
    their later rows count as matching them, which is what the commit will do. A donor with
    twelve monthly gifts in the file becomes one person with one household, not twelve.
-7. If the preview is wrong, fix the file or the mapping and dry run again. Nothing you
+   Rows whose details matched more than one record are listed in a table of their own,
+   whatever you chose to do with them (section 4A).
+8. If the preview is wrong, fix the file or the mapping and dry run again. Nothing you
    have done so far has changed a record.
-8. When the preview is right, select **Commit**. Processing runs in the background and
+9. When the preview is right, select **Commit**. Processing runs in the background and
    the screen updates as it goes.
-9. The results screen shows the same four counts for what actually happened, the run log,
-   and links to the records. Select **View rows** to see every row and what became of it.
+10. The results screen shows the same four counts for what actually happened, the run log,
+    and every rejected row with its reason. Once the commit finishes, BarnCRM deletes the rows
+    it staged from your file except the rejected ones, which stay so you can still download
+    them (section 4D).
 
 To check the tag, open one of the new households and look at **Created By Import Batch**.
 It links back to the import.
@@ -121,6 +130,99 @@ Three things are worth knowing about it.
   matching details and the same first name cannot be told apart: that row is rejected.
   Under the email rule, a second person who shares the first person's email needs a last
   name unless they are already in your org with that email and first name.
+
+## 4A. How rows are matched
+
+A row is matched against the records you already have before anything is created, so the same
+person is not added twice. People and organizations each have their own rule. Every rule shows
+one sentence saying what it risks; read it before you pick.
+
+**People**
+
+- **Email exact**: finds the person whose email is exactly the one in the file. Risk: a person
+  whose file email differs from their record (a work address, a typo) is created again.
+- **Name plus postal code**: finds the person with the same last name and postal code, told
+  apart by first name (section 4). Risk: where only one person holds that name and postal code,
+  a row with another first name matches them and renames them.
+- **External ID**: finds the person by an identifier your other system gave them, in a field you
+  pick from your org's external ID and unique fields on contacts (or person accounts). Risk: a
+  reused or mistyped identifier updates the wrong person. Map the file's identifier column to
+  the same field.
+
+**Organizations**
+
+- **Name exact**: finds the organization with exactly that name. Risk: two organizations with
+  one name are treated as one, and a name spelled differently in the file makes a new one.
+- **External ID**: as for people, on a field you pick from your org's external ID and unique
+  fields on accounts. A row that names an organization but leaves that field empty is
+  rejected, because it could be neither matched nor safely created.
+
+**When a row finds more than one record**
+
+Sometimes a row's email, name or identifier belongs to more than one record already in your org:
+two contacts with one email, two organizations with one name. Choose what happens:
+
+- **Reject the row** (the default): the row is rejected with a reason naming how many records
+  it found. Fix the duplicates, or the file, and load the row again. This is the safe choice,
+  because a row merged into the wrong record is much harder to notice than a rejected one.
+- **Use the most recently changed**: the row goes to whichever of those records was edited
+  most recently.
+
+Either way, the dry run lists every such row in **Rows that matched more than one record**, so
+you can see them before you commit. A couple who share an email or surname and postal code are
+still two people: the first name tells them apart, and a row is only "more than one" when
+several people also share its first name.
+
+A mapping saved before this choice existed rejects such rows too. Before, the oldest record
+was used; if that is what you want now, choose **Use the most recently changed** or clean up the
+duplicates first (see [Duplicates](duplicates.md)).
+
+## 4B. Values for every row of a file
+
+Some facts are true of the whole file and are not a column in it: every gift in this file
+answers the **Gala 2026** appeal, every person in it came from the spring fair. Under **Values
+for every row of this file**, pick what the value is for (the same list as the column picker)
+and type the value. You can add up to 50.
+
+- A row that has its own value for it keeps its own value. The file's value fills the rest.
+- A file value wins over a default saved with the mapping.
+- The values belong to this file only. The next file you load starts with none, so a value
+  meant for one appeal cannot slip into the next.
+
+## 4C. Affiliations
+
+Map a column to one of the **Affiliation** targets (role, start date, end date, primary,
+status, description) and each row connects its first person to its organization, the way a
+list of employees or board members does. If the person already has a current affiliation with
+that organization, it is updated from the row instead of a second one being made. A row with no
+organization, or no person, simply has no affiliation, and the run log says so once. The second
+person on a row gets none: a file listing a couple and an employer does not say which of them
+works there. Undo removes the affiliations an import created, unless somebody has changed them
+since.
+
+## 4D. What happens to your file's rows
+
+BarnCRM keeps a copy of each row of your file while you dry run, because the commit runs over
+exactly those rows. When the commit finishes, it deletes them, except the rejected ones: those
+stay with the import so you can download them for as long as it can be undone. Nothing you can
+undo depends on the deleted rows. Large files would otherwise fill a good part of your
+organization's data storage.
+
+## 4E. Checkbox columns
+
+A column mapped to a checkbox field (Email Opt Out, Do Not Call and the like) is read this way,
+ignoring capitals:
+
+| In the file | Loaded as |
+|---|---|
+| `true`, `yes`, `y`, `1`, `x`, `checked`, `on`, `t` | ticked |
+| `false`, `no`, `n`, `0`, `off`, `f` | not ticked |
+| empty | nothing changes |
+| anything else | not loaded, and the run log names the field and the value |
+
+A value BarnCRM cannot read is left out rather than guessed, so a column of "Opted out" or
+"Unsubscribed" never turns an opt-out off. Change those cells to yes or no and load the file
+again.
 
 ## 5. Undoing an import
 
@@ -180,6 +282,63 @@ Marking a mapping recurring changes nothing about how its files are imported. Ba
 never fetches or loads a file on its own: every file is still uploaded, dry run and
 committed by a person, because an import nobody watched is an import nobody checked.
 
+## 6A. Loading records of one object
+
+Not every file is a list of people. An export you fixed in Excel, a sheet of volunteer hours,
+a list of program enrollments or the records of an object your organization built itself: a
+mapping can instead load **one object**, including custom objects, row by row.
+
+**Make the mapping.** On the first step of the **Import** tab, under **Load records of one
+object**, choose the object, give the mapping a name, and select **Create mapping**. The list
+offers every object you can create or edit records of, except the ones BarnCRM keeps for
+itself (imports, the error log, settings, rollup definitions and receipts) and Salesforce's
+own setup (users, profiles, roles, permission sets and the like), which stays in Setup. The mapping is saved
+like any other and offered next time.
+
+**Map the columns.** The picker offers the object's fields by their labels. A lookup column,
+one that names another record (the organization of an affiliation, the person of a volunteer
+shift), has a second picker, **Find it by**: the record's **Id**, or one of that object's
+external ID or unique fields, or its name. Choose the one your file holds.
+
+**Choose what each row does.**
+
+| Choice | What it does | What it risks |
+|---|---|---|
+| **Insert** | Every row creates a record. | Loading the same file twice creates everything twice. |
+| **Update by record Id** | A column mapped to **Record Id** names the record to change. Nothing is created. | A wrong Id changes the wrong record; export the Ids from a report rather than typing them. |
+| **Upsert by external ID** | A column mapped to the external ID field you pick finds the record, or creates it when nobody has that value. | A reused or mistyped identifier updates the wrong record. |
+
+Then choose, as for people, what happens when a key or a lookup finds **more than one
+record** (reject the row, the default, or use the most recently changed), and what happens when
+a lookup finds **none** (reject the row, the default, or leave the lookup empty and load the
+rest of the row). The dry run lists every row that found more than one record.
+
+**What stays the same.** Values for every row of the file, control totals, the dry run, the
+commit, the results and the undo all work exactly as they do for people. Undo removes the
+records the import created and puts back the values it changed, unless somebody has changed
+them since.
+
+**What a load never writes.** Some fields are kept by BarnCRM or by Salesforce and are never
+imported over, whatever the mapping says: totals that BarnCRM's rollups calculate, household
+names and greetings, primary contact and primary affiliation, the import tag, formula and
+auto-number fields, and the created and modified dates. A column mapped to one is left out,
+and the run log names it once. A gift locked by a receipt or a closed period still refuses the
+change, and that row is rejected with the reason.
+
+Three more rules, on purpose:
+
+- **A blank cell changes nothing.** An update writes the values the file has and leaves the
+  rest as they are. To clear a field, use bulk update.
+- **A row repeating an earlier row's Id or external ID is rejected.** The file should say one
+  thing about each record; the dry run tells you which row came first.
+- **A value that does not fit its field rejects the row**, naming the field and the value, for
+  example a date Salesforce cannot read. People imports skip such a value instead, because a
+  person row has other things to load.
+
+The dry run checks everything BarnCRM can check without saving. A validation rule, or a
+required field the file leaves empty, is only met when the record is saved, so the commit
+reports those rows as rejected, with Salesforce's own message.
+
 ## 7. Common mistakes
 
 **An Excel file shows the wrong columns, or none.** Only the **first sheet** of a workbook is
@@ -213,6 +372,16 @@ file is exactly the email on the record, so a file of work addresses will not ma
 people whose personal address you hold. Run a dry run with a different rule, or add an
 external identifier column to the file and use **External ID**.
 
+**Rows rejected because they "match more than one record".** The row's email, name or
+identifier belongs to several records already in your org, and the mapping says to reject such
+rows (section 4A). Merge the duplicates (see [Duplicates](duplicates.md)) and load those rows
+again, or choose **Use the most recently changed** if that is the record you want. The dry run
+lists every such row before you commit.
+
+**The run log says a checkbox value was not loaded.** A checkbox column held something other
+than yes or no, for example "Opted out". That field was left as it was on those rows, and the
+rest of each row loaded. Change the cells to yes or no (section 4E) and load the file again.
+
 **Rows rejected with "Required value missing: last name".** A person needs a last name.
 Rows where the name column is empty, or where a single "Full Name" column was mapped to
 first name only, fail this way. Map the full name column to **Full name** and BarnCRM
@@ -245,6 +414,16 @@ found by it, and a person your org holds only by that field counts as new. Where
 are person accounts this can be one of the two postal codes (mailing or billing) while the
 other still matches. Do not commit: ask your Salesforce administrator
 for access to the field, then dry run again.
+
+**The run log says a field "is never imported over".** The column is mapped to a field
+BarnCRM or Salesforce keeps itself, such as a rollup total or a household greeting (section
+6A). It was left out of every row. Map the column to **Do not load**, or to the field it should
+feed.
+
+**Rows rejected because a lookup "found no record".** A lookup column names a record nobody
+in your org has by the field chosen under **Find it by**, or one you cannot see. Check the
+column against that field, choose another field, or choose **Leave it empty** to load the rest
+of those rows.
 
 **Gift columns in the file were not loaded.** Gifts are loaded by the Giving module. Without
 it, gift columns are recognized and kept with the staged row, and the run log says so. With
@@ -283,10 +462,14 @@ For building a report on your imports.
 |---|---|---|
 | One upload and its counts | Import Batch | Row Count, Rows Created, Rows Updated, Rows Matched, Rows Rejected |
 | Why an import failed as a whole | Import Batch | Run Log |
-| One row of the file | Import Row | Row Number, Status, Error Message |
+| One row of the file (only rejected rows remain after a commit) | Import Row | Row Number, Status, Error Message, Several Matches |
 | The records a row resolved to | Import Row | Household, Contact 1, Contact 2, Organization, Gift, Soft Credit |
 | The control totals of a file | Import Batch | Expected Count, Expected Amount, File Amount |
+| The values given for every row of a file | Import Batch | File Values |
+| How a mapping matches rows | Import Template | Matching Rule, Person Match Field, Organization Matching Rule, Organization Match Field, When Several Match |
+| What a one-object mapping loads and how | Import Template | Object, Load Operation, Load Match Field, When A Lookup Finds None |
+| The record a one-object row created, updated or matched | Import Row | Resulting Record |
 | The import a record came from | Account, Contact, Gift | Created By Import Batch |
 | Which mappings are for a recurring file, and when each was last used | Import Template | Is Recurring, Source Name, Last Import Date |
 | When an import can be undone until | Import Batch | Undo Deadline |
-| What an import changed on existing records, and what an undo kept | Import Journal | Phase, Entry Count, Entries |
+| What an import changed on existing records, what it created without a tag, and what an undo kept | Import Journal | Phase, Entry Count, Created Count, Entries |

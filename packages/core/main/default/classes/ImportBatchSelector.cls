@@ -13,7 +13,7 @@ public with sharing class ImportBatchSelector {
         'Rows_Updated__c, Rows_Matched__c, Rows_Rejected__c, Run_Log__c, Started_At__c, ' +
         'Completed_At__c, Chunk_Size__c, Undo_Deadline__c, Committed_By__c, Expected_Count__c, ' +
         'Expected_Amount__c, File_Amount__c, Processor_Settings_JSON__c, Pass_Number__c, Job_Id__c, ' +
-        'Operation__c';
+        'Operation__c, File_Values_JSON__c';
 
     /** One batch, or null. */
     @NamespaceAccessible
@@ -37,6 +37,23 @@ public with sharing class ImportBatchSelector {
             'SELECT ' + FIELDS + ' FROM Import_Batch__c ORDER BY CreatedDate DESC LIMIT :limitSize',
             new Map<String, Object>{ 'limitSize' => limitSize },
             AccessLevel.USER_MODE
+        );
+    }
+
+    /**
+     * How many of a batch's staged rows found more than one record (R-IT9), for the run log.
+     * In system mode for the reason `countRowsByStatus` gives.
+     */
+    @NamespaceAccessible
+    public static Integer countSeveralMatches(Id batchId) {
+        if (batchId == null) {
+            return 0;
+        }
+        return Database.countQueryWithBinds(
+            'SELECT COUNT() FROM Import_Row__c ' +
+            'WHERE Import_Batch__c = :batchId AND Several_Matches__c = TRUE',
+            new Map<String, Object>{ 'batchId' => batchId },
+            AccessLevel.SYSTEM_MODE
         );
     }
 

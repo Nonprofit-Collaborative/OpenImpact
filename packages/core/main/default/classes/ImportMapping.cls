@@ -23,11 +23,20 @@ public with sharing class ImportMapping {
     public static final String ENTITY_CONTACT_2 = 'Contact2';
     @NamespaceAccessible
     public static final String ENTITY_ORGANIZATION = 'Organization';
+    /** The row's first person's connection to its organization, resolved by Core (R-IR8). */
+    @NamespaceAccessible
+    public static final String ENTITY_AFFILIATION = 'Affiliation';
+    /** The one record a row of a template that loads one object describes (R-IT10). */
+    @NamespaceAccessible
+    public static final String ENTITY_RECORD = 'Record';
+
+    /** The most values one file may be given for all its rows (R-IB14). */
+    @NamespaceAccessible
+    public static final Integer MAX_FILE_VALUES = 50;
 
     /** The row entities Core stages but does not write (R-IR6). */
     @NamespaceAccessible
     public static final Set<String> DEFERRED_ENTITIES = new Set<String>{
-        'Affiliation',
         'Gift',
         'Allocation',
         'SoftCredit',
@@ -52,6 +61,12 @@ public with sharing class ImportMapping {
         public String source;
         @AuraEnabled
         public String target;
+        /**
+         * For a lookup column of a template that loads one object, the parent field the value
+         * names its parent by; empty or Id means the record Id (R-IT11).
+         */
+        @AuraEnabled
+        public String lookupField;
 
         // JSON.deserialize requires a no-arg constructor to build this class from the stored
         // mapping document (see parse below); the fields it fills in are set afterward by the
@@ -60,6 +75,7 @@ public with sharing class ImportMapping {
         public Column() {
             this.source = null;
             this.target = null;
+            this.lookupField = null;
         }
 
         @NamespaceAccessible
@@ -117,6 +133,15 @@ public with sharing class ImportMapping {
     public List<Column> columns;
     @AuraEnabled
     public List<Assignment> defaults;
+
+    /**
+     * The values given for every row of one file (R-IB14), which belong to the batch and not
+     * the template: transient, so they are never saved into the template's document. A row's
+     * own value wins over these, and these win over `defaults`. Null until the batch's values
+     * are read.
+     */
+    @NamespaceAccessible
+    public transient List<Assignment> fileValues;
 
     @NamespaceAccessible
     public ImportMapping() {
@@ -211,6 +236,28 @@ public with sharing class ImportMapping {
     }
 
     /**
+     * The parent field each lookup column names its parent by (R-IT11), keyed by the column's
+     * target attribute in lower case; a column with none, or Id, is left out and means the
+     * record Id.
+     */
+    @NamespaceAccessible
+    public Map<String, String> lookupFieldsByAttribute() {
+        Map<String, String> result = new Map<String, String>();
+        for (Column column : columns) {
+            if (
+                column == null ||
+                isIgnored(column.target) ||
+                String.isBlank(column.lookupField) ||
+                'id'.equalsIgnoreCase(column.lookupField.trim())
+            ) {
+                continue;
+            }
+            result.put(attributeOf(column.target).toLowerCase(), column.lookupField.trim());
+        }
+        return result;
+    }
+
+    /**
      * The source columns the administrator set to Do not load, keyed as `targetsBySourceKey`
      * keys them. Only the explicit ignore target counts: a blank or unreadable target is a
      * column nobody decided about. `targetsBySourceKey` leaves these out, which is right for
@@ -241,12 +288,61 @@ public with sharing class ImportMapping {
         for (String target : targetsBySourceKey().values()) {
             result.add(entityOf(target));
         }
-        for (Assignment assignment : defaults) {
+        for (Assignment assignment : assignments()) {
+            result.add(entityOf(assignment.target));
+        }
+        return result;
+    }
+
+    /**
+     * Every value applied to rows that do not carry their own, the file's (R-IB14) before the
+     * template's, with blank and unreadable targets left out.
+     */
+    @NamespaceAccessible
+    public List<Assignment> assignments() {
+        List<Assignment> result = new List<Assignment>();
+        List<Assignment> all = new List<Assignment>();
+        if (fileValues != null) {
+            all.addAll(fileValues);
+        }
+        all.addAll(defaults);
+        for (Assignment assignment : all) {
             if (assignment != null && !isIgnored(assignment.target)) {
-                result.add(entityOf(assignment.target));
+                result.add(assignment);
             }
         }
         return result;
+    }
+
+    /**
+     * Reads the values given for every row of a file (R-IB14), held in the defaults format of
+     * the mapping document. Blank targets and blank values are left out, and at most
+     * MAX_FILE_VALUES are kept. An unreadable document reads as none, as a mapping does.
+     */
+    @NamespaceAccessible
+    public static List<Assignment> parseValues(String document) {
+        List<Assignment> result = new List<Assignment>();
+        for (Assignment assignment : parse(document).defaults) {
+            if (
+                assignment != null &&
+                !isIgnored(assignment.target) &&
+                String.isNotBlank(assignment.value) &&
+                result.size() < MAX_FILE_VALUES
+            ) {
+                result.add(new Assignment(assignment.target.trim(), assignment.value.trim()));
+            }
+        }
+        return result;
+    }
+
+    /** The values given for every row of a file, as the batch stores them (R-IB14). */
+    @NamespaceAccessible
+    public static String valuesDocument(List<Assignment> values) {
+        ImportMapping document = new ImportMapping();
+        document.defaults = values == null ? new List<Assignment>() : values;
+        return JSON.serialize(
+            new Map<String, Object>{ 'version' => 1, 'defaults' => document.defaults }
+        );
     }
 
     /** The entities this mapping names that Core stages but cannot write (R-IR6). */

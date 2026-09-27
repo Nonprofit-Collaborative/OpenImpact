@@ -12,6 +12,12 @@ import getBatch from '@salesforce/apex/ImportController.getBatch';
 import getRows from '@salesforce/apex/ImportController.getRows';
 import saveRecurring from '@salesforce/apex/ImportController.saveRecurring';
 import getEntityTargets from '@salesforce/apex/ImportController.getEntityTargets';
+import getMatchFields from '@salesforce/apex/ImportController.getMatchFields';
+import getSeveralMatchRows from '@salesforce/apex/ImportController.getSeveralMatchRows';
+import getLoadableObjects from '@salesforce/apex/ImportController.getLoadableObjects';
+import createObjectTemplate from '@salesforce/apex/ImportController.createObjectTemplate';
+import getObjectFields from '@salesforce/apex/ImportController.getObjectFields';
+import getKeyFields from '@salesforce/apex/ImportController.getKeyFields';
 
 jest.mock('@salesforce/apex/ImportController.canImport', () => ({ default: jest.fn() }), {
   virtual: true
@@ -49,6 +55,29 @@ jest.mock('@salesforce/apex/ImportController.getRows', () => ({ default: jest.fn
 jest.mock('@salesforce/apex/ImportController.getEntityTargets', () => ({ default: jest.fn() }), {
   virtual: true
 });
+jest.mock('@salesforce/apex/ImportController.getMatchFields', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock('@salesforce/apex/ImportController.getSeveralMatchRows', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+
+jest.mock('@salesforce/apex/ImportController.getLoadableObjects', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock(
+  '@salesforce/apex/ImportController.createObjectTemplate',
+  () => ({ default: jest.fn() }),
+  {
+    virtual: true
+  }
+);
+jest.mock('@salesforce/apex/ImportController.getObjectFields', () => ({ default: jest.fn() }), {
+  virtual: true
+});
+jest.mock('@salesforce/apex/ImportController.getKeyFields', () => ({ default: jest.fn() }), {
+  virtual: true
+});
 
 const TEMPLATE = {
   id: 'a01',
@@ -75,6 +104,16 @@ const DRY_RUN_BATCH = {
 };
 
 const FILE_TEXT = 'Last Name,Email,Notes\nRamirez,ana@example.org,vip\nOkafor,ben@example.org,';
+
+/** How a template matches rows when nobody changed anything (R-IT8, R-IT9). */
+const DEFAULT_MATCHING = {
+  saveMatching: true,
+  organizationRule: 'Name exact',
+  personMatchField: '',
+  organizationMatchField: '',
+  severalMatches: 'Reject the row',
+  fileValues: []
+};
 
 /**
  * Lets every pending promise and rerender settle. Several turns, because reading a file goes
@@ -127,6 +166,11 @@ describe('the import wizard', () => {
     getBatch.mockResolvedValue(DRY_RUN_BATCH);
     getRows.mockResolvedValue([]);
     getEntityTargets.mockResolvedValue([]);
+    getMatchFields.mockResolvedValue({
+      person: [{ value: 'Donor_Id__c', label: 'Donor ID' }],
+      organization: [{ value: 'Org_Id__c', label: 'Organization ID' }]
+    });
+    getSeveralMatchRows.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -401,7 +445,8 @@ describe('the import wizard', () => {
     await flush();
     expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson)).toEqual({
       expectedCount: 2,
-      expectedAmount: null
+      expectedAmount: null,
+      ...DEFAULT_MATCHING
     });
 
     document.body.removeChild(element);
@@ -411,7 +456,8 @@ describe('the import wizard', () => {
     await flush();
     expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson)).toEqual({
       expectedCount: null,
-      expectedAmount: null
+      expectedAmount: null,
+      ...DEFAULT_MATCHING
     });
   });
 
@@ -472,6 +518,7 @@ describe('the import wizard', () => {
     expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson)).toEqual({
       expectedCount: null,
       expectedAmount: null,
+      ...DEFAULT_MATCHING,
       saveDonationMatching: true,
       donationMatching: 'Never match',
       matchDateWindowDays: 3,
@@ -502,5 +549,324 @@ describe('the import wizard', () => {
     await flush();
     expect(element.shadowRoot.querySelector('[data-id="expected-count"]')).not.toBeNull();
     expect(element.shadowRoot.querySelector('[data-id="results"]')).toBeNull();
+  });
+  it('explains each organization rule and what several matches do, and saves the choices', async () => {
+    const element = await toMatchingStep();
+    await flush();
+    const help = () => element.shadowRoot.querySelector('[data-id="organization-rule-help"]');
+    expect(help().textContent).toContain('c.Core_Import_OrganizationNameHelp');
+    expect(element.shadowRoot.querySelector('[data-id="organization-field"]')).toBeNull();
+    const rule = element.shadowRoot.querySelector('[data-id="organization-rule"]');
+    rule.dispatchEvent(new CustomEvent('change', { detail: { value: 'External ID' } }));
+    await flush();
+    expect(help().textContent).toContain('c.Core_Import_OrganizationExternalIdHelp');
+    // The organization External ID rule needs its field before a dry run.
+    expect(element.shadowRoot.querySelector('[data-id="dry-run"]').disabled).toBe(true);
+    const field = element.shadowRoot.querySelector('[data-id="organization-field"]');
+    expect(field.options).toEqual([{ label: 'Organization ID', value: 'Org_Id__c' }]);
+    field.dispatchEvent(new CustomEvent('change', { detail: { value: 'Org_Id__c' } }));
+    const several = element.shadowRoot.querySelector('[data-id="several"]');
+    expect(several.value).toBe('Reject the row');
+    several.dispatchEvent(
+      new CustomEvent('change', { detail: { value: 'Use the most recently changed' } })
+    );
+    await flush();
+    expect(element.shadowRoot.querySelector('[data-id="several-help"]').textContent).toContain(
+      'c.Core_Import_SeveralMostRecentHelp'
+    );
+    expect(element.shadowRoot.querySelector('[data-id="dry-run"]').disabled).toBe(false);
+    click(element, 'dry-run');
+    await flush();
+    expect(getMatchFields).toHaveBeenCalledWith({ templateId: 'a01' });
+    expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson)).toMatchObject({
+      saveMatching: true,
+      organizationRule: 'External ID',
+      organizationMatchField: 'Org_Id__c',
+      severalMatches: 'Use the most recently changed'
+    });
+  });
+
+  it('offers the person match fields only under the External ID rule, the first one first', async () => {
+    getTemplates.mockResolvedValue([{ ...TEMPLATE, matchingRule: 'External ID' }]);
+    const element = await toMatchingStep();
+    await flush();
+    const picker = element.shadowRoot.querySelector('[data-id="person-field"]');
+    expect(picker.options).toEqual([
+      { label: 'c.Core_Import_PersonMatchFieldDefault', value: '' },
+      { label: 'Donor ID', value: 'Donor_Id__c' }
+    ]);
+    picker.dispatchEvent(new CustomEvent('change', { detail: { value: 'Donor_Id__c' } }));
+    click(element, 'dry-run');
+    await flush();
+    expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson).personMatchField).toBe(
+      'Donor_Id__c'
+    );
+  });
+
+  it('keeps the matching choices the template saved', async () => {
+    getTemplates.mockResolvedValue([
+      {
+        ...TEMPLATE,
+        organizationRule: 'External ID',
+        organizationMatchField: 'Org_Id__c',
+        severalMatches: 'Use the most recently changed'
+      }
+    ]);
+    const element = await toMatchingStep();
+    await flush();
+    expect(element.shadowRoot.querySelector('[data-id="organization-rule"]').value).toBe(
+      'External ID'
+    );
+    expect(element.shadowRoot.querySelector('[data-id="organization-field"]').value).toBe(
+      'Org_Id__c'
+    );
+    expect(element.shadowRoot.querySelector('[data-id="several"]').value).toBe(
+      'Use the most recently changed'
+    );
+  });
+
+  it('sends the values for every row of the file, leaving out an empty one', async () => {
+    const element = await toMatchingStep();
+    const values = element.shadowRoot.querySelector('[data-id="file-values"]');
+    expect(values.options.map((option) => option.value)).not.toContain('Ignore');
+    values.dispatchEvent(
+      new CustomEvent('change', {
+        detail: {
+          values: [
+            { target: 'Household.Name', value: 'Gala 2026 guests' },
+            { target: 'Organization.Phone', value: '  ' }
+          ]
+        }
+      })
+    );
+    await flush();
+    click(element, 'dry-run');
+    await flush();
+    expect(JSON.parse(createBatch.mock.calls[0][0].optionsJson).fileValues).toEqual([
+      { target: 'Household.Name', value: 'Gala 2026 guests' }
+    ]);
+  });
+
+  it('offers the affiliation columns, which Core loads', async () => {
+    const element = render();
+    await flush();
+    click(element, 'next');
+    await flush();
+    await chooseFile(element);
+    const picker = element.shadowRoot.querySelector('[data-id="column-row"] lightning-combobox');
+    const values = picker.options.map((option) => option.value);
+    expect(values).toContain('Affiliation.Role__c');
+    expect(values).toContain('Affiliation.Is_Primary__c');
+  });
+
+  it('lists the rows that matched several records once the dry run finishes', async () => {
+    let poll;
+    const interval = jest.spyOn(window, 'setInterval').mockImplementation((callback) => {
+      poll = callback;
+      return 1;
+    });
+    try {
+      getSeveralMatchRows.mockResolvedValue([
+        {
+          id: 'r1',
+          rowNumber: 3,
+          status: 'Rejected',
+          errorMessage: 'More than one person matches.',
+          severalMatches: true
+        }
+      ]);
+      const element = await toMatchingStep();
+      click(element, 'dry-run');
+      await flush();
+      poll();
+      await flush();
+      expect(getSeveralMatchRows).toHaveBeenCalledWith({ batchId: 'a02', offsetRows: 0 });
+      const results = element.shadowRoot.querySelector('[data-id="results"]');
+      expect(results.severalRows).toHaveLength(1);
+    } finally {
+      interval.mockRestore();
+    }
+  });
+  describe('a mapping that loads one object', () => {
+    const OBJECT_TEMPLATE = {
+      ...TEMPLATE,
+      id: 'a09',
+      name: 'Affiliations',
+      targetObject: 'Affiliation__c',
+      targetObjectLabel: 'Affiliation',
+      loadOperation: 'Insert',
+      lookupNotFound: 'Reject the row'
+    };
+    const FIELDS = [
+      { value: 'Record.Id', label: 'Record Id', isLookup: false, lookupFields: [] },
+      {
+        value: 'Record.Organization__c',
+        label: 'Organization',
+        isLookup: true,
+        lookupFields: [
+          { value: 'Id', label: 'Record Id' },
+          { value: 'Name', label: 'Account Name' }
+        ]
+      },
+      { value: 'Record.Role__c', label: 'Role', isLookup: false, lookupFields: [] }
+    ];
+    const OBJECT_FILE = 'Employer,Role\nRose City,Treasurer\nOak Trust,Chair';
+
+    beforeEach(() => {
+      getTemplates.mockResolvedValue([OBJECT_TEMPLATE]);
+      getObjectFields.mockResolvedValue(FIELDS);
+      getKeyFields.mockResolvedValue([{ value: 'Pair_Key__c', label: 'Pair Key' }]);
+      suggestMapping.mockResolvedValue(
+        JSON.stringify({
+          version: 1,
+          columns: [
+            { source: 'Employer', target: 'Record.Organization__c', lookupField: 'Name' },
+            { source: 'Role', target: 'Record.Role__c' }
+          ]
+        })
+      );
+    });
+
+    async function toColumns() {
+      const element = render();
+      await flush();
+      click(element, 'next');
+      await flush();
+      await chooseFile(element, OBJECT_FILE, 'affiliations.csv');
+      return element;
+    }
+
+    it("offers the object's own fields and a lookup's Find it by picker", async () => {
+      const element = await toColumns();
+      expect(getObjectFields).toHaveBeenCalledWith({ templateId: 'a09' });
+      const pickers = element.shadowRoot.querySelectorAll(
+        '[data-id="column-row"] lightning-combobox'
+      );
+      expect(pickers[0].options.map((option) => option.value)).toEqual([
+        'Ignore',
+        'Record.Id',
+        'Record.Organization__c',
+        'Record.Role__c'
+      ]);
+      const lookup = element.shadowRoot.querySelector('[data-id="lookup-field"]');
+      expect(lookup.value).toBe('Name');
+      expect(lookup.options).toEqual([
+        { label: 'Record Id', value: 'Id' },
+        { label: 'Account Name', value: 'Name' }
+      ]);
+      expect(element.shadowRoot.querySelectorAll('[data-id="lookup-field"]')).toHaveLength(1);
+    });
+
+    it('shows the load choices instead of the people rules and saves them', async () => {
+      const element = await toColumns();
+      click(element, 'next');
+      await flush();
+      expect(element.shadowRoot.querySelector('[data-id="rule"]')).toBeNull();
+      expect(element.shadowRoot.querySelector('[data-id="organization-rule"]')).toBeNull();
+      const options = element.shadowRoot.querySelector('[data-id="load-options"]');
+      expect(options.operation).toBe('Insert');
+      options.dispatchEvent(
+        new CustomEvent('change', {
+          detail: { operation: 'Insert', matchField: '', lookupNotFound: 'Leave it empty' }
+        })
+      );
+      await flush();
+      click(element, 'dry-run');
+      await flush();
+      const sent = createBatch.mock.calls[0][0];
+      expect(JSON.parse(sent.mappingDocument).columns).toEqual([
+        { source: 'Employer', target: 'Record.Organization__c', lookupField: 'Name' },
+        { source: 'Role', target: 'Record.Role__c' }
+      ]);
+      expect(JSON.parse(sent.optionsJson)).toMatchObject({
+        saveLoad: true,
+        loadOperation: 'Insert',
+        loadMatchField: '',
+        lookupNotFound: 'Leave it empty'
+      });
+    });
+
+    it('will not dry run an update without a Record Id column, or an upsert without its field', async () => {
+      const element = await toColumns();
+      click(element, 'next');
+      await flush();
+      const options = element.shadowRoot.querySelector('[data-id="load-options"]');
+      options.dispatchEvent(
+        new CustomEvent('change', {
+          detail: {
+            operation: 'Update by record Id',
+            matchField: '',
+            lookupNotFound: 'Reject the row'
+          }
+        })
+      );
+      await flush();
+      expect(element.shadowRoot.querySelector('[data-id="dry-run"]').disabled).toBe(true);
+      options.dispatchEvent(
+        new CustomEvent('change', {
+          detail: {
+            operation: 'Upsert by external ID',
+            matchField: 'Pair_Key__c',
+            lookupNotFound: 'Reject the row'
+          }
+        })
+      );
+      await flush();
+      expect(getKeyFields).toHaveBeenCalledWith({ templateId: 'a09' });
+      expect(element.shadowRoot.querySelector('[data-id="dry-run"]').disabled).toBe(true);
+      options.dispatchEvent(
+        new CustomEvent('change', {
+          detail: { operation: 'Insert', matchField: '', lookupNotFound: 'Reject the row' }
+        })
+      );
+      await flush();
+      expect(element.shadowRoot.querySelector('[data-id="dry-run"]').disabled).toBe(false);
+    });
+
+    it('makes a one-object mapping on the first step and chooses it', async () => {
+      getTemplates.mockResolvedValue([TEMPLATE]);
+      getLoadableObjects.mockResolvedValue([{ value: 'Affiliation__c', label: 'Affiliation' }]);
+      createObjectTemplate.mockResolvedValue(OBJECT_TEMPLATE);
+      const element = render();
+      await flush();
+      click(element, 'choose-object');
+      await flush();
+      const object = element.shadowRoot.querySelector('[data-id="new-object"]');
+      expect(object.options).toEqual([{ label: 'Affiliation', value: 'Affiliation__c' }]);
+      expect(element.shadowRoot.querySelector('[data-id="create-object-template"]').disabled).toBe(
+        true
+      );
+      object.dispatchEvent(new CustomEvent('change', { detail: { value: 'Affiliation__c' } }));
+      const name = element.shadowRoot.querySelector('[data-id="new-template-name"]');
+      name.value = 'Board members';
+      name.dispatchEvent(new CustomEvent('change'));
+      await flush();
+      click(element, 'create-object-template');
+      await flush();
+      expect(createObjectTemplate).toHaveBeenCalledWith({
+        name: 'Board members',
+        objectName: 'Affiliation__c'
+      });
+      expect(element.shadowRoot.querySelector('[data-id="template"]').value).toBe('a09');
+    });
+
+    it('says why a one-object mapping could not be made', async () => {
+      getLoadableObjects.mockResolvedValue([{ value: 'Affiliation__c', label: 'Affiliation' }]);
+      createObjectTemplate.mockRejectedValue({ body: { message: 'Give the mapping a name.' } });
+      const element = render();
+      await flush();
+      click(element, 'choose-object');
+      await flush();
+      element.shadowRoot
+        .querySelector('[data-id="new-object"]')
+        .dispatchEvent(new CustomEvent('change', { detail: { value: 'Affiliation__c' } }));
+      const name = element.shadowRoot.querySelector('[data-id="new-template-name"]');
+      name.value = 'x';
+      name.dispatchEvent(new CustomEvent('change'));
+      await flush();
+      click(element, 'create-object-template');
+      await flush();
+      expect(element.shadowRoot.textContent).toContain('Give the mapping a name.');
+    });
   });
 });

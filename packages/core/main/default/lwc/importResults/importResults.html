@@ -62,5 +62,32 @@
         <template lwc:else>
             <p class="slds-text-body_small" data-id="no-rejected">{labels.noRejectedRows}</p>
         </template>
+
+        <template lwc:if={hasSeveralRows}>
+            <h3 class="slds-text-heading_small slds-var-m-top_medium slds-var-m-bottom_x-small">
+                {labels.severalHeading}
+            </h3>
+            <p class="slds-text-body_small slds-var-m-bottom_x-small">{labels.severalHelp}</p>
+            <div class="slds-scrollable_x">
+                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                    <thead>
+                        <tr class="slds-line-height_reset">
+                            <th scope="col">{labels.rowNumberHeader}</th>
+                            <th scope="col">{labels.statusHeader}</th>
+                            <th scope="col">{labels.reasonHeader}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={severalRows} for:item="row">
+                            <tr key={row.id} data-id="several-row">
+                                <td>{row.rowNumber}</td>
+                                <td>{row.status}</td>
+                                <td>{row.errorMessage}</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </template>
     </div>
 </template>

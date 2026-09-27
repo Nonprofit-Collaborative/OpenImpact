@@ -68,6 +68,49 @@ public with sharing class ImportBatchService {
         Integer expectedCount,
         Decimal expectedAmount
     ) {
+        return create(templateId, fileId, fileName, expectedCount, expectedAmount, null);
+    }
+
+    /**
+     * Creates the batch for one upload with its control totals and the values given for every
+     * row of this file (R-IB14). The values are the file's, kept on the batch: a blank target
+     * or value is dropped, and more than the most a file may carry is refused rather than cut.
+     */
+    @NamespaceAccessible
+    public static Import_Batch__c create(
+        Id templateId,
+        String fileId,
+        String fileName,
+        Integer expectedCount,
+        Decimal expectedAmount,
+        List<ImportMapping.Assignment> fileValues
+    ) {
+        List<ImportMapping.Assignment> kept = new List<ImportMapping.Assignment>();
+        for (
+            ImportMapping.Assignment value : fileValues == null
+                ? new List<ImportMapping.Assignment>()
+                : fileValues
+        ) {
+            if (
+                value != null &&
+                !ImportMapping.isIgnored(value.target) &&
+                String.isNotBlank(value.value)
+            ) {
+                kept.add(new ImportMapping.Assignment(value.target.trim(), value.value.trim()));
+            }
+        }
+        if (kept.size() > ImportMapping.MAX_FILE_VALUES) {
+            throw new ImportException(
+                String.format(
+                    Label.Core_Import_ErrorTooManyFileValues,
+                    new List<String>{ String.valueOf(ImportMapping.MAX_FILE_VALUES) }
+                )
+            );
+        }
+        String valuesDocument = kept.isEmpty() ? null : ImportMapping.valuesDocument(kept);
+        if (valuesDocument != null && valuesDocument.length() > 32768) {
+            throw new ImportException(Label.Core_Import_ErrorFileValuesTooLong);
+        }
         if (expectedCount != null && expectedCount < 0) {
             throw new ImportException(Label.Core_Import_ErrorControlCountNegative);
         }
@@ -88,7 +131,8 @@ public with sharing class ImportBatchService {
             Rows_Rejected__c = 0,
             Chunk_Size__c = chunkSize(),
             Expected_Count__c = expectedCount,
-            Expected_Amount__c = expectedAmount == null ? null : expectedAmount.setScale(2)
+            Expected_Amount__c = expectedAmount == null ? null : expectedAmount.setScale(2),
+            File_Values_JSON__c = valuesDocument
         );
         Database.insert(batch, AccessLevel.USER_MODE);
         return batch;
@@ -262,17 +306,12 @@ public with sharing class ImportBatchService {
             template.Column_Mapping_JSON__c,
             template.Default_Values_JSON__c
         );
-        if (!mapping.identifiesSomebody()) {
-            throw new ImportException(Label.Core_Import_ErrorMappingIdentifiesNobody);
-        }
         if (batch.Row_Count__c == null || batch.Row_Count__c <= 0) {
             throw new ImportException(Label.Core_Import_ErrorNoRows);
         }
-        if (
-            ImportTemplateService.isPersonAccountMode(template) &&
-            OrgShapeDetector.detect().personAccountRecordTypeIds.isEmpty()
-        ) {
-            throw new ImportException(Label.Core_Import_ErrorPersonModeUnavailable);
+        String refused = refusalToRun(template, mapping);
+        if (String.isNotBlank(refused)) {
+            throw new ImportException(refused);
         }
         // No reset of the staged rows: each chunk clears and stamps its own, so a pass costs the
         // same one write here however long the file (R-IB13).
@@ -300,6 +339,33 @@ public with sharing class ImportBatchService {
         );
         Database.update(batch, AccessLevel.USER_MODE);
         return batch.Job_Id__c;
+    }
+
+    /**
+     * Why this template's mapping cannot run, or null. A template that loads one object is
+     * checked by its loader (R-IT10, R-IT12); one that loads people must identify somebody, its
+     * chosen match fields must be usable (R-IT8), and person accounts must exist in Person
+     * Accounts mode.
+     */
+    private static String refusalToRun(Import_Template__c template, ImportMapping mapping) {
+        if (ImportObjectLoader.loadsOneObject(template)) {
+            return ImportObjectLoader.refusal(template, mapping);
+        }
+        if (!mapping.identifiesSomebody()) {
+            return Label.Core_Import_ErrorMappingIdentifiesNobody;
+        }
+        // A chosen match field the org no longer has, or the user may not read (R-IT8).
+        String matching = ImportTemplateService.matchingRefusal(template);
+        if (String.isNotBlank(matching)) {
+            return matching;
+        }
+        if (
+            ImportTemplateService.isPersonAccountMode(template) &&
+            OrgShapeDetector.detect().personAccountRecordTypeIds.isEmpty()
+        ) {
+            return Label.Core_Import_ErrorPersonModeUnavailable;
+        }
+        return null;
     }
 
     /** Set by a test to stand for the platform's answer about a batch's job. */
@@ -465,6 +531,16 @@ public with sharing class ImportBatchService {
             batch.Processor_Settings_JSON__c = processorSettings;
         }
         List<String> lines = logLines == null ? new List<String>() : new List<String>(logLines);
+        Integer several = ImportBatchSelector.countSeveralMatches(batchId);
+        if (several > 0) {
+            // Listed row by row on the results screen, rejected or not (R-IT9).
+            lines.add(
+                String.format(
+                    Label.Core_Import_LogSeveralMatches,
+                    new List<String>{ String.valueOf(several) }
+                )
+            );
+        }
         lines.addAll(controlTotalLines(batch));
         batch.Run_Log__c = String.join(lines, '\n').abbreviate(32768);
         if (failed == true) {
@@ -485,7 +561,35 @@ public with sharing class ImportBatchService {
         if (failed != true && dryRun != true) {
             ImportTemplateService.recordImport(batch.Import_Template__c, Date.today());
         }
+        if (dryRun != true) {
+            // The counts are read; the staged rows have done their work (R-IB15).
+            purgeStagedRows(batch.Id);
+        }
         return batch;
+    }
+
+    /**
+     * Whether a finished commit starts the job that deletes its staged rows (R-IB15). Off in a
+     * test unless the test turns it on, because a test's Test.stopTest runs every job queued
+     * since Test.startTest, and the import tests read the rows a commit resolved afterwards.
+     */
+    @TestVisible
+    private static Boolean purgeAfterCommit = !Test.isRunningTest();
+
+    /**
+     * Starts the deletion of a committed batch's staged rows, except the rejected ones
+     * (R-IB15). A failure to start it is logged, never raised: the commit is done, and rows
+     * left behind cost only storage.
+     */
+    private static void purgeStagedRows(Id batchId) {
+        if (purgeAfterCommit != true) {
+            return;
+        }
+        try {
+            Database.executeBatch(new ImportRowPurgeBatch(batchId), ImportRowPurgeBatch.SCOPE);
+        } catch (Exception e) {
+            ErrorLogger.log(e, 'ImportBatchService.purgeStagedRows', batchId);
+        }
     }
 
     /**

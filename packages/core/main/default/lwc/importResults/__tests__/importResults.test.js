@@ -80,4 +80,24 @@ describe('the import results view', () => {
     const element = render({ batch: undefined, rejectedRows: [] });
     expect(element.shadowRoot.querySelector('[data-id="created"]').textContent).toContain('0');
   });
+  it('lists the rows that matched several records, rejected or not, with what became of each', () => {
+    const element = render({
+      batch: DRY_RUN,
+      rejectedRows: [],
+      severalRows: [
+        { id: 'r1', rowNumber: 3, status: 'Rejected', errorMessage: 'More than one person.' },
+        { id: 'r2', rowNumber: 5, status: 'Updated', errorMessage: null }
+      ]
+    });
+    const rows = element.shadowRoot.querySelectorAll('[data-id="several-row"]');
+    expect(rows).toHaveLength(2);
+    expect(rows[0].textContent).toContain('Rejected');
+    expect(rows[1].textContent).toContain('Updated');
+  });
+
+  it('shows no several-matches table when no row matched several records', () => {
+    const element = render({ batch: DRY_RUN, rejectedRows: [], severalRows: [] });
+    expect(element.shadowRoot.querySelector('[data-id="several-row"]')).toBeNull();
+    expect(element.shadowRoot.textContent).not.toContain('c.Core_Import_SeveralHeading');
+  });
 });

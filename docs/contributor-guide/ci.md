@@ -236,7 +236,7 @@ gate run test the same org and cannot disagree because of a difference between o
 2. **Store its auth URL** as the repository secret `SF_TEST_ORG_AUTH_URL`. The auth URL is a
    credential, exactly like the Dev Hub one, so pipe it straight into the secret rather than
    displaying it:
-   `sf org display --target-org oi-test --verbose --json | jq -r .result.sfdxAuthUrl | gh secret set SF_TEST_ORG_AUTH_URL --repo Nonprofit-Collaborative/OpenImpact`
+   `sf org display --target-org oi-test --verbose --json | jq -r .result.sfdxAuthUrl | gh secret set SF_TEST_ORG_AUTH_URL --repo Nonprofit-Collaborative/BarnCRM`
 3. **Run `scripts/org/run-org-tests.sh oi-test`** on a pushed commit (see "The org test
    gate"), or dispatch the CI workflow by hand to have `org-tests` deploy both packages into
    the org and run the Apex tests there.
@@ -794,12 +794,28 @@ refreshes `docs/product-plan.md` and deletes this subsection:
   and add its two owner questions to Section 11.2: whether designations should be mirrored, which
   needs a Fund to Gift Designation link, and whether confirming Agentforce Nonprofit coexistence
   should propose the mirror.
+- Section 5.1 and Section 6: mark built on this branch, ahead of their iterations by owner
+  decision (2026-09-27: the Community Suite with households, basic data management and multiple
+  emails ready before the first BarnCRM commit): C-30 suite choice (ADR-0046 and ADR-0059,
+  amended; built without C-24, whose install links wait for package versions), and C-32, C-33,
+  C-34 and C-35 (ADR-0047, amended, with the query compiler's security review notes). The C-30
+  row and Section 4.8 name the Nonprofit Suite and Community Suite.
+- Section 11.3: remove the checkbox values work item (done in C-32).
+- Section 11.2, new owner questions from C-30 and C-32 to C-35: the suite step replaces the old
+  module step as step 1 (the Giving fund step becomes step 4); a template saved before C-32 now
+  rejects a row several records match; setup and security objects are refused by name in
+  imports and bulk updates; the 50,000 bulk update maximum cannot be counted in one request (a
+  job tops out a few hundred records under it); the standalone Find and Bulk Update permission
+  sets are assigned in Setup, not on the Access page; Core's protected list names Giving's
+  receipt objects as text.
+- Section 12 D-02 and Section 4.1: before the namespace, packages are tested as unlocked
+  versions with no namespace (ADR-0046, amended 2026-09-27).
 
 The rename pass for labels, API names and docs is on branch
 `claude/openimpact-barncrm-status-ft0c1x`, built on the C-29 top head, so it merges after C-29.
-Still to change: GitHub links (`Nonprofit-Collaborative/OpenImpact`, including the help link base
-in `SettingsController` and `ModuleDetectionService`) once the new repository exists, and the
-`oi-test` and `oi-pa` aliases when those orgs are recreated.
+The GitHub links now name `Nonprofit-Collaborative/BarnCRM`, the public repository that takes
+over development once this branch is merged. Still to change: the `oi-test` and `oi-pa`
+aliases when those orgs are recreated.
 
 ### Never tested
 
@@ -834,15 +850,7 @@ from both when its PR merges.
      - `Receipt_Print_Logo__c`
    - `SettingsService.getSettingsForUpdate()` takes no lock: rename it.
    - Cap `HealthCheckSettingsChecks.countNew()`.
-2. **Log unrecognized checkbox values in imports.** `ImportRowProcessor.convertCheckbox` reads
-   only `true`, `yes` and `1` as true. The new rule:
-   - **True:** `true`, `yes`, `y`, `1`, `x`, `checked`, `on`, `t`.
-   - **False:** `false`, `no`, `n`, `0`, `off`, `f`.
-   - **Blank:** no change.
-   - **Anything else:** skip the field, with a note in the run log.
-
-   Update the admin guide first. Add tests, including a 200-row bulk case.
-3. **Fix the dynamic Apex convention violations** (see `dynamic-apex.md`).
+2. **Fix the dynamic Apex convention violations** (see `dynamic-apex.md`).
    - **Uncapped counts:** `ReceiptGapSelector` (on `main`; C-29 replaces it),
      `CampaignSyncSelector.countAppeals`, `HubErrorCountSelector.countNewErrors`, and
      `HealthCheckSettingsChecks.errorLogFinding` (use `countNewUpTo`).
@@ -858,7 +866,7 @@ from both when its PR merges.
    - **Tests:**
      - add a "Campaign unavailable" test seam;
      - make tests that return early assert both cases.
-4. **Smaller review follow-ups.**
+3. **Smaller review follow-ups.**
    - X-01: the `DUPLICATE_VALUE` handling matches on a message substring, which is loose.
    - X-01: the admin guide should warn against listing `Master` in the record-type filter.
    - C-29: optionally assert `Limits.getQueryRows()` in the receipt-cap test.
@@ -866,13 +874,11 @@ from both when its PR merges.
 ### Next on the roadmap
 
 Product plan Section 6 is the source of truth:
-- **v0.7 items:**
-  - C-32: import matching and per-file values;
-  - C-33: load one object;
-  - C-34: Find query builder;
-  - C-35: bulk update, which depends on C-34.
-
-  Before C-34, the query compiler needs a security review and scale tests.
+- **v0.7:** C-32 to C-35 are built on this branch; what remains is the plan's engineering
+  work, a 250,000-row import and a 50,000-record bulk update with undo in the scale org, and
+  an org run of every new Apex test.
+- **v0.8:** Volunteers (V-01 to V-08) and the Module Manager (C-24), whose install links fill
+  the empty `Suite_Module__mdt.Install_Url__c` rows C-30 ships.
 
 ### Owner questions
 

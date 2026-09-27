@@ -1,5 +1,5 @@
 /**
- * The work of one bulk update (C-35, canonical model R-IB14), run as the person who started it.
+ * The work of one bulk update (C-35, canonical model R-IB16), run as the person who started it.
  *
  * - **Only what was confirmed.** The query reads at most the confirmed number of records, in
  *   record identifier order, in user mode.

@@ -1,7 +1,7 @@
 # ADR-0047: Data management runs in the org, compiles queries from a document, and is phased
 
 **Status:** Accepted
-**Date:** 2026-09-23
+**Date:** 2026-09-23 (amended 2026-09-27: C-32 and C-33 builder decisions, below)
 **Source:** product owner decision (Brandon, 2026-09-23), plan Section 4.9, Section 6 and
 Section 12 decision D-13; amends the import framework scope of C-14 and C-19
 **Amended:** 2026-09-27, in place, by the owner's rule that data management decisions are
@@ -169,7 +169,10 @@ back and never executed.
    sequences, named as text so Core holds no reference to them). An organization's own name
    is protected with the household's, because both are the Account name. Fields locked by an
    issued receipt are refused by the receipt lock triggers, which still run, and those records
-   are journaled as Failed.
+   are journaled as Failed. C-33 built the same class in parallel; the two are one class,
+   whose lists are the union of both, so bulk update also refuses Salesforce setup and
+   security objects (C-33 decisions below). Bulk update asks `objectReason` and `fieldReason`
+   (canonical model R-IB17), a one-object import `objectRefusal` and `isProtected` (R-IT12).
 5. **Compatible copies.** A field may be copied into another of the same type; any text,
    email, phone, web address or picklist into a text field; any number into a number field;
    and a lookup into a lookup that can point at the same kind of record. A value too long for
@@ -181,3 +184,79 @@ back and never executed.
    queries can use a query a colleague shared.
 7. **Data Jobs.** `Import_Batch__c` is labelled Data Job, with a Data Jobs tab in the Hub app;
    its API name is unchanged, as the plan requires.
+
+## Amendment, 2026-09-27: C-32 builder decisions (import matching and per-file values)
+
+Builder decisions under plan Section 9.3, made while building C-32; the owner decisions above
+stand unchanged. Canonical model R-IT8, R-IT9, R-IB14, R-IB15, R-IR8 and R-IJ3 carry the detail.
+
+- **Choices are template attributes, not a document.** People keep `Matching_Rule__c` and gain
+  `Person_Match_Field__c`; organizations gain `Organization_Matching_Rule__c` (Name exact,
+  External ID) and `Organization_Match_Field__c`; `Several_Matches__c` holds the rule for
+  several matches. An empty value keeps what a template did before C-32, except the rule for
+  several matches, whose empty value is the owner's default (reject), so a template saved before
+  C-32 rejects a row it once resolved to the earliest created record. That is the one
+  behaviour change for existing templates, and the dry run shows every such row.
+- **An empty external ID field means the first one.** A template that used the External ID
+  rule before C-32 named no field and matched on the object's first external ID field; it still
+  does. A chosen field must be an external ID or unique field the user may read, checked
+  against describe when the dry run starts.
+- **What counts as several.** The key is the one the importer already matches on (R-IB12): a
+  shared email or surname and postal code narrowed to the row's first name where several hold
+  it. Several records under the narrowed key, or under the shared key when the row gives no
+  first name, or under an external ID, are several matches. Several holders of a shared key
+  none of whom has the row's first name is not several matches: the person is created, as
+  before, because taking one of them would rename somebody.
+- **"Most recently changed" is Last Modified Date**, the higher identifier breaking a tie, so a
+  file resolves the same way twice.
+- **The dry run lists several-match rows either way** through a checkbox on the row
+  (`Import_Row__c.Several_Matches__c`), shown as its own table beside the rejected rows.
+- **Per-file values live on the batch** (`File_Values_JSON__c`), in the mapping document's
+  defaults format, because they describe one file and must not come back with the next. The
+  row's own value wins, then the file's, then the template's defaults.
+- **Affiliation is resolved in Core** from the row's first person and organization, matched to a
+  current affiliation between them, and journaled. Affiliations carry no batch tag; rather than
+  add one, the journal gains a Created entry and a per-page `Created_Count__c`, and undo deletes
+  journaled creations with the same checks as tagged ones. C-33 reuses the same entry for
+  objects that can never carry a tag.
+- **Staged rows are purged by a batch job after the commit's finish**, in system mode
+  (ADR-0021), keeping rejected rows. A job, not the finish itself, because a large file's rows
+  are more than one transaction may delete.
+- **The checkbox work item is folded in** (contributor guide, CI work item 2): true is `true`,
+  `yes`, `y`, `1`, `x`, `checked`, `on`, `t`; false is `false`, `no`, `n`, `0`, `off`, `f`, all
+  ignoring case; blank changes nothing; anything else leaves the field unloaded and says so in
+  the run log, once per field and value.
+
+## Amendment, 2026-09-27: C-33 builder decisions (load one object)
+
+Builder decisions under plan Section 9.3, made while building C-33. Canonical model R-IT10 to
+R-IT12 carry the detail.
+
+- **One template shape, two row models.** A template with `Target_Object__c` set loads one
+  object (`ImportObjectLoader`); without it, the people and organizations model of Section 17 is
+  unchanged. `Load_Operation__c`, `Load_Match_Field__c` and `Lookup_Not_Found__c` join the
+  template; `Several_Matches__c` (C-32) also governs an upsert's key and every lookup. The
+  mapping targets are `Record.` plus a field name, and a lookup column carries `lookupField`
+  in the mapping document rather than a new attribute, because it belongs to the column.
+- **Upsert is not `Database.upsert`.** The loader finds the record by the external ID in user
+  mode, then inserts or updates, so the dry run can make the same decision, several matches
+  can be refused, and the journal gets the values before. Upsert keys are external ID fields
+  only (the platform's own meaning of upsert); lookups may also use unique and name fields.
+- **Created records are journaled, not tagged.** An object Core does not own has no
+  `Created_By_Import_Batch__c`, so every created record is a Created journal entry (C-32's
+  mechanism) and undo deletes it with the same checks as a tagged record.
+- **A repeated key is rejected wherever it falls.** The digest of each row's key is written to
+  `Import_Row__c.Processor_Key__c` in the dry run and the commit (Core owns that field when no
+  entity processor runs, which it never does for a one-object template), so a row repeating an
+  earlier row's key is rejected identically whatever the chunk boundaries.
+- **An unreadable value rejects the row** in a one-object load, where the people model skips
+  the field and says so: a person row has other entities to load, a one-object row does not.
+- **Protected fields are one reusable class.** `DataProtectedFields` builds the plan's list at
+  run time from describe and the Rollup Definitions (all definitions, active or not), and C-35
+  is meant to use the same class. The receipt and closed-period locks stay in their triggers.
+- **The object list comes from describe**, filtered to objects the user can create or edit,
+  that are queryable, and that are not bookkeeping, settings, metadata, events, big or external
+  objects. Salesforce setup and security objects (users, groups, profiles, roles, permission
+  sets and their assignments) are refused by name, because D-13 leaves permission management
+  to Setup and an import would otherwise be a bulk permission tool. Core still names no
+  standard object as a type (ADR-0013).

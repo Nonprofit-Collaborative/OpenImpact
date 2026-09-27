@@ -14,6 +14,12 @@ import getBatch from '@salesforce/apex/ImportController.getBatch';
 import getRows from '@salesforce/apex/ImportController.getRows';
 import saveRecurring from '@salesforce/apex/ImportController.saveRecurring';
 import getEntityTargets from '@salesforce/apex/ImportController.getEntityTargets';
+import getMatchFields from '@salesforce/apex/ImportController.getMatchFields';
+import getSeveralMatchRows from '@salesforce/apex/ImportController.getSeveralMatchRows';
+import getLoadableObjects from '@salesforce/apex/ImportController.getLoadableObjects';
+import createObjectTemplate from '@salesforce/apex/ImportController.createObjectTemplate';
+import getObjectFields from '@salesforce/apex/ImportController.getObjectFields';
+import getKeyFields from '@salesforce/apex/ImportController.getKeyFields';
 
 import cardTitle from '@salesforce/label/c.Core_Import_CardTitle';
 import stepTemplate from '@salesforce/label/c.Core_Import_StepTemplate';
@@ -61,6 +67,24 @@ import donationMatchOnly from '@salesforce/label/c.Core_Import_DonationMatchOnly
 import donationNeverMatch from '@salesforce/label/c.Core_Import_DonationNeverMatch';
 import matchWindowLabel from '@salesforce/label/c.Core_Import_MatchWindowLabel';
 import matchToleranceLabel from '@salesforce/label/c.Core_Import_MatchToleranceLabel';
+import personMatchFieldLabel from '@salesforce/label/c.Core_Import_PersonMatchFieldLabel';
+import personMatchFieldDefault from '@salesforce/label/c.Core_Import_PersonMatchFieldDefault';
+import organizationRuleLabel from '@salesforce/label/c.Core_Import_OrganizationRuleLabel';
+import organizationNameHelp from '@salesforce/label/c.Core_Import_OrganizationNameHelp';
+import organizationExternalIdHelp from '@salesforce/label/c.Core_Import_OrganizationExternalIdHelp';
+import organizationFieldLabel from '@salesforce/label/c.Core_Import_OrganizationFieldLabel';
+import severalMatchesLabel from '@salesforce/label/c.Core_Import_SeveralMatchesLabel';
+import severalRejectOption from '@salesforce/label/c.Core_Import_SeveralRejectOption';
+import severalMostRecentOption from '@salesforce/label/c.Core_Import_SeveralMostRecentOption';
+import severalRejectHelp from '@salesforce/label/c.Core_Import_SeveralRejectHelp';
+import severalMostRecentHelp from '@salesforce/label/c.Core_Import_SeveralMostRecentHelp';
+import loadObjectHeading from '@salesforce/label/c.Core_Import_LoadObjectHeading';
+import loadObjectHelp from '@salesforce/label/c.Core_Import_LoadObjectHelp';
+import loadObjectLabel from '@salesforce/label/c.Core_Import_LoadObjectLabel';
+import loadObjectNameLabel from '@salesforce/label/c.Core_Import_LoadObjectNameLabel';
+import loadObjectCreateButton from '@salesforce/label/c.Core_Import_LoadObjectCreateButton';
+import lookupFieldLabel from '@salesforce/label/c.Core_Import_LookupFieldLabel';
+import { INSERT, UPDATE, UPSERT, LOOKUP_REJECT } from 'c/importLoadOptions';
 
 /** A number as an input shows it, or empty. */
 function numberText(value) {
@@ -108,8 +132,28 @@ const TARGETS = [
   { value: 'Organization.BillingCity', label: 'Organization: city' },
   { value: 'Organization.BillingState', label: 'Organization: state or province' },
   { value: 'Organization.BillingPostalCode', label: 'Organization: postal code' },
-  { value: 'Organization.BillingCountry', label: 'Organization: country' }
+  { value: 'Organization.BillingCountry', label: 'Organization: country' },
+  { value: 'Affiliation.Role__c', label: 'Affiliation: role' },
+  { value: 'Affiliation.Start_Date__c', label: 'Affiliation: start date' },
+  { value: 'Affiliation.End_Date__c', label: 'Affiliation: end date' },
+  { value: 'Affiliation.Is_Primary__c', label: 'Affiliation: primary' },
+  { value: 'Affiliation.Status__c', label: 'Affiliation: status' },
+  { value: 'Affiliation.Description__c', label: 'Affiliation: description' }
 ];
+
+/** How organizations are matched (R-IT8), each with the sentence saying what it risks. */
+const ORGANIZATION_RULES = [
+  { value: 'Name exact', help: organizationNameHelp },
+  { value: 'External ID', help: organizationExternalIdHelp }
+];
+
+/** The row entity of a mapping that loads one object (R-IT10), and its record Id target. */
+const RECORD_PREFIX = 'Record.';
+const RECORD_ID = 'Record.Id';
+
+/** What a row does when its key finds several records (R-IT9). */
+const SEVERAL_REJECT = 'Reject the row';
+const SEVERAL_MOST_RECENT = 'Use the most recently changed';
 
 /**
  * The gift columns offered where no module that loads gifts is installed: recognized, kept
@@ -174,6 +218,28 @@ export default class ImportWizard extends LightningElement {
   donationMatching = 'Match or create';
   matchDateWindowDays = '';
   matchAmountTolerance = '';
+  /** How this mapping matches rows (R-IT8, R-IT9), as the template holds it. */
+  personMatchField = '';
+  organizationRule = 'Name exact';
+  organizationMatchField = '';
+  severalMatches = SEVERAL_REJECT;
+  /** The fields each External ID rule can match on, from the server (R-IT8). */
+  matchFields = { person: [], organization: [] };
+  /** The values given for every row of this file (R-IB14). */
+  fileValues = [];
+  /** The rows of the finished run whose key found several records (R-IT9). */
+  severalRows = [];
+  /** A mapping that loads one object (R-IT10): its fields, and how each row loads. */
+  objectFields = [];
+  keyFields = [];
+  loadOperation = INSERT;
+  loadMatchField = '';
+  lookupNotFound = LOOKUP_REJECT;
+  /** The new one-object mapping being made on the first step. */
+  choosingObject = false;
+  loadableObjects = [];
+  newObjectName;
+  newTemplateName = '';
 
   labels = {
     cardTitle,
@@ -209,7 +275,17 @@ export default class ImportWizard extends LightningElement {
     donationMatchingHelp,
     donationMatchingLabel,
     matchWindowLabel,
-    matchToleranceLabel
+    matchToleranceLabel,
+    personMatchFieldLabel,
+    organizationRuleLabel,
+    organizationFieldLabel,
+    severalMatchesLabel,
+    loadObjectHeading,
+    loadObjectHelp,
+    loadObjectLabel,
+    loadObjectNameLabel,
+    loadObjectCreateButton,
+    lookupFieldLabel
   };
 
   async connectedCallback() {
@@ -264,6 +340,73 @@ export default class ImportWizard extends LightningElement {
     this.donationMatching = (template && template.donationMatching) || 'Match or create';
     this.matchDateWindowDays = numberText(template && template.matchDateWindowDays);
     this.matchAmountTolerance = numberText(template && template.matchAmountTolerance);
+    this.personMatchField = (template && template.personMatchField) || '';
+    this.organizationRule = (template && template.organizationRule) || 'Name exact';
+    this.organizationMatchField = (template && template.organizationMatchField) || '';
+    this.severalMatches = (template && template.severalMatches) || SEVERAL_REJECT;
+    this.matchFields = { person: [], organization: [] };
+    this.loadOperation = (template && template.loadOperation) || INSERT;
+    this.loadMatchField = (template && template.loadMatchField) || '';
+    this.lookupNotFound = (template && template.lookupNotFound) || LOOKUP_REJECT;
+    this.objectFields = [];
+    this.keyFields = [];
+  }
+
+  /** Whether the chosen mapping loads one object rather than people (R-IT10). */
+  get loadsOneObject() {
+    return Boolean(this.selectedTemplate && this.selectedTemplate.targetObject);
+  }
+
+  get loadingPeople() {
+    return !this.loadsOneObject;
+  }
+
+  /** Opens the new one-object mapping, asking for the objects the user may load. */
+  async handleChooseObject() {
+    this.message = undefined;
+    this.choosingObject = true;
+    if (this.loadableObjects.length > 0) {
+      return;
+    }
+    try {
+      this.loadableObjects = (await getLoadableObjects()) || [];
+    } catch (error) {
+      this.message = this.errorText(error);
+    }
+  }
+
+  get objectOptions() {
+    return this.loadableObjects.map((object) => ({ label: object.label, value: object.value }));
+  }
+
+  handleNewObjectChange(event) {
+    this.newObjectName = event.detail.value;
+  }
+
+  handleNewTemplateNameChange(event) {
+    this.newTemplateName = event.target.value;
+  }
+
+  get cannotCreateObjectTemplate() {
+    return !this.newObjectName || !String(this.newTemplateName || '').trim();
+  }
+
+  /** Creates the one-object mapping and chooses it. */
+  async handleCreateObjectTemplate() {
+    this.message = undefined;
+    try {
+      const created = await createObjectTemplate({
+        name: this.newTemplateName,
+        objectName: this.newObjectName
+      });
+      this.templates = this.templates.concat([created]);
+      this.selectTemplate(created.id);
+      this.choosingObject = false;
+      this.newObjectName = undefined;
+      this.newTemplateName = '';
+    } catch (error) {
+      this.message = this.errorText(error);
+    }
   }
 
   handleRecurringChange(event) {
@@ -373,16 +516,22 @@ export default class ImportWizard extends LightningElement {
   }
 
   async buildColumns(file) {
+    if (this.loadsOneObject && this.objectFields.length === 0) {
+      this.objectFields = (await getObjectFields({ templateId: this.templateId })) || [];
+    }
     const suggested = await suggestMapping({ templateId: this.templateId, headers: this.headers });
     const targets = {};
+    const lookups = {};
     const parsed = JSON.parse(suggested || '{}');
     (parsed.columns || []).forEach((column) => {
       targets[column.source] = column.target;
+      lookups[column.source] = column.lookupField;
     });
     this.columns = this.headers.map((heading) => ({
       key: heading,
       source: heading,
       target: targets[heading] || IGNORE,
+      lookupField: lookups[heading] || 'Id',
       samples: this.records
         .slice(0, SAMPLE_VALUES)
         .map((record) => record[heading])
@@ -397,6 +546,12 @@ export default class ImportWizard extends LightningElement {
   // ---------------------------------------------------------------------------------------
 
   get targetOptions() {
+    if (this.loadsOneObject) {
+      // The object's own fields, from describe (R-IT10).
+      return [{ label: doNotLoad, value: IGNORE }].concat(
+        this.objectFields.map((field) => ({ label: field.label, value: field.value }))
+      );
+    }
     const giftTargets =
       this.entityTargets.length > 0 ? this.entityTargets : GIFT_TARGETS_NOT_LOADED;
     return [{ label: doNotLoad, value: IGNORE }]
@@ -451,7 +606,27 @@ export default class ImportWizard extends LightningElement {
     const amount = this.showExpectedAmount ? String(this.expectedAmount || '').trim() : '';
     const options = {
       expectedCount: count === '' ? null : Number(count),
-      expectedAmount: amount === '' ? null : Number(amount)
+      expectedAmount: amount === '' ? null : Number(amount),
+      // How rows are matched, saved on the template (R-IT8, R-IT9).
+      saveMatching: true,
+      organizationRule: this.organizationRule,
+      personMatchField: this.matchingRule === 'External ID' ? this.personMatchField : '',
+      organizationMatchField:
+        this.organizationRule === 'External ID' ? this.organizationMatchField : '',
+      severalMatches: this.severalMatches,
+      // A one-object mapping's load choices, saved on the template (R-IT10, R-IT11).
+      ...(this.loadsOneObject
+        ? {
+            saveLoad: true,
+            loadOperation: this.loadOperation,
+            loadMatchField: this.loadOperation === UPSERT ? this.loadMatchField : '',
+            lookupNotFound: this.lookupNotFound
+          }
+        : {}),
+      // The values for every row of this file, kept on the batch only (R-IB14).
+      fileValues: this.fileValues.filter(
+        (each) => each.target && String(each.value || '').trim() !== ''
+      )
     };
     if (this.showExpectedAmount) {
       // Shown only where a module loads gifts, and saved on the template only then (R-IT7).
@@ -471,16 +646,72 @@ export default class ImportWizard extends LightningElement {
     const source = event.target.dataset.source;
     const target = event.detail.value;
     this.columns = this.columns.map((column) => {
-      return column.source === source ? { ...column, target } : column;
+      return column.source === source ? { ...column, target, lookupField: 'Id' } : column;
+    });
+  }
+
+  /** How a lookup column names its parent (R-IT11). */
+  handleLookupFieldChange(event) {
+    const source = event.target.dataset.source;
+    const lookupField = event.detail.value;
+    this.columns = this.columns.map((column) => {
+      return column.source === source ? { ...column, lookupField } : column;
+    });
+  }
+
+  /** The columns as the picker shows them, with a lookup's second picker where it has one. */
+  get columnRows() {
+    return this.columns.map((column) => {
+      const field = this.loadsOneObject
+        ? this.objectFields.find((each) => each.value === column.target)
+        : undefined;
+      const isLookup = Boolean(field && field.isLookup);
+      return {
+        ...column,
+        isLookup,
+        lookupOptions: isLookup
+          ? (field.lookupFields || []).map((each) => ({ label: each.label, value: each.value }))
+          : []
+      };
     });
   }
 
   get mappingDocument() {
     return JSON.stringify({
       version: 1,
-      columns: this.columns.map((column) => ({ source: column.source, target: column.target })),
+      columns: this.columns.map((column) => {
+        const mapped = { source: column.source, target: column.target };
+        if (this.loadsOneObject && column.lookupField && column.lookupField !== 'Id') {
+          mapped.lookupField = column.lookupField;
+        }
+        return mapped;
+      }),
       defaults: []
     });
+  }
+
+  /**
+   * Whether a one-object mapping can load (R-IT10): a column on the object, the Record Id under
+   * an update, and under an upsert a chosen field that a column feeds.
+   */
+  get mapsTheObject() {
+    const targets = this.columns.map((column) => column.target);
+    if (!targets.some((target) => (target || '').startsWith(RECORD_PREFIX))) {
+      return false;
+    }
+    if (this.loadOperation === UPDATE) {
+      return targets.includes(RECORD_ID);
+    }
+    if (this.loadOperation === UPSERT) {
+      return Boolean(this.loadMatchField) && targets.includes(RECORD_PREFIX + this.loadMatchField);
+    }
+    return true;
+  }
+
+  handleLoadOptionsChange(event) {
+    this.loadOperation = event.detail.operation;
+    this.loadMatchField = event.detail.matchField || '';
+    this.lookupNotFound = event.detail.lookupNotFound;
   }
 
   get mapsSomebody() {
@@ -512,6 +743,92 @@ export default class ImportWizard extends LightningElement {
 
   handleRuleChange(event) {
     this.matchingRule = event.detail.value;
+  }
+
+  get usesPersonField() {
+    return this.matchingRule === 'External ID';
+  }
+
+  /** The person fields the External ID rule can match on; empty means the first one (R-IT8). */
+  get personFieldOptions() {
+    return [{ label: personMatchFieldDefault, value: '' }].concat(
+      (this.matchFields.person || []).map((field) => ({ label: field.label, value: field.value }))
+    );
+  }
+
+  handlePersonFieldChange(event) {
+    this.personMatchField = event.detail.value;
+  }
+
+  get organizationRuleOptions() {
+    return ORGANIZATION_RULES.map((rule) => ({ label: rule.value, value: rule.value }));
+  }
+
+  get organizationRuleHelp() {
+    const found = ORGANIZATION_RULES.find((rule) => rule.value === this.organizationRule);
+    return found ? found.help : '';
+  }
+
+  get usesOrganizationField() {
+    return this.organizationRule === 'External ID';
+  }
+
+  get organizationFieldOptions() {
+    return (this.matchFields.organization || []).map((field) => ({
+      label: field.label,
+      value: field.value
+    }));
+  }
+
+  handleOrganizationRuleChange(event) {
+    this.organizationRule = event.detail.value;
+  }
+
+  handleOrganizationFieldChange(event) {
+    this.organizationMatchField = event.detail.value;
+  }
+
+  get severalOptions() {
+    return [
+      { label: severalRejectOption, value: SEVERAL_REJECT },
+      { label: severalMostRecentOption, value: SEVERAL_MOST_RECENT }
+    ];
+  }
+
+  get severalHelp() {
+    return this.severalMatches === SEVERAL_MOST_RECENT ? severalMostRecentHelp : severalRejectHelp;
+  }
+
+  handleSeveralChange(event) {
+    this.severalMatches = event.detail.value;
+  }
+
+  /** What a value for every row can be for: the column picker's targets, without Do not load. */
+  get fileValueOptions() {
+    return this.targetOptions.filter(
+      (option) => option.value !== IGNORE && option.value !== RECORD_ID
+    );
+  }
+
+  handleFileValuesChange(event) {
+    this.fileValues = event.detail.values || [];
+  }
+
+  /** The fields the External ID rules can match on, asked once the matching step opens. */
+  async loadMatchFields() {
+    try {
+      if (this.loadsOneObject) {
+        this.keyFields = (await getKeyFields({ templateId: this.templateId })) || [];
+        return;
+      }
+      const fields = await getMatchFields({ templateId: this.templateId });
+      this.matchFields = {
+        person: (fields && fields.person) || [],
+        organization: (fields && fields.organization) || []
+      };
+    } catch (error) {
+      this.message = this.errorText(error);
+    }
   }
 
   // ---------------------------------------------------------------------------------------
@@ -609,6 +926,8 @@ export default class ImportWizard extends LightningElement {
           status: 'Rejected',
           offsetRows: 0
         });
+        this.severalRows =
+          (await getSeveralMatchRows({ batchId: this.batch.id, offsetRows: 0 })) || [];
       }
     } catch (error) {
       this.stopPolling();
@@ -650,6 +969,8 @@ export default class ImportWizard extends LightningElement {
     this.message = undefined;
     this.expectedCount = '';
     this.expectedAmount = '';
+    this.fileValues = [];
+    this.severalRows = [];
   }
 
   // ---------------------------------------------------------------------------------------
@@ -659,6 +980,9 @@ export default class ImportWizard extends LightningElement {
   handleNext() {
     this.message = undefined;
     this.step = Math.min(this.step + 1, 6);
+    if (this.step === 4) {
+      this.loadMatchFields();
+    }
   }
 
   handleBack() {
@@ -669,6 +993,7 @@ export default class ImportWizard extends LightningElement {
       this.stopPolling();
       this.batch = undefined;
       this.rejectedRows = [];
+      this.severalRows = [];
     }
     this.step = Math.max(this.step - 1, 1);
   }
@@ -717,7 +1042,14 @@ export default class ImportWizard extends LightningElement {
   }
 
   get cannotDryRun() {
-    return !this.mapsSomebody || this.records.length === 0;
+    if (this.loadsOneObject) {
+      return !this.mapsTheObject || this.records.length === 0;
+    }
+    return (
+      !this.mapsSomebody ||
+      this.records.length === 0 ||
+      (this.usesOrganizationField && !this.organizationMatchField)
+    );
   }
 
   get cannotCommit() {

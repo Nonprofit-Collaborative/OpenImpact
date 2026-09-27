@@ -1,5 +1,5 @@
 /**
- * Bulk update (C-35, R-IB14, R-IB15): checked as the person, counted and confirmed, run in user
+ * Bulk update (C-35, R-IB16, R-IB17): checked as the person, counted and confirmed, run in user
  * mode over only the records that still match, journaled, and undone.
  *
  * The records are saved queries: a package object with private sharing and no automation, so

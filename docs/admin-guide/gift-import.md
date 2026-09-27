@@ -75,7 +75,9 @@ A row is one gift. Besides the donor, it can carry:
   payment method column can set one for every row as the mapping's default. Payment method is
   matched to BarnCRM's
   list whatever the capitals, and common words are understood: "credit card" is Card,
-  "cheque" is Check, "bank transfer" is ACH. The appeal is named by its name. Payment
+  "cheque" is Check, "bank transfer" is ACH. The appeal is named by its name; a file whose
+  gifts all answer one appeal, such as the gala, can name it once under **Values for every
+  row of this file** instead of in a column ([Importing](importing.md), section 4B). Payment
   reference, external ID, in-kind description and benefit description load as they are.
   Every imported gift is **Received**.
 - **The fund, or a split.** **Gift: fund** names one fund by its name or its accounting code;

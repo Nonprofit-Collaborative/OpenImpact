@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Organization_Match_Field__c</fullName>
+  <description>Under the organization External ID rule, the API name of the organization field a row is matched on, chosen from the organization object's external ID and unique fields (canonical model R-IT8).</description>
+  <externalId>false</externalId>
+  <inlineHelpText>The field organizations are matched on under the External ID rule.</inlineHelpText>
+  <label>Organization Match Field</label>
+  <length>255</length>
+  <required>false</required>
+  <trackTrending>false</trackTrending>
+  <type>Text</type>
+  <unique>false</unique>
+</CustomField>

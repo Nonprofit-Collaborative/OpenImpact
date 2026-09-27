@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Several_Matches__c</fullName>
+  <defaultValue>false</defaultValue>
+  <description>True when this row's matching key found more than one record, whether the row was then rejected or used the most recently changed one, so the dry run can list every such row (canonical model R-IT9).</description>
+  <inlineHelpText>This row matched more than one record.</inlineHelpText>
+  <label>Several Matches</label>
+  <type>Checkbox</type>
+</CustomField>

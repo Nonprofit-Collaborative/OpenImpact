@@ -1,5 +1,5 @@
 /**
- * Bulk update (C-35, canonical model R-IB14 and R-IB15, ADR-0047 amended): up to five changes
+ * Bulk update (C-35, canonical model R-IB16 and R-IB17, ADR-0047 amended): up to five changes
  * to every record a Find query returns, counted and confirmed before anything is saved, run by
  * `BulkUpdateBatch` as the person who started it, journaled, and undone as an import is.
  *
@@ -149,7 +149,7 @@ public with sharing class BulkUpdateService {
             return null;
         }
 
-        /** The definition a job keeps (R-IB14): the document, the changes, the count. */
+        /** The definition a job keeps (R-IB16): the document, the changes, the count. */
         @NamespaceAccessible
         public String definition(Integer confirmedCount) {
             List<Object> rawChanges = new List<Object>();
@@ -250,7 +250,7 @@ public with sharing class BulkUpdateService {
         return plan(QueryDocument.parse(documentJson), rawChanges);
     }
 
-    /** Checks a job's stored definition again, as the person running the job (R-IB14). */
+    /** Checks a job's stored definition again, as the person running the job (R-IB16). */
     @NamespaceAccessible
     public static Plan planFromDefinition(String definitionJson) {
         Map<String, Object> definition = (Map<String, Object>) JSON.deserializeUntyped(
@@ -581,7 +581,7 @@ public with sharing class BulkUpdateService {
     /**
      * Starts a bulk update of at most `confirmedCount` records, after counting again: it is
      * refused when more records match now than were confirmed, or than the maximum allows
-     * (R-IB14). The job record and its log are the package's own bookkeeping, written in
+     * (R-IB16). The job record and its log are the package's own bookkeeping, written in
      * system mode (ADR-0021); every record the job changes is saved in the person's own mode.
      */
     @NamespaceAccessible

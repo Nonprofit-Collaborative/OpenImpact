@@ -1,10 +1,13 @@
 /**
  * Finds the records an incoming row already has, one query per key set and never one per row.
  *
- * Three rules, exactly the three the template offers (R-IT2), and each one is a lookup from a
- * set of keys built out of a whole chunk to a map of key to record identifier. Nothing here
- * writes, and nothing here decides: the processor asks for the matches and then decides what
- * to do with a row that has one.
+ * The rules the template offers (R-IT2, R-IT8): for people email, name plus postal code, or a
+ * chosen external ID or unique field; for organizations name, or such a field (`byField`). Each
+ * one is a lookup from a set of keys built out of a whole chunk to a map of key to record
+ * identifier, and remembers which keys several records hold and which of them was changed
+ * most recently, for the rule for several matches (R-IT9). Nothing here writes, and nothing
+ * here decides: the processor asks for the matches and then decides what to do with a row that
+ * has one.
  *
  * Person records are queried through dynamic SOQL with field names held as text, because the
  * fields that carry a person's name and email on an account exist only in an org that stores
@@ -135,12 +138,30 @@ public with sharing class ImportMatcher {
         return cutOff.contains(key);
     }
 
+    /**
+     * The most recently changed record under each key the last lookups found, and when it was
+     * changed, for a template whose rule for several matches is to use it (R-IT9).
+     */
+    private static Map<String, Id> latestByKey = new Map<String, Id>();
+    private static Map<String, Datetime> latestAt = new Map<String, Datetime>();
+
+    /**
+     * The record under this key that was changed most recently (latest Last Modified Date, the
+     * higher identifier on a tie), or null when the last lookups found nobody under it (R-IT9).
+     */
+    @NamespaceAccessible
+    public static Id mostRecent(String key) {
+        return key == null ? null : latestByKey.get(key);
+    }
+
     /** Forgets what the last lookup learned about shared keys, before the next one. */
     @NamespaceAccessible
     public static void forgetHeldKeys() {
         heldByMany = new Set<String>();
         cutOff = new Set<String>();
         unreadable = new Set<String>();
+        latestByKey = new Map<String, Id>();
+        latestAt = new Map<String, Datetime>();
     }
 
     /** The last names and postal codes of name plus postal code keys, to query on both. */
@@ -194,7 +215,25 @@ public with sharing class ImportMatcher {
     }
 
     /** Records the first found under a key, and under the key narrowed to its first name. */
-    private static void put(Map<String, Id> result, String key, String firstName, Id recordId) {
+    private static void put(
+        Map<String, Id> result,
+        String key,
+        String firstName,
+        Id recordId,
+        Datetime modified
+    ) {
+        if (key == null) {
+            return;
+        }
+        hold(result, key, recordId, modified);
+        hold(result, firstNameKey(key, firstName), recordId, modified);
+    }
+
+    /**
+     * Records one holder of a key: the first found stays the key's record, a second one marks
+     * the key as held by several, and the most recently changed is remembered (R-IT9).
+     */
+    private static void hold(Map<String, Id> result, String key, Id recordId, Datetime modified) {
         if (key == null) {
             return;
         }
@@ -203,9 +242,15 @@ public with sharing class ImportMatcher {
         } else if (result.get(key) != recordId) {
             heldByMany.add(key);
         }
-        String narrowed = firstNameKey(key, firstName);
-        if (!result.containsKey(narrowed)) {
-            result.put(narrowed, recordId);
+        Datetime latest = latestAt.get(key);
+        Boolean later =
+            !latestByKey.containsKey(key) ||
+            (modified != null && (latest == null || modified > latest)) ||
+            (modified == latest &&
+            String.valueOf(recordId) > String.valueOf(latestByKey.get(key)));
+        if (later) {
+            latestByKey.put(key, recordId);
+            latestAt.put(key, modified);
         }
     }
 
@@ -226,7 +271,7 @@ public with sharing class ImportMatcher {
      * MAX_KEYS_PER_QUERY-sized chunk, never one per row. */
     private static List<Contact> contactsByEmailSlice(List<String> slice) {
         return [
-            SELECT Id, Email, FirstName
+            SELECT Id, Email, FirstName, LastModifiedDate
             FROM Contact
             WHERE Email IN :slice
             WITH USER_MODE
@@ -253,7 +298,13 @@ public with sharing class ImportMatcher {
             List<Contact> found = contactsByEmailSlice(slice);
             for (Contact record : found) {
                 // First created wins, so a duplicate in the org resolves the same way twice.
-                put(result, emailKey(record.Email), record.FirstName, record.Id);
+                put(
+                    result,
+                    emailKey(record.Email),
+                    record.FirstName,
+                    record.Id,
+                    record.LastModifiedDate
+                );
             }
         }
         return result;
@@ -280,7 +331,7 @@ public with sharing class ImportMatcher {
             for (Contact record : found) {
                 String key = nameAndPostalKey(record.LastName, record.MailingPostalCode);
                 if (key != null && keys.contains(key)) {
-                    put(result, key, record.FirstName, record.Id);
+                    put(result, key, record.FirstName, record.Id, record.LastModifiedDate);
                 }
             }
         }
@@ -291,7 +342,7 @@ public with sharing class ImportMatcher {
     private static List<Contact> contactsByNameSlice(List<String> slice, List<String> codes) {
         Integer cap = rowCap;
         return [
-            SELECT Id, FirstName, LastName, MailingPostalCode
+            SELECT Id, FirstName, LastName, MailingPostalCode, LastModifiedDate
             FROM Contact
             WHERE LastName IN :slice AND MailingPostalCode IN :codes
             WITH USER_MODE
@@ -303,7 +354,7 @@ public with sharing class ImportMatcher {
     /** One slice's worth of accounts matched on name within a record type. */
     private static List<Account> accountsByNameSlice(List<String> slice, Id recordTypeId) {
         return [
-            SELECT Id, Name
+            SELECT Id, Name, LastModifiedDate
             FROM Account
             WHERE Name IN :slice AND RecordTypeId = :recordTypeId
             WITH USER_MODE
@@ -312,17 +363,18 @@ public with sharing class ImportMatcher {
         ];
     }
 
-    /** Accounts of the given record type whose name matches, keyed by the lower cased name. */
+    /**
+     * Accounts of the given record type whose name matches, keyed by the lower cased name. A
+     * name several hold is marked so (`isHeldByMany`), with its most recently changed holder
+     * (`mostRecent`), for the rule for several matches (R-IT9).
+     */
     @NamespaceAccessible
     public static Map<String, Id> accountsByName(Set<String> names, Id recordTypeId) {
         Map<String, Id> result = new Map<String, Id>();
         for (List<String> slice : slices(names)) {
             List<Account> found = accountsByNameSlice(slice, recordTypeId);
             for (Account record : found) {
-                String key = nameKey(record.Name);
-                if (key != null && !result.containsKey(key)) {
-                    result.put(key, record.Id);
-                }
+                hold(result, nameKey(record.Name), record.Id, record.LastModifiedDate);
             }
         }
         return result;
@@ -357,7 +409,8 @@ public with sharing class ImportMatcher {
                     result,
                     emailKey((String) record.get(ACCOUNT_EMAIL_FIELD)),
                     firstNameOf(record),
-                    (Id) record.get('Id')
+                    (Id) record.get('Id'),
+                    (Datetime) record.get('LastModifiedDate')
                 );
             }
         }
@@ -370,7 +423,7 @@ public with sharing class ImportMatcher {
         Set<Id> recordTypeIds
     ) {
         String query =
-            'SELECT Id, ' +
+            'SELECT Id, LastModifiedDate, ' +
             firstNameColumn() +
             ACCOUNT_EMAIL_FIELD +
             ' FROM Account WHERE ' +
@@ -443,7 +496,13 @@ public with sharing class ImportMatcher {
                 }
                 for (String key : recordKeys) {
                     if (key != null && keys.contains(key)) {
-                        put(result, key, firstNameOf(record), (Id) record.get('Id'));
+                        put(
+                            result,
+                            key,
+                            firstNameOf(record),
+                            (Id) record.get('Id'),
+                            (Datetime) record.get('LastModifiedDate')
+                        );
                     }
                 }
             }
@@ -463,7 +522,7 @@ public with sharing class ImportMatcher {
             postalFilters.add(field + ' IN :codes');
         }
         String query =
-            'SELECT Id, ' +
+            'SELECT Id, LastModifiedDate, ' +
             firstNameColumn() +
             ACCOUNT_LAST_NAME_FIELD +
             ', ' +
@@ -504,43 +563,137 @@ public with sharing class ImportMatcher {
      */
     @NamespaceAccessible
     public static Map<String, Id> byExternalId(Schema.SObjectType type, Set<String> values) {
+        return byField(type, externalIdField(type), values, null);
+    }
+
+    /**
+     * Records of the given object whose value in this field is one of these, keyed by the value
+     * folded to lower case, and within the given record types when there are any (R-IT8). A
+     * value several hold is marked so, with its most recently changed holder (R-IT9). Empty
+     * when the object has no such field; a field the user may not read is skipped and named
+     * (`unreadableFields`), because a user-mode query naming it would fail the chunk.
+     */
+    @NamespaceAccessible
+    public static Map<String, Id> byField(
+        Schema.SObjectType type,
+        String fieldName,
+        Set<String> values,
+        Set<Id> recordTypeIds
+    ) {
         Map<String, Id> result = new Map<String, Id>();
-        String field = externalIdField(type);
-        if (field == null) {
+        if (type == null || String.isBlank(fieldName) || values == null || values.isEmpty()) {
             return result;
         }
+        Schema.SObjectField token = type.getDescribe(SObjectDescribeOptions.DEFERRED)
+            .fields.getMap()
+            .get(fieldName.trim().toLowerCase());
+        if (token == null) {
+            return result;
+        }
+        Schema.DescribeFieldResult described = token.getDescribe();
+        if (!described.isAccessible()) {
+            skippedFor(type, fieldName.trim());
+            return result;
+        }
+        String field = described.getName();
         String objectName = type.getDescribe(SObjectDescribeOptions.DEFERRED).getName();
         for (List<String> slice : slices(values)) {
-            List<SObject> found = byExternalIdSlice(objectName, field, slice);
-            for (SObject record : found) {
-                String key = nameKey((String) record.get(field));
-                if (key != null && !result.containsKey(key)) {
-                    result.put(key, (Id) record.get('Id'));
-                }
+            for (SObject record : byFieldSlice(objectName, field, slice, recordTypeIds)) {
+                Object value = record.get(field);
+                hold(
+                    result,
+                    nameKey(value == null ? null : String.valueOf(value)),
+                    (Id) record.get('Id'),
+                    (Datetime) record.get('LastModifiedDate')
+                );
             }
         }
         return result;
     }
 
-    /** One slice's worth of records matched on an external identifier field. */
-    private static List<SObject> byExternalIdSlice(
+    /** One slice's worth of records matched on a field, kept out of the caller's loop. */
+    private static List<SObject> byFieldSlice(
         String objectName,
         String field,
-        List<String> slice
+        List<String> slice,
+        Set<Id> recordTypeIds
     ) {
+        Boolean byType = recordTypeIds != null && !recordTypeIds.isEmpty();
         String query =
-            'SELECT Id, ' +
+            'SELECT Id, LastModifiedDate, ' +
             field +
             ' FROM ' +
             objectName +
             ' WHERE ' +
             field +
-            ' IN :slice ORDER BY CreatedDate ASC, Id ASC LIMIT 5000';
+            ' IN :slice' +
+            (byType ? ' AND RecordTypeId IN :recordTypeIds' : '') +
+            ' ORDER BY CreatedDate ASC, Id ASC LIMIT 5000';
         return Database.queryWithBinds(
             query,
-            new Map<String, Object>{ 'slice' => slice },
+            new Map<String, Object>{ 'slice' => slice, 'recordTypeIds' => recordTypeIds },
             AccessLevel.USER_MODE
         );
+    }
+
+    /**
+     * The fields a row may be matched on under an External ID rule (R-IT8): the object's
+     * external ID and unique text or email fields that the user may read and filter on, found
+     * in describe. Sorted by label for the picker.
+     */
+    @NamespaceAccessible
+    public static List<ImportMapping.Target> matchFields(Schema.SObjectType type) {
+        List<ImportMapping.Target> result = new List<ImportMapping.Target>();
+        if (type == null) {
+            return result;
+        }
+        Map<String, ImportMapping.Target> byLabel = new Map<String, ImportMapping.Target>();
+        for (
+            Schema.SObjectField field : type.getDescribe(SObjectDescribeOptions.DEFERRED)
+                .fields.getMap()
+                .values()
+        ) {
+            Schema.DescribeFieldResult described = field.getDescribe();
+            if (isMatchField(described)) {
+                byLabel.put(
+                    described.getLabel() + ' ' + described.getName(),
+                    new ImportMapping.Target(described.getName(), described.getLabel())
+                );
+            }
+        }
+        List<String> labels = new List<String>(byLabel.keySet());
+        labels.sort();
+        for (String label : labels) {
+            result.add(byLabel.get(label));
+        }
+        return result;
+    }
+
+    /**
+     * The field's API name as the org has it, when a row may be matched on it (R-IT8), or null:
+     * for a field the object does not have, one that is neither an external ID nor unique, one
+     * that is not text or email, and one the user may not read.
+     */
+    @NamespaceAccessible
+    public static String matchField(Schema.SObjectType type, String fieldName) {
+        if (type == null || String.isBlank(fieldName)) {
+            return null;
+        }
+        Schema.SObjectField field = type.getDescribe(SObjectDescribeOptions.DEFERRED)
+            .fields.getMap()
+            .get(fieldName.trim().toLowerCase());
+        return field != null && isMatchField(field.getDescribe())
+            ? field.getDescribe().getName()
+            : null;
+    }
+
+    private static Boolean isMatchField(Schema.DescribeFieldResult described) {
+        Schema.DisplayType kind = described.getType();
+        return (described.isExternalId() || described.isUnique()) &&
+            described.isAccessible() &&
+            described.isFilterable() &&
+            (kind == Schema.DisplayType.STRING ||
+            kind == Schema.DisplayType.EMAIL);
     }
 
     /** The API name of the object's external identifier field, or null when it has none. */

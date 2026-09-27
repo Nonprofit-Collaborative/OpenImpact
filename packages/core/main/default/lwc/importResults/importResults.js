@@ -15,6 +15,9 @@ import reasonHeader from '@salesforce/label/c.Core_Import_ReasonHeader';
 import noRejectedRows from '@salesforce/label/c.Core_Import_NoRejectedRows';
 import runningMessage from '@salesforce/label/c.Core_Import_RunningMessage';
 import loadingAltText from '@salesforce/label/c.Core_Import_LoadingAltText';
+import severalHeading from '@salesforce/label/c.Core_Import_SeveralHeading';
+import severalHelp from '@salesforce/label/c.Core_Import_SeveralHelp';
+import statusHeader from '@salesforce/label/c.Core_Import_StatusHeader';
 
 /**
  * What an import did, or on a dry run what it would do: the four counts, the run log, and
@@ -30,8 +33,16 @@ export default class ImportResults extends LightningElement {
   @api batch;
   /** The rejected rows of that batch, already fetched. */
   @api rejectedRows = [];
+  /**
+   * The rows whose key found more than one record (R-IT9), listed whether they were rejected
+   * or used the most recently changed record.
+   */
+  @api severalRows = [];
 
   labels = {
+    severalHeading,
+    severalHelp,
+    statusHeader,
     runLogHeading,
     rejectedHeading,
     rowNumberHeader,
@@ -74,6 +85,10 @@ export default class ImportResults extends LightningElement {
         value: batch.rejected || 0
       }
     ];
+  }
+
+  get hasSeveralRows() {
+    return Array.isArray(this.severalRows) && this.severalRows.length > 0;
   }
 
   get hasRejectedRows() {

@@ -84,9 +84,23 @@ public with sharing class ImportUndoService {
             return view;
         }
         countTagged(batch.Id, view);
-        view.updates = ImportJournalService.entryCount(batch.Id, ImportJournalService.PHASE_COMMIT);
+        // What the commit created with no tag to find it by is named in the journal (R-IJ3).
+        Integer journaled = ImportJournalService.createdCount(batch.Id);
+        if (journaled > 0) {
+            TaggedCount counted = new TaggedCount();
+            Schema.DescribeSObjectResult described = journaledType(batch)
+                .getDescribe(SObjectDescribeOptions.DEFERRED);
+            counted.objectName = described.getName();
+            counted.label = described.getLabelPlural();
+            counted.count = journaled;
+            view.others.add(0, counted);
+            view.total += journaled;
+        }
+        view.updates =
+            ImportJournalService.entryCount(batch.Id, ImportJournalService.PHASE_COMMIT) -
+            journaled;
         // A bulk update journals a Failed entry for each record it could not save, which an
-        // undo has nothing to put back for, so its count is the records it saved (R-IB14). A job
+        // undo has nothing to put back for, so its count is the records it saved (R-IB16). A job
         // the platform stopped before its finish counted them keeps the journal's count.
         if (
             BulkUpdateService.OPERATION_UPDATE.equals(batch.Operation__c) &&
@@ -154,6 +168,23 @@ public with sharing class ImportUndoService {
     }
 
     /**
+     * The object a batch's journaled creations are of (R-IJ3): the object a template that loads
+     * one object loads (R-IT10), or else the affiliations a people import makes, the one untagged
+     * object Core creates from a row. Only the label shown before an undo depends on it; the undo
+     * reads each record's object from its identifier.
+     */
+    @NamespaceAccessible
+    public static Schema.SObjectType journaledType(Import_Batch__c batch) {
+        Import_Template__c template = batch == null
+            ? null
+            : ImportTemplateSelector.selectById(batch.Import_Template__c);
+        Schema.SObjectType loaded = ImportObjectLoader.loadsOneObject(template)
+            ? ImportObjectLoader.typeOf(template)
+            : null;
+        return loaded == null ? Affiliation__c.SObjectType : loaded;
+    }
+
+    /**
      * Closes an undo: its status, and one line added to the run log saying who ran it, when,
      * and what it deleted, kept and put back. Called from the job's last finish, in system
      * mode over fields the package owns (ADR-0021).
@@ -165,9 +196,26 @@ public with sharing class ImportUndoService {
         Integer restored,
         Boolean failed
     ) {
+        finish(batchId, countedAtStart, restored, failed, 0);
+    }
+
+    /**
+     * Closes an undo as above. `journaledKept` is how many of the records the journal names as
+     * created the undo kept (R-IB9): they are not found by a tag, so they cannot be counted
+     * again here, and the undo job carries the number.
+     */
+    @NamespaceAccessible
+    public static void finish(
+        Id batchId,
+        Integer countedAtStart,
+        Integer restored,
+        Boolean failed,
+        Integer journaledKept
+    ) {
         try {
             Preview left = new Preview();
             countTagged(batchId, left);
+            left.total += journaledKept == null ? 0 : journaledKept;
             Integer counted = countedAtStart == null ? 0 : countedAtStart;
             Import_Batch__c batch = [
                 SELECT Id, Run_Log__c

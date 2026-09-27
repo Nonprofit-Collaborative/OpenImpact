@@ -113,10 +113,12 @@ private class ImportMappingTest {
         mapping.columns.add(new ImportMapping.Column('Email', 'Contact1.Email'));
         mapping.columns.add(new ImportMapping.Column('Amount', 'Gift.Amount__c'));
         mapping.columns.add(new ImportMapping.Column('Fund', 'Allocation.Fund'));
+        mapping.columns.add(new ImportMapping.Column('Role', 'Affiliation.Role__c'));
         Set<String> deferred = mapping.deferredEntities();
         Assert.areEqual(2, deferred.size(), 'The gift and the allocation are both deferred.');
         Assert.isTrue(deferred.contains('Gift'), 'The gift is one of them.');
         Assert.isFalse(deferred.contains('Contact1'), 'A person is not: Core loads people.');
+        Assert.isFalse(deferred.contains('Affiliation'), 'Nor an affiliation, since C-32 (R-IR8).');
     }
 
     @IsTest

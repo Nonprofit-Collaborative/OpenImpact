@@ -21,7 +21,7 @@ public with sharing class DataManagementSettings {
         return read('Export_Row_Limit__c', EXPORT_ROW_LIMIT_DEFAULT, EXPORT_ROW_LIMIT_MAX);
     }
 
-    /** The most records one bulk update may change (R-IB14). */
+    /** The most records one bulk update may change (R-IB16). */
     @NamespaceAccessible
     public static Integer bulkUpdateMaxRecords() {
         return read('Bulk_Update_Max_Records__c', BULK_UPDATE_MAX_DEFAULT, BULK_UPDATE_MAX_CEILING);
