@@ -45,11 +45,21 @@ Built so far (iteration 0.6):
   `Connect_Settings__c.Opportunity_Mirror_Direction__c` is chosen. Shared pieces with Campaign
   sync are in `ConnectSync`. Permission set: `Opportunity_Mirror`. See
   `docs/admin-guide/opportunity-mirror.md` and canonical model Section 29C.
+- **Gift Transaction mirror (X-07).** For Nonprofit Cloud orgs: Gifts to Gift Transactions or
+  Gift Transactions to Gifts, one at a time, both as runs (`GiftTransactionMirrorBatch`, nightly
+  through `GiftTransactionMirrorSchedulable`); the link is `Gift__c.Gift_Transaction_Id__c`. The
+  Nonprofit Cloud object and its fields are reached only through `GiftTransactionMirrorSchema`,
+  which checks their shape at run time, so the feature is inert without Nonprofit Cloud. The
+  `Gift_Transaction_Mirror` automation on Gift only checks a typed link and reports deleted linked
+  gifts. `GiftTransactionMirrorReconciliation` compares a date range from the
+  `giftTransactionMirror` page. Off until a direction, a paid status and a start date are set.
+  Permission set: `Gift_Transaction_Mirror`. See `docs/admin-guide/gift-transaction-mirror.md`
+  and canonical model Section 29D.
 
 ## How to test it alone
 
 Deploy Core, Giving and then Connect (`scripts/org/deploy-packages.sh` does all three), then
 run the `InboundGift*Test`, `AccountingExport*Test`, `CampaignSync*Test`, `ConnectSyncTest`,
-`OpportunityMirror*Test` and `ConnectPostInstallTest` classes. The Campaign sync and Opportunity
-mirror tests check that nothing happens on an org without Campaign or Opportunity, and exercise
-the copy where they exist.
+`OpportunityMirror*Test`, `GiftTransactionMirror*Test` and `ConnectPostInstallTest` classes.
+The Campaign sync and both mirrors' tests check that nothing happens on an org without Campaign,
+Opportunity or Gift Transaction, and exercise the copy where they exist.

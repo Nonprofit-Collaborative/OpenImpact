@@ -1,0 +1,611 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+  <labels>
+    <fullName>Connect_HealthCheck_GiftTransactionMirrorNotRunTitle</fullName>
+    <categories>Connect, Gift Transaction Mirror, Health Check</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Health Check: Gift Transaction mirror has not run, title</shortDescription>
+    <value>The Gift Transaction mirror has not run</value>
+  </labels>
+  <labels>
+    <fullName>Connect_HealthCheck_GiftTransactionMirrorNotRunDetail</fullName>
+    <categories>Connect, Gift Transaction Mirror, Health Check</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Health Check: Gift Transaction mirror has not run, detail</shortDescription>
+    <value>The Gift Transaction mirror's nightly run is scheduled, but no run has completed since {0}. It runs as the person who scheduled it: if they were deactivated or lost access, every run fails before it starts. Open Gift Transaction mirror in BarnCRM Settings, then stop the nightly run and schedule it again as someone who can run it. The Error Log says why the runs failed.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_Unavailable</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: no Gift Transactions available</shortDescription>
+    <value>This org has no Nonprofit Cloud Gift Transactions you can use, so there is nothing to mirror. The Gift Transaction mirror needs Nonprofit Cloud fundraising and, for you, the Fundraising User permission. It is also unavailable when this org's Gift Transaction fields differ from what this version of BarnCRM expects.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_SwitchedOff</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page refusal: no direction chosen</shortDescription>
+    <value>The Gift Transaction mirror is off. Choose a direction in BarnCRM Settings, Giving, Gift Transaction mirror direction.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_NoStatus</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Not ready: no paid status set</shortDescription>
+    <value>Nothing is mirrored until you set Gift Transaction mirror paid status in BarnCRM Settings, Giving: the Status your paid Gift Transactions have.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_UnknownStatus</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Not ready: paid status is not an active Status value</shortDescription>
+    <value>The Gift Transaction mirror paid status, {0}, is not one of the active Status values of Gift Transactions in this org, so nothing is mirrored. Copy the value exactly, as its API name, from the Status field in Setup.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_NoStartDate</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Not ready: no start date set</shortDescription>
+    <value>Nothing is mirrored until you set Gift Transaction mirror start date in BarnCRM Settings, Giving. Only gifts and Gift Transactions dated on or after it are mirrored.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_NoManagePermission</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page refusal: cannot manage settings</shortDescription>
+    <value>Starting or scheduling the mirror needs the Manage BarnCRM Settings permission.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_NoAccess</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page refusal: cannot do what a run needs</shortDescription>
+    <value>You cannot create, edit or read Gift Transactions as this direction needs, or you do not have the Gift Transaction Mirror permission set, so a run started by you would mirror nothing.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_NoUsePermission</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page refused: no Gift Transaction Mirror permission set</shortDescription>
+    <value>The Gift Transaction mirror page needs the Gift Transaction Mirror permission set. Ask your administrator for it.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_Running</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page refusal: a run is in progress</shortDescription>
+    <value>A run is already in progress. Wait for it to finish, then try again.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_CopyAgainGiftsOnly</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page refusal: copy again needs Gifts to Gift Transactions</shortDescription>
+    <value>Copy these gifts again works only in Gifts to Gift Transactions: a gift is never changed from its Gift Transaction.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_ErrorFailed</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: unexpected failure</shortDescription>
+    <value>Something went wrong. The Error Log has the details.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_RunPaused</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run skipped: automation paused</shortDescription>
+    <value>The Gift Transaction mirror run did nothing, because automation is paused on the Automation page. The next run after it resumes catches up.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_RunSwitchedOff</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run skipped: automation switched off</shortDescription>
+    <value>The Gift Transaction mirror run did nothing, because the Gift Transaction mirror is switched off on the Automation page. Switch it on for its runs to work again.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_RunNotReady</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run skipped: settings missing</shortDescription>
+    <value>The Gift Transaction mirror run did nothing. {0}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_LogNoHeadroom</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run: chunks left for want of room</shortDescription>
+    <value>The Gift Transaction mirror left some records for the next run, because copying them in the same transaction would have gone past Salesforce limits. The next run copies them.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_LogRunGiftTransactions</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run summary: Gifts to Gift Transactions</shortDescription>
+    <value>Gift Transaction mirror run, Gifts to Gift Transactions: {0} Gift Transactions created, {1} updated, {2} already up to date, {3} could not be copied (see the Warnings), {4} left for the next run.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_LogRunGifts</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run summary: Gift Transactions to Gifts</shortDescription>
+    <value>Gift Transaction mirror run, Gift Transactions to Gifts: {0} gifts made, {2} Gift Transactions already had a gift, {3} could not become gifts (see the Warnings), {4} left for the next run.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_LogOne</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run log: one gift refused</shortDescription>
+    <value>The Gift Transaction mirror could not copy the gift {0}: {1}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_LogMany</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run log: many gifts refused, one reason</shortDescription>
+    <value>The Gift Transaction mirror could not copy {0} gifts ({1}): {2}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_LogOneGiftTransaction</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run log: one Gift Transaction refused</shortDescription>
+    <value>The Gift Transaction mirror could not make a gift from the Gift Transaction {0}: {1}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_LogManyGiftTransactions</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run log: many Gift Transactions refused, one reason</shortDescription>
+    <value>The Gift Transaction mirror could not make gifts from {0} Gift Transactions ({1}): {2}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_NoAccount</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run log: gift has no account to be the donor</shortDescription>
+    <value>The gift has no Donor Account and no Household, and a Gift Transaction's donor must be an account. Give the donor a household, and the next run copies the gift.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_Missing</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run log: linked Gift Transaction not found</shortDescription>
+    <value>The Gift Transaction linked to the gift was deleted or is not visible to you. If it was deleted, clear the gift's Gift Transaction ID to have a new one made; if it still exists, give the person running the mirror access to it.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_InvalidGiftTransactionId</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Gift save refused: Gift Transaction ID is not one</shortDescription>
+    <value>Gift Transaction ID must be the record ID of a Nonprofit Cloud Gift Transaction (15 or 18 characters), or empty.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_LogOrphan</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run log: new Gift Transaction left unlinked</shortDescription>
+    <value>The Gift Transaction mirror created the Gift Transaction {0} for this gift, could not store its Gift Transaction ID on the gift, and could not delete the Gift Transaction again: {1} Delete that Gift Transaction, or paste its ID onto the gift once the gift can be saved.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_AmountNotAboveZero</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run log: Gift Transaction amount not above zero</shortDescription>
+    <value>The Gift Transaction has no Original Amount above zero, so no gift was made from it.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_NoDonor</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Run log: Gift Transaction names no donor account</shortDescription>
+    <value>The Gift Transaction has no donor account, so no gift was made from it. Give it a donor, and the next run makes the gift.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_DeletedKept</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Deleted gift: its Gift Transaction is left in place</shortDescription>
+    <value>Its Gift Transaction is left in place. Delete it in Nonprofit Cloud yourself if it should go.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_DeletedRemade</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Deleted gift: its Gift Transaction will become a gift again</shortDescription>
+    <value>Its Gift Transaction is left in place, and while it has the paid status the next run makes a new gift from it. Change its status, or delete it, if the gift should stay gone.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_LogDeletedOne</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Deleted gift log: one gift</shortDescription>
+    <value>The gift {0}, linked to a Gift Transaction, was deleted. {1}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_LogDeletedMany</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Deleted gift log: several gifts</shortDescription>
+    <value>{0} gifts linked to Gift Transactions were deleted ({1}). {2}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_ErrorDatesRequired</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation refused: dates missing</shortDescription>
+    <value>Choose a start date and an end date.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_ErrorDateOrder</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation refused: dates reversed</shortDescription>
+    <value>The start date must be on or before the end date.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_ErrorTooMany</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation refused: range too large</shortDescription>
+    <value>This range holds more than 10,000 gifts or more than 10,000 Gift Transactions, or more records than one comparison can read. Choose a shorter range.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_NoLinkAccess</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation refused: cannot read Gift Transaction ID</shortDescription>
+    <value>Comparing needs the Gift Transaction Mirror permission set, which lets you read the Gift Transaction ID on a gift.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_NoRead</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation refused: no Gift Transaction read access</shortDescription>
+    <value>Comparing needs read access to Gift Transactions and to their Name, Donor, Transaction Date, Original Amount and Status. Ask your administrator for it.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_DiffNoGiftTransaction</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: gift has no Gift Transaction</shortDescription>
+    <value>No Gift Transaction</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_DiffMissing</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: linked Gift Transaction not found</shortDescription>
+    <value>Gift Transaction deleted or not visible to you</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_DiffAmount</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: amounts disagree</shortDescription>
+    <value>Amount differs</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_DiffDate</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: dates disagree</shortDescription>
+    <value>Date differs</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_DiffStatus</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: linked Gift Transaction not paid</shortDescription>
+    <value>Gift Transaction does not have the paid status</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_DiffNoGift</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: Gift Transaction with no gift</shortDescription>
+    <value>Paid Gift Transaction with no received gift visible to you</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_Title</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page title</shortDescription>
+    <value>Gift Transaction mirror</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_Intro</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page introduction</shortDescription>
+    <value>Keeps gifts and Nonprofit Cloud Gift Transactions in step, in the direction chosen in BarnCRM Settings. Run now mirrors what is waiting; the nightly run catches up every night at 01:35.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_DirectionGifts</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: Gifts to Gift Transactions is on</shortDescription>
+    <value>Direction: Gifts to Gift Transactions. Received gifts dated on or after {0} get a matching Gift Transaction with status {1}.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_DirectionGiftTransactions</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: Gift Transactions to Gifts is on</shortDescription>
+    <value>Direction: Gift Transactions to Gifts. Gift Transactions with status {1} dated on or after {0} become gifts.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_RunNow</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Button: start a run</shortDescription>
+    <value>Run now</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_ScheduleNightly</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Button: schedule the nightly run</shortDescription>
+    <value>Schedule nightly</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_StopSchedule</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Button: stop the nightly run</shortDescription>
+    <value>Stop nightly run</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_NextRun</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: when the nightly run next starts</shortDescription>
+    <value>Next nightly run: {0}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_NotScheduled</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: nightly run not scheduled</shortDescription>
+    <value>The nightly run is not scheduled.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_RunningNow</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: a run is in progress</shortDescription>
+    <value>A run is in progress.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_Started</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: a run was started</shortDescription>
+    <value>The run has started. Its summary is written to the Error Log when it ends.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_LastRun</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: last completed run</shortDescription>
+    <value>Last completed run: started {0}. {1}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_NoLastRun</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: no completed run yet</shortDescription>
+    <value>No run has completed yet.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_Loading</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Page: loading</shortDescription>
+    <value>Loading</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_ReconciliationTitle</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Section title: reconciliation</shortDescription>
+    <value>Reconciliation</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_ReconciliationIntro</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Section introduction: reconciliation</shortDescription>
+    <value>Compare the received gifts dated in a range with the Gift Transactions of the paid status dated in it, as you can see them.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_FromDate</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Field label: range start</shortDescription>
+    <value>From</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_ToDate</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Field label: range end</shortDescription>
+    <value>To</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_Compare</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Button: compare a range</shortDescription>
+    <value>Compare</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_CopyAgain</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Button: copy a range again</shortDescription>
+    <value>Copy these gifts again</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_GiftSide</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: gift count and total</shortDescription>
+    <value>Gifts: {0}, total {1}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_GiftTransactionSide</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: Gift Transaction count and total</shortDescription>
+    <value>Paid Gift Transactions: {0}, total {1}</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_NoDifferences</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: nothing differs</shortDescription>
+    <value>No differences.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_DifferenceCount</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: how many differences are listed</shortDescription>
+    <value>Differences found: {0}. The first {1} are listed.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_DifferenceCountAll</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Reconciliation: difference count, all listed</shortDescription>
+    <value>Differences found: {0}. All are listed.</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_ColumnGift</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Column: gift</shortDescription>
+    <value>Gift</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_ColumnGiftAmount</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Column: gift amount</shortDescription>
+    <value>Gift amount</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_ColumnGiftDate</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Column: gift date</shortDescription>
+    <value>Gift date</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_ColumnGiftTransaction</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Column: Gift Transaction</shortDescription>
+    <value>Gift Transaction</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_ColumnGiftTransactionAmount</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Column: Gift Transaction amount</shortDescription>
+    <value>Original amount</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_ColumnTransactionDate</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Column: transaction date</shortDescription>
+    <value>Transaction date</value>
+  </labels>
+  <labels>
+    <fullName>Connect_GiftTransactionMirror_ColumnDifference</fullName>
+    <categories>Connect, Gift Transaction Mirror</categories>
+    <language>en_US</language>
+    <protected>false</protected>
+    <shortDescription>Column: difference</shortDescription>
+    <value>Difference</value>
+  </labels>
+</CustomLabels>

@@ -782,6 +782,11 @@ refreshes `docs/product-plan.md` and deletes this subsection:
 - Section 11.3: remove the work items done on this branch: the sf CLI heap in the org test
   script, and the Health Check lookup of a `ConnectService` class that does not exist (it now
   looks up `ConnectPostInstall`).
+- Section 5.6 (the X-07 row, still showing iteration 0.10) and Section 6: mark X-07, the Gift
+  Transaction mirror, built in v0.6 (ADR-0058, amended 2026-09-27; canonical model Section 29D),
+  and add its two owner questions to Section 11.2: whether designations should be mirrored, which
+  needs a Fund to Gift Designation link, and whether confirming Agentforce Nonprofit coexistence
+  should propose the mirror.
 
 The rename pass for labels, API names and docs is on branch
 `claude/openimpact-barncrm-status-ft0c1x`, built on the C-29 top head, so it merges after C-29.
@@ -795,6 +800,13 @@ in `SettingsController` and `ModuleDetectionService`) once the new repository ex
 - The Platform-only shape. Both test orgs (`oi-test`, `oi-pa`) have Person Accounts, and
   ADR-0013 notes that even a Platform-only scratch org keeps the standard objects. Only the
   static checks (`check-standard-objects.sh`) and review cover it.
+- X-07, the Gift Transaction mirror, in an org with Nonprofit Cloud fundraising. Neither test org
+  has Gift Transactions, so its Apex tests take their absent branch there, and only the admin
+  guide's walkthrough in a real Nonprofit Cloud org, run as someone with the Fundraising User
+  permission, exercises the copy. Run that walkthrough and the `GiftTransactionMirror*Test`
+  classes there, and correct `docs/architecture/reference/nonprofit-cloud-data-model.md` from a
+  describe of `GiftTransaction` (types, required fields, Status values), before a customer turns
+  it on.
 
 ### Work items
 
@@ -846,7 +858,6 @@ from both when its PR merges.
 ### Next on the roadmap
 
 Product plan Section 6 is the source of truth:
-- **X-07 Gift Transaction mirror.** It shares `ConnectSync` with X-01.
 - **v0.7 items:**
   - C-32: import matching and per-file values;
   - C-33: load one object;
