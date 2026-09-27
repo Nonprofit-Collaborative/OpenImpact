@@ -308,6 +308,10 @@
     <enabled>true</enabled>
   </classAccesses>
   <classAccesses>
+    <apexClass>SuiteService</apexClass>
+    <enabled>true</enabled>
+  </classAccesses>
+  <classAccesses>
     <apexClass>UserAccessSelector</apexClass>
     <enabled>true</enabled>
   </classAccesses>

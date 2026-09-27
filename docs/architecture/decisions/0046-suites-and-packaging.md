@@ -3,7 +3,8 @@
 **Status:** Accepted
 **Date:** 2026-09-23; amended 2026-09-27 (name settled as BarnCRM, Impact Suite renamed Nonprofit
 Suite, owner decision); amended 2026-09-27 (tested as unlocked packages with no namespace before
-the namespace and managed packages, owner decision)
+the namespace and managed packages, owner decision); amended 2026-09-27 (C-30: what the suite
+choice in the Setup Assistant does and does not change, builder decision under owner direction)
 **Source:** product owner decision (Brandon), plan Section 3 "Suites and packaging", Section 8.3,
 Section 11.2 open question 5, and Section 12 decisions D-01 and D-02; amends ADR-0001 (name) and
 ADR-0002 (packaging)
@@ -70,6 +71,41 @@ PackageInstallRequest exists but is not a supported product path.
 - **Production pilots on unlocked packages are allowed** (owner decision). Each moves to managed
   through a supported migration: export, uninstall unlocked, install managed, reimport, built and
   rehearsed before listing (C-31).
+- **C-30 decision: the suite choice (amended 2026-09-27, builder decision under owner
+  direction).** What was built, and what the choice does and does not change:
+  - **Stored as a Core setting.** `Suite__c` on `Barn_Settings__c` holds `Nonprofit` or
+    `Community`, and is empty until an administrator chooses. It is the Suite row in the
+    General section of BarnCRM Settings, audited like every other setting, and the Setup
+    Assistant writes it through `SettingsService`.
+  - **The first step of the Setup Assistant.** It asks Nonprofit Suite or Community Suite, each
+    with one plain line, and then lists the modules that suite offers with their state. It
+    takes the place of the module inventory that was step six, keeping that step's key
+    (`modules`) so recorded progress carries over: Core alone still has seven steps and Core
+    with Giving eight, and an org that marked the inventory done stays finished. The step
+    finishes when a suite is saved.
+  - **Preselected, never assumed.** The step preselects the Nonprofit Suite when Giving is
+    installed and the Community Suite otherwise. An empty setting is never read as a choice, so
+    an org that never chose behaves exactly as before.
+  - **Which modules a suite lists is data.** Core ships `Suite_Module__mdt`, one row per module
+    per suite: the Nonprofit Suite lists Giving (required) then Programs, Logic Models,
+    Volunteers, Funders and Connect (optional); the Community Suite lists Volunteers, with
+    Events added as a row when it exists. A module with no row for a suite is never listed
+    for it, so the Community Suite never shows a module that is only for nonprofits.
+  - **No install links yet.** No package version exists and the namespace is not registered,
+    so no row carries an installer address and none is invented. A module that is not
+    installed shows one sentence and a Learn more link to the admin guide. Each row has an
+    empty `Install_Url__c`; a later release fills it in as data and the step shows an Install
+    link, with no code change. The Nonprofit Edition toggle that opens Giving's installer is
+    therefore that link, once it exists; turning modules on and off stays with the Module
+    Manager (C-24).
+  - **What the choice changes:** which modules the Setup Assistant lists and offers. Nothing
+    else reads it today.
+  - **What the choice does not change:** it installs, removes, hides and switches off nothing.
+    An installed module's Setup Assistant steps, settings, tabs, permission sets and
+    automation are the same whichever suite is chosen: an org with Giving that chooses the
+    Community Suite still sees Giving's steps, because installed functionality is never
+    hidden. An org that chooses the Nonprofit Suite without Giving is told plainly that the
+    suite needs Giving and carries on with the steps every organization answers.
 - Supersedes the 2026-09-22 parking-lot direction of a separate CI-built community Households
   edition.
 
@@ -88,6 +124,7 @@ PackageInstallRequest exists but is not a supported product path.
 - Pilot orgs must be told in writing, before install, that they will migrate from unlocked to
   managed packages.
 - Every review checks managed-package rules now, since unlocked packaging will not enforce them.
-- The Setup Assistant's first step (C-30) asks "Nonprofit Suite or Community Suite".
+- The Setup Assistant's first step (C-30) asks "Nonprofit Suite or Community Suite"; the C-30
+  decision above records what the answer does and does not change.
 - The trademark search result is recorded here and in plan Section 8.3; a conflict re-opens the
   name under the owner's legal gate.

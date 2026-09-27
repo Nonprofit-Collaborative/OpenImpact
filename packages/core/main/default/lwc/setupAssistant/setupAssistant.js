@@ -6,6 +6,7 @@ import resetSetup from '@salesforce/apex/SetupAssistantController.reset';
 import applyCoexistence from '@salesforce/apex/SetupAssistantController.applyCoexistence';
 import saveStepValues from '@salesforce/apex/SetupAssistantController.saveStepValues';
 import assignAccess from '@salesforce/apex/SetupAssistantController.assignAccess';
+import chooseSuite from '@salesforce/apex/SetupAssistantController.chooseSuite';
 
 import HEADING from '@salesforce/label/c.Core_SetupAssistant_Heading';
 import PROGRESS_LABEL from '@salesforce/label/c.Core_SetupAssistant_ProgressLabel';
@@ -261,7 +262,9 @@ export default class SetupAssistant extends LightningElement {
     return this.activeKey === 'access';
   }
 
-  get isModulesStep() {
+  // The suite choice keeps the key of the module list it replaced (C-30), so progress an org
+  // recorded there still counts.
+  get isSuiteStep() {
     return this.activeKey === 'modules';
   }
 
@@ -289,8 +292,8 @@ export default class SetupAssistant extends LightningElement {
     return this.stepFields.length > 0;
   }
 
-  get modules() {
-    return (this.state && this.state.modules) || [];
+  get suite() {
+    return (this.state && this.state.suite) || {};
   }
 
   get coexistence() {
@@ -379,6 +382,11 @@ export default class SetupAssistant extends LightningElement {
 
   handleCoexistenceConfirm(event) {
     this.call(applyCoexistence, { mode: event.detail.mode }, false, () => this.advance());
+  }
+
+  // The step finishes by itself once a suite is saved, so the save is all there is to record.
+  handleSuiteChoose(event) {
+    this.call(chooseSuite, { suite: event.detail.suite }, false, () => this.advance());
   }
 
   handleNamingSaved() {

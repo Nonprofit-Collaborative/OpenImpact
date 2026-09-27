@@ -1,0 +1,55 @@
+<template>
+    <fieldset class="slds-form-element">
+        <legend class="slds-form-element__legend slds-form-element__label">{labels.chooser}</legend>
+        <div class="slds-form-element__control">
+            <template for:each={options} for:item="option">
+                <div key={option.value} class="slds-var-m-bottom_x-small">
+                    <span class="slds-radio">
+                        <input
+                            type="radio"
+                            id={option.inputId}
+                            name="suite"
+                            value={option.value}
+                            checked={option.checked}
+                            disabled={isReadOnly}
+                            aria-describedby={option.descriptionId}
+                            data-id="suite-option"
+                            onchange={handleSelect}
+                        />
+                        <label class="slds-radio__label" for={option.inputId}>
+                            <span class="slds-radio_faux"></span>
+                            <span class="slds-form-element__label slds-text-title_bold">{option.label}</span>
+                        </label>
+                    </span>
+                    <p class="slds-text-body_small slds-var-m-left_large" id={option.descriptionId}>
+                        {option.description}
+                    </p>
+                </div>
+            </template>
+        </div>
+    </fieldset>
+
+    <template lwc:if={showNeedsGiving}>
+        <p class="slds-text-body_regular slds-var-m-vertical_small" role="status" data-id="needs-giving">
+            {labels.needsGiving}
+        </p>
+    </template>
+
+    <template lwc:if={hasModules}>
+        <h4 class="slds-text-title_caps slds-var-m-top_small slds-var-m-bottom_x-small">
+            {labels.modulesHeading}
+        </h4>
+        <c-setup-step-modules data-id="suite-modules" modules={selectedModules}></c-setup-step-modules>
+    </template>
+
+    <template lwc:if={canEdit}>
+        <lightning-button
+            class="slds-var-m-top_small"
+            variant="brand"
+            label={labels.choose}
+            disabled={chooseDisabled}
+            data-id="choose-suite"
+            onclick={handleChoose}
+        ></lightning-button>
+    </template>
+</template>

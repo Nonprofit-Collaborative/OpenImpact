@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>Suite__c</fullName>
+  <description>Which suite the organization chose in the Setup Assistant: Nonprofit or Community. Held as text because a custom setting field cannot be a picklist (ADR-0019). Empty until someone chooses, and an empty value is never read as a choice (C-30, ADR-0046).</description>
+  <externalId>false</externalId>
+  <inlineHelpText>Nonprofit Suite or Community Suite: decides which modules the Setup Assistant offers.</inlineHelpText>
+  <label>Suite</label>
+  <length>40</length>
+  <required>false</required>
+  <type>Text</type>
+</CustomField>

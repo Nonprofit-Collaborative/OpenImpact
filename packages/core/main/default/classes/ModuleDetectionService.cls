@@ -20,7 +20,18 @@ public with sharing class ModuleDetectionService {
 
     private static final String DOCS_BASE = 'https://github.com/Nonprofit-Collaborative/BarnCRM/blob/main/docs/product-plan.md';
 
-    /** One row of the module list the Setup Assistant shows in step six. */
+    /**
+     * Which modules are present, used instead of detection so that tests can run both suites
+     * with Giving present and absent: in an org where Giving is deployed beside Core, its
+     * objects and rows are there whatever a test would like. Names as `normalized` gives them.
+     */
+    @TestVisible
+    private static Set<String> stubbedPresent;
+
+    /** The Giving answer, found once per transaction: the suite step asks it several times. */
+    private static Boolean givingPresent;
+
+    /** One row of a module list the Setup Assistant shows. */
     public class ModuleInfo {
         @AuraEnabled
         public String name;
@@ -28,6 +39,12 @@ public with sharing class ModuleDetectionService {
         public Boolean present;
         @AuraEnabled
         public String docsUrl;
+        /** True when the chosen suite needs this module (C-30); false or null otherwise. */
+        @AuraEnabled
+        public Boolean required;
+        /** The module's package installer, once one is published (C-30); null until then. */
+        @AuraEnabled
+        public String installUrl;
     }
 
     /**
@@ -38,10 +55,51 @@ public with sharing class ModuleDetectionService {
      * appeal object is not mistaken for Giving.
      */
     public static Boolean isGivingPresent() {
-        if (announcedModules().contains(MODULE_GIVING.toLowerCase())) {
+        if (stubbedPresent != null) {
+            return stubbedPresent.contains(normalized(MODULE_GIVING));
+        }
+        if (givingPresent == null) {
+            givingPresent =
+                announcedModules().contains(MODULE_GIVING.toLowerCase()) ||
+                (objectExists(GIVING_FUND_OBJECT) && objectExists(GIVING_APPEAL_OBJECT));
+        }
+        return givingPresent;
+    }
+
+    /**
+     * True when the named module is in this org (C-30). Giving is found as `isGivingPresent`
+     * finds it; any other module by the Setting Definition rows it ships naming itself, the
+     * only signal a module Core knows nothing else about can give (ADR-0017). The name is
+     * matched ignoring case, spaces and underscores, so `Logic Models` and `Logic_Models` agree.
+     */
+    public static Boolean isPresent(String moduleName) {
+        String wanted = normalized(moduleName);
+        if (String.isBlank(wanted)) {
+            return false;
+        }
+        if (wanted == normalized(MODULE_CORE)) {
             return true;
         }
-        return objectExists(GIVING_FUND_OBJECT) && objectExists(GIVING_APPEAL_OBJECT);
+        if (wanted == normalized(MODULE_GIVING)) {
+            return isGivingPresent();
+        }
+        if (stubbedPresent != null) {
+            return stubbedPresent.contains(wanted);
+        }
+        for (String announced : announcedModules()) {
+            if (normalized(announced) == wanted) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** A module name reduced for comparison: lower case, without spaces or underscores. */
+    @TestVisible
+    private static String normalized(String moduleName) {
+        return moduleName == null
+            ? ''
+            : moduleName.toLowerCase().replace(' ', '').replace('_', '').trim();
     }
 
     /** True when the Import framework's staging object is in this org, so the Import tab is worth linking to. */

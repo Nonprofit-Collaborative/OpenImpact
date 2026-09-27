@@ -2,7 +2,7 @@
 
 **Status:** Accepted (builder decision, under the owner decision recorded in ADR-0046)
 **Date:** 2026-09-25; amended 2026-09-27 (owner answers to plan Section 11.2 questions 23 to 25:
-see decisions 4 to 6)
+see decisions 4 to 6); amended 2026-09-27 (C-30: the suite choice's wording, decisions 2 and 5)
 **Source:** C-29; plan Section 4.1 "Suites and packaging" (owner decision, Brandon, 2026-09-23);
 ADR-0046; builds on ADR-0014, ADR-0017, ADR-0020 and ADR-0057 (as amended by ADR-0058)
 
@@ -47,7 +47,9 @@ Assistant flow and labels as before.
    (setting key and settings object, label, type Text, Record, File or Navigate, and limits),
    rendered by one generic Core panel and saved by one Core method that accepts only the keys
    that step declares, through `SettingsService` and the settings object each key names. Core
-   ships seven neutral steps; Giving contributes the fund and appeal step (third), the receipt
+   ships seven neutral steps (from C-30 the first is the suite choice, which takes the place of
+   the module inventory, ADR-0046); Giving contributes the fund and appeal step (third, fourth
+   from C-30), the receipt
    fields and wording of the identity step, and the first-gift button and wording of the last
    step. With Giving the flow, the eight steps, their wording and their fields are as before;
    without it there are seven steps and no notice about a missing module. An extension that
@@ -72,7 +74,12 @@ Assistant flow and labels as before.
    (NPSP, Nonprofit Cloud, Agentforce Nonprofit, Gift Transaction); import aliases that only
    match column headers in a file (`Donor First Name`); and text shown only when Giving is
    installed that a Core screen cannot yet take from Giving (the import wizard's gift columns,
-   control total and donation matching, and the Giving and Receipts section names). The
+   control total and donation matching, and the Giving and Receipts section names).
+   **Amended 2026-09-27 (C-30):** a fourth exception, the names of BarnCRM's own suites and
+   modules and the text the suite choice shows about them. The Nonprofit Suite's name and its
+   one line description may name nonprofits, Giving, gifts and donors, and a module's row may
+   name that module, because the choice exists to tell the two suites apart; the Community
+   Suite's text and every other Core text stay neutral. The
    "Nonprofit" names become "Open Impact": Open Impact Settings, Manage Open Impact Settings,
    Open Impact Admin, Staff, Read Only and Duplicate Review, renamed with the product later
    (plan Section 8.3). **Amended 2026-09-27 (owner, question 24):** these neutral names are

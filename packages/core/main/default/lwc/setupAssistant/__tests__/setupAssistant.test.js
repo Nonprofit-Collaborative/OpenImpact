@@ -7,6 +7,7 @@ import applyCoexistence from '@salesforce/apex/SetupAssistantController.applyCoe
 import saveStepValues from '@salesforce/apex/SetupAssistantController.saveStepValues';
 import assignAccess from '@salesforce/apex/SetupAssistantController.assignAccess';
 import resetSetup from '@salesforce/apex/SetupAssistantController.reset';
+import chooseSuite from '@salesforce/apex/SetupAssistantController.chooseSuite';
 
 jest.mock('@salesforce/apex/SetupAssistantController.getState', () => ({ default: jest.fn() }), {
   virtual: true
@@ -37,14 +38,18 @@ jest.mock(
   () => ({ default: jest.fn() }),
   { virtual: true }
 );
+jest.mock('@salesforce/apex/SetupAssistantController.chooseSuite', () => ({ default: jest.fn() }), {
+  virtual: true
+});
 
+// The suite choice comes first (C-30) and keeps the key of the module list it replaced.
 const STEP_DEFINITIONS = [
+  ['modules', 'Choose your suite', 'Setting'],
   ['coexistence', 'Confirm how BarnCRM fits your existing org', 'Setting'],
   ['naming', 'Confirm how households are named', 'Setting'],
   ['moduledefaults', 'Choose a default contact', 'Setting'],
   ['access', 'Give your colleagues access', 'Action'],
   ['identity', "Set your organization's identity", 'Setting'],
-  ['modules', 'Choose which modules to turn on', 'Action'],
   ['data', 'Bring in your data', 'Action'],
   ['verify', 'Check that everything works', 'Action']
 ];
@@ -90,7 +95,9 @@ function steps(completedKeys = [], skippedKeys = []) {
 }
 
 function state(overrides = {}) {
-  const completed = overrides.completedKeys || [];
+  // Unless a test says otherwise the suite is chosen, so the assistant opens where it did
+  // before C-30.
+  const completed = overrides.completedKeys || ['modules'];
   return {
     canEdit: true,
     steps: steps(completed, overrides.skippedKeys || []),
@@ -104,7 +111,25 @@ function state(overrides = {}) {
       currentMode: null,
       modes: ['Standalone', 'NPSP', 'AgentforceNonprofit']
     },
-    modules: [{ name: 'Core', present: true, docsUrl: 'https://example.invalid/core' }],
+    suite: {
+      chosenSuite: null,
+      recommendedSuite: 'Nonprofit',
+      givingPresent: true,
+      options: [
+        {
+          value: 'Nonprofit',
+          label: 'Nonprofit Suite',
+          description: 'For nonprofits.',
+          modules: [{ name: 'Giving', present: true, required: true }]
+        },
+        {
+          value: 'Community',
+          label: 'Community Suite',
+          description: 'For any other organization.',
+          modules: [{ name: 'Volunteers', present: false, required: false }]
+        }
+      ]
+    },
     roles: [
       { developerName: 'Barn_Admin', label: 'BarnCRM Admin' },
       { developerName: 'Program_Staff', label: 'Program Staff' }
@@ -135,11 +160,11 @@ describe('c-setup-assistant', () => {
     getState.mockResolvedValue(state());
     completeStep.mockResolvedValue(state({ completedKeys: ['modules'] }));
     skipStep.mockResolvedValue(state({ skippedKeys: ['moduledefaults'] }));
-    applyCoexistence.mockResolvedValue(state({ completedKeys: ['coexistence'] }));
+    applyCoexistence.mockResolvedValue(state({ completedKeys: ['modules', 'coexistence'] }));
     saveStepValues.mockResolvedValue(
-      state({ completedKeys: ['coexistence', 'naming', 'moduledefaults'] })
+      state({ completedKeys: ['modules', 'coexistence', 'naming', 'moduledefaults'] })
     );
-    assignAccess.mockResolvedValue(state({ completedKeys: ['access'] }));
+    assignAccess.mockResolvedValue(state({ completedKeys: ['modules', 'access'] }));
     resetSetup.mockResolvedValue(state());
   });
 
@@ -151,7 +176,7 @@ describe('c-setup-assistant', () => {
   });
 
   it('opens one step at a time, on the first step Maria has not finished', async () => {
-    getState.mockResolvedValue(state({ completedKeys: ['coexistence', 'naming'] }));
+    getState.mockResolvedValue(state({ completedKeys: ['modules', 'coexistence', 'naming'] }));
     const element = build();
     await settle();
 
@@ -202,7 +227,7 @@ describe('c-setup-assistant', () => {
 
   it('marks a step with no setting behind it done when Maria moves on', async () => {
     getState.mockResolvedValue(
-      state({ completedKeys: ['coexistence', 'naming', 'moduledefaults'] })
+      state({ completedKeys: ['modules', 'coexistence', 'naming', 'moduledefaults'] })
     );
     const element = build();
     await settle();
@@ -214,7 +239,7 @@ describe('c-setup-assistant', () => {
   });
 
   it('shows the fields a step declares and saves them through one method', async () => {
-    getState.mockResolvedValue(state({ completedKeys: ['coexistence', 'naming'] }));
+    getState.mockResolvedValue(state({ completedKeys: ['modules', 'coexistence', 'naming'] }));
     const element = build();
     await settle();
 
@@ -241,7 +266,7 @@ describe('c-setup-assistant', () => {
   });
 
   it('shows no field panel on a step that declares no fields', async () => {
-    getState.mockResolvedValue(state({ completedKeys: ['coexistence'] }));
+    getState.mockResolvedValue(state({ completedKeys: ['modules', 'coexistence'] }));
     const element = build();
     await settle();
 
@@ -250,7 +275,7 @@ describe('c-setup-assistant', () => {
 
   it('gives a colleague a role from inside the assistant', async () => {
     getState.mockResolvedValue(
-      state({ completedKeys: ['coexistence', 'naming', 'moduledefaults'] })
+      state({ completedKeys: ['modules', 'coexistence', 'naming', 'moduledefaults'] })
     );
     const element = build();
     await settle();
@@ -273,7 +298,7 @@ describe('c-setup-assistant', () => {
 
   it('offers each role by its label, not its developer name', async () => {
     getState.mockResolvedValue(
-      state({ completedKeys: ['coexistence', 'naming', 'moduledefaults'] })
+      state({ completedKeys: ['modules', 'coexistence', 'naming', 'moduledefaults'] })
     );
     const element = build();
     await settle();
@@ -295,7 +320,7 @@ describe('c-setup-assistant', () => {
     // The Hub asked for the assistant, so it opens on step one rather than the summary.
     expect(element.shadowRoot.querySelector('[data-id="complete-heading"]')).toBeNull();
     expect(element.shadowRoot.querySelector('[data-id="step-label"]').textContent).toContain(
-      'Confirm how BarnCRM fits your existing org'
+      'Choose your suite'
     );
     await STEP_DEFINITIONS.reduce(
       (chain) =>
@@ -311,10 +336,12 @@ describe('c-setup-assistant', () => {
 
   it('saves the organization step and stays on it for the remaining answers', async () => {
     getState.mockResolvedValue(
-      state({ completedKeys: ['coexistence', 'naming', 'moduledefaults', 'access'] })
+      state({ completedKeys: ['modules', 'coexistence', 'naming', 'moduledefaults', 'access'] })
     );
     saveStepValues.mockResolvedValue(
-      state({ completedKeys: ['coexistence', 'naming', 'moduledefaults', 'access', 'identity'] })
+      state({
+        completedKeys: ['modules', 'coexistence', 'naming', 'moduledefaults', 'access', 'identity']
+      })
     );
     const element = build();
     await settle();
@@ -336,7 +363,7 @@ describe('c-setup-assistant', () => {
   });
 
   it('shows a save error on the step and stays there', async () => {
-    getState.mockResolvedValue(state({ completedKeys: ['coexistence', 'naming'] }));
+    getState.mockResolvedValue(state({ completedKeys: ['modules', 'coexistence', 'naming'] }));
     saveStepValues.mockRejectedValue({ body: { message: 'That record is not a contact.' } });
     const element = build();
     await settle();
@@ -353,7 +380,7 @@ describe('c-setup-assistant', () => {
   });
 
   it('shows the household naming panel now that C-02 ships it', async () => {
-    getState.mockResolvedValue(state({ completedKeys: ['coexistence'] }));
+    getState.mockResolvedValue(state({ completedKeys: ['modules', 'coexistence'] }));
     const element = build();
     await settle();
 
@@ -366,7 +393,7 @@ describe('c-setup-assistant', () => {
   it('shows the sample data panel now that C-10 ships it', async () => {
     getState.mockResolvedValue(
       state({
-        completedKeys: ['coexistence', 'naming', 'moduledefaults', 'access', 'identity', 'modules']
+        completedKeys: ['modules', 'coexistence', 'naming', 'moduledefaults', 'access', 'identity']
       })
     );
     const element = build();
@@ -383,12 +410,12 @@ describe('c-setup-assistant', () => {
     getState.mockResolvedValue(
       state({
         completedKeys: [
+          'modules',
           'coexistence',
           'naming',
           'moduledefaults',
           'access',
           'identity',
-          'modules',
           'data'
         ]
       })
@@ -402,7 +429,10 @@ describe('c-setup-assistant', () => {
 
   it('opens on a step Maria skipped the next time she comes back', async () => {
     getState.mockResolvedValue(
-      state({ completedKeys: ['coexistence', 'naming'], skippedKeys: ['moduledefaults'] })
+      state({
+        completedKeys: ['modules', 'coexistence', 'naming'],
+        skippedKeys: ['moduledefaults']
+      })
     );
     const element = build();
     await settle();
@@ -419,13 +449,13 @@ describe('c-setup-assistant', () => {
 
     expect(element.shadowRoot.querySelector('[data-id="complete-heading"]')).toBeNull();
     expect(element.shadowRoot.querySelector('[data-id="step-label"]').textContent).toContain(
-      'Confirm how BarnCRM fits your existing org'
+      'Choose your suite'
     );
   });
 
   it('confirms that a colleague was given a role', async () => {
     getState.mockResolvedValue(
-      state({ completedKeys: ['coexistence', 'naming', 'moduledefaults'] })
+      state({ completedKeys: ['modules', 'coexistence', 'naming', 'moduledefaults'] })
     );
     const element = build();
     await settle();
@@ -481,6 +511,71 @@ describe('c-setup-assistant', () => {
 
     expect(changed).toHaveBeenCalled();
     expect(changed.mock.calls[0][0].detail.stepsTotal).toBe(8);
+  });
+
+  it('opens on the suite choice when nobody has chosen a suite', async () => {
+    getState.mockResolvedValue(state({ completedKeys: [] }));
+    const element = build();
+    await settle();
+
+    expect(element.shadowRoot.querySelector('[data-id="step-label"]').textContent).toContain(
+      '1. Choose your suite'
+    );
+    const panel = element.shadowRoot.querySelector('c-setup-step-suite');
+    expect(panel).not.toBeNull();
+    expect(panel.suite.recommendedSuite).toBe('Nonprofit');
+    expect(panel.canEdit).toBe(true);
+    expect(element.shadowRoot.querySelector('c-setup-step-coexistence')).toBeNull();
+  });
+
+  it('saves the chosen suite through Apex and moves on to the next step', async () => {
+    getState.mockResolvedValue(state({ completedKeys: [] }));
+    chooseSuite.mockResolvedValue(state({ completedKeys: ['modules'] }));
+    const element = build();
+    await settle();
+
+    element.shadowRoot
+      .querySelector('c-setup-step-suite')
+      .dispatchEvent(new CustomEvent('choose', { detail: { suite: 'Community' } }));
+    await settle();
+
+    expect(chooseSuite).toHaveBeenCalledWith({ suite: 'Community' });
+    expect(completeStep).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('[data-id="step-label"]').textContent).toContain(
+      'Confirm how BarnCRM fits your existing org'
+    );
+  });
+
+  it('shows a refused suite choice and stays on the step', async () => {
+    getState.mockResolvedValue(state({ completedKeys: [] }));
+    chooseSuite.mockRejectedValue({ body: { message: 'That is not a suite BarnCRM offers.' } });
+    const element = build();
+    await settle();
+
+    element.shadowRoot
+      .querySelector('c-setup-step-suite')
+      .dispatchEvent(new CustomEvent('choose', { detail: { suite: 'Enterprise' } }));
+    await settle();
+
+    expect(element.shadowRoot.textContent).toContain('That is not a suite BarnCRM offers.');
+    expect(element.shadowRoot.querySelector('[data-id="step-label"]').textContent).toContain(
+      'Choose your suite'
+    );
+  });
+
+  it('moves past the suite choice with Next without choosing for Maria', async () => {
+    getState.mockResolvedValue(state({ completedKeys: [] }));
+    const element = build();
+    await settle();
+
+    click(element, 'forward');
+    await settle();
+
+    expect(chooseSuite).not.toHaveBeenCalled();
+    expect(completeStep).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('[data-id="step-label"]').textContent).toContain(
+      'Confirm how BarnCRM fits your existing org'
+    );
   });
 
   it('tells David he may read the steps but not change them', async () => {

@@ -198,7 +198,7 @@
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Setup assistant: link from a module to what it does</shortDescription>
-        <value>What this module does</value>
+        <value>Learn more</value>
     </labels>
     <labels>
         <fullName>Core_SetupAssistant_ModuleManagerNotice</fullName>
@@ -206,7 +206,7 @@
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Setup assistant: notice that one click module control arrives later</shortDescription>
-        <value>Turning a module on and off with one click arrives with the Module Manager in version 0.7. Until then this list tells you what is here, and the links tell you what each module does.</value>
+        <value>Turning a module on and off with one click arrives with the Module Manager. Until then this list tells you what is here and how to get the rest.</value>
     </labels>
     <labels>
         <fullName>Core_SetupAssistant_ModulePresent</fullName>
@@ -214,7 +214,7 @@
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Setup assistant: status of a module that is in this org</shortDescription>
-        <value>Present</value>
+        <value>Installed</value>
     </labels>
     <labels>
         <fullName>Core_SetupAssistant_NamingUnavailableNotice</fullName>
@@ -441,22 +441,6 @@
         <value>Set your organization's identity</value>
     </labels>
     <labels>
-        <fullName>Core_SetupAssistant_Step6Description</fullName>
-        <categories>Core</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Setup assistant: what step six is for</shortDescription>
-        <value>Turn on only what you use. A module that is off leaves nothing behind in your org.</value>
-    </labels>
-    <labels>
-        <fullName>Core_SetupAssistant_Step6Label</fullName>
-        <categories>Core</categories>
-        <language>en_US</language>
-        <protected>true</protected>
-        <shortDescription>Setup assistant: the name of step six</shortDescription>
-        <value>Choose which modules to turn on</value>
-    </labels>
-    <labels>
         <fullName>Core_SetupAssistant_Step7Description</fullName>
         <categories>Core</categories>
         <language>en_US</language>
@@ -559,5 +543,125 @@
         <protected>true</protected>
         <shortDescription>Setup assistant: what the last step, the check that setup works, asks for</shortDescription>
         <value>Follow the short walkthrough that adds a person and a household, so you know the setup is right.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SetupAssistant_SuiteStepLabel</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: the name of the first step, the suite choice</shortDescription>
+        <value>Choose your suite</value>
+    </labels>
+    <labels>
+        <fullName>Core_SetupAssistant_SuiteStepDescription</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: what the suite choice step is for</shortDescription>
+        <value>Say what kind of organization you are setting up. Your answer decides which modules BarnCRM offers you. It installs, hides and switches off nothing.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SetupAssistant_SuiteChooserLabel</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: the label of the suite chooser</shortDescription>
+        <value>Suite</value>
+    </labels>
+    <labels>
+        <fullName>Core_SetupAssistant_SuiteNonprofitLabel</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: the name of the Nonprofit Suite</shortDescription>
+        <value>Nonprofit Suite</value>
+    </labels>
+    <labels>
+        <fullName>Core_SetupAssistant_SuiteNonprofitDescription</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: one line saying who the Nonprofit Suite is for</shortDescription>
+        <value>For nonprofits: people and households, Giving for gifts, donors and receipts, and the nonprofit modules to add when you need them.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SetupAssistant_SuiteCommunityLabel</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: the name of the Community Suite</shortDescription>
+        <value>Community Suite</value>
+    </labels>
+    <labels>
+        <fullName>Core_SetupAssistant_SuiteCommunityDescription</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: one line saying who the Community Suite is for</shortDescription>
+        <value>For any other organization, such as a business, a club or a community group: people, households and organizations, with the modules that fit.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SetupAssistant_SuiteChooseButton</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: button that saves the chosen suite and moves on</shortDescription>
+        <value>Choose and continue</value>
+    </labels>
+    <labels>
+        <fullName>Core_SetupAssistant_SuiteModulesHeading</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: heading over the modules the chosen suite offers</shortDescription>
+        <value>Modules this suite offers</value>
+    </labels>
+    <labels>
+        <fullName>Core_SetupAssistant_SuiteNeedsGivingNotice</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: notice when the Nonprofit Suite is chosen without Giving</shortDescription>
+        <value>The Nonprofit Suite needs the Giving module, which is not installed in this org yet. Setup carries on with the steps every organization answers, and Giving adds its own steps once it is installed.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SetupAssistant_UnknownSuiteError</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: suite from the page is not one of the two</shortDescription>
+        <value>That is not a suite BarnCRM offers, so nothing changed. Refresh the page and try again.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SetupAssistant_ModuleRequired</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: a module the chosen suite needs</shortDescription>
+        <value>Required for this suite</value>
+    </labels>
+    <labels>
+        <fullName>Core_SetupAssistant_ModuleOptional</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: a module the chosen suite offers but does not need</shortDescription>
+        <value>Optional</value>
+    </labels>
+    <labels>
+        <fullName>Core_SetupAssistant_ModuleHowToGet</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: how to get a module that is not installed yet</shortDescription>
+        <value>This module is a separate package, installed from its own install link. No link is published yet, so Learn more says how to get it.</value>
+    </labels>
+    <labels>
+        <fullName>Core_SetupAssistant_ModuleInstallLink</fullName>
+        <categories>Core</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Setup assistant: link that opens a module's package installer</shortDescription>
+        <value>Install</value>
     </labels>
 </CustomLabels>

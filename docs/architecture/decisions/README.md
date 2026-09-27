@@ -106,7 +106,8 @@ primary person when people can be person accounts (plan Section 11.2, item 8).
 ADR-0045 is a builder decision for G-17, recording why gift batch entry does not stage its
 lines through the import framework the plan pointed at.
 ADR-0046 is a product owner decision on the two suites, the BarnCRM name and packaging
-(plan Section 3 and Section 12, D-01 and D-02).
+(plan Section 3 and Section 12, D-01 and D-02); amended for C-30 with what the Setup
+Assistant's suite choice does and does not change.
 ADR-0047 is a product owner decision on the scope and phasing of data management: import,
 find and bulk update (plan Section 4.9 and Section 12, D-13).
 ADR-0048 is a builder decision for C-21 on which Health Check findings may carry a fix button;
@@ -141,8 +142,9 @@ extension.
 ADR-0059 is a builder decision for C-29 under ADR-0046: the seven Giving-only settings keys
 move to `Giving_Settings__c`, the Setup Assistant gains an extension seam so a dependent
 package can add or extend a step, the two receipt Health Check questions move to Giving's own
-extension, Core's app and wording become neutral with a short list of named exceptions, and
-API names do not change until the pre-package name pass.
+extension, Core's app and wording become neutral with a short list of named exceptions (from
+C-30 including the suite choice's own text), and API names do not change until the pre-package
+name pass.
 
 ## Adding a new ADR
 

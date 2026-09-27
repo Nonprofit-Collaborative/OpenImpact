@@ -130,8 +130,12 @@
                     </p>
                 </template>
 
-                <template lwc:if={isModulesStep}>
-                    <c-setup-step-modules modules={modules}></c-setup-step-modules>
+                <template lwc:if={isSuiteStep}>
+                    <c-setup-step-suite
+                        suite={suite}
+                        can-edit={canEdit}
+                        onchoose={handleSuiteChoose}
+                    ></c-setup-step-suite>
                 </template>
 
                 <template lwc:if={isDataStep}>

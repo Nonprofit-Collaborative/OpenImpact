@@ -875,6 +875,14 @@ its job from the console, as the nightly jobs are (ADR-0038), so it has no on an
 | `Error_Digest_Last_Run__c` | datetime | empty | When the digest job last ran, whether or not it sent anything. Written by the job. |
 | `Error_Digest_Last_Run_Summary__c` | text (255) | empty | What the last digest run did, in one sentence. Written by the job. |
 
+### Suite choice key
+
+Added by the suite choice in the Setup Assistant (C-30, ADR-0046 as amended 2026-09-27).
+
+| Key | Type | Default | Definition |
+|---|---|---|---|
+| `Suite__c` | picklist(Nonprofit, Community) | empty | Which suite the organization chose: the Nonprofit Suite (Core with Giving and the nonprofit modules) or the Community Suite (Core with the modules that fit any organization). Decides only which modules the Setup Assistant lists and offers (`Suite_Module__mdt`, Section 13); it installs, hides or switches off nothing. Stored as text (ADR-0019). Empty means nobody has chosen: the assistant preselects the Nonprofit Suite when Giving is installed and the Community Suite otherwise, and nothing else changes. |
+
 ### Rules
 
 **R-N1 Protected and hierarchical.** The custom setting is protected (invisible to
@@ -1023,6 +1031,30 @@ read by the relationship service when it maintains the other side of a connectio
 The API names are given here, as they are for Automation Registry above, because the
 shipped records name fields and a record that names a field its type does not define
 refuses the whole deployment.
+
+### Suite Module
+
+`Suite_Module__mdt` (v0.6, C-30): which modules each suite lists and offers in the Setup
+Assistant's first step, in order, and how an administrator gets one that is not installed.
+One row per module per suite, so a module both suites offer (Volunteers) has two rows. A
+module is never listed for a suite that has no row for it, which is how the Community Suite
+never offers a module that is only for nonprofits. Shipped by Core, which lists modules that
+are not installed and so cannot rely on the module's own package to announce them.
+
+| Field | API name | Type | Definition |
+|---|---|---|---|
+| DeveloperName | `DeveloperName` | text | The stable identifier, the suite then the module, for example `Nonprofit_Giving`. |
+| Label | `MasterLabel` | text | The row as a developer sees it in Setup; never shown to Maria. |
+| Suite | `Suite__c` | text (40) | The suite the row belongs to: one of the `Suite__c` values (Section 12). |
+| Module | `Module__c` | text (40) | The module's name, as detection names it and as the step shows it, for example Giving or Logic Models. |
+| Required | `Required__c` | boolean, default false | Whether the suite needs this module (Giving, for the Nonprofit Suite); every other module is optional. |
+| Sort Order | `Sort_Order__c` | number | The order of the module inside its suite's list. |
+| Install URL | `Install_Url__c` | URL | The address of the module's package installer. Empty on every shipped row until a package version exists (ADR-0046); filled in as data by a later release, with no code change, and the step then shows an Install link instead of the sentence saying how to get the module. |
+| Help Path | `Help_Path__c` | text (255) | The admin guide file, relative to `docs/admin-guide/`, behind the row's Learn more link. |
+
+Shipped rows: the Nonprofit Suite lists Giving (required), then Programs, Logic Models,
+Volunteers, Funders and Connect; the Community Suite lists Volunteers. Events joins the
+Community Suite as a row when its package exists (plan Section 4.1).
 
 ### Rule
 
@@ -5348,8 +5380,10 @@ None open. R-M3's Primary Contact mirror, the only entry, was closed on 2026-09-
 | v0.6 | 2026-09-24 | Cancelled gift status, by the owner's decision (ADR-0054, amending G-04, ADR-0022, ADR-0023 and ADR-0031). No object added. `Gift__c.Status__c` gains Cancelled. New R-G16: a Pending gift that will never be paid is cancelled, with no negative gift, outside every total, the export and receipts, and allowed in a closed period; it moves only between Pending and Cancelled and unlinks its installment. R-G3: only a Received gift is refunded or written off. R-G14, R-AK8, R-RC8 and Section 26 name Cancelled. |
 | v0.6 | 2026-09-24 | C-23 automation pause with automatic resume, and the error digest (ADR-0055). No object added. `Barn_Settings__c` gains five keys (Section 12, v0.6 keys): `Error_Digest_Recipients__c`, `Error_Digest_Frequency__c`, `Error_Digest_Covered_Until__c`, `Error_Digest_Last_Run__c` and `Error_Digest_Last_Run_Summary__c`. New rules R-A5 (a pause ends by itself through a one-time job that records the resume) and R-E5 (the digest counts and links, never quotes, and goes only to active users); R-E3 reworded to point at R-E5. |
 | v0.6 | 2026-09-25 | G-20 follow-up: Health Check finding for unposted gifts in a closed period (ADR-0053's recorded follow-up, ADR-0057). No object, field or rule added: the finding reports what R-G14 already locks, a gift with a counting status (ADR-0022) and a type other than In-kind, dated on or before Books Closed Through, whose `Accounting_Posted_At__c` is still empty, capped and linked the way C-21's orphan findings already are. Because Core may not name a gift or a closed period (C-29), Core gains a small extension seam instead of a new Core check: `HealthCheckExtension`, an interface, and `HealthCheckExtensions`, a resolver that finds an implementation by name with `Type.forName`, the same shape `ImportEntityProcessor` already uses for the opposite direction (R-IR6). `HealthCheckService.run()` folds a found extension's findings into the one report, isolated the way one failing check already is. Giving ships the one implementation, `GivingHealthCheckExtension`, delegating to `HealthCheckGivingChecks`, grouped the way ADR-0039 groups Core's own checks. |
+| v0.6 | 2026-09-27 | C-30 suite choice in the Setup Assistant (ADR-0046 and ADR-0059, amended 2026-09-27). One shipped-defaults type added, `Suite_Module__mdt` (Section 13), with `Suite__c`, `Module__c`, `Required__c`, `Sort_Order__c`, `Install_Url__c` and `Help_Path__c`, and seven rows. `Barn_Settings__c` gains `Suite__c` (Section 12, suite choice key), empty until an administrator chooses. The choice decides which modules the assistant lists and offers; it installs, hides and switches off nothing, so an org that never chooses behaves as before. |
 
 ---
+
 ## 32. Entity ownership by package
 One row per entity in the model, so a contributor or an agent can tell at a glance which
 package owns a thing and which iteration creates it. Package configuration entities are
@@ -5385,6 +5419,7 @@ included; standard objects the packages extend are named by the entity that gove
 | Tribute | Giving | v0.3 | 25 |
 | Relationship | Core | v0.3 | 27 |
 | Relationship Type (shipped default) | Core | v0.3 | 13 |
+| Suite Module (shipped default) | Core | v0.6 | 13 |
 | Affiliation | Core | v0.3 | 28 |
 | Address | Core | v0.3 | 29 |
 | Duplicate Dismissal | Core | v0.5 | 29A |
