@@ -5,6 +5,8 @@
 **Source:** product owner decision (Brandon), plan Section 3 "Suites and packaging", Section 8.3,
 Section 11.2 open question 5, and Section 12 decisions D-01 and D-02; amends ADR-0001 (name) and
 ADR-0002 (packaging)
+**Amended by:** ADR-NEXT, which settles the name as BarnCRM and renames the Impact Suite the
+Nonprofit Suite
 
 ## Context
 

@@ -752,6 +752,23 @@ Remove each item from this list in the PR that finishes it.
      `gh pr merge 163 --squash --match-head-commit 3da9276ad53ed3231e01b314d7e0e6205a23f8e7`.
      The stacked PRs close as merged.
 
+### Pending plan update: BarnCRM and the suite names
+
+The owner decided on 2026-09-27 that the product is BarnCRM, that barncrm.org and barncrm.com
+are registered, and that the suites are the Nonprofit Suite and the Community Suite (no longer
+Impact Suite); see ADR-NEXT (product name BarnCRM and suite names). BMemory was unreachable from
+the session that recorded this. Whoever next has BMemory access makes these changes there, then
+refreshes `docs/product-plan.md` and deletes this subsection:
+
+- Header, Section 3 "Suites and packaging", Section 8.3 and D-01: BarnCRM is the name, not
+  tentative; domains registered; still open are the trademark search and the namespace.
+- Section 3 and Section 8.3: "Impact Suite" becomes "Nonprofit Suite".
+- Section 5.1, C-30: the first step asks "Nonprofit Suite or Community Suite".
+- Section 11.2: questions 23 to 25 are settled in the rename pass, after C-29 merges.
+
+The rename pass itself (labels, docs, aliases, then the repository) waits for C-29 to merge;
+the ADR lists its steps.
+
 ### Never tested
 
 - Core installed without Giving, in any org. Every gate run deploys all three packages.
