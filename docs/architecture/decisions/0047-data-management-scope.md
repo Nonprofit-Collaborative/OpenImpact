@@ -67,7 +67,7 @@ and a self-callout to explain at security review. Plan Section 4.10 forbids SOQL
   plan's roadmap governs.
 - The query compiler needs security review notes, and v0.7 proves a 250,000-row import and a
   50,000-record bulk update with undo in the scale org. (Amended 2026-09-28: the bulk update
-  maximum is 49,000, C-35 decision 2, so the scale test is a 49,000-record bulk update.)
+  maximum is 48,000, C-35 decision 2, so the scale test is a 48,000-record bulk update.)
 - Undoing a gift import keeps any gift with an issued receipt (ADR-0010, ADR-0024).
 
 ## Security review notes for the query compiler (C-34, amended 2026-09-27)
@@ -138,8 +138,8 @@ back and never executed.
 1. **A bulk update is a data job, and runs as the person who started it.** `BulkUpdateService`
    checks the document and up to five changes as that person, counts the matching records in
    user mode, and refuses to start when more match than they confirmed or than the maximum
-   per bulk update allows (`Bulk_Update_Max_Records__c`, default 49,000, accepted from 1 to
-   49,000; decision 2). It then writes an `Import_Batch__c` with `Operation__c` Update, the document, the
+   per bulk update allows (`Bulk_Update_Max_Records__c`, default 48,000, accepted from 1 to
+   48,000; decision 2). It then writes an `Import_Batch__c` with `Operation__c` Update, the document, the
    changes and the confirmed count in `Operation_JSON__c`, the undo deadline stamped from the
    import undo setting, and no staged rows; the job record is written in system mode under
    ADR-0021. `BulkUpdateBatch` reads at most the confirmed number of records in Id order, and
@@ -150,7 +150,7 @@ back and never executed.
    records match than it may change is refused with a sentence asking for a narrower query,
    never guessed. A request may read 50,000 rows in all, less what it has already read and a
    500-row margin, so a count past about 49,500 cannot be made. **Amended 2026-09-28 (owner
-   decision):** the maximum is 49,000 rather than 50,000, so every bulk update the maximum
+   decision):** the maximum is 48,000 rather than 50,000, so every bulk update the maximum
    allows can be counted; counting in the background to reach 50,000 was the alternative, and
    was not chosen.
 3. **The journal is the import journal.** Each chunk writes one commit page (canonical model

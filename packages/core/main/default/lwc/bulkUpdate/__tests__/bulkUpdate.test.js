@@ -42,7 +42,7 @@ const DOCUMENT = JSON.stringify({ version: 1, object: 'Contact', fields: ['Maili
 const QUERY = {
   objectName: 'Contact',
   objectLabel: 'Contacts',
-  soql: 'SELECT Id, MailingCity FROM Contact LIMIT 49000',
+  soql: 'SELECT Id, MailingCity FROM Contact LIMIT 48000',
   targets: [
     {
       name: 'MailingCity',
@@ -62,7 +62,7 @@ const QUERY = {
 };
 const PREVIEW = {
   count: 12,
-  maximum: 49000,
+  maximum: 48000,
   sample: [
     {
       id: '003A',
@@ -117,7 +117,7 @@ async function previewCity(element) {
 
 describe('the bulk update page', () => {
   beforeEach(() => {
-    getContext.mockResolvedValue({ canUse: true, maximum: 49000, maxChanges: 5 });
+    getContext.mockResolvedValue({ canUse: true, maximum: 48000, maxChanges: 5 });
     getSavedQueries.mockResolvedValue([{ id: 'a0S1', name: 'Salem people', isOwn: true }]);
     openQuery.mockResolvedValue({ id: 'a0S1', document: DOCUMENT });
     describeQuery.mockResolvedValue(QUERY);

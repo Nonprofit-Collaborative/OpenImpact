@@ -807,7 +807,7 @@ refreshes `docs/product-plan.md` and deletes this subsection:
   imports and bulk updates; the 50,000 bulk update maximum cannot be counted in one request (a
   job tops out a few hundred records under it); the standalone Find and Bulk Update permission
   sets are assigned in Setup, not on the Access page. Answered 2026-09-28: the bulk update
-  maximum is 49,000, so the v0.7 scale test is a 49,000-record bulk update; Giving tells Core
+  maximum is 48,000, so the v0.7 scale test is a 48,000-record bulk update; Giving tells Core
   which of its objects are protected (`DataProtectionExtension`), and the acknowledgment ledger
   is protected with receipts.
 - Section 12 D-02 and Section 4.1: before the namespace, packages are tested as unlocked

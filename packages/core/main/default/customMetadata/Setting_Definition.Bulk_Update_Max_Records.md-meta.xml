@@ -24,7 +24,7 @@
   </values>
   <values>
     <field>Description__c</field>
-    <value xsi:type="xsd:string">The most records one bulk update may change. The default is 49,000, and anything from 1 to 49,000 is accepted. A bulk update that matches more is refused before it changes anything.</value>
+    <value xsi:type="xsd:string">The most records one bulk update may change. The default is 48,000, and anything from 1 to 48,000 is accepted. A bulk update that matches more is refused before it changes anything.</value>
   </values>
   <values>
     <field>Help_Path__c</field>

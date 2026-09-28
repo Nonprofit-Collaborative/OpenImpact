@@ -892,7 +892,7 @@ outside the accepted range at its nearest end, as the import keys are read.
 | Key | Type | Default | Definition |
 |---|---|---|---|
 | `Export_Row_Limit__c` | integer | 50000 | The most rows one Find export may download, from 1 to 100,000. |
-| `Bulk_Update_Max_Records__c` | integer | 49000 | The most records one bulk update may change, from 1 to 49,000 (R-IB16): one request may count just under 50,000 rows, and the count comes before the job (owner decision, 2026-09-28). |
+| `Bulk_Update_Max_Records__c` | integer | 48000 | The most records one bulk update may change, from 1 to 48,000 (R-IB16): one request may count just under 50,000 rows, and the count comes before the job (owner decision, 2026-09-28). |
 
 ### Rules
 
