@@ -15,21 +15,17 @@ jest.mock('@salesforce/apex/CorePostInstall.countInstallProblems', () => ({ defa
 });
 
 const mockNavigate = jest.fn();
-jest.mock(
-  'lightning/navigation',
-  () => {
-    const Navigate = Symbol('Navigate');
-    const NavigationMixin = (Base) =>
-      class extends Base {
-        [Navigate](...args) {
-          mockNavigate(...args);
-        }
-      };
-    NavigationMixin.Navigate = Navigate;
-    return { NavigationMixin, CurrentPageReference: null, __esModule: true };
-  },
-  { virtual: true }
-);
+jest.mock('lightning/navigation', () => {
+  const Navigate = Symbol('Navigate');
+  const NavigationMixin = (Base) =>
+    class extends Base {
+      [Navigate](...args) {
+        mockNavigate(...args);
+      }
+    };
+  NavigationMixin.Navigate = Navigate;
+  return { NavigationMixin, CurrentPageReference: null, __esModule: true };
+});
 
 const mockEncodeDefaultFieldValues = jest.fn(
   (fields) =>

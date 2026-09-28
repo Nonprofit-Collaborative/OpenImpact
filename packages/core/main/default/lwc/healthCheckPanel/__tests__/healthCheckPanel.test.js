@@ -29,26 +29,22 @@ jest.mock('@salesforce/apex/HealthCheckController.applyFix', () => ({ default: j
 });
 
 const mockNavigate = jest.fn();
-jest.mock(
-  'lightning/navigation',
-  () => {
-    const Navigate = Symbol('Navigate');
-    const GenerateUrl = Symbol('GenerateUrl');
-    const NavigationMixin = (Base) =>
-      class extends Base {
-        [Navigate](...args) {
-          mockNavigate(...args);
-        }
-        [GenerateUrl]() {
-          return Promise.resolve('https://example.com');
-        }
-      };
-    NavigationMixin.Navigate = Navigate;
-    NavigationMixin.GenerateUrl = GenerateUrl;
-    return { NavigationMixin, CurrentPageReference: null, __esModule: true };
-  },
-  { virtual: true }
-);
+jest.mock('lightning/navigation', () => {
+  const Navigate = Symbol('Navigate');
+  const GenerateUrl = Symbol('GenerateUrl');
+  const NavigationMixin = (Base) =>
+    class extends Base {
+      [Navigate](...args) {
+        mockNavigate(...args);
+      }
+      [GenerateUrl]() {
+        return Promise.resolve('https://example.com');
+      }
+    };
+  NavigationMixin.Navigate = Navigate;
+  NavigationMixin.GenerateUrl = GenerateUrl;
+  return { NavigationMixin, CurrentPageReference: null, __esModule: true };
+});
 
 /** Maria's org: Person Accounts on, Nonprofit Cloud objects present, no mode confirmed. */
 function agentforceReport(overrides = {}) {
