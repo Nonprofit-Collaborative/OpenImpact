@@ -25,7 +25,8 @@ permission.
    Bulk Update tab and lets them see data jobs; it gives no access to any record. To build new queries as well, they also need **BarnCRM Find and Export**; without
    it they can use saved queries only.
 2. Open **BarnCRM Settings** and choose **Import**. **Most records one bulk update may change**
-   is 50,000 unless you change it, and anything from 1 to 50,000 is accepted.
+   is 49,000 unless you change it, and anything from 1 to 49,000 is accepted. It cannot be
+   higher, because Salesforce lets one request count just under 50,000 records.
 3. **Days an import can be undone**, on the same page, is also how long a bulk update can be
    undone. Each bulk update keeps the deadline it started with.
 
@@ -55,8 +56,8 @@ Start with the sample data loaded and the saved query from the [Find](find.md) w
   between your preview and your confirmation. Nothing was changed. Select **Preview** again and
   confirm the new number.
 - **"Too many records match to count in one go."** One request can count just under 50,000
-  records, so a query that matches about that many cannot be confirmed exactly. Narrow the
-  query, or run it in parts.
+  records. With the 49,000 maximum you should not see this; if you do, the page already used
+  part of its allowance for other reads. Narrow the query, or run it in parts.
 - **"... cannot be bulk updated: BarnCRM calculates it."** Some fields are kept by BarnCRM
   itself: every rollup total, a household's name and greetings, member counts and last
   calculated times. Formula fields, fields numbered automatically and fields Salesforce sets

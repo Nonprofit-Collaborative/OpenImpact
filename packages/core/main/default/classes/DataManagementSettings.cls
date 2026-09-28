@@ -10,10 +10,15 @@ public with sharing class DataManagementSettings {
     public static final Integer EXPORT_ROW_LIMIT_DEFAULT = 50000;
     @NamespaceAccessible
     public static final Integer EXPORT_ROW_LIMIT_MAX = 100000;
+    /**
+     * 49,000, not 50,000: a bulk update counts its records in one request before it starts, and
+     * a request may read 50,000 rows in all, less what it has already read and a margin, so a
+     * count past about 49,500 cannot be made (owner decision, 2026-09-28, R-IB16).
+     */
     @NamespaceAccessible
-    public static final Integer BULK_UPDATE_MAX_DEFAULT = 50000;
+    public static final Integer BULK_UPDATE_MAX_DEFAULT = 49000;
     @NamespaceAccessible
-    public static final Integer BULK_UPDATE_MAX_CEILING = 50000;
+    public static final Integer BULK_UPDATE_MAX_CEILING = 49000;
 
     /** The most rows one Find export may download (R-Q5). */
     @NamespaceAccessible

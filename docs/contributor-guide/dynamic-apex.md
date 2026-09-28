@@ -15,7 +15,7 @@ at runtime.
 | --- | --- | --- | --- |
 | Connect | Campaign, Opportunity, Gift Transaction | `CampaignSyncService`, `OpportunityMirrorContext`, `GiftTransactionMirrorSchema` (which also checks the field types it relies on) | ADR-0056, ADR-0058 |
 | Core | Person Account fields (`PersonEmail`, `PersonMailingPostalCode`, `...__pc`) | `ImportMatcher`, `ImportRowProcessor.storedName` | ADR-0013 |
-| Core | Giving behaviour (classes) | `ImportEntityProcessors`, `SampleDataModules`, `HealthCheckExtensions`, `SetupAssistantExtensions` | ADR-0017, ADR-0057, ADR-0059 |
+| Core | Giving behaviour (classes) | `ImportEntityProcessors`, `SampleDataModules`, `HealthCheckExtensions`, `SetupAssistantExtensions`, `DataProtectionExtensions` | ADR-0017, ADR-0047, ADR-0057, ADR-0059 |
 | Core | Industries, NPSP, Sales Cloud detection | `OrgShapeDetector` | ADR-0013 |
 
 The shape, from `CampaignSyncService`:
@@ -65,8 +65,9 @@ is the only guard: hold those names as strings, as `ImportMatcher` does.
 ## 3. Discovering a class in another package (`Type.forName`)
 
 Core defines an interface; a dependent package implements it under a known class name; Core
-looks the class up at runtime. Four resolvers share one shape (`ImportEntityProcessors`,
-`HealthCheckExtensions`, `SampleDataModules`, `SetupAssistantExtensions`), and
+looks the class up at runtime. Five resolvers share one shape (`ImportEntityProcessors`,
+`HealthCheckExtensions`, `SampleDataModules`, `SetupAssistantExtensions`,
+`DataProtectionExtensions`), and
 `TriggerDispatcher` uses it for registry handlers.
 
 ```apex

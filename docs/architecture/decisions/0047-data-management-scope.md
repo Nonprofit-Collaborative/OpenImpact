@@ -66,7 +66,8 @@ and a self-callout to explain at security review. Plan Section 4.10 forbids SOQL
   v0.13. Earlier ADRs that name an iteration (ADR-0046 names v0.7 and v0.10) keep their text; the
   plan's roadmap governs.
 - The query compiler needs security review notes, and v0.7 proves a 250,000-row import and a
-  50,000-record bulk update with undo in the scale org.
+  50,000-record bulk update with undo in the scale org. (Amended 2026-09-28: the bulk update
+  maximum is 49,000, C-35 decision 2, so the scale test is a 49,000-record bulk update.)
 - Undoing a gift import keeps any gift with an issued receipt (ADR-0010, ADR-0024).
 
 ## Security review notes for the query compiler (C-34, amended 2026-09-27)
@@ -137,8 +138,8 @@ back and never executed.
 1. **A bulk update is a data job, and runs as the person who started it.** `BulkUpdateService`
    checks the document and up to five changes as that person, counts the matching records in
    user mode, and refuses to start when more match than they confirmed or than the maximum
-   per bulk update allows (`Bulk_Update_Max_Records__c`, default 50,000, accepted from 1 to
-   50,000). It then writes an `Import_Batch__c` with `Operation__c` Update, the document, the
+   per bulk update allows (`Bulk_Update_Max_Records__c`, default 49,000, accepted from 1 to
+   49,000; decision 2). It then writes an `Import_Batch__c` with `Operation__c` Update, the document, the
    changes and the confirmed count in `Operation_JSON__c`, the undo deadline stamped from the
    import undo setting, and no staged rows; the job record is written in system mode under
    ADR-0021. `BulkUpdateBatch` reads at most the confirmed number of records in Id order, and
@@ -147,8 +148,11 @@ back and never executed.
 2. **A count never exceeds the rows one request may read.** A count reads at most the rows the
    transaction has left, less a margin; a preview or start that cannot tell whether more
    records match than it may change is refused with a sentence asking for a narrower query,
-   never guessed. In practice a single bulk update tops out a few hundred records under the
-   50,000 maximum.
+   never guessed. A request may read 50,000 rows in all, less what it has already read and a
+   500-row margin, so a count past about 49,500 cannot be made. **Amended 2026-09-28 (owner
+   decision):** the maximum is 49,000 rather than 50,000, so every bulk update the maximum
+   allows can be counted; counting in the background to reach 50,000 was the alternative, and
+   was not chosen.
 3. **The journal is the import journal.** Each chunk writes one commit page (canonical model
    R-IJ1) holding an Updated entry per record it changed, with the value before and after for
    each field that changed, and a Failed entry per record the platform refused, with the
@@ -165,8 +169,14 @@ back and never executed.
    last calculated time, the import batch tag, the sample data key and a saved query's
    document) and of its bookkeeping objects (data jobs, import rows and templates, the
    journal, the error log, settings, setting changes, automation settings, rollup
-   definitions, duplicate dismissals, and Giving's receipts, receipt runs and receipt number
-   sequences, named as text so Core holds no reference to them). An organization's own name
+   definitions and duplicate dismissals). **Amended 2026-09-28 (owner decision):** a module's
+   bookkeeping objects are named by the module, never by Core, not even as text. Core defines
+   `DataProtectionExtension` (one method, `protectedObjects()`, returning object types) and
+   `DataProtectionExtensions`, which finds implementations by name with `Type.forName`, the
+   `HealthCheckExtensions` shape; an extension that cannot be built or throws is logged and left
+   out. Giving's `GivingDataProtectionExtension` names receipts, receipt runs, receipt number
+   sequences, and the acknowledgment ledger and its runs (ADR-0032), which were not protected
+   before. Core's own list names only Core's objects, as ADR-0059 requires. An organization's own name
    is protected with the household's, because both are the Account name. Fields locked by an
    issued receipt are refused by the receipt lock triggers, which still run, and those records
    are journaled as Failed. C-33 built the same class in parallel; the two are one class,

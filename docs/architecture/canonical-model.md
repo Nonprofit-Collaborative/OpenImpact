@@ -892,7 +892,7 @@ outside the accepted range at its nearest end, as the import keys are read.
 | Key | Type | Default | Definition |
 |---|---|---|---|
 | `Export_Row_Limit__c` | integer | 50000 | The most rows one Find export may download, from 1 to 100,000. |
-| `Bulk_Update_Max_Records__c` | integer | 50000 | The most records one bulk update may change, from 1 to 50,000 (R-IB16). |
+| `Bulk_Update_Max_Records__c` | integer | 49000 | The most records one bulk update may change, from 1 to 49,000 (R-IB16): one request may count just under 50,000 rows, and the count comes before the job (owner decision, 2026-09-28). |
 
 ### Rules
 
@@ -1468,8 +1468,10 @@ describe and the Rollup Definitions, so a rollup added later is protected withou
 is the one list bulk update (C-35) uses too:
 
 - **Objects**: the package's own bookkeeping (import templates, batches, rows and journal, the
-  error log, settings and setting changes, automation settings, rollup definitions, receipts,
-  receipt runs and receipt number sequences), Salesforce setup and security objects (users,
+  error log, settings and setting changes, automation settings, rollup definitions, duplicate
+  dismissals), each module's bookkeeping as the module names it through
+  `DataProtectionExtensions` (Giving: receipts, receipt runs, receipt number sequences, and the
+  acknowledgment ledger and its runs), Salesforce setup and security objects (users,
   groups, queues, profiles, roles, permission sets and their assignments, record types, the
   organization), custom settings, custom metadata, platform events, big objects and external
   objects, and the share, history, feed and change event objects the platform keeps. A template naming one is refused when it is made
@@ -1895,8 +1897,10 @@ member count, primary affiliation, every last calculated time, the batch tag, th
 key, a saved query's document), a formula, auto-number or system field, a field the person may
 not edit, or any record of the package's own bookkeeping objects (data jobs, import rows and
 templates, the journal, the error log, settings and setting changes, automation settings,
-rollup definitions, duplicate dismissals, and, with Giving installed, receipts, receipt runs and
-receipt number sequences). The list is worked out when the job runs, from describe and from the
+rollup definitions, duplicate dismissals, and whatever each installed module names through the
+`DataProtectionExtension` seam: with Giving, receipts, receipt runs, receipt number sequences,
+and the acknowledgment ledger and its runs). Core names no module's object; the module tells it
+(ADR-0047 as amended 2026-09-28). The list is worked out when the job runs, from describe and from the
 Rollup Definitions, so a new rollup's target is protected without a code change. Because a
 household and an organization are both an Account, the Account name is protected for both.
 Fields locked by an issued receipt are not on the list: the receipt lock refuses the save, and

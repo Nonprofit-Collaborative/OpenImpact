@@ -8,8 +8,8 @@
  * `fieldReason`, which answer from the same lists with bulk update's wording and add what the
  * running user may not edit. The list is built at run time from describe and the Rollup
  * Definitions, so a rollup an administrator or a module adds later is protected without code,
- * and Core names no object outside its own: the objects of other packages are matched by name
- * as text (ADR-0013, ADR-0014).
+ * and Core names no object outside its own: a module names its own bookkeeping objects through
+ * `DataProtectionExtensions` (ADR-0047 as amended 2026-09-28, ADR-0059).
  *
  * This decides protection, not access. Whether the running user may read, create or edit an
  * object or field is still asked of describe by the caller, and every write is in user mode.
@@ -19,10 +19,11 @@
 @NamespaceAccessible
 public with sharing class DataProtectedFields {
     /**
-     * The package's own bookkeeping objects, by their names without a namespace: imports and the
+     * Core's own bookkeeping objects, by their names without a namespace: imports and the
      * journal, the error log, settings and setting changes, automation settings, rollup
-     * definitions, and receipts with their runs and number series. Named as text because some
-     * belong to modules Core may not reference (ADR-0014).
+     * definitions and duplicate dismissals. A module's bookkeeping (Giving's receipts and
+     * acknowledgment ledger) is named by the module itself through `DataProtectionExtensions`,
+     * so Core names no module's object (ADR-0059).
      */
     private static final Set<String> BOOKKEEPING = new Set<String>{
         'import_template__c',
@@ -34,12 +35,7 @@ public with sharing class DataProtectedFields {
         'setting_change__c',
         'automation_setting__c',
         'rollup_definition__c',
-        'duplicate_dismissal__c',
-        'giving_settings__c',
-        'connect_settings__c',
-        'receipt__c',
-        'receipt_run__c',
-        'receipt_number_sequence__c'
+        'duplicate_dismissal__c'
     };
 
     /**
@@ -221,6 +217,9 @@ public with sharing class DataProtectedFields {
         Schema.DescribeSObjectResult described = type.getDescribe(SObjectDescribeOptions.DEFERRED);
         String name = described.getName().toLowerCase();
         if (described.isCustom() && BOOKKEEPING.contains(ownLocalName(name))) {
+            return CATEGORY_BOOKKEEPING;
+        }
+        if (DataProtectionExtensions.protectedObjects().contains(type)) {
             return CATEGORY_BOOKKEEPING;
         }
         if (!described.isCustom() && SETUP.contains(name)) {
