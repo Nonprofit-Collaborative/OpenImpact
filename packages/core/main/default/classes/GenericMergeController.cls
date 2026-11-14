@@ -108,6 +108,7 @@ public with sharing class GenericMergeController {
 				FROM Merge_Journal__c
 				WHERE
 					Id = :journalId
+					AND Kind__c = :AutoMergeService.KIND_MERGE
 					AND Status__c = :AutoMergeService.MERGED
 					AND CreatedDate >= :since
 				WITH USER_MODE
@@ -152,7 +153,10 @@ public with sharing class GenericMergeController {
 		for (Merge_Journal__c journal : [
 			SELECT Id, Survivor_Id__c, Merged_Name__c, Status__c, Notes__c, CreatedDate
 			FROM Merge_Journal__c
-			WHERE CreatedDate >= :since AND (NOT Survivor_Id__c LIKE :people)
+			WHERE
+				Kind__c = :AutoMergeService.KIND_MERGE
+				AND CreatedDate >= :since
+				AND (NOT Survivor_Id__c LIKE :people)
 			WITH USER_MODE
 			ORDER BY CreatedDate DESC
 			LIMIT :MAX_SHOWN

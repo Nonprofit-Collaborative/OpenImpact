@@ -258,7 +258,7 @@ public with sharing class OrgAutomationInventory {
 	 * Pause All for the org's own flows and triggers that refer to the setting.
 	 */
 	@TestVisible
-	private static void addScan(Result result, Automation_Snapshot__c scan) {
+	private static void addScan(Result result, Merge_Journal__c scan) {
 		if (scan == null) {
 			return;
 		}

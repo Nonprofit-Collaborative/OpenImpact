@@ -147,9 +147,9 @@ private class NpcHouseholdConversionTest {
 			Assert.isTrue(lees[0].Is_Primary__c, 'as the primary member');
 			Assert.areEqual('Head', lees[0].Role__c, 'with the role the source holds');
 			Assert.areEqual(Date.newInstance(2020, 1, 1), lees[0].Start_Date__c, 'and its date');
-			for (Household_Adoption__c row : [
+			for (Merge_Journal__c row : [
 				SELECT Previous_Values__c
-				FROM Household_Adoption__c
+				FROM Merge_Journal__c
 				WITH SYSTEM_MODE
 			]) {
 				Assert.isTrue(
@@ -223,7 +223,7 @@ private class NpcHouseholdConversionTest {
 					'Not Restored',
 					[
 						SELECT Status__c
-						FROM Household_Adoption__c
+						FROM Merge_Journal__c
 						WHERE Account_Id__c = :String.valueOf(lee.Id)
 						WITH SYSTEM_MODE
 					]
@@ -232,16 +232,16 @@ private class NpcHouseholdConversionTest {
 				);
 			}
 			Assert.areEqual('Converted', after.get(kim.Id).Household_Model__c, 'Kim kept');
-			Household_Adoption__c kept = [
-				SELECT Status__c, Note__c
-				FROM Household_Adoption__c
+			Merge_Journal__c kept = [
+				SELECT Status__c, Notes__c
+				FROM Merge_Journal__c
 				WHERE Account_Id__c = :String.valueOf(kim.Id)
 				WITH SYSTEM_MODE
 			];
 			Assert.areEqual('Not Restored', kept.Status__c, 'Kim has a member');
 			Assert.areEqual(
 				BarnHelp.text('Core', 'Core_NpspAdoption_NoteHasMembers'),
-				kept.Note__c,
+				kept.Notes__c,
 				'why'
 			);
 		}

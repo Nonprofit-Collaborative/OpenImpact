@@ -227,6 +227,7 @@ public with sharing class GenericMergeService {
 			String mergedName = nameOf(records.get(otherId));
 			Database.insert(
 				new Merge_Journal__c(
+					Kind__c = AutoMergeService.KIND_MERGE,
 					Run_Id__c = UUID.randomUUID().toString(),
 					Survivor_Id__c = keepId,
 					Merged_Id__c = otherId,

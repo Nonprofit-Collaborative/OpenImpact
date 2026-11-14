@@ -25,6 +25,12 @@ public with sharing class AutoMergeService {
 		NAME_AND_BIRTHDATE
 	};
 
+	/**
+	 * A merge is an Admin Journal (`Merge_Journal__c`) row of this kind; the other kinds belong
+	 * to other admin tools, so every merge query reads this kind only (ADR-NEXT fewer custom
+	 * objects).
+	 */
+	public static final String KIND_MERGE = 'Merge';
 	public static final String MERGED = 'Merged';
 	public static final String UNDONE = 'Undone';
 	public static final String PARTLY_UNDONE = 'Partly Undone';
@@ -408,6 +414,7 @@ public with sharing class AutoMergeService {
 				}
 				Database.insert(
 					new Merge_Journal__c(
+						Kind__c = KIND_MERGE,
 						Run_Id__c = runId,
 						Survivor_Id__c = pair.survivorId,
 						Merged_Id__c = pair.mergedId,

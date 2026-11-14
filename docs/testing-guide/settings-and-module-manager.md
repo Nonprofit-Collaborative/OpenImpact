@@ -242,6 +242,7 @@ The BarnCRM Admin role card on the Access page is headed **BarnCRM Admin**, the 
 | 7 | Turn `Test_Plain_Rule` off in Setup. Without refreshing the Automation tab, deactivate it with `My_Plain_Flow`. | The rule reads **Left As It Is**, "It was already inactive, so it was left as it is."; the flow reads **Deactivated**. Restore turns the flow back on and leaves the rule off. Turn the rule back on in Setup. |
 | 8 | In a production org, choose one item and click **Deactivate Selected**. | The dialog warns "This is a production org..." and **Deactivate Selected** stays greyed out until you type **DEACTIVATE**. Cancel. |
 | 9 | While a run shows **In Progress**, look at **Deactivate Selected** and **Restore**. | Both are unavailable; the run says "Working through the org connection...". |
+| 10 | In the Admin Journals list view, open the run's record. | One Admin Journal record of Kind **Deactivation** (the scan from T-SET-07F is Kind **Scan**); no separate Automation Snapshot object exists. **Recent Merges** on the Duplicate Matching tab does not list it. |
 
 **Cleanup:** restore every run, so all flows and rules are active again.
 

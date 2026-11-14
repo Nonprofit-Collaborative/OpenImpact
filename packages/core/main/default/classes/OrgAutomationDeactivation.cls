@@ -91,7 +91,7 @@ public with sharing class OrgAutomationDeactivation implements Queueable, Databa
 			}
 			items.add(item);
 		}
-		Automation_Snapshot__c snapshot = new Automation_Snapshot__c(
+		Merge_Journal__c snapshot = new Merge_Journal__c(
 			Kind__c = KIND,
 			Status__c = OrgAutomationScan.STATUS_RUNNING,
 			Items__c = JSON.serialize(items)
@@ -107,7 +107,7 @@ public with sharing class OrgAutomationDeactivation implements Queueable, Databa
 	/** Marks the snapshot Restoring and queues the restore job. */
 	public static Id restore(Id snapshotId) {
 		refuseWhileRunning();
-		Automation_Snapshot__c snapshot = load(snapshotId);
+		Merge_Journal__c snapshot = load(snapshotId);
 		if (
 			snapshot == null ||
 			snapshot.Kind__c != KIND ||
@@ -141,7 +141,7 @@ public with sharing class OrgAutomationDeactivation implements Queueable, Databa
 	private static void refuseWhileRunning() {
 		Integer running = [
 			SELECT COUNT()
-			FROM Automation_Snapshot__c
+			FROM Merge_Journal__c
 			WHERE Kind__c = :KIND AND Status__c IN ('Running', 'Restoring')
 			WITH USER_MODE
 		];
@@ -155,7 +155,7 @@ public with sharing class OrgAutomationDeactivation implements Queueable, Databa
 	// -------------------------------------------------------------------------- the jobs
 
 	public void execute(QueueableContext context) {
-		Automation_Snapshot__c snapshot = load(snapshotId);
+		Merge_Journal__c snapshot = load(snapshotId);
 		List<Item> items = (List<Item>) JSON.deserialize(snapshot.Items__c, List<Item>.class);
 		try {
 			if (mode == MODE_SNAPSHOT) {
@@ -360,10 +360,10 @@ public with sharing class OrgAutomationDeactivation implements Queueable, Databa
 
 	// -------------------------------------------------------------------------- reading
 
-	private static Automation_Snapshot__c load(Id snapshotId) {
-		List<Automation_Snapshot__c> found = [
+	private static Merge_Journal__c load(Id snapshotId) {
+		List<Merge_Journal__c> found = [
 			SELECT Id, Kind__c, Status__c, Items__c
-			FROM Automation_Snapshot__c
+			FROM Merge_Journal__c
 			WHERE Id = :snapshotId
 			WITH USER_MODE
 			LIMIT 1
@@ -374,9 +374,9 @@ public with sharing class OrgAutomationDeactivation implements Queueable, Databa
 	/** The newest deactivation snapshots, for the page. */
 	public static List<OrgAutomationInventory.Snapshot> recent() {
 		List<OrgAutomationInventory.Snapshot> recent = new List<OrgAutomationInventory.Snapshot>();
-		for (Automation_Snapshot__c each : [
+		for (Merge_Journal__c each : [
 			SELECT Id, Name, Status__c, Items__c, Restored_At__c, CreatedDate, CreatedBy.Name
-			FROM Automation_Snapshot__c
+			FROM Merge_Journal__c
 			WHERE Kind__c = :KIND
 			WITH USER_MODE
 			ORDER BY CreatedDate DESC

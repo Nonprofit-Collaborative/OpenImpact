@@ -30,7 +30,7 @@ public with sharing class MigrationStageBatch implements Database.Batchable<SObj
 			failure = unreadable.getMessage();
 			ErrorLogger.log(unreadable, CONTEXT);
 			return Database.getQueryLocator(
-				[SELECT Id FROM Migration_Run__c WHERE Id = NULL WITH USER_MODE]
+				[SELECT Id FROM Merge_Journal__c WHERE Id = NULL WITH USER_MODE]
 			);
 		}
 	}
@@ -50,8 +50,13 @@ public with sharing class MigrationStageBatch implements Database.Batchable<SObj
 			}
 			MigrationKitService.link(
 				MigrationKitService.stepNamed(kit, stepKey),
-				[SELECT Migration_Run__c FROM Import_Batch__c WHERE Id = :batchId WITH USER_MODE]
-				.Migration_Run__c,
+				[
+					SELECT Migration_Journal__c
+					FROM Import_Batch__c
+					WHERE Id = :batchId
+					WITH USER_MODE
+				]
+				.Migration_Journal__c,
 				rows
 			);
 			ImportBatchService.stageRows(batchId, rows, nextRow);
