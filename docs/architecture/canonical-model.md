@@ -13801,6 +13801,14 @@ the publisher may create that is not a lookup and not encrypted, and no record o
 match. The same check runs again before a public submission is processed. Publishing sets Public
 and gives the new version its signing key.
 
+**R-FM4 A form with submissions is deleted only by a Forms administrator (N-04, D-208).** Deleting
+a form, or one of its versions, that any submission answers is refused unless the person holds
+the Manage Forms custom permission (`Forms_Manage`, in Forms Admin), with the message to close
+the form instead. A Forms administrator may delete it: the versions and drafts go with the form,
+and every submission is kept, its Form and Form Version cleared and its Form Name and Version
+Number (R-FS8) still naming what was answered. A form or version no submission answers deletes as
+before, for anyone who may delete it.
+
 ### Salesforce implementation
 
 - **Object:** `Form__c`, name field Text, label Form Name, sharing Public Read Only (Forms Admin
@@ -13813,14 +13821,17 @@ and gives the new version its signing key.
 | Definition | `Definition__c` | Long Text Area(131072) |
 | Published Version | `Published_Version__c` | Number(6, 0) |
 | Public | `Public__c` | Checkbox, default false |
-| Sample Data | `Sample_Data__c` | Checkbox, default false (release 1.25); set by the sample data loader so Remove Sample Data finds the form, its versions and its submissions (children go with it by master-detail) |
+| Sample Data | `Sample_Data__c` | Checkbox, default false (release 1.25); set by the sample data loader so Remove Sample Data finds the form, its versions and its submissions (versions and drafts go with it by master-detail; the sample file removes the submissions first) |
 
 - **Engine:** framework-free modules `formDefinition.js` (parse, check, defaults), `formRules.js`
   (conditions, visibility, answer checks, step order) and `formMapping.js` (what a submission
   writes), with Jest tests. **Controller:** `FormBuilderController` (thin: the form, the objects
   and fields a target may name from describe, save and publish, in user mode).
-- **Permission sets:** Forms Admin creates, edits, publishes and deletes forms; Forms Staff and
-  Forms Read Only read them.
+- **Automation:** `FormTrigger` and `FormVersionTrigger` run `FormDeleteGuard` (registry row
+  `Form_Delete_Guard`, always runs) before delete (R-FM4).
+- **Permission sets:** Forms Admin creates, edits, publishes and deletes forms and holds the
+  custom permission Manage Forms (`Forms_Manage`, R-FM4); Forms Staff and Forms Read Only read
+  them.
 
 ---
 
@@ -13869,8 +13880,10 @@ lost.
 
 | Attribute | Type | Required | Definition |
 |---|---|---|---|
-| Form | reference | yes | The form, master-detail. |
-| Form Version | reference | yes | The version answered. |
+| Form | reference | yes, until the form is deleted | The form filled in; cleared when a Forms administrator deletes the form (R-FM4). |
+| Form Version | reference | yes, until the version is deleted | The version answered; cleared when the version or its form is deleted (R-FM4). |
+| Form Name | text | no (set by BarnCRM) | The form's name when the submission was stored (R-FS8). |
+| Version Number | number | no (set by BarnCRM) | The number of the version answered (R-FS8). |
 | Status | picklist | yes | Received (a public submission waiting, R-FS5), Processed, Needs Review (R-FS2) or Failed (R-FS3). |
 | Source | picklist | yes (Staff) | Staff (filled in by a signed-in user through the runner) or Public (a Site or an API caller, R-FS5). |
 | Answers | long text | yes | The answers as JSON, by field key, hidden fields left out (R-FS1). |
@@ -13913,15 +13926,25 @@ caller: R-FM3 is checked again, every record uses `fillBlanks`, a `context` link
 a module's `FormAttachmentExtension` names this form for that record (else Needs Review), and a
 person matched to a person account is held for review. Otherwise R-FS1 to R-FS4 apply.
 
+**R-FS8 A submission names what it answered (N-04, D-208).** Saving a submission with a version
+and no Form Name fills Form Name from the form and Version Number from the version, so a
+submission stays identifiable after a Forms administrator deletes its form (R-FM4). A submission
+whose version is gone keeps its answers, shown by their keys, and cannot be processed again.
+
 ### Salesforce implementation
 
-- **Object:** `Form_Submission__c`, name field Auto Number `FS-{000000}`, master-detail to
-  `Form__c`, sharing controlled by parent, tab Form Submissions in the BarnCRM apps (D-188).
+- **Object:** `Form_Submission__c`, name field Auto Number `FS-{000000}`, lookup to `Form__c`
+  (until N-04, master-detail), sharing Public Read/Write (the access master-detail gave, since
+  Forms Admin and Forms Staff edit submissions and the form's sharing is Public Read Only), tab
+  Form Submissions in the BarnCRM apps (D-188). A public submission stored by the Site guest
+  user is owned by the Site's default record owner, which Salesforce assigns.
 
 | Attribute | API name | Type |
 |---|---|---|
-| Form | `Form__c` | Master-Detail(Form) |
-| Form Version | `Form_Version__c` | Lookup(Form Version), restrict delete |
+| Form | `Form__c` | Lookup(Form), set null on delete |
+| Form Version | `Form_Version__c` | Lookup(Form Version), set null on delete |
+| Form Name | `Form_Name__c` | Text(80) |
+| Version Number | `Version_Number__c` | Number(6, 0) |
 | Status | `Status__c` | Picklist (Received, Processed, Needs Review, Failed), restricted |
 | Source | `Source__c` | Picklist (Staff, Public), restricted, default Staff |
 | Answers | `Answers__c` | Long Text Area(131072) |
@@ -13935,6 +13958,8 @@ person matched to a person account is held for review. Otherwise R-FS1 to R-FS4 
   `ImportMatcher` and `ImportDuplicateRuleMatcher`, writes, outcome), `FormRunnerController` and
   `FormSubmissionController` (thin). Core: `FormAttachmentExtension`, `FormAttachmentExtensions`,
   `FormSubmissionReceipt`.
+- **Automation:** `FormSubmissionTrigger` runs `FormSubmissionNames` (registry row
+  `Form_Submission_Names`, always runs) before insert and update (R-FS8).
 - **Permission sets:** Forms Admin and Forms Staff create submissions and set Person and
   Organization; Forms Read Only reads them. Only Forms Admin deletes them. Source is read only in
   every set. `Forms_Public_Guest` (for a Site guest user) grants no object or field, only the
@@ -19282,6 +19307,7 @@ mirrors the primary member).
 | 1.62 | 2026-11-13 | Home quick links from the module catalog (D-200 R7, release 1.24). `BarnCRM_Module__mdt` gains Quick Links (`Quick_Links__c`): Giving's Enter a Gift, Volunteers' Log Hours and Programs' Enroll replace the hard-coded Quick Gift Entry tile. |
 | 1.63 | 2026-11-13 | BarnCRM Logic Models app retired (D-200 R6, release 1.24; D-130 amended). No object or field added. The `BarnCRM_Logic_Models` app and its permission set visibilities go; the Logic Model record page becomes the object's org default (Large and Small); the module's catalog row has no App Name. The Logic Models tab stays in the BarnCRM apps and the App Launcher. |
 | 1.64 | 2026-11-13 | Sample data for Memberships and Scholarships (release 1.25). `Membership_Level__c`, `Membership_Term__c` and `Award_Program__c` each gain `Sample_Data__c` (Checkbox, default false), the mark the sample data loader sets so the set is counted and removed in one action; children go with their parent. No other object or rule changes. |
+| 1.65 | 2026-11-14 | Forms with submissions deletable by Forms administrators only (N-04, D-208, release 1.27; ADR-NEXT `NEXT-forms-delete-with-submissions.md`). Form Submission (29ZY): Form becomes Lookup(Form), set null on delete (was master-detail), sharing Public Read/Write; Form Version becomes set null on delete (was restrict); new Form Name (`Form_Name__c`, Text(80)) and Version Number (`Version_Number__c`, Number(6, 0)), rule R-FS8. Form (29ZW): rule R-FM4 and the Forms custom permission Manage Forms (`Forms_Manage`). |
 
 ---
 ## 32. Entity ownership by package

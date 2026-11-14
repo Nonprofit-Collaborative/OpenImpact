@@ -158,6 +158,11 @@ public with sharing class FormSubmitService {
 		if (found.isEmpty()) {
 			throw new FormException(BarnHelp.text('Forms', 'Forms_Submit_NotFound'));
 		}
+		if (found[0].Form_Version__c == null) {
+			// Its form or version was deleted by a Forms administrator (R-FM4): the answers stay,
+			// but there are no questions left to process them against.
+			throw new FormException(BarnHelp.text('Forms', 'Forms_Submit_FormDeleted'));
+		}
 		return found[0];
 	}
 
@@ -308,7 +313,7 @@ public with sharing class FormSubmitService {
 				.abbreviate(MESSAGE_LENGTH);
 		}
 		submission.Outcome__c = JSON.serialize(result.records);
-		// Only what processing changes: the form it belongs to (master-detail) never moves.
+		// Only what processing changes: the form and version it answers never move.
 		update as user new Form_Submission__c(
 			Id = submission.Id,
 			Status__c = submission.Status__c,
