@@ -181,18 +181,18 @@ private class MergeSettlementTest {
 				new Household_Member__c(
 					Household__c = kept.Id,
 					Contact__c = both.Id,
-					Start_Date__c = Date.today().addDays(-10)
+					Start_Date__c = OrgDate.today().addDays(-10)
 				),
 				new Household_Member__c(
 					Household__c = other.Id,
 					Contact__c = both.Id,
 					Is_Primary__c = true,
-					Start_Date__c = Date.today().addDays(-5)
+					Start_Date__c = OrgDate.today().addDays(-5)
 				),
 				new Household_Member__c(
 					Household__c = other.Id,
 					Contact__c = onlyOther.Id,
-					Start_Date__c = Date.today().addDays(-5)
+					Start_Date__c = OrgDate.today().addDays(-5)
 				)
 			};
 
@@ -207,7 +207,7 @@ private class MergeSettlementTest {
 			];
 			Assert.areEqual(1, rows.size(), 'The person has one membership in the survivor');
 			Assert.areEqual(
-				Date.today().addDays(-5),
+				OrgDate.today().addDays(-5),
 				rows[0].Start_Date__c,
 				'The primary row is the one kept'
 			);
@@ -239,7 +239,7 @@ private class MergeSettlementTest {
 							Household__c = households[i].Id,
 							Contact__c = people[i].Id,
 							Is_Primary__c = copy == 1,
-							Start_Date__c = Date.today().addDays(-copy)
+							Start_Date__c = OrgDate.today().addDays(-copy)
 						)
 					);
 				}

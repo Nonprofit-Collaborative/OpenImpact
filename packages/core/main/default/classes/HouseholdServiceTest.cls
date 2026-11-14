@@ -632,7 +632,7 @@ private class HouseholdServiceTest {
 				Contact__c = john.Id,
 				Role__c = 'Head',
 				Is_Primary__c = true,
-				Start_Date__c = Date.today()
+				Start_Date__c = OrgDate.today()
 			);
 
 			Test.startTest();
@@ -678,7 +678,7 @@ private class HouseholdServiceTest {
 			insert new Household_Member__c(
 				Household__c = households[0].Id,
 				Contact__c = john.Id,
-				Start_Date__c = Date.today()
+				Start_Date__c = OrgDate.today()
 			);
 
 			Test.startTest();
@@ -906,17 +906,17 @@ private class HouseholdServiceTest {
 					Household__c = households[0].Id,
 					Contact__c = john.Id,
 					Is_Primary__c = true,
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				),
 				new Household_Member__c(
 					Household__c = households[1].Id,
 					Contact__c = john.Id,
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				),
 				new Household_Member__c(
 					Household__c = households[1].Id,
 					Contact__c = maria.Id,
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				)
 			};
 
@@ -958,12 +958,12 @@ private class HouseholdServiceTest {
 				new Household_Member__c(
 					Household__c = households[0].Id,
 					Contact__c = john.Id,
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				),
 				new Household_Member__c(
 					Household__c = households[1].Id,
 					Contact__c = john.Id,
-					Start_Date__c = Date.today().addYears(-3)
+					Start_Date__c = OrgDate.today().addYears(-3)
 				)
 			};
 
@@ -997,13 +997,13 @@ private class HouseholdServiceTest {
 				new Household_Member__c(
 					Household__c = households[0].Id,
 					Contact__c = john.Id,
-					Start_Date__c = Date.today().addYears(-3)
+					Start_Date__c = OrgDate.today().addYears(-3)
 				),
 				new Household_Member__c(
 					Household__c = households[1].Id,
 					Contact__c = john.Id,
 					Is_Primary__c = true,
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				)
 			};
 
@@ -1083,7 +1083,7 @@ private class HouseholdServiceTest {
 			insert new Household_Member__c(
 				Household__c = household.Id,
 				Contact__c = john.Id,
-				Start_Date__c = Date.today()
+				Start_Date__c = OrgDate.today()
 			);
 
 			Test.startTest();
@@ -1134,7 +1134,7 @@ private class HouseholdServiceTest {
 				Account__c = person.Id,
 				Role__c = 'Head',
 				Is_Primary__c = true,
-				Start_Date__c = Date.today()
+				Start_Date__c = OrgDate.today()
 			);
 
 			Test.startTest();
@@ -1349,7 +1349,7 @@ private class HouseholdServiceTest {
 						Household__c = household.Id,
 						Account__c = person.Id,
 						Role__c = 'Head',
-						Start_Date__c = Date.today()
+						Start_Date__c = OrgDate.today()
 					);
 				} catch (Exception e) {
 					failure = e.getMessage();
@@ -1397,7 +1397,7 @@ private class HouseholdServiceTest {
 				Household__c = household.Id,
 				Account__c = person.Id,
 				Role__c = 'Head',
-				Start_Date__c = Date.today()
+				Start_Date__c = OrgDate.today()
 			);
 			Assert.isTrue(
 				HouseholdService.getMembers(new Set<Id>{ household.Id }).get(household.Id)[0]
@@ -1503,13 +1503,13 @@ private class HouseholdServiceTest {
 					Account__c = people[0].Id,
 					Role__c = 'Head',
 					Is_Primary__c = true,
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				),
 				new Household_Member__c(
 					Household__c = households[0].Id,
 					Account__c = people[1].Id,
 					Role__c = 'Spouse or Partner',
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				)
 			};
 
@@ -1563,14 +1563,14 @@ private class HouseholdServiceTest {
 					Contact__c = people[0].Id,
 					Role__c = 'Head',
 					Is_Primary__c = true,
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				),
 				new Household_Member__c(
 					Household__c = households[1].Id,
 					Contact__c = people[1].Id,
 					Role__c = 'Head',
 					Is_Primary__c = true,
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				)
 			};
 
@@ -1625,14 +1625,14 @@ private class HouseholdServiceTest {
 					Contact__c = people[0].Id,
 					Role__c = 'Head',
 					Is_Primary__c = true,
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				),
 				new Household_Member__c(
 					Household__c = households[1].Id,
 					Contact__c = people[1].Id,
 					Role__c = 'Head',
 					Is_Primary__c = true,
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				)
 			};
 
@@ -1704,13 +1704,13 @@ private class HouseholdServiceTest {
 					Contact__c = john.Id,
 					Role__c = 'Head',
 					Is_Primary__c = true,
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				),
 				new Household_Member__c(
 					Household__c = household.Id,
 					Contact__c = jane.Id,
 					Role__c = 'Spouse or Partner',
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				)
 			};
 			update new Account(Id = household.Id, Primary_Contact__c = john.Id);
@@ -2144,7 +2144,7 @@ private class HouseholdServiceTest {
 				new Map<String, Object>{ 'accountId' => fromHousehold, 'contactId' => maria.Id },
 				AccessLevel.SYSTEM_MODE
 			);
-			relation[0].put('StartDate', Date.today().addYears(-3));
+			relation[0].put('StartDate', OrgDate.today().addYears(-3));
 			update relation;
 
 			Test.startTest();
@@ -2685,7 +2685,7 @@ private class HouseholdServiceTest {
 				Contact__c = john.Id,
 				Role__c = 'Head',
 				Is_Primary__c = true,
-				Start_Date__c = Date.today()
+				Start_Date__c = OrgDate.today()
 			);
 			Set<Id> householdIds = new Set<Id>{ household.Id };
 			HouseholdService.afterMembershipChange(householdIds, false);
@@ -2728,7 +2728,7 @@ private class HouseholdServiceTest {
 						Contact__c = people[i].Id,
 						Role__c = 'Head',
 						Is_Primary__c = true,
-						Start_Date__c = Date.today()
+						Start_Date__c = OrgDate.today()
 					)
 				);
 			}

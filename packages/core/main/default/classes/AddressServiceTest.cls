@@ -691,7 +691,7 @@ private class AddressServiceTest {
 	@IsTest
 	static void anAddressThatIsNotSeasonalIsNeverSeasonallyActive() {
 		System.runAs(TestUsers.admin()) {
-			Date today = Date.today();
+			Date today = OrgDate.today();
 			Assert.isFalse(
 				AddressService.isSeasonalActiveOn(null, today),
 				'Nothing is not active.'

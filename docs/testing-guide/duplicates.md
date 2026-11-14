@@ -336,3 +336,17 @@ Before you start: an org from [Before you test](before-you-test.md) on the Perso
 | 5 | Give Zztest Anna Ruiz-Lopez the address `77 massachusetts ave.`, `02139`, put Ana back on `77 Massachusetts Avenue`, `02139`, and run the duplicate scan. | Ana and Anna are listed, with "Same address on" the Address source. |
 
 **Cleanup:** Delete the Zztest addresses.
+
+## T-DUP-23: Addresses the Match Key Fill Cannot Save
+
+**Purpose:** Confirm an address whose save fails during the fill is not tried again on every run, a Warning says how many, and an edit gives it its key (D-208).
+**Prerequisites:** admin with BarnCRM Admin; a sandbox upgraded from before 1.22 with **Match Keys Not Filled** showing; permission to add a validation rule on Address.
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | Add a validation rule on Address that fails when **Match Key** changes and **Street** contains `Zzblock` (`AND(ISCHANGED(Match_Key__c), CONTAINS(Street__c, "Zzblock"))`, with the namespace prefix in a packaged org). Rename one older address without a key to `1 Zzblock Road` through Workbench with the rule off, then turn the rule on. | Saved. |
+| 2 | Run Health Check, click **Fill Match Keys**, confirm, and wait for the job. | The Error Log has a Warning for that address with the rule's message, and one more Warning saying 1 address could not be saved with its key and where to look. |
+| 3 | **Run Again**. | **Match Keys Not Filled** is gone; it does not offer the fill again. |
+| 4 | Turn the validation rule off, edit the address (any field) and save. Read its **Match Key**. | `<postal code>\|1`: the edit gave it its key. |
+
+**Cleanup:** Delete the validation rule; put the address's street back.

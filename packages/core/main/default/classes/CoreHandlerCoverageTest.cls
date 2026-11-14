@@ -224,7 +224,7 @@ private class CoreHandlerCoverageTest {
 				'Restoring it gives the person their primary organization back'
 			);
 
-			work.End_Date__c = Date.today().addDays(-1);
+			work.End_Date__c = OrgDate.today().addDays(-1);
 			update work;
 			Affiliation__c ended = [
 				SELECT Status__c, Is_Primary__c
@@ -269,7 +269,7 @@ private class CoreHandlerCoverageTest {
 			);
 
 			for (Affiliation__c work : all) {
-				work.End_Date__c = Date.today().addDays(-1);
+				work.End_Date__c = OrgDate.today().addDays(-1);
 			}
 			update all;
 
@@ -298,7 +298,7 @@ private class CoreHandlerCoverageTest {
 				orgs[0],
 				'Chair'
 			);
-			ended.End_Date__c = Date.today().addDays(-5);
+			ended.End_Date__c = OrgDate.today().addDays(-5);
 			insert ended;
 			Assert.areEqual(
 				'Former',

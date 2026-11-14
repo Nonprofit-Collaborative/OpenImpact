@@ -784,7 +784,7 @@ private class ImportBatchServiceTest {
 				'With no setting the window is the shipped thirty days.'
 			);
 			Assert.areEqual(
-				Date.today(),
+				OrgDate.today(),
 				[SELECT Last_Import_Date__c FROM Import_Template__c WHERE Id = :template.Id]
 				.Last_Import_Date__c,
 				'The template records that its feed was loaded today.'

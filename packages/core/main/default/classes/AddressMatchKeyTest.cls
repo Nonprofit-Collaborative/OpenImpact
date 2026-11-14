@@ -66,6 +66,88 @@ private class AddressMatchKeyTest {
 		}
 	}
 
+	/**
+	 * An address whose save fails keeps no key. After a fill has run it is marked filled with
+	 * the rest, so the next fill does not try it again, and one Warning says how many (N-06).
+	 */
+	@IsTest
+	static void aFillThatLeavesSomeUnsavedMarksThemFilledAndWarns() {
+		System.runAs(TestUsers.admin()) {
+			AddressMatchKeyBatch.unfilledForTest = true;
+
+			Test.startTest();
+			new AddressMatchKeyBatch().finish(null);
+			Test.stopTest();
+
+			SettingsService.clearCaches();
+			Assert.isTrue(
+				SettingsService.getSettings().Match_Keys_Filled__c,
+				'Marked filled, so no later run selects them again'
+			);
+			Assert.isNull(new AddressMatchKeyHandler.FilledCheck().run(), 'Not offered again');
+			List<Error_Log__c> warnings = [
+				SELECT Message__c, Severity__c
+				FROM Error_Log__c
+				WHERE Context__c = 'AddressMatchKeyBatch'
+			];
+			Assert.areEqual(1, warnings.size(), 'One warning for the run');
+			Assert.areEqual(ErrorLogger.SEVERITY_WARNING, warnings[0].Severity__c);
+			Assert.isTrue(
+				warnings[0].Message__c.contains('1 addresses'),
+				'It says how many: ' + warnings[0].Message__c
+			);
+		}
+	}
+
+	@IsTest
+	static void aFillWithNothingLeftDoesNotWarn() {
+		System.runAs(TestUsers.admin()) {
+			AddressMatchKeyBatch.unfilledForTest = false;
+
+			Test.startTest();
+			new AddressMatchKeyBatch().finish(null);
+			Test.stopTest();
+
+			SettingsService.clearCaches();
+			Assert.isTrue(SettingsService.getSettings().Match_Keys_Filled__c, 'Marked filled');
+			Assert.areEqual(
+				0,
+				[SELECT COUNT() FROM Error_Log__c WHERE Context__c = 'AddressMatchKeyBatch'],
+				'Nothing to warn about'
+			);
+		}
+	}
+
+	@IsTest
+	static void aStreetOfOnlySpacesIsMarkedNotLeftToFill() {
+		// runs-as: deploying user (pure function over two strings, no DML or SOQL)
+		Assert.areEqual(
+			AddressMatchKeyHandler.NO_KEY,
+			AddressMatchKeyHandler.keyFor('   ', '02139'),
+			'Selected by the fill, so it must not stay null'
+		);
+		Assert.areEqual(AddressMatchKeyHandler.NO_KEY, AddressMatchKeyHandler.keyFor('1 Elm', ' '));
+		Assert.isNull(AddressMatchKeyHandler.keyFor(null, '02139'), 'No street, no key');
+		Assert.isNull(AddressMatchKeyHandler.keyFor('', '02139'), 'Empty is no street');
+	}
+
+	@IsTest
+	static void anEditGivesAnAddressItsKeyAfterTheMark() {
+		System.runAs(TestUsers.admin()) {
+			SettingsService.saveBookkeeping(
+				new Map<String, Object>{ 'Match_Keys_Filled__c' => true }
+			);
+			Contact person = insertPerson('Cleo', 'Marsh');
+			Address__c home = new Address__c(Contact__c = person.Id, Postal_Code__c = '02139');
+			insert home;
+			Assert.isNull(keyOf(home.Id), 'No street yet');
+
+			update new Address__c(Id = home.Id, Street__c = '5 Oak Lane');
+
+			Assert.areEqual('02139|5', keyOf(home.Id), 'The edit gives it its key');
+		}
+	}
+
 	@IsTest
 	static void aNewOrgWithNothingToFillIsMarkedFilled() {
 		System.runAs(TestUsers.admin()) {

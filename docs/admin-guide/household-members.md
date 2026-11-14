@@ -15,6 +15,10 @@ The primary contact is the person letters are addressed to when only one person 
 Mail merges read it (and, with Giving, receipts and acknowledgments), so a household with the wrong primary
 contact sends its mail to the wrong person.
 
+A membership is current until its **End Date**. "Today" here is your organization's date (its
+default time zone in Setup, **Company Information**), never the date of the person looking, so
+a membership ended today reads as ended for everyone at once.
+
 ## How to Turn It On
 
 Both panels are there as soon as Core is installed and the BarnCRM app is in use.

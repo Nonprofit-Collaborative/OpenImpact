@@ -246,7 +246,7 @@ public with sharing class DataHygieneService {
 					2,
 					name(Household_Member__c.End_Date__c),
 					'greater than',
-					String.valueOf(Date.today())
+					String.valueOf(OrgDate.today())
 				)
 			},
 			'logic' => '1 OR 2'

@@ -314,7 +314,7 @@ public with sharing class PersonErasure {
 		List<Household_Member__c> memberships = new List<Household_Member__c>();
 		Set<Id> households = new Set<Id>();
 		for (Household_Member__c membership : HouseholdService.membershipsFor(people)) {
-			if (membership.End_Date__c == null || membership.End_Date__c > Date.today()) {
+			if (membership.End_Date__c == null || membership.End_Date__c > OrgDate.today()) {
 				memberships.add(membership);
 				households.add(membership.Household__c);
 			}
@@ -502,7 +502,7 @@ public with sharing class PersonErasure {
 	}
 
 	private static List<Id> endAll(List<SObject> records, Boolean affiliation) {
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		List<SObject> updates = new List<SObject>();
 		for (SObject record : records) {
 			SObject updated = record.getSObjectType().newSObject(record.Id);

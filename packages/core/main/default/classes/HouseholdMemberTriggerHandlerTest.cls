@@ -26,7 +26,7 @@ private class HouseholdMemberTriggerHandlerTest {
 			Contact__c = personId,
 			Role__c = 'Head',
 			Is_Primary__c = true,
-			Start_Date__c = Date.today()
+			Start_Date__c = OrgDate.today()
 		);
 	}
 
@@ -69,7 +69,7 @@ private class HouseholdMemberTriggerHandlerTest {
 			insert row;
 
 			Test.startTest();
-			update new Household_Member__c(Id = row.Id, End_Date__c = Date.today());
+			update new Household_Member__c(Id = row.Id, End_Date__c = OrgDate.today());
 			Test.stopTest();
 
 			Assert.areEqual(0, reload().Member_Count__c, 'A membership that ended today is over');
@@ -188,8 +188,8 @@ private class HouseholdMemberTriggerHandlerTest {
 		System.runAs(TestUsers.admin()) {
 			setUp();
 			Household_Member__c ended = membership(john.Id);
-			ended.Start_Date__c = Date.today().addYears(-2);
-			ended.End_Date__c = Date.today().addYears(-1);
+			ended.Start_Date__c = OrgDate.today().addYears(-2);
+			ended.End_Date__c = OrgDate.today().addYears(-1);
 			ended.Is_Primary__c = false;
 			insert ended;
 
@@ -210,7 +210,7 @@ private class HouseholdMemberTriggerHandlerTest {
 		System.runAs(TestUsers.admin()) {
 			setUp();
 			Household_Member__c ended = membership(john.Id);
-			ended.End_Date__c = Date.today().addYears(-1);
+			ended.End_Date__c = OrgDate.today().addYears(-1);
 			ended.Is_Primary__c = false;
 			insert new List<Household_Member__c>{ ended, membership(john.Id) };
 
@@ -257,7 +257,7 @@ private class HouseholdMemberTriggerHandlerTest {
 			AutomationControl.clearBypass('ContactTriggerHandler');
 
 			Test.startTest();
-			row.End_Date__c = Date.today();
+			row.End_Date__c = OrgDate.today();
 			Database.SaveResult result = Database.update(row, false);
 			Test.stopTest();
 

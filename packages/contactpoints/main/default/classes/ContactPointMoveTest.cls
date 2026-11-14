@@ -76,7 +76,7 @@ private class ContactPointMoveTest {
 			Household_Member__c membership = new Household_Member__c(
 				Household__c = north.Id,
 				Contact__c = ana.Id,
-				Start_Date__c = Date.today()
+				Start_Date__c = OrgDate.today()
 			);
 
 			Test.startTest();
@@ -141,7 +141,7 @@ private class ContactPointMoveTest {
 					new Household_Member__c(
 						Household__c = north.Id,
 						Contact__c = each.Id,
-						Start_Date__c = Date.today()
+						Start_Date__c = OrgDate.today()
 					)
 				);
 			}
@@ -185,7 +185,7 @@ private class ContactPointMoveTest {
 			insert new Household_Member__c(
 				Household__c = north.Id,
 				Contact__c = ana.Id,
-				Start_Date__c = Date.today()
+				Start_Date__c = OrgDate.today()
 			);
 			AutomationControl.clearBypass('Contact_Point_Sync_Membership');
 			Test.stopTest();
@@ -247,7 +247,7 @@ private class ContactPointMoveTest {
 			insert new Household_Member__c(
 				Household__c = north.Id,
 				Account__c = pat.Id,
-				Start_Date__c = Date.today()
+				Start_Date__c = OrgDate.today()
 			);
 			List<String> addresses = streets(parent);
 			Test.stopTest();

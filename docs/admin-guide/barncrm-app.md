@@ -178,7 +178,7 @@ person what they can act on:
 | **Files That Arrive Regularly** | Anyone who can read import templates, and only when a file is marked as arriving regularly |
 | **Quick Links**: People, Households, Organizations and Find | Everyone |
 | **Import a File** quick link | Anyone who can run an import (create Import Batches) |
-| Module quick links: **Enter a Gift** (Giving), **Log Hours** (Volunteers), **Enroll** (Programs, for someone who can create enrollments) | Everyone, while that module is installed and turned on in the Module Manager. Each module's links come from its row in the module catalog (`Quick_Links__c` on BarnCRM Module), never from module code |
+| Module quick links: **Enter a Gift** (Giving), **Log Hours** (Volunteers), **Enroll** (Programs, for someone who can create enrollments) | Everyone, while that module is installed and turned on in the Module Manager. Each module's links come from its row in the module catalog (`Quick_Links__c` on BarnCRM Module), never from module code; the one-line description under each comes from Core's in-app help text (BarnHelp), like the other quick links' |
 | **BarnCRM Settings** quick link | Administrators |
 
 "Administrators" means anyone with the **Manage BarnCRM Settings** permission, which the

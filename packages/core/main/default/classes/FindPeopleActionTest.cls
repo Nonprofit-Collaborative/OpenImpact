@@ -76,7 +76,7 @@ private class FindPeopleActionTest {
 				Household__c = household.Id,
 				Contact__c = wei.Id,
 				Is_Primary__c = true,
-				Start_Date__c = Date.today()
+				Start_Date__c = OrgDate.today()
 			);
 			indexContacts();
 

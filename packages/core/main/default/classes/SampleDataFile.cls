@@ -202,7 +202,7 @@ public with sharing class SampleDataFile implements SampleDataModule {
 		}
 		List<SObject> rows = new List<SObject>();
 		List<String> keys = new List<String>();
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		for (Object entry : (List<Object>) step.get('records')) {
 			SObject row = buildRow(type, (Map<String, Object>) entry, idsByKey, today);
 			if (row != null) {

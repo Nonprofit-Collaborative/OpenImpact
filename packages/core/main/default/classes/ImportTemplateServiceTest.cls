@@ -231,10 +231,10 @@ private class ImportTemplateServiceTest {
 				ImportTemplateService.RULE_EMAIL
 			);
 			Test.startTest();
-			ImportTemplateService.recordImport(template.Id, Date.today());
+			ImportTemplateService.recordImport(template.Id, OrgDate.today());
 			Test.stopTest();
 			Assert.areEqual(
-				Date.today(),
+				OrgDate.today(),
 				[SELECT Last_Import_Date__c FROM Import_Template__c WHERE Id = :template.Id]
 				.Last_Import_Date__c,
 				'The Hub can say how long it is since this feed was loaded.'
@@ -359,8 +359,8 @@ private class ImportTemplateServiceTest {
 	@IsTest
 	static void recurringSourcesListTheOneLoadedLongestAgoFirst() {
 		System.runAs(TestUsers.admin()) {
-			recurring('Monthly processor export', Date.today().addDays(-3));
-			recurring('Quarterly partner list', Date.today().addDays(-40));
+			recurring('Monthly processor export', OrgDate.today().addDays(-3));
+			recurring('Quarterly partner list', OrgDate.today().addDays(-40));
 			recurring('Event sign-ups', null);
 			ImportTestDataFactory.template(
 				ImportTestDataFactory.donorMapping(),

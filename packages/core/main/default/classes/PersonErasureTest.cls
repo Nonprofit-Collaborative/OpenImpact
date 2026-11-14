@@ -126,14 +126,14 @@ private class PersonErasureTest {
 				'Address deleted'
 			);
 			for (Relationship__c side : [SELECT End_Date__c, Status__c FROM Relationship__c]) {
-				Assert.areEqual(Date.today(), side.End_Date__c, 'Both sides ended today');
+				Assert.areEqual(OrgDate.today(), side.End_Date__c, 'Both sides ended today');
 			}
 			Affiliation__c ended = [
 				SELECT End_Date__c, Role__c, Description__c, Is_Primary__c
 				FROM Affiliation__c
 				WHERE Id = :work.Id
 			];
-			Assert.areEqual(Date.today(), ended.End_Date__c, 'Affiliation ended');
+			Assert.areEqual(OrgDate.today(), ended.End_Date__c, 'Affiliation ended');
 			Assert.isNull(ended.Role__c, 'Role emptied');
 			Assert.isNull(ended.Description__c, 'Description emptied');
 			Assert.isFalse(ended.Is_Primary__c, 'No longer primary');
@@ -511,7 +511,7 @@ private class PersonErasureTest {
 				WHERE Contact__c = :jordan.Id
 			];
 			Assert.areEqual(
-				Date.today(),
+				OrgDate.today(),
 				membership.End_Date__c,
 				'Membership ended, kept as history'
 			);

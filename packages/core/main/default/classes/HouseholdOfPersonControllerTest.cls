@@ -76,7 +76,7 @@ private class HouseholdOfPersonControllerTest {
 				Contact__c = maria.Id,
 				Role__c = 'Head',
 				Is_Primary__c = true,
-				Start_Date__c = Date.today()
+				Start_Date__c = OrgDate.today()
 			);
 
 			Test.startTest();
@@ -139,13 +139,13 @@ private class HouseholdOfPersonControllerTest {
 				Household__c = household.Id,
 				Contact__c = maria.Id,
 				Is_Primary__c = true,
-				Start_Date__c = Date.today()
+				Start_Date__c = OrgDate.today()
 			);
 			Household_Member__c weiRow = new Household_Member__c(
 				Household__c = household.Id,
 				Contact__c = wei.Id,
 				Is_Primary__c = false,
-				Start_Date__c = Date.today()
+				Start_Date__c = OrgDate.today()
 			);
 			insert new List<Household_Member__c>{ mariaRow, weiRow };
 
@@ -178,7 +178,7 @@ private class HouseholdOfPersonControllerTest {
 				Household__c = household.Id,
 				Contact__c = maria.Id,
 				Is_Primary__c = true,
-				Start_Date__c = Date.today()
+				Start_Date__c = OrgDate.today()
 			);
 			String message;
 
@@ -654,13 +654,13 @@ private class HouseholdOfPersonControllerTest {
 					Household__c = household.Id,
 					Contact__c = maria.Id,
 					Is_Primary__c = true,
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				),
 				new Household_Member__c(
 					Household__c = household.Id,
 					Contact__c = wei.Id,
 					Is_Primary__c = false,
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				)
 			};
 			User reader = HouseholdTestDataFactory.standardUser('reader');

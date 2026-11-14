@@ -404,7 +404,7 @@ private class ContactTriggerHandlerTest {
 			insert new Household_Member__c(
 				Household__c = household.Id,
 				Contact__c = maria.Id,
-				Start_Date__c = Date.today()
+				Start_Date__c = OrgDate.today()
 			);
 
 			Test.startTest();

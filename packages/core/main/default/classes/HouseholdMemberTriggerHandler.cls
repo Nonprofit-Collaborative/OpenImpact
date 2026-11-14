@@ -73,7 +73,7 @@ public with sharing class HouseholdMemberTriggerHandler extends TriggerHandler {
 			return;
 		}
 		Household_Member__c record = records[0];
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		if (
 			record.Is_Primary__c != true ||
 			record.Household__c == null ||
@@ -154,7 +154,7 @@ public with sharing class HouseholdMemberTriggerHandler extends TriggerHandler {
 		List<Household_Member__c> records,
 		Map<Id, Household_Member__c> previousById
 	) {
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		List<Household_Member__c> checked = new List<Household_Member__c>();
 		Set<Id> personIds = new Set<Id>();
 		for (Household_Member__c record : records) {

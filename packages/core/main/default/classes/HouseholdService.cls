@@ -865,7 +865,7 @@ public with sharing class HouseholdService {
 
 	/** Current as the membership selectors count it: no end date, or one after today. */
 	private static Boolean isCurrentMembership(Household_Member__c row) {
-		return row.End_Date__c == null || row.End_Date__c > Date.today();
+		return row.End_Date__c == null || row.End_Date__c > OrgDate.today();
 	}
 
 	/**
@@ -921,7 +921,7 @@ public with sharing class HouseholdService {
 		if (personIds == null || personIds.isEmpty() || !isJunctionMode()) {
 			return ending;
 		}
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		for (
 			Household_Member__c membership : HouseholdSelector.getMembershipsForPeople(personIds)
 		) {
@@ -1180,7 +1180,7 @@ public with sharing class HouseholdService {
 		}
 		Boolean isHousehold = recordTypeId != null && household.RecordTypeId == recordTypeId;
 		if (household.Emptied_By_Deletion__c == null && settlingAfterPeopleDeleted && isHousehold) {
-			return Date.today();
+			return OrgDate.today();
 		}
 		return household.Emptied_By_Deletion__c;
 	}
@@ -2432,7 +2432,7 @@ public with sharing class HouseholdService {
 			}
 			// Ended today, and the current-membership filter counts only a membership that
 			// ends after today, so the person leaves the old household straight away.
-			ended.add(new Household_Member__c(Id = membership.Id, End_Date__c = Date.today()));
+			ended.add(new Household_Member__c(Id = membership.Id, End_Date__c = OrgDate.today()));
 		}
 		if (!ended.isEmpty()) {
 			Database.update(ended, AccessLevel.USER_MODE);
@@ -2681,7 +2681,7 @@ public with sharing class HouseholdService {
 			Household__c = householdId,
 			Role__c = role,
 			Is_Primary__c = isPrimary,
-			Start_Date__c = Date.today()
+			Start_Date__c = OrgDate.today()
 		);
 		if (personId.getSObjectType() == Contact.SObjectType) {
 			membership.Contact__c = personId;

@@ -372,3 +372,17 @@ Before you start: an org from [Before you test](before-you-test.md), with Core d
 | 7 | As admin, turn the setting off and save. Open Ana. | No meter. The panel shows the step Off; tonight's run records it Skipped. |
 
 **Cleanup:** put the weights back to the default line; leave the setting off.
+
+## T-HH-24: Date Rules Use the Organization's Date
+
+**Purpose:** Confirm membership and address date rules read today in the organization's time zone, not the tester's (D-208, [Household Members](../admin-guide/household-members.md#what-it-does)).
+**Prerequisites:** admin in a test org nobody else is using; a household with two members, each with a membership record (flexible way of belonging); note the org's **Default Time Zone** (Setup, **Company Information**) and your own time zone (**Settings**, **Personal Information**) to put back afterwards.
+**Smoke:** no
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | Set the org's **Default Time Zone** to `(GMT+14:00) Line Islands Time (Pacific/Kiritimati)` and your own time zone to `(GMT-10:00) Hawaii-Aleutian Standard Time (Pacific/Honolulu)`. | Saved. The org's date is now always one day after your own. |
+| 2 | Open one member's membership record and set **End Date** to the org's date (your own tomorrow). Save, then open the household. | The person no longer shows as a current member: the membership ended today, org-wide. |
+| 3 | On the household's **Addresses** card add a new address with **Primary** ticked, a different place from the current one. | The old address reads **Former** with **End Date** the org's date, and the new one has **Start Date** the org's date (your own tomorrow), not your own date. |
+
+**Cleanup:** put the org's Default Time Zone and your own time zone back; end-date or delete the test membership and address as you left them.

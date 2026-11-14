@@ -240,7 +240,7 @@ private class EngagementScoreTest {
 					'Full gifts, the only weighted part'
 				);
 				Assert.areEqual(
-					each.Id == unchanged.Id ? null : Date.today(),
+					each.Id == unchanged.Id ? null : OrgDate.today(),
 					each.Engagement_Scored_On__c,
 					'Only a changed score is saved, with today as Scored On'
 				);

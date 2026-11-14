@@ -1048,6 +1048,9 @@ core/NpspHouseholdSource.cls | public virtual Map<String,Object> binds()
 core/NpspHouseholdSource.cls | public virtual String condition()
 core/NpspHouseholdSource.cls | public virtual String key()
 core/NpspHouseholdSource.cls | public virtual class NpspHouseholdSource
+core/OrgDate.cls | public class OrgDate
+core/OrgDate.cls | public static Date today()
+core/OrgDate.cls | public static TimeZone zone()
 core/OrgSettingsSystemWriter.cls | public class OrgSettingsException
 core/OrgSettingsSystemWriter.cls | public class OrgSettingsSystemWriter
 core/OrgSettingsSystemWriter.cls | public static BarnCRM_Settings__c lockStored()

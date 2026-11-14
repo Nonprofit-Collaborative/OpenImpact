@@ -51,7 +51,7 @@ private class EmptyHouseholdTidyTest {
 			Contact maria = HouseholdTestDataFactory.newContact('Ms.', 'Maria', 'Garcia');
 			Id household = deletedPersonsHousehold(maria);
 			Assert.areEqual(
-				Date.today(),
+				OrgDate.today(),
 				[SELECT Emptied_By_Deletion__c FROM Account WHERE Id = :household]
 				.Emptied_By_Deletion__c,
 				'The delete stamps the household it emptied'
@@ -240,8 +240,8 @@ private class EmptyHouseholdTidyTest {
 				new Household_Member__c(
 					Household__c = household.Id,
 					Contact__c = ana.Id,
-					Start_Date__c = Date.today().addYears(-2),
-					End_Date__c = Date.today().addYears(-1)
+					Start_Date__c = OrgDate.today().addYears(-2),
+					End_Date__c = OrgDate.today().addYears(-1)
 				)
 			};
 			delete luis;

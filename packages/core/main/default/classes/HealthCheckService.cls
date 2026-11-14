@@ -360,9 +360,16 @@ public with sharing class HealthCheckService {
 		/** After a fix: what it created or scheduled, and what it left out. Null otherwise. */
 		@AuraEnabled
 		public String fixOutcome;
+		/**
+		 * The keys of the checks this run left because it stopped early to stay inside the
+		 * limits, for Run Remaining Checks; empty when every check ran (D-208, N-07).
+		 */
+		@AuraEnabled
+		public List<String> skippedChecks;
 
 		public Report() {
 			this.findings = new List<Finding>();
+			this.skippedChecks = new List<String>();
 			this.modeNeedsAttention = false;
 			this.canManageSettings = false;
 			this.settingsTabApiName = NamespaceUtil.qualify(SETTINGS_TAB);
@@ -439,10 +446,27 @@ public with sharing class HealthCheckService {
 	 */
 	@NamespaceAccessible
 	public static List<Finding> run() {
+		return run(null);
+	}
+
+	/**
+	 * The keys of the checks the last run in this transaction left because it stopped early to
+	 * stay inside the limits; empty when every check ran.
+	 */
+	private static List<String> lastSkipped = new List<String>();
+
+	/**
+	 * The same, running only the checks whose keys are given (null for all of them): how
+	 * Run Remaining Checks runs just the checks an earlier run left (D-208, N-07).
+	 */
+	private static List<Finding> run(Set<String> only) {
 		List<Finding> findings = new List<Finding>();
 		List<String> skipped = new List<String>();
 
 		for (CheckStep step : steps()) {
+			if (only != null && !only.contains(step.key)) {
+				continue;
+			}
 			if (!skipped.isEmpty() || nearLimits()) {
 				skipped.add(step.key);
 				continue;
@@ -457,10 +481,11 @@ public with sharing class HealthCheckService {
 			}
 		}
 
-		findings.addAll(extensionFindings(skipped));
+		findings.addAll(extensionFindings(skipped, only));
 		if (!skipped.isEmpty()) {
 			findings.add(notChecked(skipped));
 		}
+		lastSkipped = skipped;
 
 		return findings;
 	}
@@ -596,10 +621,13 @@ public with sharing class HealthCheckService {
 	 * stands, and the failure is written to the Error Log rather than shown as this package's
 	 * own answer.
 	 */
-	private static List<Finding> extensionFindings(List<String> skipped) {
+	private static List<Finding> extensionFindings(List<String> skipped, Set<String> only) {
 		List<Finding> all = new List<Finding>();
 		Map<String, HealthCheckExtension> byKey = HealthCheckExtensions.findAll();
 		for (String key : byKey.keySet()) {
+			if (only != null && !only.contains(key)) {
+				continue;
+			}
 			if (!skipped.isEmpty() || nearLimits()) {
 				skipped.add(key);
 				continue;
@@ -785,6 +813,7 @@ public with sharing class HealthCheckService {
 	public static Report buildReport() {
 		Report report = new Report();
 		report.findings = run();
+		report.skippedChecks = lastSkipped;
 		report.canManageSettings = canManageSettings();
 
 		try {
@@ -813,6 +842,28 @@ public with sharing class HealthCheckService {
 			logQuietly(e);
 		}
 
+		return report;
+	}
+
+	/**
+	 * Only the checks an earlier run left (D-208, N-07): their findings, and the keys of any it
+	 * had to leave again. The panel merges these into the report it already shows, so the org
+	 * shape and modes are not read again. The stored last result gains these findings in place
+	 * of the earlier Not Checked warning.
+	 */
+	public static Report buildRemainingReport(List<String> keys) {
+		Report report = new Report();
+		report.canManageSettings = canManageSettings();
+		if (keys == null || keys.isEmpty()) {
+			return report;
+		}
+		report.findings = run(new Set<String>(keys));
+		report.skippedChecks = lastSkipped;
+		try {
+			HealthCheckLastRun.addRemaining(report);
+		} catch (Exception e) {
+			logQuietly(e);
+		}
 		return report;
 	}
 

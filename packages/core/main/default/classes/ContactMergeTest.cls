@@ -206,8 +206,8 @@ private class ContactMergeTest {
 				new Household_Member__c(
 					Household__c = household.Id,
 					Contact__c = ana.Id,
-					Start_Date__c = Date.today().addYears(-3),
-					End_Date__c = Date.today().addYears(-1)
+					Start_Date__c = OrgDate.today().addYears(-3),
+					End_Date__c = OrgDate.today().addYears(-1)
 				),
 				new Household_Member__c(
 					Household__c = household.Id,

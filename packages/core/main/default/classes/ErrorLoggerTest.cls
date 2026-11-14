@@ -635,6 +635,94 @@ private class ErrorLoggerTest {
 		}
 	}
 
+	private static Error_Log_Event__e failure(String detail) {
+		Error_Log_Event__e failure = event('Something went wrong saving the household.', null);
+		failure.Technical_Detail__c = detail;
+		return failure;
+	}
+
+	@IsTest
+	static void theSameMessageFromDifferentFailuresIsTwoEntries() {
+		String nullAtTwelve =
+			'System.NullPointerException: Attempt to de-reference a null object\n' +
+			'Class.HouseholdService.save: line 12, column 1\n' +
+			'Class.HouseholdController.save: line 40, column 1';
+		String nullAtThirty = nullAtTwelve.replace('line 12', 'line 30');
+		String queryAtTwelve = nullAtTwelve.replace(
+			'System.NullPointerException',
+			'System.QueryException'
+		);
+		System.runAs(TestUsers.admin()) {
+			Test.startTest();
+			ErrorLogEventHandler.handle(
+				new List<Error_Log_Event__e>{
+					failure(nullAtTwelve),
+					failure(nullAtTwelve),
+					failure(nullAtThirty),
+					failure(queryAtTwelve)
+				}
+			);
+			ErrorLogEventHandler.handle(new List<Error_Log_Event__e>{ failure(nullAtTwelve) });
+			Test.stopTest();
+
+			List<Error_Log__c> written = [
+				SELECT Occurrences__c
+				FROM Error_Log__c
+				ORDER BY Occurrences__c DESC
+			];
+			Assert.areEqual(3, written.size(), 'A different type or line is a different entry.');
+			Assert.areEqual(3, written[0].Occurrences__c, 'The same failure is still counted.');
+			Assert.areEqual(1, written[1].Occurrences__c);
+			Assert.areEqual(1, written[2].Occurrences__c);
+		}
+	}
+
+	@IsTest
+	static void theKeyReadsTheTypeAndFirstFrameFromTechnicalDetail() {
+		// runs-as: deploying user (pure parsing of a string, no DML or SOQL)
+		String detail =
+			'System.DmlException: Insert failed: a: b\n' +
+			'AnonymousBlock: line 1, column 1\n' +
+			'Class.barn.AddressService.save: line 939, column 1\n' +
+			'Caused by System.QueryException: x';
+
+		Assert.areEqual('System.DmlException', ErrorLogEventHandler.exceptionType(detail));
+		Assert.areEqual(
+			'Class.barn.AddressService.save: line 939',
+			ErrorLogEventHandler.topFrame(detail),
+			'The first frame of Apex code, kept to its line'
+		);
+		Assert.areEqual('', ErrorLogEventHandler.exceptionType('Plain words, no type'));
+		Assert.areEqual('', ErrorLogEventHandler.exceptionType('Two words: not a type'));
+		Assert.areEqual('', ErrorLogEventHandler.topFrame('No stack here'));
+		Assert.areEqual('', ErrorLogEventHandler.topFrame(null));
+	}
+
+	@IsTest
+	static void aMessageWithoutAnExceptionKeepsItsEarlierKey() {
+		// runs-as: deploying user (pure hashing of an in-memory record, no DML or SOQL)
+		Error_Log__c entry = new Error_Log__c(
+			Context__c = 'Bulk load',
+			Severity__c = 'Warning',
+			Message__c = 'Refused.'
+		);
+		String before = EncodingUtil.convertToHex(
+			Crypto.generateDigest('SHA-256', Blob.valueOf('Bulk load\nWarning\nRefused.'))
+		);
+
+		Assert.areEqual(
+			before,
+			ErrorLogEventHandler.keyOf(entry),
+			'An entry written before the change still finds its repeats'
+		);
+		entry.Technical_Detail__c = 'System.NullPointerException: x\nClass.A.b: line 1, column 1';
+		Assert.areNotEqual(
+			before,
+			ErrorLogEventHandler.keyOf(entry),
+			'An exception adds its parts'
+		);
+	}
+
 	@IsTest
 	static void withNoStatementsLeftAnEntryNeverEndsTheSaveItReports() {
 		System.runAs(TestUsers.admin()) {

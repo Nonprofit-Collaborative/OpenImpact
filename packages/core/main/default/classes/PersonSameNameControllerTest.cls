@@ -50,12 +50,12 @@ private class PersonSameNameControllerTest {
 				new Household_Member__c(
 					Household__c = household.Id,
 					Contact__c = inside.Id,
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				),
 				new Household_Member__c(
 					Household__c = other.Id,
 					Contact__c = outside.Id,
-					Start_Date__c = Date.today()
+					Start_Date__c = OrgDate.today()
 				)
 			};
 

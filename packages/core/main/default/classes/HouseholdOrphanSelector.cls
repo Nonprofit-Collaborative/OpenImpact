@@ -101,7 +101,7 @@ public with sharing class HouseholdOrphanSelector {
 		Set<Id> excludedAccountTypes,
 		Integer cap
 	) {
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		return [
 			SELECT COUNT()
 			FROM Contact
@@ -123,7 +123,7 @@ public with sharing class HouseholdOrphanSelector {
 		Set<Id> excludedAccountTypes,
 		Integer howMany
 	) {
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		return [
 			SELECT Id, Name
 			FROM Contact
@@ -180,7 +180,7 @@ public with sharing class HouseholdOrphanSelector {
 	public static Database.QueryLocator contactsWithoutMembershipLocator(
 		Set<Id> excludedAccountTypes
 	) {
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		Set<Id> erasedIds = erasedPeople();
 		return Database.getQueryLocator(
 			[
@@ -220,7 +220,7 @@ public with sharing class HouseholdOrphanSelector {
 	public static Database.QueryLocator personAccountsWithoutMembershipLocator(
 		Set<Id> personRecordTypeIds
 	) {
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		Set<Id> erasedIds = erasedPeople();
 		return Database.getQueryLocator(
 			[
@@ -244,7 +244,7 @@ public with sharing class HouseholdOrphanSelector {
 		Set<Id> personRecordTypeIds,
 		Integer cap
 	) {
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		return [
 			SELECT COUNT()
 			FROM Account
@@ -265,7 +265,7 @@ public with sharing class HouseholdOrphanSelector {
 		Set<Id> personRecordTypeIds,
 		Integer howMany
 	) {
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		return [
 			SELECT Id, Name
 			FROM Account
@@ -314,7 +314,7 @@ public with sharing class HouseholdOrphanSelector {
 
 	/** Junction mode: households no current membership row that names somebody points at. */
 	public static Integer countHouseholdsWithoutMembers(Id householdRecordTypeId, Integer cap) {
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		return [
 			SELECT COUNT()
 			FROM Account
@@ -338,7 +338,7 @@ public with sharing class HouseholdOrphanSelector {
 		Id householdRecordTypeId,
 		Integer howMany
 	) {
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		return [
 			SELECT Id, Name
 			FROM Account
