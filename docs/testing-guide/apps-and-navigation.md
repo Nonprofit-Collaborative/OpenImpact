@@ -131,12 +131,13 @@ household and an organization owned by that user.
 
 **Cleanup:** leave **Account Tabs** on **Organization and Household Tabs**.
 
-## The Module Apps (T-APP-08 to T-APP-13)
+## The Module Apps (T-APP-08 to T-APP-15)
 
-Event Management, Forms, Portal Builder, Corporate Hub and Project Management each have an app
-of their own, and their tabs stay in the BarnCRM apps too. Run T-APP-08 to T-APP-12 on a
-production org or sandbox (`mwdbdevsb`): a scratch or Developer Edition org does not get these
-five apps (T-APP-13). In each, the module is installed and on, and its access sync has run
+Event Management, Forms, Portal Builder, Corporate Hub, Project Management, Memberships and
+Scholarships and Outbound Grants each have an app of their own, and their tabs stay in the
+BarnCRM apps too. Run T-APP-08 to T-APP-12, T-APP-14 and T-APP-15 on a production org or sandbox
+(`mwdbdevsb`): a scratch or Developer Edition org does not get these seven apps (T-APP-13). In
+each, the module is installed and on, and its access sync has run
 (**Finish Setup**, or wait an hour).
 
 ## T-APP-08: BarnCRM Events
@@ -205,13 +206,41 @@ five apps (T-APP-13). In each, the module is installed and on, and its access sy
 
 ## T-APP-13: A Scratch or Developer Edition Org Gets No Module Apps
 
-**Purpose:** confirm a capped org deploys without the five module apps and keeps their tabs.
+**Purpose:** confirm a capped org deploys without the seven module apps and keeps their tabs.
 **Prerequisites:** a scratch org deployed with `scripts/org/deploy-packages.sh` (for example
 `barn-sales`).
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Read the deploy output. | It says "Capped org (scratch or Developer Edition): leaving out the apps of events forms portal corporatehub projects", and a "Permission sets without the left-out module apps" stage succeeds. |
-| 2 | As admin, open the App Launcher and type `BarnCRM`. | No **BarnCRM Events**, **BarnCRM Forms**, **BarnCRM Portal Builder**, **BarnCRM Corporate Hub** or **BarnCRM Projects**. The other BarnCRM apps are listed. |
-| 3 | Open **BarnCRM**, then **BarnCRM Admin**. | The Event Management, Forms, Corporate Hub and Project Management tabs are in **BarnCRM**; **Portals** and **Portal Accesses** are in **BarnCRM Admin**. |
-| 4 | As staff, open **Events Home**. | It opens: the Events permission sets deployed without the app. |
+| 1 | Read the deploy output. | It says "Capped org (scratch or Developer Edition): leaving out the apps of events forms portal corporatehub projects memberships scholarships", and a "Permission sets without the left-out module apps" stage succeeds. |
+| 2 | As admin, open the App Launcher and type `BarnCRM`. | No **BarnCRM Events**, **BarnCRM Forms**, **BarnCRM Portal Builder**, **BarnCRM Corporate Hub**, **BarnCRM Projects**, **BarnCRM Memberships** or **BarnCRM Scholarships**. The other BarnCRM apps are listed. |
+| 3 | Open **BarnCRM**, then **BarnCRM Admin**. | The Event Management, Forms, Corporate Hub, Project Management, Memberships and Scholarships tabs are in **BarnCRM**; **Portals** and **Portal Accesses** are in **BarnCRM Admin**. |
+| 4 | As staff, open **Events Home**, then **Memberships**. | Both open: the module permission sets deployed without the apps. |
+
+## T-APP-14: BarnCRM Memberships
+
+**Purpose:** confirm the Memberships app holds every Memberships page.
+**Prerequisites:** admin user; staff user with the Team Member role (so Memberships Staff).
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | As admin, open the App Launcher and type `Memberships`. | **BarnCRM Memberships** is listed with Patch wearing a green Member sash. |
+| 2 | Open it and its navigation menu. | Console navigation with the Barn Navy header. Tabs: **Memberships**, **Member Certifications**, **Membership Levels**, **Certifications**, **Reports**, **Error Log** (last). |
+| 3 | Open a membership. | It opens as a workspace tab on the membership record page, the same page as in **BarnCRM**. |
+| 4 | Open **BarnCRM**. | **Memberships** and **Member Certifications** are still there, after **Data Manager**. |
+| 5 | On BarnCRM Home, find Memberships under **Modules**. | It has an **Open the App** link to **BarnCRM Memberships**. |
+| 6 | As staff, open the App Launcher and type `Memberships`. | **BarnCRM Memberships** is listed. A user with no Memberships permission set does not see it. |
+
+## T-APP-15: BarnCRM Scholarships
+
+**Purpose:** confirm the Scholarships and Outbound Grants app holds every page of the module.
+**Prerequisites:** admin user; staff user with the Team Member role (so Scholarships Staff).
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | As admin, open the App Launcher and type `Scholarships`. | **BarnCRM Scholarships** is listed with Patch in a graduation cap, holding a diploma. |
+| 2 | Open it and its navigation menu. | Console navigation with the Barn Navy header. Tabs: **Scholarships and Grants**, **Award Programs**, **Award Applications**, **Awards**, **Reports**, **Dashboards**, **Error Log** (last). |
+| 3 | Open an award application. | It opens as a workspace tab on the application record page, the same page as in **BarnCRM**. |
+| 4 | Open **BarnCRM**. | The four Scholarships tabs are still there, after **Data Manager**. |
+| 5 | On BarnCRM Home, find Scholarships and Outbound Grants under **Modules**. | It has an **Open the App** link to **BarnCRM Scholarships**. |
+| 6 | As staff, open the App Launcher and type `Scholarships`. | **BarnCRM Scholarships** is listed. |

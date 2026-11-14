@@ -202,7 +202,9 @@ CAPS = {
     # measured with every review branch merged; 93,000 still leaves about 2%.
     # Lowered for D-200 S1 (release 1.23: the access sync and installer access moved to Core's
     # catalog data): 88,989 measured, plus about 2%.
-    "forms": 90_800,
+    # Release 1.27 N-04 (D-208: only a Forms administrator deletes a form with submissions, which
+    # are kept and named): FormDeleteGuard and FormSubmissionNames, 94,315 measured, plus about 2%.
+    "forms": 96_200,
     # New 2026-11-06 for Contact Point Sync (C-45, ADR-0176 contact point sync module):
     # 43,980 measured with the page and backfill, plus about 2 percent.
     # C-45e (D-186): 45,798 measured with person accounts and household-move sync, plus about 2%.

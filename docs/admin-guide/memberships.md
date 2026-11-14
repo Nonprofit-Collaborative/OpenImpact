@@ -33,7 +33,11 @@ they are installed.
 Install it from **Module Manager** (see [Module Manager](module-manager.md)). When the install
 finishes, BarnCRM gives you, the person who installed it, the **Memberships Admin** permission
 set. Like every module it is installed **off**: turn it on in Module Manager when you are ready.
-Its tabs join the BarnCRM apps: **Memberships** for staff and **Membership Levels** for admins.
+It has its own app, **BarnCRM Memberships** (Memberships, Member Certifications, Membership
+Levels, Certifications, Reports and Error Log), shown to everyone with a Memberships permission
+set; a scratch or Developer Edition org gets the tabs only. Its tabs also join the BarnCRM apps:
+**Memberships** and **Member Certifications** for staff, **Membership Levels** and
+**Certifications** for admins.
 
 ### Who Gets What
 

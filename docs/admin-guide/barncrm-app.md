@@ -58,6 +58,8 @@ is the answer to that question. You start in **BarnCRM** (or **BarnCRM Console**
 | Portals (Portal Builder module) | The **BarnCRM Portal Builder** app, and **BarnCRM Admin** or **BarnCRM Admin Console** |
 | Library, compliance, agreements and boards (Corporate Hub module) | The **BarnCRM Corporate Hub** app, and **BarnCRM** or **BarnCRM Console** |
 | Projects, time and expenses (Project Management module) | The **BarnCRM Projects** app, and **BarnCRM** or **BarnCRM Console** |
+| Memberships and certifications (Memberships module) | The **BarnCRM Memberships** app, and **BarnCRM** or **BarnCRM Console** |
+| Award programs, applications and awards (Scholarships and Outbound Grants module) | The **BarnCRM Scholarships** app, and **BarnCRM** or **BarnCRM Console** |
 
 The home page's **Modules** list names each installed module, marked **On** or **Off** (turned
 off in BarnCRM Settings, Modules), with an **Open the App** link for a module that has an app
@@ -78,9 +80,11 @@ Launcher.
 | **BarnCRM Portal Builder** | Portals, Portal Accesses, Reports, Error Log |
 | **BarnCRM Corporate Hub** | Corporate Hub, Library Documents, Compliance Obligations, Agreements, Boards and Committees, Board Meetings, Processing Activities, Data Subject Requests, Data Breaches, Reports, Dashboards, Error Log |
 | **BarnCRM Projects** | Projects Home, Timesheet, Approvals, Requests, Projects, Time Entries, Project Expenses, Project Resources, Staffing, Project Rates, Project Invoices, Request Connections, Reports, Error Log |
+| **BarnCRM Memberships** | Memberships, Member Certifications, Membership Levels, Certifications, Reports, Error Log |
+| **BarnCRM Scholarships** | Scholarships and Grants, Award Programs, Award Applications, Awards, Reports, Dashboards, Error Log |
 
 Test and developer orgs (scratch and Developer Edition orgs) allow only about 10 custom apps, so
-`scripts/org/deploy-packages.sh` leaves these five apps out of such an org; every page is still
+`scripts/org/deploy-packages.sh` leaves these seven apps out of such an org; every page is still
 in the BarnCRM apps there (ADR-0223). A production org or sandbox gets every app.
 
 ### A Module's Pages in the BarnCRM Apps
@@ -99,6 +103,8 @@ need not switch apps. The modules with no app have their pages only here:
 | Portal Builder | | Portals, Portal Accesses |
 | Corporate Hub | Corporate Hub, Library Documents, Compliance Obligations, Agreements, Boards and Committees, Board Meetings | |
 | Project Management | Projects Home, Timesheet, Approvals, Requests, Projects, Time Entries, Project Expenses, Project Resources, Staffing | Project Rates, Project Invoices, Request Connections |
+| Memberships | Memberships, Member Certifications | Membership Levels, Certifications |
+| Scholarships and Outbound Grants | Scholarships and Grants, Award Programs, Award Applications, Awards | |
 
 A module's pages go after **Data Manager** in the everyday apps and before **Error Log** in
 the admin apps, so Error Log stays last. A form, form submission or event opens on its own
@@ -190,8 +196,9 @@ apps apart: **BarnCRM** and **BarnCRM Console** show Patch's face on a sage circ
 show Patch standing in a round badge, and each module app shows Patch with its module's prop (a
 heart for **BarnCRM Fundraising**, a safety vest for **BarnCRM Volunteers**, a cap and clipboard
 for **BarnCRM Programs**, a monocle for **BarnCRM Grants**, a pencil and tool belt for **BarnCRM
-Forms**, a party hat for **BarnCRM Events**, a hard hat for **BarnCRM Projects** and a tool belt
-for **BarnCRM Portal Builder**; **BarnCRM Corporate Hub** shows Patch's face for now). Logic
+Forms**, a party hat for **BarnCRM Events**, a hard hat for **BarnCRM Projects**, a tool belt
+for **BarnCRM Portal Builder**, a Member sash for **BarnCRM Memberships** and a graduation cap
+and diploma for **BarnCRM Scholarships**; **BarnCRM Corporate Hub** shows Patch's face for now). Logic
 Models has no app since release 1.24; Patch with building blocks marks its tile under
 **Modules** on the BarnCRM home page.
 **BarnCRM Console** and

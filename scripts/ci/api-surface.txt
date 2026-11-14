@@ -1449,9 +1449,13 @@ events/EventsPortalExtension.cls | public EventsPortalExtension()
 events/EventsPortalExtension.cls | public class EventsPortalExtension
 events/EventsPostInstall.cls | public EventsPostInstall()
 events/EventsPostInstall.cls | public class EventsPostInstall
+forms/FormDeleteGuard.cls | public FormDeleteGuard()
+forms/FormDeleteGuard.cls | public class FormDeleteGuard
 forms/FormPublicRest.cls | global class FormPublicRest
 forms/FormPublicRest.cls | global static void getForm()
 forms/FormPublicRest.cls | global static void submit()
+forms/FormSubmissionNames.cls | public FormSubmissionNames()
+forms/FormSubmissionNames.cls | public class FormSubmissionNames
 forms/FormsCatalogExtension.cls | public FormsCatalogExtension()
 forms/FormsCatalogExtension.cls | public class FormsCatalogExtension
 forms/FormsHealthCheckExtension.cls | public FormsHealthCheckExtension()
