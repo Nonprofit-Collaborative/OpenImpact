@@ -227,7 +227,7 @@ private class HealthCheckHouseholdChecksTest {
 			Database.insert(household, AccessLevel.SYSTEM_MODE);
 			Contact erased = HouseholdTestDataFactory.newContact('Cy', 'Erased');
 			insertWithoutAutomaticHouseholds(new List<Contact>{ erased });
-			insert membership(erased.Id, household.Id, Date.today());
+			insert membership(erased.Id, household.Id, OrgDate.today());
 			recordErasureOf(erased.Id);
 			platformOnlyShape();
 
@@ -257,7 +257,7 @@ private class HealthCheckHouseholdChecksTest {
 				new List<Contact>{ noAccount, atOrganization, left, current, linkedDirectly }
 			);
 			insert new List<Household_Member__c>{
-				membership(left.Id, household.Id, Date.today().addDays(-1)),
+				membership(left.Id, household.Id, OrgDate.today().addDays(-1)),
 				membership(current.Id, household.Id, null)
 			};
 			platformOnlyShape();
@@ -295,8 +295,8 @@ private class HealthCheckHouseholdChecksTest {
 			Contact present = HouseholdTestDataFactory.newContact('Mo', 'Present');
 			insertWithoutAutomaticHouseholds(new List<Contact>{ former, present });
 			insert new List<Household_Member__c>{
-				membership(former.Id, ended.Id, Date.today().addDays(-1)),
-				membership(present.Id, kept.Id, Date.today().addDays(30))
+				membership(former.Id, ended.Id, OrgDate.today().addDays(-1)),
+				membership(present.Id, kept.Id, OrgDate.today().addDays(30))
 			};
 			platformOnlyShape();
 

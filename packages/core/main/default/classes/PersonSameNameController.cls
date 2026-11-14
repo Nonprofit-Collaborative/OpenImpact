@@ -113,7 +113,7 @@ public with sharing class PersonSameNameController {
 			}
 		}
 		if (HouseholdService.isJunctionMode()) {
-			Date today = Date.today();
+			Date today = OrgDate.today();
 			for (Household_Member__c membership : [
 				SELECT Contact__c, Household__c, Household__r.Name
 				FROM Household_Member__c

@@ -1094,7 +1094,7 @@ public with sharing class ImportBatchService {
 		}
 		Database.update(batch, AccessLevel.SYSTEM_MODE);
 		if (failed != true && dryRun != true) {
-			ImportTemplateService.recordImport(batch.Import_Template__c, Date.today());
+			ImportTemplateService.recordImport(batch.Import_Template__c, OrgDate.today());
 		}
 		JobNotifier.aboutRecord(
 			UserInfo.getUserId(),

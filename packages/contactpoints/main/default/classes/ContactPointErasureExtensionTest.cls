@@ -62,12 +62,12 @@ private class ContactPointErasureExtensionTest {
 			new Household_Member__c(
 				Household__c = home.Id,
 				Contact__c = people[0].Id,
-				Start_Date__c = Date.today().addDays(-30)
+				Start_Date__c = OrgDate.today().addDays(-30)
 			),
 			new Household_Member__c(
 				Household__c = home.Id,
 				Contact__c = people[1].Id,
-				Start_Date__c = Date.today().addDays(-30)
+				Start_Date__c = OrgDate.today().addDays(-30)
 			),
 			new Address__c(
 				Contact__c = people[0].Id,

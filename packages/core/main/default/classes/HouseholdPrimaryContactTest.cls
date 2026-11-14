@@ -29,7 +29,7 @@ private class HouseholdPrimaryContactTest {
 			Household__c = householdId,
 			Role__c = role,
 			Is_Primary__c = isPrimary,
-			Start_Date__c = Date.today()
+			Start_Date__c = OrgDate.today()
 		);
 		if (personId.getSObjectType() == Contact.SObjectType) {
 			record.Contact__c = personId;
@@ -101,7 +101,7 @@ private class HouseholdPrimaryContactTest {
 			};
 
 			Test.startTest();
-			update new Household_Member__c(Id = johns.Id, End_Date__c = Date.today());
+			update new Household_Member__c(Id = johns.Id, End_Date__c = OrgDate.today());
 			Test.stopTest();
 
 			Assert.isNull(
@@ -318,8 +318,8 @@ private class HouseholdPrimaryContactTest {
 			Contact jane = HouseholdTestDataFactory.newContact('Mrs.', 'Jane', 'Smith');
 			insert new List<Contact>{ john, jane };
 			Household_Member__c johns = membership(smiths.Id, john.Id, 'Head', true);
-			johns.Start_Date__c = Date.today().addYears(-2);
-			johns.End_Date__c = Date.today().addDays(-1);
+			johns.Start_Date__c = OrgDate.today().addYears(-2);
+			johns.End_Date__c = OrgDate.today().addDays(-1);
 			insert johns;
 
 			Test.startTest();

@@ -105,8 +105,8 @@ private class DataHygieneServiceTest {
 			insert new Household_Member__c(
 				Household__c = household.Id,
 				Contact__c = former.Id,
-				Start_Date__c = Date.today().addYears(-3),
-				End_Date__c = Date.today().addYears(-1)
+				Start_Date__c = OrgDate.today().addYears(-3),
+				End_Date__c = OrgDate.today().addYears(-1)
 			);
 			User maria = maria();
 

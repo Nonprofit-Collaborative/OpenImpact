@@ -915,7 +915,7 @@ public with sharing class ImportTemplateService {
 		}
 		Import_Template__c template = new Import_Template__c(
 			Id = templateId,
-			Last_Import_Date__c = completedOn == null ? Date.today() : completedOn
+			Last_Import_Date__c = completedOn == null ? OrgDate.today() : completedOn
 		);
 		Database.update(template, AccessLevel.SYSTEM_MODE);
 	}

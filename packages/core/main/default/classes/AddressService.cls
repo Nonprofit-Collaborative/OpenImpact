@@ -936,7 +936,7 @@ public with sharing class AddressService {
 				moved.Id == null &&
 				Schema.SObjectType.Address__c.fields.Start_Date__c.isCreateable()
 			) {
-				moved.Start_Date__c = Date.today();
+				moved.Start_Date__c = OrgDate.today();
 			} else {
 				starting.add(moved);
 			}
@@ -953,7 +953,10 @@ public with sharing class AddressService {
 		 */
 		public void save() {
 			for (Address__c moved : starting) {
-				history.put(moved.Id, new Address__c(Id = moved.Id, Start_Date__c = Date.today()));
+				history.put(
+					moved.Id,
+					new Address__c(Id = moved.Id, Start_Date__c = OrgDate.today())
+				);
 			}
 			Map<Id, Address__c> changed = new Map<Id, Address__c>();
 			for (Address__c change : history.values()) {
@@ -1054,7 +1057,7 @@ public with sharing class AddressService {
 	/** Ends an address on today's date, keeping an end date a person already gave it. */
 	private static void endAddress(Address__c changes, Address__c ending) {
 		if (ending.End_Date__c == null) {
-			changes.End_Date__c = Date.today();
+			changes.End_Date__c = OrgDate.today();
 		}
 		if (String.isBlank(ending.Status__c) || ending.Status__c == STATUS_CURRENT) {
 			changes.Status__c = STATUS_FORMER;

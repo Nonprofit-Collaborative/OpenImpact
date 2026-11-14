@@ -110,8 +110,8 @@ private class HouseholdSelectorTest {
 			Household_Member__c ended = new Household_Member__c(
 				Household__c = empty.Id,
 				Contact__c = resident.Id,
-				Start_Date__c = Date.today().addDays(-30),
-				End_Date__c = Date.today().addDays(-1)
+				Start_Date__c = OrgDate.today().addDays(-30),
+				End_Date__c = OrgDate.today().addDays(-1)
 			);
 			insert ended;
 			Set<Id> households = new Set<Id>{ household.Id, empty.Id };

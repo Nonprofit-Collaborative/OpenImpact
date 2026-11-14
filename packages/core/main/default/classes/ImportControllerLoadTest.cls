@@ -304,7 +304,7 @@ private class ImportControllerLoadTest {
 				source.Source_Name__c = 'Monthly export';
 				source.Several_Matches__c = ImportTemplateService.SEVERAL_MOST_RECENT;
 				source.Use_Duplicate_Rules__c = true;
-				source.Last_Import_Date__c = Date.today();
+				source.Last_Import_Date__c = OrgDate.today();
 				update source;
 				Import_Template__c oneObject = ImportTemplateService.createObjectTemplate(
 					'Organizations',

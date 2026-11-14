@@ -22,7 +22,7 @@ private class HouseholdWriterTest {
 		return new Household_Member__c(
 			Household__c = household.Id,
 			Contact__c = person.Id,
-			Start_Date__c = Date.today()
+			Start_Date__c = OrgDate.today()
 		);
 	}
 
@@ -180,7 +180,7 @@ private class HouseholdWriterTest {
 			HouseholdWriter.createMemberships(
 				new List<Household_Member__c>{
 					member(household, person),
-					new Household_Member__c(Start_Date__c = Date.today())
+					new Household_Member__c(Start_Date__c = OrgDate.today())
 				}
 			);
 			List<Database.SaveResult> links = HouseholdWriter.linkContactsToHouseholds(

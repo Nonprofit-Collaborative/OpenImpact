@@ -221,7 +221,7 @@ private class PersonAccountMergeTest {
 
 	/** The household has exactly one current primary, the survivor, and mirrors them. */
 	private static void assertOnePrimaryMirrored(Id householdId, Id survivorId, Id contactId) {
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		List<Household_Member__c> primaries = [
 			SELECT Account__c
 			FROM Household_Member__c

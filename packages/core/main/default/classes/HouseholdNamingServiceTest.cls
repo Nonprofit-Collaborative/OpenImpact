@@ -508,7 +508,7 @@ private class HouseholdNamingServiceTest {
 			Assert.areEqual('The Smith Family', named.Name, 'Named from its member first');
 
 			Test.startTest();
-			update new Household_Member__c(Id = member.Id, End_Date__c = Date.today());
+			update new Household_Member__c(Id = member.Id, End_Date__c = OrgDate.today());
 			HouseholdNamingService.applyNaming(new Set<Id>{ household.Id });
 			Test.stopTest();
 

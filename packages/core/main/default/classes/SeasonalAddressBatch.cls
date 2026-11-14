@@ -35,12 +35,12 @@ public with sharing class SeasonalAddressBatch implements Database.Batchable<SOb
 	private Id notifyUserId = JobNotifier.starter();
 
 	public SeasonalAddressBatch() {
-		this(Date.today());
+		this(OrgDate.today());
 	}
 
 	/** The same run against a named day, which is how the tests reach the boundary dates. */
 	public SeasonalAddressBatch(Date runDate) {
-		this.runDate = runDate == null ? Date.today() : runDate;
+		this.runDate = runDate == null ? OrgDate.today() : runDate;
 	}
 
 	/** No work while the Addresses feature is off (ADR-0124): the locator then finds nothing. */

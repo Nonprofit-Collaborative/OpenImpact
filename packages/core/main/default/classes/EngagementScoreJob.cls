@@ -47,7 +47,7 @@ public with sharing class EngagementScoreJob implements Database.Batchable<SObje
 
 	public void execute(Database.BatchableContext context, List<Contact> scope) {
 		try {
-			save(scope, Date.today());
+			save(scope, OrgDate.today());
 		} catch (Exception chunkFailure) {
 			ErrorLogger.log(chunkFailure, LOG_CONTEXT);
 		}

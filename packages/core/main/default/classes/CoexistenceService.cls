@@ -236,7 +236,7 @@ public with sharing class CoexistenceService {
 
 	/** People who belong to a household today through a membership record. */
 	public static Integer countPeopleWithMembershipRecords() {
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		return [
 			SELECT COUNT()
 			FROM Household_Member__c

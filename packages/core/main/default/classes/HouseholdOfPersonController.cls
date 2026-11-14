@@ -266,7 +266,7 @@ public with sharing class HouseholdOfPersonController {
 	}
 
 	private static List<Household_Member__c> currentMembershipsAsUser(Id householdId) {
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		return [
 			SELECT Id, Contact__c, Account__c, Is_Primary__c
 			FROM Household_Member__c

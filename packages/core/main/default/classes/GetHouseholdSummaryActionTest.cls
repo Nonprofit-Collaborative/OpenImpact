@@ -95,7 +95,7 @@ private class GetHouseholdSummaryActionTest {
 				Contact__c = wei.Id,
 				Role__c = 'Head',
 				Is_Primary__c = true,
-				Start_Date__c = Date.today()
+				Start_Date__c = OrgDate.today()
 			);
 
 			Test.startTest();

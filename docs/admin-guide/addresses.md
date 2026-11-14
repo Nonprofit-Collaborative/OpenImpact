@@ -225,6 +225,11 @@ these dates and the status itself, so a person whose access to addresses does no
 three fields (for example access from a profile, without a BarnCRM permission set) still saves
 addresses, and their moves are still recorded.
 
+**Today is your organization's date.** Every BarnCRM date rule (a move's dates, the seasonal
+swap, whether a membership has ended) reads today in your organization's default time zone
+(Setup, **Company Information**), not in the time zone of the person saving. So two colleagues
+in different time zones always get the same answer, even late in the evening.
+
 **These are not moves, and end nothing:** **Set as Primary** on an address already on the card
 (a household with a home and a work address can switch between them), the nightly seasonal swap,
 the address put in use when a primary is deleted, and a merge. A seasonal address is never

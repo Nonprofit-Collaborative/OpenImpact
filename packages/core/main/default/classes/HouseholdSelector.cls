@@ -692,7 +692,7 @@ public with sharing class HouseholdSelector {
 		if (householdIds == null || householdIds.isEmpty()) {
 			return new List<Household_Member__c>();
 		}
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		return [
 			SELECT
 				Id,
@@ -716,7 +716,7 @@ public with sharing class HouseholdSelector {
 		if (personIds == null || personIds.isEmpty()) {
 			return new List<Household_Member__c>();
 		}
-		Date today = Date.today();
+		Date today = OrgDate.today();
 		return [
 			SELECT
 				Id,
