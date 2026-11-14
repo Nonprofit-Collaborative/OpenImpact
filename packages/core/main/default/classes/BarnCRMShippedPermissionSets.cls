@@ -71,6 +71,7 @@ public with sharing class BarnCRMShippedPermissionSets {
 		'Projects_Read_Only',
 		'Projects_Request_Intake',
 		'Projects_Staff',
+		'Provider_Requests',
 		'Rollup_Builder_Admin',
 		'Rollup_Builder_User',
 		'Salesforce_Records_Sync',

@@ -55,7 +55,7 @@ and upgrade test".
 | Step | Action | Expected result |
 |---|---|---|
 | 1 | Run `scripts/org/package-upgrade-test.sh --from HEAD --to HEAD`. | "Refusing to run: the namespace in sfdx-project.json is empty." and the exit status is 2. Nothing is created. |
-| 2 | Run it again with `--plan --shapes platform,npc`. | "PLAN ONLY: nothing below is run, created or written." The packages are listed Core first, Rollup Builder before Giving, Volunteers and Mirror, and Giving before Mirror. A Readiness list follows, with MISSING lines (namespace, package aliases). Exit status 0. |
+| 2 | Run it again with `--plan --shapes platform,npc`. | "PLAN ONLY: nothing below is run, created or written." The packages are listed Core first, Rollup Builder before Giving, Volunteers and Mirror for Giving, and Giving and Mirror before Mirror for Giving. A Readiness list follows, with MISSING lines (namespace, package aliases). Exit status 0. |
 | 3 | Read the N-1 path line. | "REFUSED for managed (a beta cannot be upgraded)". |
 | 4 | Add `--promote-from` and read the Versions section. | A `promote-n1` step after each `build-n1` step, each with "PROMOTION IS PERMANENT". |
 | 5 | Run with `--plan --type unlocked --packages giving --shapes platform`. | Only Core, Rollup Builder and Giving. A `setup-n1` and a `setup-n` step for each, after the installs and after the upgrades. |
@@ -74,7 +74,7 @@ installs in Module Manager, and the pages after an upgrade.
 |---|---|---|
 | 1 | Open **Setup**, **Installed Packages**. | Every chosen BarnCRM package is listed under one namespace, at the version the report names as N. |
 | 2 | Open **BarnCRM Settings**, **Modules**. | Each installed module says **Installed**. A module that is not installed shows an **Install** link (not "No install link is published for this module yet.") once a released version exists. |
-| 3 | On a **Not installed** row that needs another module first (for example Mirror without Giving), read the row. | "Install these first: ..." names the missing module. |
+| 3 | On a **Not installed** row that needs another module first (for example Mirror for Giving without Giving), read the row. | "Install these first: ..." names the missing module. |
 | 4 | Click **Install** on a module with no missing dependency, and follow Salesforce's screens with **Install for Admins Only**. Come back and click **Check again**. | Salesforce's install page opens in a new tab and the install finishes. The row says **Installed**, and no row says its setup steps never ran. |
 | 5 | Open **Health Check** and click **Run now**. | No error findings. The result matches the script's `health-n` step. |
 | 6 | Open BarnCRM Home, a household, a person and (with Giving) a gift from the sample data. | Pages load without an error toast; totals on the household and person are filled in, as before the upgrade. |

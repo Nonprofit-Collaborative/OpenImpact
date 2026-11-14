@@ -177,10 +177,10 @@ The Package column says what has to be installed for the page to apply. BarnCRM 
 | ADR-0040 Your own version of an automation | [flow-templates.md](flow-templates.md) | Core |
 | C-13 Rollups | [rollups.md](rollups.md) | BarnCRM Rollup Builder (Core until ADR-0125) |
 | C-05, C-23 Error Log and error digest | [error-log.md](error-log.md) | Core |
-| C-11, C-21 Health Check | [health-check.md](health-check.md) | Core, with findings from Giving, Mirror, Rollup Builder and Volunteers |
+| C-11, C-21 Health Check | [health-check.md](health-check.md) | Core, with findings from Giving, Mirror, Mirror for Giving, Rollup Builder and Volunteers |
 | Q-04 Job notifications | [job-notifications.md](job-notifications.md) | Core |
 | RT-10 Nightly jobs | [nightly-jobs.md](nightly-jobs.md) | Core, with jobs from every module |
-| X-03, Q-14 Using BarnCRM actions with your own AI assistant | [using-barncrm-actions-with-ai.md](using-barncrm-actions-with-ai.md) | Core, Mirror |
+| X-03, Q-14 Using BarnCRM actions with your own AI assistant | [using-barncrm-actions-with-ai.md](using-barncrm-actions-with-ai.md) | Core, Mirror for Giving |
 
 ### Giving
 
@@ -220,12 +220,12 @@ The Package column says what has to be installed for the page to apply. BarnCRM 
 
 | Feature | Page | Package |
 |---|---|---|
-| X-01 Opportunity mirror | [opportunity-mirror.md](opportunity-mirror.md) | Mirror |
-| X-07 Gift Transaction mirror | [gift-transaction-mirror.md](gift-transaction-mirror.md) | Mirror |
-| D-201 Cases sent to a service provider: the named credential, the setting, the nightly run and flow action, Provider Requests | [mirror-case-requests.md](mirror-case-requests.md) | Mirror |
-| X-02 Campaign sync | [campaign-sync.md](campaign-sync.md) | Mirror |
-| X-03, X-06 Inbound gift API | [inbound-gift-api.md](inbound-gift-api.md) | Mirror |
-| X-04 Accounting export | [accounting-export.md](accounting-export.md) | Mirror |
+| X-01 Opportunity mirror | [opportunity-mirror.md](opportunity-mirror.md) | Mirror for Giving |
+| X-07 Gift Transaction mirror | [gift-transaction-mirror.md](gift-transaction-mirror.md) | Mirror for Giving |
+| D-201, N-09, N-10 Cases sent to a service provider: Core only, the named credential, the setting, the hourly check and flow action, Provider Requests | [mirror-case-requests.md](mirror-case-requests.md) | Mirror |
+| X-02 Campaign sync | [campaign-sync.md](campaign-sync.md) | Mirror for Giving |
+| X-03, X-06 Inbound gift API | [inbound-gift-api.md](inbound-gift-api.md) | Mirror for Giving |
+| X-04 Accounting export | [accounting-export.md](accounting-export.md) | Mirror for Giving |
 
 ### Volunteers
 
@@ -286,7 +286,7 @@ The Package column says what has to be installed for the page to apply. BarnCRM 
 | Feature | Page | Package |
 |---|---|---|
 | PAY-01 Payments: install, roles, the Site, connecting Stripe and PayPal, Payments Setup and keys, test and live mode, processing, payment statuses and refunds, Health Check checks, the seam for module builders | [payments.md](payments.md) | BarnCRM Payments |
-| MIG-06 Online giving through Zapier: recipes for Givebutter, Donorbox and similar tools into Giving gifts | [online-giving-zapier.md](online-giving-zapier.md) | Giving (Mirror for recipe B) |
+| MIG-06 Online giving through Zapier: recipes for Givebutter, Donorbox and similar tools into Giving gifts | [online-giving-zapier.md](online-giving-zapier.md) | Giving (Mirror for Giving for recipe B) |
 
 ### LWC Builder
 

@@ -183,9 +183,9 @@ modules your edition offers (see [Editions](editions.md)), plus any module alrea
   sections still show in BarnCRM Settings for now; they move to the module's app in a later
   release.)
 
-The modules are BarnCRM Rollup Builder (both editions), and BarnCRM Giving, BarnCRM
-Volunteers, BarnCRM Programs, BarnCRM Logic Models, BarnCRM Funders and BarnCRM Mirror
-(Nonprofit Edition). The
+The modules are BarnCRM Rollup Builder and BarnCRM Mirror (both editions), and BarnCRM
+Giving, BarnCRM Volunteers, BarnCRM Programs, BarnCRM Logic Models, BarnCRM Funders and
+BarnCRM Mirror for Giving (Nonprofit Edition). The
 Standard Edition lists no Nonprofit Edition module that is not installed. BarnCRM Rollup
 Builder ships as its own package, installed from this section like the others. See the
 [Module Manager](module-manager.md) for what else you can do with an installed module.
@@ -283,7 +283,7 @@ section's name.
 | Organization | Organization Details (the rest); Organization Address; Receipt Logo and Signature |
 | People and Households | People; Households (the rest); Household Names and Greetings; Relationships |
 | Addresses | Address Updates (the rest); Address Card; Seasonal Addresses |
-| Giving | Gift Defaults (the rest); Commitments and Installments; Donor Levels; Acknowledgments and Stewardship; Accounting Periods; BarnCRM Mirror |
+| Giving | Gift Defaults (the rest); Commitments and Installments; Donor Levels; Acknowledgments and Stewardship; Accounting Periods; BarnCRM Mirror for Giving |
 | Receipts | Receipt Details (the rest); Receipt Printing; Receipt Letters and Year End Statements |
 | Rollups | Rollup Processing (the rest); Rollup Builder |
 | Volunteers | Hours and Shifts |
@@ -424,7 +424,7 @@ at something, you choose it:
 - **A record**, such as the default fund or the default appeal with Giving, is chosen with a
   search box. Start typing the record's name and pick it from the list. The box shows the
   name; clearing it leaves the setting empty.
-- **Record types**, such as which kinds of Opportunity become gifts with BarnCRM Mirror, are
+- **Record types**, such as which kinds of Opportunity become gifts with BarnCRM Mirror for Giving, are
   a list of checkboxes, one per active record type in your org, by the name you see in Setup.
   Ticking none means every record type.
 - **One record type**, such as **Record type for organizations**, is a dropdown of your active
@@ -531,7 +531,7 @@ those the button opens the list and the first step says which one to click.
 | Duplicate Matching | To review duplicates: keep the standard duplicate rules active. The **BarnCRM Duplicate Review** permission is given on the Access page, under Extra Permissions, to people with a Sales Cloud or Service Cloud license | Duplicate Rules | No: the Duplicates panel shows each rule as On or Off |
 | Rollups | Create the field a new rollup writes to before you build it | Object Manager (click the object, then Fields & Relationships, New) | No |
 | Error Log | Allow the org to send email, or no digest is sent (Access level: All email) | Deliverability | Yes, with Check Again |
-| Access | Assign a module permission set this page does not list under Extra Permissions. Giving and Mirror permission sets, such as Giving Staff or Opportunity Mirror, and Core's own extra permissions (Find and Export, Bulk Update, Bulk Delete, Erase People, Duplicate Review, Metadata Admin) are given on the page itself; see [Erase a person](erase-a-person.md) for who should have Erase People. Creating the user is the **Create a User in Setup** link on the page itself | Permission Sets (click the set, then Manage Assignments) | No |
+| Access | Assign a module permission set this page does not list under Extra Permissions. Giving, Mirror and Mirror for Giving permission sets, such as Giving Staff, Provider Requests or Salesforce Records Sync, and Core's own extra permissions (Find and Export, Bulk Update, Bulk Delete, Erase People, Duplicate Review, Metadata Admin) are given on the page itself; see [Erase a person](erase-a-person.md) for who should have Erase People. Creating the user is the **Create a User in Setup** link on the page itself | Permission Sets (click the set, then Manage Assignments) | No |
 
 If the check cannot be read (for example, your Salesforce did not answer), the note shows the
 instruction without Not done yet.
@@ -545,12 +545,12 @@ form at the top of that page:
 | Giving, Acknowledgments | Allow the org to send email (Access level: All email) | Deliverability | Yes, with Check Again |
 | Giving, Acknowledgments | Write or change the thank you wording in an email template, folder BarnCRM Acknowledgments | Classic Email Templates | No |
 | Receipts | Assign **Gift Record Page** as the org default for Gift, and **Giving Contact Record Page** and **Giving Account Record Page** to the BarnCRM app | Lightning App Builder (click Edit next to the page, then Activation) | No |
-| Giving, Campaign Sync (BarnCRM Mirror) | Campaign create and edit for the people who create appeals | Permission Sets (click the set, then Object Settings, Campaigns) | No |
-| Giving, Campaign Sync (BarnCRM Mirror) | **Marketing User** ticked on the user of each person who creates appeals | Users | No |
-| Giving, Opportunity Mirror (BarnCRM Mirror) | Opportunity create and edit for fundraising staff, if each gift should get its Opportunity at once | Permission Sets (click the set, then Object Settings, Opportunities) | No |
+| Giving, Campaign Sync (BarnCRM Mirror for Giving) | Campaign create and edit for the people who create appeals | Permission Sets (click the set, then Object Settings, Campaigns) | No |
+| Giving, Campaign Sync (BarnCRM Mirror for Giving) | **Marketing User** ticked on the user of each person who creates appeals | Users | No |
+| Giving, Opportunity Mirror (BarnCRM Mirror for Giving) | Opportunity create and edit for fundraising staff, if each gift should get its Opportunity at once | Permission Sets (click the set, then Object Settings, Opportunities) | No |
 
-Giving Staff, Giving Admin and Giving Read Only, and Mirror's Salesforce Records Sync and
-Accounting Export, are given on the **Access** page, under Extra Permissions, so they need
+Giving Staff, Giving Admin and Giving Read Only, Mirror's Provider Requests, and Mirror for
+Giving's Salesforce Records Sync and Accounting Export, are given on the **Access** page, under Extra Permissions, so they need
 no note. Accounting Export has no Setup note.
 
 ## Common Mistakes

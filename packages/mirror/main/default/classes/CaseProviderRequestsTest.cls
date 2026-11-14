@@ -1,18 +1,19 @@
 /**
  * The Mirror Case bridge (D-201): nothing is sent while the setting is off; the flow action sends
  * a Case and keeps the provider's number; a refusal is kept and the next run sends the Case again;
- * the nightly run reads the status of requests not yet finished and sends nothing twice. Case is
- * reached by name, as the class does, so the test compiles where Case is not available.
+ * the scheduled pass reads the status of requests not yet finished and sends nothing twice. Case
+ * is reached by name, as the class does, so the test compiles where Case is not available. The
+ * hourly schedule itself is `CaseProviderRequestsHourlyTest`'s.
  */
 @IsTest(
-	testFor='ApexClass:CaseProviderRequests, ApexClass:CaseProviderRequestAction, ApexClass:CaseProviderRequestsNightly'
+	testFor='ApexClass:CaseProviderRequests, ApexClass:CaseProviderRequestAction, ApexClass:CaseProviderRequestsHourly'
 )
 private class CaseProviderRequestsTest {
 	private static final String CASE_OBJECT = 'Case';
 
 	@TestSetup
 	static void createTestUser() {
-		TestUsers.adminWith('Giving_Admin');
+		TestUsers.admin();
 	}
 
 	/** Answers the provider's API: a status code for sends, the given requests for reads. */
@@ -95,23 +96,23 @@ private class CaseProviderRequestsTest {
 	}
 
 	@IsTest
-	static void theNightlyStepQueuesTheRunWhileOn() {
-		System.runAs(TestUsers.adminWith('Giving_Admin')) {
+	static void theScheduledCheckQueuesTheRunWhileOnAndACaseIsOpen() {
+		System.runAs(TestUsers.admin()) {
 			if (CaseProviderRequests.caseType() == null) {
 				return;
 			}
 			turnOn(true);
-			Test.setMock(HttpCalloutMock.class, new Provider(201, new List<Object>()));
-			Test.startTest();
-			new CaseProviderRequestsNightly().execute(null);
-			Assert.areEqual(1, Limits.getQueueableJobs(), 'On: the run is queued');
-			Test.stopTest();
+			newCase();
+			// No Test.stopTest: the queued run and the hourly job are counted, not run.
+			new CaseProviderRequestsHourly().execute(null);
+			Assert.areEqual(1, Limits.getQueueableJobs(), 'On, with an open Case: queued');
+			Assert.isTrue(CaseProviderRequestsHourly.isScheduled(), 'The hourly job is kept.');
 		}
 	}
 
 	@IsTest
 	static void nothingIsSentWhileOff() {
-		System.runAs(TestUsers.adminWith('Giving_Admin')) {
+		System.runAs(TestUsers.admin()) {
 			if (CaseProviderRequests.caseType() == null) {
 				return;
 			}
@@ -119,8 +120,9 @@ private class CaseProviderRequestsTest {
 			SObject record = newCase();
 			Test.startTest();
 			CaseProviderRequestAction.send(new List<Id>{ record.Id });
-			new CaseProviderRequestsNightly().execute(null);
+			new CaseProviderRequestsHourly().execute(null);
 			Assert.areEqual(0, Limits.getQueueableJobs(), 'Off: nothing queued');
+			Assert.isFalse(CaseProviderRequestsHourly.isScheduled(), 'Off: no hourly job');
 			Test.stopTest();
 			Assert.isFalse(CaseProviderRequests.step().active, 'Off: not in tonight run');
 			Assert.areEqual(
@@ -133,7 +135,7 @@ private class CaseProviderRequestsTest {
 
 	@IsTest
 	static void theActionSendsTheCaseAndKeepsTheNumber() {
-		System.runAs(TestUsers.adminWith('Giving_Admin')) {
+		System.runAs(TestUsers.admin()) {
 			if (CaseProviderRequests.caseType() == null) {
 				return;
 			}
@@ -165,7 +167,7 @@ private class CaseProviderRequestsTest {
 
 	@IsTest
 	static void aRefusalIsKeptAndTheNextRunSendsAgain() {
-		System.runAs(TestUsers.adminWith('Giving_Admin')) {
+		System.runAs(TestUsers.admin()) {
 			if (CaseProviderRequests.caseType() == null) {
 				return;
 			}
@@ -190,7 +192,7 @@ private class CaseProviderRequestsTest {
 
 	@IsTest
 	static void theNightlyRunReadsStatusAndSendsNothingTwice() {
-		System.runAs(TestUsers.adminWith('Giving_Admin')) {
+		System.runAs(TestUsers.admin()) {
 			if (CaseProviderRequests.caseType() == null) {
 				return;
 			}
@@ -233,7 +235,7 @@ private class CaseProviderRequestsTest {
 	 */
 	@IsTest
 	static void theSweepLeavesOutAcceptedCases() {
-		System.runAs(TestUsers.adminWith('Giving_Admin')) {
+		System.runAs(TestUsers.admin()) {
 			if (CaseProviderRequests.caseType() == null) {
 				return;
 			}
@@ -268,7 +270,7 @@ private class CaseProviderRequestsTest {
 	/** An answer that is not a JSON object is kept as that Case's error; the others still save. */
 	@IsTest
 	static void anUnreadableAnswerCostsOnlyItsOwnCase() {
-		System.runAs(TestUsers.adminWith('Giving_Admin')) {
+		System.runAs(TestUsers.admin()) {
 			if (CaseProviderRequests.caseType() == null) {
 				return;
 			}
@@ -306,7 +308,7 @@ private class CaseProviderRequestsTest {
 	/** Out of callouts, the job sends what it can and leaves the rest for the next job. */
 	@IsTest
 	static void outOfCalloutsTheRestWaits() {
-		System.runAs(TestUsers.adminWith('Giving_Admin')) {
+		System.runAs(TestUsers.admin()) {
 			if (CaseProviderRequests.caseType() == null) {
 				return;
 			}

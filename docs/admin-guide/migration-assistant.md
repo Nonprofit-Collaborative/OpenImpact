@@ -29,10 +29,10 @@ org. These kits ship:
 - **NPSP Funds, Levels, Recurring Donations** (Giving): copies General Accounting Units,
   levels, recurring donations and engagement plans, and ends with a parity report. See
   [Migrating From NPSP](migrating-from-npsp.md#in-org-migration-kits).
-- **NPSP Gifts and Soft Credits** (Mirror): copies Campaigns as appeals, won Opportunities as
+- **NPSP Gifts and Soft Credits** (Mirror for Giving): copies Campaigns as appeals, won Opportunities as
   gifts with their funds and tribute, and contact, partial and account soft credits. See
   [Migrating From NPSP](migrating-from-npsp.md#in-org-migration-kits).
-- **Nonprofit Cloud Gifts and Soft Credits** (Mirror): copies Campaigns as appeals, gift
+- **Nonprofit Cloud Gifts and Soft Credits** (Mirror for Giving): copies Campaigns as appeals, gift
   designations as funds, gift commitments, paid gift transactions as gifts (linked for the
   Gift Transaction mirror) and gift soft credits. See
   [Migrating From Nonprofit Cloud](migrating-from-nonprofit-cloud.md#the-nonprofit-cloud-gifts-and-soft-credits-kit).

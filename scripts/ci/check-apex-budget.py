@@ -359,7 +359,17 @@ CAPS = {
     # provider (D-201: CaseProviderRequests and its flow action): 221,790 measured,
     # plus about 2%. Lowered for the shared gift mirror base (D-200 S5, release 1.23:
     # MirrorRunBatch, MirrorSync.Result and storeLinks): 221,165 measured, plus about 2%.
-    "mirror": 225_600,
+    # N-09 (release 1.27, ADR-NEXT mirror independence): the gift mirrors, Campaign sync, the
+    # inbound gift API, the accounting export and the gift migration kits moved to Mirror for
+    # Giving (below). Mirror keeps the Case bridge, now hourly (N-10: CaseProviderRequestsHourly
+    # and the guard), the Nonprofit Cloud household and relationships kits and the drift
+    # finding: 31,483 measured, plus about 2%.
+    "mirror": 32_100,
+    # Mirror for Giving (N-09): everything gift-related from Mirror (above, 221,165 before the
+    # split), plus its own Health Check extension, nightly provider and post-install, and the
+    # longer help catalog name: 196,008 measured, plus about 2%. Mirror and Mirror for Giving
+    # together: 227,491, 6,326 more than Mirror alone before.
+    "mirrorgiving": 199_900,
 }
 TARGET = {"full suite": 3_600_000, "core": 2_000_000}
 

@@ -42,7 +42,7 @@ already exported turns up in her next file instead of being missed.
 
 ## How to Turn It On
 
-The Mirror module has to be installed. Then give the person who runs the export the
+The Mirror for Giving module has to be installed. Then give the person who runs the export the
 **Accounting Export** permission set on the Access page, under Extra Permissions. It reads the
 gift, allocation and fund fields the file shows, so the person needs no Giving set beside it.
 

@@ -29,13 +29,13 @@ Settings** permission to install, turn on, turn off, or check what an uninstall 
 Which modules are listed depends on the edition chosen in first-run setup (see
 [BarnCRM Settings, First-run setup](barncrm-settings.md#first-run-setup)). The Standard Edition (or no edition chosen yet) lists
 Core, BarnCRM Rollup Builder, BarnCRM Forms, BarnCRM Contact Point Sync, BarnCRM Event
-Management and BarnCRM Portal Builder. The Nonprofit Edition lists all twelve: Core, BarnCRM Rollup Builder, BarnCRM Forms,
-BarnCRM Contact Point Sync, BarnCRM Event Management, BarnCRM Portal Builder, BarnCRM Giving, BarnCRM Volunteers, BarnCRM Programs, BarnCRM Logic Models, BarnCRM
-Funders and BarnCRM Mirror. A module that is installed is always listed, whatever the edition. See
+Management, BarnCRM Portal Builder and BarnCRM Mirror. The Nonprofit Edition lists all thirteen: Core, BarnCRM Rollup Builder, BarnCRM Forms,
+BarnCRM Contact Point Sync, BarnCRM Event Management, BarnCRM Portal Builder, BarnCRM Mirror, BarnCRM Giving, BarnCRM Volunteers, BarnCRM Programs, BarnCRM Logic Models, BarnCRM
+Funders and BarnCRM Mirror for Giving. A module that is installed is always listed, whatever the edition. See
 [Editions](editions.md).
 
 The modules that only the Nonprofit Edition offers (Giving, Volunteers, Programs, Logic Models,
-Funders and Mirror; the module catalog decides, not a fixed list) are grouped in their own section at the
+Funders and Mirror for Giving; the module catalog decides, not a fixed list) are grouped in their own section at the
 bottom of the list, titled **Nonprofit Modules**. Core and the modules both editions offer come
 first. The section has a **Show Nonprofit Modules** checkbox, ticked by default. Clear it and
 the nonprofit modules are hidden from the list; the checkbox stays so you can tick it again.
@@ -55,7 +55,7 @@ Management, Portal Builder, Corporate Hub and Project Management each have an ap
 **BarnCRM Projects**), and their tabs are also in the everyday **BarnCRM** apps (Portal
 Builder's in the **BarnCRM Admin** apps); a scratch or Developer Edition org gets the tabs
 only. Volunteers has a Settings tab in its app, where its settings live; Giving's
-BarnCRM Fundraising app has no Settings tab, and Mirror has no app of its own. (Some module settings
+BarnCRM Fundraising app has no Settings tab, and Mirror and Mirror for Giving have no app of their own. (Some module settings
 still show in BarnCRM Settings for now; they move to the module's app in a later release.) Core's own
 features are turned on in General instead (see
 [BarnCRM Settings, Features](barncrm-settings.md#features-general)).
@@ -82,8 +82,9 @@ cleans up her data, and check what removing a module would cost.
    publishes package versions, every **Not installed** row says this and none has an **Install**
    link; the link appears once a version exists. If it says "Install these
    first: BarnCRM Rollup Builder. This module needs them.", install the modules it names
-   first: Salesforce refuses Giving, Volunteers and Mirror until BarnCRM Rollup Builder is
-   installed, and Mirror until Giving is too.
+   first: Salesforce refuses Giving, Volunteers and Mirror for Giving until BarnCRM Rollup
+   Builder is installed, and Mirror for Giving until Giving and Mirror are too. Mirror itself
+   needs only Core.
 3. On the **Giving** row, click **Turn Off**. A window asks first: "Turn off BarnCRM Giving?
    Its automation stops (for example totals stop updating) and its records stay. Its tabs stay
    visible; to hide them from someone, change their role on the Access page." Click **Turn
@@ -150,8 +151,9 @@ BarnCRM: install the packages.
   need first.
 - **Looking for a version number.** Salesforce does not tell an app which version of another
   package is installed. Click **Open Installed Packages** to see versions in Setup.
-- **Turning off a module that another one needs.** Mirror works with Giving's gifts: turning
-  Giving off stops the automation Mirror relies on. Turn Mirror off first, or leave both on.
+- **Turning off a module that another one needs.** Mirror for Giving works with Giving's gifts:
+  turning Giving off stops the automation Mirror for Giving relies on. Turn Mirror for Giving
+  off first, or leave both on.
 - **Turning off BarnCRM Rollup Builder and expecting Giving's totals to keep up.** Turning it
   off stops every rollup at once, Giving's gift totals included: no save, Flow, queue run,
   nightly run or Recalculate updates a total while it is **Installed and off**, a

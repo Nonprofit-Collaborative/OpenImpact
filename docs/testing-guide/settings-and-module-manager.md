@@ -82,7 +82,7 @@ The BarnCRM Admin role card on the Access page is headed **BarnCRM Admin**, the 
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Open **BarnCRM Settings**, **Access**. Scroll to **Extra Permissions**. | One card each for **BarnCRM Find and Export**, **BarnCRM Bulk Update**, **BarnCRM Bulk Delete**, **BarnCRM Erase People**, **BarnCRM Duplicate Review** and **BarnCRM Metadata Admin**, then the Giving and Mirror sets. Bulk Delete and Erase People carry the warning "This permission lets the person remove data. Give it only to someone you trust to do that." |
+| 1 | Open **BarnCRM Settings**, **Access**. Scroll to **Extra Permissions**. | One card each for **BarnCRM Find and Export**, **BarnCRM Bulk Update**, **BarnCRM Bulk Delete**, **BarnCRM Erase People**, **BarnCRM Duplicate Review** and **BarnCRM Metadata Admin**, then the Giving, Mirror (**Provider Requests**) and Mirror for Giving sets. Bulk Delete and Erase People carry the warning "This permission lets the person remove data. Give it only to someone you trust to do that." |
 | 2 | Choose **Staff Tester** in **Find a person**. In **Extra permission**, choose **BarnCRM Bulk Delete**. | Under the picker: "Delete many records at once from a Find query, with undo from the Recycle Bin. Includes Find and Export, so nothing else is needed." and the remove-data warning. |
 | 3 | Click **Give Permission**. | The dialog asks "Give Staff Tester the BarnCRM Bulk Delete permission?" and repeats the warning. |
 | 4 | Confirm with **Give Permission**. | "Staff Tester now has the BarnCRM Bulk Delete permission." The name appears on the **BarnCRM Bulk Delete** card. |
@@ -99,7 +99,7 @@ The BarnCRM Admin role card on the Access page is headed **BarnCRM Admin**, the 
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Open **BarnCRM Settings**, **Modules**. | Rows for **Core** and **BarnCRM Rollup Builder** first, then a **Nonprofit Modules** section at the bottom with rows for **BarnCRM Giving**, **BarnCRM Volunteers**, **BarnCRM Programs**, **BarnCRM Funders** and **BarnCRM Mirror**. Deployed modules say **Installed**; Programs and Funders say **Not installed**. Every row has **What this module does**. |
+| 1 | Open **BarnCRM Settings**, **Modules**. | Rows for **Core**, **BarnCRM Rollup Builder** and **BarnCRM Mirror** (offered in both editions) first, then a **Nonprofit Modules** section at the bottom with rows for **BarnCRM Giving**, **BarnCRM Volunteers**, **BarnCRM Programs**, **BarnCRM Funders** and **BarnCRM Mirror for Giving**. Deployed modules say **Installed**; Programs and Funders say **Not installed**. Every row has **What this module does**. |
 | 2 | Look at a **Not installed** row. | "No install link is published for this module yet." (no module has a published install version on main). |
 | 3 | Look at the **Core** row. | **Installed**, with no **Turn Off** button. |
 | 4 | On the **BarnCRM Volunteers** row, click **Turn Off**. | The row says **Installed and off**. **Turn On** replaces **Turn Off**. |
@@ -109,7 +109,7 @@ The BarnCRM Admin role card on the Access page is headed **BarnCRM Admin**, the 
 | 8 | Click **Check again**. | The report box closes and the list reloads with the same statuses. |
 | 9 | Read the line under the list. | "Turning a module off stops its automation and keeps its records. It does not hide its tabs: to hide a module from someone, change their role on the Access page." |
 | 10 | In the **Nonprofit Modules** section, look at **Show Nonprofit Modules**. | It is ticked (it is ticked on every org until someone clears it, including an org that saved its settings earlier) and the five nonprofit modules are listed under it. No "Installed nonprofit modules hidden" line shows. |
-| 11 | Clear **Show Nonprofit Modules**. | The five nonprofit rows disappear; **Core** and **BarnCRM Rollup Builder** stay, and the checkbox stays, now clear. A line under it reads "Installed nonprofit modules hidden: 3" (Giving, Volunteers and Mirror are the installed ones in a test org; the number is however many nonprofit modules are installed). No error shows. |
+| 11 | Clear **Show Nonprofit Modules**. | The five nonprofit rows disappear; **Core**, **BarnCRM Rollup Builder** and **BarnCRM Mirror** stay, and the checkbox stays, now clear. A line under it reads "Installed nonprofit modules hidden: 3" (Giving, Volunteers and Mirror for Giving are the installed ones in a test org; the number is however many nonprofit modules are installed). No error shows. |
 | 12 | Reload the page. | The checkbox is still clear and the nonprofit rows are still hidden: the choice is saved for the whole org. |
 | 13 | Tick **Show Nonprofit Modules**. | The nonprofit rows are back in the **Nonprofit Modules** section and the "hidden" line is gone. **Recent changes** in General lists both changes. |
 
@@ -567,11 +567,11 @@ The BarnCRM Admin role card on the Access page is headed **BarnCRM Admin**, the 
 ## T-SET-26: A Setting That Picks From Another Field's Values
 
 **Purpose:** confirm a Picklist From Field setting offers only active values, keeps a retired saved value, and falls back to a text box when the field is absent.
-**Prerequisites:** the admin user; BarnCRM Mirror installed. For steps 1 to 3, an org with Nonprofit Cloud (Gift Transaction Status); for step 4, an org without it.
+**Prerequisites:** the admin user; BarnCRM Mirror for Giving installed. For steps 1 to 3, an org with Nonprofit Cloud (Gift Transaction Status); for step 4, an org without it.
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Open **BarnCRM Settings**, **Giving**, **BarnCRM Mirror**. | **Gift Transaction mirror paid status** is a dropdown showing `Paid` (the default, with the Default badge); it lists only the active Gift Transaction Status values. |
+| 1 | Open **BarnCRM Settings**, **Giving**, **BarnCRM Mirror for Giving**. | **Gift Transaction mirror paid status** is a dropdown showing `Paid` (the default, with the Default badge); it lists only the active Gift Transaction Status values. |
 | 2 | Choose another value and save. | The save succeeds and the page keeps the choice. Recent changes lists it. |
 | 3 | In Setup, make that Status value inactive; reload the setting. | The dropdown still shows the saved value, and saving the section keeps it. |
 | 4 | In an org without Nonprofit Cloud, open the same setting. | A text box showing `Paid`; any text saves. |

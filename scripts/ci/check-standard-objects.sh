@@ -8,16 +8,18 @@
 # references, as whole
 # words, case-sensitive: Opportunity, Campaign, Lead, Case, OpportunityContactRole,
 # CampaignMember, PersonAccount, IsPersonAccount, or any Industries GiftTransaction / __dlm
-# name. Those objects and fields may only be referenced from packages/mirror, and even there
-# behind dynamic Apex (see docs/product-plan.md Section 4.2).
+# name. Those objects and fields may only be referenced from packages/mirror and
+# packages/mirrorgiving (BarnCRM Mirror for Giving, which holds the gift mirrors since N-09,
+# ADR-NEXT mirror independence), and even there behind dynamic Apex (see docs/product-plan.md
+# Section 4.2). Neither package is in DIRS below; the rule for both is the same.
 #
 # Mirror's object and field declarations
 # ---------------------------------------
-# Mirror's Apex may name these objects, as strings resolved through describe, but its
-# metadata may not: a lookup to Campaign, a formula through Opportunity, or a field declared
-# on Opportunity is resolved at deploy time and refuses the install on an org without the
-# object (ADR-0013, ADR-0056, ADR-0058). So everything under packages/mirror/**/objects/ is
-# checked too: a folder named after one of these objects fails, and so does one of these
+# Mirror's and Mirror for Giving's Apex may name these objects, as strings resolved through
+# describe, but their metadata may not: a lookup to Campaign, a formula through Opportunity, or
+# a field declared on Opportunity is resolved at deploy time and refuses the install on an org
+# without the object (ADR-0013, ADR-0056, ADR-0058). So everything under
+# packages/mirror/**/objects/ and packages/mirrorgiving/**/objects/ is checked too: a folder named after one of these objects fails, and so does one of these
 # names anywhere in an object, field or list view file outside its prose (label, description,
 # help text, and other human-readable values, which are text, not references). This is why
 # Appeal__c.Campaign_Id__c is a Text field, not a lookup.
@@ -182,7 +184,9 @@ prose = re.compile(
 comment = re.compile(r"<!--.*?-->", re.DOTALL)
 def blank(match):
     return re.sub(r"[^\n]", " ", match.group(0))
-walked = [os.walk(root) for root in ("packages/mirror", "packages/contactpoints")]
+walked = [
+    os.walk(root) for root in ("packages/mirror", "packages/mirrorgiving", "packages/contactpoints")
+]
 for directory, subdirs, files in (entry for walk in walked for entry in walk):
     subdirs.sort()
     parts = directory.split(os.sep)
@@ -207,7 +211,7 @@ PY
 )
 if [[ -n "$MIRROR_DECLARATIONS" ]]; then
   printf '%s\n' "$MIRROR_DECLARATIONS"
-  echo "FAIL: a Mirror or Contact Point Sync object or field declaration names a" >&2
+  echo "FAIL: a Mirror, Mirror for Giving or Contact Point Sync object or field declaration names a" >&2
   echo "  standard/Industries object above." >&2
   echo "  Store the record ID as text and reach the object through dynamic Apex." >&2
   FAILED=1

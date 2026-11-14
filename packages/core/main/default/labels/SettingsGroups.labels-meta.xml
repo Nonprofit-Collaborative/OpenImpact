@@ -125,8 +125,8 @@
         <categories>Core</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Settings console, Giving page: box heading for the Mirror module</shortDescription>
-        <value>BarnCRM Mirror</value>
+        <shortDescription>Settings console, Giving page: box heading for Mirror for Giving</shortDescription>
+        <value>BarnCRM Mirror for Giving</value>
     </labels>
     <labels>
         <fullName>Core_SettingsGroup_OrganizationDetails</fullName>

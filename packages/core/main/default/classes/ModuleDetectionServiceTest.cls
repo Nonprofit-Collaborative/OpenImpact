@@ -539,7 +539,7 @@ private class ModuleDetectionServiceTest {
 				'Volunteers',
 				'Programs',
 				'Funders',
-				'Mirror'
+				'MirrorGiving'
 			};
 			for (String name : modules) {
 				Assert.isTrue(shipped.containsKey(name), name + ' has a catalog row');
@@ -549,6 +549,17 @@ private class ModuleDetectionServiceTest {
 					name + ' is nonprofit only'
 				);
 			}
+			Assert.isTrue(
+				ModuleDetectionService.offeredIn(
+					shipped.get('Mirror'),
+					ModuleDetectionService.SUITE_STANDARD
+				) &&
+				ModuleDetectionService.offeredIn(
+					shipped.get('Mirror'),
+					ModuleDetectionService.SUITE_NONPROFIT
+				),
+				'BarnCRM Mirror needs no nonprofit module, so both editions are offered it (N-09)'
+			);
 			Assert.isTrue(
 				ModuleDetectionService.offeredIn(
 					shipped.get('Rollups'),
