@@ -588,3 +588,17 @@ The BarnCRM Admin role card on the Access page is headed **BarnCRM Admin**, the 
 | 2 | Open the **Forms** section (under People), then select **Open Forms**. | The Forms tab opens on its list view. |
 | 3 | Open the **Logic Models** section (under Programs), then select **Open Logic Models**. | The Logic Models tab opens on its list view. |
 | 4 | In an org with Core only, open **BarnCRM Settings**. | No Forms or Logic Models section; **Modules** lists both as not installed. |
+
+## T-SET-29: Admin and Read Only Permission Sets Match Staff
+
+**Purpose:** confirm BarnCRM Admin adds only its intended extras to BarnCRM Staff, and BarnCRM Read Only is the read-only view of Staff.
+**Prerequisites:** a scratch or test org with Core deployed; access to Setup, **Permission Sets**.
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | Open **BarnCRM Read Only Access**, **Object Settings**, **Merge Settlement Ready**. | **Read** is ticked and **Create** is not; the set cannot publish the event. |
+| 2 | In the same set open **Error Log Event**. | **Read** and **Create** are ticked, the same as BarnCRM Staff. Sign in as the read-only user, cause an error, and open the Error Log as an admin: the entry is there, written through the event. |
+| 3 | Open **BarnCRM Admin Access**, **Object Settings**, **Contact**, then field permissions. | Title, Home Phone, Mobile Phone, Do Not Call, Email Opt Out and Fax Opt Out are not listed in the set (they come from the user's profile, as for Staff). Email, Phone, Birthdate and Mailing Address stay, because Load Sample Data writes them in user mode. |
+| 4 | Open **Corporate Hub Read Only**, **Object Settings**, **Policy Acknowledgment**. | **Edit** is ticked and **Create** is not, as for Corporate Hub Staff. As a read-only user answer your own acknowledgment on the hub: it saves. Marking another person's request Acknowledged (Data Loader or a flow) is refused with "Only the person asked can acknowledge this." |
+
+**Cleanup:** none.

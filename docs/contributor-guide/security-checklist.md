@@ -139,7 +139,7 @@ Closed since the v0.11 pass:
 | Item | What was done |
 | ---- | ------------- |
 | `Error_Log_Event__e` readable by Staff and Read Only | Kept (2026-10-13). The org refuses Create on a platform event without Read ("Permission Create Error_Log_Event__e depends on permission(s): Read Error_Log_Event__e"), and publishing needs Create, so every packaged set that publishes holds both |
-| Any BarnCRM user could publish `Merge_Settlement_Ready__e` (review C-M1, 2026-10-28) | Fixed (#654): Read Only holds neither Read nor Create on it, and the subscriber settles only records the event's `CreatedById` may edit |
+| Any BarnCRM user could publish `Merge_Settlement_Ready__e` (review C-M1, 2026-10-28) | Fixed (#654): Read Only holds no Create on it (Read matches Staff since D-209, as Read alone publishes nothing), and the subscriber settles only records the event's `CreatedById` may edit |
 | Error Log entries attributed from a payload field (C-L1) | Fixed (#654): `User__c` comes from the event's `CreatedById` |
 | Finish Setup could grant BarnCRM Admin in system mode (C-L2) | Fixed (#654): outside an install, only to the running user, and only with Assign Permission Sets or Manage Users (ADR-0121) |
 | Inner queued job with no sharing keyword (C-L4) | Fixed (#654): `TabAccessService.Job` is `with sharing`, and `check-apex-access-modes.py` flags any Core inner async job without a keyword |
