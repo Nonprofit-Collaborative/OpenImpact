@@ -23,6 +23,9 @@ public with sharing class MigrationKitService {
 	public static final String FAILED = 'Failed';
 	private static final String IN_PROGRESS = 'In Progress';
 	private static final String RUN_COMPLETE = 'Complete';
+	/** A run is an Admin Journal row of this kind (ADR-NEXT fewer custom objects). */
+	@TestVisible
+	private static final String KIND_RUN = 'Migration';
 	private static final Integer MAX_HOPS = 5;
 	private static final String CONTEXT = 'MigrationKitService';
 
@@ -340,7 +343,7 @@ public with sharing class MigrationKitService {
 			view.allDone = false;
 			return view;
 		}
-		Migration_Run__c run = runFor(kitKey, false);
+		Merge_Journal__c run = runFor(kitKey, false);
 		State state = stateOf(run);
 		Map<String, Import_Batch__c> batches = latestBatches(run == null ? null : run.Id);
 		MigrationKitExtension extension = extensionOf(kit);
@@ -498,7 +501,7 @@ public with sharing class MigrationKitService {
 		Step step = stepNamed(kit, stepKey);
 		Source source = new Source(step);
 		Integer total = source.count();
-		Migration_Run__c run = runFor(kitKey, true);
+		Merge_Journal__c run = runFor(kitKey, true);
 		if (total == 0) {
 			State state = stateOf(run);
 			state.done.put(step.key, true);
@@ -518,7 +521,7 @@ public with sharing class MigrationKitService {
 		Database.update(
 			new Import_Batch__c(
 				Id = batch.Id,
-				Migration_Run__c = run.Id,
+				Migration_Journal__c = run.Id,
 				Migration_Step__c = step.key
 			),
 			AccessLevel.USER_MODE
@@ -544,7 +547,7 @@ public with sharing class MigrationKitService {
 		if (done != true && !shown.canUnmark) {
 			throw refusal(BarnHelp.text('Core', 'Core_Migration_ErrorLaterStepDone'), null);
 		}
-		Migration_Run__c run = runFor(kitKey, true);
+		Merge_Journal__c run = runFor(kitKey, true);
 		State state = stateOf(run);
 		if (done == true) {
 			state.done.put(stepKey, true);
@@ -568,7 +571,7 @@ public with sharing class MigrationKitService {
 		if (ticked == true && !current.allDone) {
 			throw refusal(BarnHelp.text('Core', 'Core_Migration_ErrorNotAllDone'), null);
 		}
-		Migration_Run__c run = runFor(kitKey, true);
+		Merge_Journal__c run = runFor(kitKey, true);
 		State state = stateOf(run);
 		if (ticked == true) {
 			state.ticked.put(itemKey, true);
@@ -690,11 +693,11 @@ public with sharing class MigrationKitService {
 
 	// ----------------------------------------------------------------------------------- run
 
-	private static Migration_Run__c runFor(String kitKey, Boolean create) {
-		List<Migration_Run__c> runs = [
+	private static Merge_Journal__c runFor(String kitKey, Boolean create) {
+		List<Merge_Journal__c> runs = [
 			SELECT Id, Status__c, State_JSON__c
-			FROM Migration_Run__c
-			WHERE Kit__c = :kitKey
+			FROM Merge_Journal__c
+			WHERE Kind__c = :KIND_RUN AND Kit__c = :kitKey
 			WITH USER_MODE
 			ORDER BY CreatedDate DESC, Id DESC
 			LIMIT 1
@@ -702,12 +705,16 @@ public with sharing class MigrationKitService {
 		if (!runs.isEmpty() || create != true) {
 			return runs.isEmpty() ? null : runs[0];
 		}
-		Migration_Run__c run = new Migration_Run__c(Kit__c = kitKey, Status__c = IN_PROGRESS);
+		Merge_Journal__c run = new Merge_Journal__c(
+			Kind__c = KIND_RUN,
+			Kit__c = kitKey,
+			Status__c = IN_PROGRESS
+		);
 		Database.insert(run, AccessLevel.USER_MODE);
 		return run;
 	}
 
-	private static State stateOf(Migration_Run__c run) {
+	private static State stateOf(Merge_Journal__c run) {
 		State state = new State();
 		if (run == null || String.isBlank(run.State_JSON__c)) {
 			return state;
@@ -722,21 +729,21 @@ public with sharing class MigrationKitService {
 		return state;
 	}
 
-	private static void save(Migration_Run__c run, State state) {
+	private static void save(Merge_Journal__c run, State state) {
 		run.State_JSON__c = JSON.serialize(state);
 		Database.update(
-			new Migration_Run__c(Id = run.Id, State_JSON__c = run.State_JSON__c),
+			new Merge_Journal__c(Id = run.Id, State_JSON__c = run.State_JSON__c),
 			AccessLevel.USER_MODE
 		);
 	}
 
 	/** Complete once every step is done and every item ticked; reopened otherwise. */
-	private static void syncStatus(Migration_Run__c run, Boolean complete) {
+	private static void syncStatus(Merge_Journal__c run, Boolean complete) {
 		String status = complete ? RUN_COMPLETE : IN_PROGRESS;
 		if (run != null && run.Status__c != status) {
 			run.Status__c = status;
 			Database.update(
-				new Migration_Run__c(Id = run.Id, Status__c = status),
+				new Merge_Journal__c(Id = run.Id, Status__c = status),
 				AccessLevel.USER_MODE
 			);
 		}
@@ -759,7 +766,7 @@ public with sharing class MigrationKitService {
 				Rows_Matched__c,
 				Rows_Rejected__c
 			FROM Import_Batch__c
-			WHERE Migration_Run__c = :runId
+			WHERE Migration_Journal__c = :runId
 			WITH USER_MODE
 			ORDER BY CreatedDate DESC, Id DESC
 			LIMIT 500

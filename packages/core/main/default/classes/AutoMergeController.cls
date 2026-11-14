@@ -122,7 +122,8 @@ public with sharing class AutoMergeController {
 							SELECT Id
 							FROM Merge_Journal__c
 							WHERE
-								Run_Id__c = :runId
+								Kind__c = :AutoMergeService.KIND_MERGE
+								AND Run_Id__c = :runId
 								AND Status__c = :AutoMergeService.MERGED
 								AND CreatedDate >= :since
 							WITH USER_MODE
@@ -157,7 +158,10 @@ public with sharing class AutoMergeController {
 		for (Merge_Journal__c journal : [
 			SELECT Run_Id__c, Status__c, Merged_Name__c, Notes__c, CreatedDate
 			FROM Merge_Journal__c
-			WHERE CreatedDate >= :since AND Survivor_Id__c LIKE :people
+			WHERE
+				Kind__c = :AutoMergeService.KIND_MERGE
+				AND CreatedDate >= :since
+				AND Survivor_Id__c LIKE :people
 			WITH USER_MODE
 			ORDER BY CreatedDate DESC
 			LIMIT 5000

@@ -337,6 +337,7 @@ Before you start: an org from [Before you test](before-you-test.md), with Core d
 | 7 | Edit one member's first name and save. Refresh the household. | BarnCRM does not rename it (Custom Name). NPSP does not rename it either; if NPSP does, record it as a defect with the NPSP version. |
 | 8 | Select **Undo This Adoption**, type N and select **Undo**. | **Last adoption** shows N undone. The couple's household has its NPSP record type again, Custom Name unticked, BarnCRM greetings and Primary Contact blank as before. |
 | 9 | As a user without **Manage BarnCRM Settings**, open **BarnCRM Settings**, **General**. | No **Adopt NPSP Households** section. |
+| 10 | After step 8, query `SELECT Kind__c, Status__c, Account_Id__c FROM Merge_Journal__c WHERE Kind__c = 'Household Adoption'` (N-11: adoption records are Admin Journal rows). | N rows, each Status **Undone** (or **Not Restored** with the reason in Notes). In an org that also has an auto-merge run, **Last adoption** still counts only adoption rows. |
 
 **Cleanup:** none after step 8.
 

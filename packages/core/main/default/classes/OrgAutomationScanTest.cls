@@ -91,7 +91,7 @@ private class OrgAutomationScanTest {
 			OrgAutomationController.startScan();
 			Test.stopTest();
 
-			Automation_Snapshot__c scan = OrgAutomationScan.latest();
+			Merge_Journal__c scan = OrgAutomationScan.latest();
 			Assert.areEqual(
 				OrgAutomationScan.STATUS_DONE,
 				scan.Status__c,
@@ -132,14 +132,14 @@ private class OrgAutomationScanTest {
 	static void aSecondScanReplacesTheFirst() {
 		System.runAs(TestUsers.withPermissionSets(CONNECTION_ADMIN)) {
 			connected();
-			insert new Automation_Snapshot__c(Kind__c = 'Scan', Status__c = 'Done');
+			insert new Merge_Journal__c(Kind__c = 'Scan', Status__c = 'Done');
 			Test.setMock(HttpCalloutMock.class, new ToolingMock(200));
 			Test.startTest();
 			OrgAutomationScan.start();
 			Test.stopTest();
 			Assert.areEqual(
 				1,
-				[SELECT COUNT() FROM Automation_Snapshot__c WHERE Kind__c = 'Scan'],
+				[SELECT COUNT() FROM Merge_Journal__c WHERE Kind__c = 'Scan'],
 				'One scan is kept.'
 			);
 		}
@@ -153,7 +153,7 @@ private class OrgAutomationScanTest {
 			Test.startTest();
 			OrgAutomationScan.start();
 			Test.stopTest();
-			Automation_Snapshot__c scan = OrgAutomationScan.latest();
+			Merge_Journal__c scan = OrgAutomationScan.latest();
 			Assert.areEqual(OrgAutomationScan.STATUS_FAILED, scan.Status__c);
 			Assert.isTrue(scan.Message__c.contains('Session expired or invalid'), scan.Message__c);
 		}

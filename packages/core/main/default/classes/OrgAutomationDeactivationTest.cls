@@ -95,9 +95,9 @@ private class OrgAutomationDeactivationTest {
 	}
 
 	private static Map<String, OrgAutomationDeactivation.Item> itemsOf(Id snapshotId) {
-		Automation_Snapshot__c snapshot = [
+		Merge_Journal__c snapshot = [
 			SELECT Items__c
-			FROM Automation_Snapshot__c
+			FROM Merge_Journal__c
 			WHERE Id = :snapshotId
 		];
 		Map<String, OrgAutomationDeactivation.Item> byId = new Map<String, OrgAutomationDeactivation.Item>();
@@ -157,7 +157,7 @@ private class OrgAutomationDeactivationTest {
 			OrgAutomationDeactivation.Item refused = item('ValidationRule', REFUSED_RULE_ID);
 			refused.wasActive = true;
 			refused.result = OrgAutomationDeactivation.RESULT_PENDING;
-			Automation_Snapshot__c snapshot = new Automation_Snapshot__c(
+			Merge_Journal__c snapshot = new Merge_Journal__c(
 				Kind__c = 'Deactivation',
 				Status__c = 'Running',
 				Items__c = JSON.serialize(
@@ -183,7 +183,7 @@ private class OrgAutomationDeactivationTest {
 			Assert.isTrue(items.get(REFUSED_RULE_ID).message.contains('The formula has an error'));
 			Assert.areEqual(
 				'Partial',
-				[SELECT Status__c FROM Automation_Snapshot__c WHERE Id = :snapshot.Id].Status__c
+				[SELECT Status__c FROM Merge_Journal__c WHERE Id = :snapshot.Id].Status__c
 			);
 			Assert.isTrue(mock.writes[0].contains('"activeVersionNumber":0'), mock.writes[0]);
 			Assert.isTrue(mock.writes[1].contains('"active":false'), mock.writes[1]);
@@ -200,7 +200,7 @@ private class OrgAutomationDeactivationTest {
 			flow.result = OrgAutomationDeactivation.RESULT_CHANGED;
 			OrgAutomationDeactivation.Item untouched = item('Flow', PKG_FLOW_ID);
 			untouched.result = OrgAutomationDeactivation.RESULT_UNCHANGED;
-			Automation_Snapshot__c snapshot = new Automation_Snapshot__c(
+			Merge_Journal__c snapshot = new Merge_Journal__c(
 				Kind__c = 'Deactivation',
 				Status__c = 'Done',
 				Items__c = JSON.serialize(
@@ -216,9 +216,9 @@ private class OrgAutomationDeactivationTest {
 
 			Assert.areEqual(1, mock.writes.size(), 'Only what changed is put back.');
 			Assert.isTrue(mock.writes[0].contains('"activeVersionNumber":3'), mock.writes[0]);
-			Automation_Snapshot__c after = [
+			Merge_Journal__c after = [
 				SELECT Status__c, Restored_At__c
-				FROM Automation_Snapshot__c
+				FROM Merge_Journal__c
 				WHERE Id = :snapshot.Id
 			];
 			Assert.areEqual('Restored', after.Status__c);
@@ -251,7 +251,7 @@ private class OrgAutomationDeactivationTest {
 				refused
 			);
 
-			insert new Automation_Snapshot__c(Kind__c = 'Deactivation', Status__c = 'Running');
+			insert new Merge_Journal__c(Kind__c = 'Deactivation', Status__c = 'Running');
 			try {
 				OrgAutomationController.deactivate(
 					JSON.serialize(

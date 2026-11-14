@@ -99,7 +99,11 @@ private class MigrationKitServiceTest {
 				'First is ready'
 			);
 			Assert.areEqual(MigrationKitService.WAITING, view.steps[1].status, 'Second waits');
-			Assert.areEqual(0, [SELECT COUNT() FROM Migration_Run__c], 'Viewing writes nothing');
+			Assert.areEqual(
+				0,
+				[SELECT COUNT() FROM Merge_Journal__c WHERE Kind__c = 'Migration'],
+				'Viewing writes nothing'
+			);
 
 			String outOfOrder;
 			try {
@@ -133,17 +137,23 @@ private class MigrationKitServiceTest {
 			Assert.isTrue(view.complete, 'Every step done and every item ticked');
 			Assert.areEqual(
 				'Complete',
-				[SELECT Status__c FROM Migration_Run__c LIMIT 1].Status__c,
+				[SELECT Status__c FROM Merge_Journal__c WHERE Kind__c = 'Migration' LIMIT 1]
+				.Status__c,
 				'The run is Complete'
 			);
 			view = MigrationController.setChecklistItem(KIT, 'off', false);
 			Assert.isFalse(view.complete, 'Unticking reopens it');
 			Assert.areEqual(
 				'In Progress',
-				[SELECT Status__c FROM Migration_Run__c LIMIT 1].Status__c,
+				[SELECT Status__c FROM Merge_Journal__c WHERE Kind__c = 'Migration' LIMIT 1]
+				.Status__c,
 				'The run is open again'
 			);
-			Assert.areEqual(1, [SELECT COUNT() FROM Migration_Run__c], 'One run per kit');
+			Assert.areEqual(
+				1,
+				[SELECT COUNT() FROM Merge_Journal__c WHERE Kind__c = 'Migration'],
+				'One run per kit'
+			);
 		}
 	}
 
@@ -188,7 +198,7 @@ private class MigrationKitServiceTest {
 			Import_Batch__c batch = [
 				SELECT Row_Count__c, Expected_Count__c, Migration_Step__c, Status__c
 				FROM Import_Batch__c
-				WHERE Migration_Run__c != NULL
+				WHERE Migration_Journal__c != NULL
 			];
 			Assert.areEqual(2, batch.Row_Count__c, 'Only the records the filter names are read');
 			Assert.areEqual(2, batch.Expected_Count__c, 'The source count is the control total');
@@ -336,7 +346,11 @@ private class MigrationKitServiceTest {
 				TestDataFactory.person(new Contact(LastName = 'Notmoved'))
 			};
 			insert people;
-			Migration_Run__c run = new Migration_Run__c(Kit__c = KIT, Status__c = 'In Progress');
+			Merge_Journal__c run = new Merge_Journal__c(
+				Kind__c = MigrationKitService.KIND_RUN,
+				Kit__c = KIT,
+				Status__c = 'In Progress'
+			);
 			insert run;
 			Import_Batch__c batch = ImportBatchService.create(
 				template.Id,
@@ -349,7 +363,7 @@ private class MigrationKitServiceTest {
 			);
 			update new Import_Batch__c(
 				Id = batch.Id,
-				Migration_Run__c = run.Id,
+				Migration_Journal__c = run.Id,
 				Migration_Step__c = 'first'
 			);
 			// Rows are written by the data job in system mode; admins only read them.

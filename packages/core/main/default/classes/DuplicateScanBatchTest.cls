@@ -434,18 +434,19 @@ private class DuplicateScanBatchTest {
 			}
 			Assert.areEqual(1, written, 'The source pair is one suggestion.');
 			DuplicateRecordSet suggestion = [SELECT Id FROM DuplicateRecordSet LIMIT 1];
-			List<Duplicate_Reason__c> reasons = [
-				SELECT Set_Id__c, Reason__c
-				FROM Duplicate_Reason__c
+			List<Duplicate_Dismissal__c> reasons = [
+				SELECT Pair_Key__c, Reason__c
+				FROM Duplicate_Dismissal__c
+				WHERE Kind__c = 'Match Reason'
 			];
 			Assert.areEqual(1, reasons.size(), 'One reason for the suggestion.');
-			Assert.areEqual(String.valueOf(suggestion.Id), reasons[0].Set_Id__c);
+			Assert.areEqual(String.valueOf(suggestion.Id), reasons[0].Pair_Key__c);
 			Assert.areEqual('Same address on Address (person)', reasons[0].Reason__c);
 
 			DuplicateService.dismiss(suggestion.Id, 'Neighbours, not the same person');
 			Assert.areEqual(
 				0,
-				[SELECT COUNT() FROM Duplicate_Reason__c],
+				[SELECT COUNT() FROM Duplicate_Dismissal__c WHERE Kind__c = 'Match Reason'],
 				'The reason goes with its suggestion.'
 			);
 		}
@@ -471,7 +472,7 @@ private class DuplicateScanBatchTest {
 			Assert.areEqual(1, written, 'Found by both, proposed once.');
 			Assert.areEqual(
 				0,
-				[SELECT COUNT() FROM Duplicate_Reason__c],
+				[SELECT COUNT() FROM Duplicate_Dismissal__c WHERE Kind__c = 'Match Reason'],
 				'The rule found it, so no source reason is written.'
 			);
 		}
@@ -492,7 +493,11 @@ private class DuplicateScanBatchTest {
 				return;
 			}
 			DuplicateRecordSet suggestion = [SELECT Id FROM DuplicateRecordSet LIMIT 1];
-			Assert.areEqual(1, [SELECT COUNT() FROM Duplicate_Reason__c], 'Reason written.');
+			Assert.areEqual(
+				1,
+				[SELECT COUNT() FROM Duplicate_Dismissal__c WHERE Kind__c = 'Match Reason'],
+				'Reason written.'
+			);
 
 			Test.startTest();
 			DuplicateService.closeSet(suggestion.Id);
@@ -501,7 +506,7 @@ private class DuplicateScanBatchTest {
 			Assert.areEqual(0, [SELECT COUNT() FROM DuplicateRecordSet], 'Suggestion closed.');
 			Assert.areEqual(
 				0,
-				[SELECT COUNT() FROM Duplicate_Reason__c],
+				[SELECT COUNT() FROM Duplicate_Dismissal__c WHERE Kind__c = 'Match Reason'],
 				'The reason goes with a suggestion a merge closed.'
 			);
 		}

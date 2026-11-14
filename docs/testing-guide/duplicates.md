@@ -350,3 +350,17 @@ Before you start: an org from [Before you test](before-you-test.md) on the Perso
 | 4 | Turn the validation rule off, edit the address (any field) and save. Read its **Match Key**. | `<postal code>\|1`: the edit gave it its key. |
 
 **Cleanup:** Delete the validation rule; put the address's street back.
+
+## T-DUP-24: Match Reasons and Merges Share Objects With Other Records (N-11)
+
+**Purpose:** Confirm match reasons, now stored on Duplicate Dismissal, and merges, now stored in the Admin Journal, behave as before and never mix with other records.
+**Prerequisites:** T-DUP-22 step 5 done, before its cleanup (a pair found by a match source is listed); admin with BarnCRM Admin; Workbench or the Developer Console for queries.
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | Read the pair's reason on the review list, then note the dismissal count on the panel. | The reason names the Address source, as before. The count does not include the reason. |
+| 2 | Query `SELECT Kind__c, Pair_Key__c, Reason__c FROM Duplicate_Dismissal__c`. | One row of Kind **Match Reason** whose Pair Key is the suggestion's 18 character Id. |
+| 3 | Dismiss the pair with a reason, then repeat the query. | One row of Kind **Dismissal** for the pair; the Match Reason row is gone with its suggestion. The panel's count goes up by one. |
+| 4 | Run T-DUP-16 to merge one exact pair, then query `SELECT Kind__c, Status__c FROM Merge_Journal__c WHERE Kind__c = 'Merge'`. | One row, Kind **Merge**, Status **Merged**. **Recent Runs** lists the run with **Undo**, as before; Admin Journal rows of other kinds (automation scans, migration runs, household adoptions) never appear there or under **Recent Merges**. |
+
+**Cleanup:** Undo the merge (T-DUP-17), delete the dismissal and the Zztest addresses.

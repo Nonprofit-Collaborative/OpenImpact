@@ -311,8 +311,8 @@ public with sharing class DuplicateController {
 		}
 		Set<String> dismissed = DuplicateSelector.dismissedKeys(allKeys);
 		Map<String, String> reasons = new Map<String, String>();
-		for (Duplicate_Reason__c reason : DuplicateSelector.reasonRows(keysBySet.keySet())) {
-			reasons.put(reason.Set_Id__c, reason.Reason__c);
+		for (Duplicate_Dismissal__c reason : DuplicateSelector.reasonRows(keysBySet.keySet())) {
+			reasons.put(reason.Pair_Key__c, reason.Reason__c);
 		}
 		// A set a duplicate rule wrote (no match source reason) shows only the households that
 		// share real evidence with another in it, so a rule's city only match is never offered.

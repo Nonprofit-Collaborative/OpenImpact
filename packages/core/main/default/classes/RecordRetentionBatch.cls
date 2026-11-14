@@ -146,7 +146,10 @@ public without sharing class RecordRetentionBatch implements Database.Batchable<
 		if (pass == SETTING_CHANGES) {
 			return 'SELECT Id FROM Setting_Change__c WHERE Changed_At__c < :cutoff ORDER BY Changed_At__c';
 		} else if (pass == MERGE_JOURNAL) {
-			return 'SELECT Id FROM Merge_Journal__c WHERE CreatedDate < :cutoff ORDER BY CreatedDate';
+			// Merge rows only: the Admin Journal's other kinds are kept until deleted.
+			return 'SELECT Id FROM Merge_Journal__c WHERE Kind__c = \'' +
+				AutoMergeService.KIND_MERGE +
+				'\' AND CreatedDate < :cutoff ORDER BY CreatedDate';
 		} else if (pass == IMPORT_JOURNAL) {
 			return 'SELECT Id FROM Import_Journal__c WHERE ' + batchDone;
 		} else if (pass == IMPORT_ROWS) {

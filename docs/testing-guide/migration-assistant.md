@@ -74,7 +74,8 @@ active and its BarnCRM copy not yet made. T-MIG-06 needs an org with NPSP.
 | Step | Action | Expected result |
 |---|---|---|
 | 1 | As the test user, in the Developer Console run `MigrationController.getKit('DLRS_Rollups');` | Fails: "You need Manage BarnCRM Settings to run a migration." |
-| 2 | As the test user, run `MigrationController.setToolStep('DLRS_Rollups', 'copy', true);` | Fails with the same message. No Migration Run record is created. |
+| 2 | As the test user, run `MigrationController.setToolStep('DLRS_Rollups', 'copy', true);` | Fails with the same message. No migration run is created (no `Merge_Journal__c` row of Kind **Migration**; runs are Admin Journal rows since N-11). |
+| 3 | As an admin, open a kit, mark a tool step done, then query `SELECT Kind__c, Kit__c, Status__c FROM Merge_Journal__c WHERE Kind__c = 'Migration'` and, after an import step starts, `SELECT Migration_Journal__c FROM Import_Batch__c WHERE Migration_Step__c != null`. | One row of Kind **Migration** for the kit, Status **In Progress**; the import's data job points at that row. The kit page shows the same steps and status as before. |
 
 **Cleanup:** None.
 
@@ -168,7 +169,7 @@ active and its BarnCRM copy not yet made. T-MIG-06 needs an org with NPSP.
 | 5 | Open Lee Household's Party Relationship Group and account contact relations. | Unchanged: same rows, same values, same last modified dates. |
 | 6 | Run step 1 again. | "Every Nonprofit Cloud household you can see is already a BarnCRM household or marked to stay in Nonprofit Cloud." |
 | 7 | Open **Health**. | No **Household Model Disagrees With Nonprofit Cloud** warning. Then set Cho Household's Household Model to **Automatic** and refresh: the warning names Cho Household. Set it back to **Converted**. |
-| 8 | Add a household member to Cho Household by hand, then click **Undo This Conversion**, type **2** and confirm. | **Last conversion**: 1 undone, 1 not put back. Lee Household has its old record type, its earlier Household Model (blank or **Automatic**), and no BarnCRM members; Cho Household is still a Household and its Household Adoption record says it has other members. No Nonprofit Cloud record changed. |
+| 8 | Add a household member to Cho Household by hand, then click **Undo This Conversion**, type **2** and confirm. | **Last conversion**: 1 undone, 1 not put back. Lee Household has its old record type, its earlier Household Model (blank or **Automatic**), and no BarnCRM members; Cho Household is still a Household and its Admin Journal record (Kind **Household Adoption**) says in Notes that it has other members. No Nonprofit Cloud record changed. |
 | 9 | As a staff user without **Manage BarnCRM Settings**, open BarnCRM Settings, **General**. | **Convert Nonprofit Cloud Households** is not shown. |
 
 **Cleanup:** remove Cho Household's hand-added member and undo again, then delete the test records.

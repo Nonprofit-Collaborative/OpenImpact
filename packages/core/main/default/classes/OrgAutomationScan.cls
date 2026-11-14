@@ -39,7 +39,7 @@ public with sharing class OrgAutomationScan implements Queueable, Database.Allow
 
 	/** Saves a Running scan and queues the job; returns the snapshot's Id. */
 	public static Id start() {
-		Automation_Snapshot__c snapshot = new Automation_Snapshot__c(
+		Merge_Journal__c snapshot = new Merge_Journal__c(
 			Kind__c = KIND_SCAN,
 			Status__c = STATUS_RUNNING
 		);
@@ -49,7 +49,7 @@ public with sharing class OrgAutomationScan implements Queueable, Database.Allow
 	}
 
 	public void execute(QueueableContext context) {
-		Automation_Snapshot__c snapshot = new Automation_Snapshot__c(Id = snapshotId);
+		Merge_Journal__c snapshot = new Merge_Journal__c(Id = snapshotId);
 		try {
 			Found found = read();
 			String items = JSON.serialize(found);
@@ -73,7 +73,7 @@ public with sharing class OrgAutomationScan implements Queueable, Database.Allow
 		if (snapshot.Status__c == STATUS_DONE) {
 			delete as user [
 				SELECT Id
-				FROM Automation_Snapshot__c
+				FROM Merge_Journal__c
 				WHERE Kind__c = :KIND_SCAN AND Id != :snapshotId
 				WITH USER_MODE
 				LIMIT 50
@@ -185,10 +185,10 @@ public with sharing class OrgAutomationScan implements Queueable, Database.Allow
 	}
 
 	/** The newest finished scan, or null. */
-	public static Automation_Snapshot__c latest() {
-		List<Automation_Snapshot__c> scans = [
+	public static Merge_Journal__c latest() {
+		List<Merge_Journal__c> scans = [
 			SELECT Id, Status__c, Items__c, Message__c, CreatedDate
-			FROM Automation_Snapshot__c
+			FROM Merge_Journal__c
 			WHERE Kind__c = :KIND_SCAN
 			WITH USER_MODE
 			ORDER BY CreatedDate DESC

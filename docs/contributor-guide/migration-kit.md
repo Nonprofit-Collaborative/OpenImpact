@@ -78,7 +78,7 @@ package's protected setting is not writable from outside the package.
 ## Household adoption and conversion journals
 
 `Account.Household_Model__c` (MIG-02b) is a packaged Account field, so it carries over in
-place like any other. The `Household_Adoption__c` journal (NPSP adoption, ADR-0155, and the
+place like any other. The household adoption journal (Admin Journal `Merge_Journal__c` rows of Kind Household Adoption; NPSP adoption, ADR-0155, and the
 Nonprofit Cloud household conversion, ADR-0217 `0217-npc-household-conversion.md`) is copied
 as an ordinary object, but the Household Member Ids a conversion writes inside its
 `Previous_Values__c` JSON are not whole-value Ids, so they are not translated. After a move,

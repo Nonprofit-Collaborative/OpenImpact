@@ -1044,25 +1044,31 @@ names recompute and the waiting rollups.
 
 ---
 
-## 10A. Automation Snapshot
+## 10A. Admin Journal (Automation Snapshot)
 
 ### Definition
 
-One read of the org's automation through the org connection (a Scan), or one run of
-**Deactivate Org Flows and Validation Rules** (a Deactivation), with each item's state before
-and after (C-60, plan D-184, ADR-0174 "Deactivate org automation with a snapshot and restore").
-Neutral: it names no nonprofit concept and is in Core.
+The one object where admin tools keep what they need to show progress or be undone (ADR-NEXT
+`NEXT-fewer-custom-objects.md`, N-11): one row per item, with a Kind naming the tool. Kinds:
+**Scan** (one read of the org's automation through the org connection) and **Deactivation**
+(one run of **Deactivate Org Flows and Validation Rules**, with each item's state before and
+after; C-60, plan D-184, ADR-0174 "Deactivate org automation with a snapshot and restore"),
+together called an automation snapshot and described by the rules below; **Merge** (one merge,
+Section 29A, R-DP10); **Migration** (one Migration Kit run, Section 29ZS); and **Household
+Adoption** (one adopted Account, Section 29ZQ). Every reader names its kind. Neutral: it names
+no nonprofit concept and is in Core.
 
 ### Attributes
 
 | Attribute | Type | Required | Definition |
 |---|---|---|---|
-| Name | text | computed | The snapshot's identifier, assigned automatically. |
-| Kind | choice | yes | Scan or Deactivation. |
-| Status | choice | yes | Running, Done, Partial (some items failed), Failed (nothing could be done), Restoring, Restored. |
-| Items | long text | no | The items as JSON (R-AS2). |
-| Message | long text | no | Why a whole run failed, in words. |
+| Name | text | computed | The row's identifier, assigned automatically. |
+| Kind | choice | yes | Merge, Scan, Deactivation, Migration or Household Adoption. |
+| Status | choice | yes | By kind: a snapshot is Running, Done, Partial (some items failed), Failed (nothing could be done), Restoring or Restored; a merge, a migration and an adoption as their sections say. |
+| Items | long text | no | A snapshot's items as JSON (R-AS2). |
+| Message | long text | no | Why a whole snapshot run failed, in words. |
 | Restored At | datetime | no | When a Restore of a deactivation finished. |
+| Kind's own attributes | | | A merge's (29A), a migration's (29ZS) and an adoption's (29ZQ). |
 
 ### Rules
 
@@ -1097,20 +1103,38 @@ Restoring.
 **R-AS7 Production.** In production the page shows a warning and needs the confirmation phrase
 typed; in a sandbox a plain confirmation.
 **R-AS8 Kept.** Deactivation snapshots are kept until deleted, so a restore stays possible.
+**R-AJ1 One kind per reader.** Every query of the Admin Journal names its Kind, the nightly
+retention pass included (it ages out Merge rows only, R-NJ8), so one tool never reads,
+lists, undoes or deletes another's rows.
 
 ### Salesforce implementation
 
-- **Object** `Automation_Snapshot__c`, auto number Name `ASN-{000000}`, private sharing,
-  reports on, no activities, feeds or history. Only `BarnCRM_Admin` is granted it: Read,
-  Create, Edit, Delete, View All and Modify All.
+- **Object** `Merge_Journal__c` (the API name it had as the merge journal), label Admin Journal,
+  auto number Name `AJ-{000000}`, private sharing, reports on, no activities, feeds, history or
+  search. Only `BarnCRM_Admin` is granted it: Read, Create, Edit, Delete, View All and Modify
+  All, with the adoption's own fields read-only. Until N-11 the snapshot kinds were
+  `Automation_Snapshot__c`, migration runs `Migration_Run__c` and adoptions
+  `Household_Adoption__c`; nothing was packaged, so they were removed, not migrated.
 
 | Attribute | API name | Type | Notes |
 |---|---|---|---|
-| Kind | `Kind__c` | Picklist, restricted | Scan, Deactivation. |
-| Status | `Status__c` | Picklist, restricted | Running, Done, Partial, Failed, Restoring, Restored. |
-| Items | `Items__c` | Long Text Area(131072) | JSON. |
-| Message | `Message__c` | Long Text Area(32768) | |
-| Restored At | `Restored_At__c` | DateTime | |
+| Kind | `Kind__c` | Picklist, restricted, no default | Merge, Scan, Deactivation, Migration, Household Adoption. Every writer sets it. |
+| Status | `Status__c` | Picklist, restricted, no default | Merged, Undone, Partly Undone, Undo Failed (Merge); Running, Done, Partial, Failed, Restoring, Restored (Scan, Deactivation); In Progress, Complete (Migration); Adopted, Undone, Not Restored (Household Adoption). Every writer sets it. |
+| Run Id | `Run_Id__c` | Text(36), external id | A merge's or an adoption's run; undo works on a run. |
+| Survivor Id | `Survivor_Id__c` | Text(18) | Merge: the record the merge kept. |
+| Merged Id | `Merged_Id__c` | Text(18) | Merge: the record merged away, undeleted by undo. |
+| Merged Name | `Merged_Name__c` | Text(255) | Merge: the merged-away record's name, shown while it is deleted. |
+| Changed Values | `Changed_Values__c` | Long Text(131072) | Merge: JSON of each field the rules changed on the survivor, its value before and after. |
+| Moved Records | `Moved_Records__c` | Long Text(131072) | Merge: JSON of each object and link field, with the identifiers the merge moved. |
+| Notes | `Notes__c` | Long Text(32768) | Merge: what it could not journal and what undo could not restore. Household Adoption: why an undo did not put the Account back (at most 255 characters). |
+| Items | `Items__c` | Long Text Area(131072) | Scan, Deactivation: JSON. |
+| Message | `Message__c` | Long Text Area(32768) | Scan, Deactivation. |
+| Restored At | `Restored_At__c` | DateTime | Deactivation. |
+| Kit | `Kit__c` | Text(80), external id | Migration: the Migration Kit DeveloperName. |
+| State | `State_JSON__c` | Long Text Area(32768) | Migration: JSON of tool steps done and checklist items ticked. |
+| Account ID | `Account_Id__c` | Text(18), external id, not unique, read-only to the role | Household Adoption. Text, not a lookup, so the journal adds no child relationship to Account and never keeps a household from the tidy-up (R-H12a) or a delete. |
+| Previous Record Type ID | `Previous_Record_Type_Id__c` | Text(18), read-only to the role | Household Adoption. |
+| Previous Values | `Previous_Values__c` | Long Text Area(32768), read-only to the role | Household Adoption. |
 
 - **Service:** `OrgToolingApi` (Tooling API calls through the connection), `OrgAutomationScan`
   (the scan job), `OrgAutomationDeactivation` (deactivate and restore jobs),
@@ -3770,7 +3794,7 @@ them (R-IB8, R-IB9).
 | Rows Deleted | `Rows_Deleted__c` | Number (9, 0) |
 | Trial Rows | `Trial_Rows__c` | Number (9, 0) |
 | Retry After Row | `Retry_After_Row__c` | Number (9, 0) |
-| Migration Run | `Migration_Run__c` | Lookup(Migration Run), cleared when the run is deleted |
+| Migration Run | `Migration_Journal__c` | Lookup(Admin Journal, `Merge_Journal__c`, a row of Kind Migration; relationship `Data_Jobs`), cleared when the run is deleted. Named `Migration_Run__c` until N-11, when runs moved into the Admin Journal. |
 | Migration Step | `Migration_Step__c` | Text (80) |
 
 - **Batch tag on other objects:** `Created_By_Import_Batch__c`, a Lookup to
@@ -7936,7 +7960,8 @@ records: the platform's duplicate rules write a Duplicate Record Set and its Dup
 Items, and the BarnCRM scan writes the same two standard objects for duplicates that were
 already in the org before anybody looked. BarnCRM adds no object for a suggestion and no
 copy of what the platform found (R-DP1); its own matching is limited to related-record values
-through match sources, and a Duplicate Reason row says which source found a pair (R-DP6).
+through match sources, and a Duplicate Dismissal row of Kind Match Reason says which source
+found a pair (R-DP6).
 
 ### Attributes
 
@@ -8016,9 +8041,11 @@ since it may be held by more than ten records the lookup did not read. A pair a 
 rule's; R-DP2 to R-DP5 apply as to any pair. The set still names an active rule for the
 object, as the platform requires (any active rule stands in, so Salesforce's own Duplicate
 Record Sets tab shows the pair under that rule), and a pass with no active rule writes no
-source pair either. The reason is kept in a Duplicate Reason row and shown on the review list
-(the rule's name is shown otherwise), read in system mode since it holds only a source's label;
-it is deleted with its suggestion when dismissed or closed by a merge. A reason row whose set
+source pair either. The reason is kept in a Duplicate Dismissal row of Kind Match Reason, keyed
+by the set (ADR-NEXT `NEXT-fewer-custom-objects.md`), and shown on the review list (the rule's
+name is shown otherwise). It is written, read and deleted in system mode, since it holds only a
+source's label and the dismissal object is creatable by administrators only; it is deleted with
+its suggestion when dismissed or closed by a merge. A reason row whose set
 is gone any other way is never read again and is harmless. A source that cannot be read is
 logged and counted as a failure.
 
@@ -8089,38 +8116,25 @@ copied or changed.
 
 ### Salesforce implementation
 
-- **Object** `Duplicate_Reason__c` (R-DP6), auto number Name, public read/write like the
-  dismissal. Written by the scan in user mode, best effort: a person who may not create it
-  still gets the suggestion, without the reason.
-
-| Attribute | API name | Type | Notes |
-|---|---|---|---|
-| Set Id | `Set_Id__c` | Text(18), unique, external id | The Duplicate Record Set the reason explains. |
-| Reason | `Reason__c` | Text(255) | What the review list shows, naming the match source. |
-
-- **Object** `Merge_Journal__c` (R-DP10), auto number Name, private: each run's rows belong to
-  the administrator who ran it, and BarnCRM Admin views and modifies all of them. Written and
-  read in user mode.
-
-| Attribute | API name | Type | Notes |
-|---|---|---|---|
-| Run Id | `Run_Id__c` | Text(36), external id | Groups one auto-merge run; undo works on a run. |
-| Survivor Id | `Survivor_Id__c` | Text(18) | The person the merge kept. |
-| Merged Id | `Merged_Id__c` | Text(18) | The person merged away, undeleted by undo. |
-| Merged Name | `Merged_Name__c` | Text(255) | The merged-away person's name, shown while they are deleted. |
-| Status | `Status__c` | picklist(Merged, Undone, Partly Undone, Undo Failed) | Where the merge stands. |
-| Changed Values | `Changed_Values__c` | Long Text(131072) | JSON: each field the rules changed on the survivor, its value before and after. |
-| Moved Records | `Moved_Records__c` | Long Text(131072) | JSON: each object and link field, with the identifiers the merge moved. |
-| Notes | `Notes__c` | Long Text(32768) | What the merge could not journal and what undo could not restore. |
+- **Merge Journal** (R-DP10): each merge is an Admin Journal row (`Merge_Journal__c`, Section
+  10A) of Kind Merge, with `Run_Id__c`, `Survivor_Id__c`, `Merged_Id__c`, `Merged_Name__c`,
+  `Status__c` (Merged, Undone, Partly Undone, Undo Failed), `Changed_Values__c`,
+  `Moved_Records__c` and `Notes__c` as declared there. Private: each run's rows belong to the
+  administrator who ran it, and BarnCRM Admin views and modifies all of them. Written and read in
+  user mode, always of Kind Merge.
 
 - **Object** `Duplicate_Dismissal__c`, with an auto number Name. Sharing is public read/write:
   a dismissal is the organization's decision, and a scan run by one administrator must pass
-  over a pair another administrator dismissed.
+  over a pair another administrator dismissed. It also holds the match reasons of R-DP6 (Kind
+  Match Reason), which until N-11 were the separate object `Duplicate_Reason__c` keyed by
+  `Set_Id__c`. Dismissal queries, the dismissal count and the All Duplicate Dismissals list view
+  leave Match Reason rows out.
 
 | Attribute | API name | Type | Notes |
 |---|---|---|---|
-| Pair Key | `Pair_Key__c` | Text(40), unique, external id | The two 18 character identifiers in ascending order, joined with a hyphen. |
-| Reason | `Reason__c` | Text(255) | Optional. |
+| Kind | `Kind__c` | Picklist, restricted, default Dismissal | Dismissal or Match Reason. |
+| Pair Key | `Pair_Key__c` | Text(40), unique, external id | A dismissal: the two 18 character identifiers in ascending order, joined with a hyphen. A match reason: the Duplicate Record Set's 18 character identifier. |
+| Reason | `Reason__c` | Text(255) | A dismissal: optional, the person's words. A match reason: what the review list shows, naming the match source. |
 
 - **Suggestions** are the standard objects `DuplicateRecordSet` and `DuplicateRecordItem`,
   read with `DuplicateRule`. They are read and written in user mode, so a reviewer is never
@@ -13546,17 +13560,14 @@ stop being one.
 
 ### Salesforce implementation
 
-- **Object** `Household_Adoption__c`, auto number Name `HA-{000000}`, sharing Private, reports
-  on, no activities, feeds, history or search.
-
-| Attribute | API name | Type |
-|---|---|---|
-| Account ID | `Account_Id__c` | Text(18), External ID, not unique. Text, not a lookup, so the journal adds no child relationship to Account and never keeps a household from the tidy-up (R-H12a) or a delete. |
-| Run ID | `Run_Id__c` | Text(36), External ID, not unique |
-| Previous Record Type ID | `Previous_Record_Type_Id__c` | Text(18) |
-| Previous Values | `Previous_Values__c` | Long Text Area(32768) |
-| Status | `Status__c` | Picklist, restricted |
-| Note | `Note__c` | Text(255) |
+- **Household Adoption rows** are Admin Journal rows (`Merge_Journal__c`, Section 10A) of Kind
+  Household Adoption, written by the adoption job in system mode, with `Account_Id__c`,
+  `Run_Id__c`, `Previous_Record_Type_Id__c`, `Previous_Values__c`, `Status__c` (Adopted,
+  Undone, Not Restored) and the note in `Notes__c` (at most 255 characters), as declared there.
+  Every query here reads Kind Household Adoption only. Until N-11 (ADR-NEXT
+  `NEXT-fewer-custom-objects.md`) this was the object `Household_Adoption__c` (`HA-{000000}`,
+  note in `Note__c`), read-only to BarnCRM Admin; the role may now also edit an adoption row's
+  Status or delete it, as for a merge row, while its own fields stay read-only.
 
 - **NPSP fields read, never written** (names built at run time, read only when describe finds
   them and the user may read them): `npe01__SYSTEM_AccountType__c`, `npo02__Formal_Greeting__c`,
@@ -13638,8 +13649,8 @@ adopt.
 next check, and the new run's first step waits for the work the old step started.
 
 **R-NJ8 Record Cleanup.** A Core step at 1:20 deletes, oldest first and in system mode, the
-history rows past their retention (architect review L-08): Setting Change (R-S2), Merge Journal,
-finished imports and bulk jobs whose undo window has closed, and imports abandoned in Draft,
+history rows past their retention (architect review L-08): Setting Change (R-S2), Admin Journal
+rows of Kind Merge (no other kind, R-AJ1), finished imports and bulk jobs whose undo window has closed, and imports abandoned in Draft,
 Parsing or Dry run (never committed) once as old (journal and rows first, then the batch),
 Field Utilization Snapshot (R-FU7), Error Log entries (R-E6) and the staged rows of complete
 imports by Delete Import Rows (R-IR5), each by its key in Section 12 ("Record retention keys",
@@ -13723,14 +13734,12 @@ writes, switches off or uninstalls the product migrated from.
 
 ### Salesforce implementation
 
-- **Object** `Migration_Run__c`, auto number Name `MR-{0000}`, sharing Private, reports on, no
-  activities, feeds, history or search.
-
-| Attribute | API name | Type |
-|---|---|---|
-| Kit | `Kit__c` | Text(80), required |
-| Status | `Status__c` | Picklist, restricted: `In Progress` (default), `Complete` |
-| State | `State_JSON__c` | Long Text Area(32768) |
+- **Runs** are Admin Journal rows (`Merge_Journal__c`, Section 10A) of Kind Migration, with
+  `Kit__c` (always written), `Status__c` (`In Progress`, set when the run starts, or `Complete`)
+  and `State_JSON__c`, as declared there; every query reads Kind Migration only. Import Batch
+  points at its run through `Migration_Journal__c` (Section 16). Until N-11 (ADR-NEXT
+  `NEXT-fewer-custom-objects.md`) a run was the object `Migration_Run__c` (`MR-{0000}`), and
+  the Import Batch lookup had that name.
 
 - **Classes:** `MigrationKitService` (catalog, run state, order, verification),
   `MigrationStageBatch` (reads the source, stages rows, starts the dry run),
@@ -19309,6 +19318,7 @@ mirrors the primary member).
 | 1.63 | 2026-11-13 | BarnCRM Logic Models app retired (D-200 R6, release 1.24; D-130 amended). No object or field added. The `BarnCRM_Logic_Models` app and its permission set visibilities go; the Logic Model record page becomes the object's org default (Large and Small); the module's catalog row has no App Name. The Logic Models tab stays in the BarnCRM apps and the App Launcher. |
 | 1.64 | 2026-11-13 | Sample data for Memberships and Scholarships (release 1.25). `Membership_Level__c`, `Membership_Term__c` and `Award_Program__c` each gain `Sample_Data__c` (Checkbox, default false), the mark the sample data loader sets so the set is counted and removed in one action; children go with their parent. No other object or rule changes. |
 | 1.65 | 2026-11-14 | Forms with submissions deletable by Forms administrators only (N-04, D-208, release 1.27; ADR-NEXT `NEXT-forms-delete-with-submissions.md`). Form Submission (29ZY): Form becomes Lookup(Form), set null on delete (was master-detail), sharing Public Read/Write; Form Version becomes set null on delete (was restrict); new Form Name (`Form_Name__c`, Text(80)) and Version Number (`Version_Number__c`, Number(6, 0)), rule R-FS8. Form (29ZW): rule R-FM4 and the Forms custom permission Manage Forms (`Forms_Manage`). |
+| 1.66 | 2026-11-14 | Fewer custom objects (D-208, N-11; ADR-NEXT `NEXT-fewer-custom-objects.md`). Four Core objects removed, 203 to 199 in the suite. `Merge_Journal__c` becomes the Admin Journal (Section 10A, R-AJ1) with `Kind__c` (Merge, Scan, Deactivation, Migration, Household Adoption) and takes the rows and fields of `Automation_Snapshot__c` (`Items__c`, `Message__c`, `Restored_At__c`), `Migration_Run__c` (`Kit__c`, `State_JSON__c`) and `Household_Adoption__c` (`Account_Id__c`, `Previous_Record_Type_Id__c`, `Previous_Values__c`; its note moves to `Notes__c`); `Status__c` carries every kind's values with no default. Import Batch's `Migration_Run__c` is replaced by `Migration_Journal__c`. `Duplicate_Reason__c` is removed: a match reason is a `Duplicate_Dismissal__c` row with the new `Kind__c` Match Reason, keyed by the set in `Pair_Key__c`. |
 
 ---
 ## 32. Entity ownership by package
@@ -19353,7 +19363,7 @@ included; standard objects the packages extend are named by the entity that gove
 | Affiliation | Core | v0.3 | 28 |
 | Address | Core | v0.3 | 29 |
 | Duplicate Dismissal | Core | v0.5 | 29A |
-| Duplicate Reason | Core | v0.8 | 29A |
+| Duplicate Reason (Duplicate Dismissal rows of Kind Match Reason since 1.65) | Core | v0.8 | 29A |
 | Saved Query | Core | v0.7 | 29D |
 | Saved Transform | Core | v0.12 | 29X |
 | Field Utilization Snapshot | Core | not scheduled (plan Section 6.1 item 10) | 29F |
@@ -19420,9 +19430,9 @@ included; standard objects the packages extend are named by the entity that gove
 | Logic Model Link | Logic Models | 0.14 (L-01) | 29ZE |
 | Indicator | Logic Models | 0.14 (L-02) | 29ZF |
 | Indicator Period | Logic Models | 0.14 (L-02) | 29ZG |
-| Household Adoption | Core | 0.17 (X-05) | 29ZQ |
+| Household Adoption (Admin Journal rows since 1.65) | Core | 0.17 (X-05) | 29ZQ |
 | Nightly Job | Core | v1.0 (architect review RT-10) | 29ZR |
-| Migration Run | Core | 1.4 (MIG-01) | 29ZS |
+| Migration Run (Admin Journal rows since 1.65) | Core | 1.4 (MIG-01) | 29ZS |
 | Migration Kit (shipped default) | Core type; rows in the owning module | 1.4 (MIG-01) | 13 |
 | Form | Forms | release 1.1 (C-42a) | 29ZW |
 | Form Version | Forms | release 1.1 (C-42a) | 29ZX |

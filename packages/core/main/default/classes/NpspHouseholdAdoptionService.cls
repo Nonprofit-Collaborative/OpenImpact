@@ -19,6 +19,12 @@ public with sharing class NpspHouseholdAdoptionService {
 	/** Candidates the preview shows. */
 	public static final Integer SAMPLE_SIZE = 10;
 
+	/**
+	 * Each adopted Account is an Admin Journal (`Merge_Journal__c`) row of this kind; the other
+	 * kinds belong to other admin tools, so every query here reads this kind only (ADR-NEXT
+	 * fewer custom objects).
+	 */
+	public static final String KIND_ADOPTION = 'Household Adoption';
 	public static final String STATUS_ADOPTED = 'Adopted';
 	public static final String STATUS_UNDONE = 'Undone';
 	public static final String STATUS_NOT_RESTORED = 'Not Restored';
@@ -109,8 +115,8 @@ public with sharing class NpspHouseholdAdoptionService {
 		}
 		return [
 				SELECT COUNT()
-				FROM Household_Adoption__c
-				WHERE NOT Run_Id__c LIKE :NPC_RUNS
+				FROM Merge_Journal__c
+				WHERE Kind__c = :KIND_ADOPTION AND (NOT Run_Id__c LIKE :NPC_RUNS)
 				WITH SYSTEM_MODE
 				LIMIT 1
 			] > 0;
@@ -130,8 +136,8 @@ public with sharing class NpspHouseholdAdoptionService {
 		}
 		return [
 				SELECT COUNT()
-				FROM Household_Adoption__c
-				WHERE Run_Id__c LIKE :NPC_RUNS
+				FROM Merge_Journal__c
+				WHERE Kind__c = :KIND_ADOPTION AND Run_Id__c LIKE :NPC_RUNS
 				WITH SYSTEM_MODE
 				LIMIT 1
 			] > 0;
@@ -329,19 +335,19 @@ public with sharing class NpspHouseholdAdoptionService {
 
 	/** The same, for one source's runs only (R-HA7). */
 	private static Run lastRun(String key) {
-		List<Household_Adoption__c> newest = key == NpspHouseholdSource.NPC
+		List<Merge_Journal__c> newest = key == NpspHouseholdSource.NPC
 			? [
 					SELECT Run_Id__c, CreatedDate
-					FROM Household_Adoption__c
-					WHERE Run_Id__c LIKE :NPC_RUNS
+					FROM Merge_Journal__c
+					WHERE Kind__c = :KIND_ADOPTION AND Run_Id__c LIKE :NPC_RUNS
 					WITH SYSTEM_MODE
 					ORDER BY CreatedDate DESC, Id DESC
 					LIMIT 1
 			  ]
 			: [
 					SELECT Run_Id__c, CreatedDate
-					FROM Household_Adoption__c
-					WHERE NOT Run_Id__c LIKE :NPC_RUNS
+					FROM Merge_Journal__c
+					WHERE Kind__c = :KIND_ADOPTION AND (NOT Run_Id__c LIKE :NPC_RUNS)
 					WITH SYSTEM_MODE
 					ORDER BY CreatedDate DESC, Id DESC
 					LIMIT 1
@@ -365,8 +371,8 @@ public with sharing class NpspHouseholdAdoptionService {
 	private static Integer countWithStatus(String runId, String status) {
 		return [
 			SELECT COUNT()
-			FROM Household_Adoption__c
-			WHERE Run_Id__c = :runId AND Status__c = :status
+			FROM Merge_Journal__c
+			WHERE Kind__c = :KIND_ADOPTION AND Run_Id__c = :runId AND Status__c = :status
 			WITH SYSTEM_MODE
 		];
 	}

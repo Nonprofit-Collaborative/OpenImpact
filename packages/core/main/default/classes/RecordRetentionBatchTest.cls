@@ -51,18 +51,33 @@ private class RecordRetentionBatchTest {
 	@IsTest
 	static void mergeJournalPastItsDaysIsDeleted() {
 		System.runAs(TestUsers.admin()) {
-			Merge_Journal__c old = new Merge_Journal__c(Merged_Name__c = 'Old');
-			Merge_Journal__c recent = new Merge_Journal__c(Merged_Name__c = 'Recent');
-			insert as system new List<Merge_Journal__c>{ old, recent };
+			Merge_Journal__c old = new Merge_Journal__c(
+				Kind__c = AutoMergeService.KIND_MERGE,
+				Merged_Name__c = 'Old'
+			);
+			Merge_Journal__c recent = new Merge_Journal__c(
+				Kind__c = AutoMergeService.KIND_MERGE,
+				Merged_Name__c = 'Recent'
+			);
+			// An old row of another admin tool shares the object and is kept until deleted.
+			Merge_Journal__c oldSnapshot = new Merge_Journal__c(
+				Kind__c = 'Deactivation',
+				Status__c = 'Done'
+			);
+			insert as system new List<Merge_Journal__c>{ old, recent, oldSnapshot };
 			Test.setCreatedDate(old.Id, Datetime.now().addDays(-366));
+			Test.setCreatedDate(oldSnapshot.Id, Datetime.now().addDays(-366));
 
 			Test.startTest();
 			runPass(RecordRetentionBatch.MERGE_JOURNAL);
 			Test.stopTest();
 
-			List<Merge_Journal__c> left = [SELECT Id FROM Merge_Journal__c WITH SYSTEM_MODE];
-			Assert.areEqual(1, left.size(), 'Only the entry past 365 days is deleted');
-			Assert.areEqual(recent.Id, left[0].Id, 'The recent entry is kept');
+			Map<Id, Merge_Journal__c> left = new Map<Id, Merge_Journal__c>(
+				[SELECT Id FROM Merge_Journal__c WITH SYSTEM_MODE]
+			);
+			Assert.areEqual(2, left.size(), 'Only the merge entry past 365 days is deleted');
+			Assert.isTrue(left.containsKey(recent.Id), 'The recent entry is kept');
+			Assert.isTrue(left.containsKey(oldSnapshot.Id), 'Another kind is never aged out');
 		}
 	}
 
