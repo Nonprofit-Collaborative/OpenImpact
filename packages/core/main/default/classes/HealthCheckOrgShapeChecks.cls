@@ -12,12 +12,15 @@
  */
 public with sharing class HealthCheckOrgShapeChecks {
 	/**
-	 * An Apex class the Mirror package ships, used to tell whether Mirror is installed
-	 * without referencing it at compile time. It is the class Core already discovers for
-	 * Mirror's Health Check findings (`HealthCheckExtensions.EXTENSION_CLASSES`, ADR-0057),
-	 * so the name is a contract Mirror keeps anyway.
+	 * An Apex class the Mirror for Giving package ships, used to tell whether the gift mirrors
+	 * (the Gift Transaction mirror among them) are installed without referencing them at compile
+	 * time. It is the class Core already discovers for that package's Health Check findings
+	 * (`HealthCheckExtensions.EXTENSION_CLASSES`, ADR-0057), so the name is a contract the
+	 * package keeps anyway. Since N-09 the gift mirrors are there, not in Mirror.
 	 */
-	private static final String MIRROR_MARKER_CLASS = 'MirrorHealthCheckExtension';
+	private static final String MIRROR_MARKER_CLASS = 'MirrorGivingHealthCheckExtension';
+	/** The module catalog key of the package that holds the gift mirrors. */
+	private static final String MIRROR_GIVING_MODULE = 'MirrorGiving';
 
 	/** Set by tests to see Mirror as installed (true) or absent (false) without the package. */
 	@TestVisible
@@ -437,8 +440,8 @@ public with sharing class HealthCheckOrgShapeChecks {
 		if (shape == null || shape.hasIndustriesNonprofit != true) {
 			return null;
 		}
-		// Only an edition whose module catalog offers Mirror is told about it (ADR-0124).
-		if (!ModuleDetectionService.isOffered('Mirror') || isMirrorInstalled()) {
+		// Only an edition whose module catalog offers the gift mirrors is told about them (ADR-0124).
+		if (!ModuleDetectionService.isOffered(MIRROR_GIVING_MODULE) || isMirrorInstalled()) {
 			return null;
 		}
 

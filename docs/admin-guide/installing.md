@@ -35,12 +35,14 @@ stop mattering once BarnCRM is on AppExchange.
 | Programs | 181,195 | 203 | 12 |
 | Logic Models | 58,027 | 106 | 5 |
 | Grants | 116,136 | 100 | 7 |
-| Mirror | 221,010 | 170 | 1 |
+| Mirror (needs Core only) | 31,483 | 1 | 2 |
+| Mirror for Giving | 196,008 | 42 | 0 |
 | Contact Point Sync | 43,980 | 2 | 2 |
 | **Every package** | **4,324,007** | **4,122** | **89** |
 | **Org limit** | 6,000,000 (can be raised) | 5,000 | 200 Enterprise, 2,000 Unlimited, 400 Developer |
 
-Measured 2026-11-04. The install pre-check below measures the release you are installing,
+Measured 2026-11-04; the Mirror and Mirror for Giving rows 2026-11-14, when Mirror's gift
+parts moved to Mirror for Giving. The install pre-check below measures the release you are installing,
 against your org.
 
 **More room for Apex code.** If the pre-check says your Apex code will not fit, install fewer

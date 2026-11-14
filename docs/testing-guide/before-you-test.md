@@ -105,7 +105,7 @@ Do these in order.
    match a real person, and never choose a real record in a merge, move, erase or relationship
    step.
 7. **Scripts to skip** (record Skipped, "Core-only real-org sandbox"): every script on the
-   Giving, Mirror, Volunteers and Rollup Builder pages; T-SA-02 (needs a fresh org) and T-SA-07
+   Giving, Mirror (Mirror and Mirror for Giving), Volunteers and Rollup Builder pages; T-SA-02 (needs a fresh org) and T-SA-07
    to T-SA-09 (sample data); T-HH-14 (needs a person account); and the whole smoke list from
    item 16 on. Run smoke items 1 to 15 ([Smoke list](README.md#smoke-list-every-build-about-one-hour)).
    On the full list, skip any other step that names sample data or a module; do not change real
@@ -119,7 +119,7 @@ Do these in order.
 ## Deploy the Modules
 
 `create-scratch-org.sh` deploys Core only. To deploy every module (Rollup Builder, Giving,
-Volunteers, Mirror) on top:
+Volunteers, Mirror, Mirror for Giving and the rest) on top:
 
 ```bash
 scripts/org/deploy-packages.sh <alias>
@@ -128,7 +128,7 @@ scripts/org/deploy-packages.sh <alias>
 Then give your login user the module admin permission sets:
 
 ```bash
-sf org assign permset --target-org <alias> --name Rollup_Builder_Admin --name Giving_Admin --name Volunteers_Admin --name Salesforce_Records_Sync --name Accounting_Export --name Inbound_Gifts
+sf org assign permset --target-org <alias> --name Rollup_Builder_Admin --name Giving_Admin --name Volunteers_Admin --name Salesforce_Records_Sync --name Accounting_Export --name Inbound_Gifts --name Provider_Requests
 ```
 
 To test Core alone (the Standard Edition with nothing else installed), skip this step and use a

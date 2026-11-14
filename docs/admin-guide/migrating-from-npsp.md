@@ -72,7 +72,7 @@ What NPSP does in these three areas, and where it lives in BarnCRM after the kit
 | Engagement plans already applied to records, and their open tasks | Plans started in BarnCRM | Not copied: the open NPSP tasks stay as ordinary tasks. |
 | Customizable rollups | Rollup Builder ([Rollups](rollups.md)) | The **NPSP Customizable Rollups** kit copies them and checks each. What Rollup Builder cannot express (soft credit, contact role and payment paths, fiscal years, Years Donated, Donor Streak, Best Year, more than one year back, filter rules on another object) stays in NPSP, named with its reason. |
 
-**NPSP Gifts and Soft Credits** (BarnCRM Mirror, because it reads Opportunities and Campaigns).
+**NPSP Gifts and Soft Credits** (BarnCRM Mirror for Giving, because it reads Opportunities and Campaigns).
 Run it after the two kits above, so the people, households and funds are already there:
 
 | Step | What it does |
@@ -85,7 +85,7 @@ Run it after the two kits above, so the people, households and funds are already
 
 Before you run it:
 
-- Install BarnCRM Mirror and give yourself the **Salesforce Records Sync** permission set on the
+- Install BarnCRM Mirror and BarnCRM Mirror for Giving and give yourself the **Salesforce Records Sync** permission set on the
   Access page (it lets you write each gift's Opportunity ID and each appeal's Campaign ID).
 - Leave **Opportunity mirror direction** at **Off** while the gifts load, so no Opportunity is
   written to. Switch it on afterwards if you want.

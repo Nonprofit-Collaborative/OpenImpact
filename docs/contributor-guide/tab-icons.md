@@ -110,10 +110,10 @@ Rules:
 | projects | Project__c | Custom62: Chalkboard |
 | projects | Projects_Home | Custom64: Compass |
 | projects | Time_Entry__c | Custom95: Stopwatch |
-| mirror | Accounting_Export | Custom21: Computer |
-| mirror | Campaign_Sync | Custom35: Microphone |
-| mirror | Gift_Transaction_Mirror | Custom31: Car |
-| mirror | Opportunity_Mirror | Custom30: Radardish |
+| mirrorgiving | Accounting_Export | Custom21: Computer |
+| mirrorgiving | Campaign_Sync | Custom35: Microphone |
+| mirrorgiving | Gift_Transaction_Mirror | Custom31: Car |
+| mirrorgiving | Opportunity_Mirror | Custom30: Radardish |
 | programs | Case_Note__c | Custom12: Circle |
 | programs | Cohort__c | Custom50: Bigtop |
 | programs | Enrollment__c | Custom60: Umbrella |
@@ -200,10 +200,10 @@ Every card with a `custom:*` icon is listed here. `scripts/ci/tests/test_core_na
 | scholarships | awardPanel | custom:custom80 | Award__c |
 | projects | projectBoard | custom:custom62 | Project__c |
 | projects | projectsAtRisk | custom:custom62 | Project__c |
-| mirror | accountingExport | custom:custom21 | Accounting_Export |
-| mirror | campaignSync | custom:custom35 | Campaign_Sync |
-| mirror | mirrorPage | custom:custom31 | Gift_Transaction_Mirror |
-| mirror | mirrorPage | custom:custom30 | Opportunity_Mirror |
+| mirrorgiving | accountingExport | custom:custom21 | Accounting_Export |
+| mirrorgiving | campaignSync | custom:custom35 | Campaign_Sync |
+| mirrorgiving | mirrorPage | custom:custom31 | Gift_Transaction_Mirror |
+| mirrorgiving | mirrorPage | custom:custom30 | Opportunity_Mirror |
 | programs | cohortMembers | custom:custom50 | Cohort__c |
 | programs | personEnrollments | custom:custom60 | Enrollment__c |
 | programs | programDashboard | custom:custom9 | Programs_Dashboard |

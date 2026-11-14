@@ -230,7 +230,8 @@ that keeps people as person accounts:
 
 ### The Nonprofit Cloud Gifts and Soft Credits Kit
 
-With BarnCRM Giving and BarnCRM Mirror installed in the same org, you need no files at all.
+With BarnCRM Giving, BarnCRM Mirror and BarnCRM Mirror for Giving installed in the same org,
+you need no files at all.
 On **Integrations**, Nonprofit Cloud Fundraising, click **Start Migration: Nonprofit Cloud
 Gifts and Soft Credits**. The Migration Assistant ([Migration Assistant](migration-assistant.md))
 runs these steps in order, each with a preview and an undo:
@@ -245,7 +246,7 @@ runs these steps in order, each with a preview and an undo:
 
 Before you run it:
 
-- Assign yourself the **Salesforce Records Sync** permission set (Mirror) and the Giving admin
+- Assign yourself the **Salesforce Records Sync** permission set (Mirror for Giving) and the Giving admin
   permission set.
 - Set the Gift Transaction mirror ([Gift Transaction Mirror](gift-transaction-mirror.md)) to
   **Off** while the kit runs.

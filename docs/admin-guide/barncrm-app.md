@@ -97,7 +97,8 @@ need not switch apps. The modules with no app have their pages only here:
 | Rollup Builder | | Rollup Builder |
 | Giving | Quick Gift Entry, Gifts, Commitments, Gift Batches | Accounting Periods, Donor Level Ladder, Stewardship Plan Setup, Pledge Reminders, Receipt Letters |
 | Volunteers | Volunteer Shifts, Volunteer Hours | |
-| Mirror | | Campaign Sync, Opportunity Mirror, Accounting Export |
+| Mirror | | Provider Requests |
+| Mirror for Giving | | Campaign Sync, Opportunity Mirror, Accounting Export |
 | Forms | Forms, Form Submissions | |
 | Event Management | Events Home, Event Calendar, Events, Event Speakers, Venues | |
 | Portal Builder | | Portals, Portal Accesses |

@@ -1,8 +1,8 @@
 # Mirror
 
-Scripts for Campaign sync, the Opportunity mirror, the accounting export, the Inbound Gift API, the Record Inbound Gift action and the Gift Transaction mirror. Setup detail: [Campaign Sync](../admin-guide/campaign-sync.md), [Opportunity Mirror](../admin-guide/opportunity-mirror.md), [Accounting Export](../admin-guide/accounting-export.md), [Inbound Gift API](../admin-guide/inbound-gift-api.md), [Gift Transaction Mirror](../admin-guide/gift-transaction-mirror.md).
+Scripts for the two Mirror packages. **BarnCRM Mirror for Giving** holds Campaign sync, the Opportunity mirror, the accounting export, the Inbound Gift API, the Record Inbound Gift action and the Gift Transaction mirror (T-MIR-01 to T-MIR-15). **BarnCRM Mirror**, which needs only Core, holds Cases sent to a service provider (T-MIR-16 to T-MIR-18). Setup detail: [Cases Sent to a Service Provider](../admin-guide/mirror-case-requests.md), [Campaign Sync](../admin-guide/campaign-sync.md), [Opportunity Mirror](../admin-guide/opportunity-mirror.md), [Accounting Export](../admin-guide/accounting-export.md), [Inbound Gift API](../admin-guide/inbound-gift-api.md), [Gift Transaction Mirror](../admin-guide/gift-transaction-mirror.md).
 
-Before you start: an org from [Before you test](before-you-test.md), with Core, Giving and Mirror deployed and sample data loaded unless a script says otherwise. Campaign sync and the Opportunity mirror need Opportunity and Campaign, so use the Person Accounts (or `sales-cloud`) shape, not platform-only: see [Create a test org](before-you-test.md#create-a-test-org). The Gift Transaction mirror needs Nonprofit Cloud fundraising for T-MIR-15; T-MIR-14 runs in any org. Each Mirror feature has its own permission set (**Campaign Sync**, **Opportunity Mirror**, **Accounting Export**, **Inbound Gift API**, **Record Inbound Gift Action**, **Gift Transaction Mirror**). No role includes them, and the admin user does not have them until a script gives them: open **BarnCRM Settings**, **Access**, find the person, and use **Extra Permissions**, **Give Permission**.
+Before you start: an org from [Before you test](before-you-test.md), with Core, Giving, Mirror and Mirror for Giving deployed and sample data loaded unless a script says otherwise. Campaign sync and the Opportunity mirror need Opportunity and Campaign, so use the Person Accounts (or `sales-cloud`) shape, not platform-only: see [Create a test org](before-you-test.md#create-a-test-org). The Gift Transaction mirror needs Nonprofit Cloud fundraising for T-MIR-15; T-MIR-14 runs in any org. Each Mirror feature has its own permission set (**Campaign Sync**, **Opportunity Mirror**, **Accounting Export**, **Inbound Gift API**, **Record Inbound Gift Action**, **Gift Transaction Mirror**). No role includes them, and the admin user does not have them until a script gives them: open **BarnCRM Settings**, **Access**, find the person, and use **Extra Permissions**, **Give Permission**.
 
 ## T-MIR-01: Switch on Campaign Sync and Sync All Appeals
 
@@ -256,7 +256,7 @@ If step 1 answers `donor_not_found`, the API user cannot see contacts: see [Inbo
 **Prerequisites:** a provider org with Project Management, T-PM-33's Request Connection naming
 this org's id, and the client credentials it gave; in this org, the `Barn_Request_Provider`
 Named Credential set up as in the admin guide, a Case Type value Service Provider, Nightly Jobs
-scheduled.
+scheduled, and the **Provider Requests** extra permission on your user.
 
 | Step | Action | Expected result |
 |---|---|---|
@@ -265,6 +265,43 @@ scheduled.
 | 3 | Run it again. | Still one request at the provider; the row's Last Synced moves on. |
 | 4 | At the provider, resolve the request with a resolution. Run it again. | Provider Status Resolved and the resolution on the row. |
 | 5 | At the provider, untick Active on the connection. Create another Case and run it again. | Its row shows Last Error "The service provider refused the Case (403)..."; the Error Log has a Warning. |
-| 6 | Build a record-triggered flow on Case calling **Send Cases to a Service Provider**, reactivate the connection, create a Case. | The row appears within a minute, without waiting for the night. |
+| 6 | Build a record-triggered flow on Case calling **Send Cases to a Service Provider**, reactivate the connection, create a Case. | The row appears within a minute, without waiting for the hourly check. |
 
 **Cleanup:** delete the Cases, the flow and the Provider Requests; turn the setting off.
+
+## T-MIR-17: Mirror Installs With Core Alone
+
+**Purpose:** confirm Mirror needs no nonprofit module (N-09) and its gift features are in Mirror
+for Giving.
+**Prerequisites:** a fresh scratch org (Person Accounts or `sales-cloud` shape, so Case exists)
+with Core only, made with `scripts/org/create-scratch-org.sh`.
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | Deploy Mirror alone: `sf project deploy start --source-dir packages/mirror --target-org <alias>`. | The deploy succeeds; Giving and Rollup Builder are not in the org. |
+| 2 | Open **BarnCRM Settings**, **Modules** with the Standard Edition chosen. | **BarnCRM Mirror** is listed (offered in both editions) and says **Installed**. **BarnCRM Mirror for Giving** is not listed. |
+| 3 | Open **Access**, **Extra Permissions**, and give yourself **Provider Requests**. | The card reads "See the Provider Requests tab..."; the **Provider Requests** tab opens with no rows. |
+| 4 | Open **General**, **Nightly Jobs**. | No Opportunity mirror or Gift Transaction mirror step is listed (those are Mirror for Giving's). |
+| 5 | Choose the Nonprofit Edition and open **Modules** again. | **BarnCRM Mirror for Giving** is listed under **Nonprofit Modules**, **Not installed**, and its row says "Install these first: ..." naming Rollup Builder and Giving. |
+
+**Cleanup:** delete the scratch org.
+
+## T-MIR-18: Hourly Case Check Only While Cases Are Open
+
+**Purpose:** confirm the Case check is one hourly job that does nothing while no request or
+Case is open (N-10).
+**Prerequisites:** the org and setup of T-MIR-16, its cleanup done (no open Case of Type Service
+Provider, no open Provider Request); **Send Cases to a service provider** on.
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | Open **General**, **Nightly Jobs**, and click **Run Now** on **Cases Sent to a Service Provider**. | The step's line reads "Checks every hour at a quarter past, only while a request or a Case of the chosen Type is open..." |
+| 2 | In Setup, **Scheduled Jobs**. | One job **BarnCRM Mirror: Case requests hourly**, next run at 15 minutes past the hour. |
+| 3 | Click **Run Now** again. | Still one such job. |
+| 4 | After the next quarter past the hour, open **Setup**, **Apex Jobs**, and the Error Log. | No CaseProviderRequests job ran and no Error Log entry was written for it. |
+| 5 | Create a Case of Type Service Provider and wait past the next quarter past the hour. | A Provider Request for the Case, with a Request Number, appears without anyone running anything. |
+| 6 | At the provider, resolve the request, and wait past the next quarter past the hour. | Provider Status Resolved on the row. |
+| 7 | Switch the step off on the **Nightly Jobs** card and wait past the next quarter past the hour. | The **BarnCRM Mirror: Case requests hourly** job is gone from Scheduled Jobs. |
+
+**Cleanup:** switch the step back on, delete the Case and its Provider Request, and turn the
+setting off.

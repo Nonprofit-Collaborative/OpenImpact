@@ -12,7 +12,7 @@ Zapier: the Payments module receives them directly (see [Payments](payments.md))
 
 ## Before You Start
 
-- **Giving** must be installed (Nonprofit Edition). Recipe B also needs **Mirror**.
+- **Giving** must be installed (Nonprofit Edition). Recipe B also needs **Mirror for Giving**.
 - A Zapier account of your own that can use the Salesforce app. Zapier lists Salesforce as a
   premium app; check Zapier's current plans for what your account includes.
 - A Salesforce user for Zapier to sign in as, made as in
@@ -51,9 +51,9 @@ Because the search looks for the External Id first and **External Id** is unique
 Zapier sends twice finds the gift it made the first time and makes no second one. Giving puts
 the whole gift in your default fund, as for a gift entered by hand.
 
-## Recipe B: Mirror's Inbound Gift API (Fund Codes and Email Matching)
+## Recipe B: Mirror for Giving's Inbound Gift API (Fund Codes and Email Matching)
 
-If Mirror is installed, a developer can point a **Webhooks by Zapier** step, or any tool that
+If Mirror for Giving is installed, a developer can point a **Webhooks by Zapier** step, or any tool that
 can make an authenticated web request, at the Inbound Gift API. It matches the donor by email
 the way the importer does, names a fund by its accounting code, and refuses a resend that
 changes the amount. Send `externalId` as `tool:id`, `amount`, `paymentMethod` `Card`,

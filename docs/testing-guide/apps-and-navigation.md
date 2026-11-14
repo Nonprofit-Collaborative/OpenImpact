@@ -45,7 +45,7 @@ takes the apps in a queued job: wait a minute and reload before checking the App
 ## T-APP-03: Module Pages Reach the BarnCRM Apps
 
 **Purpose:** confirm a source deploy adds each deployed module's pages to the Core apps, the Setup Assistant lists them for a package install, and the home page links each module app.
-**Prerequisites:** an org deployed with `scripts/org/deploy-packages.sh` (Core, Rollup Builder, Giving, Mirror, and Volunteers when it ships metadata); admin user and staff user.
+**Prerequisites:** an org deployed with `scripts/org/deploy-packages.sh` (Core, Rollup Builder, Giving, Mirror, Mirror for Giving, and Volunteers when it ships metadata); admin user and staff user.
 
 | Step | Action | Expected result |
 |---|---|---|

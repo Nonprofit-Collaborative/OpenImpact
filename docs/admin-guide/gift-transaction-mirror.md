@@ -55,7 +55,7 @@ Gift Transactions to Gifts, the other way round, is not available yet.
 
 ## How to Turn It On
 
-You need the Mirror module and Nonprofit Cloud fundraising: the Fundraising Access license, and
+You need the Mirror for Giving module and Nonprofit Cloud fundraising: the Fundraising Access license, and
 for you and whoever schedules the run, the Fundraising User permission. Without them the Gift
 Transaction Mirror page says the mirror is not available, and nothing else happens.
 

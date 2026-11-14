@@ -80,6 +80,7 @@ body:
         - Grants
         - Event Management
         - Mirror
+        - Mirror for Giving
         - Not sure
     validations:
       required: true

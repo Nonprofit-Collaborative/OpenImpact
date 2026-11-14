@@ -8,8 +8,11 @@
  * answers is kept on Provider Request (`Provider_Request__c`), keyed by the Case Id, never on Case.
  *
  * Cases go by the Send Cases to a Service Provider flow action (`CaseProviderRequestAction`) or by
- * the nightly step, which sends every open Case of the chosen Type not yet sent and then asks for
- * the status of every request not yet finished. Callouts go to the Named Credential
+ * the hourly check (`CaseProviderRequestsHourly`, N-10), which sends every open Case of the chosen
+ * Type not yet sent and then asks for the status of every request not yet finished, and does so
+ * only when an open request or an open Case of that Type exists. The nightly step keeps the one
+ * hourly job scheduled and is how an administrator sees, switches and starts it on the Nightly
+ * Jobs card (ADR-0166). Callouts go to the Named Credential
  * `Barn_Request_Provider`, which the admin creates; nothing secret is stored here. All callouts
  * come before any save, as the platform requires; failures are kept on the Provider Request and
  * in the Error Log, and a failed Case is sent again by the next run.
@@ -37,7 +40,7 @@ public with sharing class CaseProviderRequests implements Queueable, Database.Al
 	private static final Integer CALLOUT_TIMEOUT_MS = 20000;
 	/** Salesforce's cap on the time one transaction may spend waiting on callouts. */
 	private static final Long CALLOUT_TIME_LIMIT_MS = 120000;
-	/** The most accepted requests read to keep their Cases out of the nightly sweep. */
+	/** The most accepted requests read to keep their Cases out of the sweep. */
 	private static final Integer ACCEPTED_READ = 40000;
 	/** Set by a test: how many more callouts this job may make. */
 	@TestVisible
@@ -51,7 +54,7 @@ public with sharing class CaseProviderRequests implements Queueable, Database.Al
 	/** Cases left unsent because the job ran out of callouts or callout time. */
 	private final List<Id> leftOver = new List<Id>();
 
-	/** The nightly run: sweep for unsent Cases, then read status. */
+	/** The scheduled pass: sweep for unsent Cases, then read status. */
 	public CaseProviderRequests() {
 		this(null, true);
 	}
@@ -71,7 +74,7 @@ public with sharing class CaseProviderRequests implements Queueable, Database.Al
 
 	/**
 	 * Queues the job through AsyncStarter. When the org is too busy, AsyncStarter logs it and the
-	 * nightly pass sends whatever is still unsent.
+	 * next hourly pass sends whatever is still unsent.
 	 */
 	private static void start(CaseProviderRequests job) {
 		try {
@@ -81,17 +84,33 @@ public with sharing class CaseProviderRequests implements Queueable, Database.Al
 		}
 	}
 
-	/** The nightly step: only while the setting is on and the org has Case. */
+	/**
+	 * The step on the Nightly Jobs card, in tonight's run only while the setting is on and the
+	 * org has Case. Its work is the hourly check's: it keeps the one hourly job scheduled (as the
+	 * person the nightly run runs as) and checks once now. Its switch on the card turns the
+	 * hourly check off too, and Run Now starts it at once. Its summary says whether the hourly
+	 * job is scheduled.
+	 */
 	public static NightlyStep step() {
+		Boolean enabled = isOn();
 		return new NightlyStep(
 				JOB_NAME,
 				BarnHelp.text('Mirror', 'Mirror_CaseRequests_Title'),
 				1,
 				40,
-				new CaseProviderRequestsNightly()
+				new CaseProviderRequestsHourly()
 			)
 			.withSwitch(true)
-			.activeWhen(isOn());
+			.activeWhen(enabled)
+			.withSummary(enabled ? hourlySummary() : null)
+			.runnableNow();
+	}
+
+	/** Whether the hourly job is scheduled, as the Nightly Jobs card shows it. */
+	private static String hourlySummary() {
+		return CaseProviderRequestsHourly.isScheduled()
+			? BarnHelp.text('Mirror', 'Mirror_CaseRequests_HourlyScheduled')
+			: BarnHelp.text('Mirror', 'Mirror_CaseRequests_HourlyNotScheduled');
 	}
 
 	/** Send Cases to a service provider, off at install, and an org with Case. */
@@ -100,11 +119,48 @@ public with sharing class CaseProviderRequests implements Queueable, Database.Al
 		return settings != null && settings.Case_Requests_Enabled__c == true && caseType() != null;
 	}
 
-	/** The nightly run (`CaseProviderRequestsNightly`): queued while the setting is on. */
-	public static void startNightly() {
-		if (isOn()) {
+	/**
+	 * The hourly check, and the nightly step's work (N-10, owner decision "Hourly if cases
+	 * exist"). While Send Cases to a service provider is on and the step is switched on, keeps
+	 * the one hourly job and queues a pass only when there is something to check: no callout and
+	 * no Error Log entry otherwise. While either is off, it removes the hourly job, so an org that
+	 * stopped sending keeps no idle schedule; the next nightly run or Run Now starts it again.
+	 * Safe to run any number of times.
+	 */
+	public static void startHourly() {
+		if (!isOn() || !NightlyJobs.isSwitchedOn(JOB_NAME, true)) {
+			CaseProviderRequestsHourly.stop();
+			return;
+		}
+		CaseProviderRequestsHourly.ensure();
+		if (hasOpenRequests()) {
 			start(new CaseProviderRequests());
 		}
+	}
+
+	/**
+	 * The cheap guard before any pass: a sent request not yet Resolved, Closed or Cancelled, or an
+	 * open Case of the chosen Type (which may still need sending). One row read at most, each.
+	 */
+	@TestVisible
+	private static Boolean hasOpenRequests() {
+		Boolean pending = ![
+				SELECT Id
+				FROM Provider_Request__c
+				WHERE Request_Number__c != NULL AND Status__c NOT IN :FINISHED
+				WITH SYSTEM_MODE
+				LIMIT 1
+			]
+			.isEmpty();
+		return pending ||
+			!Database.queryWithBinds(
+					'SELECT Id FROM ' +
+						CASE_OBJECT +
+						' WHERE Type = :caseType AND IsClosed = FALSE LIMIT 1',
+					new Map<String, Object>{ 'caseType' => chosenType() },
+					AccessLevel.USER_MODE
+				)
+				.isEmpty();
 	}
 
 	public void execute(QueueableContext job) {
@@ -146,7 +202,7 @@ public with sharing class CaseProviderRequests implements Queueable, Database.Al
 	}
 
 	/**
-	 * Open Cases of the chosen Type the provider has not accepted, oldest first (1,000 a night).
+	 * Open Cases of the chosen Type the provider has not accepted, oldest first (1,000 a pass).
 	 * The accepted ones are left out in the query, not after it: an org with 1,000 accepted
 	 * Cases still open would otherwise read only those, and never send a new one.
 	 */
@@ -445,7 +501,7 @@ public with sharing class CaseProviderRequests implements Queueable, Database.Al
 			.abbreviate(255);
 	}
 
-	/** The Case Type the nightly run sends, default Service Provider. */
+	/** The Case Type the hourly check sends, default Service Provider. */
 	private static String chosenType() {
 		Mirror_Settings__c settings = Mirror_Settings__c.getOrgDefaults();
 		return String.isBlank(settings?.Case_Requests_Type__c)

@@ -8204,6 +8204,16 @@ Transaction mirror (X-07, Section 29C1) adds one attribute to Gift, one to Fund 
 that settings object, and is the only place a Nonprofit Cloud object is named, by string,
 through describe.
 
+Since release 1.27 (N-09, ADR-NEXT mirror independence) these are two packages, under the same
+rule. **Mirror** (`packages/mirror`, depends on Core only) keeps the settings object
+`Mirror_Settings__c` with every key, Provider Request (Section 29C2) and the Nonprofit Cloud
+households and relationships kits. **Mirror for Giving** (`packages/mirrorgiving`, depends on
+Core, Rollup Builder, Giving and Mirror) ships every attribute and list view this part adds to
+Giving's Appeal, Gift and Fund, and the Campaign sync, Opportunity mirror, Gift Transaction
+mirror, inbound gift API and accounting export code and permission sets. Where a section below
+says "shipped by Mirror" for an attribute on a Giving object, read Mirror for Giving. No
+attribute, key or object changed.
+
 ---
 
 ## 29B. Campaign Sync
@@ -8298,7 +8308,7 @@ Campaign of the gift's appeal, which is why it is an indexed external identifier
 
 ### Salesforce implementation
 
-- **Attribute on `Appeal__c`, shipped by Mirror** (in `packages/mirror`, not Giving):
+- **Attribute on `Appeal__c`, shipped by Mirror for Giving** (in `packages/mirrorgiving`, not Giving):
 
 | Attribute | API name | Type |
 |---|---|---|
@@ -8481,7 +8491,7 @@ only, because a gift is never edited from its Opportunity.
 
 ### Salesforce implementation
 
-- **Attribute on `Gift__c`, shipped by Mirror** (in `packages/mirror`, not Giving):
+- **Attribute on `Gift__c`, shipped by Mirror for Giving** (in `packages/mirrorgiving`, not Giving):
 
 | Attribute | API name | Type |
 |---|---|---|
@@ -8513,7 +8523,7 @@ only, because a gift is never edited from its Opportunity.
   release, ADR-0194 D4), which also carries the custom permission
   `Use_Opportunity_Mirror`: the page's reads require it, and the console shows the page's row
   only to someone who has it (the Setting Definition's `Required_Permission__c`).
-- **List view** `Gifts_And_Opportunities` on Gift, shipped by Mirror, where Opportunity ID is
+- **List view** `Gifts_And_Opportunities` on Gift, shipped by Mirror for Giving, where Opportunity ID is
   typed or cleared (R-OM10).
 
 ---
@@ -8529,7 +8539,7 @@ Transactions only, so an organization that records its gifts in BarnCRM turns th
 keep those features seeing its giving. A reconciliation page shows where the two sides disagree.
 
 The mirror is not an entity of its own. It is one attribute on Gift and one on Fund, held by
-Mirror because no other package may name a Nonprofit Cloud object, and five keys on Mirror
+Mirror for Giving because no other package may name a Nonprofit Cloud object, and five keys on Mirror
 Settings. There is no link object, for the reason Section 29C gives (ADR-0058). Every Nonprofit
 Cloud object and field is reached through describe, by name, never at compile time; the names
 used are those of `docs/architecture/reference/nonprofit-cloud-data-model.md` Sections 3.1 to
@@ -8670,13 +8680,13 @@ range that are dated on or after the start date.
 
 ### Salesforce implementation
 
-- **Attribute on `Gift__c`, shipped by Mirror** (in `packages/mirror`):
+- **Attribute on `Gift__c`, shipped by Mirror for Giving** (in `packages/mirrorgiving`):
 
 | Attribute | API name | Type |
 |---|---|---|
 | Gift Transaction ID | `Gift_Transaction_Id__c` | Text(18), unique, external ID, case sensitive |
 
-- **Attribute on `Fund__c`, shipped by Mirror**:
+- **Attribute on `Fund__c`, shipped by Mirror for Giving**:
 
 | Attribute | API name | Type |
 |---|---|---|
@@ -8715,15 +8725,15 @@ range that are dated on or after the start date.
   `GiftTransactionMirrorController` and the `giftTransactionMirror` page reached from the Giving
   section of BarnCRM Settings. Shared with the Opportunity mirror: `MirrorSync`,
   `MirrorSettingsWriter` (the runs' record of their last completed run),
-  `MirrorHealthCheckExtension` (the stale run finding) and `MirrorNightlyJobProvider` (the
-  nightly jobs list). Permission set: `Salesforce_Records_Sync` (retired `Gift_Transaction_Mirror`
+  `MirrorGivingHealthCheckExtension` (the stale run finding) and
+  `MirrorGivingNightlyJobProvider` (the nightly jobs list), all in Mirror for Giving. Permission set: `Salesforce_Records_Sync` (retired `Gift_Transaction_Mirror`
   until the next release, ADR-0194 D4), which also carries the custom
   permission `Use_Gift_Transaction_Mirror`: the page's reads require it, and the console shows
   the page's row only to someone who has it. It is offered on the Access page through an
   `Access_Add_On__mdt` row.
 - **List views** `Gifts_And_Gift_Transactions` on Gift, where Gift Transaction ID is typed or
   cleared (R-GT9), and `Funds_And_Gift_Designations` on Fund, where Gift Designation ID is typed
-  (R-GT5), both shipped by Mirror.
+  (R-GT5), both shipped by Mirror for Giving.
 
 ---
 
@@ -8735,9 +8745,11 @@ A Case this org sent to a service provider running BarnCRM Projects, with the pr
 
 ### Rules
 
-**R-PR1 Sending.** While `Mirror_Settings__c.Case_Requests_Enabled__c` is on (shipped off) and the org has Case, a Case is posted to the provider's request API (Section 29PM18, R-PM26) through the Named Credential `Barn_Request_Provider`, which the admin creates: by the flow action Send Cases to a Service Provider, or by the nightly step for every open Case whose Type is `Case_Requests_Type__c` (default Service Provider). A Case with a Request Number is never sent again. A refusal is kept in Last Error and the Error Log, and the next run sends the Case again.
+**R-PR1 Sending.** While `Mirror_Settings__c.Case_Requests_Enabled__c` is on (shipped off) and the org has Case, a Case is posted to the provider's request API (Section 29PM18, R-PM26) through the Named Credential `Barn_Request_Provider`, which the admin creates: by the flow action Send Cases to a Service Provider, or by the hourly check (`CaseProviderRequestsHourly`, at 15 minutes past each hour, N-10) for every open Case whose Type is `Case_Requests_Type__c` (default Service Provider). A Case with a Request Number is never sent again. A refusal is kept in Last Error and the Error Log, and the next run sends the Case again.
 
-**R-PR2 Status.** The nightly step reads the status of every Provider Request with a Request Number not yet Resolved, Closed or Cancelled, 200 per call, and writes Provider Status, Provider Resolution and Last Synced. Written in system mode by the run only; users read.
+**R-PR2 Status.** The same hourly pass reads the status of every Provider Request with a Request Number not yet Resolved, Closed or Cancelled, 200 per call, and writes Provider Status, Provider Resolution and Last Synced. Written in system mode by the run only; users read.
+
+**R-PR3 Only while open (N-10).** Each hourly check first reads at most one Provider Request with a Request Number not yet Resolved, Closed or Cancelled, and at most one open Case of the chosen Type. When neither exists it does nothing: no queued job, no callout, no Error Log entry. There is one scheduled job, named `BarnCRM Mirror: Case requests hourly`; the nightly step (01:40) keeps it scheduled (a job on another cron under that name is replaced, never doubled) and the job removes itself while the setting or the step's switch is off.
 
 Case is never named at compile time or given a field: the link is the Case Id held as text (ADR-0013, ADR-0058).
 
@@ -8755,7 +8767,7 @@ Case is never named at compile time or given a field: the link is the Case Id he
 | Last Error | `Error__c` | Text(255) |
 
 - **Settings:** on `Mirror_Settings__c`, `Case_Requests_Enabled__c` (Checkbox, default false, Setting Definition `Mirror_Case_Requests`) and `Case_Requests_Type__c` (Text(80), default Service Provider, `Mirror_Case_Requests_Type`).
-- **Access:** read through Salesforce Records Sync; the Provider Requests tab in Mirror's Admin_Tabs.
+- **Access:** read through Mirror's `Provider_Requests` permission set (an Access Add-On row; N-09 moved it out of Salesforce Records Sync, which is Mirror for Giving's); the Provider Requests tab in Mirror's Admin_Tabs.
 
 ---
 
