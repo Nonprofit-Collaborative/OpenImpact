@@ -1084,6 +1084,89 @@ private class HealthCheckServiceTest {
 		}
 	}
 
+	/** Run Remaining Checks (D-208, N-07): only the checks the first run left. */
+	@IsTest
+	static void theRemainingChecksRunAloneAndJoinTheStoredResult() {
+		System.runAs(TestUsers.admin()) {
+			OrgShapeDetector.overrideShape = shape(true, false, false, false);
+			HealthCheckExtensions.overrides.put(
+				'AddressVerificationHealthCheckExtension',
+				new FakeExtension(
+					new List<HealthCheckService.Finding>{
+						new HealthCheckService.Finding(
+							'fake_extension_finding',
+							'From A Module',
+							'Detail.',
+							HealthCheckService.SEVERITY_INFO,
+							HealthCheckService.CATEGORY_SETTINGS
+						)
+					}
+				)
+			);
+			HealthCheckService.queryBudget = -1;
+			HealthCheckService.Report first = HealthCheckService.buildReport();
+			Assert.isFalse(first.skippedChecks.isEmpty(), 'The first run left checks');
+			Assert.isTrue(first.skippedChecks.contains('org_shape'), 'By key, for the button');
+			HealthCheckLastRun.Summary stored = HealthCheckLastRun.read();
+			Assert.areEqual(1, stored.warnings, 'Stored with its Not Checked warning');
+
+			HealthCheckService.queryBudget = 80;
+			HealthCheckService.Report remaining = HealthCheckService.buildRemainingReport(
+				first.skippedChecks
+			);
+
+			Assert.isTrue(remaining.skippedChecks.isEmpty(), 'Nothing left this time');
+			Assert.isNull(find(remaining.findings, 'not_checked'), 'No Not Checked warning');
+			Assert.isNotNull(
+				find(remaining.findings, 'fake_extension_finding'),
+				'A module check that was left runs too: ' + remaining.findings
+			);
+			HealthCheckLastRun.Summary merged = HealthCheckLastRun.read();
+			Integer warnings = 0;
+			for (HealthCheckService.Finding finding : remaining.findings) {
+				if (finding.severity == HealthCheckService.SEVERITY_WARNING) {
+					warnings++;
+				}
+			}
+			Assert.areEqual(
+				warnings,
+				merged.warnings,
+				'The earlier Not Checked warning gives way to what the checks found'
+			);
+		}
+	}
+
+	@IsTest
+	static void onlyTheNamedChecksRun() {
+		System.runAs(TestUsers.admin()) {
+			OrgShapeDetector.overrideShape = shape(true, false, false, false);
+			HealthCheckExtensions.overrides.put(
+				'AddressVerificationHealthCheckExtension',
+				new FakeExtension(
+					new List<HealthCheckService.Finding>{
+						new HealthCheckService.Finding(
+							'fake_extension_finding',
+							'From A Module',
+							'Detail.',
+							HealthCheckService.SEVERITY_INFO,
+							HealthCheckService.CATEGORY_SETTINGS
+						)
+					}
+				)
+			);
+
+			HealthCheckService.Report none = HealthCheckService.buildRemainingReport(
+				new List<String>{ 'no_such_check' }
+			);
+			HealthCheckService.Report empty = HealthCheckService.buildRemainingReport(
+				new List<String>()
+			);
+
+			Assert.isTrue(none.findings.isEmpty(), 'An unknown key runs nothing: ' + none.findings);
+			Assert.isTrue(empty.findings.isEmpty(), 'No keys, nothing to run');
+		}
+	}
+
 	@IsTest
 	static void oneFailingCheckDoesNotHideTheOthers() {
 		System.runAs(TestUsers.admin()) {

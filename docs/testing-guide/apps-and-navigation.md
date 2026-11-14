@@ -215,3 +215,13 @@ five apps (T-APP-13). In each, the module is installed and on, and its access sy
 | 2 | As admin, open the App Launcher and type `BarnCRM`. | No **BarnCRM Events**, **BarnCRM Forms**, **BarnCRM Portal Builder**, **BarnCRM Corporate Hub** or **BarnCRM Projects**. The other BarnCRM apps are listed. |
 | 3 | Open **BarnCRM**, then **BarnCRM Admin**. | The Event Management, Forms, Corporate Hub and Project Management tabs are in **BarnCRM**; **Portals** and **Portal Accesses** are in **BarnCRM Admin**. |
 | 4 | As staff, open **Events Home**. | It opens: the Events permission sets deployed without the app. |
+
+## T-APP-14: Module Quick Links Keep Their Words
+
+**Purpose:** confirm the module quick links show the same one-line descriptions now that the words come from Core's help catalog (D-208).
+**Prerequisites:** admin; Giving, Volunteers and Programs installed and turned on.
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | Open the **BarnCRM** home page and look at **Quick Links**. | **Enter a Gift** reads "Record a gift in a few keystrokes.", **Log Hours** reads "Hours a volunteer worked, in one short form." and **Enroll** reads "Start someone in a program." No tile shows a key such as `Core_HubHome_QuickLinkEnterGiftLine`. |
+| 2 | Turn Volunteers off in the Module Manager and reload the home page. | **Log Hours** is gone; the other two keep their words. Turn Volunteers back on. |

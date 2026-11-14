@@ -27,10 +27,17 @@ public with sharing class AddressMatchKeyHandler extends TriggerHandler {
 		}
 	}
 
-	/** The key an address with this street and postal code holds, or null when either is blank. */
+	/**
+	 * The key an address with this street and postal code holds, or null when either is
+	 * missing. One that is only spaces gets NO_KEY: the fill selects it (it is not null), and a
+	 * null key would leave it to be selected again on every run (D-208, N-06).
+	 */
 	public static String keyFor(String street, String postal) {
-		if (String.isBlank(street) || String.isBlank(postal)) {
+		if (String.isEmpty(street) || String.isEmpty(postal)) {
 			return null;
+		}
+		if (String.isBlank(street) || String.isBlank(postal)) {
+			return NO_KEY;
 		}
 		String key = MatchSourceService.matchKey(MatchSourceService.address(street, postal));
 		return key == null ? NO_KEY : key;

@@ -52,6 +52,11 @@ adds to that entry's **Occurrences** count and lists the first ten more records 
 on under **Other Records**. A spreadsheet that fails the same way on 10,000 rows leaves one
 entry that says 10,000, not 10,000 entries to read.
 
+For an unexpected failure (one with a **Technical Detail**), "the same thing" also means the
+same kind of failure at the same line of BarnCRM's code. Two different problems that happen
+to show the same general message ("Something went wrong saving the household") get two
+entries, each with its own count, so one never hides the other.
+
 Once you mark an entry Acknowledged, Resolved or Ignored, or an hour has passed since it was
 first written, the next repeat starts a new entry, so a problem that comes back after you
 dealt with it is never hidden in an old count.

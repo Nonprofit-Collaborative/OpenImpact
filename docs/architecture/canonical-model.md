@@ -863,7 +863,7 @@ the app rather than in debug logs (plan Sections 2.3 and 4.8).
 | Status | picklist(New, Acknowledged, Resolved, Ignored) | yes | Where the admin has got to with this error. |
 | Occurrences | integer, default 1 | no | How many times the same failure happened within an hour of the first, counted on this one entry (R-E7). |
 | Other Records | text(255) | no | Up to ten more records the same failure happened on, comma separated, after Record Reference (R-E7). |
-| Occurrence Key | text(64) | no | A SHA-256 hash of Context, Severity and Message, by which a repeat finds its entry (R-E7). Indexed, not unique. |
+| Occurrence Key | text(64) | no | A SHA-256 hash of Context, Severity and Message, plus for an exception its type and first stack frame of our code with its line (D-208), by which a repeat finds its entry (R-E7). Indexed, not unique. |
 
 ### Rules
 
@@ -904,7 +904,8 @@ its passes, deletes every entry, whatever its Status, created more than
 package upkeep in system mode (ADR-0021) and puts the entries in the Recycle Bin. Saving the
 setting deletes nothing (owner decision, 2026-10-13, ADMIN-26).
 **R-E7 A repeat is counted, not written again (D-200 P4).** The subscriber writes one entry
-per distinct failure: an event whose Context, Message and Severity match a New entry first
+per distinct failure: an event whose Context, Message and Severity (and, for an exception, its
+type and first stack frame of our code, line included; D-208) match a New entry first
 written within the last hour adds its count to that entry's Occurrences and names its record
 in Other Records while fewer than ten are named; repeats inside one delivery fold together
 first. An entry an administrator has acknowledged, resolved or ignored, or one first written
@@ -1793,7 +1794,7 @@ names the modules a module's package needs installed first (ADR-0125
 | Staff Tabs | `Staff_Tabs__c` | text (255) | Optional. The module's tabs for everyday work, by tab API name unprefixed, separated by semicolons (for example `Gift__c;Commitment__c`), that belong in the BarnCRM and BarnCRM Console apps (ADR-0137). A page tab whose label is not its name with spaces is written `Name:Label` (for example `Donor_Levels:Donor Level Ladder`), so the Setup Assistant names it as App Manager does; an object tab is labelled from its object. A CI test holds both to the shipped tabs. Core cannot name a module tab in its own apps, so `scripts/org/deploy-packages.sh` adds them on a source deploy, and the Setup Assistant's modules step lists them for an installed package. Empty means none. |
 | Admin Tabs | `Admin_Tabs__c` | text (255) | Optional. The same for the module's admin tools and settings pages, which belong in the BarnCRM Admin and BarnCRM Admin Console apps (for example `Rollup_Builder`). Empty means none. |
 | Requires | `Requires__c` | text (255) | Optional. The modules this module's package needs installed first, as their DeveloperNames separated by semicolons, in install order (for example `Rollups` for Giving and Volunteers, `Rollups;Giving` for Mirror). While one of them is not installed, the module's row in the Modules section and the Setup Assistant says to install it first. Empty means none. |
-| Quick Links | `Quick_Links__c` | text (255) | Optional. The module's links for the BarnCRM Home tab's Quick Links (D-200 R7), separated by semicolons, each `Target:Label:Line`. Target is a tab API name unprefixed (for example `Quick_Gift_Entry`), or an object unprefixed with `.new` (for example `Enrollment__c.new`) for its new record form, shown only to someone who can create that object. Label is the tile's title in title case; Line is its one-line description (no colon or semicolon in either). Shown while the module is installed and turned on, after Core's own links. Empty means none. |
+| Quick Links | `Quick_Links__c` | text (255) | Optional. The module's links for the BarnCRM Home tab's Quick Links (D-200 R7), separated by semicolons, each `Target:Label:Line`. Target is a tab API name unprefixed (for example `Quick_Gift_Entry`), or an object unprefixed with `.new` (for example `Enrollment__c.new`) for its new record form, shown only to someone who can create that object. Label is the tile's title in title case; Line is the key of its one-line description in Core's BarnHelp catalog (for example `Core_HubHome_QuickLinkEnterGiftLine`; D-208), and a value that is no key there is shown as written (no colon or semicolon in either). Shown while the module is installed and turned on, after Core's own links. Empty means none. |
 
 ### Integration App
 

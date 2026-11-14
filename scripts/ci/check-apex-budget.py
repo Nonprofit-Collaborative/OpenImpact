@@ -86,7 +86,10 @@ CAPS = {
     # 2,267,169 measured, plus about 0.1%. Raised again 2026-11-13 for release 1.25 sample data
     # (CoreSampleData's loader support: whenSetting steps, the find value, one-query preload of
     # the module files): 2,269,708 measured, plus about 0.1%.
-    "core": 2_272_000,
+    # Raised 2026-11-14 for the release 1.27 Core fixes (D-208: OrgDate for org-wide date
+    # rules, the Error Log key's exception type and frame, the match key fill's end-of-run mark
+    # and warning, Run Remaining Checks): 2,274,807 measured, plus about 0.1%.
+    "core": 2_277_000,
     # Raised 2026-11-11 for MIG-08 Import From NPSP (RollupNpsp reads NPSP customizable rollups
     # into the DLRS shape, so the import, compare and same-field guard are reused, not copied)
     # and the rollup Migration Kits' check (RollupsMigrationKit, MIG-01): 381,657 measured

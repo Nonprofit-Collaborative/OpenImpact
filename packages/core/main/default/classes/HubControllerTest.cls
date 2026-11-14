@@ -214,6 +214,46 @@ private class HubControllerTest {
 		}
 	}
 
+	/** The words of a shipped quick link live in Core's BarnHelp catalog (D-208, N-08). */
+	@IsTest
+	static void aQuickLinkLineIsReadFromBarnHelp() {
+		System.runAs(TestUsers.admin()) {
+			HubController.visibleTabsOverride = new Set<String>{ 'Some_Tab' };
+			HubController.QuickLink link = HubController.quickLink(
+				'Some_Tab:Enter a Gift:Core_HubHome_QuickLinkEnterGiftLine'
+			);
+
+			Assert.areEqual(
+				BarnHelp.text('Core', 'Core_HubHome_QuickLinkEnterGiftLine'),
+				link.line,
+				'The catalog names the key; the tile shows its words'
+			);
+			Assert.areEqual('Record a gift in a few keystrokes.', link.line, 'The same words');
+
+			Integer shipped = 0;
+			for (BarnCRM_Module__mdt row : BarnCRM_Module__mdt.getAll().values()) {
+				String quickLinks = row.Quick_Links__c == null ? '' : row.Quick_Links__c;
+				for (String entry : quickLinks.split(';')) {
+					List<String> parts = entry.split(':', 3);
+					if (parts.size() > 2) {
+						shipped++;
+						String key = parts[2].trim();
+						Assert.isTrue(
+							key.startsWith('Core_HubHome_QuickLink'),
+							'Every shipped line is a BarnHelp key, never words: ' + entry
+						);
+						HubController.QuickLink shown = HubController.quickLink(
+							'Some_Tab:Title:' + key
+						);
+						Assert.areNotEqual(key, shown.line, 'And the key resolves: ' + key);
+						Assert.isTrue(String.isNotBlank(shown.line), 'To words: ' + key);
+					}
+				}
+			}
+			Assert.isTrue(shipped > 0, 'The shipped catalog has quick links with lines');
+		}
+	}
+
 	@IsTest
 	static void aBlankOrUncreatableEntryIsNoLink() {
 		System.runAs(TestUsers.admin()) {

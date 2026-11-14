@@ -24,6 +24,19 @@ public with sharing class HealthCheckController {
 	}
 
 	/**
+	 * Run Remaining Checks: only the checks an earlier run left when it stopped early to stay
+	 * inside the limits (D-208, N-07). Reading needs no permission, as with the whole report.
+	 */
+	@AuraEnabled
+	public static HealthCheckService.Report runRemaining(List<String> checkKeys) {
+		try {
+			return HealthCheckService.buildRemainingReport(checkKeys);
+		} catch (Exception e) {
+			throw loadFailed(e);
+		}
+	}
+
+	/**
 	 * When Health Check last ran in full and how many findings it had, without running it
 	 * (ADMIN-7). The panel shows this first where its lastResultFirst property is set.
 	 */

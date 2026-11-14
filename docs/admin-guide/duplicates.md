@@ -24,7 +24,9 @@ BarnCRM addresses are read by their **Match Key**, a field BarnCRM fills on ever
 postal code and house number, so a large org's scan does not search every street. Addresses
 saved before version 1.22 get their key when you choose **Fill Match Keys** on Health Check's
 **Match Keys Not Filled** finding; until it finishes, matching on addresses works as before,
-only slower.
+only slower. An address the job could not save is named in the Error Log with the reason, and
+is read by address again once you fix it and save it (see
+[Health Check](health-check.md)).
 
 The scan also compares **people's names**, ignoring case, spacing and punctuation, so "Jonathan
 Smith" and "Jonathon Smith" are noticed. A similar name is never enough on its own, and the

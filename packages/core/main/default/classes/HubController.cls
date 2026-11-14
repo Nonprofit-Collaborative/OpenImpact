@@ -243,6 +243,33 @@ public with sharing class HubController {
 	}
 
 	/**
+	 * A tile's line: the catalog names a key in Core's BarnHelp catalog, where the words live
+	 * with the other quick link lines (D-208, N-08). Each key is written out here so the help
+	 * text check can find it. A value that is none of them is shown as written, so a row that
+	 * still carries its words keeps working.
+	 */
+	private static String lineFor(String value) {
+		if (String.isBlank(value)) {
+			return null;
+		}
+		Map<String, String> lines = new Map<String, String>{
+			'Core_HubHome_QuickLinkEnterGiftLine' => BarnHelp.text(
+				'Core',
+				'Core_HubHome_QuickLinkEnterGiftLine'
+			),
+			'Core_HubHome_QuickLinkLogHoursLine' => BarnHelp.text(
+				'Core',
+				'Core_HubHome_QuickLinkLogHoursLine'
+			),
+			'Core_HubHome_QuickLinkEnrollLine' => BarnHelp.text(
+				'Core',
+				'Core_HubHome_QuickLinkEnrollLine'
+			)
+		};
+		return lines.containsKey(value) ? lines.get(value) : value;
+	}
+
+	/**
 	 * One catalog entry as a link, or null when it is blank, its object cannot be created, or
 	 * its tab is one the running user cannot see.
 	 */
@@ -255,7 +282,7 @@ public with sharing class HubController {
 		QuickLink link = new QuickLink();
 		String target = parts[0].trim();
 		link.label = parts[1].trim();
-		link.line = parts.size() > 2 ? parts[2].trim() : null;
+		link.line = parts.size() > 2 ? lineFor(parts[2].trim()) : null;
 		if (target.endsWith(NEW_RECORD)) {
 			Schema.DescribeSObjectResult described = NamespaceUtil.describe(
 				target.removeEnd(NEW_RECORD)
